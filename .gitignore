@@ -1,0 +1,3 @@
+*.code-workspace
+__pycache__
+stir_testing
