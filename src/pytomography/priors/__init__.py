@@ -1,0 +1,1 @@
+from .smoothness import QuadraticPriorOSL, LogCoshPriorOSL
