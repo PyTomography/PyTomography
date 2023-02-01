@@ -78,7 +78,7 @@ def simind_projections_to_data(headerfile):
     number_of_projections = find_first_entry_containing_substring(headerdata, 'number of projections', int)
     start_angle = find_first_entry_containing_substring(headerdata, 'start angle', np.float32)
     angles = np.linspace(start_angle, extent_of_rotation, number_of_projections, endpoint=False)
-    radius = find_first_entry_containing_substring(headerdata, 'Radius', np.float32)
+    radius = find_first_entry_containing_substring(headerdata, 'Radius', np.float32) / 10
     imagefile = find_first_entry_containing_substring(headerdata, 'name of data file', str)
     shape_proj= (num_proj, proj_dim1, proj_dim2)
     shape_obj = (proj_dim1, proj_dim1, proj_dim2)
@@ -96,14 +96,14 @@ def simind_CT_to_data(headerfile):
     matrix_size_1 = find_first_entry_containing_substring(headerdata, 'matrix size [1]', int)
     matrix_size_2 = find_first_entry_containing_substring(headerdata, 'matrix size [2]', int)
     matrix_size_3 = find_first_entry_containing_substring(headerdata, 'matrix size [3]', int)
-    shape = (matrix_size_1, matrix_size_2, matrix_size_3)
+    shape = (matrix_size_3, matrix_size_2, matrix_size_1)
     imagefile = find_first_entry_containing_substring(headerdata, 'name of data file', str)
     CT = np.fromfile(os.path.join(str(Path(headerfile).parent), imagefile), dtype=np.float32)
     CT = np.transpose(CT.reshape(shape)[::-1,::-1], (2,1,0))
     CT = torch.tensor(CT.copy())
     return CT
 
-def get_osem_net(projections_header, object_initial='ones', CT_header=None, collimator_slope=None, collimator_intercept=None, device='cpu'):
+def get_osem_net(projections_header, object_initial='ones', CT_header=None, PSF_options=None, device='cpu'):
     object_meta, image_meta, projections = simind_projections_to_data(projections_header)
     object_correction_nets = []
     image_correction_nets = []
@@ -112,8 +112,10 @@ def get_osem_net(projections_header, object_initial='ones', CT_header=None, coll
         CT_net = CTCorrectionNet(object_meta, image_meta, CT.unsqueeze(dim=0).to(device), device=device)
         object_correction_nets.append(CT_net)
         # fill this in later
-    if collimator_slope:
-        []
+    if PSF_options:
+        psf_net = PSFCorrectionNet(object_meta, image_meta, PSF_options['collimator_slope'], PSF_options['collimator_intercept'],
+                           kernel_size=61, kernel_dimensions = PSF_options['kernel_dimensions'], device=device)
+        object_correction_nets.append(psf_net)
         # fill this in later
     fp_net = ForwardProjectionNet(object_correction_nets, image_correction_nets,
                                 object_meta, image_meta, device=device)
@@ -309,6 +311,9 @@ class OSEMNet(nn.Module):
     def set_image(self, image):
         self.image = image
 
+    def set_prior(self, prior):
+        self.prior = prior
+
     def forward(self, n_iters, n_subsets, comparisons=None, delta=1e-11):
         subset_indices_array = self.get_subset_splits(n_subsets, self.image.shape[1])
         for j in range(n_iters):
@@ -323,27 +328,51 @@ class OSEMNet(nn.Module):
                         comparisons[key].compare(self.object_prediction)
         return self.object_prediction
 
-class QuadraticPriorOSL(nn.Module):
-    def __init__(self, beta, device='cpu'):
-        super(QuadraticPriorOSL, self).__init__()
+
+
+class SmoothnessPriorOSL(nn.Module):
+    def __init__(self, beta, phi, delta=1, device='cpu'):
+        super(SmoothnessPriorOSL, self).__init__()
         self.beta = beta
-        self.device=device
-        self.kernel = self.get_kernel()
+        self.delta = delta
+        self.device = device
+        self.phi = phi
+        self.kernel, self.weights = self.get_kernel()
     def get_kernel(self):
-        kern = torch.nn.Conv3d(1, 1, 3, padding='same', padding_mode='reflect', bias=0, device=self.device)
-        xv, yv, zv = torch.meshgrid(*3*[torch.tensor([-1,0,1])])
-        d = torch.sqrt(xv**2+yv**2+zv**2)
-        d[1][1][1] = 1 #little hack that prevents division by zero
-        dinv = 1/d
-        dinv[1][1][1] = 0 # ^^
-        kern.weight.data[0][0] = dinv
-        return kern
+        kernels = []
+        weights = []
+        for i in range(3):
+            for j in range(3):
+                for k in range(3):
+                    if (i==1)*(j==1)*(k==1):
+                        continue
+                    kernel = torch.zeros((3,3,3))
+                    kernel[1,1,1] = 1
+                    kernel[i,j,k] = -1
+                    kernels.append(kernel)
+                    weight = 1/np.sqrt((i-1)**2 + (j-1)**2 + (k-1)**2)
+                    weights.append(weight)
+        kern = torch.nn.Conv3d(1, 26, 3, padding='same', padding_mode='reflect', bias=0, device=self.device)
+        kern.weight.data = torch.stack(kernels).unsqueeze(dim=1).to(self.device)
+        weights = torch.tensor(weights).to(self.device)
+        return kern, weights
     def set_object(self, object):
         self.object = object
+    @torch.no_grad()
     def forward(self):
-        diff = self.kernel.weight.data.sum()*self.object.unsqueeze(dim=1) \
-                            - self.kernel(self.object.unsqueeze(dim=1)) 
-        return self.beta*diff[:,0]
+        phis = self.phi(self.kernel(self.object.unsqueeze(dim=1))/self.delta)
+        all_summation_terms = phis * self.weights.view(-1,1,1,1)
+        return self.beta/self.delta * all_summation_terms.sum(axis=1)
+
+class QuadraticPriorOSL(SmoothnessPriorOSL):
+    def __init__(self, beta, device='cpu'):
+        super(QuadraticPriorOSL, self).__init__(beta, lambda x: x, device=device)
+
+
+
+
+
+
 
 # RENAME ALL THIS LATER
 class CompareToNumber():
