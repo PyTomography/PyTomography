@@ -1,0 +1,83 @@
+:py:mod:`pytomography.projections`
+==================================
+
+.. py:module:: pytomography.projections
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   back_projection/index.rst
+   forward_projection/index.rst
+
+
+Package Contents
+----------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.projections.ForwardProjectionNet
+   pytomography.projections.BackProjectionNet
+
+
+
+
+.. py:class:: ForwardProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device='cpu')
+
+   Bases: :py:obj:`torch.nn.Module`
+
+   Implements a forward projection of mathematical form $$g_j = \sum_{i} c_{ij} f_i$$.
+   where $f_i$ is an object, $g_j$ is the corresponding image, and $c_{ij}$ is the system matrix given
+   by the various phenonemon modeled (atteunation correction/PSF).
+
+   .. py:method:: forward(object, angle_subset=None)
+
+      Implements forward projection on an object
+
+      Args:
+          object (torch.tensor[batch_size, Lx, Ly, Lz]): The object to be forward projected
+          angle_subset (list, optional): Only uses a subset of angles (i.e. only certain values of $j$ in
+          formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None,
+          which assumes all angles are used.
+
+      Returns:
+          torch.tensor[batch_size, Ltheta, Lx, Lz]: Forward projected image where Ltheta is specified by
+          `self.image_meta` and `angle_subset`.
+
+
+
+.. py:class:: BackProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device='cpu')
+
+   Bases: :py:obj:`torch.nn.Module`
+
+   Implements a back projection of mathematical form $$f_j = 
+   rac{1}{\sum_j c_{ij}}\sum_{j} c_{ij} g_j$$.
+       where $f_j$ is an object, $g_j$ is an image, and $c_{ij}$ is the system matrix given
+       by the various phenonemon modeled (atteunation correction/PSF). 
+
+   .. py:method:: forward(image, angle_subset=None, prior=None, delta=1e-11)
+
+      Implements back projection on an image, returning an object.
+
+              Args:
+                  image (torch.tensor[batch_size, Ltheta, Lr, Lz]): image which is to be back projected
+                  angle_subset (list, optional): Only uses a subset of angles (i.e. only certain values of $j$ in
+                  formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None,
+                  which assumes all angles are used.
+                  prior (Prior, optional): If included, modifes normalizing factor to $$
+      rac{1}{\sum_j c_{ij} + P_i} where
+                  $P_i$ is given by the prior. Used, for example, during in MAP OSEM. Defaults to None.
+                  delta (float, optional): Prevents division by zero when dividing by normalizing constant. Defaults to 1e-11.
+
+              Returns:
+                  torch.tensor[batch_size, Lr, Lr, Lz]: the object obtained from back projection.
+              
+
+
+

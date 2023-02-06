@@ -1,1 +1,1 @@
-from .metadata import ObjectMeta, ImageMeta
+from .metadata import ObjectMeta, ImageMeta, PSFMeta

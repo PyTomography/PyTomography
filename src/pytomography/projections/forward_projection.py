@@ -10,8 +10,24 @@ from pytomography.utils.helper_functions import rotate_detector_z
 # OUTPUT:
 # image [batch_size, num_projections, Ly, Lz]
 class ForwardProjectionNet(nn.Module):
+    """Implements a forward projection of mathematical form $$g_j = \sum_{i} c_{ij} f_i$$.
+    where $f_i$ is an object, $g_j$ is the corresponding image, and $c_{ij}$ is the system matrix given
+    by the various phenonemon modeled (atteunation correction/PSF).
+    """
     def __init__(self, object_correction_nets, image_correction_nets,
                 object_meta, image_meta, device='cpu'):
+        """Initializer
+
+        Args:
+            object_correction_nets (list): List of correction networks which operate on an object
+            prior to forward projection such that subsequent forward projection leads to the 
+            phenomenon being simulated.
+            image_correction_nets (list): List of correction networks which operate on an object
+            after forward projection such that desired phenoneon are simulated.
+            object_meta (ObjectMeta): Object metadata.
+            image_meta (ImageMeta): Image metadata.
+            device (str, optional): Pytorch device used for computation. Defaults to 'cpu'.
+        """
         super(ForwardProjectionNet, self).__init__()
         self.device = device
         self.object_correction_nets = object_correction_nets
@@ -20,6 +36,18 @@ class ForwardProjectionNet(nn.Module):
         self.image_meta = image_meta
 
     def forward(self, object, angle_subset=None):
+        """Implements forward projection on an object
+
+        Args:
+            object (torch.tensor[batch_size, Lx, Ly, Lz]): The object to be forward projected
+            angle_subset (list, optional): Only uses a subset of angles (i.e. only certain values of $j$ in
+            formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None,
+            which assumes all angles are used.
+
+        Returns:
+            torch.tensor[batch_size, Ltheta, Lx, Lz]: Forward projected image where Ltheta is specified by
+            `self.image_meta` and `angle_subset`.
+        """
         N_angles = self.image_meta.num_projections
         image = torch.zeros((object.shape[0], N_angles, object.shape[2], object.shape[3])).to(self.device)
         looper = range(N_angles) if angle_subset is None else angle_subset

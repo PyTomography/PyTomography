@@ -1,0 +1,44 @@
+:py:mod:`pytomography.io`
+=========================
+
+.. py:module:: pytomography.io
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   dicom/index.rst
+   simind/index.rst
+
+
+Package Contents
+----------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.io.simind_CT_to_data
+   pytomography.io.simind_projections_to_data
+   pytomography.io.dicom_projections_to_data
+   pytomography.io.dicom_CT_to_data
+
+
+
+.. py:function:: simind_CT_to_data(headerfile)
+
+
+.. py:function:: simind_projections_to_data(headerfile)
+
+
+.. py:function:: dicom_projections_to_data(file)
+
+
+.. py:function:: dicom_CT_to_data(files_CT, file_NM=None)
+
+

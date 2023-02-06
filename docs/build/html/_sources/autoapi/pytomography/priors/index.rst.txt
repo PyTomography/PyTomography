@@ -1,0 +1,15 @@
+:py:mod:`pytomography.priors`
+=============================
+
+.. py:module:: pytomography.priors
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   smoothness/index.rst
+
+

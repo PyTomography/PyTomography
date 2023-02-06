@@ -22,6 +22,8 @@ def simind_projections_to_data(headerfile):
     proj_dim1 = find_first_entry_containing_substring(headerdata, 'matrix size [1]', int)
     proj_dim2 = find_first_entry_containing_substring(headerdata, 'matrix size [2]', int)
     dx = find_first_entry_containing_substring(headerdata, 'scaling factor (mm/pixel) [1]', np.float32) / 10 # to mm
+    dz = find_first_entry_containing_substring(headerdata, 'scaling factor (mm/pixel) [2]', np.float32) / 10 # to mm
+    dr = (dx, dx, dz)
     number_format = find_first_entry_containing_substring(headerdata, 'number format', str)
     num_bytes_per_pixel = find_first_entry_containing_substring(headerdata, 'number of bytes per pixel', np.float32)
     extent_of_rotation = find_first_entry_containing_substring(headerdata, 'extent of rotation', np.float32)
@@ -32,7 +34,7 @@ def simind_projections_to_data(headerfile):
     imagefile = find_first_entry_containing_substring(headerdata, 'name of data file', str)
     shape_proj= (num_proj, proj_dim1, proj_dim2)
     shape_obj = (proj_dim1, proj_dim1, proj_dim2)
-    object_meta = ObjectMeta(dx, shape_obj)
+    object_meta = ObjectMeta(dr,shape_obj)
     image_meta = ImageMeta(object_meta, angles, np.ones(len(angles))*radius)
     projections = np.fromfile(os.path.join(str(Path(headerfile).parent), imagefile), dtype=np.float32)
     projections = np.transpose(projections.reshape((num_proj,proj_dim2,proj_dim1))[:,::-1], (0,2,1))

@@ -1,5 +1,3 @@
-# Example Package
+# PyTomography
 
-This is a simple example package. You can use
-[Github-flavored Markdown](https://guides.github.com/features/mastering-markdown/)
-to write your content.
+Welcome to Pytomography, a package that is extremely fast a SPECT reconstruction.

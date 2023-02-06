@@ -1,0 +1,42 @@
+:py:mod:`pytomography.metadata.metadata`
+========================================
+
+.. py:module:: pytomography.metadata.metadata
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.metadata.metadata.ObjectMeta
+   pytomography.metadata.metadata.ImageMeta
+   pytomography.metadata.metadata.PSFMeta
+
+
+
+
+.. py:class:: ObjectMeta(dr, shape)
+
+   Metadata for object space
+       
+
+
+.. py:class:: ImageMeta(object_meta, angles, radii=None)
+
+   Metadata for image space
+       
+
+
+.. py:class:: PSFMeta(collimator_slope, collimator_intercept, kernel_dimensions, kernel_size=61)
+
+   Metadata for PSF correction. PSF blurring is implemented using Gaussian blurring with
+   $\sigma(d) = ad + b$ where $a$ is the collimator slope, $b$ is the collimator intercept,
+   and $d$ is the distance from a plane in object space to the detector. As such, $sigma(d)$
+   is the point spread function. Blurring is implemented using convolutions with a specified 
+   kernel size. 
+
+

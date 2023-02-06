@@ -20,3 +20,12 @@ classifiers = [
 [project.urls]
 "Homepage" = "https://github.com/pypa/sampleproject"
 "Bug Tracker" = "https://github.com/pypa/sampleproject/issues"
+
+[project-optional-dependencies]
+doc = [
+  "sphinx=4.2.0",
+  "myst-parser",
+  "furo",
+  "nbsphinx",
+  "sphinx-autoapi"
+]
