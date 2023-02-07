@@ -158,7 +158,6 @@
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../../../usage.html">Usage</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../notebooks/tutorial.html">Tutorial</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -192,7 +191,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../utils/helper_functions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.helper_functions</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../classes/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.classes</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -241,7 +239,7 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.corrections.ct_correction.CTCorrectionNet" title="pytomography.corrections.ct_correction.CTCorrectionNet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CTCorrectionNet</span></code></a></p></td>
-<td><p>Base class for all neural network modules.</p></td>
+<td><p>Correction network used to correct for attenuation correction in projection operators. In particular, this network is used with other correction networks to model <span class="math notranslate nohighlight">\(c\)</span> in <span class="math notranslate nohighlight">\(\sum_i c_{ij} a_i\)</span> (forward projection) and <span class="math notranslate nohighlight">\(\sum c_{ij} b_j\)</span> (back projection).</p></td>
 </tr>
 </tbody>
 </table>
@@ -253,7 +251,7 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.corrections.ct_correction.get_prob_of_detection_matrix" title="pytomography.corrections.ct_correction.get_prob_of_detection_matrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_prob_of_detection_matrix</span></code></a>(CT, dx)</p></td>
-<td><p>Converts a CT scan in units of cm^-1 to a probability of photon detection matrix (scanner at +x)</p></td>
+<td><p>Converts an attenuation map of <span class="math notranslate nohighlight">\(\text{cm}^{-1}\)</span> to a probability of photon detection matrix (scanner at +x). Note that this requires the attenuation map to be at the energy of photons being emitted.</p></td>
 </tr>
 </tbody>
 </table>
@@ -261,12 +259,19 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.corrections.ct_correction.get_prob_of_detection_matrix">
 <span class="sig-prename descclassname"><span class="pre">pytomography.corrections.ct_correction.</span></span><span class="sig-name descname"><span class="pre">get_prob_of_detection_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">CT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.corrections.ct_correction.get_prob_of_detection_matrix" title="Permalink to this definition">#</a></dt>
-<dd><p>Converts a CT scan in units of cm^-1 to a probability of photon detection matrix (scanner at +x)</p>
-<dl class="simple">
-<dt>Args:</dt><dd><p>CT (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] of attenuation coefficients representing a CT scan
-dx (float): Pixel spacing in the transaxial plane</p>
+<dd><p>Converts an attenuation map of <span class="math notranslate nohighlight">\(\text{cm}^{-1}\)</span> to a probability of photon detection matrix (scanner at +x). Note that this requires the attenuation map to be at the energy of photons being emitted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>CT</strong> (<em>torch.tensor</em>) – Tensor of size [batch_size, Lx, Ly, Lz] of attenuation coefficients representing a CT scan</p></li>
+<li><p><strong>dx</strong> (<em>float</em>) – Pixel spacing in the transaxial plane</p></li>
+</ul>
 </dd>
-<dt>Returns:</dt><dd><p>torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] corresponding to probability of photon being detected at detector at +x axis</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tensor of size [batch_size, Lx, Ly, Lz] corresponding to probability of photon being detected at detector at +x axis</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.tensor</p>
 </dd>
 </dl>
 </dd></dl>
@@ -275,48 +280,35 @@ dx (float): Pixel spacing in the transaxial plane</p>
 <dt class="sig sig-object py" id="pytomography.corrections.ct_correction.CTCorrectionNet">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.corrections.ct_correction.</span></span><span class="sig-name descname"><span class="pre">CTCorrectionNet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">store_in_memory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.corrections.ct_correction.CTCorrectionNet" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
-<p>Base class for all neural network modules.</p>
-<p>Your models should also subclass this class.</p>
-<p>Modules can also contain other Modules, allowing to nest them in
-a tree structure. You can assign the submodules as regular attributes:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-
-<span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">conv2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv2</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
-</pre></div>
-</div>
-<p>Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call <code class="xref py py-meth docutils literal notranslate"><span class="pre">to()</span></code>, etc.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>As per the example above, an <code class="docutils literal notranslate"><span class="pre">__init__()</span></code> call to the parent class
-must be made before assignment on the child.</p>
-</div>
+<p>Correction network used to correct for attenuation correction in projection operators. In particular, this network is used with other correction networks to model <span class="math notranslate nohighlight">\(c\)</span> in <span class="math notranslate nohighlight">\(\sum_i c_{ij} a_i\)</span> (forward projection) and <span class="math notranslate nohighlight">\(\sum c_{ij} b_j\)</span> (back projection).</p>
 <dl class="field-list simple">
-<dt class="field-odd">Variables<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>training</strong> (<em>bool</em>) – Boolean represents whether this module is in training or
-evaluation mode.</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>object_meta</strong> (<a class="reference internal" href="../../metadata/index.html#pytomography.metadata.ObjectMeta" title="pytomography.metadata.ObjectMeta"><em>ObjectMeta</em></a>) – Metadata for object space</p></li>
+<li><p><strong>image_meta</strong> (<a class="reference internal" href="../../metadata/index.html#pytomography.metadata.ImageMeta" title="pytomography.metadata.ImageMeta"><em>ImageMeta</em></a>) – Metadata for image space</p></li>
+<li><p><strong>CT</strong> (<em>torch.tensor</em>) – Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in <span class="math notranslate nohighlight">\({\text{cm}^{-1}}\)</span> at the photon energy corresponding to the particular scan</p></li>
+<li><p><strong>store_in_memory</strong> (<em>bool</em><em>, </em><em>optional</em>) – Stores all rotated CT scans in memory on computer. May speed up computation. Defaults to False.</p></li>
+<li><p><strong>device</strong> (<em>str</em><em>, </em><em>optional</em>) – Pytorch computation device. Defaults to ‘cpu’.</p></li>
+</ul>
 </dd>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.corrections.ct_correction.CTCorrectionNet.forward">
 <span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.corrections.ct_correction.CTCorrectionNet.forward" title="Permalink to this definition">#</a></dt>
 <dd><p>Applies attenuation correction to an object that’s being detected on the right of its first axis</p>
-<dl class="simple">
-<dt>Args:</dt><dd><p>object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
-i (int): The projection index: used to find the corresponding angle in image space corresponding to object i
-norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>object_i</strong> (<em>torch.tensor</em>) – Tensor of size [batch_size, Lx, Ly, Lz] being projected along <code class="docutils literal notranslate"><span class="pre">axis=1</span></code>.</p></li>
+<li><p><strong>i</strong> (<em>int</em>) – The projection index: used to find the corresponding angle in image space corresponding to <code class="docutils literal notranslate"><span class="pre">object_i</span></code> .</p></li>
+<li><p><strong>norm_constant</strong> (<em>torch.tensor</em><em>, </em><em>optional</em>) – A tensor used to normalize the output during back projection. Defaults to None.</p></li>
+</ul>
 </dd>
-<dt>Returns:</dt><dd><p>torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to
-an attenuation corrected projection.</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.tensor</p>
 </dd>
 </dl>
 </dd></dl>
@@ -401,5 +393,7 @@ an attenuation corrected projection.</p>
     <script src="../../../../_static/sphinx_highlight.js"></script>
     <script src="../../../../_static/scripts/furo.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

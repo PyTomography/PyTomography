@@ -158,7 +158,6 @@
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebooks/tutorial.html">Tutorial</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="autoapi/index.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2 has-children"><a class="reference internal" href="autoapi/pytomography/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l3 has-children"><a class="reference internal" href="autoapi/pytomography/algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -192,7 +191,6 @@
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pytomography/utils/helper_functions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.helper_functions</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="autoapi/pytomography/classes/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.classes</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -233,30 +231,46 @@
         <article role="main">
           <section id="pytomography">
 <h1>PyTomography<a class="headerlink" href="#pytomography" title="Permalink to this heading">#</a></h1>
-<p>Welcome to Pytomography, a package that is extremely fast a SPECT reconstruction.</p>
-<p>For further info, check out <a class="reference internal" href="usage.html"><span class="doc">Usage</span></a>. Read installation instruction in <a class="reference internal" href="usage.html#installation"><span class="std std-ref">Installation</span></a>.</p>
+<p>Welcome to Pytomography, a package that is extremely fast a SPECT reconstruction. This library currently supports attenuation correction, PSF modeling, and Bayesian priors. As long as your data can be turned into a <code class="docutils literal notranslate"><span class="pre">torch.tensor</span></code>, it can be reconstructed. Here, for example, is reconstruction on a SIMIND projection output file.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">osem_net</span> <span class="o">=</span> <span class="n">get_osem_net</span><span class="p">(</span><span class="n">projections_header</span> <span class="o">=</span> <span class="s1">&#39;/home/ubuntu/test_files/projections.h00&#39;</span><span class="p">,</span>
+                        <span class="n">CT_header</span> <span class="o">=</span> <span class="s1">&#39;/home/ubuntu/test_files/CT.hct&#39;</span><span class="p">,</span>
+                        <span class="n">psf_meta</span><span class="o">=</span><span class="n">PSFMeta</span><span class="p">(</span><span class="n">collimator_slope</span><span class="o">=</span><span class="mf">0.0301</span><span class="p">,</span> <span class="n">collimator_intercept</span><span class="o">=</span><span class="mf">0.00197</span><span class="p">),</span>
+                        <span class="n">prior</span> <span class="o">=</span> <span class="n">LogCoshPrior</span><span class="p">(</span><span class="n">beta</span><span class="o">=</span><span class="mf">0.05</span><span class="p">),</span>
+                        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span> 
+<span class="n">reconstructed_object</span><span class="o">=</span> <span class="n">osem_net</span><span class="p">(</span><span class="n">n_iters</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">n_subsets</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>                 
+</pre></div>
+</div>
+</section>
+<section id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">#</a></h1>
+<p>This library requires use of the pytorch machine learning library. I recommend making a virtual environment using anaconda:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">--</span><span class="n">name</span> <span class="n">pytomography</span>
+</pre></div>
+</div>
+<p>Then install whatever version of pytorch you need using the commands <a class="reference external" href="https://pytorch.org/get-started/locally/">here</a>.</p>
+<p>Finally, install pytomography:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">pytomography</span>
+</pre></div>
+</div>
+</section>
+<section id="more-reading">
+<h1>More Reading<a class="headerlink" href="#more-reading" title="Permalink to this heading">#</a></h1>
+<p>For an extensive overview of this package, see the documentation.</p>
+<p>For further info, check out <a class="reference internal" href="usage.html"><span class="doc">Usage</span></a>. Read installation instruction in <a class="reference internal" href="#installation"><span class="std std-ref">Installation</span></a>.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>This library is still under heavy development. s</p>
+<p>This library is still under heavy development.</p>
 </div>
-<p><span class="math notranslate nohighlight">\(x^2\)</span></p>
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="usage.html#installation">Installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="usage.html#other">Other</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="usage.html#pytomography.OSEMNet"><code class="docutils literal notranslate"><span class="pre">OSEMNet</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="usage.html#pytomography.OSEMNet">OSEMNet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#tutorials">Tutorials</a></li>
 </ul>
 </li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="notebooks/tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="autoapi/index.html">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="autoapi/pytomography/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="autoapi/pytomography/index.html#subpackages">Subpackages</a></li>
-<li class="toctree-l3"><a class="reference internal" href="autoapi/pytomography/index.html#submodules">Submodules</a></li>
 <li class="toctree-l3"><a class="reference internal" href="autoapi/pytomography/index.html#package-contents">Package Contents</a></li>
 </ul>
 </li>
@@ -264,14 +278,6 @@
 </li>
 </ul>
 </div>
-</section>
-<section id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this heading">#</a></h1>
-<ul class="simple">
-<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
-<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
-<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
-</ul>
 </section>
 
         </article>
@@ -321,7 +327,5 @@
     <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/scripts/furo.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
-    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

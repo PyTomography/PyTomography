@@ -29,81 +29,71 @@ Functions
 
    Creates a 2D convolutional layer that is used for PSF correction
 
-   Args:
-       sigma (array): Array of length Lx corresponding to blurring (sigma of Gaussian) as a function of distance from scanner
-       kernel_size (int): Size of the kernel used in each layer. Needs to be large enough to cover most of Gaussian
-       delta (float, optional): Used to prevent division by 0 when sigma=0. Defaults to 1e-9.
-       device (str, optional): Pytorch device used for computation. Defaults to 'cpu'.
-       kernel_dimensions (str, optional): Whether or not blurring is done independently in each transaxial slice ('1D') or
-                                           if blurring is done between transaxial slices ('2D'). Defaults to '2D'.
+   :param sigma: Array of length Lx corresponding to blurring (sigma of Gaussian) as a function of distance from scanner
+   :type sigma: array
+   :param kernel_size: Size of the kernel used in each layer. Needs to be large enough to cover most of Gaussian
+   :type kernel_size: int
+   :param delta: Used to prevent division by 0 when sigma=0. Defaults to 1e-9.
+   :type delta: float, optional
+   :param device: Pytorch device used for computation. Defaults to 'cpu'.
+   :type device: str, optional
+   :param kernel_dimensions: Whether or not blurring is done independently in each transaxial slice ('1D') or
+                             if blurring is done between transaxial slices ('2D'). Defaults to '2D'.
+   :type kernel_dimensions: str, optional
 
-   Returns:
-       torch.nn.Conv2d: Convolutional neural network layer used to apply blurring to objects of shape [batch_size, Lx, Ly, Lz]
+   :returns: Convolutional neural network layer used to apply blurring to objects of shape [batch_size, Lx, Ly, Lz]
+   :rtype: torch.nn.Conv2d
 
 
 .. py:class:: PSFCorrectionNet(object_meta, image_meta, psf_meta, device='cpu')
 
    Bases: :py:obj:`torch.nn.Module`
 
-   Base class for all neural network modules.
+   Correction network used to correct PSF correction in projection operators. In particular, this network is used with other correction networks to model :math:`c` in :math:`\sum_i c_{ij} a_i` (forward projection) and :math:`\sum c_{ij} b_j` (back projection). The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``PSFMeta`` parameter.
 
-   Your models should also subclass this class.
-
-   Modules can also contain other Modules, allowing to nest them in
-   a tree structure. You can assign the submodules as regular attributes::
-
-       import torch.nn as nn
-       import torch.nn.functional as F
-
-       class Model(nn.Module):
-           def __init__(self):
-               super().__init__()
-               self.conv1 = nn.Conv2d(1, 20, 5)
-               self.conv2 = nn.Conv2d(20, 20, 5)
-
-           def forward(self, x):
-               x = F.relu(self.conv1(x))
-               return F.relu(self.conv2(x))
-
-   Submodules assigned in this way will be registered, and will have their
-   parameters converted too when you call :meth:`to`, etc.
-
-   .. note::
-       As per the example above, an ``__init__()`` call to the parent class
-       must be made before assignment on the child.
-
-   :ivar training: Boolean represents whether this module is in training or
-                   evaluation mode.
-   :vartype training: bool
+   :param object_meta: Metadata of object space.
+   :type object_meta: ObjectMeta
+   :param image_meta: Metadata of image space
+   :type image_meta: ImageMeta
+   :param psf_meta: Metadata corresponding to the parameters of PSF blurring
+   :type psf_meta: PSFMeta
+   :param device: Pytorch device used for computation. Defaults to 'cpu'.
+   :type device: str, optional
 
    .. py:method:: get_sigma(radius, dx, shape, collimator_slope, collimator_intercept)
 
-      Uses PSF Meta data information to get blurring (sigma) as a function of distance from detector
+      Uses PSF Meta data information to get blurring :math:`\sigma` as a function of distance from detector. It is assumed that ``sigma=collimator_slope*d + collimator_intercept`` where :math:`d` is the distance from the detector.
 
-      Args:
-          radius (float): The distance from the detector
-          dx (float): Transaxial plane pixel spacing
-          shape (tuple): Tuple containing (Lx, Ly, Lz): dimensions of object space 
-          collimator_slope (float): See collimator intercept
-          collimator_intercept (float): Collimator slope and collimator intercept are defined such that sigma(d) = collimator_slope*d + collimator_intercept
-          where sigma corresponds to sigma of a Gaussian function that characterizes blurring as a function of distance from the detector.
+      :param radius: The distance from the detector
+      :type radius: float
+      :param dx: Transaxial plane pixel spacing
+      :type dx: float
+      :param shape: Tuple containing (Lx, Ly, Lz): dimensions of object space
+      :type shape: tuple
+      :param collimator_slope: See collimator intercept
+      :type collimator_slope: float
+      :param collimator_intercept: Collimator slope and collimator intercept are defined such that sigma(d) = collimator_slope*d + collimator_intercept
+      :type collimator_intercept: float
+      :param where sigma corresponds to sigma of a Gaussian function that characterizes blurring as a function of distance from the detector.:
 
-      Returns:
-          array: An array of length Lx corresponding to blurring at each point along the 1st axis in object space
+      :returns: An array of length Lx corresponding to blurring at each point along the 1st axis in object space
+      :rtype: array
 
 
    .. py:method:: forward(object_i, i, norm_constant=None)
 
-      Applies PSF correction to an object that's being detected on the right of its first axis
+      Applies PSF correction for the situation where an object is being detector by a detector at the :math:`+x` axis.
 
-      Args:
-          object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
-                      i (int): The projection index: used to find the corresponding angle in image space corresponding to object i
-                      norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
+      :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
+                       i (int): The projection index: used to find the corresponding angle in image space corresponding to object i
+                       norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
+      :type object_i: torch.tensor
 
-      Returns:
-          torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to
-                      an PSF corrected projection.
+      :returns:
+
+                Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to
+                            an PSF corrected projection.
+      :rtype: torch.tensor
 
 
 

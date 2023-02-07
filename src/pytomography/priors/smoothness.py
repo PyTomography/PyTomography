@@ -3,9 +3,8 @@ import torch.nn as nn
 import numpy as np
 
 class SmoothnessPrior(nn.Module):
-    """Implementation of priors with gradients of the form 
-    $$\frac{\partial V}{\partial f_r}=\frac{\beta}{\delta}\sum_{r,s}w_{s}\phi\left(\frac{f_r-f_s}{\delta}\right) $$
-    where $V$ is from the log-posterior probability $\log P(g | f) - \beta V(f)$
+    r"""Implementation of priors with gradients of the form 
+    :math:`\frac{\partial V}{\partial f_r}=\frac{\beta}{\delta}\sum_{r,s}w_{s}\phi\left(\frac{f_r-f_s}{\delta}\right)` where :math:`V` is from the log-posterior probability :math:`\log P(g | f) - \beta V(f)`.
     """
     def __init__(self, beta, phi, delta=1, device='cpu'):
         """Initializer
@@ -24,12 +23,10 @@ class SmoothnessPrior(nn.Module):
         self.phi = phi
 
     def get_kernel(self):
-        """Obtains the kernel used to get $\partial V / \partial f$ (this is an array with the
-        same dimensions as the object space image)
+        r"""Obtains the kernel used to get :math:`\frac{\partial V}{\partial f_r}` (this is an array with the same dimensions as the object space image)
 
         Returns:
-            (torch.nn.Conv3d, torch.tensor): Kernel used for convolution with number of output channels equal
-            to $s$ in the forumla above, and array of weights $w_s$ used in formula above.
+            (torch.nn.Conv3d, torch.tensor): Kernel used for convolution (number of output channels equal to number of :math:`s`), and array of weights :math:`w_s` used in expression for gradient.
         """
         dx, dy, dz = self.object_meta.dr
         kernels = []
@@ -68,15 +65,15 @@ class SmoothnessPrior(nn.Module):
         self.kernel, self.weights = self.get_kernel()
 
     def set_beta_scale(self, factor):
-        """Sets $\beta$ used in the formula above
+        r"""Sets :math:`\beta` 
 
         Args:
-            factor (float): Value of $\beta$ used in formula above.
+            factor (float): Value of :math:`\beta` 
         """
         self.beta_scale_factor = factor
 
     def set_object(self, object):
-        """Sets the object used to compute the prior on
+        """Sets the object :math:`f_r` used to compute :math:`\frac{\partial V}{\partial f_r}` 
 
         Args:
             object (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] which the prior
@@ -84,23 +81,31 @@ class SmoothnessPrior(nn.Module):
         """
         self.object = object
 
+    def set_device(self, device):
+        """Sets the pytorch computation device
+
+        Args:
+            device (str): sets device.
+        """
+        self.device=device
+
     @torch.no_grad()
     def forward(self):
-        """Computes the prior on self.object
+        r"""Computes the prior on self.object
 
         Returns:
-            torch.tensor: Tensor of shape [batch_size, Lx, Ly, Lz] representing $\partial V / \partial f_r$
+            torch.tensor: Tensor of shape [batch_size, Lx, Ly, Lz] representing :math:`\frac{\partial V}{\partial f_r}`
         """
         phis = self.phi(self.kernel(self.object.unsqueeze(dim=1))/self.delta)
         all_summation_terms = phis * self.weights.view(-1,1,1,1)
         return self.beta*self.beta_scale_factor/self.delta * all_summation_terms.sum(axis=1)
 
 class QuadraticPrior(SmoothnessPrior):
-    """Implentation of `SmoothnessPrior` where $\phi$ is the identity function"""
+    r"""Implentation of `SmoothnessPrior` where :math:`\phi` is the identity function"""
     def __init__(self, beta, delta=1, device='cpu'):
         super(QuadraticPrior, self).__init__(beta, lambda x: x, delta=delta, device=device)
 
 class LogCoshPrior(SmoothnessPrior):
-    """Implementation of `SmoothnessPrior` where $\phi$ is the hyperbolic tangent function"""
+    r"""Implementation of `SmoothnessPrior` where :math:`\phi` is the hyperbolic tangent function"""
     def __init__(self, beta, delta=1, device='cpu'):
         super(LogCoshPrior, self).__init__(beta, torch.tanh, delta=delta, device=device)

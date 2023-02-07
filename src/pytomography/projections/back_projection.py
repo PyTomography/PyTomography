@@ -4,9 +4,7 @@ from pytomography.utils.helper_functions import rotate_detector_z
 
 
 class BackProjectionNet(nn.Module):
-    """Implements a back projection of mathematical form $$f_j = \frac{1}{\sum_j c_{ij}}\sum_{j} c_{ij} g_j$$.
-    where $f_j$ is an object, $g_j$ is an image, and $c_{ij}$ is the system matrix given
-    by the various phenonemon modeled (atteunation correction/PSF). """
+    r"""Implements a back projection of mathematical form :math:`f_i = \frac{1}{\sum_j c_{ij}}\sum_{j} c_{ij} g_j`. where :math:`f_j` is an object, :math:`g_j` is an image, and :math:`c_{ij}` is the system matrix given by the various phenonemon modeled (atteunation correction/PSF). """
     def __init__(self, object_correction_nets, image_correction_nets,
                  object_meta, image_meta, device='cpu'):
         """Initializer
@@ -31,15 +29,12 @@ class BackProjectionNet(nn.Module):
         self.image_meta = image_meta
 
     def forward(self, image, angle_subset=None, prior=None, delta=1e-11):
-        """Implements back projection on an image, returning an object.
+        r"""Implements back projection on an image, returning an object.
 
         Args:
             image (torch.tensor[batch_size, Ltheta, Lr, Lz]): image which is to be back projected
-            angle_subset (list, optional): Only uses a subset of angles (i.e. only certain values of $j$ in
-            formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None,
-            which assumes all angles are used.
-            prior (Prior, optional): If included, modifes normalizing factor to $$\frac{1}{\sum_j c_{ij} + P_i} where
-            $P_i$ is given by the prior. Used, for example, during in MAP OSEM. Defaults to None.
+            angle_subset (list, optional): Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
+            prior (Prior, optional): If included, modifes normalizing factor to :math:`\frac{1}{\sum_j c_{ij} + P_i}` where :math:`P_i` is given by the prior. Used, for example, during in MAP OSEM. Defaults to None.
             delta (float, optional): Prevents division by zero when dividing by normalizing constant. Defaults to 1e-11.
 
         Returns:

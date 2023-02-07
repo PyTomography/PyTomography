@@ -89,20 +89,16 @@ Functions
 
       Modify object using attenuation correction.
 
-      Parameters
-      --------
-      object_i : (batch_size, Lx, Ly, Lz) torch.tensor
-        This object is such that summation along the x-axis yields the ith projection in
-        the image
-      i: number
-        The projection index
-      norm_constant: (batch_size, Lx, Ly, Lz) torch.tensor. Default: None
-        If true, modify the norm_constant argument by the normalization factor
-        used to scale object_i. This is useful during back projection, where division by
-        a normalization constant is required.
-
-      Returns:
-        Pytorch tensor of size [batch_size, Lx, Ly, Lz] cor
+      :param object_i: This object is such that summation along the x-axis yields the ith projection in
+                       the image
+      :type object_i: (batch_size, Lx, Ly, Lz) torch.tensor
+      :param i: The projection index
+      :type i: number
+      :param norm_constant: If true, modify the norm_constant argument by the normalization factor
+                            used to scale object_i. This is useful during back projection, where division by
+                            a normalization constant is required.
+      :type norm_constant: (batch_size, Lx, Ly, Lz) torch.tensor. Default: None
+      :param Returns: Pytorch tensor of size [batch_size, Lx, Ly, Lz] cor
 
 
 

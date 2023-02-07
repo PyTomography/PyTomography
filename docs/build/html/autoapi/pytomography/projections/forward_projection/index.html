@@ -158,7 +158,6 @@
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../../../usage.html">Usage</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../notebooks/tutorial.html">Tutorial</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -192,7 +191,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../utils/helper_functions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.helper_functions</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../classes/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.classes</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -241,7 +239,7 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.projections.forward_projection.ForwardProjectionNet" title="pytomography.projections.forward_projection.ForwardProjectionNet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ForwardProjectionNet</span></code></a></p></td>
-<td><p>Implements a forward projection of mathematical form $$g_j = sum_{i} c_{ij} f_i$$.</p></td>
+<td><p>Implements a forward projection of mathematical form <span class="math notranslate nohighlight">\(g_j = \sum_{i} c_{ij} f_i\)</span> where <span class="math notranslate nohighlight">\(f_i\)</span> is an object, <span class="math notranslate nohighlight">\(g_j\)</span> is the corresponding image, and <span class="math notranslate nohighlight">\(c_{ij}\)</span> is the system matrix given by the various phenonemon modeled (atteunation correction/PSF).</p></td>
 </tr>
 </tbody>
 </table>
@@ -250,25 +248,24 @@
 <dt class="sig sig-object py" id="pytomography.projections.forward_projection.ForwardProjectionNet">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.projections.forward_projection.</span></span><span class="sig-name descname"><span class="pre">ForwardProjectionNet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_correction_nets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_correction_nets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.projections.forward_projection.ForwardProjectionNet" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
-<p>Implements a forward projection of mathematical form <div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[g_j = \sum_{i} c_{ij} f_i\]</div>
-</div>
-.
-where <span class="math notranslate nohighlight">\(f_i\)</span> is an object, <span class="math notranslate nohighlight">\(g_j\)</span> is the corresponding image, and <span class="math notranslate nohighlight">\(c_{ij}\)</span> is the system matrix given
-by the various phenonemon modeled (atteunation correction/PSF).</p>
+<p>Implements a forward projection of mathematical form <span class="math notranslate nohighlight">\(g_j = \sum_{i} c_{ij} f_i\)</span> where <span class="math notranslate nohighlight">\(f_i\)</span> is an object, <span class="math notranslate nohighlight">\(g_j\)</span> is the corresponding image, and <span class="math notranslate nohighlight">\(c_{ij}\)</span> is the system matrix given by the various phenonemon modeled (atteunation correction/PSF).</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.projections.forward_projection.ForwardProjectionNet.forward">
 <span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_subset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.projections.forward_projection.ForwardProjectionNet.forward" title="Permalink to this definition">#</a></dt>
 <dd><p>Implements forward projection on an object</p>
-<dl class="simple">
-<dt>Args:</dt><dd><p>object (torch.tensor[batch_size, Lx, Ly, Lz]): The object to be forward projected
-angle_subset (list, optional): Only uses a subset of angles (i.e. only certain values of <span class="math notranslate nohighlight">\(j\)</span> in
-formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None,
-which assumes all angles are used.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>object</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>]</em>) – The object to be forward projected</p></li>
+<li><p><strong>angle_subset</strong> (<em>list</em><em>, </em><em>optional</em>) – Only uses a subset of angles (i.e. only certain values of <span class="math notranslate nohighlight">\(j\)</span> in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None,</p></li>
+<li><p><strong>used.</strong> (<em>which assumes all angles are</em>) – </p></li>
+</ul>
 </dd>
-<dt>Returns:</dt><dd><p>torch.tensor[batch_size, Ltheta, Lx, Lz]: Forward projected image where Ltheta is specified by
-<cite>self.image_meta</cite> and <cite>angle_subset</cite>.</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Forward projected image where Ltheta is specified by <cite>self.image_meta</cite> and <cite>angle_subset</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.tensor[batch_size, Ltheta, Lx, Lz]</p>
 </dd>
 </dl>
 </dd></dl>

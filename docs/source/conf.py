@@ -35,6 +35,7 @@ extensions = [
     "sphinx_math_dollar",
     "sphinx.ext.autosectionlabel",
     "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
     "nbsphinx",
     "autoapi.extension",
 ]

@@ -158,7 +158,6 @@
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../../../usage.html">Usage</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../notebooks/tutorial.html">Tutorial</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -192,7 +191,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../utils/helper_functions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.helper_functions</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../classes/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.classes</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -244,10 +242,10 @@
 <td><p>Implementation of priors with gradients of the form</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.priors.smoothness.QuadraticPrior" title="pytomography.priors.smoothness.QuadraticPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QuadraticPrior</span></code></a></p></td>
-<td><p>Implentation of <cite>SmoothnessPrior</cite> where $phi$ is the identity function</p></td>
+<td><p>Implentation of <cite>SmoothnessPrior</cite> where <span class="math notranslate nohighlight">\(\phi\)</span> is the identity function</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.priors.smoothness.LogCoshPrior" title="pytomography.priors.smoothness.LogCoshPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LogCoshPrior</span></code></a></p></td>
-<td><p>Implementation of <cite>SmoothnessPrior</cite> where $phi$ is the hyperbolic tangent function</p></td>
+<td><p>Implementation of <cite>SmoothnessPrior</cite> where <span class="math notranslate nohighlight">\(\phi\)</span> is the hyperbolic tangent function</p></td>
 </tr>
 </tbody>
 </table>
@@ -256,25 +254,18 @@
 <dt class="sig sig-object py" id="pytomography.priors.smoothness.SmoothnessPrior">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.smoothness.</span></span><span class="sig-name descname"><span class="pre">SmoothnessPrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.priors.smoothness.SmoothnessPrior" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
-<dl class="simple">
-<dt>Implementation of priors with gradients of the form</dt><dd><p>$$</p>
-</dd>
-</dl>
-<p>rac{partial V}{partial f_r}=
-rac{eta}{delta}sum_{r,s}w_{s}phileft(
-rac{f_r-f_s}{delta}
-ight) $$</p>
-<blockquote>
-<div><p>where <span class="math notranslate nohighlight">\(V\)</span> is from the log-posterior probability <span class="math notranslate nohighlight">\(\log P(g | f) - eta V(f)\)</span></p>
-</div></blockquote>
+<p>Implementation of priors with gradients of the form
+<span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}=\frac{\beta}{\delta}\sum_{r,s}w_{s}\phi\left(\frac{f_r-f_s}{\delta}\right)\)</span> where <span class="math notranslate nohighlight">\(V\)</span> is from the log-posterior probability <span class="math notranslate nohighlight">\(\log P(g | f) - \beta V(f)\)</span>.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.priors.smoothness.SmoothnessPrior.get_kernel">
 <span class="sig-name descname"><span class="pre">get_kernel</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.priors.smoothness.SmoothnessPrior.get_kernel" title="Permalink to this definition">#</a></dt>
-<dd><p>Obtains the kernel used to get <span class="math notranslate nohighlight">\(\partial V / \partial f\)</span> (this is an array with the
-same dimensions as the object space image)</p>
-<dl class="simple">
-<dt>Returns:</dt><dd><p>(torch.nn.Conv3d, torch.tensor): Kernel used for convolution with number of output channels equal
-to <span class="math notranslate nohighlight">\(s\)</span> in the forumla above, and array of weights <span class="math notranslate nohighlight">\(w_s\)</span> used in formula above.</p>
+<dd><p>Obtains the kernel used to get <span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}\)</span> (this is an array with the same dimensions as the object space image)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Kernel used for convolution (number of output channels equal to number of <span class="math notranslate nohighlight">\(s\)</span>), and array of weights <span class="math notranslate nohighlight">\(w_s\)</span> used in expression for gradient.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(torch.nn.Conv3d, torch.tensor)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -283,8 +274,9 @@ to <span class="math notranslate nohighlight">\(s\)</span> in the forumla above,
 <dt class="sig sig-object py" id="pytomography.priors.smoothness.SmoothnessPrior.set_object_meta">
 <span class="sig-name descname"><span class="pre">set_object_meta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.priors.smoothness.SmoothnessPrior.set_object_meta" title="Permalink to this definition">#</a></dt>
 <dd><p>Sets object metadata parameters.</p>
-<dl class="simple">
-<dt>Args:</dt><dd><p>object_meta (ObjectMeta): Object metadata describing the system.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>object_meta</strong> (<a class="reference internal" href="../../metadata/index.html#pytomography.metadata.ObjectMeta" title="pytomography.metadata.ObjectMeta"><em>ObjectMeta</em></a>) – Object metadata describing the system.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -293,8 +285,9 @@ to <span class="math notranslate nohighlight">\(s\)</span> in the forumla above,
 <dt class="sig sig-object py" id="pytomography.priors.smoothness.SmoothnessPrior.set_kernel">
 <span class="sig-name descname"><span class="pre">set_kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.priors.smoothness.SmoothnessPrior.set_kernel" title="Permalink to this definition">#</a></dt>
 <dd><p>Sets the kernel using  <cite>get_kernel</cite> and the corresponding object metadata.</p>
-<dl class="simple">
-<dt>Args:</dt><dd><p>object_meta (_type_): _description_</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>object_meta</strong> (<em>_type_</em>) – _description_</p>
 </dd>
 </dl>
 </dd></dl>
@@ -302,9 +295,10 @@ to <span class="math notranslate nohighlight">\(s\)</span> in the forumla above,
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.priors.smoothness.SmoothnessPrior.set_beta_scale">
 <span class="sig-name descname"><span class="pre">set_beta_scale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">factor</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.priors.smoothness.SmoothnessPrior.set_beta_scale" title="Permalink to this definition">#</a></dt>
-<dd><p>Sets <span class="math notranslate nohighlight">\(eta\)</span> used in the formula above</p>
-<dl class="simple">
-<dt>Args:</dt><dd><p>factor (float): Value of <span class="math notranslate nohighlight">\(eta\)</span> used in formula above.</p>
+<dd><p>Sets <span class="math notranslate nohighlight">\(\beta\)</span></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>factor</strong> (<em>float</em>) – Value of <span class="math notranslate nohighlight">\(\beta\)</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -312,10 +306,24 @@ to <span class="math notranslate nohighlight">\(s\)</span> in the forumla above,
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.priors.smoothness.SmoothnessPrior.set_object">
 <span class="sig-name descname"><span class="pre">set_object</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.priors.smoothness.SmoothnessPrior.set_object" title="Permalink to this definition">#</a></dt>
-<dd><p>Sets the object used to compute the prior on</p>
-<dl class="simple">
+<dd><p>Sets the object <span class="math notranslate nohighlight">\(f_r\)</span> used to compute :math:`
+rac{partial V}{partial f_r}`</p>
+<blockquote>
+<div><dl class="simple">
 <dt>Args:</dt><dd><p>object (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] which the prior
 will be computed on</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.priors.smoothness.SmoothnessPrior.set_device">
+<span class="sig-name descname"><span class="pre">set_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.priors.smoothness.SmoothnessPrior.set_device" title="Permalink to this definition">#</a></dt>
+<dd><p>Sets the pytorch computation device</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>device</strong> (<em>str</em>) – sets device.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -324,8 +332,12 @@ will be computed on</p>
 <dt class="sig sig-object py" id="pytomography.priors.smoothness.SmoothnessPrior.forward">
 <span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.priors.smoothness.SmoothnessPrior.forward" title="Permalink to this definition">#</a></dt>
 <dd><p>Computes the prior on self.object</p>
-<dl class="simple">
-<dt>Returns:</dt><dd><p>torch.tensor: Tensor of shape [batch_size, Lx, Ly, Lz] representing <span class="math notranslate nohighlight">\(\partial V / \partial f_r\)</span></p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tensor of shape [batch_size, Lx, Ly, Lz] representing <span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}\)</span></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>torch.tensor</p>
 </dd>
 </dl>
 </dd></dl>
@@ -396,6 +408,7 @@ will be computed on</p>
 <li><a class="reference internal" href="#pytomography.priors.smoothness.SmoothnessPrior.set_kernel"><code class="docutils literal notranslate"><span class="pre">SmoothnessPrior.set_kernel()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.priors.smoothness.SmoothnessPrior.set_beta_scale"><code class="docutils literal notranslate"><span class="pre">SmoothnessPrior.set_beta_scale()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.priors.smoothness.SmoothnessPrior.set_object"><code class="docutils literal notranslate"><span class="pre">SmoothnessPrior.set_object()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.priors.smoothness.SmoothnessPrior.set_device"><code class="docutils literal notranslate"><span class="pre">SmoothnessPrior.set_device()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.priors.smoothness.SmoothnessPrior.forward"><code class="docutils literal notranslate"><span class="pre">SmoothnessPrior.forward()</span></code></a></li>
 </ul>
 </li>
@@ -407,6 +420,7 @@ will be computed on</p>
 <li><a class="reference internal" href="#pytomography.priors.smoothness.SmoothnessPrior.set_kernel">set_kernel</a></li>
 <li><a class="reference internal" href="#pytomography.priors.smoothness.SmoothnessPrior.set_beta_scale">set_beta_scale</a></li>
 <li><a class="reference internal" href="#pytomography.priors.smoothness.SmoothnessPrior.set_object">set_object</a></li>
+<li><a class="reference internal" href="#pytomography.priors.smoothness.SmoothnessPrior.set_device">set_device</a></li>
 <li><a class="reference internal" href="#pytomography.priors.smoothness.SmoothnessPrior.forward">forward</a></li>
 </ul>
 </li>

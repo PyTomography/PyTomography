@@ -3,7 +3,7 @@ import torch.nn as nn
 from pytomography.utils.helper_functions import rotate_detector_z, rev_cumsum
 
 def get_prob_of_detection_matrix(CT, dx): 
-	"""Converts a CT scan in units of cm^-1 to a probability of photon detection matrix (scanner at +x)
+	r"""Converts an attenuation map of :math:`\text{cm}^{-1}` to a probability of photon detection matrix (scanner at +x). Note that this requires the attenuation map to be at the energy of photons being emitted.
 
     Args:
         CT (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] of attenuation coefficients representing a CT scan
@@ -15,17 +15,16 @@ def get_prob_of_detection_matrix(CT, dx):
 	return torch.exp(-rev_cumsum(CT* dx))
 
 class CTCorrectionNet(nn.Module):
-	def __init__(self, object_meta, image_meta, CT, store_in_memory=False, device='cpu'):
-		"""Correction network used to correct for attenuation correction in projection operators
+	r"""Correction network used to correct for attenuation correction in projection operators. In particular, this network is used with other correction networks to model :math:`c` in :math:`\sum_i c_{ij} a_i` (forward projection) and :math:`\sum c_{ij} b_j` (back projection).
 
 		Args:
 			object_meta (ObjectMeta): Metadata for object space
 			image_meta (ImageMeta): Metadata for image space
-			CT (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in cm^-1 at
-			the photon energy corresponding to the particular scan
+			CT (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{cm}^{-1}}` at the photon energy corresponding to the particular scan
 			store_in_memory (bool, optional): Stores all rotated CT scans in memory on computer. May speed up computation. Defaults to False.
 			device (str, optional): Pytorch computation device. Defaults to 'cpu'.
 		"""
+	def __init__(self, object_meta, image_meta, CT, store_in_memory=False, device='cpu'):
 		super(CTCorrectionNet, self).__init__()
 		self.CT = CT
 		self.object_meta = object_meta
@@ -42,13 +41,12 @@ class CTCorrectionNet(nn.Module):
 		"""Applies attenuation correction to an object that's being detected on the right of its first axis
 
 		Args:
-			object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
-			i (int): The projection index: used to find the corresponding angle in image space corresponding to object i
+			object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along ``axis=1``.
+			i (int): The projection index: used to find the corresponding angle in image space corresponding to ``object_i`` .
 			norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
 
 		Returns:
-			torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to
-			an attenuation corrected projection.
+			torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.
 		"""
 		if self.store_in_memory:
 			norm_factor = self.probability_matrices[i]

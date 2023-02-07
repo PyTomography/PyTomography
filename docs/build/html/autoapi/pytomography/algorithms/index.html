@@ -158,7 +158,6 @@
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/tutorial.html">Tutorial</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l3 current has-children current-page"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -192,7 +191,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../utils/helper_functions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.helper_functions</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../classes/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.classes</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -249,7 +247,7 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.algorithms.OSEMNet" title="pytomography.algorithms.OSEMNet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OSEMNet</span></code></a></p></td>
-<td><p>Network used to run OSEM reconstruction:</p></td>
+<td><p>Network used to run OSEM reconstruction: <span class="math notranslate nohighlight">\(f_i^{(n+1)} = \frac{f_i^{(n)}}{\sum_j c_{ij} + \beta \frac{\partial V}{\partial f_r}|_{f_i=f_i^{(n)}}} \sum_j c_{ij}\frac{g_j}{\sum_i c_{ij}f_i^{(n)}}\)</span>. Initializer initializes the reconstruction algorithm with the initial object guess <span class="math notranslate nohighlight">\(f_i^{(0)}\)</span>, forward and back projections used (i.e. networks to compute <span class="math notranslate nohighlight">\(\sum_i c_{ij} a_i\)</span> and <span class="math notranslate nohighlight">\(\sum_j c_{ij} b_j\)</span>), and prior for Bayesian corrections. Note that OSEMNet uses the one step late (OSL algorithm to compute priors during reconstruction. Once the class is initialized, the number of iterations and subsets are specified at recon time when the forward method is called.</p></td>
 </tr>
 </tbody>
 </table>
@@ -261,31 +259,29 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.algorithms.get_osem_net" title="pytomography.algorithms.get_osem_net"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_osem_net</span></code></a>(projections_header[, object_initial, ...])</p></td>
-<td><p>Function used to obtain an <a class="reference internal" href="#pytomography.algorithms.OSEMNet" title="pytomography.algorithms.OSEMNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">OSEMNet</span></code></a> given projection data and corrections one wishes to use.</p></td>
+<td><p>Function used to obtain an <cite>OSEMNet</cite> given projection data and corrections one wishes to use.</p></td>
 </tr>
 </tbody>
 </table>
 </div>
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.algorithms.get_osem_net">
-<span class="sig-prename descclassname"><span class="pre">pytomography.algorithms.</span></span><span class="sig-name descname"><span class="pre">get_osem_net</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">projections_header</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_initial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ones'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CT_header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf_meta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'simind'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.algorithms.get_osem_net" title="Permalink to this definition">#</a></dt>
-<dd><p>Function used to obtain an <a class="reference internal" href="#pytomography.algorithms.OSEMNet" title="pytomography.algorithms.OSEMNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">OSEMNet</span></code></a> given projection data and corrections one wishes to use.</p>
+<span class="sig-prename descclassname"><span class="pre">pytomography.algorithms.</span></span><span class="sig-name descname"><span class="pre">get_osem_net</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">projections_header</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_initial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ones'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CT_header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf_meta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'simind'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prior</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.algorithms.get_osem_net" title="Permalink to this definition">#</a></dt>
+<dd><p>Function used to obtain an <cite>OSEMNet</cite> given projection data and corrections one wishes to use.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>projections_header</strong> (<em>str</em>) – Path to projection header data (in some modalities, this is also the data path i.e. DICOM). Data from
-this file is used to set the dimensions of the object [batch_size, Lx, Ly, Lz] and the image [batch_size, Ltheta, Lr, Lz] and
-the projection data one wants to reconstruct.</p></li>
-<li><p><strong>object_initial</strong> (<em>str</em><em> or </em><em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>]</em><em>, </em><em>optional</em>) – Specifies initial object. In the case of <cite>‘ones’</cite>, defaults to a tensor
-of shape [batch_size, Lx, Ly, Lz] containing all ones. Otherwise, takes in a specific initial guess. Defaults to ‘ones’</p></li>
+<li><p><strong>projections_header</strong> (<em>str</em>) – Path to projection header data (in some modalities, this is also the data path i.e. DICOM). Data from this file is used to set the dimensions of the object [batch_size, Lx, Ly, Lz] and the image [batch_size, Ltheta, Lr, Lz] and the projection data one wants to reconstruct.</p></li>
+<li><p><strong>object_initial</strong> (<em>str</em><em> or </em><em>torch.tensor</em><em>, </em><em>optional</em>) – Specifies initial object. In the case of <cite>‘ones’</cite>, defaults to a tensor of shape [batch_size, Lx, Ly, Lz] containing all ones. Otherwise, takes in a specific initial guess. Defaults to ‘ones’.</p></li>
 <li><p><strong>CT_header</strong> (<em>str</em><em> or </em><em>list</em><em>, </em><em>optional</em>) – File path pointing to CT data file or files. Defaults to None.</p></li>
 <li><p><strong>psf_meta</strong> (<a class="reference internal" href="../metadata/index.html#pytomography.metadata.PSFMeta" title="pytomography.metadata.PSFMeta"><em>PSFMeta</em></a><em>, </em><em>optional</em>) – Metadata specifying PSF correction parameters, such as collimator slope and intercept. Defaults to None.</p></li>
-<li><p><strong>file_type</strong> (<em>str</em><em>, </em><em>optional</em>) – The file type of the <cite>projections_header</cite> file. Options include <code class="docutils literal notranslate"><span class="pre">simind</span></code> and <code class="docutils literal notranslate"><span class="pre">dicom</span></code>. Defaults to ‘simind’.</p></li>
-<li><p><strong>device</strong> (<em>str</em><em>, </em><em>optional</em>) – Pytorch computation device, defaults to ‘cpu’</p></li>
+<li><p><strong>file_type</strong> (<em>str</em><em>, </em><em>optional</em>) – The file type of the <cite>projections_header</cite> file. Options include simind output and DICOM. Defaults to ‘simind’.</p></li>
+<li><p><strong>prior</strong> (<em>Prior</em><em>, </em><em>optional</em>) – The prior used during reconstruction. If <cite>None</cite>, use no prior. Defaults to None.</p></li>
+<li><p><strong>device</strong> (<em>str</em><em>, </em><em>optional</em>) – The device used in pytorch for reconstruction. Graphics card can be used. Defaults to ‘cpu’.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>An initialized OSEMNet. To perform reconstruction, one needs to call <a class="reference internal" href="#pytomography.algorithms.OSEMNet.forward" title="pytomography.algorithms.OSEMNet.forward"><code class="xref py py-class docutils literal notranslate"><span class="pre">OSEMNet.forward</span></code></a>.</p>
+<dd class="field-even"><p>An initialized OSEMNet, ready to perform reconstruction.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="#pytomography.algorithms.OSEMNet" title="pytomography.algorithms.OSEMNet">OSEMNet</a></p>
@@ -297,28 +293,13 @@ of shape [batch_size, Lx, Ly, Lz] containing all ones. Otherwise, takes in a spe
 <dt class="sig sig-object py" id="pytomography.algorithms.OSEMNet">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.algorithms.</span></span><span class="sig-name descname"><span class="pre">OSEMNet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_initial</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forward_projection_net</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">back_projection_net</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prior</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.algorithms.OSEMNet" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
-<p>Network used to run OSEM reconstruction:
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[
-f_i^{(n+1)} = \frac{f_i^{(n)}}{\sum_j c_{ij} + \beta
-\frac{\partial V}{\partial f_r}|_{f_i=f_i^{(n)}}}
-\sum_j c_{ij}\frac{g_j}{\sum_i c_{ij}f_j^{(n)}}
-\]</div>
-</div>
-
-Initializer initializes the reconstruction algorithm with the initial object guess <span class="math notranslate nohighlight">\(f_i^{(0)}\)</span>,
-forward and back projections used (i.e. networks to compute <span class="math notranslate nohighlight">\(\sum_i c_{ij} a_i\)</span> and <span class="math notranslate nohighlight">\(\sum_j c_{ij} b_j\)</span>), and prior for Bayesian corrections. Note that
-OSEMNet uses the one step late (OSL) algorithm to compute priors during reconstruction.
-Once the class is initialized, the number of iterations and subsets are specified at recon time when the
-forward method is called.</p>
+<p>Network used to run OSEM reconstruction: <span class="math notranslate nohighlight">\(f_i^{(n+1)} = \frac{f_i^{(n)}}{\sum_j c_{ij} + \beta \frac{\partial V}{\partial f_r}|_{f_i=f_i^{(n)}}} \sum_j c_{ij}\frac{g_j}{\sum_i c_{ij}f_i^{(n)}}\)</span>. Initializer initializes the reconstruction algorithm with the initial object guess <span class="math notranslate nohighlight">\(f_i^{(0)}\)</span>, forward and back projections used (i.e. networks to compute <span class="math notranslate nohighlight">\(\sum_i c_{ij} a_i\)</span> and <span class="math notranslate nohighlight">\(\sum_j c_{ij} b_j\)</span>), and prior for Bayesian corrections. Note that OSEMNet uses the one step late (OSL algorithm to compute priors during reconstruction. Once the class is initialized, the number of iterations and subsets are specified at recon time when the forward method is called.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>object_initial</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>]</em>) – represents the initial object guess <span class="math notranslate nohighlight">\(f_i^{\text{initial}}\)</span> for the algorithm
-in object space</p></li>
-<li><p><strong>forward_projection_net</strong> (<a class="reference internal" href="../classes/index.html#pytomography.classes.ForwardProjectionNet" title="pytomography.classes.ForwardProjectionNet"><em>ForwardProjectionNet</em></a>) – the forward projection network used to compute <span class="math notranslate nohighlight">\(\sum_{i} c_{ij} a_i\)</span> where <span class="math notranslate nohighlight">\(a_i\)</span> is the object being forward projected.</p></li>
-<li><p><strong>back_projection_net</strong> (<a class="reference internal" href="../classes/index.html#pytomography.classes.BackProjectionNet" title="pytomography.classes.BackProjectionNet"><em>BackProjectionNet</em></a>) – the back projection network used to compute <span class="math notranslate nohighlight">\(\sum_{j} c_{ij} b_j\)</span> where <span class="math notranslate nohighlight">\(b_j\)</span> is the image being back projected.</p></li>
+<li><p><strong>object_initial</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>]</em>) – represents the initial object guess <span class="math notranslate nohighlight">\(f_i^{(0)}\)</span> for the algorithm in object space</p></li>
+<li><p><strong>forward_projection_net</strong> (<a class="reference internal" href="../projections/forward_projection/index.html#pytomography.projections.forward_projection.ForwardProjectionNet" title="pytomography.projections.forward_projection.ForwardProjectionNet"><em>ForwardProjectionNet</em></a>) – the forward projection network used to compute <span class="math notranslate nohighlight">\(\sum_{i} c_{ij} a_i\)</span> where <span class="math notranslate nohighlight">\(a_i\)</span> is the object being forward projected.</p></li>
+<li><p><strong>back_projection_net</strong> (<a class="reference internal" href="../projections/back_projection/index.html#pytomography.projections.back_projection.BackProjectionNet" title="pytomography.projections.back_projection.BackProjectionNet"><em>BackProjectionNet</em></a>) – the back projection network used to compute <span class="math notranslate nohighlight">\(\sum_{j} c_{ij} b_j\)</span> where <span class="math notranslate nohighlight">\(b_j\)</span> is the image being back projected.</p></li>
 <li><p><strong>prior</strong> (<em>Prior</em><em>, </em><em>optional</em>) – the Bayesian prior; computes <span class="math notranslate nohighlight">\(\beta \frac{\partial V}{\partial f_r}|_{f_i=f_i^{\text{old}}}\)</span>. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, then this term is 0. Defaults to None</p></li>
 </ul>
 </dd>
@@ -326,9 +307,11 @@ in object space</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.algorithms.OSEMNet.get_subset_splits">
 <span class="sig-name descname"><span class="pre">get_subset_splits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_angles</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.algorithms.OSEMNet.get_subset_splits" title="Permalink to this definition">#</a></dt>
-<dd><p>Returns a list of arrays; each array contains indices, corresponding
-to projection numbers, that are used in ordered-subsets. For example,
+<dd><dl class="simple">
+<dt>Returns a list of arrays; each array contains indices, corresponding</dt><dd><p>to projection numbers, that are used in ordered-subsets. For example,
 <code class="docutils literal notranslate"><span class="pre">get_subsets_splits(2,</span> <span class="pre">6)</span></code> would return <code class="docutils literal notranslate"><span class="pre">[[0,2,4],[1,3,5]]</span></code>.</p>
+</dd>
+</dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -374,10 +357,10 @@ to projection numbers, that are used in ordered-subsets. For example,
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>n_iters</strong> (<em>int</em>) – number of iterations</p></li>
-<li><p><strong>n_subsets</strong> (<em>int</em>) – number of subsets</p></li>
-<li><p><strong>comparisons</strong> (<em>FIXTHISLATER</em><em>, </em><em>optional</em>) – FIXTHISLATER. Defaults to None., defaults to None</p></li>
-<li><p><strong>delta</strong> (<em>float</em><em>, </em><em>optional</em>) – Used to prevent division by zero when calculating ratio, defaults to 1e-11.</p></li>
+<li><p><strong>n_iters</strong> (<em>int</em>) – _description_</p></li>
+<li><p><strong>n_subsets</strong> (<em>int</em>) – _description_</p></li>
+<li><p><strong>comparisons</strong> (<em>FIX</em><em>, </em><em>optional</em>) – FIX. Defaults to None.</p></li>
+<li><p><strong>delta</strong> (<em>_type_</em><em>, </em><em>optional</em>) – Used to prevent division by zero when calculating ratio, defaults to 1e-11.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>

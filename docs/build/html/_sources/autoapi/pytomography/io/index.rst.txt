@@ -33,7 +33,7 @@ Functions
 .. py:function:: simind_CT_to_data(headerfile)
 
 
-.. py:function:: simind_projections_to_data(headerfile)
+.. py:function:: simind_projections_to_data(headerfile, distance='mm')
 
 
 .. py:function:: dicom_projections_to_data(file)

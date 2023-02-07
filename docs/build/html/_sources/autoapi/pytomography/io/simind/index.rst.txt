@@ -22,7 +22,7 @@ Functions
 .. py:function:: find_first_entry_containing_substring(list_of_attributes, substring, dtype=np.float32)
 
 
-.. py:function:: simind_projections_to_data(headerfile)
+.. py:function:: simind_projections_to_data(headerfile, distance='mm')
 
 
 .. py:function:: simind_CT_to_data(headerfile)

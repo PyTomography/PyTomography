@@ -158,7 +158,6 @@
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../../../usage.html">Usage</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../notebooks/tutorial.html">Tutorial</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -192,7 +191,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../utils/helper_functions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.helper_functions</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../classes/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.classes</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -266,12 +264,9 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomography.metadata.metadata.PSFMeta">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.metadata.metadata.</span></span><span class="sig-name descname"><span class="pre">PSFMeta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">collimator_slope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collimator_intercept</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_dimensions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">61</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.metadata.metadata.PSFMeta" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.metadata.metadata.</span></span><span class="sig-name descname"><span class="pre">PSFMeta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">collimator_slope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collimator_intercept</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_dimensions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'2D'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">61</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.metadata.metadata.PSFMeta" title="Permalink to this definition">#</a></dt>
 <dd><p>Metadata for PSF correction. PSF blurring is implemented using Gaussian blurring with
-<span class="math notranslate nohighlight">\(\sigma(d) = ad + b\)</span> where <span class="math notranslate nohighlight">\(a\)</span> is the collimator slope, <span class="math notranslate nohighlight">\(b\)</span> is the collimator intercept,
-and <span class="math notranslate nohighlight">\(d\)</span> is the distance from a plane in object space to the detector. As such, <span class="math notranslate nohighlight">\(sigma(d)\)</span>
-is the point spread function. Blurring is implemented using convolutions with a specified
-kernel size.</p>
+<span class="math notranslate nohighlight">\(\sigma(d) = ad + b\)</span> where <span class="math notranslate nohighlight">\(a\)</span> is the collimator slope, <span class="math notranslate nohighlight">\(b\)</span> is the collimator intercept, and <span class="math notranslate nohighlight">\(d\)</span> is the distance from a plane in object space to a detector aligned parallel with the plane. As such, <span class="math notranslate nohighlight">\(sigma(d)\)</span> is the point spread function. Blurring is implemented using convolutions with a specified kernel size.</p>
 </dd></dl>
 
 </section>

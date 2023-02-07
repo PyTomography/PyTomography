@@ -10,21 +10,13 @@
 For further info, check out {doc}`usage`. Read installation instruction in {ref}`Installation`.
 
 ```{warning}
-This library is still under heavy development. s
+This library is still under heavy development.
 ```
-
-$x^2$
 
 ```{toctree}
 :caption: 'Contents:'
 :maxdepth: 3
 
 usage
-notebooks/tutorial
 ```
 
-# Indices and tables
-
-- {ref}`genindex`
-- {ref}`modindex`
-- {ref}`search`

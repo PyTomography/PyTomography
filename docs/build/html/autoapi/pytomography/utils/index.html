@@ -158,7 +158,6 @@
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/tutorial.html">Tutorial</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l3 has-children"><a class="reference internal" href="../algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -192,7 +191,6 @@
 <li class="toctree-l4"><a class="reference internal" href="helper_functions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.helper_functions</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../classes/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.classes</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -265,10 +263,15 @@
 <span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">rev_cumsum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.utils.rev_cumsum" title="Permalink to this definition">#</a></dt>
 <dd><p>Reverse cumulative sum along the first axis of a tensor of shape [batch_size, Lx, Ly, Lz].
 since this is used with CT correction, the initial voxel only contributes 1/2.</p>
-<dl class="simple">
-<dt>Args:</dt><dd><p>x (torch.tensor[batch_size,Lx,Ly,Lz]): Tensor to be summed</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>,</em><em>Lx</em><em>,</em><em>Ly</em><em>,</em><em>Lz</em><em>]</em>) – Tensor to be summed</p>
 </dd>
-<dt>Returns:</dt><dd><p>torch.tensor[batch_size, Lx, Ly, Lz]: The cumulatively summed tensor.</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The cumulatively summed tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.tensor[batch_size, Lx, Ly, Lz]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -279,19 +282,30 @@ since this is used with CT correction, the initial voxel only contributes 1/2.</
 <dd><p>Returns am object tensor in a rotated reference frame such that the scanner is located
 at the +x axis. Note that the scanner angle <span class="math notranslate nohighlight">\(eta\)</span> is related to <span class="math notranslate nohighlight">\(\phi\)</span> (azimuthal angle)
 by <span class="math notranslate nohighlight">\(\phi = 3\pi/2 - eta\)</span>.</p>
-<dl class="simple">
-<dt>Args:</dt><dd><p>x (torch.tensor[batch_size, Lx, Ly, Lz]): Tensor aligned with cartesian coordinate system specified
-by the manual.
-angle (float): The angle <span class="math notranslate nohighlight">\(eta\)</span> where the scanner is located.
-interpolation (InterpolationMode, optional): Method of interpolation used to get rotated image.
-Defaults to InterpolationMode.BILINEAR.
-negative (bool, optional): If True, applies an inverse rotation. In this case, the tensor
-x is an object in a coordinate system aligned with <span class="math notranslate nohighlight">\(eta\)</span>, and the function rotates the
-x back to the original cartesian coordinate system specified by the users manual. In particular, if one
-uses this function on a tensor with negative=False, then applies this function to that returned
-tensor with negative=True, it should return the same tensor. Defaults to False.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>]</em>) – Tensor aligned with cartesian coordinate system specified</p></li>
+<li><p><strong>manual.</strong> (<em>by the</em>) – </p></li>
+<li><p><strong>angle</strong> (<em>float</em>) – The angle <span class="math notranslate nohighlight">\(eta\)</span> where the scanner is located.</p></li>
+<li><p><strong>interpolation</strong> (<em>InterpolationMode</em><em>, </em><em>optional</em>) – Method of interpolation used to get rotated image.</p></li>
+<li><p><strong>InterpolationMode.BILINEAR.</strong> (<em>Defaults to</em>) – </p></li>
+<li><p><strong>negative</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, applies an inverse rotation. In this case, the tensor</p></li>
+<li><p><strong><span class="math notranslate nohighlight">\(eta\)</span></strong> (<em>x is an object in a coordinate system aligned with</em>) – </p></li>
+<li><p><strong>the</strong> (<em>and the function rotates</em>) – </p></li>
+<li><p><strong>particular</strong> (<em>x back to the original cartesian coordinate system specified by the users manual. In</em>) – </p></li>
+<li><p><strong>one</strong> (<em>if</em>) – </p></li>
+<li><p><strong>negative=False</strong> (<em>uses this function on a tensor with</em>) – </p></li>
+<li><p><strong>returned</strong> (<em>then applies this function to that</em>) – </p></li>
+<li><p><strong>negative=True</strong> (<em>tensor with</em>) – </p></li>
+<li><p><strong>False.</strong> (<em>it should return the same tensor. Defaults to</em>) – </p></li>
+</ul>
 </dd>
-<dt>Returns:</dt><dd><p>torch.tensor[batch_size, Lx, Ly, Lz]: Rotated tensor.</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Rotated tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.tensor[batch_size, Lx, Ly, Lz]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -304,11 +318,20 @@ tensor with negative=True, it should return the same tensor. Defaults to False.<
 used for point spread function (PSF) blurring where the amount of blurring depends on the
 distance from the detector.</p>
 </dd>
-<dt>Args:</dt><dd><p>Lx (int): The number of y-z planes to compute the distance of
-r (float): The radial distance between the central y-z plane and the detector at +x.
-dx (float): The spacing between y-z planes in Euclidean distance.</p>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Lx</strong> (<em>int</em>) – The number of y-z planes to compute the distance of</p></li>
+<li><p><strong>r</strong> (<em>float</em>) – The radial distance between the central y-z plane and the detector at +x.</p></li>
+<li><p><strong>dx</strong> (<em>float</em>) – The spacing between y-z planes in Euclidean distance.</p></li>
+</ul>
 </dd>
-<dt>Returns:</dt><dd><p>np.array[Lx]: An array of distances for each y-z plane to the detector.</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An array of distances for each y-z plane to the detector.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array[Lx]</p>
 </dd>
 </dl>
 </dd></dl>

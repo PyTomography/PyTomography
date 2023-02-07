@@ -33,8 +33,7 @@ def get_PSF_transform(sigma, kernel_size, delta=1e-9, device='cpu', kernel_dimen
     return layer
 
 class PSFCorrectionNet(nn.Module):
-    def __init__(self, object_meta, image_meta, psf_meta, device='cpu'):
-        """Class used to apply PSF correction to objects during forward and back projection
+    """Correction network used to correct PSF correction in projection operators. In particular, this network is used with other correction networks to model :math:`c` in :math:`\sum_i c_{ij} a_i` (forward projection) and :math:`\sum c_{ij} b_j` (back projection). The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``PSFMeta`` parameter. 
 
         Args:
             object_meta (ObjectMeta): Metadata of object space.
@@ -42,6 +41,7 @@ class PSFCorrectionNet(nn.Module):
             psf_meta (PSFMeta): Metadata corresponding to the parameters of PSF blurring
             device (str, optional): Pytorch device used for computation. Defaults to 'cpu'.
         """
+    def __init__(self, object_meta, image_meta, psf_meta, device='cpu'):
         super(PSFCorrectionNet, self).__init__()
         self.device = device
         self.object_meta = object_meta
@@ -52,7 +52,7 @@ class PSFCorrectionNet(nn.Module):
             sigma = self.get_sigma(radius, object_meta.dx, object_meta.shape, psf_meta.collimator_slope, psf_meta.collimator_intercept)
             self.layers[radius] = get_PSF_transform(sigma/object_meta.dx, psf_meta.kernel_size, kernel_dimensions=psf_meta.kernel_dimensions, device=self.device)
     def get_sigma(self, radius, dx, shape, collimator_slope, collimator_intercept):
-        """Uses PSF Meta data information to get blurring (sigma) as a function of distance from detector
+        """Uses PSF Meta data information to get blurring :math:`\sigma` as a function of distance from detector. It is assumed that ``sigma=collimator_slope*d + collimator_intercept`` where :math:`d` is the distance from the detector.
 
         Args:
             radius (float): The distance from the detector
@@ -70,7 +70,7 @@ class PSFCorrectionNet(nn.Module):
         return sigma
     @torch.no_grad()
     def forward(self, object_i, i, norm_constant=None):
-        """Applies PSF correction to an object that's being detected on the right of its first axis
+        """Applies PSF correction for the situation where an object is being detector by a detector at the :math:`+x` axis.
 
         Args:
             object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis

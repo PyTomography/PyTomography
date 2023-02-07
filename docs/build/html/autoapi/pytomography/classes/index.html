@@ -158,7 +158,6 @@
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/tutorial.html">Tutorial</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l3 has-children"><a class="reference internal" href="../algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -376,22 +375,19 @@ yields an appropriate image</p>
 <dt class="sig sig-object py" id="pytomography.classes.CTCorrectionNet.forward">
 <span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.classes.CTCorrectionNet.forward" title="Permalink to this definition">#</a></dt>
 <dd><p>Modify object using attenuation correction.</p>
-<section id="parameters">
-<h4>Parameters<a class="headerlink" href="#parameters" title="Permalink to this heading">#</a></h4>
-<dl class="simple">
-<dt>object_i<span class="classifier">(batch_size, Lx, Ly, Lz) torch.tensor</span></dt><dd><p>This object is such that summation along the x-axis yields the ith projection in
-the image</p>
-</dd>
-<dt>i: number</dt><dd><p>The projection index</p>
-</dd>
-<dt>norm_constant: (batch_size, Lx, Ly, Lz) torch.tensor. Default: None</dt><dd><p>If true, modify the norm_constant argument by the normalization factor
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>object_i</strong> (<em>(</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>) </em><em>torch.tensor</em>) – This object is such that summation along the x-axis yields the ith projection in
+the image</p></li>
+<li><p><strong>i</strong> (<em>number</em>) – The projection index</p></li>
+<li><p><strong>norm_constant</strong> (<em>(</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>) </em><em>torch.tensor. Default: None</em>) – If true, modify the norm_constant argument by the normalization factor
 used to scale object_i. This is useful during back projection, where division by
-a normalization constant is required.</p>
-</dd>
-<dt>Returns:</dt><dd><p>Pytorch tensor of size [batch_size, Lx, Ly, Lz] cor</p>
+a normalization constant is required.</p></li>
+<li><p><strong>Returns</strong> – Pytorch tensor of size [batch_size, Lx, Ly, Lz] cor</p></li>
+</ul>
 </dd>
 </dl>
-</section>
 </dd></dl>
 
 </dd></dl>

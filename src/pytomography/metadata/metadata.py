@@ -34,12 +34,9 @@ class ImageMeta():
 
 class PSFMeta():
     """Metadata for PSF correction. PSF blurring is implemented using Gaussian blurring with
-     $\sigma(d) = ad + b$ where $a$ is the collimator slope, $b$ is the collimator intercept,
-     and $d$ is the distance from a plane in object space to the detector. As such, $sigma(d)$
-     is the point spread function. Blurring is implemented using convolutions with a specified 
-     kernel size. 
+     :math:`\sigma(d) = ad + b` where :math:`a` is the collimator slope, :math:`b` is the collimator intercept, and :math:`d` is the distance from a plane in object space to a detector aligned parallel with the plane. As such, :math:`sigma(d)` is the point spread function. Blurring is implemented using convolutions with a specified kernel size. 
     """
-    def __init__(self, collimator_slope, collimator_intercept, kernel_dimensions, kernel_size=61):
+    def __init__(self, collimator_slope, collimator_intercept, kernel_dimensions='2D', kernel_size=61):
         """Initializer
 
         Args:
@@ -47,7 +44,7 @@ class PSFMeta():
             collimator_intercept (float): The collimator intercept used for blurring.
             kernel_dimensions (str): If '1D', blurring is done seperately in each axial plane (so
             only a 1 dimensional convolution is used). If '2D', blurring is mixed between axial planes
-            (so a 2D convolution is used)
+            (so a 2D convolution is used). Defaults to '2D'.
             kernel_size (int, optional): Size of kernel used for blurring. Defaults to 61.
         """
         self.collimator_slope = collimator_slope

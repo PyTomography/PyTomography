@@ -23,64 +23,66 @@ Classes
 
    Bases: :py:obj:`torch.nn.Module`
 
-   Implementation of priors with gradients of the form 
-       $$
-   rac{\partial V}{\partial f_r}=
-   rac{eta}{\delta}\sum_{r,s}w_{s}\phi\left(
-   rac{f_r-f_s}{\delta}
-   ight) $$
-       where $V$ is from the log-posterior probability $\log P(g | f) - eta V(f)$
-       
+   Implementation of priors with gradients of the form
+   :math:`\frac{\partial V}{\partial f_r}=\frac{\beta}{\delta}\sum_{r,s}w_{s}\phi\left(\frac{f_r-f_s}{\delta}\right)` where :math:`V` is from the log-posterior probability :math:`\log P(g | f) - \beta V(f)`.
 
    .. py:method:: get_kernel()
 
-      Obtains the kernel used to get $\partial V / \partial f$ (this is an array with the
-      same dimensions as the object space image)
+      Obtains the kernel used to get :math:`\frac{\partial V}{\partial f_r}` (this is an array with the same dimensions as the object space image)
 
-      Returns:
-          (torch.nn.Conv3d, torch.tensor): Kernel used for convolution with number of output channels equal
-          to $s$ in the forumla above, and array of weights $w_s$ used in formula above.
+      :returns: Kernel used for convolution (number of output channels equal to number of :math:`s`), and array of weights :math:`w_s` used in expression for gradient.
+      :rtype: (torch.nn.Conv3d, torch.tensor)
 
 
    .. py:method:: set_object_meta(object_meta)
 
       Sets object metadata parameters.
 
-      Args:
-          object_meta (ObjectMeta): Object metadata describing the system.
+      :param object_meta: Object metadata describing the system.
+      :type object_meta: ObjectMeta
 
 
    .. py:method:: set_kernel(object_meta)
 
       Sets the kernel using  `get_kernel` and the corresponding object metadata.
 
-      Args:
-          object_meta (_type_): _description_
+      :param object_meta: _description_
+      :type object_meta: _type_
 
 
    .. py:method:: set_beta_scale(factor)
 
-      Sets $eta$ used in the formula above
+      Sets :math:`\beta`
 
-      Args:
-          factor (float): Value of $eta$ used in formula above.
+      :param factor: Value of :math:`\beta`
+      :type factor: float
 
 
    .. py:method:: set_object(object)
 
-      Sets the object used to compute the prior on
+      Sets the object :math:`f_r` used to compute :math:`
+      rac{\partial V}{\partial f_r}`
 
-      Args:
-          object (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] which the prior
-          will be computed on
+              Args:
+                  object (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] which the prior
+                  will be computed on
+
+
+
+   .. py:method:: set_device(device)
+
+      Sets the pytorch computation device
+
+      :param device: sets device.
+      :type device: str
 
 
    .. py:method:: forward()
 
       Computes the prior on self.object
 
-      Returns:
-          torch.tensor: Tensor of shape [batch_size, Lx, Ly, Lz] representing $\partial V / \partial f_r$
+      :returns: Tensor of shape [batch_size, Lx, Ly, Lz] representing :math:`\frac{\partial V}{\partial f_r}`
+      :rtype: torch.tensor
 
 
 
@@ -88,13 +90,13 @@ Classes
 
    Bases: :py:obj:`SmoothnessPrior`
 
-   Implentation of `SmoothnessPrior` where $\phi$ is the identity function
+   Implentation of `SmoothnessPrior` where :math:`\phi` is the identity function
 
 
 .. py:class:: LogCoshPrior(beta, delta=1, device='cpu')
 
    Bases: :py:obj:`SmoothnessPrior`
 
-   Implementation of `SmoothnessPrior` where $\phi$ is the hyperbolic tangent function
+   Implementation of `SmoothnessPrior` where :math:`\phi` is the hyperbolic tangent function
 
 

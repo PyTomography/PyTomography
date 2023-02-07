@@ -14,7 +14,11 @@ def find_first_entry_containing_substring(list_of_attributes, substring, dtype=n
     elif dtype == int:
         return int(line.replace('\n', '').split(':=')[-1].replace(' ', ''))
 
-def simind_projections_to_data(headerfile):    
+def simind_projections_to_data(headerfile, distance='mm'):
+    if distance=='mm':
+        scale_factor = 1/10
+    elif distance=='cm':
+        scale_factor = 1    
     with open(headerfile) as f:
         headerdata = f.readlines()
     headerdata = np.array(headerdata)
@@ -30,7 +34,7 @@ def simind_projections_to_data(headerfile):
     number_of_projections = find_first_entry_containing_substring(headerdata, 'number of projections', int)
     start_angle = find_first_entry_containing_substring(headerdata, 'start angle', np.float32)
     angles = np.linspace(start_angle, extent_of_rotation, number_of_projections, endpoint=False)
-    radius = find_first_entry_containing_substring(headerdata, 'Radius', np.float32) / 10
+    radius = find_first_entry_containing_substring(headerdata, 'Radius', np.float32) *scale_factor
     imagefile = find_first_entry_containing_substring(headerdata, 'name of data file', str)
     shape_proj= (num_proj, proj_dim1, proj_dim2)
     shape_obj = (proj_dim1, proj_dim1, proj_dim2)
