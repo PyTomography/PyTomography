@@ -1,7 +1,4 @@
-import torch
-import numpy as np
 from pytomography.utils import compute_pad_size
-from torch.nn.functional import pad
 
 class ObjectMeta():
     """Metadata for object space
@@ -46,57 +43,6 @@ class ImageMeta():
         self.num_projections = len(angles)
         self.shape = (self.num_projections, object_meta.shape[1], object_meta.shape[2])
 
-class ObjectTensor(torch.Tensor):
-    @staticmethod
-    def __new__(cls, x, *args, **kwargs):
-        t = torch.as_tensor(x).as_subclass(cls)
-        if len(t.shape)!=4:
-            raise Exception('Tensor should be 4 dimensional')
-        return t
-    def __init__(self, x, dr):
-        super().__init__()
-        self.dr = dr
-        self.padded = False
-        self.original_shape = x.shape
-    def pad(self):
-        if self.padded:
-            raise Exception('Tensor already padded for rotation')
-        width = self.data.shape[-1]
-        pad_size = int(np.ceil((np.sqrt(2)*width - width)/2))
-        self.data = pad(self.data, [0,0,pad_size,pad_size,pad_size,pad_size])
-        self.padded = True
-    def unpad(self):
-        if not self.padded:
-            raise Exception('Tensor is not padded for rotation')
-        pad_size = (self.data.shape[-2] - self.original_shape[-2])//2
-        self.data = self.data[:,pad_size:-pad_size,pad_size:-pad_size,:]
-        self.padded = False
-
-class ImageTensor(torch.Tensor):
-    @staticmethod
-    def __new__(cls, x, *args, **kwargs):
-        t = torch.as_tensor(x).as_subclass(cls)
-        if len(t.shape)!=4:
-            raise Exception('Tensor should be 4 dimensional')
-        return t
-    def __init__(self, x, dr):
-        super().__init__()
-        self.dr = dr
-        self.padded = False
-        self.original_shape = x.shape
-    def pad(self):
-        if self.padded:
-            raise Exception('Tensor already padded for rotation')
-        width = self.data.shape[-1]
-        pad_size = int(np.ceil((np.sqrt(2)*width - width)/2))
-        self.data = pad(self.data, [0,0,pad_size,pad_size,pad_size,pad_size])
-        self.padded = True
-    def unpad(self):
-        if not self.padded:
-            raise Exception('Tensor is not padded for rotation')
-        pad_size = (self.data.shape[-2] - self.original_shape[-2])//2
-        self.data = self.data[:,pad_size:-pad_size,pad_size:-pad_size,:]
-        self.padded = False
 
 class PSFMeta():
     """Metadata for PSF correction. PSF blurring is implemented using Gaussian blurring with
