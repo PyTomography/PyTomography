@@ -136,3 +136,17 @@ def get_osem_net(projections_header, object_initial='ones', CT_header=None, psf_
     return osem_net
 
 
+# RENAME ALL THIS LATER
+class CompareToNumber():
+    def __init__(self, number, mask, norm_factor=None):
+        self.number = number
+        self.mask = mask
+        self.biass = []
+        self.vars = []
+        self.norm_factor = norm_factor
+    def compare(self, prediction):
+        prediction = torch.clone(prediction)
+        if self.norm_factor:
+            prediction *= self.norm_factor 
+        self.biass.append(torch.mean(prediction[self.mask] - self.number).item())
+        self.vars.append(torch.var(prediction[self.mask] - self.number).item())

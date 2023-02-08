@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from pytomography.utils.helper_functions import rotate_detector_z, rev_cumsum
+from pytomography.utils.helper_functions import rotate_detector_z, rev_cumsum, pad_object
 
 def get_prob_of_detection_matrix(CT, dx): 
 	r"""Converts an attenuation map of :math:`\text{cm}^{-1}` to a probability of photon detection matrix (scanner at +x). Note that this requires the attenuation map to be at the energy of photons being emitted.
@@ -21,20 +21,14 @@ class CTCorrectionNet(nn.Module):
 			object_meta (ObjectMeta): Metadata for object space
 			image_meta (ImageMeta): Metadata for image space
 			CT (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{cm}^{-1}}` at the photon energy corresponding to the particular scan
-			store_in_memory (bool, optional): Stores all rotated CT scans in memory on computer. May speed up computation. Defaults to False.
 			device (str, optional): Pytorch computation device. Defaults to 'cpu'.
 		"""
-	def __init__(self, object_meta, image_meta, CT, store_in_memory=False, device='cpu'):
+	def __init__(self, object_meta, image_meta, CT, device='cpu'):
 		super(CTCorrectionNet, self).__init__()
 		self.CT = CT
 		self.object_meta = object_meta
 		self.image_meta = image_meta
 		self.device = device
-		self.store_in_memory = store_in_memory
-		if self.store_in_memory:
-			self.probability_matrices = []
-			for i, angle in enumerate(self.image_meta.angles):
-				self.probability_matrices.append(get_prob_of_detection_matrix(rotate_detector_z(self.CT, angle), self.object_meta.dx).to(self.device))
                 
 	@torch.no_grad()
 	def forward(self, object_i, i, norm_constant=None):
@@ -48,10 +42,8 @@ class CTCorrectionNet(nn.Module):
 		Returns:
 			torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.
 		"""
-		if self.store_in_memory:
-			norm_factor = self.probability_matrices[i]
-		else:
-			norm_factor = get_prob_of_detection_matrix(rotate_detector_z(self.CT, self.image_meta.angles[i]), self.object_meta.dx).to(self.device)
+		CT = pad_object(self.CT)
+		norm_factor = get_prob_of_detection_matrix(rotate_detector_z(CT, self.image_meta.angles[i]), self.object_meta.dx).to(self.device)
 		if norm_constant is not None:
 			norm_constant*=norm_factor
 		return object_i*norm_factor

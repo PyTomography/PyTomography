@@ -1,4 +1,5 @@
 import torch
+from torch.nn.functional import pad
 from torchvision.transforms.functional import rotate
 from torchvision.transforms import InterpolationMode
 import numpy as np
@@ -70,3 +71,22 @@ def get_distance(Lx, r, dx):
     # Correction for if radius of scanner is inside the the bounds
     d[d<0] = 0
     return d
+
+def compute_pad_size(width):
+    return int(np.ceil((np.sqrt(2)*width - width)/2)) 
+
+def pad_object(object):
+    pad_size = compute_pad_size(object.shape[-2])
+    return pad(object, [0,0,pad_size,pad_size,pad_size,pad_size])
+
+def unpad_object(object, original_shape):
+    pad_size = (object.shape[-2] - original_shape[-2])//2 
+    return object[:,pad_size:-pad_size,pad_size:-pad_size,:]
+
+def pad_image(image):
+    pad_size = compute_pad_size(image.shape[-2])
+    return pad(image, [0,0,pad_size,pad_size])
+
+def unpad_image(image, original_shape):
+    pad_size = (image.shape[-2] - original_shape[-2])//2 
+    return image[:,:,pad_size:-pad_size,:]
