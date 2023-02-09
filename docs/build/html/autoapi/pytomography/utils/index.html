@@ -296,18 +296,18 @@ since this is used with CT correction, the initial voxel only contributes 1/2.</
 <dt class="sig sig-object py" id="pytomography.utils.rotate_detector_z">
 <span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">rotate_detector_z</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interpolation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">InterpolationMode.BILINEAR</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">negative</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.utils.rotate_detector_z" title="Permalink to this definition">#</a></dt>
 <dd><p>Returns am object tensor in a rotated reference frame such that the scanner is located
-at the +x axis. Note that the scanner angle <span class="math notranslate nohighlight">\(eta\)</span> is related to <span class="math notranslate nohighlight">\(\phi\)</span> (azimuthal angle)
-by <span class="math notranslate nohighlight">\(\phi = 3\pi/2 - eta\)</span>.</p>
+at the +x axis. Note that the scanner angle $eta$ is related to $phi$ (azimuthal angle)
+by $phi = 3pi/2 - eta$.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>]</em>) – Tensor aligned with cartesian coordinate system specified</p></li>
 <li><p><strong>manual.</strong> (<em>by the</em>) – </p></li>
-<li><p><strong>angle</strong> (<em>float</em>) – The angle <span class="math notranslate nohighlight">\(eta\)</span> where the scanner is located.</p></li>
+<li><p><strong>angle</strong> (<em>float</em>) – The angle $eta$ where the scanner is located.</p></li>
 <li><p><strong>interpolation</strong> (<em>InterpolationMode</em><em>, </em><em>optional</em>) – Method of interpolation used to get rotated image.</p></li>
 <li><p><strong>InterpolationMode.BILINEAR.</strong> (<em>Defaults to</em>) – </p></li>
 <li><p><strong>negative</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, applies an inverse rotation. In this case, the tensor</p></li>
-<li><p><strong><span class="math notranslate nohighlight">\(eta\)</span></strong> (<em>x is an object in a coordinate system aligned with</em>) – </p></li>
+<li><p><strong>$eta$</strong> (<em>x is an object in a coordinate system aligned with</em>) – </p></li>
 <li><p><strong>the</strong> (<em>and the function rotates</em>) – </p></li>
 <li><p><strong>particular</strong> (<em>x back to the original cartesian coordinate system specified by the users manual. In</em>) – </p></li>
 <li><p><strong>one</strong> (<em>if</em>) – </p></li>
@@ -461,7 +461,5 @@ distance from the detector.</p>
     <script src="../../../_static/sphinx_highlight.js"></script>
     <script src="../../../_static/scripts/furo.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
-    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

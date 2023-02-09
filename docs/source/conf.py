@@ -32,7 +32,6 @@ release = '0.0.1'
 # ones.
 extensions = [
     "myst_parser",
-    "sphinx_math_dollar",
     "sphinx.ext.autosectionlabel",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
