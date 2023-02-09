@@ -3,7 +3,7 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
-<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Usage" href="usage.html" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Users Guide" href="notebooks/conventions.html" />
 
     <!-- Generated with Sphinx 5.3.0 and Furo 2022.12.07 -->
         <title>PyTomography 0.0.1 documentation</title>
@@ -157,7 +157,8 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks/conventions.html">Users Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Tutorials</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="autoapi/index.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2 has-children"><a class="reference internal" href="autoapi/pytomography/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l3 has-children"><a class="reference internal" href="autoapi/pytomography/algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -240,6 +241,7 @@
 <span class="n">reconstructed_object</span><span class="o">=</span> <span class="n">osem_net</span><span class="p">(</span><span class="n">n_iters</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">n_subsets</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>                 
 </pre></div>
 </div>
+<p><img alt="" src="_images/sample_MIP.png" /></p>
 </section>
 <section id="installation">
 <h1>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">#</a></h1>
@@ -256,7 +258,7 @@
 <section id="more-reading">
 <h1>More Reading<a class="headerlink" href="#more-reading" title="Permalink to this heading">#</a></h1>
 <p>For an extensive overview of this package, see the documentation.</p>
-<p>For further info, check out <a class="reference internal" href="usage.html"><span class="doc">Usage</span></a>. Read installation instruction in <a class="reference internal" href="#installation"><span class="std std-ref">Installation</span></a>.</p>
+<p>For further info, check out <a class="reference internal" href="usage.html"><span class="doc">Tutorials</span></a> for some simple examples. I’d also recommend taking a look at the <a class="reference internal" href="notebooks/conventions.html"><span class="doc">Users Guide</span></a> to ensure you know precisely how data is organized in this library.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>This library is still under heavy development.</p>
@@ -264,8 +266,22 @@
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="usage.html#tutorials">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks/conventions.html">Users Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="notebooks/conventions.html#Conventions">Conventions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="notebooks/conventions.html#Coordinates">Coordinates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="notebooks/conventions.html#Arrays">Arrays</a></li>
+<li class="toctree-l3"><a class="reference internal" href="notebooks/conventions.html#Mathematics">Mathematics</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="notebooks/conventions.html#Foundations">Foundations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="notebooks/conventions.html#Operations">Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="notebooks/conventions.html#Add-More-Later">Add More Later</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#id1">Tutorials</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="autoapi/index.html">API Reference</a><ul>
@@ -285,12 +301,12 @@
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="usage.html">
+          <a class="next-page" href="notebooks/conventions.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Usage</div>
+                <div class="title">Users Guide</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>

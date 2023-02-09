@@ -157,7 +157,8 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebooks/conventions.html">Users Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../usage.html">Tutorials</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -247,6 +248,21 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.utils.helper_functions.get_distance" title="pytomography.utils.helper_functions.get_distance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_distance</span></code></a>(Lx, r, dx)</p></td>
 <td><p>Given the radial distance to center of object space from the scanner, computes the distance</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.utils.helper_functions.compute_pad_size" title="pytomography.utils.helper_functions.compute_pad_size"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_pad_size</span></code></a>(width)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.utils.helper_functions.pad_object" title="pytomography.utils.helper_functions.pad_object"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pad_object</span></code></a>(object)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.utils.helper_functions.unpad_object" title="pytomography.utils.helper_functions.unpad_object"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unpad_object</span></code></a>(object, original_shape)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.utils.helper_functions.pad_image" title="pytomography.utils.helper_functions.pad_image"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pad_image</span></code></a>(image)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.utils.helper_functions.unpad_image" title="pytomography.utils.helper_functions.unpad_image"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unpad_image</span></code></a>(image, original_shape)</p></td>
+<td><p></p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -328,6 +344,31 @@ distance from the detector.</p>
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.utils.helper_functions.compute_pad_size">
+<span class="sig-prename descclassname"><span class="pre">pytomography.utils.helper_functions.</span></span><span class="sig-name descname"><span class="pre">compute_pad_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">width</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.utils.helper_functions.compute_pad_size" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.utils.helper_functions.pad_object">
+<span class="sig-prename descclassname"><span class="pre">pytomography.utils.helper_functions.</span></span><span class="sig-name descname"><span class="pre">pad_object</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.utils.helper_functions.pad_object" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.utils.helper_functions.unpad_object">
+<span class="sig-prename descclassname"><span class="pre">pytomography.utils.helper_functions.</span></span><span class="sig-name descname"><span class="pre">unpad_object</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">original_shape</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.utils.helper_functions.unpad_object" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.utils.helper_functions.pad_image">
+<span class="sig-prename descclassname"><span class="pre">pytomography.utils.helper_functions.</span></span><span class="sig-name descname"><span class="pre">pad_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.utils.helper_functions.pad_image" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.utils.helper_functions.unpad_image">
+<span class="sig-prename descclassname"><span class="pre">pytomography.utils.helper_functions.</span></span><span class="sig-name descname"><span class="pre">unpad_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">original_shape</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.utils.helper_functions.unpad_image" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
 </section>
 </section>
 </section>
@@ -375,9 +416,19 @@ distance from the detector.</p>
 <li><a class="reference internal" href="#pytomography.utils.helper_functions.rev_cumsum"><code class="docutils literal notranslate"><span class="pre">rev_cumsum()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.utils.helper_functions.rotate_detector_z"><code class="docutils literal notranslate"><span class="pre">rotate_detector_z()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.utils.helper_functions.get_distance"><code class="docutils literal notranslate"><span class="pre">get_distance()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.utils.helper_functions.compute_pad_size"><code class="docutils literal notranslate"><span class="pre">compute_pad_size()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.utils.helper_functions.pad_object"><code class="docutils literal notranslate"><span class="pre">pad_object()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.utils.helper_functions.unpad_object"><code class="docutils literal notranslate"><span class="pre">unpad_object()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.utils.helper_functions.pad_image"><code class="docutils literal notranslate"><span class="pre">pad_image()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.utils.helper_functions.unpad_image"><code class="docutils literal notranslate"><span class="pre">unpad_image()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.utils.helper_functions.rev_cumsum">rev_cumsum</a></li>
 <li><a class="reference internal" href="#pytomography.utils.helper_functions.rotate_detector_z">rotate_detector_z</a></li>
 <li><a class="reference internal" href="#pytomography.utils.helper_functions.get_distance">get_distance</a></li>
+<li><a class="reference internal" href="#pytomography.utils.helper_functions.compute_pad_size">compute_pad_size</a></li>
+<li><a class="reference internal" href="#pytomography.utils.helper_functions.pad_object">pad_object</a></li>
+<li><a class="reference internal" href="#pytomography.utils.helper_functions.unpad_object">unpad_object</a></li>
+<li><a class="reference internal" href="#pytomography.utils.helper_functions.pad_image">pad_image</a></li>
+<li><a class="reference internal" href="#pytomography.utils.helper_functions.unpad_image">unpad_image</a></li>
 </ul>
 </li>
 </ul>

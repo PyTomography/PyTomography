@@ -157,7 +157,8 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebooks/conventions.html">Users Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../usage.html">Tutorials</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -254,6 +255,11 @@
 <dt class="sig sig-object py" id="pytomography.metadata.metadata.ObjectMeta">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.metadata.metadata.</span></span><span class="sig-name descname"><span class="pre">ObjectMeta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.metadata.metadata.ObjectMeta" title="Permalink to this definition">#</a></dt>
 <dd><p>Metadata for object space</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.metadata.metadata.ObjectMeta.compute_padded_shape">
+<span class="sig-name descname"><span class="pre">compute_padded_shape</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.metadata.metadata.ObjectMeta.compute_padded_shape" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -313,10 +319,16 @@
 <li><a class="reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.metadata</span></code></a><ul>
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
 <li><a class="reference internal" href="#classes">Classes</a><ul>
-<li><a class="reference internal" href="#pytomography.metadata.metadata.ObjectMeta"><code class="docutils literal notranslate"><span class="pre">ObjectMeta</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.metadata.metadata.ObjectMeta"><code class="docutils literal notranslate"><span class="pre">ObjectMeta</span></code></a><ul>
+<li><a class="reference internal" href="#pytomography.metadata.metadata.ObjectMeta.compute_padded_shape"><code class="docutils literal notranslate"><span class="pre">ObjectMeta.compute_padded_shape()</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#pytomography.metadata.metadata.ImageMeta"><code class="docutils literal notranslate"><span class="pre">ImageMeta</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.metadata.metadata.PSFMeta"><code class="docutils literal notranslate"><span class="pre">PSFMeta</span></code></a></li>
-<li><a class="reference internal" href="#pytomography.metadata.metadata.ObjectMeta">ObjectMeta</a></li>
+<li><a class="reference internal" href="#pytomography.metadata.metadata.ObjectMeta">ObjectMeta</a><ul>
+<li><a class="reference internal" href="#pytomography.metadata.metadata.ObjectMeta.compute_padded_shape">compute_padded_shape</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#pytomography.metadata.metadata.ImageMeta">ImageMeta</a></li>
 <li><a class="reference internal" href="#pytomography.metadata.metadata.PSFMeta">PSFMeta</a></li>
 </ul>

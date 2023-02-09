@@ -1,0 +1,41 @@
+:py:mod:`pytomography.projections.forward_projection`
+=====================================================
+
+.. py:module:: pytomography.projections.forward_projection
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.projections.forward_projection.ForwardProjectionNet
+
+
+
+
+.. py:class:: ForwardProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device='cpu')
+
+   Bases: :py:obj:`torch.nn.Module`
+
+   Implements a forward projection of mathematical form :math:`g_j = \sum_{i} c_{ij} f_i` where :math:`f_i` is an object, :math:`g_j` is the corresponding image, and :math:`c_{ij}` is the system matrix given by the various phenonemon modeled (atteunation correction/PSF).
+
+
+   .. py:method:: forward(object, angle_subset=None)
+
+      Implements forward projection on an object
+
+      :param object: The object to be forward projected
+      :type object: torch.tensor[batch_size, Lx, Ly, Lz]
+      :param angle_subset: Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None,
+      :type angle_subset: list, optional
+      :param which assumes all angles are used.:
+
+      :returns: Forward projected image where Ltheta is specified by `self.image_meta` and `angle_subset`.
+      :rtype: torch.tensor[batch_size, Ltheta, Lx, Lz]
+
+
+

@@ -1,3 +1,5 @@
+from pytomography.utils import compute_pad_size
+
 class ObjectMeta():
     """Metadata for object space
     """
@@ -13,6 +15,15 @@ class ObjectMeta():
         self.dy = dr[1]
         self.dz = dr[2]
         self.shape = shape
+        self.pad_size = compute_pad_size(self.shape[0])
+        self.padded_shape = self.compute_padded_shape()
+
+    def compute_padded_shape(self):
+        x_padded = self.shape[0] + 2*self.pad_size
+        y_padded = self.shape[1] + 2*self.pad_size
+        z_padded = self.shape[2]
+        return (int(x_padded), int(y_padded), int(z_padded)) 
+
 
 class ImageMeta():
     """Metadata for image space
@@ -31,6 +42,7 @@ class ImageMeta():
         self.radii = radii
         self.num_projections = len(angles)
         self.shape = (self.num_projections, object_meta.shape[1], object_meta.shape[2])
+
 
 class PSFMeta():
     """Metadata for PSF correction. PSF blurring is implemented using Gaussian blurring with

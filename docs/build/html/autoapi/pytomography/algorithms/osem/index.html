@@ -157,7 +157,8 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebooks/conventions.html">Users Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../usage.html">Tutorials</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l3 current has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
@@ -240,6 +241,9 @@
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.algorithms.osem.OSEMNet" title="pytomography.algorithms.osem.OSEMNet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OSEMNet</span></code></a></p></td>
 <td><p>Network used to run OSEM reconstruction: <span class="math notranslate nohighlight">\(f_i^{(n+1)} = \frac{f_i^{(n)}}{\sum_j c_{ij} + \beta \frac{\partial V}{\partial f_r}|_{f_i=f_i^{(n)}}} \sum_j c_{ij}\frac{g_j}{\sum_i c_{ij}f_i^{(n)}}\)</span>. Initializer initializes the reconstruction algorithm with the initial object guess <span class="math notranslate nohighlight">\(f_i^{(0)}\)</span>, forward and back projections used (i.e. networks to compute <span class="math notranslate nohighlight">\(\sum_i c_{ij} a_i\)</span> and <span class="math notranslate nohighlight">\(\sum_j c_{ij} b_j\)</span>), and prior for Bayesian corrections. Note that OSEMNet uses the one step late (OSL algorithm to compute priors during reconstruction. Once the class is initialized, the number of iterations and subsets are specified at recon time when the forward method is called.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.algorithms.osem.CompareToNumber" title="pytomography.algorithms.osem.CompareToNumber"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CompareToNumber</span></code></a></p></td>
+<td><p></p></td>
 </tr>
 </tbody>
 </table>
@@ -366,6 +370,16 @@
 </dl>
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomography.algorithms.osem.CompareToNumber">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.algorithms.osem.</span></span><span class="sig-name descname"><span class="pre">CompareToNumber</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">number</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.algorithms.osem.CompareToNumber" title="Permalink to this definition">#</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="pytomography.algorithms.osem.CompareToNumber.compare">
+<span class="sig-name descname"><span class="pre">compare</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prediction</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.algorithms.osem.CompareToNumber.compare" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </section>
 </section>
 </section>
@@ -419,6 +433,10 @@
 </ul>
 </li>
 <li><a class="reference internal" href="#pytomography.algorithms.osem.get_osem_net"><code class="docutils literal notranslate"><span class="pre">get_osem_net()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.algorithms.osem.CompareToNumber"><code class="docutils literal notranslate"><span class="pre">CompareToNumber</span></code></a><ul>
+<li><a class="reference internal" href="#pytomography.algorithms.osem.CompareToNumber.compare"><code class="docutils literal notranslate"><span class="pre">CompareToNumber.compare()</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#pytomography.algorithms.osem.OSEMNet">OSEMNet</a><ul>
 <li><a class="reference internal" href="#pytomography.algorithms.osem.OSEMNet.get_subset_splits">get_subset_splits</a></li>
 <li><a class="reference internal" href="#pytomography.algorithms.osem.OSEMNet.set_image">set_image</a></li>
@@ -427,6 +445,10 @@
 </ul>
 </li>
 <li><a class="reference internal" href="#pytomography.algorithms.osem.get_osem_net">get_osem_net</a></li>
+<li><a class="reference internal" href="#pytomography.algorithms.osem.CompareToNumber">CompareToNumber</a><ul>
+<li><a class="reference internal" href="#pytomography.algorithms.osem.CompareToNumber.compare">compare</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

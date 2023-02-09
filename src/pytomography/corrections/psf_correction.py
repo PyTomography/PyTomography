@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from pytomography.utils import get_distance
+from pytomography.utils import get_distance, compute_pad_size
 
 def get_PSF_transform(sigma, kernel_size, delta=1e-9, device='cpu', kernel_dimensions='2D'):
     """Creates a 2D convolutional layer that is used for PSF correction
@@ -65,7 +65,8 @@ class PSFCorrectionNet(nn.Module):
         Returns:
             array: An array of length Lx corresponding to blurring at each point along the 1st axis in object space
         """
-        distances = get_distance(shape[0], radius, dx)
+        dim = shape[0] + 2*compute_pad_size(shape[0])
+        distances = get_distance(dim, radius, dx)
         sigma = collimator_slope * distances + collimator_intercept
         return sigma
     @torch.no_grad()
