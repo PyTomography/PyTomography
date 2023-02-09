@@ -1,6 +1,5 @@
 *.code-workspace
 __pycache__
-*.png
 images_testing/
 notebook_testing
 stir_testing
