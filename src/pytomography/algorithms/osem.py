@@ -19,12 +19,15 @@ class OSEMNet(nn.Module):
                  forward_projection_net,
                  back_projection_net,
                  prior = None):
-        
         super(OSEMNet, self).__init__()
         self.forward_projection_net = forward_projection_net
         self.back_projection_net = back_projection_net
-        self.object_prediction = object_initial
+        
         self.prior = prior
+        if forward_projection_net.device!=back_projection_net.device:
+            Exception('Forward projection net and back projection net should be on same device')
+        self.device = forward_projection_net.device
+        self.object_prediction = object_initial.to(self.device)
 
     def get_subset_splits(self, n_subsets, n_angles):
         """Returns a list of arrays; each array contains indices, corresponding
@@ -50,7 +53,7 @@ class OSEMNet(nn.Module):
         Args:
             image (torch.tensor[batch_size, Ltheta, Lr, Lz]): image data
         """
-        self.image = image
+        self.image = image.to(self.device)
 
     def set_prior(self, prior):
         """Sets the prior used for Bayesian modeling

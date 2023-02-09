@@ -33,6 +33,9 @@ Classes
    Metadata for object space
 
 
+   .. py:method:: compute_padded_shape()
+
+
 
 .. py:class:: ImageMeta(object_meta, angles, radii=None)
 

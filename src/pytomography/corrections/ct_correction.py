@@ -25,7 +25,7 @@ class CTCorrectionNet(nn.Module):
 		"""
 	def __init__(self, object_meta, image_meta, CT, device='cpu'):
 		super(CTCorrectionNet, self).__init__()
-		self.CT = CT
+		self.CT = CT.to(device)
 		self.object_meta = object_meta
 		self.image_meta = image_meta
 		self.device = device
@@ -43,7 +43,7 @@ class CTCorrectionNet(nn.Module):
 			torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.
 		"""
 		CT = pad_object(self.CT)
-		norm_factor = get_prob_of_detection_matrix(rotate_detector_z(CT, self.image_meta.angles[i]), self.object_meta.dx).to(self.device)
+		norm_factor = get_prob_of_detection_matrix(rotate_detector_z(CT, self.image_meta.angles[i]), self.object_meta.dx)
 		if norm_constant is not None:
 			norm_constant*=norm_factor
 		return object_i*norm_factor

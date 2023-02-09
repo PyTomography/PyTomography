@@ -22,6 +22,7 @@ Classes
 .. autoapisummary::
 
    pytomography.algorithms.OSEMNet
+   pytomography.algorithms.CompareToNumber
 
 
 
@@ -117,6 +118,12 @@ Functions
 
       :returns: reconstructed object
       :rtype: torch.tensor[batch_size, Lx, Ly, Lz]
+
+
+
+.. py:class:: CompareToNumber(number, mask, norm_factor=None)
+
+   .. py:method:: compare(prediction)
 
 
 

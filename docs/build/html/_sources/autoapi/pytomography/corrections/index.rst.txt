@@ -28,7 +28,7 @@ Classes
 
 
 
-.. py:class:: CTCorrectionNet(object_meta, image_meta, CT, store_in_memory=False, device='cpu')
+.. py:class:: CTCorrectionNet(object_meta, image_meta, CT, device='cpu')
 
    Bases: :py:obj:`torch.nn.Module`
 
@@ -40,8 +40,6 @@ Classes
    :type image_meta: ImageMeta
    :param CT: Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{cm}^{-1}}` at the photon energy corresponding to the particular scan
    :type CT: torch.tensor
-   :param store_in_memory: Stores all rotated CT scans in memory on computer. May speed up computation. Defaults to False.
-   :type store_in_memory: bool, optional
    :param device: Pytorch computation device. Defaults to 'cpu'.
    :type device: str, optional
 

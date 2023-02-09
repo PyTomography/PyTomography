@@ -4,10 +4,10 @@
 % contain the root `toctree` directive.
 
 
-```{include} ../../README.md
+```{include} intro_page.md
 ```
 
-For further info, check out {doc}`usage`. Read installation instruction in {ref}`Installation`.
+For further info, check out {doc}`usage` for some simple examples. I'd also recommend taking a look at the {doc}`notebooks/conventions` to ensure you know precisely how data is organized in this library.
 
 ```{warning}
 This library is still under heavy development.
@@ -17,6 +17,7 @@ This library is still under heavy development.
 :caption: 'Contents:'
 :maxdepth: 3
 
+notebooks/conventions
 usage
 ```
 

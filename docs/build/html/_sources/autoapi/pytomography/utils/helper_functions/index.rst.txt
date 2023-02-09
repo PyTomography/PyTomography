@@ -16,6 +16,11 @@ Functions
    pytomography.utils.helper_functions.rev_cumsum
    pytomography.utils.helper_functions.rotate_detector_z
    pytomography.utils.helper_functions.get_distance
+   pytomography.utils.helper_functions.compute_pad_size
+   pytomography.utils.helper_functions.pad_object
+   pytomography.utils.helper_functions.unpad_object
+   pytomography.utils.helper_functions.pad_image
+   pytomography.utils.helper_functions.unpad_image
 
 
 
@@ -76,5 +81,20 @@ Functions
 
    :returns: An array of distances for each y-z plane to the detector.
    :rtype: np.array[Lx]
+
+
+.. py:function:: compute_pad_size(width)
+
+
+.. py:function:: pad_object(object)
+
+
+.. py:function:: unpad_object(object, original_shape)
+
+
+.. py:function:: pad_image(image)
+
+
+.. py:function:: unpad_image(image, original_shape)
 
 

@@ -13,6 +13,7 @@ Classes
 .. autoapisummary::
 
    pytomography.algorithms.osem.OSEMNet
+   pytomography.algorithms.osem.CompareToNumber
 
 
 
@@ -109,5 +110,11 @@ Functions
 
    :returns: An initialized OSEMNet, ready to perform reconstruction.
    :rtype: OSEMNet
+
+
+.. py:class:: CompareToNumber(number, mask, norm_factor=None)
+
+   .. py:method:: compare(prediction)
+
 
 
