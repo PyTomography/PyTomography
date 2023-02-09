@@ -21,7 +21,7 @@ classifiers = [
 "Homepage" = "https://github.com/pypa/sampleproject"
 "Bug Tracker" = "https://github.com/pypa/sampleproject/issues"
 
-[project-optional-dependencies]
+[project.optional-dependencies]
 doc = [
   "sphinx=4.2.0",
   "myst-parser",
