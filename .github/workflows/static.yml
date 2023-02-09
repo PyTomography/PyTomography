@@ -25,7 +25,7 @@ jobs:
   deploy:
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: https://qurit.github.io/pytomography/docs/build/html/index.html
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
