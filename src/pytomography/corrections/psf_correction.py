@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from pytomography.utils import get_distance, compute_pad_size
+from pytomography.corrections import CorrectionNet
 
 def get_PSF_transform(sigma, kernel_size, delta=1e-9, device='cpu', kernel_dimensions='2D'):
     """Creates a 2D convolutional layer that is used for PSF correction
@@ -32,7 +33,7 @@ def get_PSF_transform(sigma, kernel_size, delta=1e-9, device='cpu', kernel_dimen
     layer.weight.data = kernel.unsqueeze(dim=1).to(device)
     return layer
 
-class PSFCorrectionNet(nn.Module):
+class PSFCorrectionNet(CorrectionNet):
     """Correction network used to correct PSF correction in projection operators. In particular, this network is used with other correction networks to model :math:`c` in :math:`\sum_i c_{ij} a_i` (forward projection) and :math:`\sum c_{ij} b_j` (back projection). The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``PSFMeta`` parameter. 
 
         Args:
@@ -42,10 +43,7 @@ class PSFCorrectionNet(nn.Module):
             device (str, optional): Pytorch device used for computation. Defaults to 'cpu'.
         """
     def __init__(self, object_meta, image_meta, psf_meta, device='cpu'):
-        super(PSFCorrectionNet, self).__init__()
-        self.device = device
-        self.object_meta = object_meta
-        self.image_meta = image_meta
+        super(PSFCorrectionNet, self).__init__(object_meta, image_meta, device)
         self.psf_meta = psf_meta
         self.layers = {}
         for radius in np.unique(image_meta.radii):

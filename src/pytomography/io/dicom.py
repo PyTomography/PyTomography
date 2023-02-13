@@ -11,9 +11,11 @@ def get_radii_and_angles(ds):
     radii = np.array([])
     angles = np.array([])
     for detector in np.unique(detectors):
-        radii = np.concatenate([radii, ds.DetectorInformationSequence[detector-1].RadialPosition])
+        radial_positions_detector = ds.DetectorInformationSequence[detector-1].RadialPosition
+        n_angles = len(radial_positions_detector)
+        radii = np.concatenate([radii, radial_positions_detector])
         delta_angle = ds.RotationInformationSequence[0].AngularStep
-        angles = np.concatenate([angles, ds.DetectorInformationSequence[detector-1].StartAngle + delta_angle*np.arange(48)])
+        angles = np.concatenate([angles, ds.DetectorInformationSequence[detector-1].StartAngle + delta_angle*np.arange(n_angles)])
     angles = (angles + 180)%360 # to detector angle convention
     sorted_idxs = np.argsort(angles)
     projections = np.transpose(pixel_array[:,sorted_idxs][:,:,::-1], (0,1,3,2)).astype(np.float32)
@@ -47,7 +49,8 @@ def HU_to_mu(HU):
 
 def get_affine_spect(ds):
     Sx, Sy, Sz = ds.DetectorInformationSequence[0].ImagePositionPatient
-    dx = dy = dz = ds.PixelSpacing[0]
+    dx = dy = ds.PixelSpacing[0]
+    dz = ds.PixelSpacing[1]
     Sx -= ds.Rows / 2 * (-dx)
     Sy -= ds.Rows / 2 * (-dy)
     M = np.zeros((4,4))
@@ -61,8 +64,8 @@ def get_affine_CT(ds, max_z):
     M_CT = np.zeros((4,4))
     M_CT[0:3, 0] = np.array(ds.ImageOrientationPatient[0:3])*ds.PixelSpacing[0]
     M_CT[0:3, 1] = np.array(ds.ImageOrientationPatient[3:])*ds.PixelSpacing[1]
-    M_CT[0:3, 2] = -np.array([0,0,1]) * ds.SliceThickness
-    M_CT[:-2,3] = ds.ImagePositionPatient[0] #same x and y
+    M_CT[0:3, 2] = -np.array([0,0,1]) * ds.SliceThickness 
+    M_CT[:-2,3] = ds.ImagePositionPatient[0] 
     M_CT[2, 3] = max_z
     M_CT[3, 3] = 1
     return M_CT

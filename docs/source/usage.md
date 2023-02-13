@@ -2,6 +2,7 @@
 
 ## Tutorials
 * {doc}`notebooks/advertisement`
-* {doc}`notebooks/tutorial1`
-* {doc}`notebooks/tutorial2`
+* {doc}`notebooks/t_fbp`
+* {doc}`notebooks/t_siminddata`
+* {doc}`notebooks/t_dicomdata`
 

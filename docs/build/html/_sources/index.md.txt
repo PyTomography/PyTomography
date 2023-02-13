@@ -7,7 +7,7 @@
 ```{include} intro_page.md
 ```
 
-For further info, check out {doc}`usage` for some simple examples. I'd also recommend taking a look at the {doc}`notebooks/conventions` to ensure you know precisely how data is organized in this library.
+Be sure to check out {doc}`notebooks/conventions` and  {doc}`usage` for some simple examples.
 
 ```{warning}
 This library is still under heavy development.

@@ -40,6 +40,7 @@ class BackProjectionNetOld(nn.Module):
         Returns:
             torch.tensor[batch_size, Lr, Lr, Lz]: the object obtained from back projection.
         """
+        
         N_angles = self.image_meta.num_projections
         object = torch.zeros([image.shape[0], *self.object_meta.shape]).to(self.device)
         norm_constant = torch.zeros([image.shape[0], *self.object_meta.shape]).to(self.device)
@@ -92,6 +93,10 @@ class BackProjectionNet(nn.Module):
         Returns:
             torch.tensor[batch_size, Lr, Lr, Lz]: the object obtained from back projection.
         """
+        # First apply any image corrections before back projecting
+        for net in self.image_correction_nets:
+            image = net(image)
+        # Then do back projection
         N_angles = self.image_meta.num_projections
         object = torch.zeros([image.shape[0], *self.object_meta.shape]).to(self.device)
         norm_constant = torch.zeros([image.shape[0], *self.object_meta.shape]).to(self.device)

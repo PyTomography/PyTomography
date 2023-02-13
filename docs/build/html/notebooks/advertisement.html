@@ -166,6 +166,7 @@
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pytomography/corrections/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.corrections</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pytomography/corrections/correction/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.corrections.correction</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../autoapi/pytomography/corrections/ct_correction/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.corrections.ct_correction</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../autoapi/pytomography/corrections/psf_correction/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.corrections.psf_correction</span></code></a></li>
 </ul>
@@ -490,7 +491,7 @@ div.rendered_html tbody tr:hover {
 <section id="Introduction">
 <h1>Introduction<a class="headerlink" href="#Introduction" title="Permalink to this heading">#</a></h1>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span>
@@ -515,7 +516,7 @@ div.rendered_html tbody tr:hover {
 </li>
 </ol>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">osem_net</span> <span class="o">=</span> <span class="n">get_osem_net</span><span class="p">(</span><span class="n">projections_header</span> <span class="o">=</span> <span class="s1">&#39;/home/ubuntu/test_files/projections.h00&#39;</span><span class="p">,</span>
@@ -530,7 +531,7 @@ div.rendered_html tbody tr:hover {
 <li><p>Reconstruct object, specifying number of iterations and subsets.</p></li>
 </ol>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reconstructed_object</span><span class="o">=</span> <span class="n">osem_net</span><span class="p">(</span><span class="n">n_iters</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">n_subsets</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
@@ -542,7 +543,7 @@ div.rendered_html tbody tr:hover {
 <li><p>Plot maximum intensity projections of the reconstructed object.</p></li>
 </ol>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>
@@ -567,14 +568,6 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area docutils container">
 <img alt="../_images/notebooks_advertisement_7_0.png" src="../_images/notebooks_advertisement_7_0.png" />
-</div>
-</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
-</pre></div>
 </div>
 </div>
 </section>

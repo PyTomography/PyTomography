@@ -29,6 +29,3 @@ Finally, install pytomography:
 pip install pytomography
 ```
 
-# More Reading
-
-For an extensive overview of this package, see the documentation.
