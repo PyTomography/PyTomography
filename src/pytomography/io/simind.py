@@ -29,7 +29,7 @@ def simind_projections_to_data(headerfile, distance='mm'):
     dz = find_first_entry_containing_substring(headerdata, 'scaling factor (mm/pixel) [2]', np.float32) / 10 # to mm
     dr = (dx, dx, dz)
     number_format = find_first_entry_containing_substring(headerdata, 'number format', str)
-    num_bytes_per_pixel = find_first_entry_containing_substring(headerdata, 'number of bytes per pixel', np.float32)
+    num_bytes_per_pixel = find_first_entry_containing_substring(headerdata, 'number of bytes per pixel', int)
     extent_of_rotation = find_first_entry_containing_substring(headerdata, 'extent of rotation', np.float32)
     number_of_projections = find_first_entry_containing_substring(headerdata, 'number of projections', int)
     start_angle = find_first_entry_containing_substring(headerdata, 'start angle', np.float32)
@@ -40,7 +40,8 @@ def simind_projections_to_data(headerfile, distance='mm'):
     shape_obj = (proj_dim1, proj_dim1, proj_dim2)
     object_meta = ObjectMeta(dr,shape_obj)
     image_meta = ImageMeta(object_meta, angles, np.ones(len(angles))*radius)
-    projections = np.fromfile(os.path.join(str(Path(headerfile).parent), imagefile), dtype=np.float32)
+    dtype = eval(f'np.{number_format}{num_bytes_per_pixel*8}')
+    projections = np.fromfile(os.path.join(str(Path(headerfile).parent), imagefile), dtype=dtype)
     projections = np.transpose(projections.reshape((num_proj,proj_dim2,proj_dim1))[:,::-1], (0,2,1))
     projections = torch.tensor(projections.copy()).unsqueeze(dim=0)
     return object_meta, image_meta, projections

@@ -12,43 +12,18 @@ Classes
 
 .. autoapisummary::
 
-   pytomography.projections.back_projection.BackProjectionNetOld
    pytomography.projections.back_projection.BackProjectionNet
 
 
 
 
-.. py:class:: BackProjectionNetOld(object_correction_nets, image_correction_nets, object_meta, image_meta, device='cpu')
+.. py:class:: BackProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device = 'cpu')
 
-   Bases: :py:obj:`torch.nn.Module`
+   Bases: :py:obj:`pytomography.projections.projection.ProjectionNet`
 
-   Implements a back projection of mathematical form :math:`f_i = \frac{1}{\sum_j c_{ij}}\sum_{j} c_{ij} g_j`. where :math:`f_j` is an object, :math:`g_j` is an image, and :math:`c_{ij}` is the system matrix given by the various phenonemon modeled (atteunation correction/PSF).
+   Implements a back projection of mathematical form :math:`f_i = \frac{1}{\sum_j c_{ij}}\sum_{j} c_{ij} g_j`. where :math:`f_j` is an object, :math:`g_j` is an image, and :math:`c_{ij}` is the system matrix given by the various phenonemon modeled (atteunation correction/PSF). Subclass of the ``ProjectionNet`` class.
 
-   .. py:method:: forward(image, angle_subset=None, prior=None, delta=1e-11)
-
-      Implements back projection on an image, returning an object.
-
-      :param image: image which is to be back projected
-      :type image: torch.tensor[batch_size, Ltheta, Lr, Lz]
-      :param angle_subset: Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
-      :type angle_subset: list, optional
-      :param prior: If included, modifes normalizing factor to :math:`\frac{1}{\sum_j c_{ij} + P_i}` where :math:`P_i` is given by the prior. Used, for example, during in MAP OSEM. Defaults to None.
-      :type prior: Prior, optional
-      :param delta: Prevents division by zero when dividing by normalizing constant. Defaults to 1e-11.
-      :type delta: float, optional
-
-      :returns: the object obtained from back projection.
-      :rtype: torch.tensor[batch_size, Lr, Lr, Lz]
-
-
-
-.. py:class:: BackProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device='cpu')
-
-   Bases: :py:obj:`torch.nn.Module`
-
-   Implements a back projection of mathematical form :math:`f_i = \frac{1}{\sum_j c_{ij}}\sum_{j} c_{ij} g_j`. where :math:`f_j` is an object, :math:`g_j` is an image, and :math:`c_{ij}` is the system matrix given by the various phenonemon modeled (atteunation correction/PSF).
-
-   .. py:method:: forward(image, angle_subset=None, prior=None, delta=1e-11)
+   .. py:method:: forward(image, angle_subset = None, prior = None, return_norm_constant = False, delta = 1e-11)
 
       Implements back projection on an image, returning an object.
 
@@ -58,6 +33,8 @@ Classes
       :type angle_subset: list, optional
       :param prior: If included, modifes normalizing factor to :math:`\frac{1}{\sum_j c_{ij} + P_i}` where :math:`P_i` is given by the prior. Used, for example, during in MAP OSEM. Defaults to None.
       :type prior: Prior, optional
+      :param return_norm_constant: Whether or not to return :math:`1/\sum_j c_{ij}` along with back projection. Defaults to 'False'.
+      :type return_norm_constant: bool
       :param delta: Prevents division by zero when dividing by normalizing constant. Defaults to 1e-11.
       :type delta: float, optional
 

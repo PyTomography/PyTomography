@@ -17,14 +17,14 @@ Classes
 
 
 
-.. py:class:: ForwardProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device='cpu')
+.. py:class:: ForwardProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device = 'cpu')
 
-   Bases: :py:obj:`torch.nn.Module`
+   Bases: :py:obj:`pytomography.projections.projection.ProjectionNet`
 
    Implements a forward projection of mathematical form :math:`g_j = \sum_{i} c_{ij} f_i` where :math:`f_i` is an object, :math:`g_j` is the corresponding image, and :math:`c_{ij}` is the system matrix given by the various phenonemon modeled (atteunation correction/PSF).
 
 
-   .. py:method:: forward(object, angle_subset=None)
+   .. py:method:: forward(object, angle_subset = None)
 
       Implements forward projection on an object
 

@@ -17,23 +17,29 @@ Classes
 
 
 
-.. py:class:: CorrectionNet(object_meta, image_meta, device)
+.. py:class:: CorrectionNet(device = 'cpu')
 
    Bases: :py:obj:`torch.nn.Module`
 
-   Correction net is the parent class for all correction networks used in reconstruction. It must take in the object/image metadata, and the corresponding pytorch device used for computation
+   Correction net is the parent class for all correction networks used in reconstruction. Subclasses must implement the ``forward`` method.
 
-   :param object_meta: Metadata for object space.
-   :type object_meta: ObjectMeta
-   :param image_meta: Metadata for image space.
-   :type image_meta: ImageMeta
    :param device: Pytorch device used for computation
    :type device: str
 
-   .. py:method:: forward()
+   .. py:method:: initialize_network(object_meta, image_meta)
+
+      Initalizes the correction network using the object/image metadata
+
+      :param object_meta: Object metadata.
+      :type object_meta: ObjectMeta
+      :param image_meta: Image metadata.
+      :type image_meta: ImageMeta
+
+
+   .. py:method:: forward(x)
       :abstractmethod:
 
-      Must be implemented by the child class correction network
+      Abstract method; must be implemented in subclasses to apply a correction to an object/image and return it
 
 
 

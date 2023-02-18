@@ -1,0 +1,39 @@
+:py:mod:`pytomography.projections.projection`
+=============================================
+
+.. py:module:: pytomography.projections.projection
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.projections.projection.ProjectionNet
+
+
+
+
+.. py:class:: ProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device = 'cpu')
+
+   Bases: :py:obj:`torch.nn.Module`
+
+   Abstract parent class for projection networks. Any subclass of this network must implement the ``forward`` method.
+
+   .. py:method:: initialize_correction_nets()
+
+      Function that initializes all correction networks with the required object and image metadata corresponding to the projection network.
+
+
+
+   .. py:method:: foward()
+      :abstractmethod:
+
+      Abstract method that must be implemented by any subclass of this class.
+
+
+
+

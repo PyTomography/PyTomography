@@ -1,36 +1,15 @@
 import torch
-import torch.nn as nn
 from pytomography.utils import rotate_detector_z, pad_object, unpad_object
+from .projection import ProjectionNet
 
-# INPUT:
-# object [batch_size, Lx, Ly, Lz]
-# angles [batch_size, num_projections]
-# radii? [ num_projections] b/c all in batch should have same radii
-# CT? [batch_size]
-# OUTPUT:
-# image [batch_size, num_projections, Ly, Lz]
-class ForwardProjectionNet(nn.Module):
+class ForwardProjectionNet(ProjectionNet):
     """Implements a forward projection of mathematical form :math:`g_j = \sum_{i} c_{ij} f_i` where :math:`f_i` is an object, :math:`g_j` is the corresponding image, and :math:`c_{ij}` is the system matrix given by the various phenonemon modeled (atteunation correction/PSF).
     """
-    def __init__(self, object_correction_nets, image_correction_nets,
-                object_meta, image_meta, device='cpu'):
-        """Initializer
-
-        Args:
-            object_correction_nets (list): List of correction networks which operate on an object prior to forward projection such that subsequent forward projection leads to the phenomenon being simulated.
-            image_correction_nets (list): List of correction networks which operate on an object after forward projection such that desired phenoneon are simulated.
-            object_meta (ObjectMeta): Object metadata.
-            image_meta (ImageMeta): Image metadata.
-            device (str, optional): Pytorch device used for computation. Defaults to 'cpu'.
-        """
-        super(ForwardProjectionNet, self).__init__()
-        self.device = device
-        self.object_correction_nets = object_correction_nets
-        self.image_correction_nets = image_correction_nets
-        self.object_meta = object_meta
-        self.image_meta = image_meta
-
-    def forward(self, object, angle_subset=None):
+    def forward(
+        self,
+        object: torch.tensor,
+        angle_subset: list[int] = None
+    ) -> torch.tensor:
         r"""Implements forward projection on an object
 
         Args:

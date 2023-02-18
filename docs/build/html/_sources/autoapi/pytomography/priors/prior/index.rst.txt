@@ -1,0 +1,69 @@
+:py:mod:`pytomography.priors.prior`
+===================================
+
+.. py:module:: pytomography.priors.prior
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.priors.prior.Prior
+
+
+
+
+.. py:class:: Prior(beta, device = 'cpu')
+
+   Bases: :py:obj:`torch.nn.Module`
+
+   Abstract class for implementation of prior :math:`V(f)`. Any function inheriting from this class should implement a ``foward`` method that computes the tensor :math:`\frac{\partial V}{\partial f_r}` where :math:`f` is an object tensor.
+
+
+   .. py:method:: set_object_meta(object_meta)
+
+      Sets object metadata parameters.
+
+      :param object_meta: Object metadata describing the system.
+      :type object_meta: ObjectMeta
+
+
+   .. py:method:: set_beta_scale(factor)
+
+      Sets :math:`\beta`
+
+      :param factor: Value of :math:`\beta`
+      :type factor: float
+
+
+   .. py:method:: set_object(object)
+
+      Sets the object :math:`f_r` used to compute :math:`
+      rac{\partial V}{\partial f_r}`
+
+              Args:
+                  object (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] which the prior
+                  will be computed on
+
+
+
+   .. py:method:: set_device(device = 'cpu')
+
+      Sets the pytorch computation device
+
+      :param device: sets device.
+      :type device: str
+
+
+   .. py:method:: forward()
+      :abstractmethod:
+
+      Abstract method to compute prior based on the ``self.object`` attribute.
+
+
+
+

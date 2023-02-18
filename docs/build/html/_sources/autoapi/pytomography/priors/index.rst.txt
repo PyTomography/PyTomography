@@ -3,6 +3,11 @@
 
 .. py:module:: pytomography.priors
 
+.. autoapi-nested-parse::
+
+   The __init__ docstr
+
+
 
 Submodules
 ----------
@@ -10,6 +15,8 @@ Submodules
    :titlesonly:
    :maxdepth: 1
 
+   gibbs/index.rst
+   prior/index.rst
    smoothness/index.rst
 
 
@@ -23,21 +30,80 @@ Classes
 
    pytomography.priors.QuadraticPrior
    pytomography.priors.LogCoshPrior
+   pytomography.priors.QClearPrior
+   pytomography.priors.Prior
 
 
 
 
-.. py:class:: QuadraticPrior(beta, delta=1, device='cpu')
+.. py:class:: QuadraticPrior(beta, delta = 1, device = 'cpu')
 
    Bases: :py:obj:`SmoothnessPrior`
 
    Implentation of `SmoothnessPrior` where :math:`\phi` is the identity function
 
 
-.. py:class:: LogCoshPrior(beta, delta=1, device='cpu')
+.. py:class:: LogCoshPrior(beta, delta = 1, device = 'cpu')
 
    Bases: :py:obj:`SmoothnessPrior`
 
    Implementation of `SmoothnessPrior` where :math:`\phi` is the hyperbolic tangent function
+
+
+.. py:class:: QClearPrior(beta = 1, gamma = 1, device = 'cpu')
+
+   Bases: :py:obj:`DiffAndSumSmoothnessPrior`
+
+   Implentation of `SmoothnessPrior` where :math:`\phi` is the the QClear Function (DEFINE HERE)
+
+
+.. py:class:: Prior(beta, device = 'cpu')
+
+   Bases: :py:obj:`torch.nn.Module`
+
+   Abstract class for implementation of prior :math:`V(f)`. Any function inheriting from this class should implement a ``foward`` method that computes the tensor :math:`\frac{\partial V}{\partial f_r}` where :math:`f` is an object tensor.
+
+
+   .. py:method:: set_object_meta(object_meta)
+
+      Sets object metadata parameters.
+
+      :param object_meta: Object metadata describing the system.
+      :type object_meta: ObjectMeta
+
+
+   .. py:method:: set_beta_scale(factor)
+
+      Sets :math:`\beta`
+
+      :param factor: Value of :math:`\beta`
+      :type factor: float
+
+
+   .. py:method:: set_object(object)
+
+      Sets the object :math:`f_r` used to compute :math:`
+      rac{\partial V}{\partial f_r}`
+
+              Args:
+                  object (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] which the prior
+                  will be computed on
+
+
+
+   .. py:method:: set_device(device = 'cpu')
+
+      Sets the pytorch computation device
+
+      :param device: sets device.
+      :type device: str
+
+
+   .. py:method:: forward()
+      :abstractmethod:
+
+      Abstract method to compute prior based on the ``self.object`` attribute.
+
+
 
 

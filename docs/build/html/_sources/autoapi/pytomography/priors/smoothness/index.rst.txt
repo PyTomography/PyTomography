@@ -19,9 +19,9 @@ Classes
 
 
 
-.. py:class:: SmoothnessPrior(beta, phi, delta=1, device='cpu')
+.. py:class:: SmoothnessPrior(beta, delta, phi, device = 'cpu')
 
-   Bases: :py:obj:`torch.nn.Module`
+   Bases: :py:obj:`pytomography.priors.prior.Prior`
 
    Implementation of priors with gradients of the form
    :math:`\frac{\partial V}{\partial f_r}=\frac{\beta}{\delta}\sum_{r,s}w_{s}\phi\left(\frac{f_r-f_s}{\delta}\right)` where :math:`V` is from the log-posterior probability :math:`\log P(g | f) - \beta V(f)`.
@@ -34,47 +34,12 @@ Classes
       :rtype: (torch.nn.Conv3d, torch.tensor)
 
 
-   .. py:method:: set_object_meta(object_meta)
-
-      Sets object metadata parameters.
-
-      :param object_meta: Object metadata describing the system.
-      :type object_meta: ObjectMeta
-
-
    .. py:method:: set_kernel(object_meta)
 
       Sets the kernel using  `get_kernel` and the corresponding object metadata.
 
       :param object_meta: _description_
       :type object_meta: _type_
-
-
-   .. py:method:: set_beta_scale(factor)
-
-      Sets :math:`\beta`
-
-      :param factor: Value of :math:`\beta`
-      :type factor: float
-
-
-   .. py:method:: set_object(object)
-
-      Sets the object :math:`f_r` used to compute :math:`
-      rac{\partial V}{\partial f_r}`
-
-              Args:
-                  object (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] which the prior
-                  will be computed on
-
-
-
-   .. py:method:: set_device(device)
-
-      Sets the pytorch computation device
-
-      :param device: sets device.
-      :type device: str
 
 
    .. py:method:: forward()
@@ -86,14 +51,14 @@ Classes
 
 
 
-.. py:class:: QuadraticPrior(beta, delta=1, device='cpu')
+.. py:class:: QuadraticPrior(beta, delta = 1, device = 'cpu')
 
    Bases: :py:obj:`SmoothnessPrior`
 
    Implentation of `SmoothnessPrior` where :math:`\phi` is the identity function
 
 
-.. py:class:: LogCoshPrior(beta, delta=1, device='cpu')
+.. py:class:: LogCoshPrior(beta, delta = 1, device = 'cpu')
 
    Bases: :py:obj:`SmoothnessPrior`
 

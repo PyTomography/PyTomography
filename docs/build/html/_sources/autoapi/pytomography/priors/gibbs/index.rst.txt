@@ -1,0 +1,73 @@
+:py:mod:`pytomography.priors.gibbs`
+===================================
+
+.. py:module:: pytomography.priors.gibbs
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.priors.gibbs.DiffAndSumSmoothnessPrior
+   pytomography.priors.gibbs.QClearPrior
+
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.priors.gibbs.QClear
+
+
+
+.. py:class:: DiffAndSumSmoothnessPrior(beta, phi, device = 'cpu', **kwargs)
+
+   Bases: :py:obj:`pytomography.priors.prior.Prior`
+
+   Implementation of priors where gradients depend on difference and the sum of neighbouring voxels:
+   :math:`\frac{\partial V}{\partial f_r}=\frac{\beta}{\delta}\sum_{r,s}w_{s}\phi\left(\frac{f_r-f_s}{\delta}\right)` where :math:`V` is from the log-posterior probability :math:`\log P(g | f) - \beta V(f)`.
+
+   .. py:method:: get_kernel(sign = 1)
+
+      Obtains the kernel used to get :math:`\frac{\partial V}{\partial f_r}` (this is an array with the same dimensions as the object space image)
+
+      :param sign: Kernel computes image :math:`f_r + \text{sign} \cdot f_k` for all 26 nearest neighbours :math:`k` (i.e. a 3D image is returned with 26 channels). Defaults to 1.
+      :type sign: float
+
+      :returns: Kernel used for convolution (number of output channels equal to number of :math:`s`), and array of weights :math:`w_s` used in expression for gradient.
+      :rtype: (torch.nn.Conv3d, torch.tensor)
+
+
+   .. py:method:: set_kernel(object_meta)
+
+      Sets the kernel using  `get_kernel` and the corresponding object metadata.
+
+      :param object_meta: Metadata for object space.
+      :type object_meta: ObjectMeta
+
+
+   .. py:method:: forward()
+
+      Computes the prior on ``self.object``
+
+      :returns: Tensor of shape [batch_size, Lx, Ly, Lz] representing :math:`\frac{\partial V}{\partial f_r}`
+      :rtype: torch.tensor
+
+
+
+.. py:class:: QClearPrior(beta = 1, gamma = 1, device = 'cpu')
+
+   Bases: :py:obj:`DiffAndSumSmoothnessPrior`
+
+   Implentation of `SmoothnessPrior` where :math:`\phi` is the the QClear Function (DEFINE HERE)
+
+
+.. py:function:: QClear(sum, diff, gamma, eps=1e-11)
+
+
