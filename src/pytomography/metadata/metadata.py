@@ -55,8 +55,8 @@ class PSFMeta():
      :math:`\sigma(d) = ad + b` where :math:`a` is the collimator slope, :math:`b` is the collimator intercept, and :math:`d` is the distance from a plane in object space to a detector aligned parallel with the plane: as such, :math:`\frac{1}{\sigma\sqrt{2\pi}}e^{-r^2/(2\sigma(d)^2)}` is the point spread function where :math:`r` is the radial distance between some point in image space and the corresponding point in object space. Blurring is implemented using convolutions with a specified kernel size. 
 
      Args:
-        collimator_slope (float): The collimator slope used for blurring
-        collimator_intercept (float): The collimator intercept used for blurring.
+        collimator_slope (float): The collimator slope used for blurring (dimensionless units)
+        collimator_intercept (float): The collimator intercept used for blurring. Should be in units of cm.
         kernel_dimensions (str): If '1D', blurring is done seperately in each axial plane (so only a 1 dimensional convolution is used). If '2D', blurring is mixed between axial planes (so a 2D convolution is used). Defaults to '2D'.
         kernel_size (int, optional): Size of kernel used for blurring. Defaults to 61.
     """

@@ -13,7 +13,7 @@ def get_prob_of_detection_matrix(CT: torch.Tensor, dx: float) -> torch.tensor:
     Returns:
         torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] corresponding to probability of photon being detected at detector at +x axis.
     """
-	return torch.exp(-rev_cumsum(CT* dx))
+	return torch.exp(-rev_cumsum(CT * dx))
 
 class CTCorrectionNet(CorrectionNet):
 	r"""Correction network used to correct for attenuation correction in projection operators. In particular, this network is used with other correction networks to model :math:`c` in :math:`\sum_i c_{ij} a_i` (forward projection) and :math:`\sum c_{ij} b_j` (back projection).
@@ -37,7 +37,7 @@ class CTCorrectionNet(CorrectionNet):
 
 		Args:
 			object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along ``axis=1``.
-			i (int): The projection index: used to find the corresponding angle in image space corresponding to ``object_i``. In particular, the x axis of the object is aligned with the detector at angle i.
+			i (int): The projection index: used to find the corresponding angle in image space corresponding to ``object_i``. In particular, the x axis (tensor `axis=1`) of the object is aligned with the detector at angle i.
 			norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
 
 		Returns:
