@@ -1,7 +1,9 @@
+from __future__ import annotations
 import torch
 import torch.nn as nn
 from pytomography.utils.helper_functions import rotate_detector_z, rev_cumsum, pad_object
 from pytomography.corrections import CorrectionNet
+
 
 def get_prob_of_detection_matrix(CT: torch.Tensor, dx: float) -> torch.tensor: 
 	r"""Converts an attenuation map of :math:`\text{cm}^{-1}` to a probability of photon detection matrix (scanner at +x). Note that this requires the attenuation map to be at the energy of photons being emitted.

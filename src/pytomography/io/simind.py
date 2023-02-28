@@ -4,6 +4,9 @@ import os
 from pytomography.metadata import ObjectMeta, ImageMeta
 from pathlib import Path
 
+relation_dict = {'unsignedinteger': 'int',
+                 'shortfloat': 'float',
+                 'int': 'int'}
 
 def find_first_entry_containing_substring(list_of_attributes, substring, dtype=np.float32):
     line = list_of_attributes[np.char.find(list_of_attributes, substring)>=0][0]
@@ -29,6 +32,7 @@ def simind_projections_to_data(headerfile, distance='mm'):
     dz = find_first_entry_containing_substring(headerdata, 'scaling factor (mm/pixel) [2]', np.float32) / 10 # to mm
     dr = (dx, dx, dz)
     number_format = find_first_entry_containing_substring(headerdata, 'number format', str)
+    number_format= relation_dict[number_format]
     num_bytes_per_pixel = find_first_entry_containing_substring(headerdata, 'number of bytes per pixel', int)
     extent_of_rotation = find_first_entry_containing_substring(headerdata, 'extent of rotation', np.float32)
     number_of_projections = find_first_entry_containing_substring(headerdata, 'number of projections', int)
@@ -45,6 +49,26 @@ def simind_projections_to_data(headerfile, distance='mm'):
     projections = np.transpose(projections.reshape((num_proj,proj_dim2,proj_dim1))[:,::-1], (0,2,1))
     projections = torch.tensor(projections.copy()).unsqueeze(dim=0)
     return object_meta, image_meta, projections
+
+def simind_MEW_to_data(headerfiles, distance='mm', return_seperate=False):
+    # assumes all three energy windows have same metadata
+    projectionss = []
+    window_widths = []
+    for headerfile in headerfiles:
+        object_meta, image_meta, projections = simind_projections_to_data(headerfile, distance)
+        with open(headerfile) as f:
+            headerdata = f.readlines()
+        headerdata = np.array(headerdata)
+        lwr_window = find_first_entry_containing_substring(headerdata, 'energy window lower level', np.float32)
+        upr_window = find_first_entry_containing_substring(headerdata, 'energy window upper level', np.float32)
+        window_widths.append(upr_window - lwr_window)
+        projectionss.append(projections)
+    if return_seperate:
+        return object_meta, image_meta, torch.cat(projectionss, 0)
+    else:
+        projections_scatter = (projectionss[1]/window_widths[1] + projectionss[2]/window_widths[2])* window_widths[0] / 2
+        projections_primary = projectionss[0] - projections_scatter
+        return object_meta, image_meta, projections_primary
 
 def simind_CT_to_data(headerfile):    
     with open(headerfile) as f:
