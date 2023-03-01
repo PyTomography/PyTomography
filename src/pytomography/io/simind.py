@@ -17,7 +17,7 @@ def find_first_entry_containing_substring(list_of_attributes, substring, dtype=n
     elif dtype == int:
         return int(line.replace('\n', '').split(':=')[-1].replace(' ', ''))
 
-def simind_projections_to_data(headerfile, distance='mm'):
+def simind_projections_to_data(headerfile, distance='cm'):
     if distance=='mm':
         scale_factor = 1/10
     elif distance=='cm':
@@ -50,7 +50,7 @@ def simind_projections_to_data(headerfile, distance='mm'):
     projections = torch.tensor(projections.copy()).unsqueeze(dim=0)
     return object_meta, image_meta, projections
 
-def simind_MEW_to_data(headerfiles, distance='mm', return_seperate=False):
+def simind_MEW_to_data(headerfiles, distance='cm'):
     # assumes all three energy windows have same metadata
     projectionss = []
     window_widths = []
@@ -63,12 +63,8 @@ def simind_MEW_to_data(headerfiles, distance='mm', return_seperate=False):
         upr_window = find_first_entry_containing_substring(headerdata, 'energy window upper level', np.float32)
         window_widths.append(upr_window - lwr_window)
         projectionss.append(projections)
-    if return_seperate:
-        return object_meta, image_meta, torch.cat(projectionss, 0)
-    else:
-        projections_scatter = (projectionss[1]/window_widths[1] + projectionss[2]/window_widths[2])* window_widths[0] / 2
-        projections_primary = projectionss[0] - projections_scatter
-        return object_meta, image_meta, projections_primary
+    projections_scatter = (projectionss[1]/window_widths[1] + projectionss[2]/window_widths[2])* window_widths[0] / 2
+    return object_meta, image_meta, projectionss[0], projections_scatter
 
 def simind_CT_to_data(headerfile):    
     with open(headerfile) as f:
