@@ -1,6 +1,6 @@
 from __future__ import annotations
 import torch
-from pytomography.utils.helper_functions import rotate_detector_z, pad_image, unpad_object
+from pytomography.utils.helper_functions import rotate_detector_z, pad_object, unpad_object
 from .projection import ProjectionNet
 from pytomography.priors import Prior
 
@@ -31,24 +31,20 @@ class BackProjectionNet(ProjectionNet):
             image = net(image)
         # Then do back projection
         N_angles = self.image_meta.num_projections
-        object = torch.zeros([image.shape[0], *self.object_meta.shape]).to(self.device)
-        norm_constant = torch.zeros([image.shape[0], *self.object_meta.shape]).to(self.device)
+        object = pad_object(torch.zeros([image.shape[0], *self.object_meta.shape]).to(self.device))
+        norm_constant = pad_object(torch.zeros([image.shape[0], *self.object_meta.shape]).to(self.device))
         looper = range(N_angles) if angle_subset is None else angle_subset
         for i in looper:
-            # Pad image so that Lr aligns with extended Lx'
-            image_padded = pad_image(image)
-            # Define the padded object shape using the padded image
-            object_i_shape = (image_padded.shape[0], image_padded.shape[2], image_padded.shape[2], image_padded.shape[3])
             # Perform back projection
-            object_i = image_padded[:,i].unsqueeze(dim=1)*torch.ones(object_i_shape).to(self.device)
-            norm_constant_i = torch.ones(object_i_shape).to(self.device)
+            object_i = image[:,i].unsqueeze(dim=1)*torch.ones(object.shape).to(self.device)
+            norm_constant_i = torch.ones(object.shape).to(self.device)
             # Apply any corrections
             for net in self.object_correction_nets:
                 object_i = net(object_i, i, norm_constant=norm_constant_i)
             #Rotate and unpad the normalization constant and the object
             norm_constant_after_rotation = rotate_detector_z(norm_constant_i, self.image_meta.angles[i], negative=True)
-            norm_constant += unpad_object(norm_constant_after_rotation, object.shape)
-            object += unpad_object(rotate_detector_z(object_i, self.image_meta.angles[i], negative=True), object.shape)
+            norm_constant += norm_constant_after_rotation
+            object += rotate_detector_z(object_i, self.image_meta.angles[i], negative=True)
         # Apply prior 
         if prior:
             norm_constant += prior()

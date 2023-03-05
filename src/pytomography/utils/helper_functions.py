@@ -23,9 +23,7 @@ def rev_cumsum(x):
 # patient by -phi where phi = 3pi/2 - beta. Inverse rotatation 
 # is rotating by phi (needed for back proijection)
 def rotate_detector_z(x, angle, interpolation = InterpolationMode.BILINEAR, negative=False):
-    """Returns am object tensor in a rotated reference frame such that the scanner is located
-    at the +x axis. Note that the scanner angle $\beta$ is related to $\phi$ (azimuthal angle)
-    by $\phi = 3\pi/2 - \beta$. 
+    """Returns an object tensor in a rotated reference frame such that the scanner is located at the +x axis. Note that the scanner angle $\beta$ is related to $\phi$ (azimuthal angle) by $\phi = 3\pi/2 - \beta$. 
 
     Args:
         x (torch.tensor[batch_size, Lx, Ly, Lz]): Tensor aligned with cartesian coordinate system specified
@@ -52,9 +50,7 @@ def rotate_detector_z(x, angle, interpolation = InterpolationMode.BILINEAR, nega
 
 def get_distance(Lx, r, dx):
     """Given the radial distance to center of object space from the scanner, computes the distance 
-      between each parallel plane (i.e. (y-z plane)) and a detector located at +x. This function is
-      used for point spread function (PSF) blurring where the amount of blurring depends on the
-      distance from the detector.
+      between each parallel plane (i.e. (y-z plane)) and a detector located at +x. This function is used for point spread function (PSF) blurring where the amount of blurring depends on thedistance from the detector.
 
     Args:
         Lx (int): The number of y-z planes to compute the distance of
@@ -65,9 +61,9 @@ def get_distance(Lx, r, dx):
         np.array[Lx]: An array of distances for each y-z plane to the detector.
     """
     if Lx%2==0:
-        d = r + (Lx//2 - np.arange(Lx)) * dx
+        d = r + (Lx/2 - np.arange(Lx) - 1/2) * dx
     else:
-        d = r + (Lx//2 - np.arange(Lx) - 1/2) * dx
+        d = r + ((Lx-1)/2 - np.arange(Lx) ) * dx
     # Correction for if radius of scanner is inside the the bounds
     d[d<0] = 0
     return d
@@ -75,9 +71,15 @@ def get_distance(Lx, r, dx):
 def compute_pad_size(width):
     return int(np.ceil((np.sqrt(2)*width - width)/2)) 
 
-def pad_object(object):
+def pad_object(object, mode='constant'):
     pad_size = compute_pad_size(object.shape[-2])
-    return pad(object, [0,0,pad_size,pad_size,pad_size,pad_size])
+    if mode=='back_project':
+        # replicate along back projected dimension (x)
+        object = pad(object, [0,0,0,0,pad_size,pad_size], mode='replicate')
+        object = pad(object, [0,0,pad_size,pad_size], mode='constant')
+        return object
+    else:
+        return pad(object, [0,0,pad_size,pad_size,pad_size,pad_size], mode=mode)
 
 def unpad_object(object, original_shape):
     pad_size = (object.shape[-2] - original_shape[-2])//2 
@@ -90,3 +92,13 @@ def pad_image(image):
 def unpad_image(image, original_shape):
     pad_size = (image.shape[-2] - original_shape[-2])//2 
     return image[:,:,pad_size:-pad_size,:]
+
+def paded_PSF_adjustment(object):
+    pad_size = compute_pad_size(object.shape[-2])
+    return pad(object, [0,0,pad_size,pad_size,pad_size,pad_size])
+
+def pad_object_z(object, pad_size, mode='constant'):
+    return pad(object, [pad_size,pad_size,0,0,0,0])
+
+def unpad_object_z(object, pad_size):
+    return object[:,:,:,pad_size:-pad_size]

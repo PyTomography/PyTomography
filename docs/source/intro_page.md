@@ -12,7 +12,6 @@ osem_net = get_osem_net(projections_header = 'body1t2ew6_tot_w2.hdr',
                         device=device)
 reconstructed_object = osem_net(n_iters=10, n_subsets=8)                 
 ```
-
 ![](/images/sample_MIP.png)
 
 # Installation

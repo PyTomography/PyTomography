@@ -12,6 +12,7 @@ import abc
 from pytomography.priors import Prior
 from pytomography.callbacks import CallBack
 from pytomography.metadata import PSFMeta
+from pytomography.utils import pad_image, pad_object, unpad_image, unpad_object
 from collections.abc import Callable
 
 
@@ -44,12 +45,14 @@ class OSML(nn.Module):
         self.device = forward_projection_net.device
         if object_initial is None:
             self.object_prediction = torch.ones(self.forward_projection_net.object_meta.shape).unsqueeze(dim=0).to(self.device)
+            self.object_prediction = pad_object(self.object_prediction, mode='replicate')
         else:
             self.object_prediction = object_initial.to(self.device)
+            self.object_prediction = pad_object(self.object_prediction)
         self.prior = prior
-        self.image = image.to(self.device)
+        self.image = pad_image(image.to(self.device))
         if type(scatter) is torch.Tensor:
-            self.scatter = scatter.to(self.device)
+            self.scatter = pad_image(scatter.to(self.device))
         else:
             self.scatter = scatter
         if self.prior is not None:
@@ -73,7 +76,7 @@ class OSML(nn.Module):
         subset_indices_array = []
         for i in range(n_subsets):
             subset_indices_array.append(indices[i::n_subsets])
-        return subset_indices_array    
+        return subset_indices_array
 
     @abc.abstractmethod
     def forward(self,
@@ -105,7 +108,7 @@ class OSEMOSL(OSML):
         n_iters: int,
         n_subsets: int,
         callback: CallBack | None = None,
-        delta: float = 1e-11
+        delta: float = 1e-13
     ) -> torch.tensor:
         """Performs the reconstruction using `n_iters` iterations and `n_subsets` subsets.
 
@@ -123,7 +126,7 @@ class OSEMOSL(OSML):
         if self.prior is not None:
             self.prior.set_beta_scale(1/n_subsets)
         for j in range(n_iters):
-            for subset_indices in subset_indices_array:
+            for k, subset_indices in enumerate(subset_indices_array):
                 # Set OSL Prior to have object from previous prediction
                 if self.prior:
                     self.prior.set_object(torch.clone(self.object_prediction))
@@ -131,7 +134,7 @@ class OSEMOSL(OSML):
                 self.object_prediction = self.object_prediction * self.back_projection_net(ratio, angle_subset=subset_indices, prior=self.prior)
                 if callback is not None:
                     callback.run(self.object_prediction)
-        return self.object_prediction
+        return unpad_object(self.object_prediction, original_shape = self.forward_projection_net.object_meta.shape)
     
 
 class OSEMBSR(OSML):
@@ -170,7 +173,7 @@ class OSEMBSR(OSML):
         if self.prior is not None:
             self.prior.set_beta_scale(1/n_subsets)
         for j in range(n_iters):
-            for subset_indices in subset_indices_array:
+            for k, subset_indices in enumerate(subset_indices_array):
                 ratio = self.image / (self.forward_projection_net(self.object_prediction, angle_subset=subset_indices) + self.scatter + delta)
                 bp, norm_factor = self.back_projection_net(ratio, angle_subset=subset_indices, return_norm_constant=True)
                 self.object_prediction = self.object_prediction * bp
@@ -182,7 +185,7 @@ class OSEMBSR(OSML):
                 # Run any callbacks
                 if callback:
                     callback.run(self.object_prediction)
-        return self.object_prediction
+        return unpad_object(self.object_prediction, original_shape = self.forward_projection_net.object_meta.shape)
 
 def get_osem_net(
     projections_header: str,
@@ -212,7 +215,7 @@ def get_osem_net(
     if file_type=='simind':
         if scatter_headers is None:
             object_meta, image_meta, projections = simind_projections_to_data(projections_header)
-            projections_scatter = None
+            projections_scatter = 0 # equivalent to 0 estimated scatter everywhere
         else:
             object_meta, image_meta, projections, projections_scatter = simind_MEW_to_data([projections_header, *scatter_headers])
             projections_scatter.to(device)

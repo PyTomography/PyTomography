@@ -2,15 +2,16 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 import numpy as np
-from pytomography.utils import get_distance, compute_pad_size
+from pytomography.utils import get_distance, compute_pad_size, pad_object, pad_object_z, unpad_object_z, rotate_detector_z, unpad_object
 from pytomography.corrections import CorrectionNet
 from pytomography.metadata import ObjectMeta, ImageMeta, PSFMeta
+from torchvision.transforms import InterpolationMode
 
 def get_PSF_transform(
     sigma: np.array,
     kernel_size: int,
     kernel_dimensions: str ='2D',
-    delta: float = 1e-9,
+    delta: float = 1e-12,
     device='cpu'
     ) -> torch.nn.Conv2d:
     """Creates a 2D convolutional layer that is used for PSF correction
@@ -28,9 +29,8 @@ def get_PSF_transform(
     """
     N = len(sigma)
     layer = torch.nn.Conv2d(N, N, kernel_size, groups=N, padding='same',
-                            padding_mode='replicate', bias=0, device=device)
-    x_grid, y_grid = torch.meshgrid(2*[torch.arange(-int(kernel_size//2), int(kernel_size//2)+1)],
-                                    indexing='ij')
+                            padding_mode='zeros', bias=0, device=device)
+    x_grid, y_grid = torch.meshgrid(2*[torch.arange(-int(kernel_size//2), int(kernel_size//2)+1)], indexing='ij')
     x_grid = x_grid.unsqueeze(dim=0).repeat((N,1,1))
     y_grid = y_grid.unsqueeze(dim=0).repeat((N,1,1))
     sigma = torch.tensor(sigma, dtype=torch.float32).reshape((N,1,1))
@@ -69,10 +69,27 @@ class PSFCorrectionNet(CorrectionNet):
             image_meta (ImageMeta): Image metadata.
         """
         super(PSFCorrectionNet, self).initialize_network(object_meta, image_meta)
+        self.kernel_size = self.compute_kernel_size()
         self.layers = {}
         for radius in np.unique(image_meta.radii):
             sigma = self.get_sigma(radius, object_meta.dx, object_meta.shape, self.psf_meta.collimator_slope, self.psf_meta.collimator_intercept)
-            self.layers[radius] = get_PSF_transform(sigma/object_meta.dx, self.psf_meta.kernel_size, kernel_dimensions=self.psf_meta.kernel_dimensions, device=self.device)
+            self.layers[radius] = get_PSF_transform(sigma/object_meta.dx, self.kernel_size, kernel_dimensions=self.psf_meta.kernel_dimensions, device=self.device)
+        # Compute boundary boxed used for adjustment of blurring at boundaries
+        self.boundary_box = torch.ones((1, *object_meta.shape)).to(self.device)
+        self.boundary_box = pad_object(self.boundary_box)
+        self.boundary_box = pad_object_z(self.boundary_box, int((self.kernel_size-1)/2))
+        
+            
+    def compute_kernel_size(self) -> int:
+        """Function used to compute the kernel size used for PSF blurring. In particular, uses the ``max_sigmas`` attribute of ``PSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``max_sigmas`` at all points in the object. 
+
+        Returns:
+            int: The corresponding kernel size used for PSF blurring.
+        """
+        s = self.object_meta.padded_shape[0]
+        dx = self.object_meta.dr[0]
+        largest_sigma = self.psf_meta.collimator_slope*(s/2 * dx) + self.psf_meta.collimator_intercept
+        return int(np.round(largest_sigma/dx * self.psf_meta.max_sigmas)*2 + 1)
     
     def get_sigma(
         self,
@@ -104,7 +121,7 @@ class PSFCorrectionNet(CorrectionNet):
 		self,
 		object_i: torch.Tensor,
 		i: int, 
-		norm_constant: torch.Tensor | None = None
+		norm_constant: torch.Tensor | None = None,
 	) -> torch.tensor:
         """Applies PSF correction for the situation where an object is being detector by a detector at the :math:`+x` axis.
 
@@ -117,4 +134,9 @@ class PSFCorrectionNet(CorrectionNet):
             torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to
 			an PSF corrected projection.
         """
-        return self.layers[self.image_meta.radii[i]](object_i)
+        # The difference between forward and back projection is only in the way in which the boundaries are interpolated such that truncation artifacts are removed. In forward projection, the object is interpolated using reflection along its own coordinate axis. In back projection, the object is interpolated along the the r-axis. Then PSF blurring occurs using the neural network, and points outside the the detector range are set to zero using the boundary box.
+        z_pad_size = int((self.kernel_size-1)/2)
+        object_i = pad_object_z(object_i, z_pad_size, mode='replicate')
+        object_i = self.layers[self.image_meta.radii[i]](object_i)
+        object_i = unpad_object_z(object_i, pad_size=z_pad_size)
+        return object_i

@@ -48,6 +48,18 @@ class ImageMeta():
         self.radii = radii
         self.num_projections = len(angles)
         self.shape = (self.num_projections, object_meta.shape[1], object_meta.shape[2])
+        self.pad_size = compute_pad_size(self.shape[1])
+        
+    def compute_padded_shape(self) -> list:
+        """Computes the padded shape of an object required when rotating the object (to avoid anything getting cut off).
+
+        Returns:
+            list: Padded dimensions of the object.
+        """
+        theta_padded = self.shape[0]
+        r_padded = self.shape[1] + 2*self.pad_size
+        z_padded = self.shape[2]
+        return (int(theta_padded), int(r_padded), int(z_padded)) 
 
 
 class PSFMeta():
@@ -58,16 +70,16 @@ class PSFMeta():
         collimator_slope (float): The collimator slope used for blurring (dimensionless units)
         collimator_intercept (float): The collimator intercept used for blurring. Should be in units of cm.
         kernel_dimensions (str): If '1D', blurring is done seperately in each axial plane (so only a 1 dimensional convolution is used). If '2D', blurring is mixed between axial planes (so a 2D convolution is used). Defaults to '2D'.
-        kernel_size (int, optional): Size of kernel used for blurring. Defaults to 61.
+        max_sigmas (float, optional): This is the number of sigmas to consider in PSF correction. PSF are modelled by Gaussian functions whose extension is infinite, so we need to crop the Gaussian when computing this operation numerically. Note that the blurring width is depth dependent, but the kernel size used for PSF blurring is constant. As such, this parameter is used to fix the kernel size such that all locations have at least ``max_sigmas`` of a kernel size.
     """
     def __init__(
         self,
         collimator_slope: float,
         collimator_intercept: float,
         kernel_dimensions: str = '2D',
-        kernel_size: int = 61
+        max_sigmas: float = 3
     ) -> None:
         self.collimator_slope = collimator_slope
         self.collimator_intercept = collimator_intercept
         self.kernel_dimensions = kernel_dimensions
-        self.kernel_size = kernel_size
+        self.max_sigmas = max_sigmas

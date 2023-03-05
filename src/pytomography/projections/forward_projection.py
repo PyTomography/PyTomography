@@ -1,5 +1,5 @@
 import torch
-from pytomography.utils import rotate_detector_z, pad_object, unpad_object
+from pytomography.utils import rotate_detector_z, pad_object, pad_image, unpad_object
 from .projection import ProjectionNet
 
 class ForwardProjectionNet(ProjectionNet):
@@ -8,7 +8,7 @@ class ForwardProjectionNet(ProjectionNet):
     def forward(
         self,
         object: torch.tensor,
-        angle_subset: list[int] = None
+        angle_subset: list[int] = None,
     ) -> torch.tensor:
         r"""Implements forward projection on an object
 
@@ -21,11 +21,11 @@ class ForwardProjectionNet(ProjectionNet):
             torch.tensor[batch_size, Ltheta, Lx, Lz]: Forward projected image where Ltheta is specified by `self.image_meta` and `angle_subset`.
         """
         N_angles = self.image_meta.num_projections
-        image = torch.zeros((object.shape[0], N_angles, object.shape[2], object.shape[3])).to(self.device)
+        image = pad_image(torch.zeros((1,*self.image_meta.shape)).to(self.device))
         looper = range(N_angles) if angle_subset is None else angle_subset
         for i in looper:
-            object_i = rotate_detector_z(pad_object(object), self.image_meta.angles[i])
+            object_i = rotate_detector_z(object, self.image_meta.angles[i])
             for net in self.object_correction_nets:
                 object_i = net(object_i, i)
-            image[:,i] = unpad_object(object_i, original_shape=self.object_meta.shape).sum(axis=1)
+            image[:,i] = object_i.sum(axis=1)
         return image
