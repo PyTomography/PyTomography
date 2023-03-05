@@ -49,6 +49,7 @@ class ImageMeta():
         self.num_projections = len(angles)
         self.shape = (self.num_projections, object_meta.shape[1], object_meta.shape[2])
         self.pad_size = compute_pad_size(self.shape[1])
+        self.padded_shape = self.compute_padded_shape()
         
     def compute_padded_shape(self) -> list:
         """Computes the padded shape of an object required when rotating the object (to avoid anything getting cut off).

@@ -22,7 +22,7 @@ def rev_cumsum(x):
 # angle = beta. Rotating detector beta corresponds to rotating
 # patient by -phi where phi = 3pi/2 - beta. Inverse rotatation 
 # is rotating by phi (needed for back proijection)
-def rotate_detector_z(x, angle, interpolation = InterpolationMode.BILINEAR, negative=False):
+def rotate_detector_z(x, angle, interpolation = InterpolationMode.BILINEAR, negative=False, mode=None):
     """Returns an object tensor in a rotated reference frame such that the scanner is located at the +x axis. Note that the scanner angle $\beta$ is related to $\phi$ (azimuthal angle) by $\phi = 3\pi/2 - \beta$. 
 
     Args:
@@ -42,10 +42,10 @@ def rotate_detector_z(x, angle, interpolation = InterpolationMode.BILINEAR, nega
     """
     phi = 270 - angle
     if not negative:
-        return rotate(x.permute(0,3,1,2), -phi, interpolation).permute(0,2,3,1)
+        x = rotate(x.permute(0,3,1,2), -phi, interpolation).permute(0,2,3,1)
     else:
-        return rotate(x.permute(0,3,1,2), phi, interpolation).permute(0,2,3,1)
-
+        x = rotate(x.permute(0,3,1,2), phi, interpolation).permute(0,2,3,1)
+    return x
 
 
 def get_distance(Lx, r, dx):

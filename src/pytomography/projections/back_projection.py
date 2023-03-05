@@ -1,6 +1,6 @@
 from __future__ import annotations
 import torch
-from pytomography.utils.helper_functions import rotate_detector_z, pad_object, unpad_object
+from pytomography.utils.helper_functions import rotate_detector_z, pad_object, unpad_object, pad_image
 from .projection import ProjectionNet
 from pytomography.priors import Prior
 
@@ -26,13 +26,14 @@ class BackProjectionNet(ProjectionNet):
         Returns:
             torch.tensor[batch_size, Lr, Lr, Lz]: the object obtained from back projection.
         """
+        image = pad_image(image)
         # First apply any image corrections before back projecting
         for net in self.image_correction_nets:
             image = net(image)
         # Then do back projection
         N_angles = self.image_meta.num_projections
-        object = pad_object(torch.zeros([image.shape[0], *self.object_meta.shape]).to(self.device))
-        norm_constant = pad_object(torch.zeros([image.shape[0], *self.object_meta.shape]).to(self.device))
+        object = torch.zeros([image.shape[0], *self.object_meta.padded_shape]).to(self.device)
+        norm_constant = torch.zeros([image.shape[0], *self.object_meta.padded_shape]).to(self.device)
         looper = range(N_angles) if angle_subset is None else angle_subset
         for i in looper:
             # Perform back projection
@@ -48,6 +49,9 @@ class BackProjectionNet(ProjectionNet):
         # Apply prior 
         if prior:
             norm_constant += prior()
+        # Unpad and return
+        norm_constant = unpad_object(norm_constant, self.object_meta.shape)
+        object = unpad_object(object, self.object_meta.shape)
         if return_norm_constant:
             return object/(norm_constant + delta), norm_constant+delta
         else:

@@ -45,14 +45,12 @@ class OSML(nn.Module):
         self.device = forward_projection_net.device
         if object_initial is None:
             self.object_prediction = torch.ones(self.forward_projection_net.object_meta.shape).unsqueeze(dim=0).to(self.device)
-            self.object_prediction = pad_object(self.object_prediction, mode='constant')
         else:
             self.object_prediction = object_initial.to(self.device)
-            self.object_prediction = pad_object(self.object_prediction)
         self.prior = prior
-        self.image = pad_image(image.to(self.device))
+        self.image = image.to(self.device)
         if type(scatter) is torch.Tensor:
-            self.scatter = pad_image(scatter.to(self.device))
+            self.scatter = scatter.to(self.device)
         else:
             self.scatter = scatter
         if self.prior is not None:
@@ -134,7 +132,7 @@ class OSEMOSL(OSML):
                 self.object_prediction = self.object_prediction * self.back_projection_net(ratio, angle_subset=subset_indices, prior=self.prior)
                 if callback is not None:
                     callback.run(self.object_prediction)
-        return unpad_object(self.object_prediction, original_shape = self.forward_projection_net.object_meta.shape)
+        return self.object_prediction
     
 
 class OSEMBSR(OSML):
@@ -185,7 +183,7 @@ class OSEMBSR(OSML):
                 # Run any callbacks
                 if callback:
                     callback.run(self.object_prediction)
-        return unpad_object(self.object_prediction, original_shape = self.forward_projection_net.object_meta.shape)
+        return self.object_prediction
 
 def get_osem_net(
     projections_header: str,
@@ -234,7 +232,6 @@ def get_osem_net(
     if psf_meta is not None:
         psf_net = PSFCorrectionNet(psf_meta, device=device)
         object_correction_nets.append(psf_net)
-    print(object_correction_nets)
     fp_net = ForwardProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device=device)
     bp_net = BackProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device=device)
     if prior is not None:
