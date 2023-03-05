@@ -45,7 +45,7 @@ class OSML(nn.Module):
         self.device = forward_projection_net.device
         if object_initial is None:
             self.object_prediction = torch.ones(self.forward_projection_net.object_meta.shape).unsqueeze(dim=0).to(self.device)
-            self.object_prediction = pad_object(self.object_prediction, mode='replicate')
+            self.object_prediction = pad_object(self.object_prediction, mode='constant')
         else:
             self.object_prediction = object_initial.to(self.device)
             self.object_prediction = pad_object(self.object_prediction)
@@ -234,6 +234,7 @@ def get_osem_net(
     if psf_meta is not None:
         psf_net = PSFCorrectionNet(psf_meta, device=device)
         object_correction_nets.append(psf_net)
+    print(object_correction_nets)
     fp_net = ForwardProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device=device)
     bp_net = BackProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device=device)
     if prior is not None:

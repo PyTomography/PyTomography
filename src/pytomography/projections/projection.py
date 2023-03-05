@@ -24,10 +24,8 @@ class ProjectionNet(nn.Module):
         """
         super(ProjectionNet, self).__init__()
         self.device = device
-        self.object_correction_nets = object_correction_nets.copy()
-        self.image_correction_nets = image_correction_nets.copy()
-        self.object_correction_nets.reverse()
-        self.image_correction_nets.reverse()
+        self.object_correction_nets = object_correction_nets
+        self.image_correction_nets = image_correction_nets
         self.object_meta = object_meta
         self.image_meta = image_meta
         self.initialize_correction_nets()
