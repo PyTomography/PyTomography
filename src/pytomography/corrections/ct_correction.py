@@ -33,6 +33,7 @@ class CTCorrectionNet(CorrectionNet):
 		self,
 		object_i: torch.Tensor,
 		i: int, 
+		ptype,
 		norm_constant: torch.Tensor | None = None,
 	) -> torch.tensor:
 		"""Applies attenuation correction to an object that's being detected on the right of its first axis.

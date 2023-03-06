@@ -75,9 +75,10 @@ class PSFCorrectionNet(CorrectionNet):
             sigma = self.get_sigma(radius, object_meta.dx, object_meta.shape, self.psf_meta.collimator_slope, self.psf_meta.collimator_intercept)
             self.layers[radius] = get_PSF_transform(sigma/object_meta.dx, self.kernel_size, kernel_dimensions=self.psf_meta.kernel_dimensions, device=self.device)
         # Compute boundary boxed used for adjustment of blurring at boundaries
-        self.boundary_box = torch.ones((1, *object_meta.shape)).to(self.device)
-        self.boundary_box = pad_object(self.boundary_box)
-        self.boundary_box = pad_object_z(self.boundary_box, int((self.kernel_size-1)/2))
+        b = torch.ones((1, *object_meta.shape)).to(self.device)
+        b= pad_object_z(b, int((self.kernel_size-1)/2))
+        self.boundary_box = pad_object(b)
+        self.boundary_box_bp = pad_object(b, mode='back_project')
         
             
     def compute_kernel_size(self) -> int:
@@ -121,6 +122,7 @@ class PSFCorrectionNet(CorrectionNet):
 		self,
 		object_i: torch.Tensor,
 		i: int, 
+        ptype,
 		norm_constant: torch.Tensor | None = None,
 	) -> torch.tensor:
         """Applies PSF correction for the situation where an object is being detector by a detector at the :math:`+x` axis.
@@ -134,9 +136,31 @@ class PSFCorrectionNet(CorrectionNet):
             torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to
 			an PSF corrected projection.
         """
-        # The difference between forward and back projection is only in the way in which the boundaries are interpolated such that truncation artifacts are removed. In forward projection, the object is interpolated using reflection along its own coordinate axis. In back projection, the object is interpolated along the the r-axis. Then PSF blurring occurs using the neural network, and points outside the the detector range are set to zero using the boundary box.
         z_pad_size = int((self.kernel_size-1)/2)
-        object_i = pad_object_z(object_i, z_pad_size, mode='replicate')
+        object_i = pad_object_z(object_i, z_pad_size, mode='reflect')
+        '''
+        if ptype=='forward':
+            bb_rotate = rotate_detector_z(self.boundary_box, angle=self.image_meta.angles[i])
+            weight = self.layers[self.image_meta.radii[i]](bb_rotate)
+            object_i = rotate_detector_z(object_i, angle=self.image_meta.angles[i], negative=True)
+            object_i = unpad_object(object_i, self.object_meta.shape)
+            object_i = pad_object(object_i, mode='replicate')
+            object_i = rotate_detector_z(object_i, angle=self.image_meta.angles[i])
+            object_i = self.layers[self.image_meta.radii[i]](object_i) * weight * bb_rotate
+        else:
+            weight = self.layers[self.image_meta.radii[i]](self.boundary_box_bp)
+            object_i = unpad_object(object_i, self.object_meta.shape)
+            object_i = pad_object(object_i, mode='replicate')
+            object_i = self.layers[self.image_meta.radii[i]](object_i) * weight * self.boundary_box_bp
+        '''
+        '''
+        if ptype=='back':
+            weight = self.layers[self.image_meta.radii[i]](self.boundary_box_bp)
+            weight[self.boundary_box_bp==0] = np.inf
+            weight = 1/weight
+        else:
+            weight = 1
+        '''
         object_i = self.layers[self.image_meta.radii[i]](object_i)
         object_i = unpad_object_z(object_i, pad_size=z_pad_size)
-        return object_i
+        return object_i 

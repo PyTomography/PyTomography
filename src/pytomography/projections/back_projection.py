@@ -41,7 +41,7 @@ class BackProjectionNet(ProjectionNet):
             norm_constant_i = torch.ones(object.shape).to(self.device)
             # Apply any corrections
             for net in self.object_correction_nets[::-1]:
-                object_i = net(object_i, i, norm_constant=norm_constant_i)
+                object_i = net(object_i, i, ptype='back', norm_constant=norm_constant_i)
             #Rotate and unpad the normalization constant and the object
             norm_constant_after_rotation = rotate_detector_z(norm_constant_i, self.image_meta.angles[i], negative=True)
             norm_constant += norm_constant_after_rotation
