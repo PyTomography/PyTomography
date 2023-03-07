@@ -74,13 +74,8 @@ class PSFCorrectionNet(CorrectionNet):
         for radius in np.unique(image_meta.radii):
             sigma = self.get_sigma(radius, object_meta.dx, object_meta.shape, self.psf_meta.collimator_slope, self.psf_meta.collimator_intercept)
             self.layers[radius] = get_PSF_transform(sigma/object_meta.dx, self.kernel_size, kernel_dimensions=self.psf_meta.kernel_dimensions, device=self.device)
-        # Compute boundary boxed used for adjustment of blurring at boundaries
-        b = torch.ones((1, *object_meta.shape)).to(self.device)
-        b= pad_object_z(b, int((self.kernel_size-1)/2))
-        self.boundary_box = pad_object(b)
-        self.boundary_box_bp = pad_object(b, mode='back_project')
         
-            
+        self.boundary_box_bp = pad_object(torch.ones((1, *self.object_meta.shape)).to(self.device), mode='back_project')
     def compute_kernel_size(self) -> int:
         """Function used to compute the kernel size used for PSF blurring. In particular, uses the ``max_sigmas`` attribute of ``PSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``max_sigmas`` at all points in the object. 
 
@@ -122,7 +117,6 @@ class PSFCorrectionNet(CorrectionNet):
 		self,
 		object_i: torch.Tensor,
 		i: int, 
-        ptype,
 		norm_constant: torch.Tensor | None = None,
 	) -> torch.tensor:
         """Applies PSF correction for the situation where an object is being detector by a detector at the :math:`+x` axis.
@@ -138,29 +132,13 @@ class PSFCorrectionNet(CorrectionNet):
         """
         z_pad_size = int((self.kernel_size-1)/2)
         object_i = pad_object_z(object_i, z_pad_size, mode='reflect')
-        '''
-        if ptype=='forward':
-            bb_rotate = rotate_detector_z(self.boundary_box, angle=self.image_meta.angles[i])
-            weight = self.layers[self.image_meta.radii[i]](bb_rotate)
-            object_i = rotate_detector_z(object_i, angle=self.image_meta.angles[i], negative=True)
-            object_i = unpad_object(object_i, self.object_meta.shape)
-            object_i = pad_object(object_i, mode='replicate')
-            object_i = rotate_detector_z(object_i, angle=self.image_meta.angles[i])
-            object_i = self.layers[self.image_meta.radii[i]](object_i) * weight * bb_rotate
-        else:
-            weight = self.layers[self.image_meta.radii[i]](self.boundary_box_bp)
-            object_i = unpad_object(object_i, self.object_meta.shape)
-            object_i = pad_object(object_i, mode='replicate')
-            object_i = self.layers[self.image_meta.radii[i]](object_i) * weight * self.boundary_box_bp
-        '''
-        '''
-        if ptype=='back':
-            weight = self.layers[self.image_meta.radii[i]](self.boundary_box_bp)
-            weight[self.boundary_box_bp==0] = np.inf
-            weight = 1/weight
-        else:
-            weight = 1
-        '''
-        object_i = self.layers[self.image_meta.radii[i]](object_i)
+        object_i = self.layers[self.image_meta.radii[i]](object_i) 
         object_i = unpad_object_z(object_i, pad_size=z_pad_size)
-        return object_i 
+        # Adjust normalization constant
+        if norm_constant is not None:
+            norm_constant = pad_object_z(norm_constant, z_pad_size, mode='reflect')
+            norm_constant = self.layers[self.image_meta.radii[i]](norm_constant) 
+            norm_constant = unpad_object_z(norm_constant, pad_size=z_pad_size)
+            return object_i, norm_constant
+        else:
+            return object_i 

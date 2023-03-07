@@ -33,7 +33,6 @@ class CTCorrectionNet(CorrectionNet):
 		self,
 		object_i: torch.Tensor,
 		i: int, 
-		ptype,
 		norm_constant: torch.Tensor | None = None,
 	) -> torch.tensor:
 		"""Applies attenuation correction to an object that's being detected on the right of its first axis.
@@ -48,6 +47,9 @@ class CTCorrectionNet(CorrectionNet):
 		"""
 		CT = pad_object(self.CT)
 		norm_factor = get_prob_of_detection_matrix(rotate_detector_z(CT, self.image_meta.angles[i]), self.object_meta.dx)
+		object_i*=norm_factor
 		if norm_constant is not None:
 			norm_constant*=norm_factor
-		return object_i*norm_factor
+			return object_i, norm_constant
+		else:
+			return object_i

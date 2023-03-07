@@ -26,6 +26,6 @@ class ForwardProjectionNet(ProjectionNet):
         for i in looper:
             object_i = rotate_detector_z(pad_object(object), self.image_meta.angles[i])
             for net in self.object_correction_nets:
-                object_i = net(object_i, i, ptype='forward')
+                object_i = net(object_i, i)
             image[:,i] = object_i.sum(axis=1)
         return unpad_image(image, self.image_meta.shape)

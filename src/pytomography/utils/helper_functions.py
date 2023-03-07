@@ -22,7 +22,7 @@ def rev_cumsum(x):
 # angle = beta. Rotating detector beta corresponds to rotating
 # patient by -phi where phi = 3pi/2 - beta. Inverse rotatation 
 # is rotating by phi (needed for back proijection)
-def rotate_detector_z(x, angle, interpolation = InterpolationMode.BILINEAR, negative=False, mode=None):
+def rotate_detector_z(x, angle, interpolation = InterpolationMode.BILINEAR, negative=False):
     """Returns an object tensor in a rotated reference frame such that the scanner is located at the +x axis. Note that the scanner angle $\beta$ is related to $\phi$ (azimuthal angle) by $\phi = 3\pi/2 - \beta$. 
 
     Args:
@@ -72,7 +72,7 @@ def compute_pad_size(width):
     return int(np.ceil((np.sqrt(2)*width - width)/2)) 
 
 def pad_object(object, mode='constant'):
-    pad_size = compute_pad_size(object.shape[-2])
+    pad_size = compute_pad_size(object.shape[-2]) 
     if mode=='back_project':
         # replicate along back projected dimension (x)
         object = pad(object, [0,0,0,0,pad_size,pad_size], mode='replicate')
@@ -85,9 +85,9 @@ def unpad_object(object, original_shape):
     pad_size = (object.shape[-2] - original_shape[-2])//2 
     return object[:,pad_size:-pad_size,pad_size:-pad_size,:]
 
-def pad_image(image):
-    pad_size = compute_pad_size(image.shape[-2])
-    return pad(image, [0,0,pad_size,pad_size])
+def pad_image(image, mode='constant', value=0):
+    pad_size = compute_pad_size(image.shape[-2])  
+    return pad(image, [0,0,pad_size,pad_size], mode=mode, value=value)
 
 def unpad_image(image, original_shape):
     pad_size = (image.shape[-2] - original_shape[-2])//2 

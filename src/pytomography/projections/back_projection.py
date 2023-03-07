@@ -26,7 +26,10 @@ class BackProjectionNet(ProjectionNet):
         Returns:
             torch.tensor[batch_size, Lr, Lr, Lz]: the object obtained from back projection.
         """
+        boundary_box_bp = pad_object(torch.ones((1, *self.object_meta.shape)).to(self.device), mode='back_project')
+        norm_image = torch.ones(image.shape).to(self.device)
         image = pad_image(image)
+        norm_image = pad_image(norm_image)
         # First apply any image corrections before back projecting
         for net in self.image_correction_nets:
             image = net(image)
@@ -37,14 +40,13 @@ class BackProjectionNet(ProjectionNet):
         looper = range(N_angles) if angle_subset is None else angle_subset
         for i in looper:
             # Perform back projection
-            object_i = image[:,i].unsqueeze(dim=1)*torch.ones(object.shape).to(self.device)
-            norm_constant_i = torch.ones(object.shape).to(self.device)
+            object_i = image[:,i].unsqueeze(dim=1) * boundary_box_bp
+            norm_constant_i = norm_image[:,i].unsqueeze(dim=1) * boundary_box_bp
             # Apply any corrections
             for net in self.object_correction_nets[::-1]:
-                object_i = net(object_i, i, ptype='back', norm_constant=norm_constant_i)
-            #Rotate and unpad the normalization constant and the object
-            norm_constant_after_rotation = rotate_detector_z(norm_constant_i, self.image_meta.angles[i], negative=True)
-            norm_constant += norm_constant_after_rotation
+                object_i, norm_constant_i = net(object_i, i, norm_constant=norm_constant_i)
+            # Add to total
+            norm_constant += rotate_detector_z(norm_constant_i, self.image_meta.angles[i], negative=True)
             object += rotate_detector_z(object_i, self.image_meta.angles[i], negative=True)
         # Apply prior 
         if prior:
