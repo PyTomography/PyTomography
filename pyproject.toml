@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "PyTomography"
+name = "pytomography"
 version = "0.1.6"
 authors = [
   { name="Luke Polson", email="lukepolson@outlook.com" },

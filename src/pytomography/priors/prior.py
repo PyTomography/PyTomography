@@ -36,7 +36,7 @@ class Prior(nn.Module):
         self.beta_scale_factor = factor
 
     def set_object(self, object: ObjectMeta) -> None:
-        """Sets the object :math:`f_r` used to compute :math:`\frac{\partial V}{\partial f_r}` 
+        r"""Sets the object :math:`f_r` used to compute :math:`\frac{\partial V}{\partial f_r}` 
 
         Args:
             object (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] which the prior
