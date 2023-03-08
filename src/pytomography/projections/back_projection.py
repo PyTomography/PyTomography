@@ -26,14 +26,17 @@ class BackProjectionNet(ProjectionNet):
         Returns:
             torch.tensor[batch_size, Lr, Lr, Lz]: the object obtained from back projection.
         """
+        # Box used to perform back projection
         boundary_box_bp = pad_object(torch.ones((1, *self.object_meta.shape)).to(self.device), mode='back_project')
+        # Pad image and norm_image (norm_image used to compute sum_j c_ij)
         norm_image = torch.ones(image.shape).to(self.device)
         image = pad_image(image)
         norm_image = pad_image(norm_image)
         # First apply any image corrections before back projecting
         for net in self.image_correction_nets:
             image = net(image)
-        # Then do back projection
+            norm_image = net(norm_image)
+        # Setup for back projection
         N_angles = self.image_meta.num_projections
         object = torch.zeros([image.shape[0], *self.object_meta.padded_shape]).to(self.device)
         norm_constant = torch.zeros([image.shape[0], *self.object_meta.padded_shape]).to(self.device)
@@ -52,8 +55,8 @@ class BackProjectionNet(ProjectionNet):
         if prior:
             norm_constant += prior()
         # Unpad and return
-        norm_constant = unpad_object(norm_constant, self.object_meta.shape)
-        object = unpad_object(object, self.object_meta.shape)
+        norm_constant = unpad_object(norm_constant)
+        object = unpad_object(object)
         if return_norm_constant:
             return object/(norm_constant + delta), norm_constant+delta
         else:

@@ -5,8 +5,8 @@
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <link rel="index" title="Index" href="../../../../genindex.html" /><link rel="search" title="Search" href="../../../../search.html" />
 
-    <!-- Generated with Sphinx 5.3.0 and Furo 2022.12.07 -->
-        <title>pytomography.io.dicom - PyTomography 0.0.1 documentation</title>
+    <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
+        <title>pytomography.io.dicom - PyTomography 0.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../../index.html"><div class="brand">PyTomography 0.0.1 documentation</div></a>
+      <a href="../../../../index.html"><div class="brand">PyTomography 0.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -147,7 +147,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
   
   
-  <span class="sidebar-brand-text">PyTomography 0.0.1 documentation</span>
+  <span class="sidebar-brand-text">PyTomography 0.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -157,7 +157,7 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../../../../notebooks/conventions.html">Users Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebooks/conventions.html">Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../usage.html">Tutorials</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
@@ -240,6 +240,7 @@
         <article role="main">
           <section id="module-pytomography.io.dicom">
 <span id="pytomography-io-dicom"></span><h1><a class="reference internal" href="#module-pytomography.io.dicom" title="pytomography.io.dicom"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.dicom</span></code></a><a class="headerlink" href="#module-pytomography.io.dicom" title="Permalink to this heading">#</a></h1>
+<p>Note: This module is still being built and is not yet finished.</p>
 <section id="module-contents">
 <h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this heading">#</a></h2>
 <section id="functions">
@@ -248,10 +249,10 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.dicom.get_radii_and_angles" title="pytomography.io.dicom.get_radii_and_angles"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_radii_and_angles</span></code></a>(ds)</p></td>
-<td><p></p></td>
+<td><p>Gets projections with corresponding radii and angles corresponding to projection data from a DICOM dataset.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.dicom.dicom_projections_to_data" title="pytomography.io.dicom.dicom_projections_to_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dicom_projections_to_data</span></code></a>(file)</p></td>
-<td><p></p></td>
+<td><p>Obtains ObjectMeta, ImageMeta, and projections from a .dcm file.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.dicom.HU_to_mu" title="pytomography.io.dicom.HU_to_mu"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HU_to_mu</span></code></a>(HU)</p></td>
 <td><p></p></td>
@@ -292,12 +293,36 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.io.dicom.get_radii_and_angles">
 <span class="sig-prename descclassname"><span class="pre">pytomography.io.dicom.</span></span><span class="sig-name descname"><span class="pre">get_radii_and_angles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.io.dicom.get_radii_and_angles" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Gets projections with corresponding radii and angles corresponding to projection data from a DICOM dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ds</strong> (<em>Dataset</em>) – pydicom dataset object.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Required image data for reconstruction.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(torch.tensor[1,Ltheta, Lr, Lz], np.array, np.array)</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.io.dicom.dicom_projections_to_data">
 <span class="sig-prename descclassname"><span class="pre">pytomography.io.dicom.</span></span><span class="sig-name descname"><span class="pre">dicom_projections_to_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.io.dicom.dicom_projections_to_data" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Obtains ObjectMeta, ImageMeta, and projections from a .dcm file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file</strong> (<em>str</em>) – Path to the .dcm file</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Required information for reconstruction in PyTomography.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(<a class="reference internal" href="../../metadata/index.html#pytomography.metadata.ObjectMeta" title="pytomography.metadata.ObjectMeta">ObjectMeta</a>, <a class="reference internal" href="../../metadata/index.html#pytomography.metadata.ImageMeta" title="pytomography.metadata.ImageMeta">ImageMeta</a>, torch.Tensor[1, Ltheta, Lr, Lz])</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="pytomography.io.dicom.a1">
@@ -420,9 +445,6 @@
     </aside>
   </div>
 </div><script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
-    <script src="../../../../_static/jquery.js"></script>
-    <script src="../../../../_static/underscore.js"></script>
-    <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../../../_static/doctools.js"></script>
     <script src="../../../../_static/sphinx_highlight.js"></script>
     <script src="../../../../_static/scripts/furo.js"></script>

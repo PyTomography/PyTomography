@@ -5,8 +5,8 @@
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" />
 
-    <!-- Generated with Sphinx 5.3.0 and Furo 2022.12.07 -->
-        <title>PyTomography - PyTomography 0.0.1 documentation</title>
+    <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
+        <title>PyTomography - PyTomography 0.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="_static/graphviz.css" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">PyTomography 0.0.1 documentation</div></a>
+      <a href="index.html"><div class="brand">PyTomography 0.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -147,7 +147,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
   
   
-  <span class="sidebar-brand-text">PyTomography 0.0.1 documentation</span>
+  <span class="sidebar-brand-text">PyTomography 0.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -157,7 +157,7 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="notebooks/conventions.html">Users Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks/conventions.html">Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Tutorials</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="autoapi/index.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2 has-children"><a class="reference internal" href="autoapi/pytomography/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -240,25 +240,27 @@
         <article role="main">
           <section id="pytomography">
 <h1>PyTomography<a class="headerlink" href="#pytomography" title="Permalink to this heading">#</a></h1>
-<p>Welcome to Pytomography, a package that is extremely fast a SPECT reconstruction. This library currently supports attenuation correction, PSF modeling, and Bayesian priors. As long as your data can be turned into a <code class="docutils literal notranslate"><span class="pre">torch.tensor</span></code>, it can be reconstructed. Here, for example, is reconstruction on a SIMIND projection output file.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">osem_net</span> <span class="o">=</span> <span class="n">get_osem_net</span><span class="p">(</span><span class="n">projections_header</span> <span class="o">=</span> <span class="s1">&#39;/home/ubuntu/test_files/projections.h00&#39;</span><span class="p">,</span>
-                        <span class="n">CT_header</span> <span class="o">=</span> <span class="s1">&#39;/home/ubuntu/test_files/CT.hct&#39;</span><span class="p">,</span>
-                        <span class="n">psf_meta</span><span class="o">=</span><span class="n">PSFMeta</span><span class="p">(</span><span class="n">collimator_slope</span><span class="o">=</span><span class="mf">0.0301</span><span class="p">,</span> <span class="n">collimator_intercept</span><span class="o">=</span><span class="mf">0.00197</span><span class="p">),</span>
-                        <span class="n">prior</span> <span class="o">=</span> <span class="n">LogCoshPrior</span><span class="p">(</span><span class="n">beta</span><span class="o">=</span><span class="mf">0.05</span><span class="p">),</span>
-                        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span> 
-<span class="n">reconstructed_object</span><span class="o">=</span> <span class="n">osem_net</span><span class="p">(</span><span class="n">n_iters</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">n_subsets</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>                 
+<p>PyTomography is a flexible, high performance python package for open source medical image reconstruction. It draws heavily from the functions and classes of PyTorch, permitting fast GPU-accelerated operations. It’s main purposes are (i) fast reconstruction of imaging data and (ii) development of novel reconstruction algorithms. Here is an example of reconstruction on a SIMIND projection output file.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">osem_net</span> <span class="o">=</span> <span class="n">get_osem_net</span><span class="p">(</span><span class="n">projections_header</span> <span class="o">=</span> <span class="s1">&#39;body1t2ew6_tot_w2.hdr&#39;</span><span class="p">,</span>
+                        <span class="n">scatter_headers</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;body1t2ew6_tot_w1.hdr&#39;</span><span class="p">,</span>
+                                           <span class="s1">&#39;body1t2ew6_tot_w3.hdr&#39;</span><span class="p">],</span>
+                        <span class="n">CT_header</span> <span class="o">=</span> <span class="s1">&#39;body1.hct&#39;</span><span class="p">,</span>
+                        <span class="n">psf_meta</span><span class="o">=</span><span class="n">PSFMeta</span><span class="p">(</span><span class="n">collimator_slope</span><span class="o">=</span><span class="mf">0.03013</span><span class="p">,</span> <span class="n">collimator_intercept</span><span class="o">=</span><span class="mf">0.1967</span><span class="p">),</span>
+                        <span class="n">prior</span> <span class="o">=</span> <span class="n">QClearPrior</span><span class="p">(</span><span class="n">beta</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mi">5</span><span class="p">),</span>
+                        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="n">reconstructed_object</span> <span class="o">=</span> <span class="n">osem_net</span><span class="p">(</span><span class="n">n_iters</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">n_subsets</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>                 
 </pre></div>
 </div>
-<p><img alt="" src="_images/sample_MIP.png" /></p>
+<p>Maximum intensity projections corresponding to the reconstructed SPECT object above are shown below:</p>
+<p><img alt="" src="_images/sample_MIPa.png" /></p>
 </section>
 <section id="installation">
 <h1>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">#</a></h1>
-<p>This library requires use of the pytorch machine learning library. I recommend making a virtual environment using anaconda:</p>
+<p>This library requires a local installation of PyTorch. As such, I recommend first creating a virtual environment using anaconda:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">--</span><span class="n">name</span> <span class="n">pytomography</span>
 </pre></div>
 </div>
-<p>Then install whatever version of pytorch you need using the commands <a class="reference external" href="https://pytorch.org/get-started/locally/">here</a>.</p>
-<p>Finally, install pytomography:</p>
+<p>and then installing the version of PyTorch you need inside that environment <a class="reference external" href="https://pytorch.org/get-started/locally/">here</a>. Finally, install pytomography using the following command:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">pytomography</span>
 </pre></div>
 </div>
@@ -296,9 +298,6 @@
     </aside>
   </div>
 </div><script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-    <script src="_static/jquery.js"></script>
-    <script src="_static/underscore.js"></script>
-    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
     <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/scripts/furo.js"></script>

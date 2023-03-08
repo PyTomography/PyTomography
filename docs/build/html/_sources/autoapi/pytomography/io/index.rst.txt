@@ -25,6 +25,7 @@ Functions
 
    pytomography.io.simind_CT_to_data
    pytomography.io.simind_projections_to_data
+   pytomography.io.simind_MEW_to_data
    pytomography.io.dicom_projections_to_data
    pytomography.io.dicom_CT_to_data
 
@@ -32,11 +33,50 @@ Functions
 
 .. py:function:: simind_CT_to_data(headerfile)
 
+   Opens attenuation data from SIMIND output
 
-.. py:function:: simind_projections_to_data(headerfile, distance='mm')
+   :param headerfile: Path to header file
+   :type headerfile: str
+
+   :returns: Tensor containing CT data.
+   :rtype: torch.tensor[Lx,Ly,Lz]
+
+
+.. py:function:: simind_projections_to_data(headerfile, distance = 'cm')
+
+   Obtains ObjectMeta, ImageMeta, and projections from a SIMIND header file.
+
+   :param headerfile: Path to the header file
+   :type headerfile: str
+   :param distance: The units of measurements in the SIMIND file (this is required as input, since SIMIND uses mm/cm but doesn't specify). Defaults to 'cm'.
+   :type distance: str, optional
+
+   :returns: Required information for reconstruction in PyTomography.
+   :rtype: (ObjectMeta, ImageMeta, torch.Tensor[1, Ltheta, Lr, Lz])
+
+
+.. py:function:: simind_MEW_to_data(headerfiles, distance = 'cm')
+
+   Opens multiple projection files corresponding to the primary, lower scatter, and upper scatter windows
+
+   :param headerfiles: List of file paths to required files. Must be in order of: 1. Primary, 2. Lower Scatter, 3. Upper scatter
+   :type headerfiles: list[str]
+   :param distance: The units of measurements in the SIMIND file (this is required as input, since SIMIND uses mm/cm but doesn't specify). Defaults to 'cm'.
+   :type distance: str, optional
+
+   :returns: Required information for reconstruction in PyTomography. First returned tensor contains primary data, and second returned tensor returns estimated scatter using the triple energy window method.
+   :rtype: (ObjectMeta, ImageMeta, torch.Tensor[1, Ltheta, Lr, Lz], torch.Tensor[1, Ltheta, Lr, Lz])
 
 
 .. py:function:: dicom_projections_to_data(file)
+
+   Obtains ObjectMeta, ImageMeta, and projections from a .dcm file.
+
+   :param file: Path to the .dcm file
+   :type file: str
+
+   :returns: Required information for reconstruction in PyTomography.
+   :rtype: (ObjectMeta, ImageMeta, torch.Tensor[1, Ltheta, Lr, Lz])
 
 
 .. py:function:: dicom_CT_to_data(files_CT, file_NM=None)

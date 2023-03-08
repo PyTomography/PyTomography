@@ -5,7 +5,7 @@
 
 .. autoapi-nested-parse::
 
-   This module contains classes that implement ordered-subset maximum liklihood iterative reconstruction algorithms. Such algorithms compute :math:`f_i^{n,m+1}` from :math:`f_i^{n,m}` where :math:`n` is the index for an iteration, and :math:`m` is the index for a subiteration (i.e. for a given subset). The notation is defined such that given :math:`M` total subsets of equal size, :math:`f_i^{n+1,0} \equiv f_i^{n,M}` (i.e. after completing a subiteration for each subset, we start the next iteration). Any class that inherits from this class must implement the ``forward`` method. ``__init__`` initializes the reconstruction algorithm with the initial object guess :math:`f_i^{0,0}`, forward and back projections used (i.e. networks to compute :math:`\sum_i c_{ij} a_i` and :math:`\sum_j c_{ij} b_j`), and Bayesian Prior function. Once the class is initialized, the number of iterations and subsets are specified at recon time when the ``forward`` method is called.
+   This module contains classes that implement ordered-subset maximum liklihood iterative reconstruction algorithms. Such algorithms compute :math:`f_i^{n,m+1}` from :math:`f_i^{n,m}` where :math:`n` is the index for an iteration, and :math:`m` is the index for a subiteration (i.e. for a given subset). The notation is defined such that given :math:`M` total subsets of equal size, :math:`f_i^{n+1,0} \equiv f_i^{n,M}` (i.e. after completing a subiteration for each subset, we start the next iteration). Any class that inherits from this class must implement the ``forward`` method. ``__init__`` initializes the reconstruction algorithm with the image data :math:`g_j`, the forward and back projections used (i.e. networks to compute :math:`\sum_i c_{ij} a_i` and :math:`\sum_j c_{ij} b_j`), the initial object guess :math:`f_i^{0,0}`, the estimated scatter contribution :math:`s_j`, and the Bayesian Prior function :math:`V(f)`. Once the class is initialized, the number of iterations and subsets are specified at recon time when the ``forward`` method is called.
 
 
 
@@ -32,18 +32,22 @@ Functions
 
 
 
-.. py:class:: OSML(object_initial, forward_projection_net, back_projection_net, prior = None)
+.. py:class:: OSML(image, forward_projection_net, back_projection_net, object_initial = None, scatter = 0, prior = None)
 
    Bases: :py:obj:`torch.nn.Module`
 
    Abstract class for different algorithms. The difference between subclasses of this class is the method by which they include prior information. If no prior function is used, they are all equivalent.
 
+   :param image: image data :math:`g_j` to be reconstructed
+   :type image: torch.tensor[batch_size, Lr, Ltheta, Lz]
    :param object_initial: represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
    :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
    :param forward_projection_net: the forward projection network used to compute :math:`\sum_{i} c_{ij} a_i` where :math:`a_i` is the object being forward projected.
    :type forward_projection_net: ForwardProjectionNet
    :param back_projection_net: the back projection network used to compute :math:`\sum_{j} c_{ij} b_j` where :math:`b_j` is the image being back projected.
    :type back_projection_net: BackProjectionNet
+   :param scatter: estimate of scatter contribution :math:`s_j`.
+   :type scatter: torch.tensor[batch_size, Lr, Ltheta, Lz]
    :param prior: the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.
    :type prior: Prior, optional
 
@@ -57,14 +61,6 @@ Functions
 
       :returns: list of index arrays for each subset
       :rtype: list
-
-
-   .. py:method:: set_image(image)
-
-      Sets the projection data which is to be reconstructed
-
-      :param image: image data
-      :type image: torch.tensor[batch_size, Ltheta, Lr, Lz]
 
 
    .. py:method:: forward(n_iters, n_subsets, callbacks = None)
@@ -81,11 +77,11 @@ Functions
 
 
 
-.. py:class:: OSEMOSL(object_initial, forward_projection_net, back_projection_net, prior = None)
+.. py:class:: OSEMOSL(image, forward_projection_net, back_projection_net, object_initial = None, scatter = 0, prior = None)
 
    Bases: :py:obj:`OSML`
 
-   Implements the ordered subset expectation algorithm using the one-step-late method to include prior information: :math:`f_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j c_{ij} + \beta \frac{\partial V}{\partial f_r}|_{f_i=f_i^{n,m}}} \sum_j c_{ij}\frac{g_j^m}{\sum_i c_{ij}f_i^{n,m}}`.
+   Implements the ordered subset expectation algorithm using the one-step-late method to include prior information: :math:`f_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j c_{ij} + \beta \frac{\partial V}{\partial f_r}|_{f_i=f_i^{n,m}}} \sum_j c_{ij}\frac{g_j}{\sum_i c_{ij}f_i^{n,m}+s_j}`.
 
    :param object_initial: represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
    :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
@@ -114,11 +110,11 @@ Functions
 
 
 
-.. py:class:: OSEMBSR(object_initial, forward_projection_net, back_projection_net, prior = None)
+.. py:class:: OSEMBSR(image, forward_projection_net, back_projection_net, object_initial = None, scatter = 0, prior = None)
 
    Bases: :py:obj:`OSML`
 
-   Implements the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: :math:`\tilde{f}_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j c_{ij}} \sum_j c_{ij}\frac{g_j^m}{\sum_i c_{ij}f_i^{n,m}}` followed by :math:`f_i^{n,m+1} = \tilde{f}_i^{n,m+1} \left(1-\beta\frac{\alpha_n}{\sum_j c_{ij}}\frac{\partial V}{\partial \tilde{f}_i^{n,m+1}} \right)`.
+   Implements the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: :math:`\tilde{f}_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j c_{ij}} \sum_j c_{ij}\frac{g_j^m}{\sum_i c_{ij}f_i^{n,m}+s_j}` followed by :math:`f_i^{n,m+1} = \tilde{f}_i^{n,m+1} \left(1-\beta\frac{\alpha_n}{\sum_j c_{ij}}\frac{\partial V}{\partial \tilde{f}_i^{n,m+1}} \right)`.
 
    :param object_initial: represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
    :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
@@ -149,14 +145,14 @@ Functions
 
 
 
-.. py:function:: get_osem_net(projections_header, object_initial = 'ones', CT_header = None, psf_meta = None, file_type = 'simind', prior = None, device = 'cpu')
+.. py:function:: get_osem_net(projections_header, scatter_headers = None, CT_header = None, psf_meta = None, file_type = 'simind', prior = None, object_initial = None, device = 'cpu')
 
    Function used to obtain an `OSEMOSL` given projection data and corrections one wishes to use.
 
    :param projections_header: Path to projection header data (in some modalities, this is also the data path i.e. DICOM). Data from this file is used to set the dimensions of the object [batch_size, Lx, Ly, Lz] and the image [batch_size, Ltheta, Lr, Lz] and the projection data one wants to reconstruct.
    :type projections_header: str
-   :param object_initial: Specifies initial object. In the case of `'ones'`, defaults to a tensor of shape [batch_size, Lx, Ly, Lz] containing all ones. Otherwise, takes in a specific initial guess. Defaults to 'ones'.
-   :type object_initial: str or torch.tensor, optional
+   :param scatter_headers: List of files corresponding to the lower and upper energy windows.
+   :type scatter_headers: Sequence[str]
    :param CT_header: File path pointing to CT data file or files. Defaults to None.
    :type CT_header: str or list, optional
    :param psf_meta: Metadata specifying PSF correction parameters, such as collimator slope and intercept. Defaults to None.
@@ -165,6 +161,8 @@ Functions
    :type file_type: str, optional
    :param prior: The prior used during reconstruction. If `None`, use no prior. Defaults to None.
    :type prior: Prior, optional
+   :param object_initial: Specifies initial object. In the case of `'ones'`, defaults to a tensor of shape [batch_size, Lx, Ly, Lz] containing all ones. Otherwise, takes in a specific initial guess. Defaults to 'ones'.
+   :type object_initial: str or torch.tensor, optional
    :param device: The device used in pytorch for reconstruction. Graphics card can be used. Defaults to 'cpu'.
    :type device: str, optional
 

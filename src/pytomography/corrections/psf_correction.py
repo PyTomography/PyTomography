@@ -75,7 +75,6 @@ class PSFCorrectionNet(CorrectionNet):
             sigma = self.get_sigma(radius, object_meta.dx, object_meta.shape, self.psf_meta.collimator_slope, self.psf_meta.collimator_intercept)
             self.layers[radius] = get_PSF_transform(sigma/object_meta.dx, self.kernel_size, kernel_dimensions=self.psf_meta.kernel_dimensions, device=self.device)
         
-        self.boundary_box_bp = pad_object(torch.ones((1, *self.object_meta.shape)).to(self.device), mode='back_project')
     def compute_kernel_size(self) -> int:
         """Function used to compute the kernel size used for PSF blurring. In particular, uses the ``max_sigmas`` attribute of ``PSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``max_sigmas`` at all points in the object. 
 
@@ -131,12 +130,12 @@ class PSFCorrectionNet(CorrectionNet):
 			an PSF corrected projection.
         """
         z_pad_size = int((self.kernel_size-1)/2)
-        object_i = pad_object_z(object_i, z_pad_size, mode='reflect')
+        object_i = pad_object_z(object_i, z_pad_size)
         object_i = self.layers[self.image_meta.radii[i]](object_i) 
         object_i = unpad_object_z(object_i, pad_size=z_pad_size)
         # Adjust normalization constant
         if norm_constant is not None:
-            norm_constant = pad_object_z(norm_constant, z_pad_size, mode='reflect')
+            norm_constant = pad_object_z(norm_constant, z_pad_size)
             norm_constant = self.layers[self.image_meta.radii[i]](norm_constant) 
             norm_constant = unpad_object_z(norm_constant, pad_size=z_pad_size)
             return object_i, norm_constant

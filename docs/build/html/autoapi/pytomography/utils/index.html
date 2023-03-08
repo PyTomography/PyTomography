@@ -5,8 +5,8 @@
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
 
-    <!-- Generated with Sphinx 5.3.0 and Furo 2022.12.07 -->
-        <title>pytomography.utils - PyTomography 0.0.1 documentation</title>
+    <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
+        <title>pytomography.utils - PyTomography 0.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">PyTomography 0.0.1 documentation</div></a>
+      <a href="../../../index.html"><div class="brand">PyTomography 0.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -147,7 +147,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
   
-  <span class="sidebar-brand-text">PyTomography 0.0.1 documentation</span>
+  <span class="sidebar-brand-text">PyTomography 0.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -157,7 +157,7 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/conventions.html">Users Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/conventions.html">Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Tutorials</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
@@ -259,25 +259,31 @@
 <td><p>Reverse cumulative sum along the first axis of a tensor of shape [batch_size, Lx, Ly, Lz].</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.utils.rotate_detector_z" title="pytomography.utils.rotate_detector_z"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rotate_detector_z</span></code></a>(x, angle[, interpolation, negative])</p></td>
-<td><p>Returns am object tensor in a rotated reference frame such that the scanner is located</p></td>
+<td><p>Returns an object tensor in a rotated reference frame such that the scanner is located at the +x axis. Note that the scanner angle $eta$ is related to $phi$ (azimuthal angle) by $phi = 3pi/2 - eta$.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.utils.get_distance" title="pytomography.utils.get_distance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_distance</span></code></a>(Lx, r, dx)</p></td>
 <td><p>Given the radial distance to center of object space from the scanner, computes the distance</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.utils.compute_pad_size" title="pytomography.utils.compute_pad_size"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_pad_size</span></code></a>(width)</p></td>
-<td><p></p></td>
+<td><p>Computes the pad width required such that subsequent rotation retains the entire image</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.utils.pad_image" title="pytomography.utils.pad_image"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pad_image</span></code></a>(image)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.utils.pad_image" title="pytomography.utils.pad_image"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pad_image</span></code></a>(image[, mode, value])</p></td>
+<td><p>Pads an image along the Lr axis</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.utils.pad_object" title="pytomography.utils.pad_object"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pad_object</span></code></a>(object)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.utils.pad_object" title="pytomography.utils.pad_object"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pad_object</span></code></a>(object[, mode])</p></td>
+<td><p>Pads object tensors by enough pixels in the xy plane so that subsequent rotations don't crop out any of the object</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.utils.unpad_image" title="pytomography.utils.unpad_image"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unpad_image</span></code></a>(image, original_shape)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.utils.unpad_image" title="pytomography.utils.unpad_image"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unpad_image</span></code></a>(image)</p></td>
+<td><p>Unpads the image back to original Lr dimensions</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.utils.unpad_object" title="pytomography.utils.unpad_object"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unpad_object</span></code></a>(object, original_shape)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.utils.unpad_object" title="pytomography.utils.unpad_object"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unpad_object</span></code></a>(object)</p></td>
+<td><p>Unpads a padded object tensor in the xy plane back to its original dimensions</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.utils.pad_object_z" title="pytomography.utils.pad_object_z"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pad_object_z</span></code></a>(object, pad_size[, mode])</p></td>
+<td><p>Pads an object tensor along z. Useful for PSF modeling</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.utils.unpad_object_z" title="pytomography.utils.unpad_object_z"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unpad_object_z</span></code></a>(object, pad_size)</p></td>
+<td><p>Unpads an object along the z dimension</p></td>
 </tr>
 </tbody>
 </table>
@@ -303,9 +309,7 @@ since this is used with CT correction, the initial voxel only contributes 1/2.</
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.utils.rotate_detector_z">
 <span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">rotate_detector_z</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interpolation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">InterpolationMode.BILINEAR</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">negative</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.utils.rotate_detector_z" title="Permalink to this definition">#</a></dt>
-<dd><p>Returns am object tensor in a rotated reference frame such that the scanner is located
-at the +x axis. Note that the scanner angle $eta$ is related to $phi$ (azimuthal angle)
-by $phi = 3pi/2 - eta$.</p>
+<dd><p>Returns an object tensor in a rotated reference frame such that the scanner is located at the +x axis. Note that the scanner angle $eta$ is related to $phi$ (azimuthal angle) by $phi = 3pi/2 - eta$.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -338,9 +342,7 @@ by $phi = 3pi/2 - eta$.</p>
 <dt class="sig sig-object py" id="pytomography.utils.get_distance">
 <span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">get_distance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Lx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.utils.get_distance" title="Permalink to this definition">#</a></dt>
 <dd><dl class="simple">
-<dt>Given the radial distance to center of object space from the scanner, computes the distance</dt><dd><p>between each parallel plane (i.e. (y-z plane)) and a detector located at +x. This function is
-used for point spread function (PSF) blurring where the amount of blurring depends on the
-distance from the detector.</p>
+<dt>Given the radial distance to center of object space from the scanner, computes the distance</dt><dd><p>between each parallel plane (i.e. (y-z plane)) and a detector located at +x. This function is used for point spread function (PSF) blurring where the amount of blurring depends on thedistance from the detector.</p>
 </dd>
 </dl>
 <dl class="field-list simple">
@@ -363,27 +365,135 @@ distance from the detector.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.utils.compute_pad_size">
 <span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">compute_pad_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">width</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.utils.compute_pad_size" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Computes the pad width required such that subsequent rotation retains the entire image</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>width</strong> (<em>int</em>) – width of the corresponding axis (i.e. number of elements in the dimension)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the number of pixels by which the axis needs to be padded on each side</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.utils.pad_image">
-<span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">pad_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.utils.pad_image" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">pad_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'constant'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.utils.pad_image" title="Permalink to this definition">#</a></dt>
+<dd><p>Pads an image along the Lr axis</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image</strong> (<em>torch.Tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Ltheta</em><em>, </em><em>Lr</em><em>, </em><em>Lz</em><em>]</em>) – Image tensor.</p></li>
+<li><p><strong>mode</strong> (<em>str</em><em>, </em><em>optional</em>) – Padding mode to use. Defaults to ‘constant’.</p></li>
+<li><p><strong>value</strong> (<em>float</em><em>, </em><em>optional</em>) – If padding mode is constant, fill with this value. Defaults to 0.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Padded image tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor[batch_size, Ltheta, Lr’, Lz]</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.utils.pad_object">
-<span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">pad_object</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.utils.pad_object" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">pad_object</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'constant'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.utils.pad_object" title="Permalink to this definition">#</a></dt>
+<dd><p>Pads object tensors by enough pixels in the xy plane so that subsequent rotations don’t crop out any of the object</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>object</strong> (<em>torch.Tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>]</em>) – object tensor to be padded</p></li>
+<li><p><strong>mode</strong> (<em>str</em><em>, </em><em>optional</em>) – _description_. Defaults to ‘constant’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>_description_</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>_type_</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.utils.unpad_image">
-<span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">unpad_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">original_shape</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.utils.unpad_image" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">unpad_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.utils.unpad_image" title="Permalink to this definition">#</a></dt>
+<dd><p>Unpads the image back to original Lr dimensions</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>image</strong> (<em>torch.Tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Ltheta</em><em>, </em><em>Lr'</em><em>, </em><em>Lz</em><em>]</em>) – Padded image tensor</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Unpadded image tensor</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor[batch_size, Ltheta, Lr, Lz]</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.utils.unpad_object">
-<span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">unpad_object</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">original_shape</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.utils.unpad_object" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">unpad_object</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.utils.unpad_object" title="Permalink to this definition">#</a></dt>
+<dd><p>Unpads a padded object tensor in the xy plane back to its original dimensions</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>object</strong> (<em>torch.Tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx'</em><em>, </em><em>Ly'</em><em>, </em><em>Lz</em><em>]</em>) – padded object tensor</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Object tensor back to it’s original dimensions.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor[batch_size, Lx, Ly, Lz]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.utils.pad_object_z">
+<span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">pad_object_z</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'constant'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.utils.pad_object_z" title="Permalink to this definition">#</a></dt>
+<dd><p>Pads an object tensor along z. Useful for PSF modeling</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>object</strong> (<em>torch.Tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>]</em>) – Object tensor</p></li>
+<li><p><strong>pad_size</strong> (<em>int</em>) – Amount by which to pad in -z and +z</p></li>
+<li><p><strong>mode</strong> (<em>str</em><em>, </em><em>optional</em>) – Padding mode. Defaults to ‘constant’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Padded object tensor along z.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor[torch.Tensor[batch_size, Lx, Ly, Lz’]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.utils.unpad_object_z">
+<span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">unpad_object_z</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad_size</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.utils.unpad_object_z" title="Permalink to this definition">#</a></dt>
+<dd><p>Unpads an object along the z dimension</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>object</strong> (<em>torch.Tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz'</em><em>]</em>) – Padded object tensor along z.</p></li>
+<li><p><strong>pad_size</strong> (<em>int</em>) – Amount by which the padded tensor was padded in the z direcion</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Unpadded object tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor[batch_size, Lx, Ly, Lz]</p>
+</dd>
+</dl>
+</dd></dl>
 
 </section>
 </section>
@@ -438,6 +548,8 @@ distance from the detector.</p>
 <li><a class="reference internal" href="#pytomography.utils.pad_object"><code class="docutils literal notranslate"><span class="pre">pad_object()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.utils.unpad_image"><code class="docutils literal notranslate"><span class="pre">unpad_image()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.utils.unpad_object"><code class="docutils literal notranslate"><span class="pre">unpad_object()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.utils.pad_object_z"><code class="docutils literal notranslate"><span class="pre">pad_object_z()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.utils.unpad_object_z"><code class="docutils literal notranslate"><span class="pre">unpad_object_z()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.utils.rev_cumsum">rev_cumsum</a></li>
 <li><a class="reference internal" href="#pytomography.utils.rotate_detector_z">rotate_detector_z</a></li>
 <li><a class="reference internal" href="#pytomography.utils.get_distance">get_distance</a></li>
@@ -446,6 +558,8 @@ distance from the detector.</p>
 <li><a class="reference internal" href="#pytomography.utils.pad_object">pad_object</a></li>
 <li><a class="reference internal" href="#pytomography.utils.unpad_image">unpad_image</a></li>
 <li><a class="reference internal" href="#pytomography.utils.unpad_object">unpad_object</a></li>
+<li><a class="reference internal" href="#pytomography.utils.pad_object_z">pad_object_z</a></li>
+<li><a class="reference internal" href="#pytomography.utils.unpad_object_z">unpad_object_z</a></li>
 </ul>
 </li>
 </ul>
@@ -462,9 +576,6 @@ distance from the detector.</p>
     </aside>
   </div>
 </div><script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
-    <script src="../../../_static/jquery.js"></script>
-    <script src="../../../_static/underscore.js"></script>
-    <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../../_static/doctools.js"></script>
     <script src="../../../_static/sphinx_highlight.js"></script>
     <script src="../../../_static/scripts/furo.js"></script>

@@ -5,8 +5,8 @@
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
 
-    <!-- Generated with Sphinx 5.3.0 and Furo 2022.12.07 -->
-        <title>pytomography.corrections - PyTomography 0.0.1 documentation</title>
+    <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
+        <title>pytomography.corrections - PyTomography 0.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">PyTomography 0.0.1 documentation</div></a>
+      <a href="../../../index.html"><div class="brand">PyTomography 0.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -147,7 +147,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
   
-  <span class="sidebar-brand-text">PyTomography 0.0.1 documentation</span>
+  <span class="sidebar-brand-text">PyTomography 0.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -157,7 +157,7 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/conventions.html">Users Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/conventions.html">Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Tutorials</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
@@ -263,9 +263,6 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.corrections.CTCorrectionNet" title="pytomography.corrections.CTCorrectionNet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CTCorrectionNet</span></code></a></p></td>
 <td><p>Correction network used to correct for attenuation correction in projection operators. In particular, this network is used with other correction networks to model <span class="math notranslate nohighlight">\(c\)</span> in <span class="math notranslate nohighlight">\(\sum_i c_{ij} a_i\)</span> (forward projection) and <span class="math notranslate nohighlight">\(\sum c_{ij} b_j\)</span> (back projection).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.corrections.PSFCorrectionNet" title="pytomography.corrections.PSFCorrectionNet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PSFCorrectionNet</span></code></a></p></td>
-<td><p>Correction network used to correct PSF correction in projection operators. In particular, this network is used with other correction networks to model <span class="math notranslate nohighlight">\(c\)</span> in <span class="math notranslate nohighlight">\(\sum_i c_{ij} a_i\)</span> (forward projection) and <span class="math notranslate nohighlight">\(\sum c_{ij} b_j\)</span> (back projection). The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width <span class="math notranslate nohighlight">\(\sigma\)</span> dependent on the distance of the point to the detector; that information is specified in the <code class="docutils literal notranslate"><span class="pre">PSFMeta</span></code> parameter.</p></td>
-</tr>
 </tbody>
 </table>
 </div>
@@ -330,95 +327,12 @@
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>object_i</strong> (<em>torch.tensor</em>) – Tensor of size [batch_size, Lx, Ly, Lz] being projected along <code class="docutils literal notranslate"><span class="pre">axis=1</span></code>.</p></li>
-<li><p><strong>i</strong> (<em>int</em>) – The projection index: used to find the corresponding angle in image space corresponding to <code class="docutils literal notranslate"><span class="pre">object_i</span></code>. In particular, the x axis of the object is aligned with the detector at angle i.</p></li>
+<li><p><strong>i</strong> (<em>int</em>) – The projection index: used to find the corresponding angle in image space corresponding to <code class="docutils literal notranslate"><span class="pre">object_i</span></code>. In particular, the x axis (tensor <cite>axis=1</cite>) of the object is aligned with the detector at angle i.</p></li>
 <li><p><strong>norm_constant</strong> (<em>torch.tensor</em><em>, </em><em>optional</em>) – A tensor used to normalize the output during back projection. Defaults to None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>torch.tensor</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="pytomography.corrections.PSFCorrectionNet">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.corrections.</span></span><span class="sig-name descname"><span class="pre">PSFCorrectionNet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">psf_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.corrections.PSFCorrectionNet" title="Permalink to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#pytomography.corrections.CorrectionNet" title="pytomography.corrections.CorrectionNet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pytomography.corrections.CorrectionNet</span></code></a></p>
-<p>Correction network used to correct PSF correction in projection operators. In particular, this network is used with other correction networks to model <span class="math notranslate nohighlight">\(c\)</span> in <span class="math notranslate nohighlight">\(\sum_i c_{ij} a_i\)</span> (forward projection) and <span class="math notranslate nohighlight">\(\sum c_{ij} b_j\)</span> (back projection). The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width <span class="math notranslate nohighlight">\(\sigma\)</span> dependent on the distance of the point to the detector; that information is specified in the <code class="docutils literal notranslate"><span class="pre">PSFMeta</span></code> parameter.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>psf_meta</strong> (<a class="reference internal" href="../metadata/index.html#pytomography.metadata.PSFMeta" title="pytomography.metadata.PSFMeta"><em>PSFMeta</em></a>) – Metadata corresponding to the parameters of PSF blurring</p></li>
-<li><p><strong>device</strong> (<em>str</em><em>, </em><em>optional</em>) – Pytorch device used for computation. Defaults to ‘cpu’.</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.corrections.PSFCorrectionNet.initialize_network">
-<span class="sig-name descname"><span class="pre">initialize_network</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_meta</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.corrections.PSFCorrectionNet.initialize_network" title="Permalink to this definition">#</a></dt>
-<dd><p>Function used to initalize the correction network using corresponding object and image metadata</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>object_meta</strong> (<a class="reference internal" href="../metadata/index.html#pytomography.metadata.ObjectMeta" title="pytomography.metadata.ObjectMeta"><em>ObjectMeta</em></a>) – Object metadata.</p></li>
-<li><p><strong>image_meta</strong> (<a class="reference internal" href="../metadata/index.html#pytomography.metadata.ImageMeta" title="pytomography.metadata.ImageMeta"><em>ImageMeta</em></a>) – Image metadata.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.corrections.PSFCorrectionNet.get_sigma">
-<span class="sig-name descname"><span class="pre">get_sigma</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">radius</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collimator_slope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collimator_intercept</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.corrections.PSFCorrectionNet.get_sigma" title="Permalink to this definition">#</a></dt>
-<dd><p>Uses PSF Meta data information to get blurring <span class="math notranslate nohighlight">\(\sigma\)</span> as a function of distance from detector. It is assumed that <code class="docutils literal notranslate"><span class="pre">sigma=collimator_slope*d</span> <span class="pre">+</span> <span class="pre">collimator_intercept</span></code> where <span class="math notranslate nohighlight">\(d\)</span> is the distance from the detector.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>radius</strong> (<em>float</em>) – The distance from the detector</p></li>
-<li><p><strong>dx</strong> (<em>float</em>) – Transaxial plane pixel spacing</p></li>
-<li><p><strong>shape</strong> (<em>tuple</em>) – Tuple containing (Lx, Ly, Lz): dimensions of object space</p></li>
-<li><p><strong>collimator_slope</strong> (<em>float</em>) – See collimator intercept</p></li>
-<li><p><strong>collimator_intercept</strong> (<em>float</em>) – Collimator slope and collimator intercept are defined such that sigma(d) = collimator_slope*d + collimator_intercept</p></li>
-<li><p><strong>detector.</strong> (<em>where sigma corresponds to sigma</em><em> of </em><em>a Gaussian function that characterizes blurring as a function</em><em> of </em><em>distance from the</em>) – </p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>An array of length Lx corresponding to blurring at each point along the 1st axis in object space</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>array</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.corrections.PSFCorrectionNet.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.corrections.PSFCorrectionNet.forward" title="Permalink to this definition">#</a></dt>
-<dd><p>Applies PSF correction for the situation where an object is being detector by a detector at the <span class="math notranslate nohighlight">\(+x\)</span> axis.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>object_i</strong> (<em>torch.tensor</em>) – Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
-i (int): The projection index: used to find the corresponding angle in image space corresponding to object i
-norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.</p></li>
-<li><p><strong>i</strong> (<em>int</em>) – </p></li>
-<li><p><strong>norm_constant</strong> (<em>torch.Tensor</em><em> | </em><em>None</em>) – </p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to</dt><dd><p>an PSF corrected projection.</p>
-</dd>
-</dl>
-</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>torch.tensor</p>
@@ -482,12 +396,6 @@ norm_constant (torch.tensor, optional): A tensor used to normalize the output du
 <li><a class="reference internal" href="#pytomography.corrections.CTCorrectionNet.forward"><code class="docutils literal notranslate"><span class="pre">CTCorrectionNet.forward()</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#pytomography.corrections.PSFCorrectionNet"><code class="docutils literal notranslate"><span class="pre">PSFCorrectionNet</span></code></a><ul>
-<li><a class="reference internal" href="#pytomography.corrections.PSFCorrectionNet.initialize_network"><code class="docutils literal notranslate"><span class="pre">PSFCorrectionNet.initialize_network()</span></code></a></li>
-<li><a class="reference internal" href="#pytomography.corrections.PSFCorrectionNet.get_sigma"><code class="docutils literal notranslate"><span class="pre">PSFCorrectionNet.get_sigma()</span></code></a></li>
-<li><a class="reference internal" href="#pytomography.corrections.PSFCorrectionNet.forward"><code class="docutils literal notranslate"><span class="pre">PSFCorrectionNet.forward()</span></code></a></li>
-</ul>
-</li>
 <li><a class="reference internal" href="#pytomography.corrections.CorrectionNet">CorrectionNet</a><ul>
 <li><a class="reference internal" href="#pytomography.corrections.CorrectionNet.initialize_network">initialize_network</a></li>
 <li><a class="reference internal" href="#pytomography.corrections.CorrectionNet.forward">forward</a></li>
@@ -495,12 +403,6 @@ norm_constant (torch.tensor, optional): A tensor used to normalize the output du
 </li>
 <li><a class="reference internal" href="#pytomography.corrections.CTCorrectionNet">CTCorrectionNet</a><ul>
 <li><a class="reference internal" href="#pytomography.corrections.CTCorrectionNet.forward">forward</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#pytomography.corrections.PSFCorrectionNet">PSFCorrectionNet</a><ul>
-<li><a class="reference internal" href="#pytomography.corrections.PSFCorrectionNet.initialize_network">initialize_network</a></li>
-<li><a class="reference internal" href="#pytomography.corrections.PSFCorrectionNet.get_sigma">get_sigma</a></li>
-<li><a class="reference internal" href="#pytomography.corrections.PSFCorrectionNet.forward">forward</a></li>
 </ul>
 </li>
 </ul>
@@ -519,9 +421,6 @@ norm_constant (torch.tensor, optional): A tensor used to normalize the output du
     </aside>
   </div>
 </div><script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
-    <script src="../../../_static/jquery.js"></script>
-    <script src="../../../_static/underscore.js"></script>
-    <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../../_static/doctools.js"></script>
     <script src="../../../_static/sphinx_highlight.js"></script>
     <script src="../../../_static/scripts/furo.js"></script>

@@ -5,8 +5,8 @@
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
 
-    <!-- Generated with Sphinx 5.3.0 and Furo 2022.12.07 -->
-        <title>Loading DICOM Data - PyTomography 0.0.1 documentation</title>
+    <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
+        <title>Loading DICOM Data - PyTomography 0.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">PyTomography 0.0.1 documentation</div></a>
+      <a href="../index.html"><div class="brand">PyTomography 0.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -147,7 +147,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
   
   
-  <span class="sidebar-brand-text">PyTomography 0.0.1 documentation</span>
+  <span class="sidebar-brand-text">PyTomography 0.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -157,7 +157,7 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="conventions.html">Users Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conventions.html">Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">Tutorials</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../autoapi/index.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../autoapi/pytomography/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -502,12 +502,12 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span>
-<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;/home/ubuntu/tormography/src&#39;</span><span class="p">)</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;/home/gpuvmadm/PyTomography/src&#39;</span><span class="p">)</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">pytomography.projections</span> <span class="kn">import</span> <span class="n">ForwardProjectionNet</span><span class="p">,</span> <span class="n">BackProjectionNet</span>
 <span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ImageMeta</span><span class="p">,</span> <span class="n">PSFMeta</span>
 <span class="kn">from</span> <span class="nn">pytomography.corrections</span> <span class="kn">import</span> <span class="n">CTCorrectionNet</span><span class="p">,</span> <span class="n">PSFCorrectionNet</span>
-<span class="kn">from</span> <span class="nn">pytomography.algorithms</span> <span class="kn">import</span> <span class="n">OSEMNet</span>
+<span class="kn">from</span> <span class="nn">pytomography.algorithms</span> <span class="kn">import</span> <span class="n">OSEMOSL</span>
 <span class="kn">from</span> <span class="nn">pytomography.io</span> <span class="kn">import</span> <span class="n">dicom_projections_to_data</span><span class="p">,</span> <span class="n">dicom_CT_to_data</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
@@ -522,9 +522,9 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">path_CT</span> <span class="o">=</span> <span class="s1">&#39;/home/ubuntu/tormography/test_files/ohif_CT&#39;</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">path_CT</span> <span class="o">=</span> <span class="s1">&#39;/home/gpuvmadm/PyTomography/test_files/ohif_CT&#39;</span>
 <span class="n">files_CT</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path_CT</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span> <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">path_CT</span><span class="p">)]</span>
-<span class="n">file_NM</span> <span class="o">=</span> <span class="s1">&#39;/home/ubuntu/tormography/test_files/ohif_NM.dcm&#39;</span>
+<span class="n">file_NM</span> <span class="o">=</span> <span class="s1">&#39;/home/gpuvmadm/PyTomography/test_files/ohif_NM.dcm&#39;</span>
 </pre></div>
 </div>
 </div>
@@ -602,27 +602,27 @@ torch.Size([2, 64, 128, 128])
 <li><p>This amounts to defining the different image correction techniques we want to use in subclasses of the <code class="docutils literal notranslate"><span class="pre">CorrectionNet</span></code>. Let’s first create a correction network for CT correction using the <code class="docutils literal notranslate"><span class="pre">CTCorrectionNet</span></code>.</p></li>
 </ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ct_net</span> <span class="o">=</span> <span class="n">CTCorrectionNet</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">,</span> <span class="n">CT</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ct_net</span> <span class="o">=</span> <span class="n">CTCorrectionNet</span><span class="p">(</span><span class="n">CT</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <p>We may also want to use PSF correction. This requires knowing the <code class="docutils literal notranslate"><span class="pre">collimator_slope</span></code> and <code class="docutils literal notranslate"><span class="pre">collimator_intercept</span></code> parameters of the scanner. The assumption is that the PSF function is Gaussian with width <span class="math notranslate nohighlight">\(\sigma\)</span> dependent on the distance from the detector: <span class="math notranslate nohighlight">\(\sigma =\)</span> <code class="docutils literal notranslate"><span class="pre">collimator_slope</span></code> $:nbsphinx-math:<cite>cdot `d + $ ``collimator_intercept`</cite>. This information depends on the detector used: in particular, the collimator dimensions. These may be found in a data sheet for your
 particular scanner. It can also be determined by scanning a point source at various detector distances <span class="math notranslate nohighlight">\(d\)</span>, fitting each projection to a Gaussian profile and determining the width <span class="math notranslate nohighlight">\(\sigma\)</span>, and then fitting <span class="math notranslate nohighlight">\(d\)</span> vs. <span class="math notranslate nohighlight">\(\sigma\)</span> to a linear curve:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">psf_meta</span> <span class="o">=</span> <span class="n">PSFMeta</span><span class="p">(</span><span class="n">collimator_slope</span> <span class="o">=</span> <span class="mf">0.02</span><span class="p">,</span> <span class="n">collimator_intercept</span> <span class="o">=</span> <span class="mf">0.005</span><span class="p">)</span>
-<span class="n">psf_net</span> <span class="o">=</span> <span class="n">PSFCorrectionNet</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">,</span> <span class="n">psf_meta</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+<span class="n">psf_net</span> <span class="o">=</span> <span class="n">PSFCorrectionNet</span><span class="p">(</span><span class="n">psf_meta</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <p>Then we make sure to include these correction networks in the forward/back projection networks. It’s important that CT correction occurs first.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fp_net</span> <span class="o">=</span> <span class="n">ForwardProjectionNet</span><span class="p">(</span><span class="n">object_correction_nets</span><span class="o">=</span><span class="p">[</span><span class="n">ct_net</span><span class="p">,</span> <span class="n">psf_net</span><span class="p">],</span>
@@ -640,7 +640,7 @@ particular scanner. It can also be determined by scanning a point source at vari
 </div>
 <p>We now create our initial guess (all 1s)</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">initial_guess</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">object_meta</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
@@ -649,36 +649,28 @@ particular scanner. It can also be determined by scanning a point source at vari
 </div>
 <p>Then we create the OSEM net:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">osem_net</span> <span class="o">=</span> <span class="n">OSEMNet</span><span class="p">(</span><span class="n">object_initial</span><span class="o">=</span><span class="n">initial_guess</span><span class="p">,</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">osem_net</span> <span class="o">=</span> <span class="n">OSEMOSL</span><span class="p">(</span><span class="n">image</span> <span class="o">=</span> <span class="n">projections</span><span class="p">,</span>
+                   <span class="n">object_initial</span><span class="o">=</span><span class="n">initial_guess</span><span class="p">,</span>
                    <span class="n">forward_projection_net</span><span class="o">=</span><span class="n">fp_net</span><span class="p">,</span>
                    <span class="n">back_projection_net</span><span class="o">=</span><span class="n">bp_net</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<p>Now we set the image we want to reconstruct:</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">osem_net</span><span class="o">.</span><span class="n">set_image</span><span class="p">(</span><span class="n">projections</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
 <p>Finally, we reconstruct:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reconstructed_object</span> <span class="o">=</span> <span class="n">osem_net</span><span class="p">(</span><span class="n">n_iters</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">n_subsets</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reconstructed_object</span> <span class="o">=</span> <span class="n">osem_net</span><span class="p">(</span><span class="n">n_iters</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_subsets</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
 <span class="n">reconstructed_object</span><span class="o">.</span><span class="n">shape</span>
 </pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -688,7 +680,7 @@ torch.Size([2, 128, 128, 128])
 </div>
 <p>We have two objects (one for each energy window). We can look at each energy window seperately:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">main_energy_window</span> <span class="o">=</span> <span class="n">reconstructed_object</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
@@ -698,7 +690,7 @@ torch.Size([2, 128, 128, 128])
 </div>
 <p>Let’s look at an axial slice:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
@@ -725,7 +717,7 @@ torch.Size([2, 128, 128, 128])
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_dicomdata_30_0.png" src="../_images/notebooks_t_dicomdata_30_0.png" />
+<img alt="../_images/notebooks_t_dicomdata_28_0.png" src="../_images/notebooks_t_dicomdata_28_0.png" />
 </div>
 </div>
 </section>
@@ -762,9 +754,6 @@ torch.Size([2, 128, 128, 128])
     </aside>
   </div>
 </div><script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
-    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../_static/doctools.js"></script>
     <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/scripts/furo.js"></script>

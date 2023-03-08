@@ -55,7 +55,7 @@ Functions
 
       :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along ``axis=1``.
       :type object_i: torch.tensor
-      :param i: The projection index: used to find the corresponding angle in image space corresponding to ``object_i``. In particular, the x axis of the object is aligned with the detector at angle i.
+      :param i: The projection index: used to find the corresponding angle in image space corresponding to ``object_i``. In particular, the x axis (tensor `axis=1`) of the object is aligned with the detector at angle i.
       :type i: int
       :param norm_constant: A tensor used to normalize the output during back projection. Defaults to None.
       :type norm_constant: torch.tensor, optional

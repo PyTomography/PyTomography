@@ -5,8 +5,8 @@
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
 
-    <!-- Generated with Sphinx 5.3.0 and Furo 2022.12.07 -->
-        <title>Part 1: Setting Up The Phantom - PyTomography 0.0.1 documentation</title>
+    <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
+        <title>Quantitative Analysis - PyTomography 0.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">PyTomography 0.0.1 documentation</div></a>
+      <a href="../index.html"><div class="brand">PyTomography 0.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -135,7 +135,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -147,7 +147,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
   
   
-  <span class="sidebar-brand-text">PyTomography 0.0.1 documentation</span>
+  <span class="sidebar-brand-text">PyTomography 0.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -157,7 +157,7 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="conventions.html">Users Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conventions.html">Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">Tutorials</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../autoapi/index.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../autoapi/pytomography/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -232,7 +232,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
@@ -495,32 +495,29 @@ div.rendered_html tbody tr:hover {
   background: rgba(66, 165, 245, 0.2);
 }
 </style>
+<section id="Quantitative-Analysis">
+<h1>Quantitative Analysis<a class="headerlink" href="#Quantitative-Analysis" title="Permalink to this heading">#</a></h1>
+<p>The purpose of this tutorial is to explore a quantitative evaluation (using noise-bias curves) of various reconstruction methods using PyTomography. We’ll build the OSEM network from scratch (unlike in what was done in the <code class="docutils literal notranslate"><span class="pre">Introduction</span></code> tutorial); the purpose of this is to show the architecture of the network. For your own cases where you want to do quick reconstruction, I’d recommend using the <code class="docutils literal notranslate"><span class="pre">get_osem_net</span></code> function to quickly create a network.</p>
+<p>In this tutorial, we’ll make use of a ground truth phantom and corresponding projection data obtained using SIMIND. We’ll use attenuation correction, PSF correction, scatter correction, and priors to compare the reconstruction of SIMIND SPECT simulation data to the corresponding ground truth phantom.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span>
-<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;/home/ubuntu/tormography/src&#39;</span><span class="p">)</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;/home/gpuvmadm/PyTomography/src&#39;</span><span class="p">)</span>
 
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-<span class="kn">from</span> <span class="nn">torchvision.transforms.functional</span> <span class="kn">import</span> <span class="n">rotate</span>
-<span class="kn">from</span> <span class="nn">torchvision.transforms</span> <span class="kn">import</span> <span class="n">InterpolationMode</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">([</span><span class="s1">&#39;science&#39;</span><span class="p">,</span> <span class="s1">&#39;notebook&#39;</span><span class="p">])</span>
-<span class="kn">from</span> <span class="nn">pytomography.algorithms</span> <span class="kn">import</span> <span class="n">OSEMOSL</span><span class="p">,</span> <span class="n">OSEMBSR</span>
-<span class="kn">from</span> <span class="nn">pytomography.priors</span> <span class="kn">import</span> <span class="n">QuadraticPrior</span><span class="p">,</span> <span class="n">LogCoshPrior</span><span class="p">,</span> <span class="n">QClearPrior</span>
-<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ImageMeta</span><span class="p">,</span> <span class="n">PSFMeta</span>
+<span class="kn">from</span> <span class="nn">pytomography.algorithms</span> <span class="kn">import</span> <span class="n">OSEMBSR</span>
+<span class="kn">from</span> <span class="nn">pytomography.priors</span> <span class="kn">import</span> <span class="n">QClearPrior</span>
+<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">PSFMeta</span>
 <span class="kn">from</span> <span class="nn">pytomography.corrections</span> <span class="kn">import</span> <span class="n">CTCorrectionNet</span><span class="p">,</span> <span class="n">PSFCorrectionNet</span>
 <span class="kn">from</span> <span class="nn">pytomography.projections</span> <span class="kn">import</span> <span class="n">ForwardProjectionNet</span><span class="p">,</span> <span class="n">BackProjectionNet</span>
 <span class="kn">from</span> <span class="nn">pytomography.callbacks</span> <span class="kn">import</span> <span class="n">CallBack</span>
-<span class="kn">from</span> <span class="nn">pytomography.io</span> <span class="kn">import</span> <span class="n">simind_CT_to_data</span><span class="p">,</span> <span class="n">simind_projections_to_data</span>
-<span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="kn">import</span> <span class="n">zoom</span><span class="p">,</span> <span class="n">affine_transform</span>
-<span class="kn">import</span> <span class="nn">cv2</span>
-<span class="kn">from</span> <span class="nn">skimage.measure</span> <span class="kn">import</span> <span class="n">label</span><span class="p">,</span> <span class="n">regionprops</span><span class="p">,</span> <span class="n">regionprops_table</span>
-<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">pytomography.io</span> <span class="kn">import</span> <span class="n">simind_CT_to_data</span><span class="p">,</span> <span class="n">simind_projections_to_data</span><span class="p">,</span> <span class="n">simind_MEW_to_data</span>
+<span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="kn">import</span> <span class="n">zoom</span>
 <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
 <span class="n">device</span> <span class="o">=</span> <span class="s1">&#39;cuda&#39;</span>
 </pre></div>
@@ -530,19 +527,18 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">path</span> <span class="o">=</span> <span class="s1">&#39;/home/ubuntu/tormography/test_files/quantitative&#39;</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">path</span> <span class="o">=</span> <span class="s1">&#39;/home/gpuvmadm/PyTomography/test_files/quantitative&#39;</span>
 </pre></div>
 </div>
 </div>
-<p>The purpose of this tutorial is to explore a full quantitative evaluation of various reconstruction methods using PyTomography. In this tutorial, we’ll make use of a ground truth phantom and corresponding projection data obtained using SIMIND.</p>
 <section id="Part-1:-Setting-Up-The-Phantom">
-<h1>Part 1: Setting Up The Phantom<a class="headerlink" href="#Part-1:-Setting-Up-The-Phantom" title="Permalink to this heading">#</a></h1>
+<h2>Part 1: Setting Up The Phantom<a class="headerlink" href="#Part-1:-Setting-Up-The-Phantom" title="Permalink to this heading">#</a></h2>
 <p>Firstly, we’ll open the ground truth phantom</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">GT</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;body1_Lu177_T1.bin&#39;</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">GT</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;body1_Lu177_T2.bin&#39;</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 <span class="n">GT</span><span class="o">.</span><span class="n">shape</span>
 </pre></div>
 </div>
@@ -592,7 +588,7 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_quantitative_11_0.png" src="../_images/notebooks_t_quantitative_11_0.png" />
+<img alt="../_images/notebooks_t_quantitative_12_0.png" src="../_images/notebooks_t_quantitative_12_0.png" />
 </div>
 </div>
 <p>This constitutes our ground truth; the units are MBq/mL. In a short moment, we’ll open our SPECT projection data, and run our iterative reconstruction algorithm to compare the true activity in each organ to the reconstructed object’s activity as a function of iteration number. To do this, we’ll need masks for each organ.</p>
@@ -604,12 +600,9 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">activities</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;bkg&#39;</span><span class="p">:</span><span class="mf">0.0238</span><span class="p">,</span> <span class="s1">&#39;liver&#39;</span><span class="p">:</span><span class="mf">0.115</span><span class="p">,</span> <span class="s1">&#39;lungs&#39;</span><span class="p">:</span><span class="mf">0.0238</span><span class="p">,</span> <span class="c1">#body8</span>
-         <span class="s1">&#39;rkidcor&#39;</span><span class="p">:</span><span class="mf">0.564</span><span class="p">,</span> <span class="s1">&#39;lkidcor&#39;</span><span class="p">:</span><span class="mf">0.536</span><span class="p">,</span> <span class="s1">&#39;rkidmel&#39;</span><span class="p">:</span><span class="mf">0.257</span><span class="p">,</span>
-         <span class="s1">&#39;lkidmel&#39;</span><span class="p">:</span><span class="mf">0.161</span><span class="p">,</span> <span class="s1">&#39;sal&#39;</span><span class="p">:</span><span class="mf">0.43</span><span class="p">,</span> <span class="s1">&#39;bla&#39;</span><span class="p">:</span><span class="mf">0.311</span><span class="p">,</span> <span class="s1">&#39;les&#39;</span><span class="p">:</span><span class="mf">0.633</span><span class="p">}</span>
-<span class="n">activities</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;bkg&#39;</span><span class="p">:</span><span class="mf">0.0238</span><span class="p">,</span> <span class="s1">&#39;liver&#39;</span><span class="p">:</span><span class="mf">0.0735</span><span class="p">,</span> <span class="s1">&#39;lungs&#39;</span><span class="p">:</span><span class="mf">0.0238</span><span class="p">,</span> <span class="c1">#body1</span>
-         <span class="s1">&#39;rkidcor&#39;</span><span class="p">:</span><span class="mf">0.822</span><span class="p">,</span> <span class="s1">&#39;lkidcor&#39;</span><span class="p">:</span><span class="mf">0.89</span><span class="p">,</span> <span class="s1">&#39;rkidmel&#39;</span><span class="p">:</span><span class="mf">0.398</span><span class="p">,</span>
-         <span class="s1">&#39;lkidmel&#39;</span><span class="p">:</span><span class="mf">0.322</span><span class="p">,</span> <span class="s1">&#39;sal&#39;</span><span class="p">:</span><span class="mf">0.574</span><span class="p">,</span> <span class="s1">&#39;bla&#39;</span><span class="p">:</span><span class="mf">0.158</span><span class="p">,</span> <span class="s1">&#39;les&#39;</span><span class="p">:</span><span class="mf">1.18</span><span class="p">}</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">activities</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;bkg&#39;</span><span class="p">:</span><span class="mf">0.0146</span><span class="p">,</span> <span class="s1">&#39;liver&#39;</span><span class="p">:</span><span class="mf">0.0333</span><span class="p">,</span> <span class="s1">&#39;lungs&#39;</span><span class="p">:</span><span class="mf">0.0146</span><span class="p">,</span> <span class="c1">#body1</span>
+         <span class="s1">&#39;rkidcor&#39;</span><span class="p">:</span><span class="mf">0.521</span><span class="p">,</span> <span class="s1">&#39;lkidcor&#39;</span><span class="p">:</span><span class="mf">0.504</span><span class="p">,</span> <span class="s1">&#39;rkidmel&#39;</span><span class="p">:</span><span class="mf">0.287</span><span class="p">,</span>
+         <span class="s1">&#39;lkidmel&#39;</span><span class="p">:</span><span class="mf">0.21</span><span class="p">,</span> <span class="s1">&#39;sal&#39;</span><span class="p">:</span><span class="mf">0.338</span><span class="p">,</span> <span class="s1">&#39;bla&#39;</span><span class="p">:</span><span class="mf">0.0371</span><span class="p">,</span> <span class="s1">&#39;les&#39;</span><span class="p">:</span><span class="mf">1.01</span><span class="p">}</span>
 <span class="k">def</span> <span class="nf">get_mask</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">pct</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
     <span class="n">arr</span> <span class="o">=</span> <span class="p">(</span><span class="n">arr</span><span class="o">&lt;</span><span class="n">val</span><span class="o">+</span><span class="p">(</span><span class="n">pct</span><span class="o">/</span><span class="mi">100</span><span class="p">)</span><span class="o">*</span><span class="n">val</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">arr</span><span class="o">&gt;</span><span class="n">val</span><span class="o">-</span><span class="p">(</span><span class="n">pct</span><span class="o">/</span><span class="mi">100</span><span class="p">)</span><span class="o">*</span><span class="n">val</span><span class="p">)</span>
     <span class="n">arr</span> <span class="o">=</span> <span class="n">zoom</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="p">(</span><span class="mi">128</span><span class="o">/</span><span class="mi">512</span><span class="p">,</span> <span class="mi">128</span><span class="o">/</span><span class="mi">512</span><span class="p">,</span> <span class="mi">3</span><span class="o">*</span><span class="mi">128</span><span class="o">/</span><span class="mi">767</span><span class="p">),</span> <span class="n">order</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">)</span>
@@ -652,13 +645,13 @@ torch.Size([128, 128, 384])
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_quantitative_17_0.png" src="../_images/notebooks_t_quantitative_17_0.png" />
+<img alt="../_images/notebooks_t_quantitative_18_0.png" src="../_images/notebooks_t_quantitative_18_0.png" />
 </div>
 </div>
 <p>This mask will allow me to compare the true activity of the liver (0.0735MBq/mL) to the value obtained from the reconstruction in that region.</p>
 </section>
 <section id="Part-2:-Getting-The-Calibration-Factor">
-<h1>Part 2: Getting The Calibration Factor<a class="headerlink" href="#Part-2:-Getting-The-Calibration-Factor" title="Permalink to this heading">#</a></h1>
+<h2>Part 2: Getting The Calibration Factor<a class="headerlink" href="#Part-2:-Getting-The-Calibration-Factor" title="Permalink to this heading">#</a></h2>
 <p>Since our SPECT data is measured in MBq/mL and the SPECT reconstruction will be in units of counts, we need a way to convert between units. You may be tempted to think that 1Bq = 1 count per second, but this is not true for a scan where “counts” actually means “detected counts”. In general, a detector is not 100% efficient (far from it) so most radioactive counts go undetected (in SPECT, they may not be parallel with the collimators).</p>
 <p>Regardless, we can still get an empirical conversion factor by scanning a point source of known activity inside the scanner. Let’s open some projection data corresponding to a point calibtation scan:</p>
 <div class="nbinput nblast docutils container">
@@ -686,7 +679,7 @@ torch.Size([128, 128, 384])
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_quantitative_23_0.png" src="../_images/notebooks_t_quantitative_23_0.png" />
+<img alt="../_images/notebooks_t_quantitative_24_0.png" src="../_images/notebooks_t_quantitative_24_0.png" />
 </div>
 </div>
 <div class="nbinput nblast docutils container">
@@ -703,7 +696,7 @@ torch.Size([128, 128, 384])
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">CPS_to_MBQpermL</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1700</span><span class="o">/</span><span class="n">dV</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">total_counts</span><span class="o">/</span><span class="mi">15</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">CPS_to_MBQpermL</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1700</span><span class="o">/</span><span class="n">dV</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">total_counts</span><span class="p">)</span>
 <span class="n">CPS_to_MBQpermL</span>
 </pre></div>
 </div>
@@ -714,53 +707,79 @@ torch.Size([128, 128, 384])
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-3.163353333169584
+0.21089022221130554
 </pre></div></div>
 </div>
 <p>So after reconstructing our object (which gives units of detected counts), we need to multiply by that factor to get units of MBq/mL, which we can use to compare to our phantom.</p>
 </section>
 <section id="Part-3:-Reconstructing-SPECT-Data">
-<h1>Part 3: Reconstructing SPECT Data<a class="headerlink" href="#Part-3:-Reconstructing-SPECT-Data" title="Permalink to this heading">#</a></h1>
+<h2>Part 3: Reconstructing SPECT Data<a class="headerlink" href="#Part-3:-Reconstructing-SPECT-Data" title="Permalink to this heading">#</a></h2>
 <p>Now we will reconstruct our SPECT data, and compare it to the original phantom. In particular, since we’re using an iterative algorithm, we’ll want to see how the improvements as a function of iterations. We’ll get to that later.</p>
-<p>First we’ll open the SPECT scan</p>
+<p>First we’ll open the SPECT scan. Since we have multiple energy windows (we’ll be using the triple energy window scatter correction method), we’ll use the <code class="docutils literal notranslate"><span class="pre">simind_MEW_to_data</span></code> function. First, we can opt to have <code class="docutils literal notranslate"><span class="pre">return_seperate=True</span></code> so that we can look at each energy window. In the case, the batch dimension of <code class="docutils literal notranslate"><span class="pre">projections</span></code> contains a seperate image at each energy window.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">header_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;body1t2ew6_tot_w</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">.hdr&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">]]</span>
+<span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">,</span> <span class="n">projections</span><span class="p">,</span> <span class="n">projections_scatter</span> <span class="o">=</span> <span class="n">simind_MEW_to_data</span><span class="p">(</span><span class="n">header_files</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="s1">&#39;cm&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">,</span> <span class="n">projections</span> <span class="o">=</span> <span class="n">simind_projections_to_data</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;body1.h00&#39;</span><span class="p">))</span>
-<span class="n">projections</span><span class="o">.</span><span class="n">shape</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">121</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">projections</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;nipy_spectral&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Photopeak&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">122</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">projections_scatter</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;nipy_spectral&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Scatter&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
-</pre></div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
 </div>
-<div class="output_area docutils container">
+<div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-torch.Size([1, 120, 128, 384])
+/tmp/ipykernel_31858/2933345111.py:2: MatplotlibDeprecationWarning: Auto-removal of overlapping axes is deprecated since 3.6 and will be removed two minor releases later; explicitly call ax.remove() as needed.
+  plt.subplot(121)
 </pre></div></div>
 </div>
-<p>Now the CT:</p>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_t_quantitative_33_1.png" src="../_images/notebooks_t_quantitative_33_1.png" />
+</div>
+</div>
+<p>Now we can load the corresponding CT image from SIMIND using the <code class="docutils literal notranslate"><span class="pre">simind_CT_to_data</span></code> function.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">CT</span> <span class="o">=</span> <span class="n">simind_CT_to_data</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;body8t1new.hct&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">CT</span> <span class="o">=</span> <span class="n">simind_CT_to_data</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;body1.hct&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<p>Now we’ll reconstruct in a few different ways. First let’s setup our PSF and CT correction networks.</p>
+<p>Now we need to set up all our CorrectionNets during reconstruction. This includes PSF correction, attenuation correction, and corresponding priors we want to use.</p>
 <ul class="simple">
-<li><p>PSF modeling</p></li>
+<li><p>PSF modeling. This requires knowing the <code class="docutils literal notranslate"><span class="pre">collimator_slope</span></code> and <code class="docutils literal notranslate"><span class="pre">collimator_intercept</span></code> parameters of the scanner. The assumption is that the PSF function is Gaussian with width <span class="math notranslate nohighlight">\(\sigma\)</span> dependent on the distance from the detector: <span class="math notranslate nohighlight">\(\sigma =\)</span> <code class="docutils literal notranslate"><span class="pre">collimator_slope</span></code> $:nbsphinx-math:<cite>cdot `d + $ ``collimator_intercept`</cite>. This information depends on the detector used: in particular, the collimator dimensions. These may be found in a data sheet for your particular scanner. It can
+also be determined by scanning a point source at various detector distances <span class="math notranslate nohighlight">\(d\)</span>, fitting each projection to a Gaussian profile and determining the width <span class="math notranslate nohighlight">\(\sigma\)</span>, and then fitting <span class="math notranslate nohighlight">\(d\)</span> vs. <span class="math notranslate nohighlight">\(\sigma\)</span> to a linear curve:</p></li>
 </ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">f</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
-<span class="n">collimator_slope</span> <span class="o">=</span> <span class="mf">0.07095</span> <span class="o">/</span> <span class="n">f</span>
-<span class="n">collimator_intercept</span> <span class="o">=</span> <span class="mf">0.004632</span> <span class="o">/</span> <span class="n">f</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">collimator_slope</span> <span class="o">=</span> <span class="mf">0.03013</span>
+<span class="n">collimator_intercept</span> <span class="o">=</span> <span class="mf">0.1967</span>
 <span class="n">psf_meta</span> <span class="o">=</span> <span class="n">PSFMeta</span><span class="p">(</span><span class="n">collimator_slope</span><span class="p">,</span> <span class="n">collimator_intercept</span><span class="p">,</span> <span class="s1">&#39;2D&#39;</span><span class="p">)</span>
 <span class="n">psf_net</span> <span class="o">=</span> <span class="n">PSFCorrectionNet</span><span class="p">(</span><span class="n">psf_meta</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 </pre></div>
@@ -770,7 +789,7 @@ torch.Size([1, 120, 128, 384])
 <li><p>Attenuation correction modeling</p></li>
 </ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ct_net</span> <span class="o">=</span> <span class="n">CTCorrectionNet</span><span class="p">(</span><span class="n">CT</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
@@ -778,20 +797,21 @@ torch.Size([1, 120, 128, 384])
 </div>
 </div>
 <ul class="simple">
-<li><p>Priors</p></li>
+<li><p>Priors. We’ll compare no prior to the QClear prior.</p></li>
 </ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">qcp</span> <span class="o">=</span> <span class="n">QClearPrior</span><span class="p">(</span><span class="n">beta</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-<span class="n">qp</span> <span class="o">=</span> <span class="n">QuadraticPrior</span><span class="p">(</span><span class="n">beta</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">qcp</span> <span class="o">=</span> <span class="n">QClearPrior</span><span class="p">(</span><span class="n">beta</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<p>Now we’ll define a function which automates the reconstruction process</p>
+<p>Next we’ll create a subclass of the <code class="docutils literal notranslate"><span class="pre">CallBack</span></code> class. “What’s the purpose of this?”, you may be wondering.</p>
+<p>An instance of a callback class can be passed to an iterative reconstruction algorithm, and the user-defined <code class="docutils literal notranslate"><span class="pre">run</span></code> method is called after each subiteration (it’s passed the reconstructed object <code class="docutils literal notranslate"><span class="pre">obj</span></code> corresponding to that iteration). In this case, we define the <code class="docutils literal notranslate"><span class="pre">CompareToGroundTruth</span></code> class, and initialize it with the ground truth phantom. After each iteration, when <code class="docutils literal notranslate"><span class="pre">run</span></code> is called, it compares the reconstructed object to the ground truth phantom, and stores corresponding biases and
+variances in the <code class="docutils literal notranslate"><span class="pre">self.biass</span></code> and <code class="docutils literal notranslate"><span class="pre">self.vars</span></code> dictionaries for each organ. Depending on your task, you can define a callback function to compute whatever you need after each iteration. * For example, as an exercise, you could modify this class to store the reconstructed image with the lowest mean squared error relative to the ground truth phantom.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">CompareToGroundTruth</span><span class="p">(</span><span class="n">CallBack</span><span class="p">):</span>
@@ -815,19 +835,25 @@ torch.Size([1, 120, 128, 384])
             <span class="bp">self</span><span class="o">.</span><span class="n">biass</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">obj_cal</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">activity_dict</span><span class="p">[</span><span class="n">key</span><span class="p">])</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">obj_cal</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">activity_dict</span><span class="p">[</span><span class="n">key</span><span class="p">])</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">vals</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">obj_cal</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]])</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
-
-<span class="k">def</span> <span class="nf">reconstruct_object</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="n">n_iters</span><span class="p">,</span> <span class="n">n_subsets</span><span class="p">,</span> <span class="n">prior</span><span class="p">,</span> <span class="n">object_correction_nets</span><span class="p">,</span> <span class="n">image_correction_nets</span><span class="p">):</span>
+</pre></div>
+</div>
+</div>
+<p>Now we’ll define a function which automates the reconstruction process. In particular, it takes in a <code class="docutils literal notranslate"><span class="pre">callback</span></code>, the number of iterations/subsets, a prior function to use, and the corresponding correction nets used during reconstruction. It then runs the <code class="docutils literal notranslate"><span class="pre">OSEMBSR</span></code> algorithm and returns the final image as output.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">reconstruct_object</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="n">n_iters</span><span class="p">,</span> <span class="n">n_subsets</span><span class="p">,</span> <span class="n">projections</span><span class="p">,</span> <span class="n">prior</span><span class="p">,</span> <span class="n">scatter</span><span class="p">,</span> <span class="n">object_correction_nets</span><span class="p">,</span> <span class="n">image_correction_nets</span><span class="p">):</span>
     <span class="n">fp_net</span> <span class="o">=</span> <span class="n">ForwardProjectionNet</span><span class="p">(</span><span class="n">object_correction_nets</span><span class="p">,</span> <span class="n">image_correction_nets</span><span class="p">,</span>
                                 <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
     <span class="n">bp_net</span> <span class="o">=</span> <span class="n">BackProjectionNet</span><span class="p">(</span><span class="n">object_correction_nets</span><span class="p">,</span> <span class="n">image_correction_nets</span><span class="p">,</span>
                                 <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-    <span class="n">object_initial</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">384</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-    <span class="n">osem_net</span> <span class="o">=</span> <span class="n">OSEMBSR</span><span class="p">(</span><span class="n">object_initial</span><span class="p">,</span> <span class="n">fp_net</span><span class="p">,</span> <span class="n">bp_net</span><span class="p">,</span> <span class="n">prior</span><span class="o">=</span><span class="n">prior</span><span class="p">)</span>
-    <span class="n">osem_net</span><span class="o">.</span><span class="n">set_image</span><span class="p">(</span><span class="n">projections</span><span class="p">)</span>
+    <span class="n">osem_net</span> <span class="o">=</span> <span class="n">OSEMBSR</span><span class="p">(</span><span class="n">projections</span><span class="p">,</span> <span class="n">fp_net</span><span class="p">,</span> <span class="n">bp_net</span><span class="p">,</span> <span class="n">scatter</span><span class="o">=</span><span class="n">scatter</span><span class="p">,</span> <span class="n">prior</span><span class="o">=</span><span class="n">prior</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">osem_net</span><span class="p">(</span><span class="n">n_iters</span><span class="p">,</span> <span class="n">n_subsets</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">callback</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
+<p>Now we define instances of the <code class="docutils literal notranslate"><span class="pre">CompareToGroundTruth</span></code> which we use as a callback function during reconstruction. We’ll be comparing standard reconstruction to reconstruction using QClear: hence the naming convention.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
@@ -837,32 +863,44 @@ torch.Size([1, 120, 128, 384])
 </pre></div>
 </div>
 </div>
+<p>Now we reconstruct the objects: one time using no prior, and one time using QClear.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reconstructed_object_qclear</span> <span class="o">=</span> <span class="n">reconstruct_object</span><span class="p">(</span><span class="n">stats_qclear</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">qcp</span><span class="p">,</span> <span class="p">[</span><span class="n">ct_net</span><span class="p">,</span> <span class="n">psf_net</span><span class="p">],</span> <span class="p">[])</span>
-<span class="n">reconstructed_object</span> <span class="o">=</span> <span class="n">reconstruct_object</span><span class="p">(</span><span class="n">stats_generic</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">[</span><span class="n">ct_net</span><span class="p">,</span> <span class="n">psf_net</span><span class="p">],</span> <span class="p">[])</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reconstructed_object</span> <span class="o">=</span> <span class="n">reconstruct_object</span><span class="p">(</span><span class="n">stats_generic</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">projections</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">projections_scatter</span><span class="p">,</span> <span class="p">[</span><span class="n">ct_net</span><span class="p">,</span> <span class="n">psf_net</span><span class="p">],</span> <span class="p">[])</span>
+<span class="n">reconstructed_object_qclear</span> <span class="o">=</span> <span class="n">reconstruct_object</span><span class="p">(</span><span class="n">stats_qclear</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">projections</span><span class="p">,</span> <span class="n">qcp</span><span class="p">,</span> <span class="n">projections_scatter</span><span class="p">,</span> <span class="p">[</span><span class="n">ct_net</span><span class="p">,</span> <span class="n">psf_net</span><span class="p">],</span> <span class="p">[])</span>
+</pre></div>
+</div>
+</div>
+<p>Let’s visualize MIP of the reconstructed objects.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">o1</span> <span class="o">=</span> <span class="n">reconstructed_object</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span><span class="mi">64</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="o">*</span><span class="n">CPS_to_MBQpermL</span>
+<span class="n">o2</span> <span class="o">=</span> <span class="n">reconstructed_object_qclear</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span><span class="mi">64</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="o">*</span><span class="n">CPS_to_MBQpermL</span>
+<span class="n">GT_resized</span> <span class="o">=</span> <span class="n">zoom</span><span class="p">(</span><span class="n">GT</span><span class="p">,</span> <span class="p">(</span><span class="mi">128</span><span class="o">/</span><span class="mi">512</span><span class="p">,</span> <span class="mi">128</span><span class="o">/</span><span class="mi">512</span><span class="p">,</span> <span class="mi">384</span><span class="o">/</span><span class="mi">767</span><span class="p">),</span> <span class="n">order</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">)[:,</span><span class="mi">64</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
 </pre></div>
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">131</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">GT</span><span class="p">[:,</span><span class="mi">256</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;nipy_spectral&#39;</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">GT_resized</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;nipy_spectral&#39;</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Phantom&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">132</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">reconstructed_object</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span><span class="mi">64</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="o">*</span><span class="n">CPS_to_MBQpermL</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;nipy_spectral&#39;</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">o1</span><span class="p">,</span><span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;nipy_spectral&#39;</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Generic&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Regular&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">133</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">reconstructed_object_qclear</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span><span class="mi">64</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="o">*</span><span class="n">CPS_to_MBQpermL</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;nipy_spectral&#39;</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">o2</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;nipy_spectral&#39;</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;QClear&#39;</span><span class="p">)</span>
@@ -875,12 +913,12 @@ torch.Size([1, 120, 128, 384])
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_quantitative_45_0.png" src="../_images/notebooks_t_quantitative_45_0.png" />
+<img alt="../_images/notebooks_t_quantitative_53_0.png" src="../_images/notebooks_t_quantitative_53_0.png" />
 </div>
 </div>
-<p>Here’s a little plotting script to show bias variance curves</p>
+<p>Finally, here’s some code written to plot/compare noise-bias curves for each reconstruction algorithm.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">plot_bvc</span><span class="p">(</span><span class="n">statistics</span><span class="p">,</span> <span class="n">organ</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">label</span><span class="p">):</span>
@@ -893,7 +931,8 @@ torch.Size([1, 120, 128, 384])
 <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span><span class="mi">8</span><span class="p">))</span>
 <span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">organ</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axes</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">activities</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
     <span class="n">plot_bvc</span><span class="p">(</span><span class="n">stats_generic</span><span class="p">,</span> <span class="n">organ</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="s1">&#39;Generic&#39;</span><span class="p">)</span>
-    <span class="n">plot_bvc</span><span class="p">(</span><span class="n">stats_qclear</span><span class="p">,</span> <span class="n">organ</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="s1">&#39;QClear&#39;</span><span class="p">)</span>
+    <span class="n">plot_bvc</span><span class="p">(</span><span class="n">stats_qclear</span><span class="p">,</span> <span class="n">organ</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="s1">&#39;green&#39;</span><span class="p">,</span> <span class="s1">&#39;QClear&#39;</span><span class="p">)</span>
+    <span class="c1">#plot_bvc(stats_qclear, organ, ax, &#39;red&#39;, &#39;QClear&#39;)</span>
     <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span>
     <span class="n">ax</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s1">&#39;major&#39;</span><span class="p">,</span> <span class="n">labelsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
     <span class="n">ax</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s1">&#39;major&#39;</span><span class="p">,</span> <span class="n">labelsize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
@@ -912,9 +951,11 @@ torch.Size([1, 120, 128, 384])
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_quantitative_47_0.png" src="../_images/notebooks_t_quantitative_47_0.png" />
+<img alt="../_images/notebooks_t_quantitative_55_0.png" src="../_images/notebooks_t_quantitative_55_0.png" />
 </div>
 </div>
+<p>QClear appears to give significant improvement in the Kidneys and salivary glands: both medium sized organs.</p>
+</section>
 </section>
 
         </article>
@@ -942,16 +983,34 @@ torch.Size([1, 120, 128, 384])
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Quantitative Analysis</a><ul>
+<li><a class="reference internal" href="#Part-1:-Setting-Up-The-Phantom">Part 1: Setting Up The Phantom</a></li>
+<li><a class="reference internal" href="#Part-2:-Getting-The-Calibration-Factor">Part 2: Getting The Calibration Factor</a></li>
+<li><a class="reference internal" href="#Part-3:-Reconstructing-SPECT-Data">Part 3: Reconstructing SPECT Data</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
   </div>
 </div><script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
-    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../_static/doctools.js"></script>
     <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/scripts/furo.js"></script>

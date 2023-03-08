@@ -5,8 +5,8 @@
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
 
-    <!-- Generated with Sphinx 5.3.0 and Furo 2022.12.07 -->
-        <title>Implementing Filtered Back Projection - PyTomography 0.0.1 documentation</title>
+    <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
+        <title>Implementing Filtered Back Projection - PyTomography 0.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">PyTomography 0.0.1 documentation</div></a>
+      <a href="../index.html"><div class="brand">PyTomography 0.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -147,7 +147,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
   
   
-  <span class="sidebar-brand-text">PyTomography 0.0.1 documentation</span>
+  <span class="sidebar-brand-text">PyTomography 0.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -497,12 +497,13 @@ div.rendered_html tbody tr:hover {
 </style>
 <section id="Implementing-Filtered-Back-Projection">
 <h1>Implementing Filtered Back Projection<a class="headerlink" href="#Implementing-Filtered-Back-Projection" title="Permalink to this heading">#</a></h1>
+<p>This tutorial is intended to be an example of implementing a custom <code class="docutils literal notranslate"><span class="pre">CorrectionNet</span></code> and corresponding reconstruction algorithm. It will also explore the detail of <code class="docutils literal notranslate"><span class="pre">ObjectMeta</span></code> and <code class="docutils literal notranslate"><span class="pre">ImageMeta</span></code>. We’ll use the classes of PyTomography to implemented filtered back projection in SPECT.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span>
-<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;/home/ubuntu/tormography/src&#39;</span><span class="p">)</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;/home/gpuvmadm/PyTomography/src&#39;</span><span class="p">)</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">pytomography.projections</span> <span class="kn">import</span> <span class="n">ForwardProjectionNet</span><span class="p">,</span> <span class="n">BackProjectionNet</span>
 <span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ImageMeta</span>
@@ -565,14 +566,14 @@ torch.Size([1, 128, 128, 132])
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.colorbar.Colorbar at 0x7f6fad220760&gt;
+&lt;matplotlib.colorbar.Colorbar at 0x7fd99b788c10&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_fbp_5_1.png" src="../_images/notebooks_t_fbp_5_1.png" />
+<img alt="../_images/notebooks_t_fbp_6_1.png" src="../_images/notebooks_t_fbp_6_1.png" />
 </div>
 </div>
 <p>Before we do any projections, we need to get corresponding metadata for our object. In this case, we’ll assume the voxel sizes are 1cm <span class="math notranslate nohighlight">\(^3\)</span>. For our image space, we’ll assume 60 projections are taken at angular spacing of 6 degrees.</p>
@@ -638,7 +639,7 @@ torch.Size([1, 60, 128, 132])
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_fbp_13_0.png" src="../_images/notebooks_t_fbp_13_0.png" />
+<img alt="../_images/notebooks_t_fbp_14_0.png" src="../_images/notebooks_t_fbp_14_0.png" />
 </div>
 </div>
 <p>At angles like 60 degrees, the cube is darkest in the center and lighter on the outside; this is like looking through a semi-transparent cube in real life, it’s going to be darkest near the center if you’re looking at it from an off angle.</p>
@@ -679,14 +680,14 @@ torch.Size([1, 128, 128, 132])
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.colorbar.Colorbar at 0x7f6f873bc160&gt;
+&lt;matplotlib.colorbar.Colorbar at 0x7fd995062fa0&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_fbp_18_1.png" src="../_images/notebooks_t_fbp_18_1.png" />
+<img alt="../_images/notebooks_t_fbp_19_1.png" src="../_images/notebooks_t_fbp_19_1.png" />
 </div>
 </div>
 <p>We can see that it has been blurred (note: no blurring in the <span class="math notranslate nohighlight">\(z\)</span> direction because the voxels at height <span class="math notranslate nohighlight">\(z_0\)</span> will only contribute to detector elements at height <span class="math notranslate nohighlight">\(z_0\)</span> due to collimation)</p>
@@ -733,25 +734,25 @@ torch.Size([1, 128, 128, 132])
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.colorbar.Colorbar at 0x7f6f8724edd0&gt;
+&lt;matplotlib.colorbar.Colorbar at 0x7fd994faba60&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_fbp_23_1.png" src="../_images/notebooks_t_fbp_23_1.png" />
+<img alt="../_images/notebooks_t_fbp_24_1.png" src="../_images/notebooks_t_fbp_24_1.png" />
 </div>
 </div>
 <p>The cube is no longer blurred, but artifacts are present. Such artifacts are not present when using algorithms like OSEM for reconstruction.</p>
-<p>Since this operation is applied to the image before back projection, we can include turn it into a subclass of the <code class="docutils literal notranslate"><span class="pre">CorrectionNet</span></code>. * It has to have <code class="docutils literal notranslate"><span class="pre">CorrectionNet</span></code> as a parent class * It has to take in <code class="docutils literal notranslate"><span class="pre">object_meta</span></code>, <code class="docutils literal notranslate"><span class="pre">image_meta</span></code>, and <code class="docutils literal notranslate"><span class="pre">device</span></code> * It has to implement the <code class="docutils literal notranslate"><span class="pre">forward</span></code> function. In this case, since it’s a correction done in image space, it has to take in an image and return an image</p>
+<p>Since this operation is applied to the image before back projection, we can include turn it into a subclass of the <code class="docutils literal notranslate"><span class="pre">CorrectionNet</span></code>. * It has to have <code class="docutils literal notranslate"><span class="pre">CorrectionNet</span></code> as a parent class * It has to implement the <code class="docutils literal notranslate"><span class="pre">forward</span></code> function. In this case, since it’s a correction done in image space, it has to take in an image and return an image</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">RampCorrectionNet</span><span class="p">(</span><span class="n">CorrectionNet</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">RampCorrectionNet</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">RampCorrectionNet</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
     <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">):</span>
         <span class="n">freq_fft</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftfreq</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
@@ -768,7 +769,7 @@ torch.Size([1, 128, 128, 132])
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ramp_correction_net</span> <span class="o">=</span> <span class="n">RampCorrectionNet</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ramp_correction_net</span> <span class="o">=</span> <span class="n">RampCorrectionNet</span><span class="p">()</span>
 <span class="n">bp_rampfilter_net</span> <span class="o">=</span> <span class="n">BackProjectionNet</span><span class="p">(</span><span class="n">object_correction_nets</span><span class="o">=</span><span class="p">[],</span>
                                     <span class="n">image_correction_nets</span><span class="o">=</span><span class="p">[</span><span class="n">ramp_correction_net</span><span class="p">],</span>
                                     <span class="n">object_meta</span><span class="o">=</span><span class="n">object_meta</span><span class="p">,</span>
@@ -803,14 +804,14 @@ torch.Size([1, 128, 128, 132])
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.colorbar.Colorbar at 0x7f6f87119b70&gt;
+&lt;matplotlib.colorbar.Colorbar at 0x7fd994edc700&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_fbp_32_1.png" src="../_images/notebooks_t_fbp_32_1.png" />
+<img alt="../_images/notebooks_t_fbp_33_1.png" src="../_images/notebooks_t_fbp_33_1.png" />
 </div>
 </div>
 </section>
@@ -847,9 +848,6 @@ torch.Size([1, 128, 128, 132])
     </aside>
   </div>
 </div><script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
-    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../_static/doctools.js"></script>
     <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/scripts/furo.js"></script>

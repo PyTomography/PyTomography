@@ -5,8 +5,8 @@
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <link rel="index" title="Index" href="../../../../genindex.html" /><link rel="search" title="Search" href="../../../../search.html" />
 
-    <!-- Generated with Sphinx 5.3.0 and Furo 2022.12.07 -->
-        <title>pytomography.corrections.psf_correction - PyTomography 0.0.1 documentation</title>
+    <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
+        <title>pytomography.corrections.psf_correction - PyTomography 0.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../../index.html"><div class="brand">PyTomography 0.0.1 documentation</div></a>
+      <a href="../../../../index.html"><div class="brand">PyTomography 0.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -147,7 +147,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
   
   
-  <span class="sidebar-brand-text">PyTomography 0.0.1 documentation</span>
+  <span class="sidebar-brand-text">PyTomography 0.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -157,7 +157,7 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../../../../notebooks/conventions.html">Users Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebooks/conventions.html">Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../usage.html">Tutorials</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
@@ -267,7 +267,7 @@
 </div>
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.corrections.psf_correction.get_PSF_transform">
-<span class="sig-prename descclassname"><span class="pre">pytomography.corrections.psf_correction.</span></span><span class="sig-name descname"><span class="pre">get_PSF_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_dimensions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'2D'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-09</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.corrections.psf_correction.get_PSF_transform" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pytomography.corrections.psf_correction.</span></span><span class="sig-name descname"><span class="pre">get_PSF_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_dimensions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'2D'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-12</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.corrections.psf_correction.get_PSF_transform" title="Permalink to this definition">#</a></dt>
 <dd><p>Creates a 2D convolutional layer that is used for PSF correction</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -315,6 +315,20 @@ if blurring is done between transaxial slices (‘2D’). Defaults to ‘2D’.<
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.corrections.psf_correction.PSFCorrectionNet.compute_kernel_size">
+<span class="sig-name descname"><span class="pre">compute_kernel_size</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.corrections.psf_correction.PSFCorrectionNet.compute_kernel_size" title="Permalink to this definition">#</a></dt>
+<dd><p>Function used to compute the kernel size used for PSF blurring. In particular, uses the <code class="docutils literal notranslate"><span class="pre">max_sigmas</span></code> attribute of <code class="docutils literal notranslate"><span class="pre">PSFMeta</span></code> to determine what the kernel size should be such that the kernel encompasses at least <code class="docutils literal notranslate"><span class="pre">max_sigmas</span></code> at all points in the object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The corresponding kernel size used for PSF blurring.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>int</p>
 </dd>
 </dl>
 </dd></dl>
@@ -420,6 +434,7 @@ norm_constant (torch.tensor, optional): A tensor used to normalize the output du
 <li><a class="reference internal" href="#pytomography.corrections.psf_correction.get_PSF_transform"><code class="docutils literal notranslate"><span class="pre">get_PSF_transform()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.corrections.psf_correction.PSFCorrectionNet"><code class="docutils literal notranslate"><span class="pre">PSFCorrectionNet</span></code></a><ul>
 <li><a class="reference internal" href="#pytomography.corrections.psf_correction.PSFCorrectionNet.initialize_network"><code class="docutils literal notranslate"><span class="pre">PSFCorrectionNet.initialize_network()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.corrections.psf_correction.PSFCorrectionNet.compute_kernel_size"><code class="docutils literal notranslate"><span class="pre">PSFCorrectionNet.compute_kernel_size()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.corrections.psf_correction.PSFCorrectionNet.get_sigma"><code class="docutils literal notranslate"><span class="pre">PSFCorrectionNet.get_sigma()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.corrections.psf_correction.PSFCorrectionNet.forward"><code class="docutils literal notranslate"><span class="pre">PSFCorrectionNet.forward()</span></code></a></li>
 </ul>
@@ -427,6 +442,7 @@ norm_constant (torch.tensor, optional): A tensor used to normalize the output du
 <li><a class="reference internal" href="#pytomography.corrections.psf_correction.get_PSF_transform">get_PSF_transform</a></li>
 <li><a class="reference internal" href="#pytomography.corrections.psf_correction.PSFCorrectionNet">PSFCorrectionNet</a><ul>
 <li><a class="reference internal" href="#pytomography.corrections.psf_correction.PSFCorrectionNet.initialize_network">initialize_network</a></li>
+<li><a class="reference internal" href="#pytomography.corrections.psf_correction.PSFCorrectionNet.compute_kernel_size">compute_kernel_size</a></li>
 <li><a class="reference internal" href="#pytomography.corrections.psf_correction.PSFCorrectionNet.get_sigma">get_sigma</a></li>
 <li><a class="reference internal" href="#pytomography.corrections.psf_correction.PSFCorrectionNet.forward">forward</a></li>
 </ul>
@@ -447,9 +463,6 @@ norm_constant (torch.tensor, optional): A tensor used to normalize the output du
     </aside>
   </div>
 </div><script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
-    <script src="../../../../_static/jquery.js"></script>
-    <script src="../../../../_static/underscore.js"></script>
-    <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../../../_static/doctools.js"></script>
     <script src="../../../../_static/sphinx_highlight.js"></script>
     <script src="../../../../_static/scripts/furo.js"></script>

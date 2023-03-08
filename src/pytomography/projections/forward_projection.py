@@ -1,5 +1,5 @@
 import torch
-from pytomography.utils import rotate_detector_z, pad_object, pad_image, unpad_object, unpad_image
+from pytomography.utils import rotate_detector_z, pad_object, unpad_image
 from .projection import ProjectionNet
 
 class ForwardProjectionNet(ProjectionNet):
@@ -28,4 +28,4 @@ class ForwardProjectionNet(ProjectionNet):
             for net in self.object_correction_nets:
                 object_i = net(object_i, i)
             image[:,i] = object_i.sum(axis=1)
-        return unpad_image(image, self.image_meta.shape)
+        return unpad_image(image)

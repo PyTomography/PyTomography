@@ -1,3 +1,4 @@
+from __future__ import annotations
 from pytomography.utils import compute_pad_size
 import numpy as np
 

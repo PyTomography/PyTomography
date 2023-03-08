@@ -1,11 +1,23 @@
+"""Note: This module is still being built and is not yet finished. 
+"""
+
 import numpy as np
 import numpy.linalg as npl
 from scipy.ndimage import affine_transform
 import torch
 import pydicom
 from pytomography.metadata import ObjectMeta, ImageMeta
+from pydicom.dataset import Dataset
 
-def get_radii_and_angles(ds):
+def get_radii_and_angles(ds: Dataset):
+    """Gets projections with corresponding radii and angles corresponding to projection data from a DICOM dataset.
+
+    Args:
+        ds (Dataset): pydicom dataset object.
+
+    Returns:
+        (torch.tensor[1,Ltheta, Lr, Lz], np.array, np.array): Required image data for reconstruction.
+    """
     pixel_array = ds.pixel_array.reshape((ds.NumberOfEnergyWindows, -1, ds.Rows, ds.Columns))
     detectors = np.array(ds.DetectorVector)
     radii = np.array([])
@@ -25,6 +37,14 @@ def get_radii_and_angles(ds):
              radii[sorted_idxs]/10)
 
 def dicom_projections_to_data(file):
+    """Obtains ObjectMeta, ImageMeta, and projections from a .dcm file.
+
+    Args:
+        file (str): Path to the .dcm file
+
+    Returns:
+        (ObjectMeta, ImageMeta, torch.Tensor[1, Ltheta, Lr, Lz]): Required information for reconstruction in PyTomography.
+    """
     ds = pydicom.read_file(file)
     dx = ds.PixelSpacing[0] / 10
     dz = ds.PixelSpacing[1] / 10
@@ -35,6 +55,7 @@ def dicom_projections_to_data(file):
     object_meta = ObjectMeta(dr,shape_obj)
     image_meta = ImageMeta(object_meta, angles, radii)
     return object_meta, image_meta, projections
+
 
 a1 = 0.00014376
 b1 = 0.1352

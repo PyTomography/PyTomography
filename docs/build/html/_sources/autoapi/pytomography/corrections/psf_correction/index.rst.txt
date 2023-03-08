@@ -25,7 +25,7 @@ Functions
 
 
 
-.. py:function:: get_PSF_transform(sigma, kernel_size, kernel_dimensions = '2D', delta = 1e-09, device='cpu')
+.. py:function:: get_PSF_transform(sigma, kernel_size, kernel_dimensions = '2D', delta = 1e-12, device='cpu')
 
    Creates a 2D convolutional layer that is used for PSF correction
 
@@ -64,6 +64,14 @@ Functions
       :type object_meta: ObjectMeta
       :param image_meta: Image metadata.
       :type image_meta: ImageMeta
+
+
+   .. py:method:: compute_kernel_size()
+
+      Function used to compute the kernel size used for PSF blurring. In particular, uses the ``max_sigmas`` attribute of ``PSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``max_sigmas`` at all points in the object.
+
+      :returns: The corresponding kernel size used for PSF blurring.
+      :rtype: int
 
 
    .. py:method:: get_sigma(radius, dx, shape, collimator_slope, collimator_intercept)

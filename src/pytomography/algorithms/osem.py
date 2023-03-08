@@ -106,7 +106,7 @@ class OSEMOSL(OSML):
         n_iters: int,
         n_subsets: int,
         callback: CallBack | None = None,
-        delta: float = 1e-13
+        delta: float = 1e-11
     ) -> torch.tensor:
         """Performs the reconstruction using `n_iters` iterations and `n_subsets` subsets.
 

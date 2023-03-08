@@ -3,12 +3,12 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "example_package_YOUR_USERNAME_HERE"
-version = "0.0.1"
+name = "PyTomography"
+version = "0.1.6"
 authors = [
-  { name="Luke Polson", email="author@example.com" },
+  { name="Luke Polson", email="lukepolson@outlook.com" },
 ]
-description = "A small example package"
+description = "Package to perform tomographic image reconstruction"
 readme = "README.md"
 requires-python = ">=3.7"
 classifiers = [
@@ -16,10 +16,15 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+dependencies = [
+  "numpy>=1.24.2",
+  "scipy>=1.10.1",
+  "pydicom>=2.0.0",
+]
 
 [project.urls]
-"Homepage" = "https://github.com/pypa/sampleproject"
-"Bug Tracker" = "https://github.com/pypa/sampleproject/issues"
+"Homepage" = "https://github.com/qurit/PyTomography"
+"Bug Tracker" = "https://github.com/qurit/PyTomography/issues"
 
 [project.optional-dependencies]
 doc = [
