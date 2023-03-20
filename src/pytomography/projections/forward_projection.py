@@ -28,4 +28,6 @@ class ForwardProjectionNet(ProjectionNet):
             for net in self.object_correction_nets:
                 object_i = net(object_i, i)
             image[:,i] = object_i.sum(axis=1)
+        for net in self.image_correction_nets:
+            image = net(image)
         return unpad_image(image)

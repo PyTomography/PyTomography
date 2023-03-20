@@ -11,6 +11,7 @@ class BackProjectionNet(ProjectionNet):
         image: torch.tensor,
         angle_subset: list | None = None,
         prior: Prior | None = None,
+        normalize: bool = False,
         return_norm_constant: bool = False,
         delta: float = 1e-11
     ) -> torch.tensor:
@@ -20,6 +21,7 @@ class BackProjectionNet(ProjectionNet):
             image (torch.tensor[batch_size, Ltheta, Lr, Lz]): image which is to be back projected
             angle_subset (list, optional): Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
             prior (Prior, optional): If included, modifes normalizing factor to :math:`\frac{1}{\sum_j c_{ij} + P_i}` where :math:`P_i` is given by the prior. Used, for example, during in MAP OSEM. Defaults to None.
+            normalize (bool): Whether or not to divide result by :math:`\sum_j c_{ij}`
             return_norm_constant (bool): Whether or not to return :math:`1/\sum_j c_{ij}` along with back projection. Defaults to 'False'.
             delta (float, optional): Prevents division by zero when dividing by normalizing constant. Defaults to 1e-11.
 
@@ -33,9 +35,9 @@ class BackProjectionNet(ProjectionNet):
         image = pad_image(image)
         norm_image = pad_image(norm_image)
         # First apply any image corrections before back projecting
-        for net in self.image_correction_nets:
-            image = net(image)
-            norm_image = net(norm_image)
+        for net in self.image_correction_nets[::-1]:
+            image = net(image, mode='back_project')
+            norm_image = net(norm_image, mode='back_project')
         # Setup for back projection
         N_angles = self.image_meta.num_projections
         object = torch.zeros([image.shape[0], *self.object_meta.padded_shape]).to(self.device)
@@ -51,13 +53,16 @@ class BackProjectionNet(ProjectionNet):
             # Add to total
             norm_constant += rotate_detector_z(norm_constant_i, self.image_meta.angles[i], negative=True)
             object += rotate_detector_z(object_i, self.image_meta.angles[i], negative=True)
+        # Unpad
+        norm_constant = unpad_object(norm_constant)
+        object = unpad_object(object)
         # Apply prior 
         if prior:
             norm_constant += prior()
-        # Unpad and return
-        norm_constant = unpad_object(norm_constant)
-        object = unpad_object(object)
+        if normalize:
+            object = (object+delta)/(norm_constant + delta)
+        # Return
         if return_norm_constant:
-            return object/(norm_constant + delta), norm_constant+delta
+            return object, norm_constant+delta
         else:
-            return object/(norm_constant + delta)
+            return object

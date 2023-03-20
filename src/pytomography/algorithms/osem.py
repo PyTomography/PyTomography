@@ -129,7 +129,7 @@ class OSEMOSL(OSML):
                 if self.prior:
                     self.prior.set_object(torch.clone(self.object_prediction))
                 ratio = (self.image+delta) / (self.forward_projection_net(self.object_prediction, angle_subset=subset_indices) + self.scatter + delta)
-                self.object_prediction = self.object_prediction * self.back_projection_net(ratio, angle_subset=subset_indices, prior=self.prior)
+                self.object_prediction = self.object_prediction * self.back_projection_net(ratio, angle_subset=subset_indices, normalize=True, prior=self.prior)
                 if callback is not None:
                     callback.run(self.object_prediction)
         return self.object_prediction
@@ -173,7 +173,7 @@ class OSEMBSR(OSML):
         for j in range(n_iters):
             for k, subset_indices in enumerate(subset_indices_array):
                 ratio = (self.image+delta) / (self.forward_projection_net(self.object_prediction, angle_subset=subset_indices) + self.scatter + delta)
-                bp, norm_factor = self.back_projection_net(ratio, angle_subset=subset_indices, return_norm_constant=True)
+                bp, norm_factor = self.back_projection_net(ratio, angle_subset=subset_indices, normalize=True, return_norm_constant=True)
                 self.object_prediction = self.object_prediction * bp
                 # Apply BSREM after all subsets in this iteration has been ran
                 if self.prior:
