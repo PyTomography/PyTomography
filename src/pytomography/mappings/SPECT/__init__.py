@@ -1,2 +1,2 @@
-from atteunation import SPECTAttenuationNet
-from psf import SPECTPSFNet
+from .atteunation import SPECTAttenuationNet
+from .psf import SPECTPSFNet
