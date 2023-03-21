@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from pytomography.utils import get_distance, compute_pad_size, pad_object, pad_object_z, unpad_object_z, rotate_detector_z, unpad_object
-from pytomography.corrections import CorrectionNet
+from pytomography.mappings import MapNet
 from pytomography.metadata import ObjectMeta, ImageMeta, PSFMeta
 from torchvision.transforms import InterpolationMode
 
@@ -14,7 +14,7 @@ def get_PSF_transform(
     delta: float = 1e-12,
     device='cpu'
     ) -> torch.nn.Conv2d:
-    """Creates a 2D convolutional layer that is used for PSF correction
+    """Creates a 2D convolutional layer that is used for PSF modeling.
 
     Args:
         sigma (array): Array of length Lx corresponding to blurring (sigma of Gaussian) as a function of distance from scanner
@@ -41,8 +41,8 @@ def get_PSF_transform(
     layer.weight.data = kernel.unsqueeze(dim=1).to(device)
     return layer
 
-class PSFCorrectionNet(CorrectionNet):
-    """Correction network used to correct PSF correction in projection operators. In particular, this network is used with other correction networks to model :math:`c` in :math:`\sum_i c_{ij} a_i` (forward projection) and :math:`\sum c_{ij} b_j` (back projection). The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``PSFMeta`` parameter. 
+class SPECTPSFNet(MapNet):
+    """obj2obj network used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``PSFMeta`` parameter. 
 
         Args:
             psf_meta (PSFMeta): Metadata corresponding to the parameters of PSF blurring
@@ -54,7 +54,7 @@ class PSFCorrectionNet(CorrectionNet):
         device: str = 'cpu'
     ) -> None:
         """Initializer that sets corresponding psf parameters"""
-        super(PSFCorrectionNet, self).__init__(device)
+        super(SPECTPSFNet, self).__init__(device)
         self.psf_meta = psf_meta
 
     def initialize_network(
@@ -62,13 +62,13 @@ class PSFCorrectionNet(CorrectionNet):
         object_meta: ObjectMeta,
         image_meta: ImageMeta
     ) -> None:
-        """Function used to initalize the correction network using corresponding object and image metadata
+        """Function used to initalize the mapping network using corresponding object and image metadata
 
         Args:
             object_meta (ObjectMeta): Object metadata.
             image_meta (ImageMeta): Image metadata.
         """
-        super(PSFCorrectionNet, self).initialize_network(object_meta, image_meta)
+        super(SPECTPSFNet, self).initialize_network(object_meta, image_meta)
         self.kernel_size = self.compute_kernel_size()
         self.layers = {}
         for radius in np.unique(image_meta.radii):
@@ -118,7 +118,7 @@ class PSFCorrectionNet(CorrectionNet):
 		i: int, 
 		norm_constant: torch.Tensor | None = None,
 	) -> torch.tensor:
-        """Applies PSF correction for the situation where an object is being detector by a detector at the :math:`+x` axis.
+        """Applies PSF modeling for the situation where an object is being detector by a detector at the :math:`+x` axis.
 
         Args:
             object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis

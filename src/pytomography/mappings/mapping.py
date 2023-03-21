@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 from pytomography.metadata import ObjectMeta, ImageMeta
 
-class CorrectionNet(nn.Module, metaclass=abc.ABCMeta):
-    """Correction net is the parent class for all correction networks used in reconstruction. Subclasses must implement the ``forward`` method.
+class MapNet(nn.Module, metaclass=abc.ABCMeta):
+    """``MapNet`` is the parent class for all mappings used in reconstruction (obj2obj, im2im, obj2im). Subclasses must implement the ``forward`` method.
 
     Args:
         device (str): Pytorch device used for computation
@@ -15,7 +15,7 @@ class CorrectionNet(nn.Module, metaclass=abc.ABCMeta):
         Args:
             device (str, optional): Pytorch computation device. Defaults to 'cpu'.
         """
-        super(CorrectionNet, self).__init__()
+        super(MapNet, self).__init__()
         self.device = device
 
     def initialize_network(self, object_meta: ObjectMeta, image_meta: ImageMeta) -> None:
