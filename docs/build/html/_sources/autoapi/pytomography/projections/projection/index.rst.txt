@@ -17,7 +17,7 @@ Classes
 
 
 
-.. py:class:: ProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device = 'cpu')
+.. py:class:: ProjectionNet(obj2obj_nets, im2im_nets, object_meta, image_meta, device = 'cpu')
 
    Bases: :py:obj:`torch.nn.Module`
 
@@ -25,7 +25,7 @@ Classes
 
    .. py:method:: initialize_correction_nets()
 
-      Function that initializes all correction networks with the required object and image metadata corresponding to the projection network.
+      Function that initializes all mapping networks with the required object and image metadata corresponding to the projection network.
 
 
 

@@ -1,0 +1,67 @@
+:py:mod:`atteunation`
+=====================
+
+.. py:module:: atteunation
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   atteunation.SPECTAttenuationNet
+
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   atteunation.get_prob_of_detection_matrix
+
+
+
+.. py:function:: get_prob_of_detection_matrix(CT, dx)
+
+   Converts an attenuation map of :math:`\text{cm}^{-1}` to a probability of photon detection matrix (scanner at +x). Note that this requires the attenuation map to be at the energy of photons being emitted.
+
+   :param CT: Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{cm}^{-1}}
+   :type CT: torch.tensor
+   :param dx: Axial plane pixel spacing.
+   :type dx: float
+
+   :returns: Tensor of size [batch_size, Lx, Ly, Lz] corresponding to probability of photon being detected at detector at +x axis.
+   :rtype: torch.tensor
+
+
+.. py:class:: SPECTAttenuationNet(CT, device = 'cpu')
+
+   Bases: :py:obj:`pytomography.mappings.MapNet`
+
+   obj2obj mapping used to model the effects of attenuation in SPECT.
+
+   :param CT: Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{cm}^{-1}}` at the photon energy corresponding to the particular scan
+   :type CT: torch.tensor
+   :param device: Pytorch computation device. Defaults to 'cpu'.
+   :type device: str, optional
+
+   .. py:method:: forward(object_i, i, norm_constant = None)
+
+      Applies attenuation modeling to an object that's being detected on the right of its first axis.
+
+      :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along ``axis=1``.
+      :type object_i: torch.tensor
+      :param i: The projection index: used to find the corresponding angle in image space corresponding to ``object_i``. In particular, the x axis (tensor `axis=1`) of the object is aligned with the detector at angle i.
+      :type i: int
+      :param norm_constant: A tensor used to normalize the output during back projection. Defaults to None.
+      :type norm_constant: torch.tensor, optional
+
+      :returns: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.
+      :rtype: torch.tensor
+
+
+

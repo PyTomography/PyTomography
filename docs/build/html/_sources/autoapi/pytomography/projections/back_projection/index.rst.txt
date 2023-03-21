@@ -17,13 +17,13 @@ Classes
 
 
 
-.. py:class:: BackProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device = 'cpu')
+.. py:class:: BackProjectionNet(obj2obj_nets, im2im_nets, object_meta, image_meta, device = 'cpu')
 
    Bases: :py:obj:`pytomography.projections.projection.ProjectionNet`
 
-   Implements a back projection of mathematical form :math:`f_i = \frac{1}{\sum_j c_{ij}}\sum_{j} c_{ij} g_j`. where :math:`f_j` is an object, :math:`g_j` is an image, and :math:`c_{ij}` is the system matrix given by the various phenonemon modeled (atteunation correction/PSF). Subclass of the ``ProjectionNet`` class.
+   Implements a back projection of mathematical form :math:`f_i = \frac{1}{\sum_j c_{ij}}\sum_{j} c_{ij} g_j`. where :math:`f_j` is an object, :math:`g_j` is an image, and :math:`c_{ij}` is the system matrix given by the various phenonemon modeled (e.g. atteunation correction/PSF). Subclass of the ``ProjectionNet`` class.
 
-   .. py:method:: forward(image, angle_subset = None, prior = None, return_norm_constant = False, delta = 1e-11)
+   .. py:method:: forward(image, angle_subset = None, prior = None, normalize = False, return_norm_constant = False, delta = 1e-11)
 
       Implements back projection on an image, returning an object.
 
@@ -33,6 +33,8 @@ Classes
       :type angle_subset: list, optional
       :param prior: If included, modifes normalizing factor to :math:`\frac{1}{\sum_j c_{ij} + P_i}` where :math:`P_i` is given by the prior. Used, for example, during in MAP OSEM. Defaults to None.
       :type prior: Prior, optional
+      :param normalize: Whether or not to divide result by :math:`\sum_j c_{ij}`
+      :type normalize: bool
       :param return_norm_constant: Whether or not to return :math:`1/\sum_j c_{ij}` along with back projection. Defaults to 'False'.
       :type return_norm_constant: bool
       :param delta: Prevents division by zero when dividing by normalizing constant. Defaults to 1e-11.

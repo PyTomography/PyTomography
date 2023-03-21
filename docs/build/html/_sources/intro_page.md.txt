@@ -8,7 +8,7 @@ osem_net = get_osem_net(projections_header = 'body1t2ew6_tot_w2.hdr',
                                            'body1t2ew6_tot_w3.hdr'],
                         CT_header = 'body1.hct',
                         psf_meta=PSFMeta(collimator_slope=0.03013, collimator_intercept=0.1967),
-                        prior = QClearPrior(beta=1, gamma=5),
+                        prior = RelativeDifferencePrior(beta=1, gamma=5),
                         device=device)
 reconstructed_object = osem_net(n_iters=10, n_subsets=8)                 
 ```

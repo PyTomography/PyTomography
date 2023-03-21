@@ -12,8 +12,8 @@ Subpackages
 
    algorithms/index.rst
    callbacks/index.rst
-   corrections/index.rst
    io/index.rst
+   mappings/index.rst
    metadata/index.rst
    priors/index.rst
    projections/index.rst

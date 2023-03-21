@@ -15,8 +15,8 @@ Submodules
    :titlesonly:
    :maxdepth: 1
 
-   gibbs/index.rst
    prior/index.rst
+   relative_difference/index.rst
    smoothness/index.rst
 
 
@@ -30,7 +30,7 @@ Classes
 
    pytomography.priors.QuadraticPrior
    pytomography.priors.LogCoshPrior
-   pytomography.priors.QClearPrior
+   pytomography.priors.RelativeDifferencePrior
    pytomography.priors.Prior
 
 
@@ -50,11 +50,28 @@ Classes
    Implementation of `SmoothnessPrior` where :math:`\phi` is the hyperbolic tangent function
 
 
-.. py:class:: QClearPrior(beta = 1, gamma = 1, device = 'cpu')
+.. py:class:: RelativeDifferencePrior(beta = 1, gamma = 1, device = 'cpu')
 
    Bases: :py:obj:`DiffAndSumSmoothnessPrior`
 
-   Implentation of `SmoothnessPrior` where :math:`\phi` is the the QClear Function (DEFINE HERE)
+   Implentation of `SmoothnessPrior` where :math:`\phi` is the the Relative Difference Prior (DEFINE HERE)
+
+   .. py:method:: gradient(sum, diff, gamma, eps=1e-11)
+
+      Gradient function.
+
+      :param sum: tensor of size [batch_size,Lx,Ly,Lz] representing (DEFINE)
+      :type sum: torch.Tensor
+      :param diff: tensor of size [batch_size,Lx,Ly,Lz] representing (DEFINE)
+      :type diff: torch.Tensor
+      :param gamma: hyperparameter used in relative difference function
+      :type gamma: torch.Tensor
+      :param eps: Used to prevent division by 0. Defaults to 1e-11.
+      :type eps: float, optional
+
+      :returns: _description_
+      :rtype: _type_
+
 
 
 .. py:class:: Prior(beta, device = 'cpu')
@@ -82,13 +99,11 @@ Classes
 
    .. py:method:: set_object(object)
 
-      Sets the object :math:`f_r` used to compute :math:`
-      rac{\partial V}{\partial f_r}`
+      Sets the object :math:`f_r` used to compute :math:`\frac{\partial V}{\partial f_r}`
 
-              Args:
-                  object (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] which the prior
-                  will be computed on
-
+      :param object: Tensor of size [batch_size, Lx, Ly, Lz] which the prior
+      :type object: torch.tensor
+      :param will be computed on:
 
 
    .. py:method:: set_device(device = 'cpu')

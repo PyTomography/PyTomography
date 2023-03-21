@@ -42,13 +42,11 @@ Classes
 
    .. py:method:: set_object(object)
 
-      Sets the object :math:`f_r` used to compute :math:`
-      rac{\partial V}{\partial f_r}`
+      Sets the object :math:`f_r` used to compute :math:`\frac{\partial V}{\partial f_r}`
 
-              Args:
-                  object (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] which the prior
-                  will be computed on
-
+      :param object: Tensor of size [batch_size, Lx, Ly, Lz] which the prior
+      :type object: torch.tensor
+      :param will be computed on:
 
 
    .. py:method:: set_device(device = 'cpu')

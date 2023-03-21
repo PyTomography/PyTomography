@@ -1,0 +1,16 @@
+:py:mod:`pytomography.mappings.SPECT`
+=====================================
+
+.. py:module:: pytomography.mappings.SPECT
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   atteunation/index.rst
+   psf/index.rst
+
+

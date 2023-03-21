@@ -1,0 +1,46 @@
+:py:mod:`pytomography.mappings.mapping`
+=======================================
+
+.. py:module:: pytomography.mappings.mapping
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.mappings.mapping.MapNet
+
+
+
+
+.. py:class:: MapNet(device = 'cpu')
+
+   Bases: :py:obj:`torch.nn.Module`
+
+   ``MapNet`` is the parent class for all mappings used in reconstruction (obj2obj, im2im, obj2im). Subclasses must implement the ``forward`` method.
+
+   :param device: Pytorch device used for computation
+   :type device: str
+
+   .. py:method:: initialize_network(object_meta, image_meta)
+
+      Initalizes the correction network using the object/image metadata
+
+      :param object_meta: Object metadata.
+      :type object_meta: ObjectMeta
+      :param image_meta: Image metadata.
+      :type image_meta: ImageMeta
+
+
+   .. py:method:: forward(x)
+      :abstractmethod:
+
+      Abstract method; must be implemented in subclasses to apply a correction to an object/image and return it
+
+
+
+
