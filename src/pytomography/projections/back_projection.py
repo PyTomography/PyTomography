@@ -5,7 +5,7 @@ from .projection import ProjectionNet
 from pytomography.priors import Prior
 
 class BackProjectionNet(ProjectionNet):
-    r"""Implements a back projection of mathematical form :math:`f_i = \frac{1}{\sum_j c_{ij}}\sum_{j} c_{ij} g_j`. where :math:`f_j` is an object, :math:`g_j` is an image, and :math:`c_{ij}` is the system matrix given by the various phenonemon modeled (atteunation correction/PSF). Subclass of the ``ProjectionNet`` class."""
+    r"""Implements a back projection of mathematical form :math:`f_i = \frac{1}{\sum_j c_{ij}}\sum_{j} c_{ij} g_j`. where :math:`f_j` is an object, :math:`g_j` is an image, and :math:`c_{ij}` is the system matrix given by the various phenonemon modeled (e.g. atteunation correction/PSF). Subclass of the ``ProjectionNet`` class."""
     def forward(
         self,
         image: torch.tensor,
@@ -34,8 +34,8 @@ class BackProjectionNet(ProjectionNet):
         norm_image = torch.ones(image.shape).to(self.device)
         image = pad_image(image)
         norm_image = pad_image(norm_image)
-        # First apply any image corrections before back projecting
-        for net in self.image_correction_nets[::-1]:
+        # First apply image mappings before back projecting
+        for net in self.im2im_nets[::-1]:
             image = net(image, mode='back_project')
             norm_image = net(norm_image, mode='back_project')
         # Setup for back projection
@@ -47,8 +47,8 @@ class BackProjectionNet(ProjectionNet):
             # Perform back projection
             object_i = image[:,i].unsqueeze(dim=1) * boundary_box_bp
             norm_constant_i = norm_image[:,i].unsqueeze(dim=1) * boundary_box_bp
-            # Apply any corrections
-            for net in self.object_correction_nets[::-1]:
+            # Apply object mappings
+            for net in self.obj2obj_nets[::-1]:
                 object_i, norm_constant_i = net(object_i, i, norm_constant=norm_constant_i)
             # Add to total
             norm_constant += rotate_detector_z(norm_constant_i, self.image_meta.angles[i], negative=True)

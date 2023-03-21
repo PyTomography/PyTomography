@@ -81,15 +81,26 @@ class DiffAndSumSmoothnessPrior(Prior):
         return self.beta*self.beta_scale_factor * all_summation_terms.sum(axis=1)
     
 
-class QClearPrior(DiffAndSumSmoothnessPrior):
-    r"""Implentation of `SmoothnessPrior` where :math:`\phi` is the the QClear Function (DEFINE HERE)"""
+class RelativeDifferencePrior(DiffAndSumSmoothnessPrior):
+    r"""Implentation of `SmoothnessPrior` where :math:`\phi` is the the Relative Difference Prior (DEFINE HERE)"""
     def __init__(
         self, 
         beta: float = 1, 
         gamma: float = 1, 
         device: str ='cpu'
     ) -> None:
-        super(QClearPrior, self).__init__(beta, QClear, gamma=gamma, device=device)
+        super(RelativeDifferencePrior, self).__init__(beta, self.gradient, gamma=gamma, device=device)
 
-def QClear(sum, diff, gamma, eps=1e-11):
+    def gradient(self, sum, diff, gamma, eps=1e-11):
+        """Gradient function.
+
+        Args:
+            sum (torch.Tensor): tensor of size [batch_size,Lx,Ly,Lz] representing (DEFINE)
+            diff (torch.Tensor): tensor of size [batch_size,Lx,Ly,Lz] representing (DEFINE)
+            gamma (torch.Tensor): hyperparameter used in relative difference function
+            eps (float, optional): Used to prevent division by 0. Defaults to 1e-11.
+
+        Returns:
+            _type_: _description_
+        """
         return 4*sum*diff / (sum + gamma*torch.abs(diff) + eps)**2

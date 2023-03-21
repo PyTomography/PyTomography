@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from pytomography.projections import ForwardProjectionNet, BackProjectionNet
-from pytomography.corrections import CTCorrectionNet, PSFCorrectionNet
+from pytomography.mappings import SPECTAttenuationNet, SPECTPSFNet
 from pytomography.io import simind_projections_to_data, simind_MEW_to_data, simind_CT_to_data, dicom_projections_to_data, dicom_CT_to_data
 import abc
 from pytomography.priors import Prior
@@ -44,7 +44,7 @@ class OSML(nn.Module):
             Exception('Forward projection net and back projection net should be on same device')
         self.device = forward_projection_net.device
         if object_initial is None:
-            self.object_prediction = torch.ones(self.forward_projection_net.object_meta.shape).unsqueeze(dim=0).to(self.device)
+            self.object_prediction = torch.ones((image.shape[0], *self.forward_projection_net.object_meta.shape)).to(self.device)
         else:
             self.object_prediction = object_initial.to(self.device)
         self.prior = prior
@@ -227,10 +227,10 @@ def get_osem_net(
     object_correction_nets = []
     image_correction_nets = []
     if CT_header is not None:
-        CT_net = CTCorrectionNet(CT.unsqueeze(dim=0).to(device), device=device)
+        CT_net = SPECTAttenuationNet(CT.unsqueeze(dim=0).to(device), device=device)
         object_correction_nets.append(CT_net)
     if psf_meta is not None:
-        psf_net = PSFCorrectionNet(psf_meta, device=device)
+        psf_net = SPECTPSFNet(psf_meta, device=device)
         object_correction_nets.append(psf_net)
     fp_net = ForwardProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device=device)
     bp_net = BackProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device=device)
