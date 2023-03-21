@@ -251,7 +251,7 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.priors.prior.Prior" title="pytomography.priors.prior.Prior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Prior</span></code></a></p></td>
-<td><p>Abstract class for implementation of prior <span class="math notranslate nohighlight">\(V(f)\)</span>. Any function inheriting from this class should implement a <code class="docutils literal notranslate"><span class="pre">foward</span></code> method that computes the tensor <span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}\)</span> where <span class="math notranslate nohighlight">\(f\)</span> is an object tensor.</p></td>
+<td><p>Abstract class for implementation of prior <span class="math notranslate nohighlight">\(V(f)\)</span> where <span class="math notranslate nohighlight">\(V\)</span> is from the log-posterior probability <span class="math notranslate nohighlight">\(\ln L(\tilde{f}, f) - \beta V(f)\)</span>. Any function inheriting from this class should implement a <code class="docutils literal notranslate"><span class="pre">foward</span></code> method that computes the tensor <span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}\)</span> where <span class="math notranslate nohighlight">\(f\)</span> is an object tensor.</p></td>
 </tr>
 </tbody>
 </table>
@@ -260,12 +260,12 @@
 <dt class="sig sig-object py" id="pytomography.priors.prior.Prior">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.prior.</span></span><span class="sig-name descname"><span class="pre">Prior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.priors.prior.Prior" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
-<p>Abstract class for implementation of prior <span class="math notranslate nohighlight">\(V(f)\)</span>. Any function inheriting from this class should implement a <code class="docutils literal notranslate"><span class="pre">foward</span></code> method that computes the tensor <span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}\)</span> where <span class="math notranslate nohighlight">\(f\)</span> is an object tensor.</p>
+<p>Abstract class for implementation of prior <span class="math notranslate nohighlight">\(V(f)\)</span> where <span class="math notranslate nohighlight">\(V\)</span> is from the log-posterior probability <span class="math notranslate nohighlight">\(\ln L(\tilde{f}, f) - \beta V(f)\)</span>. Any function inheriting from this class should implement a <code class="docutils literal notranslate"><span class="pre">foward</span></code> method that computes the tensor <span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}\)</span> where <span class="math notranslate nohighlight">\(f\)</span> is an object tensor.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>beta</strong> (<em>float</em>) – </p></li>
-<li><p><strong>device</strong> (<em>str</em>) – </p></li>
+<li><p><strong>beta</strong> (<em>float</em>) – Used to scale the weight of the prior</p></li>
+<li><p><strong>device</strong> (<em>float</em>) – Pytorch device used for computation. Defaults to ‘cpu’.</p></li>
 </ul>
 </dd>
 </dl>
@@ -303,10 +303,7 @@
 <dd><p>Sets the object <span class="math notranslate nohighlight">\(f_r\)</span> used to compute <span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}\)</span></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>object</strong> (<em>torch.tensor</em>) – Tensor of size [batch_size, Lx, Ly, Lz] which the prior</p></li>
-<li><p><strong>on</strong> (<em>will be computed</em>) – </p></li>
-</ul>
+<dd class="field-odd"><p><strong>object</strong> (<em>torch.tensor</em>) – Tensor of size [batch_size, Lx, Ly, Lz] representing <span class="math notranslate nohighlight">\(f_r\)</span>.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>

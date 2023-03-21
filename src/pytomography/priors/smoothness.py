@@ -6,8 +6,13 @@ from pytomography.metadata import ObjectMeta
 from collections.abc import Callable
 
 class SmoothnessPrior(Prior):
-    r"""Implementation of priors with gradients of the form 
-    :math:`\frac{\partial V}{\partial f_r}=\frac{\beta}{\delta}\sum_{r,s}w_{s}\phi\left(\frac{f_r-f_s}{\delta}\right)` where :math:`V` is from the log-posterior probability :math:`\log P(g | f) - \beta V(f)`.
+    r"""Implementation of priors with gradients of the form :math:`\frac{\partial V}{\partial f_r}=\frac{\beta}{\delta}\sum_{s}w_{r,s}\phi\left(\frac{f_r-f_s}{\delta}\right)` where :math:`V` is from the log-posterior probability :math:`\ln L (\tilde{f}, f) - \beta V(f)`.
+    
+    Args:
+            beta (float): Used to scale the weight of the prior
+            phi (function): Function :math:`\phi` used in formula above
+            delta (int, optional): Parameter :math:`\delta` in equation above. Defaults to 1.
+            device (str, optional): Pytorch device used for computation. Defaults to 'cpu'.
     """
     def __init__(
         self,
@@ -16,14 +21,6 @@ class SmoothnessPrior(Prior):
         phi: Callable,
         device: str = 'cpu'
     ) -> None:
-        """Initializer
-
-        Args:
-            beta (float): Used to scale the weight of the prior
-            phi (function): Function $\phi$ used in formula above
-            delta (int, optional): Parameter $\delta$ in equation above. Defaults to 1.
-            device (str, optional): Pytorch device used for computation. Defaults to 'cpu'.
-        """ 
         super(SmoothnessPrior, self).__init__(beta, device)
         self.delta = delta
         self.phi = phi
@@ -74,7 +71,13 @@ class SmoothnessPrior(Prior):
         return self.beta*self.beta_scale_factor/self.delta * all_summation_terms.sum(axis=1)
 
 class QuadraticPrior(SmoothnessPrior):
-    r"""Implentation of `SmoothnessPrior` where :math:`\phi` is the identity function"""
+    r"""Subclass of `SmoothnessPrior` where :math:`\phi(x)=x` corresponds to a quadratic prior :math:`V(f)=\frac{1}{4}\sum_{r,s} w_{r,s} \left(\frac{f_r-f_s}{\delta}\right)^2`
+    
+    Args:
+            beta (float): Used to scale the weight of the prior
+            delta (int, optional): Parameter :math:`\delta` in equation above. Defaults to 1.
+            device (str, optional): Pytorch device used for computation. Defaults to 'cpu'.
+    """
     def __init__(
         self,
         beta: float,
@@ -84,7 +87,13 @@ class QuadraticPrior(SmoothnessPrior):
         super(QuadraticPrior, self).__init__(beta, delta, lambda x: x, device=device)
 
 class LogCoshPrior(SmoothnessPrior):
-    r"""Implementation of `SmoothnessPrior` where :math:`\phi` is the hyperbolic tangent function"""
+    r"""Subclass of `SmoothnessPrior` where :math:`\phi(x)=\tanh(x)` corresponds to the logcosh prior :math:`V(f)=\sum_{r,s} w_{r,s} \log\cosh\left(\frac{f_r-f_s}{\delta}\right)`
+    
+    Args:
+            beta (float): Used to scale the weight of the prior
+            delta (int, optional): Parameter :math:`\delta` in equation above. Defaults to 1.
+            device (str, optional): Pytorch device used for computation. Defaults to 'cpu'.
+    """
     def __init__(
         self,
         beta: float,

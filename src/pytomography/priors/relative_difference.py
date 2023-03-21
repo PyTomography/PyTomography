@@ -6,8 +6,12 @@ from pytomography.metadata import ObjectMeta
 from collections.abc import Callable
 
 class DiffAndSumSmoothnessPrior(Prior):
-    r"""Implementation of priors where gradients depend on difference and the sum of neighbouring voxels:
-    :math:`\frac{\partial V}{\partial f_r}=\frac{\beta}{\delta}\sum_{r,s}w_{s}\phi\left(\frac{f_r-f_s}{\delta}\right)` where :math:`V` is from the log-posterior probability :math:`\log P(g | f) - \beta V(f)`.
+    r"""Implementation of priors where gradients depend on difference and the sum of neighbouring voxels: :math:`\frac{\partial V}{\partial f_r}=\beta\sum_{r,s}w_{r,s}\phi(f_r-f_s, f_r+f_s)` where :math:`V` is from the log-posterior probability :math:`\ln L (\tilde{f}, f) - \beta V(f)`.
+    
+    Args:
+            beta (float): Used to scale the weight of the prior
+            phi (function): Function $\phi$ used in formula above
+            device (str, optional): Pytorch device used for computation. Defaults to 'cpu'.
     """
     def __init__(
         self,
@@ -16,14 +20,6 @@ class DiffAndSumSmoothnessPrior(Prior):
         device: str = 'cpu', 
         **kwargs
     ) -> None:
-        """Initializer
-
-        Args:
-            beta (float): Used to scale the weight of the prior
-            phi (function): Function $\phi$ used in formula above
-            delta (int, optional): Parameter $\delta$ in equation above. Defaults to 1.
-            device (str, optional): Pytorch device used for computation. Defaults to 'cpu'.
-        """ 
         super(DiffAndSumSmoothnessPrior, self).__init__(beta, device)
         self.phi = phi
         self.kwargs = kwargs
@@ -82,7 +78,14 @@ class DiffAndSumSmoothnessPrior(Prior):
     
 
 class RelativeDifferencePrior(DiffAndSumSmoothnessPrior):
-    r"""Implentation of `SmoothnessPrior` where :math:`\phi` is the the Relative Difference Prior (DEFINE HERE)"""
+    r"""Subclass of `SmoothnessPrior` where :math:`\phi(f_r-f_s,f_r+f_s) = \frac{4(f_r-f_s)(f_r+f_s)}{((f_r+f_s)+\gamma|f_r-f_s|)^2}` corresponds to the Relative Difference Prior :math:`V(f) = \sum_{r,s} w_{r,s} \frac{(f_r-f_s)^2}{(f_r+f_s)+\gamma|f_r-f_s|}`
+    
+    Args:
+            beta (float): Used to scale the weight of the prior
+            phi (function): Function $\phi$ used in formula above
+            gamma (float, optional): Parameter $\gamma$ in equation above. Defaults to 1.
+            device (str, optional): Pytorch device used for computation. Defaults to 'cpu'.
+    """
     def __init__(
         self, 
         beta: float = 1, 
@@ -91,16 +94,21 @@ class RelativeDifferencePrior(DiffAndSumSmoothnessPrior):
     ) -> None:
         super(RelativeDifferencePrior, self).__init__(beta, self.gradient, gamma=gamma, device=device)
 
-    def gradient(self, sum, diff, gamma, eps=1e-11):
-        """Gradient function.
+    def gradient(
+        self,
+        sum: torch.Tensor,
+        diff: torch.Tensor,
+        gamma: float,
+        eps: float = 1e-11) -> torch.Tensor:
+        r"""Gradient function.
 
         Args:
-            sum (torch.Tensor): tensor of size [batch_size,Lx,Ly,Lz] representing (DEFINE)
-            diff (torch.Tensor): tensor of size [batch_size,Lx,Ly,Lz] representing (DEFINE)
-            gamma (torch.Tensor): hyperparameter used in relative difference function
+            sum (torch.Tensor): tensor of size [batch_size,Lx,Ly,Lz] representing :math:`f_r+f_s`
+            diff (torch.Tensor): tensor of size [batch_size,Lx,Ly,Lz] representing :math:`f_r-f_s`
+            gamma (torch.Tensor): hyperparameter :math:`\gamma`
             eps (float, optional): Used to prevent division by 0. Defaults to 1e-11.
 
         Returns:
-            _type_: _description_
+            torch.Tensor: Returns :math:`\frac{(f_r-f_s)^2}{(f_r+f_s)+\gamma|f_r-f_s|}` for a given :math:`r` and :math:`s`.
         """
         return 4*sum*diff / (sum + gamma*torch.abs(diff) + eps)**2

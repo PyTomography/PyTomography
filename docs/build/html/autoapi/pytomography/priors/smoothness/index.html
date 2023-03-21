@@ -251,13 +251,13 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.priors.smoothness.SmoothnessPrior" title="pytomography.priors.smoothness.SmoothnessPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SmoothnessPrior</span></code></a></p></td>
-<td><p>Implementation of priors with gradients of the form</p></td>
+<td><p>Implementation of priors with gradients of the form <span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}=\frac{\beta}{\delta}\sum_{s}w_{r,s}\phi\left(\frac{f_r-f_s}{\delta}\right)\)</span> where <span class="math notranslate nohighlight">\(V\)</span> is from the log-posterior probability <span class="math notranslate nohighlight">\(\ln L (\tilde{f}, f) - \beta V(f)\)</span>.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.priors.smoothness.QuadraticPrior" title="pytomography.priors.smoothness.QuadraticPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QuadraticPrior</span></code></a></p></td>
-<td><p>Implentation of <cite>SmoothnessPrior</cite> where <span class="math notranslate nohighlight">\(\phi\)</span> is the identity function</p></td>
+<td><p>Subclass of <cite>SmoothnessPrior</cite> where <span class="math notranslate nohighlight">\(\phi(x)=x\)</span> corresponds to a quadratic prior <span class="math notranslate nohighlight">\(V(f)=\frac{1}{4}\sum_{r,s} w_{r,s} \left(\frac{f_r-f_s}{\delta}\right)^2\)</span></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.priors.smoothness.LogCoshPrior" title="pytomography.priors.smoothness.LogCoshPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LogCoshPrior</span></code></a></p></td>
-<td><p>Implementation of <cite>SmoothnessPrior</cite> where <span class="math notranslate nohighlight">\(\phi\)</span> is the hyperbolic tangent function</p></td>
+<td><p>Subclass of <cite>SmoothnessPrior</cite> where <span class="math notranslate nohighlight">\(\phi(x)=\tanh(x)\)</span> corresponds to the logcosh prior <span class="math notranslate nohighlight">\(V(f)=\sum_{r,s} w_{r,s} \log\cosh\left(\frac{f_r-f_s}{\delta}\right)\)</span></p></td>
 </tr>
 </tbody>
 </table>
@@ -266,15 +266,14 @@
 <dt class="sig sig-object py" id="pytomography.priors.smoothness.SmoothnessPrior">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.smoothness.</span></span><span class="sig-name descname"><span class="pre">SmoothnessPrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.priors.smoothness.SmoothnessPrior" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="../prior/index.html#pytomography.priors.prior.Prior" title="pytomography.priors.prior.Prior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pytomography.priors.prior.Prior</span></code></a></p>
-<p>Implementation of priors with gradients of the form
-<span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}=\frac{\beta}{\delta}\sum_{r,s}w_{s}\phi\left(\frac{f_r-f_s}{\delta}\right)\)</span> where <span class="math notranslate nohighlight">\(V\)</span> is from the log-posterior probability <span class="math notranslate nohighlight">\(\log P(g | f) - \beta V(f)\)</span>.</p>
+<p>Implementation of priors with gradients of the form <span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}=\frac{\beta}{\delta}\sum_{s}w_{r,s}\phi\left(\frac{f_r-f_s}{\delta}\right)\)</span> where <span class="math notranslate nohighlight">\(V\)</span> is from the log-posterior probability <span class="math notranslate nohighlight">\(\ln L (\tilde{f}, f) - \beta V(f)\)</span>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>beta</strong> (<em>float</em>) – </p></li>
-<li><p><strong>delta</strong> (<em>float</em>) – </p></li>
-<li><p><strong>phi</strong> (<em>collections.abc.Callable</em>) – </p></li>
-<li><p><strong>device</strong> (<em>str</em>) – </p></li>
+<li><p><strong>beta</strong> (<em>float</em>) – Used to scale the weight of the prior</p></li>
+<li><p><strong>phi</strong> (<em>function</em>) – Function <span class="math notranslate nohighlight">\(\phi\)</span> used in formula above</p></li>
+<li><p><strong>delta</strong> (<em>int</em><em>, </em><em>optional</em>) – Parameter <span class="math notranslate nohighlight">\(\delta\)</span> in equation above. Defaults to 1.</p></li>
+<li><p><strong>device</strong> (<em>str</em><em>, </em><em>optional</em>) – Pytorch device used for computation. Defaults to ‘cpu’.</p></li>
 </ul>
 </dd>
 </dl>
@@ -326,13 +325,13 @@
 <dt class="sig sig-object py" id="pytomography.priors.smoothness.QuadraticPrior">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.smoothness.</span></span><span class="sig-name descname"><span class="pre">QuadraticPrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.priors.smoothness.QuadraticPrior" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pytomography.priors.smoothness.SmoothnessPrior" title="pytomography.priors.smoothness.SmoothnessPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SmoothnessPrior</span></code></a></p>
-<p>Implentation of <cite>SmoothnessPrior</cite> where <span class="math notranslate nohighlight">\(\phi\)</span> is the identity function</p>
+<p>Subclass of <cite>SmoothnessPrior</cite> where <span class="math notranslate nohighlight">\(\phi(x)=x\)</span> corresponds to a quadratic prior <span class="math notranslate nohighlight">\(V(f)=\frac{1}{4}\sum_{r,s} w_{r,s} \left(\frac{f_r-f_s}{\delta}\right)^2\)</span></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>beta</strong> (<em>float</em>) – </p></li>
-<li><p><strong>delta</strong> (<em>float</em>) – </p></li>
-<li><p><strong>device</strong> (<em>str</em>) – </p></li>
+<li><p><strong>beta</strong> (<em>float</em>) – Used to scale the weight of the prior</p></li>
+<li><p><strong>delta</strong> (<em>int</em><em>, </em><em>optional</em>) – Parameter <span class="math notranslate nohighlight">\(\delta\)</span> in equation above. Defaults to 1.</p></li>
+<li><p><strong>device</strong> (<em>str</em><em>, </em><em>optional</em>) – Pytorch device used for computation. Defaults to ‘cpu’.</p></li>
 </ul>
 </dd>
 </dl>
@@ -342,13 +341,13 @@
 <dt class="sig sig-object py" id="pytomography.priors.smoothness.LogCoshPrior">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.smoothness.</span></span><span class="sig-name descname"><span class="pre">LogCoshPrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.priors.smoothness.LogCoshPrior" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pytomography.priors.smoothness.SmoothnessPrior" title="pytomography.priors.smoothness.SmoothnessPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SmoothnessPrior</span></code></a></p>
-<p>Implementation of <cite>SmoothnessPrior</cite> where <span class="math notranslate nohighlight">\(\phi\)</span> is the hyperbolic tangent function</p>
+<p>Subclass of <cite>SmoothnessPrior</cite> where <span class="math notranslate nohighlight">\(\phi(x)=\tanh(x)\)</span> corresponds to the logcosh prior <span class="math notranslate nohighlight">\(V(f)=\sum_{r,s} w_{r,s} \log\cosh\left(\frac{f_r-f_s}{\delta}\right)\)</span></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>beta</strong> (<em>float</em>) – </p></li>
-<li><p><strong>delta</strong> (<em>float</em>) – </p></li>
-<li><p><strong>device</strong> (<em>str</em>) – </p></li>
+<li><p><strong>beta</strong> (<em>float</em>) – Used to scale the weight of the prior</p></li>
+<li><p><strong>delta</strong> (<em>int</em><em>, </em><em>optional</em>) – Parameter <span class="math notranslate nohighlight">\(\delta\)</span> in equation above. Defaults to 1.</p></li>
+<li><p><strong>device</strong> (<em>str</em><em>, </em><em>optional</em>) – Pytorch device used for computation. Defaults to ‘cpu’.</p></li>
 </ul>
 </dd>
 </dl>

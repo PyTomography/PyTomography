@@ -251,10 +251,10 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.priors.relative_difference.DiffAndSumSmoothnessPrior" title="pytomography.priors.relative_difference.DiffAndSumSmoothnessPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DiffAndSumSmoothnessPrior</span></code></a></p></td>
-<td><p>Implementation of priors where gradients depend on difference and the sum of neighbouring voxels:</p></td>
+<td><p>Implementation of priors where gradients depend on difference and the sum of neighbouring voxels: <span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}=\beta\sum_{r,s}w_{r,s}\phi(f_r-f_s, f_r+f_s)\)</span> where <span class="math notranslate nohighlight">\(V\)</span> is from the log-posterior probability <span class="math notranslate nohighlight">\(\ln L (\tilde{f}, f) - \beta V(f)\)</span>.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.priors.relative_difference.RelativeDifferencePrior" title="pytomography.priors.relative_difference.RelativeDifferencePrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RelativeDifferencePrior</span></code></a></p></td>
-<td><p>Implentation of <cite>SmoothnessPrior</cite> where <span class="math notranslate nohighlight">\(\phi\)</span> is the the Relative Difference Prior (DEFINE HERE)</p></td>
+<td><p>Subclass of <cite>SmoothnessPrior</cite> where <span class="math notranslate nohighlight">\(\phi(f_r-f_s,f_r+f_s) = \frac{4(f_r-f_s)(f_r+f_s)}{((f_r+f_s)+\gamma|f_r-f_s|)^2}\)</span> corresponds to the Relative Difference Prior <span class="math notranslate nohighlight">\(V(f) = \sum_{r,s} w_{r,s} \frac{(f_r-f_s)^2}{(f_r+f_s)+\gamma|f_r-f_s|}\)</span></p></td>
 </tr>
 </tbody>
 </table>
@@ -263,14 +263,13 @@
 <dt class="sig sig-object py" id="pytomography.priors.relative_difference.DiffAndSumSmoothnessPrior">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.relative_difference.</span></span><span class="sig-name descname"><span class="pre">DiffAndSumSmoothnessPrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.priors.relative_difference.DiffAndSumSmoothnessPrior" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="../prior/index.html#pytomography.priors.prior.Prior" title="pytomography.priors.prior.Prior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pytomography.priors.prior.Prior</span></code></a></p>
-<p>Implementation of priors where gradients depend on difference and the sum of neighbouring voxels:
-<span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}=\frac{\beta}{\delta}\sum_{r,s}w_{s}\phi\left(\frac{f_r-f_s}{\delta}\right)\)</span> where <span class="math notranslate nohighlight">\(V\)</span> is from the log-posterior probability <span class="math notranslate nohighlight">\(\log P(g | f) - \beta V(f)\)</span>.</p>
+<p>Implementation of priors where gradients depend on difference and the sum of neighbouring voxels: <span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}=\beta\sum_{r,s}w_{r,s}\phi(f_r-f_s, f_r+f_s)\)</span> where <span class="math notranslate nohighlight">\(V\)</span> is from the log-posterior probability <span class="math notranslate nohighlight">\(\ln L (\tilde{f}, f) - \beta V(f)\)</span>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>beta</strong> (<em>float</em>) – </p></li>
-<li><p><strong>phi</strong> (<em>collections.abc.Callable</em>) – </p></li>
-<li><p><strong>device</strong> (<em>str</em>) – </p></li>
+<li><p><strong>beta</strong> (<em>float</em>) – Used to scale the weight of the prior</p></li>
+<li><p><strong>phi</strong> (<em>function</em>) – Function $phi$ used in formula above</p></li>
+<li><p><strong>device</strong> (<em>str</em><em>, </em><em>optional</em>) – Pytorch device used for computation. Defaults to ‘cpu’.</p></li>
 </ul>
 </dd>
 </dl>
@@ -325,13 +324,14 @@
 <dt class="sig sig-object py" id="pytomography.priors.relative_difference.RelativeDifferencePrior">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.relative_difference.</span></span><span class="sig-name descname"><span class="pre">RelativeDifferencePrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.priors.relative_difference.RelativeDifferencePrior" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pytomography.priors.relative_difference.DiffAndSumSmoothnessPrior" title="pytomography.priors.relative_difference.DiffAndSumSmoothnessPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DiffAndSumSmoothnessPrior</span></code></a></p>
-<p>Implentation of <cite>SmoothnessPrior</cite> where <span class="math notranslate nohighlight">\(\phi\)</span> is the the Relative Difference Prior (DEFINE HERE)</p>
+<p>Subclass of <cite>SmoothnessPrior</cite> where <span class="math notranslate nohighlight">\(\phi(f_r-f_s,f_r+f_s) = \frac{4(f_r-f_s)(f_r+f_s)}{((f_r+f_s)+\gamma|f_r-f_s|)^2}\)</span> corresponds to the Relative Difference Prior <span class="math notranslate nohighlight">\(V(f) = \sum_{r,s} w_{r,s} \frac{(f_r-f_s)^2}{(f_r+f_s)+\gamma|f_r-f_s|}\)</span></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>beta</strong> (<em>float</em>) – </p></li>
-<li><p><strong>gamma</strong> (<em>float</em>) – </p></li>
-<li><p><strong>device</strong> (<em>str</em>) – </p></li>
+<li><p><strong>beta</strong> (<em>float</em>) – Used to scale the weight of the prior</p></li>
+<li><p><strong>phi</strong> (<em>function</em>) – Function $phi$ used in formula above</p></li>
+<li><p><strong>gamma</strong> (<em>float</em><em>, </em><em>optional</em>) – Parameter $gamma$ in equation above. Defaults to 1.</p></li>
+<li><p><strong>device</strong> (<em>str</em><em>, </em><em>optional</em>) – Pytorch device used for computation. Defaults to ‘cpu’.</p></li>
 </ul>
 </dd>
 </dl>
@@ -342,17 +342,17 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sum</strong> (<em>torch.Tensor</em>) – tensor of size [batch_size,Lx,Ly,Lz] representing (DEFINE)</p></li>
-<li><p><strong>diff</strong> (<em>torch.Tensor</em>) – tensor of size [batch_size,Lx,Ly,Lz] representing (DEFINE)</p></li>
-<li><p><strong>gamma</strong> (<em>torch.Tensor</em>) – hyperparameter used in relative difference function</p></li>
+<li><p><strong>sum</strong> (<em>torch.Tensor</em>) – tensor of size [batch_size,Lx,Ly,Lz] representing <span class="math notranslate nohighlight">\(f_r+f_s\)</span></p></li>
+<li><p><strong>diff</strong> (<em>torch.Tensor</em>) – tensor of size [batch_size,Lx,Ly,Lz] representing <span class="math notranslate nohighlight">\(f_r-f_s\)</span></p></li>
+<li><p><strong>gamma</strong> (<em>torch.Tensor</em>) – hyperparameter <span class="math notranslate nohighlight">\(\gamma\)</span></p></li>
 <li><p><strong>eps</strong> (<em>float</em><em>, </em><em>optional</em>) – Used to prevent division by 0. Defaults to 1e-11.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>_description_</p>
+<dd class="field-even"><p>Returns <span class="math notranslate nohighlight">\(\frac{(f_r-f_s)^2}{(f_r+f_s)+\gamma|f_r-f_s|}\)</span> for a given <span class="math notranslate nohighlight">\(r\)</span> and <span class="math notranslate nohighlight">\(s\)</span>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>_type_</p>
+<dd class="field-odd"><p>torch.Tensor</p>
 </dd>
 </dl>
 </dd></dl>

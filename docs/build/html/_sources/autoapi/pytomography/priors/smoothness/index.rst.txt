@@ -23,8 +23,16 @@ Classes
 
    Bases: :py:obj:`pytomography.priors.prior.Prior`
 
-   Implementation of priors with gradients of the form
-   :math:`\frac{\partial V}{\partial f_r}=\frac{\beta}{\delta}\sum_{r,s}w_{s}\phi\left(\frac{f_r-f_s}{\delta}\right)` where :math:`V` is from the log-posterior probability :math:`\log P(g | f) - \beta V(f)`.
+   Implementation of priors with gradients of the form :math:`\frac{\partial V}{\partial f_r}=\frac{\beta}{\delta}\sum_{s}w_{r,s}\phi\left(\frac{f_r-f_s}{\delta}\right)` where :math:`V` is from the log-posterior probability :math:`\ln L (\tilde{f}, f) - \beta V(f)`.
+
+   :param beta: Used to scale the weight of the prior
+   :type beta: float
+   :param phi: Function :math:`\phi` used in formula above
+   :type phi: function
+   :param delta: Parameter :math:`\delta` in equation above. Defaults to 1.
+   :type delta: int, optional
+   :param device: Pytorch device used for computation. Defaults to 'cpu'.
+   :type device: str, optional
 
    .. py:method:: get_kernel()
 
@@ -55,13 +63,27 @@ Classes
 
    Bases: :py:obj:`SmoothnessPrior`
 
-   Implentation of `SmoothnessPrior` where :math:`\phi` is the identity function
+   Subclass of `SmoothnessPrior` where :math:`\phi(x)=x` corresponds to a quadratic prior :math:`V(f)=\frac{1}{4}\sum_{r,s} w_{r,s} \left(\frac{f_r-f_s}{\delta}\right)^2`
+
+   :param beta: Used to scale the weight of the prior
+   :type beta: float
+   :param delta: Parameter :math:`\delta` in equation above. Defaults to 1.
+   :type delta: int, optional
+   :param device: Pytorch device used for computation. Defaults to 'cpu'.
+   :type device: str, optional
 
 
 .. py:class:: LogCoshPrior(beta, delta = 1, device = 'cpu')
 
    Bases: :py:obj:`SmoothnessPrior`
 
-   Implementation of `SmoothnessPrior` where :math:`\phi` is the hyperbolic tangent function
+   Subclass of `SmoothnessPrior` where :math:`\phi(x)=\tanh(x)` corresponds to the logcosh prior :math:`V(f)=\sum_{r,s} w_{r,s} \log\cosh\left(\frac{f_r-f_s}{\delta}\right)`
+
+   :param beta: Used to scale the weight of the prior
+   :type beta: float
+   :param delta: Parameter :math:`\delta` in equation above. Defaults to 1.
+   :type delta: int, optional
+   :param device: Pytorch device used for computation. Defaults to 'cpu'.
+   :type device: str, optional
 
 

@@ -22,8 +22,14 @@ Classes
 
    Bases: :py:obj:`pytomography.priors.prior.Prior`
 
-   Implementation of priors where gradients depend on difference and the sum of neighbouring voxels:
-   :math:`\frac{\partial V}{\partial f_r}=\frac{\beta}{\delta}\sum_{r,s}w_{s}\phi\left(\frac{f_r-f_s}{\delta}\right)` where :math:`V` is from the log-posterior probability :math:`\log P(g | f) - \beta V(f)`.
+   Implementation of priors where gradients depend on difference and the sum of neighbouring voxels: :math:`\frac{\partial V}{\partial f_r}=\beta\sum_{r,s}w_{r,s}\phi(f_r-f_s, f_r+f_s)` where :math:`V` is from the log-posterior probability :math:`\ln L (\tilde{f}, f) - \beta V(f)`.
+
+   :param beta: Used to scale the weight of the prior
+   :type beta: float
+   :param phi: Function $\phi$ used in formula above
+   :type phi: function
+   :param device: Pytorch device used for computation. Defaults to 'cpu'.
+   :type device: str, optional
 
    .. py:method:: get_kernel(sign = 1)
 
@@ -57,23 +63,32 @@ Classes
 
    Bases: :py:obj:`DiffAndSumSmoothnessPrior`
 
-   Implentation of `SmoothnessPrior` where :math:`\phi` is the the Relative Difference Prior (DEFINE HERE)
+   Subclass of `SmoothnessPrior` where :math:`\phi(f_r-f_s,f_r+f_s) = \frac{4(f_r-f_s)(f_r+f_s)}{((f_r+f_s)+\gamma|f_r-f_s|)^2}` corresponds to the Relative Difference Prior :math:`V(f) = \sum_{r,s} w_{r,s} \frac{(f_r-f_s)^2}{(f_r+f_s)+\gamma|f_r-f_s|}`
 
-   .. py:method:: gradient(sum, diff, gamma, eps=1e-11)
+   :param beta: Used to scale the weight of the prior
+   :type beta: float
+   :param phi: Function $\phi$ used in formula above
+   :type phi: function
+   :param gamma: Parameter $\gamma$ in equation above. Defaults to 1.
+   :type gamma: float, optional
+   :param device: Pytorch device used for computation. Defaults to 'cpu'.
+   :type device: str, optional
+
+   .. py:method:: gradient(sum, diff, gamma, eps = 1e-11)
 
       Gradient function.
 
-      :param sum: tensor of size [batch_size,Lx,Ly,Lz] representing (DEFINE)
+      :param sum: tensor of size [batch_size,Lx,Ly,Lz] representing :math:`f_r+f_s`
       :type sum: torch.Tensor
-      :param diff: tensor of size [batch_size,Lx,Ly,Lz] representing (DEFINE)
+      :param diff: tensor of size [batch_size,Lx,Ly,Lz] representing :math:`f_r-f_s`
       :type diff: torch.Tensor
-      :param gamma: hyperparameter used in relative difference function
+      :param gamma: hyperparameter :math:`\gamma`
       :type gamma: torch.Tensor
       :param eps: Used to prevent division by 0. Defaults to 1e-11.
       :type eps: float, optional
 
-      :returns: _description_
-      :rtype: _type_
+      :returns: Returns :math:`\frac{(f_r-f_s)^2}{(f_r+f_s)+\gamma|f_r-f_s|}` for a given :math:`r` and :math:`s`.
+      :rtype: torch.Tensor
 
 
 
