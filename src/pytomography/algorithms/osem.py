@@ -184,6 +184,7 @@ class OSEMBSR(OSML):
                 if callback:
                     callback.run(self.object_prediction)
         return self.object_prediction
+    
 
 def get_osem_net(
     projections_header: str,
