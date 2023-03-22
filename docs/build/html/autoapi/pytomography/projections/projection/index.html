@@ -258,7 +258,7 @@
 </div>
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomography.projections.projection.ProjectionNet">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.projections.projection.</span></span><span class="sig-name descname"><span class="pre">ProjectionNet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj2obj_nets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">im2im_nets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.projections.projection.ProjectionNet" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.projections.projection.</span></span><span class="sig-name descname"><span class="pre">ProjectionNet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj2obj_nets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">im2im_nets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/projections/projection.html#ProjectionNet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projections.projection.ProjectionNet" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
 <p>Abstract parent class for projection networks. Any subclass of this network must implement the <code class="docutils literal notranslate"><span class="pre">forward</span></code> method.</p>
 <dl class="field-list simple">
@@ -274,13 +274,13 @@
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.projections.projection.ProjectionNet.initialize_correction_nets">
-<span class="sig-name descname"><span class="pre">initialize_correction_nets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.projections.projection.ProjectionNet.initialize_correction_nets" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">initialize_correction_nets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/projections/projection.html#ProjectionNet.initialize_correction_nets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projections.projection.ProjectionNet.initialize_correction_nets" title="Permalink to this definition">#</a></dt>
 <dd><p>Function that initializes all mapping networks with the required object and image metadata corresponding to the projection network.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.projections.projection.ProjectionNet.foward">
-<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">foward</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.projections.projection.ProjectionNet.foward" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">foward</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/projections/projection.html#ProjectionNet.foward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projections.projection.ProjectionNet.foward" title="Permalink to this definition">#</a></dt>
 <dd><p>Abstract method that must be implemented by any subclass of this class.</p>
 </dd></dl>
 
