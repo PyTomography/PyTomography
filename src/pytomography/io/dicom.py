@@ -1,13 +1,22 @@
 """Note: This module is still being built and is not yet finished. 
 """
-
+from __future__ import annotations
+from typing import Sequence
+from pathlib import Path
 import numpy as np
 import numpy.linalg as npl
 from scipy.ndimage import affine_transform
 import torch
+import torch.nn as nn
 import pydicom
 from pytomography.metadata import ObjectMeta, ImageMeta
 from pydicom.dataset import Dataset
+from pytomography.metadata import ObjectMeta, ImageMeta
+from pytomography.projections import ForwardProjectionNet, BackProjectionNet
+from pytomography.mappings import SPECTAttenuationNet, SPECTPSFNet
+from pytomography.priors import Prior
+from pytomography.metadata import PSFMeta
+from pytomography.algorithms import OSEMOSL
 
 def get_radii_and_angles(ds: Dataset):
     """Gets projections with corresponding radii and angles corresponding to projection data from a DICOM dataset.
@@ -56,7 +65,18 @@ def dicom_projections_to_data(file):
     image_meta = ImageMeta(object_meta, angles, radii)
     return object_meta, image_meta, projections
 
+def dicom_MEW_to_data(file, type='DEW'):
+    ds = pydicom.read_file(file)
+    if type=='DEW':
+        primary_window_width = ds.EnergyWindowInformationSequence[0].EnergyWindowRangeSequence[0].EnergyWindowUpperLimit - ds.EnergyWindowInformationSequence[0].EnergyWindowRangeSequence[0].EnergyWindowLowerLimit
+        scatter_window_width = ds.EnergyWindowInformationSequence[1].EnergyWindowRangeSequence[0].EnergyWindowUpperLimit - ds.EnergyWindowInformationSequence[1].EnergyWindowRangeSequence[0].EnergyWindowLowerLimit
+        object_meta, image_meta, projections = dicom_projections_to_data(file)
+        projections_primary = projections[0].unsqueeze(dim=0)
+        projections_scatter = projections[1].unsqueeze(dim=0) * primary_window_width / scatter_window_width
+        return object_meta, image_meta, projections_primary, projections_scatter
 
+
+# conversion from https://www.sciencedirect.com/science/article/pii/S0969804308000067
 a1 = 0.00014376
 b1 = 0.1352
 a2 = 0.00008787
@@ -91,7 +111,7 @@ def get_affine_CT(ds, max_z):
     M_CT[3, 3] = 1
     return M_CT
 
-def dicom_CT_to_data(files_CT, file_NM=None):
+def dicom_CT_to_data(files_CT, file_NM=None, HU_to_mu=HU_to_mu):
     ds_NM = pydicom.read_file(file_NM)
     CT_scan = []
     slice_locs = []
@@ -110,3 +130,46 @@ def dicom_CT_to_data(files_CT, file_NM=None):
     CT = HU_to_mu(CT_HU)
     CT = torch.tensor(CT[::-1,::-1,::-1].copy())
     return CT
+
+def get_SPECT_recon_algorithm_dicom(
+    projections_file: str,
+    scatter_type: str|None = None,
+    atteunation_files: Sequence[str] = None,
+    HU_to_mu_function: function = lambda x: x,
+    use_psf: bool = False,
+    prior: Prior = None,
+    object_initial: torch.Tensor | None = None,
+    recon_algorithm_class: nn.Module = OSEMOSL,
+    device: str = 'cpu'
+) -> nn.Module:
+    # Get projections/scatter estimate
+    if scatter_type==None:
+        object_meta, image_meta, projections = dicom_projections_to_data(projections_file)
+        projections_scatter = 0 # equivalent to 0 estimated scatter everywhere
+    else:
+        object_meta, image_meta, projections, projections_scatter = dicom_MEW_to_data(projections_file, type=scatter_type)
+    # obj2obj and im2im nets.
+    object_correction_nets = []
+    image_correction_nets = []
+    # Load attenuation data
+    if atteunation_files is not None:
+        CT = dicom_CT_to_data(atteunation_files, projections_file, HU_to_mu_function)
+        CT_net = SPECTAttenuationNet(CT.unsqueeze(dim=0).to(device), device=device)
+        object_correction_nets.append(CT_net)
+    # Load PSF parameters
+    if use_psf:
+        ds = pydicom.read_file(projections_file)
+        if ds.Manufacturer =='SIEMENS NM':
+            # Find a more consistent way to do this
+            angular_FWHM = ds[0x0055, 0x107f][0]
+            psf_meta = PSFMeta(collimator_slope = angular_FWHM/(2*np.sqrt(2*np.log(2))), collimator_intercept = 0.0)
+            psf_net = SPECTPSFNet(psf_meta, device)
+        else:
+            raise Exception('Unable to compute PSF metadata from this DICOM file')
+        object_correction_nets.append(psf_net)
+    fp_net = ForwardProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device=device)
+    bp_net = BackProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device=device)
+    if prior is not None:
+        prior.set_device(device)
+    recon_algorithm = recon_algorithm_class(projections, fp_net, bp_net, object_initial, projections_scatter, prior)
+    return recon_algorithm

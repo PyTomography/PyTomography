@@ -1,9 +1,17 @@
 from __future__ import annotations
+from typing import Sequence
+from pathlib import Path
 import numpy as np
 import torch
+import torch.nn as nn
 import os
 from pytomography.metadata import ObjectMeta, ImageMeta
-from pathlib import Path
+from pytomography.projections import ForwardProjectionNet, BackProjectionNet
+from pytomography.mappings import SPECTAttenuationNet, SPECTPSFNet
+from pytomography.priors import Prior
+from pytomography.callbacks import CallBack
+from pytomography.metadata import PSFMeta
+from pytomography.algorithms import OSEMOSL
 
 relation_dict = {'unsignedinteger': 'int',
                  'shortfloat': 'float',
@@ -120,3 +128,38 @@ def simind_CT_to_data(headerfile: str):
     CT = np.transpose(CT.reshape(shape)[::-1,::-1], (2,1,0))
     CT = torch.tensor(CT.copy())
     return CT
+
+def get_SPECT_recon_algorithm_simind(
+    projections_header: str,
+    scatter_headers: Sequence[str] | None = None,
+    CT_header: str = None,
+    psf_meta: PSFMeta = None,
+    prior: Prior = None,
+    object_initial: torch.Tensor | None = None,
+    recon_algorithm_class: nn.Module = OSEMOSL,
+    device: str = 'cpu'
+) -> nn.Module:
+    
+    if scatter_headers is None:
+        object_meta, image_meta, projections = simind_projections_to_data(projections_header)
+        projections_scatter = 0 # equivalent to 0 estimated scatter everywhere
+    else:
+        object_meta, image_meta, projections, projections_scatter = simind_MEW_to_data([projections_header, *scatter_headers])
+        projections_scatter.to(device)
+    projections.to(device)
+    if CT_header is not None:
+        CT = simind_CT_to_data(CT_header)
+    object_correction_nets = []
+    image_correction_nets = []
+    if CT_header is not None:
+        CT_net = SPECTAttenuationNet(CT.unsqueeze(dim=0).to(device), device=device)
+        object_correction_nets.append(CT_net)
+    if psf_meta is not None:
+        psf_net = SPECTPSFNet(psf_meta, device=device)
+        object_correction_nets.append(psf_net)
+    fp_net = ForwardProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device=device)
+    bp_net = BackProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device=device)
+    if prior is not None:
+        prior.set_device(device)
+    recon_algorithm = recon_algorithm_class(projections, fp_net, bp_net, object_initial, projections_scatter, prior)
+    return recon_algorithm
