@@ -257,7 +257,13 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.dicom.dicom_projections_to_data" title="pytomography.io.dicom.dicom_projections_to_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dicom_projections_to_data</span></code></a>(file)</p></td>
 <td><p>Obtains ObjectMeta, ImageMeta, and projections from a .dcm file.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.dicom.HU_to_mu" title="pytomography.io.dicom.HU_to_mu"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HU_to_mu</span></code></a>(HU)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.dicom.dicom_MEW_to_data" title="pytomography.io.dicom.dicom_MEW_to_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dicom_MEW_to_data</span></code></a>(file[, type])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.dicom.get_HU2mu_coefficients" title="pytomography.io.dicom.get_HU2mu_coefficients"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_HU2mu_coefficients</span></code></a>(ds)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.dicom.HU_to_mu" title="pytomography.io.dicom.HU_to_mu"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HU_to_mu</span></code></a>(HU, a1, b1, a2, b2)</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.dicom.get_affine_spect" title="pytomography.io.dicom.get_affine_spect"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_affine_spect</span></code></a>(ds)</p></td>
@@ -269,25 +275,7 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.dicom.dicom_CT_to_data" title="pytomography.io.dicom.dicom_CT_to_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dicom_CT_to_data</span></code></a>(files_CT[, file_NM])</p></td>
 <td><p></p></td>
 </tr>
-</tbody>
-</table>
-</div>
-</section>
-<section id="attributes">
-<h3>Attributes<a class="headerlink" href="#attributes" title="Permalink to this heading">#</a></h3>
-<div class="table-wrapper autosummary longtable docutils container">
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.dicom.a1" title="pytomography.io.dicom.a1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">a1</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.dicom.b1" title="pytomography.io.dicom.b1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">b1</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.dicom.a2" title="pytomography.io.dicom.a2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">a2</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.dicom.b2" title="pytomography.io.dicom.b2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">b2</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.dicom.get_SPECT_recon_algorithm_dicom" title="pytomography.io.dicom.get_SPECT_recon_algorithm_dicom"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_SPECT_recon_algorithm_dicom</span></code></a>(projections_file[, ...])</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -327,29 +315,19 @@
 </dl>
 </dd></dl>
 
-<dl class="py data">
-<dt class="sig sig-object py" id="pytomography.io.dicom.a1">
-<span class="sig-prename descclassname"><span class="pre">pytomography.io.dicom.</span></span><span class="sig-name descname"><span class="pre">a1</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.00014376</span></em><a class="headerlink" href="#pytomography.io.dicom.a1" title="Permalink to this definition">#</a></dt>
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.dicom.dicom_MEW_to_data">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.dicom.</span></span><span class="sig-name descname"><span class="pre">dicom_MEW_to_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'DEW'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.io.dicom.dicom_MEW_to_data" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
-<dl class="py data">
-<dt class="sig sig-object py" id="pytomography.io.dicom.b1">
-<span class="sig-prename descclassname"><span class="pre">pytomography.io.dicom.</span></span><span class="sig-name descname"><span class="pre">b1</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.1352</span></em><a class="headerlink" href="#pytomography.io.dicom.b1" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py data">
-<dt class="sig sig-object py" id="pytomography.io.dicom.a2">
-<span class="sig-prename descclassname"><span class="pre">pytomography.io.dicom.</span></span><span class="sig-name descname"><span class="pre">a2</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8.787e-05</span></em><a class="headerlink" href="#pytomography.io.dicom.a2" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py data">
-<dt class="sig sig-object py" id="pytomography.io.dicom.b2">
-<span class="sig-prename descclassname"><span class="pre">pytomography.io.dicom.</span></span><span class="sig-name descname"><span class="pre">b2</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.1352</span></em><a class="headerlink" href="#pytomography.io.dicom.b2" title="Permalink to this definition">#</a></dt>
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.dicom.get_HU2mu_coefficients">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.dicom.</span></span><span class="sig-name descname"><span class="pre">get_HU2mu_coefficients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.io.dicom.get_HU2mu_coefficients" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.io.dicom.HU_to_mu">
-<span class="sig-prename descclassname"><span class="pre">pytomography.io.dicom.</span></span><span class="sig-name descname"><span class="pre">HU_to_mu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">HU</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.io.dicom.HU_to_mu" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.dicom.</span></span><span class="sig-name descname"><span class="pre">HU_to_mu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">HU</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.io.dicom.HU_to_mu" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
@@ -366,6 +344,28 @@
 <dt class="sig sig-object py" id="pytomography.io.dicom.dicom_CT_to_data">
 <span class="sig-prename descclassname"><span class="pre">pytomography.io.dicom.</span></span><span class="sig-name descname"><span class="pre">dicom_CT_to_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files_CT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_NM</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.io.dicom.dicom_CT_to_data" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.dicom.get_SPECT_recon_algorithm_dicom">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.dicom.</span></span><span class="sig-name descname"><span class="pre">get_SPECT_recon_algorithm_dicom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">projections_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atteunation_files</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_psf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prior</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recon_algorithm_class</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">OSEMOSL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_initial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.io.dicom.get_SPECT_recon_algorithm_dicom" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>projections_file</strong> (<em>str</em>) – </p></li>
+<li><p><strong>atteunation_files</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>) – </p></li>
+<li><p><strong>use_psf</strong> (<em>bool</em>) – </p></li>
+<li><p><strong>scatter_type</strong> (<em>str</em><em> | </em><em>None</em>) – </p></li>
+<li><p><strong>prior</strong> (<a class="reference internal" href="../../priors/index.html#pytomography.priors.Prior" title="pytomography.priors.Prior"><em>pytomography.priors.Prior</em></a>) – </p></li>
+<li><p><strong>recon_algorithm_class</strong> (<em>torch.nn.Module</em>) – </p></li>
+<li><p><strong>object_initial</strong> (<em>torch.Tensor</em><em> | </em><em>None</em>) – </p></li>
+<li><p><strong>device</strong> (<em>str</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>torch.nn.Module</p>
+</dd>
+</dl>
+</dd></dl>
 
 </section>
 </section>
@@ -410,28 +410,25 @@
             <ul>
 <li><a class="reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.dicom</span></code></a><ul>
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
-<li><a class="reference internal" href="#functions">Functions</a></li>
-<li><a class="reference internal" href="#attributes">Attributes</a><ul>
+<li><a class="reference internal" href="#functions">Functions</a><ul>
 <li><a class="reference internal" href="#pytomography.io.dicom.get_radii_and_angles"><code class="docutils literal notranslate"><span class="pre">get_radii_and_angles()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.dicom.dicom_projections_to_data"><code class="docutils literal notranslate"><span class="pre">dicom_projections_to_data()</span></code></a></li>
-<li><a class="reference internal" href="#pytomography.io.dicom.a1"><code class="docutils literal notranslate"><span class="pre">a1</span></code></a></li>
-<li><a class="reference internal" href="#pytomography.io.dicom.b1"><code class="docutils literal notranslate"><span class="pre">b1</span></code></a></li>
-<li><a class="reference internal" href="#pytomography.io.dicom.a2"><code class="docutils literal notranslate"><span class="pre">a2</span></code></a></li>
-<li><a class="reference internal" href="#pytomography.io.dicom.b2"><code class="docutils literal notranslate"><span class="pre">b2</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.dicom.dicom_MEW_to_data"><code class="docutils literal notranslate"><span class="pre">dicom_MEW_to_data()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.dicom.get_HU2mu_coefficients"><code class="docutils literal notranslate"><span class="pre">get_HU2mu_coefficients()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.dicom.HU_to_mu"><code class="docutils literal notranslate"><span class="pre">HU_to_mu()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.dicom.get_affine_spect"><code class="docutils literal notranslate"><span class="pre">get_affine_spect()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.dicom.get_affine_CT"><code class="docutils literal notranslate"><span class="pre">get_affine_CT()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.dicom.dicom_CT_to_data"><code class="docutils literal notranslate"><span class="pre">dicom_CT_to_data()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.dicom.get_SPECT_recon_algorithm_dicom"><code class="docutils literal notranslate"><span class="pre">get_SPECT_recon_algorithm_dicom()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.dicom.get_radii_and_angles">get_radii_and_angles</a></li>
 <li><a class="reference internal" href="#pytomography.io.dicom.dicom_projections_to_data">dicom_projections_to_data</a></li>
-<li><a class="reference internal" href="#pytomography.io.dicom.a1">a1</a></li>
-<li><a class="reference internal" href="#pytomography.io.dicom.b1">b1</a></li>
-<li><a class="reference internal" href="#pytomography.io.dicom.a2">a2</a></li>
-<li><a class="reference internal" href="#pytomography.io.dicom.b2">b2</a></li>
+<li><a class="reference internal" href="#pytomography.io.dicom.dicom_MEW_to_data">dicom_MEW_to_data</a></li>
+<li><a class="reference internal" href="#pytomography.io.dicom.get_HU2mu_coefficients">get_HU2mu_coefficients</a></li>
 <li><a class="reference internal" href="#pytomography.io.dicom.HU_to_mu">HU_to_mu</a></li>
 <li><a class="reference internal" href="#pytomography.io.dicom.get_affine_spect">get_affine_spect</a></li>
 <li><a class="reference internal" href="#pytomography.io.dicom.get_affine_CT">get_affine_CT</a></li>
 <li><a class="reference internal" href="#pytomography.io.dicom.dicom_CT_to_data">dicom_CT_to_data</a></li>
+<li><a class="reference internal" href="#pytomography.io.dicom.get_SPECT_recon_algorithm_dicom">get_SPECT_recon_algorithm_dicom</a></li>
 </ul>
 </li>
 </ul>

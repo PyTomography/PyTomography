@@ -37,6 +37,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "nbsphinx",
     "autoapi.extension",
+    "IPython.sphinxext.ipython_console_highlighting"
 ]
 
 # Where to autogen API

@@ -1,26 +1,6 @@
 {
  "cells": [
   {
-   "cell_type": "code",
-   "execution_count": 23,
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/plain": [
-       "1048576.0"
-      ]
-     },
-     "execution_count": 23,
-     "metadata": {},
-     "output_type": "execute_result"
-    }
-   ],
-   "source": [
-    "128*128*128 / 2"
-   ]
-  },
-  {
    "attachments": {},
    "cell_type": "markdown",
    "metadata": {},

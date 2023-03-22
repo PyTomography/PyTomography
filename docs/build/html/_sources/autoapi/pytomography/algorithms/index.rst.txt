@@ -27,39 +27,6 @@ Classes
 
 
 
-Functions
-~~~~~~~~~
-
-.. autoapisummary::
-
-   pytomography.algorithms.get_osem_net
-
-
-
-.. py:function:: get_osem_net(projections_header, scatter_headers = None, CT_header = None, psf_meta = None, file_type = 'simind', prior = None, object_initial = None, device = 'cpu')
-
-   Function used to obtain an `OSEMOSL` given projection data and corrections one wishes to use.
-
-   :param projections_header: Path to projection header data (in some modalities, this is also the data path i.e. DICOM). Data from this file is used to set the dimensions of the object [batch_size, Lx, Ly, Lz] and the image [batch_size, Ltheta, Lr, Lz] and the projection data one wants to reconstruct.
-   :type projections_header: str
-   :param scatter_headers: List of files corresponding to the lower and upper energy windows.
-   :type scatter_headers: Sequence[str]
-   :param CT_header: File path pointing to CT data file or files. Defaults to None.
-   :type CT_header: str or list, optional
-   :param psf_meta: Metadata specifying PSF correction parameters, such as collimator slope and intercept. Defaults to None.
-   :type psf_meta: PSFMeta, optional
-   :param file_type: The file type of the `projections_header` file. Options include simind output and DICOM. Defaults to 'simind'.
-   :type file_type: str, optional
-   :param prior: The prior used during reconstruction. If `None`, use no prior. Defaults to None.
-   :type prior: Prior, optional
-   :param object_initial: Specifies initial object. In the case of `'ones'`, defaults to a tensor of shape [batch_size, Lx, Ly, Lz] containing all ones. Otherwise, takes in a specific initial guess. Defaults to 'ones'.
-   :type object_initial: str or torch.tensor, optional
-   :param device: The device used in pytorch for reconstruction. Graphics card can be used. Defaults to 'cpu'.
-   :type device: str, optional
-
-   :returns: An initialized OSEMNet, ready to perform reconstruction.
-   :rtype: OSEMNet
-
 
 .. py:class:: OSML(image, forward_projection_net, back_projection_net, object_initial = None, scatter = 0, prior = None)
 

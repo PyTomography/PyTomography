@@ -262,6 +262,9 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.simind.simind_CT_to_data" title="pytomography.io.simind.simind_CT_to_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">simind_CT_to_data</span></code></a>(headerfile)</p></td>
 <td><p>Opens attenuation data from SIMIND output</p></td>
 </tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.simind.get_SPECT_recon_algorithm_simind" title="pytomography.io.simind.get_SPECT_recon_algorithm_simind"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_SPECT_recon_algorithm_simind</span></code></a>(projections_header[, ...])</p></td>
+<td><p></p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -360,6 +363,28 @@
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.simind.get_SPECT_recon_algorithm_simind">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.simind.</span></span><span class="sig-name descname"><span class="pre">get_SPECT_recon_algorithm_simind</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">projections_header</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_headers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CT_header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf_meta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prior</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_initial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recon_algorithm_class</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">OSEMOSL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.io.simind.get_SPECT_recon_algorithm_simind" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>projections_header</strong> (<em>str</em>) – </p></li>
+<li><p><strong>scatter_headers</strong> (<em>Sequence</em><em>[</em><em>str</em><em>] </em><em>| </em><em>None</em>) – </p></li>
+<li><p><strong>CT_header</strong> (<em>str</em>) – </p></li>
+<li><p><strong>psf_meta</strong> (<a class="reference internal" href="../../metadata/index.html#pytomography.metadata.PSFMeta" title="pytomography.metadata.PSFMeta"><em>pytomography.metadata.PSFMeta</em></a>) – </p></li>
+<li><p><strong>prior</strong> (<a class="reference internal" href="../../priors/index.html#pytomography.priors.Prior" title="pytomography.priors.Prior"><em>pytomography.priors.Prior</em></a>) – </p></li>
+<li><p><strong>object_initial</strong> (<em>torch.Tensor</em><em> | </em><em>None</em>) – </p></li>
+<li><p><strong>recon_algorithm_class</strong> (<em>torch.nn.Module</em>) – </p></li>
+<li><p><strong>device</strong> (<em>str</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>torch.nn.Module</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 </section>
 </section>
@@ -410,11 +435,13 @@
 <li><a class="reference internal" href="#pytomography.io.simind.simind_projections_to_data"><code class="docutils literal notranslate"><span class="pre">simind_projections_to_data()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.simind.simind_MEW_to_data"><code class="docutils literal notranslate"><span class="pre">simind_MEW_to_data()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.simind.simind_CT_to_data"><code class="docutils literal notranslate"><span class="pre">simind_CT_to_data()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.simind.get_SPECT_recon_algorithm_simind"><code class="docutils literal notranslate"><span class="pre">get_SPECT_recon_algorithm_simind()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.simind.relation_dict">relation_dict</a></li>
 <li><a class="reference internal" href="#pytomography.io.simind.find_first_entry_containing_header">find_first_entry_containing_header</a></li>
 <li><a class="reference internal" href="#pytomography.io.simind.simind_projections_to_data">simind_projections_to_data</a></li>
 <li><a class="reference internal" href="#pytomography.io.simind.simind_MEW_to_data">simind_MEW_to_data</a></li>
 <li><a class="reference internal" href="#pytomography.io.simind.simind_CT_to_data">simind_CT_to_data</a></li>
+<li><a class="reference internal" href="#pytomography.io.simind.get_SPECT_recon_algorithm_simind">get_SPECT_recon_algorithm_simind</a></li>
 </ul>
 </li>
 </ul>

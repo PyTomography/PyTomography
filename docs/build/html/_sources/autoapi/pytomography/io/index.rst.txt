@@ -26,8 +26,11 @@ Functions
    pytomography.io.simind_CT_to_data
    pytomography.io.simind_projections_to_data
    pytomography.io.simind_MEW_to_data
+   pytomography.io.get_SPECT_recon_algorithm_simind
    pytomography.io.dicom_projections_to_data
    pytomography.io.dicom_CT_to_data
+   pytomography.io.dicom_MEW_to_data
+   pytomography.io.get_SPECT_recon_algorithm_dicom
 
 
 
@@ -68,6 +71,9 @@ Functions
    :rtype: (ObjectMeta, ImageMeta, torch.Tensor[1, Ltheta, Lr, Lz], torch.Tensor[1, Ltheta, Lr, Lz])
 
 
+.. py:function:: get_SPECT_recon_algorithm_simind(projections_header, scatter_headers = None, CT_header = None, psf_meta = None, prior = None, object_initial = None, recon_algorithm_class = OSEMOSL, device = 'cpu')
+
+
 .. py:function:: dicom_projections_to_data(file)
 
    Obtains ObjectMeta, ImageMeta, and projections from a .dcm file.
@@ -80,5 +86,11 @@ Functions
 
 
 .. py:function:: dicom_CT_to_data(files_CT, file_NM=None)
+
+
+.. py:function:: dicom_MEW_to_data(file, type='DEW')
+
+
+.. py:function:: get_SPECT_recon_algorithm_dicom(projections_file, atteunation_files = None, use_psf = False, scatter_type = None, prior = None, recon_algorithm_class = OSEMOSL, object_initial = None, device = 'cpu')
 
 
