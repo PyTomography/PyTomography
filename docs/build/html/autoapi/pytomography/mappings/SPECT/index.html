@@ -252,6 +252,157 @@
 </ul>
 </div>
 </section>
+<section id="package-contents">
+<h2>Package Contents<a class="headerlink" href="#package-contents" title="Permalink to this heading">#</a></h2>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading">#</a></h3>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.mappings.SPECT.SPECTAttenuationNet" title="pytomography.mappings.SPECT.SPECTAttenuationNet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SPECTAttenuationNet</span></code></a></p></td>
+<td><p>obj2obj mapping used to model the effects of attenuation in SPECT.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.mappings.SPECT.SPECTPSFNet" title="pytomography.mappings.SPECT.SPECTPSFNet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SPECTPSFNet</span></code></a></p></td>
+<td><p>obj2obj network used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width <span class="math notranslate nohighlight">\(\sigma\)</span> dependent on the distance of the point to the detector; that information is specified in the <code class="docutils literal notranslate"><span class="pre">PSFMeta</span></code> parameter.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomography.mappings.SPECT.SPECTAttenuationNet">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.mappings.SPECT.</span></span><span class="sig-name descname"><span class="pre">SPECTAttenuationNet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">CT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.mappings.SPECT.SPECTAttenuationNet" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../index.html#pytomography.mappings.MapNet" title="pytomography.mappings.MapNet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pytomography.mappings.MapNet</span></code></a></p>
+<p>obj2obj mapping used to model the effects of attenuation in SPECT.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>CT</strong> (<em>torch.tensor</em>) – Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in <span class="math notranslate nohighlight">\({\text{cm}^{-1}}\)</span> at the photon energy corresponding to the particular scan</p></li>
+<li><p><strong>device</strong> (<em>str</em><em>, </em><em>optional</em>) – Pytorch computation device. Defaults to ‘cpu’.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.mappings.SPECT.SPECTAttenuationNet.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.mappings.SPECT.SPECTAttenuationNet.forward" title="Permalink to this definition">#</a></dt>
+<dd><p>Applies attenuation modeling to an object that’s being detected on the right of its first axis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>object_i</strong> (<em>torch.tensor</em>) – Tensor of size [batch_size, Lx, Ly, Lz] being projected along <code class="docutils literal notranslate"><span class="pre">axis=1</span></code>.</p></li>
+<li><p><strong>i</strong> (<em>int</em>) – The projection index: used to find the corresponding angle in image space corresponding to <code class="docutils literal notranslate"><span class="pre">object_i</span></code>. In particular, the x axis (tensor <cite>axis=1</cite>) of the object is aligned with the detector at angle i.</p></li>
+<li><p><strong>norm_constant</strong> (<em>torch.tensor</em><em>, </em><em>optional</em>) – A tensor used to normalize the output during back projection. Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomography.mappings.SPECT.SPECTPSFNet">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.mappings.SPECT.</span></span><span class="sig-name descname"><span class="pre">SPECTPSFNet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">psf_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.mappings.SPECT.SPECTPSFNet" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../index.html#pytomography.mappings.MapNet" title="pytomography.mappings.MapNet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pytomography.mappings.MapNet</span></code></a></p>
+<p>obj2obj network used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width <span class="math notranslate nohighlight">\(\sigma\)</span> dependent on the distance of the point to the detector; that information is specified in the <code class="docutils literal notranslate"><span class="pre">PSFMeta</span></code> parameter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>psf_meta</strong> (<a class="reference internal" href="../../metadata/index.html#pytomography.metadata.PSFMeta" title="pytomography.metadata.PSFMeta"><em>PSFMeta</em></a>) – Metadata corresponding to the parameters of PSF blurring</p></li>
+<li><p><strong>device</strong> (<em>str</em><em>, </em><em>optional</em>) – Pytorch device used for computation. Defaults to ‘cpu’.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.mappings.SPECT.SPECTPSFNet.initialize_network">
+<span class="sig-name descname"><span class="pre">initialize_network</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_meta</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.mappings.SPECT.SPECTPSFNet.initialize_network" title="Permalink to this definition">#</a></dt>
+<dd><p>Function used to initalize the mapping network using corresponding object and image metadata</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>object_meta</strong> (<a class="reference internal" href="../../metadata/index.html#pytomography.metadata.ObjectMeta" title="pytomography.metadata.ObjectMeta"><em>ObjectMeta</em></a>) – Object metadata.</p></li>
+<li><p><strong>image_meta</strong> (<a class="reference internal" href="../../metadata/index.html#pytomography.metadata.ImageMeta" title="pytomography.metadata.ImageMeta"><em>ImageMeta</em></a>) – Image metadata.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.mappings.SPECT.SPECTPSFNet.compute_kernel_size">
+<span class="sig-name descname"><span class="pre">compute_kernel_size</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.mappings.SPECT.SPECTPSFNet.compute_kernel_size" title="Permalink to this definition">#</a></dt>
+<dd><p>Function used to compute the kernel size used for PSF blurring. In particular, uses the <code class="docutils literal notranslate"><span class="pre">max_sigmas</span></code> attribute of <code class="docutils literal notranslate"><span class="pre">PSFMeta</span></code> to determine what the kernel size should be such that the kernel encompasses at least <code class="docutils literal notranslate"><span class="pre">max_sigmas</span></code> at all points in the object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The corresponding kernel size used for PSF blurring.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.mappings.SPECT.SPECTPSFNet.get_sigma">
+<span class="sig-name descname"><span class="pre">get_sigma</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">radius</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collimator_slope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collimator_intercept</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.mappings.SPECT.SPECTPSFNet.get_sigma" title="Permalink to this definition">#</a></dt>
+<dd><p>Uses PSF Meta data information to get blurring <span class="math notranslate nohighlight">\(\sigma\)</span> as a function of distance from detector. It is assumed that <code class="docutils literal notranslate"><span class="pre">sigma=collimator_slope*d</span> <span class="pre">+</span> <span class="pre">collimator_intercept</span></code> where <span class="math notranslate nohighlight">\(d\)</span> is the distance from the detector.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>radius</strong> (<em>float</em>) – The distance from the detector</p></li>
+<li><p><strong>dx</strong> (<em>float</em>) – Transaxial plane pixel spacing</p></li>
+<li><p><strong>shape</strong> (<em>tuple</em>) – Tuple containing (Lx, Ly, Lz): dimensions of object space</p></li>
+<li><p><strong>collimator_slope</strong> (<em>float</em>) – See collimator intercept</p></li>
+<li><p><strong>collimator_intercept</strong> (<em>float</em>) – Collimator slope and collimator intercept are defined such that sigma(d) = collimator_slope*d + collimator_intercept</p></li>
+<li><p><strong>detector.</strong> (<em>where sigma corresponds to sigma</em><em> of </em><em>a Gaussian function that characterizes blurring as a function</em><em> of </em><em>distance from the</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An array of length Lx corresponding to blurring at each point along the 1st axis in object space</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.mappings.SPECT.SPECTPSFNet.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.mappings.SPECT.SPECTPSFNet.forward" title="Permalink to this definition">#</a></dt>
+<dd><p>Applies PSF modeling for the situation where an object is being detector by a detector at the <span class="math notranslate nohighlight">\(+x\)</span> axis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>object_i</strong> (<em>torch.tensor</em>) – Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
+i (int): The projection index: used to find the corresponding angle in image space corresponding to object i
+norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.</p></li>
+<li><p><strong>i</strong> (<em>int</em>) – </p></li>
+<li><p><strong>norm_constant</strong> (<em>torch.Tensor</em><em> | </em><em>None</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to</dt><dd><p>an PSF corrected projection.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
 </section>
 
         </article>
@@ -293,6 +444,34 @@
             <ul>
 <li><a class="reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.mappings.SPECT</span></code></a><ul>
 <li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#package-contents">Package Contents</a><ul>
+<li><a class="reference internal" href="#classes">Classes</a><ul>
+<li><a class="reference internal" href="#pytomography.mappings.SPECT.SPECTAttenuationNet"><code class="docutils literal notranslate"><span class="pre">SPECTAttenuationNet</span></code></a><ul>
+<li><a class="reference internal" href="#pytomography.mappings.SPECT.SPECTAttenuationNet.forward"><code class="docutils literal notranslate"><span class="pre">SPECTAttenuationNet.forward()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pytomography.mappings.SPECT.SPECTPSFNet"><code class="docutils literal notranslate"><span class="pre">SPECTPSFNet</span></code></a><ul>
+<li><a class="reference internal" href="#pytomography.mappings.SPECT.SPECTPSFNet.initialize_network"><code class="docutils literal notranslate"><span class="pre">SPECTPSFNet.initialize_network()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.mappings.SPECT.SPECTPSFNet.compute_kernel_size"><code class="docutils literal notranslate"><span class="pre">SPECTPSFNet.compute_kernel_size()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.mappings.SPECT.SPECTPSFNet.get_sigma"><code class="docutils literal notranslate"><span class="pre">SPECTPSFNet.get_sigma()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.mappings.SPECT.SPECTPSFNet.forward"><code class="docutils literal notranslate"><span class="pre">SPECTPSFNet.forward()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pytomography.mappings.SPECT.SPECTAttenuationNet">SPECTAttenuationNet</a><ul>
+<li><a class="reference internal" href="#pytomography.mappings.SPECT.SPECTAttenuationNet.forward">forward</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pytomography.mappings.SPECT.SPECTPSFNet">SPECTPSFNet</a><ul>
+<li><a class="reference internal" href="#pytomography.mappings.SPECT.SPECTPSFNet.initialize_network">initialize_network</a></li>
+<li><a class="reference internal" href="#pytomography.mappings.SPECT.SPECTPSFNet.compute_kernel_size">compute_kernel_size</a></li>
+<li><a class="reference internal" href="#pytomography.mappings.SPECT.SPECTPSFNet.get_sigma">get_sigma</a></li>
+<li><a class="reference internal" href="#pytomography.mappings.SPECT.SPECTPSFNet.forward">forward</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -309,5 +488,7 @@
     <script src="../../../../_static/sphinx_highlight.js"></script>
     <script src="../../../../_static/scripts/furo.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

@@ -17,6 +17,7 @@ Functions
    pytomography.io.simind.simind_projections_to_data
    pytomography.io.simind.simind_MEW_to_data
    pytomography.io.simind.simind_CT_to_data
+   pytomography.io.simind.get_SPECT_recon_algorithm_simind
 
 
 
@@ -82,5 +83,8 @@ Attributes
 
    :returns: Tensor containing CT data.
    :rtype: torch.tensor[Lx,Ly,Lz]
+
+
+.. py:function:: get_SPECT_recon_algorithm_simind(projections_header, scatter_headers = None, CT_header = None, psf_meta = None, prior = None, object_initial = None, recon_algorithm_class = OSEMOSL, device = 'cpu')
 
 

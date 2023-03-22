@@ -270,44 +270,6 @@
 </tbody>
 </table>
 </div>
-</section>
-<section id="functions">
-<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this heading">#</a></h3>
-<div class="table-wrapper autosummary longtable docutils container">
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.algorithms.get_osem_net" title="pytomography.algorithms.get_osem_net"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_osem_net</span></code></a>(projections_header[, scatter_headers, ...])</p></td>
-<td><p>Function used to obtain an <cite>OSEMOSL</cite> given projection data and corrections one wishes to use.</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<dl class="py function">
-<dt class="sig sig-object py" id="pytomography.algorithms.get_osem_net">
-<span class="sig-prename descclassname"><span class="pre">pytomography.algorithms.</span></span><span class="sig-name descname"><span class="pre">get_osem_net</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">projections_header</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_headers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CT_header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf_meta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'simind'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prior</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_initial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.algorithms.get_osem_net" title="Permalink to this definition">#</a></dt>
-<dd><p>Function used to obtain an <cite>OSEMOSL</cite> given projection data and corrections one wishes to use.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>projections_header</strong> (<em>str</em>) – Path to projection header data (in some modalities, this is also the data path i.e. DICOM). Data from this file is used to set the dimensions of the object [batch_size, Lx, Ly, Lz] and the image [batch_size, Ltheta, Lr, Lz] and the projection data one wants to reconstruct.</p></li>
-<li><p><strong>scatter_headers</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>) – List of files corresponding to the lower and upper energy windows.</p></li>
-<li><p><strong>CT_header</strong> (<em>str</em><em> or </em><em>list</em><em>, </em><em>optional</em>) – File path pointing to CT data file or files. Defaults to None.</p></li>
-<li><p><strong>psf_meta</strong> (<a class="reference internal" href="../metadata/index.html#pytomography.metadata.PSFMeta" title="pytomography.metadata.PSFMeta"><em>PSFMeta</em></a><em>, </em><em>optional</em>) – Metadata specifying PSF correction parameters, such as collimator slope and intercept. Defaults to None.</p></li>
-<li><p><strong>file_type</strong> (<em>str</em><em>, </em><em>optional</em>) – The file type of the <cite>projections_header</cite> file. Options include simind output and DICOM. Defaults to ‘simind’.</p></li>
-<li><p><strong>prior</strong> (<a class="reference internal" href="../priors/index.html#pytomography.priors.Prior" title="pytomography.priors.Prior"><em>Prior</em></a><em>, </em><em>optional</em>) – The prior used during reconstruction. If <cite>None</cite>, use no prior. Defaults to None.</p></li>
-<li><p><strong>object_initial</strong> (<em>str</em><em> or </em><em>torch.tensor</em><em>, </em><em>optional</em>) – Specifies initial object. In the case of <cite>‘ones’</cite>, defaults to a tensor of shape [batch_size, Lx, Ly, Lz] containing all ones. Otherwise, takes in a specific initial guess. Defaults to ‘ones’.</p></li>
-<li><p><strong>device</strong> (<em>str</em><em>, </em><em>optional</em>) – The device used in pytorch for reconstruction. Graphics card can be used. Defaults to ‘cpu’.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>An initialized OSEMNet, ready to perform reconstruction.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>OSEMNet</p>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomography.algorithms.OSML">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.algorithms.</span></span><span class="sig-name descname"><span class="pre">OSML</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forward_projection_net</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">back_projection_net</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_initial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prior</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.algorithms.OSML" title="Permalink to this definition">#</a></dt>
@@ -496,9 +458,7 @@
 <li><a class="reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><ul>
 <li><a class="reference internal" href="#submodules">Submodules</a></li>
 <li><a class="reference internal" href="#package-contents">Package Contents</a><ul>
-<li><a class="reference internal" href="#classes">Classes</a></li>
-<li><a class="reference internal" href="#functions">Functions</a><ul>
-<li><a class="reference internal" href="#pytomography.algorithms.get_osem_net"><code class="docutils literal notranslate"><span class="pre">get_osem_net()</span></code></a></li>
+<li><a class="reference internal" href="#classes">Classes</a><ul>
 <li><a class="reference internal" href="#pytomography.algorithms.OSML"><code class="docutils literal notranslate"><span class="pre">OSML</span></code></a><ul>
 <li><a class="reference internal" href="#pytomography.algorithms.OSML.get_subset_splits"><code class="docutils literal notranslate"><span class="pre">OSML.get_subset_splits()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.algorithms.OSML.forward"><code class="docutils literal notranslate"><span class="pre">OSML.forward()</span></code></a></li>
@@ -512,7 +472,6 @@
 <li><a class="reference internal" href="#pytomography.algorithms.OSEMBSR.forward"><code class="docutils literal notranslate"><span class="pre">OSEMBSR.forward()</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#pytomography.algorithms.get_osem_net">get_osem_net</a></li>
 <li><a class="reference internal" href="#pytomography.algorithms.OSML">OSML</a><ul>
 <li><a class="reference internal" href="#pytomography.algorithms.OSML.get_subset_splits">get_subset_splits</a></li>
 <li><a class="reference internal" href="#pytomography.algorithms.OSML.forward">forward</a></li>
