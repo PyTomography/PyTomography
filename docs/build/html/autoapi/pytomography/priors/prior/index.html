@@ -258,7 +258,7 @@
 </div>
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomography.priors.prior.Prior">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.prior.</span></span><span class="sig-name descname"><span class="pre">Prior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.priors.prior.Prior" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.prior.</span></span><span class="sig-name descname"><span class="pre">Prior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/prior.html#Prior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.prior.Prior" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
 <p>Abstract class for implementation of prior <span class="math notranslate nohighlight">\(V(f)\)</span> where <span class="math notranslate nohighlight">\(V\)</span> is from the log-posterior probability <span class="math notranslate nohighlight">\(\ln L(\tilde{f}, f) - \beta V(f)\)</span>. Any function inheriting from this class should implement a <code class="docutils literal notranslate"><span class="pre">foward</span></code> method that computes the tensor <span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}\)</span> where <span class="math notranslate nohighlight">\(f\)</span> is an object tensor.</p>
 <dl class="field-list simple">
@@ -271,7 +271,7 @@
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.priors.prior.Prior.set_object_meta">
-<span class="sig-name descname"><span class="pre">set_object_meta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.priors.prior.Prior.set_object_meta" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">set_object_meta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/prior.html#Prior.set_object_meta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.prior.Prior.set_object_meta" title="Permalink to this definition">#</a></dt>
 <dd><p>Sets object metadata parameters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -285,7 +285,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.priors.prior.Prior.set_beta_scale">
-<span class="sig-name descname"><span class="pre">set_beta_scale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">factor</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.priors.prior.Prior.set_beta_scale" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">set_beta_scale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">factor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/prior.html#Prior.set_beta_scale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.prior.Prior.set_beta_scale" title="Permalink to this definition">#</a></dt>
 <dd><p>Sets <span class="math notranslate nohighlight">\(\beta\)</span></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -299,7 +299,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.priors.prior.Prior.set_object">
-<span class="sig-name descname"><span class="pre">set_object</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.priors.prior.Prior.set_object" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">set_object</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/prior.html#Prior.set_object"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.prior.Prior.set_object" title="Permalink to this definition">#</a></dt>
 <dd><p>Sets the object <span class="math notranslate nohighlight">\(f_r\)</span> used to compute <span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}\)</span></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -313,7 +313,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.priors.prior.Prior.set_device">
-<span class="sig-name descname"><span class="pre">set_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.priors.prior.Prior.set_device" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">set_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/prior.html#Prior.set_device"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.prior.Prior.set_device" title="Permalink to this definition">#</a></dt>
 <dd><p>Sets the pytorch computation device</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -327,7 +327,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.priors.prior.Prior.forward">
-<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.priors.prior.Prior.forward" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/prior.html#Prior.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.prior.Prior.forward" title="Permalink to this definition">#</a></dt>
 <dd><p>Abstract method to compute prior based on the <code class="docutils literal notranslate"><span class="pre">self.object</span></code> attribute.</p>
 </dd></dl>
 
