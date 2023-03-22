@@ -1,6 +1,7 @@
 """Note: This module is still being built and is not yet finished. 
 """
 from __future__ import annotations
+import warnings
 from typing import Sequence
 from pathlib import Path
 import numpy as np
@@ -76,12 +77,19 @@ def dicom_MEW_to_data(file, type='DEW'):
         return object_meta, image_meta, projections_primary, projections_scatter
 
 
+def get_HU2mu_coefficients(ds):
+    table = np.loadtxt('../../../data/HU_to_mu.csv', skiprows=1)
+    energies = table.T[0]
+    window_upper = ds.EnergyWindowInformationSequence[0].EnergyWindowRangeSequence[0].EnergyWindowUpperLimit
+    window_lower = ds.EnergyWindowInformationSequence[0].EnergyWindowRangeSequence[0].EnergyWindowLowerLimit
+    energy = (window_lower + window_upper)/2
+    index = np.argmin(np.abs(energies-energy))
+    print(f'Based on primary window with range ({window_lower:.2f}, {window_upper:.2f})keV, using conversion between hounsfield to linear attenuation coefficient based on radionuclide with emission energy {table[index,0]}keV')
+    return table[index,1:]
+    
+    
 # conversion from https://www.sciencedirect.com/science/article/pii/S0969804308000067
-a1 = 0.00014376
-b1 = 0.1352
-a2 = 0.00008787
-b2 = 0.1352
-def HU_to_mu(HU):
+def HU_to_mu(HU, a1, b1, a2, b2):
     mu = np.piecewise(HU, [HU <= 0, HU > 0],
                  [lambda x: a1*x + b1,
                   lambda x: a2*x + b2])
@@ -111,7 +119,7 @@ def get_affine_CT(ds, max_z):
     M_CT[3, 3] = 1
     return M_CT
 
-def dicom_CT_to_data(files_CT, file_NM=None, HU_to_mu=HU_to_mu):
+def dicom_CT_to_data(files_CT, file_NM=None):
     ds_NM = pydicom.read_file(file_NM)
     CT_scan = []
     slice_locs = []
@@ -127,19 +135,18 @@ def dicom_CT_to_data(files_CT, file_NM=None, HU_to_mu=HU_to_mu):
     M = npl.inv(M_CT) @ M_NM
     CT_resampled = affine_transform(CT_scan, M[0:3,0:3], M[:3,3], output_shape=(ds_NM.Rows, ds_NM.Rows, ds_NM.Columns) )
     CT_HU = CT_resampled + ds.RescaleIntercept
-    CT = HU_to_mu(CT_HU)
+    CT = HU_to_mu(CT_HU, *get_HU2mu_coefficients(ds_NM))
     CT = torch.tensor(CT[::-1,::-1,::-1].copy())
     return CT
 
 def get_SPECT_recon_algorithm_dicom(
     projections_file: str,
-    scatter_type: str|None = None,
     atteunation_files: Sequence[str] = None,
-    HU_to_mu_function: function = lambda x: x,
     use_psf: bool = False,
+    scatter_type: str|None = None,
     prior: Prior = None,
-    object_initial: torch.Tensor | None = None,
     recon_algorithm_class: nn.Module = OSEMOSL,
+    object_initial: torch.Tensor | None = None,
     device: str = 'cpu'
 ) -> nn.Module:
     # Get projections/scatter estimate
@@ -153,7 +160,7 @@ def get_SPECT_recon_algorithm_dicom(
     image_correction_nets = []
     # Load attenuation data
     if atteunation_files is not None:
-        CT = dicom_CT_to_data(atteunation_files, projections_file, HU_to_mu_function)
+        CT = dicom_CT_to_data(atteunation_files, projections_file)
         CT_net = SPECTAttenuationNet(CT.unsqueeze(dim=0).to(device), device=device)
         object_correction_nets.append(CT_net)
     # Load PSF parameters
