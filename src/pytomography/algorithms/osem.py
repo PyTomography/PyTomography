@@ -1,18 +1,13 @@
 """This module contains classes that implement ordered-subset maximum liklihood iterative reconstruction algorithms. Such algorithms compute :math:`f_i^{n,m+1}` from :math:`f_i^{n,m}` where :math:`n` is the index for an iteration, and :math:`m` is the index for a subiteration (i.e. for a given subset). The notation is defined such that given :math:`M` total subsets of equal size, :math:`f_i^{n+1,0} \equiv f_i^{n,M}` (i.e. after completing a subiteration for each subset, we start the next iteration). Any class that inherits from this class must implement the ``forward`` method. ``__init__`` initializes the reconstruction algorithm with the image data :math:`g_j`, the forward and back projections used (i.e. networks to compute :math:`\sum_i c_{ij} a_i` and :math:`\sum_j c_{ij} b_j`), the initial object guess :math:`f_i^{0,0}`, the estimated scatter contribution :math:`s_j`, and the Bayesian Prior function :math:`V(f)`. Once the class is initialized, the number of iterations and subsets are specified at recon time when the ``forward`` method is called.
 """
 from __future__ import annotations
-from typing import Sequence
 import torch
 import torch.nn as nn
 import numpy as np
 from pytomography.projections import ForwardProjectionNet, BackProjectionNet
-from pytomography.mappings import SPECTAttenuationNet, SPECTPSFNet
-from pytomography.io import simind_projections_to_data, simind_MEW_to_data, simind_CT_to_data, dicom_projections_to_data, dicom_CT_to_data
 import abc
 from pytomography.priors import Prior
 from pytomography.callbacks import CallBack
-from pytomography.metadata import PSFMeta
-from pytomography.utils import pad_image, pad_object, unpad_image, unpad_object
 from collections.abc import Callable
 
 
@@ -184,58 +179,3 @@ class OSEMBSR(OSML):
                 if callback:
                     callback.run(self.object_prediction)
         return self.object_prediction
-    
-
-def get_osem_net(
-    projections_header: str,
-    scatter_headers: Sequence[str] | None = None,
-    CT_header: str = None,
-    psf_meta: PSFMeta = None,
-    file_type: str = 'simind',
-    prior: Prior = None,
-    object_initial: torch.Tensor | None = None,
-    device: str = 'cpu'
-) -> OSEMOSL:
-    """Function used to obtain an `OSEMOSL` given projection data and corrections one wishes to use.
-
-    Args:
-        projections_header (str): Path to projection header data (in some modalities, this is also the data path i.e. DICOM). Data from this file is used to set the dimensions of the object [batch_size, Lx, Ly, Lz] and the image [batch_size, Ltheta, Lr, Lz] and the projection data one wants to reconstruct.
-        scatter_headers (Sequence[str]): List of files corresponding to the lower and upper energy windows.
-        CT_header (str or list, optional): File path pointing to CT data file or files. Defaults to None.
-        psf_meta (PSFMeta, optional): Metadata specifying PSF correction parameters, such as collimator slope and intercept. Defaults to None.
-        file_type (str, optional): The file type of the `projections_header` file. Options include simind output and DICOM. Defaults to 'simind'.
-        prior (Prior, optional): The prior used during reconstruction. If `None`, use no prior. Defaults to None.
-        object_initial (str or torch.tensor, optional): Specifies initial object. In the case of `'ones'`, defaults to a tensor of shape [batch_size, Lx, Ly, Lz] containing all ones. Otherwise, takes in a specific initial guess. Defaults to 'ones'.
-        device (str, optional): The device used in pytorch for reconstruction. Graphics card can be used. Defaults to 'cpu'.
-
-    Returns:
-        OSEMNet: An initialized OSEMNet, ready to perform reconstruction.
-    """
-    if file_type=='simind':
-        if scatter_headers is None:
-            object_meta, image_meta, projections = simind_projections_to_data(projections_header)
-            projections_scatter = 0 # equivalent to 0 estimated scatter everywhere
-        else:
-            object_meta, image_meta, projections, projections_scatter = simind_MEW_to_data([projections_header, *scatter_headers])
-            projections_scatter.to(device)
-        projections.to(device)
-        if CT_header is not None:
-            CT = simind_CT_to_data(CT_header)
-    elif file_type=='dicom':
-        object_meta, image_meta, projections = dicom_projections_to_data(projections_header)
-        if CT_header is not None:
-            CT = dicom_CT_to_data(CT_header, projections_header)
-    object_correction_nets = []
-    image_correction_nets = []
-    if CT_header is not None:
-        CT_net = SPECTAttenuationNet(CT.unsqueeze(dim=0).to(device), device=device)
-        object_correction_nets.append(CT_net)
-    if psf_meta is not None:
-        psf_net = SPECTPSFNet(psf_meta, device=device)
-        object_correction_nets.append(psf_net)
-    fp_net = ForwardProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device=device)
-    bp_net = BackProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device=device)
-    if prior is not None:
-        prior.set_device(device)
-    osem_net = OSEMBSR(projections, fp_net, bp_net, object_initial, projections_scatter, prior)
-    return osem_net

@@ -161,7 +161,7 @@ def get_SPECT_recon_algorithm_dicom(
         ds = pydicom.read_file(projections_file)
         if ds.Manufacturer =='SIEMENS NM':
             # Find a more consistent way to do this
-            angular_FWHM = ds[0x0055, 0x107f]
+            angular_FWHM = ds[0x0055, 0x107f][0]
             psf_meta = PSFMeta(collimator_slope = angular_FWHM/(2*np.sqrt(2*np.log(2))), collimator_intercept = 0.0)
             psf_net = SPECTPSFNet(psf_meta, device)
         else:
