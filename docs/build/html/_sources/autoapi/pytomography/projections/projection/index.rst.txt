@@ -17,7 +17,7 @@ Classes
 
 
 
-.. py:class:: ProjectionNet(obj2obj_nets, im2im_nets, object_meta, image_meta, device = 'cpu')
+.. py:class:: ProjectionNet(obj2obj_nets, im2im_nets, object_meta, image_meta, device = None)
 
    Bases: :py:obj:`torch.nn.Module`
 

@@ -1,6 +1,7 @@
 import abc
 import torch
 import torch.nn as nn
+import pytomography
 from pytomography.metadata import ObjectMeta, ImageMeta
 
 class MapNet(nn.Module, metaclass=abc.ABCMeta):
@@ -16,7 +17,7 @@ class MapNet(nn.Module, metaclass=abc.ABCMeta):
             device (str, optional): Pytorch computation device. Defaults to 'cpu'.
         """
         super(MapNet, self).__init__()
-        self.device = device
+        self.device = pytomography.device if device is None else device
 
     def initialize_network(self, object_meta: ObjectMeta, image_meta: ImageMeta) -> None:
         """Initalizes the correction network using the object/image metadata

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from .prior import Prior
+import pytomography
 from pytomography.metadata import ObjectMeta
 from collections.abc import Callable
 
@@ -19,7 +20,7 @@ class SmoothnessPrior(Prior):
         beta: float,
         delta: float,
         phi: Callable,
-        device: str = 'cpu'
+        device: str = None
     ) -> None:
         super(SmoothnessPrior, self).__init__(beta, device)
         self.delta = delta
@@ -82,7 +83,7 @@ class QuadraticPrior(SmoothnessPrior):
         self,
         beta: float,
         delta: float = 1,
-        device: str = 'cpu'
+        device: str = None
     ) -> None:
         super(QuadraticPrior, self).__init__(beta, delta, lambda x: x, device=device)
 
@@ -98,7 +99,7 @@ class LogCoshPrior(SmoothnessPrior):
         self,
         beta: float,
         delta: float = 1,
-        device: str = 'cpu'
+        device: str = None
     ) -> None:
         super(LogCoshPrior, self).__init__(beta, delta, torch.tanh, device=device)
 

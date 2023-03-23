@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Tutorials" href="../usage.html" /><link rel="prev" title="PyTomography" href="../index.html" />
 
     <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
-        <title>Manual - PyTomography 0.2 documentation</title>
+        <title>Manual - PyTomography 0.21 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">PyTomography 0.2 documentation</div></a>
+      <a href="../index.html"><div class="brand">PyTomography 0.21 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -147,7 +147,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
   
   
-  <span class="sidebar-brand-text">PyTomography 0.2 documentation</span>
+  <span class="sidebar-brand-text">PyTomography 0.21 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -255,7 +255,7 @@
 <li><p><strong>Sinogram</strong>: Specified by <span class="math notranslate nohighlight">\(r\)</span>, <span class="math notranslate nohighlight">\(\beta\)</span>, and <span class="math notranslate nohighlight">\(z\)</span>. Sinogram space is used to represent a series of 2D scans (in the <span class="math notranslate nohighlight">\(r-z\)</span> plane) at different angles <span class="math notranslate nohighlight">\(\beta\)</span>. Any item in this coordinate system are referred to as <strong>Image</strong>.</p></li>
 </ol>
 <p>As a convention, <span class="math notranslate nohighlight">\(r\)</span> is aligned with the <span class="math notranslate nohighlight">\(x\)</span>-axis at <span class="math notranslate nohighlight">\(\beta=0\)</span>. (Note this implies that <span class="math notranslate nohighlight">\(r\)</span> is aligned with the negative <span class="math notranslate nohighlight">\(y\)</span>-axis at <span class="math notranslate nohighlight">\(\beta=90^{\circ}\)</span>. which can be counterintuitive when viewing images)</p>
-<p><img alt="6bfeb78c1b8c48a99ce2747e57bf58da" class="no-scaled-link" src="../_images/coordinate_conventions.png" style="width: 300px;" /></p>
+<p><img alt="ba5a054baf234daa949ce9879c234bb6" class="no-scaled-link" src="../_images/coordinate_conventions.png" style="width: 300px;" /></p>
 </section>
 <section id="Arrays">
 <h3>Arrays<a class="headerlink" href="#Arrays" title="Permalink to this heading">#</a></h3>
@@ -329,7 +329,7 @@ L(\tilde{f},f) &amp;= \prod_i \prod_j \frac{F_{ij}^{\tilde{F}_{ij}}e^{-F_{ij}}}{
 <div class="math notranslate nohighlight">
 \[E_{\tilde{f}}[\ln L(\tilde{f},f) | g, f^{(n)}] = \sum_i \sum_j -H_{ji}f_i + E[H_{ji}\tilde{f}_i|g, f^{(n)}] \ln(H_{ji}f_i) + ...\]</div>
 </div>
-<p>where <span class="math notranslate nohighlight">\(E_{\tilde{f}}\)</span> represents an operator that yields the expectation value over <span class="math notranslate nohighlight">\(\tilde{f}\)</span>. It’s important that you properly understand the interpretation of this expression. It yields the expected value of the log-liklihood, given the measured projection data <span class="math notranslate nohighlight">\(g\)</span> <strong>and</strong> a “guess” about what the distribution would look like: <span class="math notranslate nohighlight">\(f^{(n)}\)</span>. There’s just one question: what does <span class="math notranslate nohighlight">\(E_f[H_{ji}\tilde{f}_i|g, f^{(n)}]\)</span> (i.e. the expected number of emissions from voxel
+<p>where <span class="math notranslate nohighlight">\(E_{\tilde{f}}\)</span> represents an operator that yields the expectation value over <span class="math notranslate nohighlight">\(\tilde{f}\)</span>. It’s important that you properly understand the interpretation of this expression. It yields the expected value of the log-liklihood, given the measured projection data <span class="math notranslate nohighlight">\(g\)</span> <strong>and</strong> a “guess” about what the distribution would look like: <span class="math notranslate nohighlight">\(f^{(n)}\)</span>. There’s just one question: what does <span class="math notranslate nohighlight">\(E_f[H_{ji}\tilde{f}_i|g, f^{(n)}]\)</span> (i.e. the expected number of emissions from voxel
 <span class="math notranslate nohighlight">\(i\)</span> contributing to image pixel <span class="math notranslate nohighlight">\(j\)</span>) look like? I claim</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">

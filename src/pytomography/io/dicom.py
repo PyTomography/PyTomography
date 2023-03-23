@@ -10,8 +10,9 @@ from scipy.ndimage import affine_transform
 import torch
 import torch.nn as nn
 import pydicom
-from pytomography.metadata import ObjectMeta, ImageMeta
 from pydicom.dataset import Dataset
+import pytomography
+from pytomography.metadata import ObjectMeta, ImageMeta
 from pytomography.metadata import ObjectMeta, ImageMeta
 from pytomography.projections import ForwardProjectionNet, BackProjectionNet
 from pytomography.mappings import SPECTAttenuationNet, SPECTPSFNet
@@ -147,7 +148,6 @@ def get_SPECT_recon_algorithm_dicom(
     prior: Prior = None,
     recon_algorithm_class: nn.Module = OSEMOSL,
     object_initial: torch.Tensor | None = None,
-    device: str = 'cpu'
 ) -> nn.Module:
     # Get projections/scatter estimate
     if scatter_type==None:
@@ -161,7 +161,7 @@ def get_SPECT_recon_algorithm_dicom(
     # Load attenuation data
     if atteunation_files is not None:
         CT = dicom_CT_to_data(atteunation_files, projections_file)
-        CT_net = SPECTAttenuationNet(CT.unsqueeze(dim=0).to(device), device=device)
+        CT_net = SPECTAttenuationNet(CT.unsqueeze(dim=0))
         object_correction_nets.append(CT_net)
     # Load PSF parameters
     if use_psf:
@@ -170,13 +170,11 @@ def get_SPECT_recon_algorithm_dicom(
             # Find a more consistent way to do this
             angular_FWHM = ds[0x0055, 0x107f][0]
             psf_meta = PSFMeta(collimator_slope = angular_FWHM/(2*np.sqrt(2*np.log(2))), collimator_intercept = 0.0)
-            psf_net = SPECTPSFNet(psf_meta, device)
+            psf_net = SPECTPSFNet(psf_meta)
         else:
             raise Exception('Unable to compute PSF metadata from this DICOM file')
         object_correction_nets.append(psf_net)
-    fp_net = ForwardProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device=device)
-    bp_net = BackProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device=device)
-    if prior is not None:
-        prior.set_device(device)
+    fp_net = ForwardProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta)
+    bp_net = BackProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta)
     recon_algorithm = recon_algorithm_class(projections, fp_net, bp_net, object_initial, projections_scatter, prior)
     return recon_algorithm

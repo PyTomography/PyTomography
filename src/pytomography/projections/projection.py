@@ -1,5 +1,6 @@
 import torch.nn as nn
 import abc
+import pytomography
 from pytomography.mappings import MapNet
 from pytomography.metadata import ObjectMeta, ImageMeta
 
@@ -11,7 +12,7 @@ class ProjectionNet(nn.Module):
         im2im_nets: list[MapNet],
         object_meta: ObjectMeta,
         image_meta: ImageMeta,
-        device: str = 'cpu'
+        device: str = None
     ) -> None:
         """Initializer
 
@@ -20,10 +21,10 @@ class ProjectionNet(nn.Module):
             im2im_nets (list): Sequence of image mappings that occur after projection.
             object_meta (ObjectMeta): Object metadata.
             image_meta (ImageMeta): Image metadata.
-            device (str, optional): Pytorch device used for computation. Defaults to 'cpu'.
+            device (str, optional): Pytorch device used for computation. If None, uses the default device `pytomography.device` Defaults to None.
         """
         super(ProjectionNet, self).__init__()
-        self.device = device
+        self.device = pytomography.device if device is None else device
         self.obj2obj_nets = obj2obj_nets
         self.im2im_nets = im2im_nets
         self.object_meta = object_meta

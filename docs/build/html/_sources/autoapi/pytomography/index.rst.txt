@@ -20,3 +20,10 @@ Subpackages
    utils/index.rst
 
 
+Package Contents
+----------------
+
+.. py:data:: device
+
+   
+

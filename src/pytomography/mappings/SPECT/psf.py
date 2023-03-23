@@ -2,6 +2,7 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 import numpy as np
+import pytomography
 from pytomography.utils import get_distance, compute_pad_size, pad_object, pad_object_z, unpad_object_z, rotate_detector_z, unpad_object
 from pytomography.mappings import MapNet
 from pytomography.metadata import ObjectMeta, ImageMeta, PSFMeta
@@ -12,7 +13,7 @@ def get_PSF_transform(
     kernel_size: int,
     kernel_dimensions: str ='2D',
     delta: float = 1e-12,
-    device='cpu'
+    device=pytomography.device
     ) -> torch.nn.Conv2d:
     """Creates a 2D convolutional layer that is used for PSF modeling.
 
@@ -46,12 +47,12 @@ class SPECTPSFNet(MapNet):
 
         Args:
             psf_meta (PSFMeta): Metadata corresponding to the parameters of PSF blurring
-            device (str, optional): Pytorch device used for computation. Defaults to 'cpu'.
+            device (str, optional): Pytorch device used for computation. If None, uses the default device `pytomography.device` Defaults to None.
         """
     def __init__(
         self,
         psf_meta: PSFMeta, 
-        device: str = 'cpu'
+        device: str = None
     ) -> None:
         """Initializer that sets corresponding psf parameters"""
         super(SPECTPSFNet, self).__init__(device)

@@ -70,6 +70,6 @@ Functions
 .. py:function:: dicom_CT_to_data(files_CT, file_NM=None)
 
 
-.. py:function:: get_SPECT_recon_algorithm_dicom(projections_file, atteunation_files = None, use_psf = False, scatter_type = None, prior = None, recon_algorithm_class = OSEMOSL, object_initial = None, device = 'cpu')
+.. py:function:: get_SPECT_recon_algorithm_dicom(projections_file, atteunation_files = None, use_psf = False, scatter_type = None, prior = None, recon_algorithm_class = OSEMOSL, object_initial = None)
 
 
