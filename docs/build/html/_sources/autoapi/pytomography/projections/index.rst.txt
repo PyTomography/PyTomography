@@ -30,7 +30,7 @@ Classes
 
 
 
-.. py:class:: ForwardProjectionNet(obj2obj_nets, im2im_nets, object_meta, image_meta, device = 'cpu')
+.. py:class:: ForwardProjectionNet(obj2obj_nets, im2im_nets, object_meta, image_meta, device = None)
 
    Bases: :py:obj:`pytomography.projections.projection.ProjectionNet`
 
@@ -52,7 +52,7 @@ Classes
 
 
 
-.. py:class:: BackProjectionNet(obj2obj_nets, im2im_nets, object_meta, image_meta, device = 'cpu')
+.. py:class:: BackProjectionNet(obj2obj_nets, im2im_nets, object_meta, image_meta, device = None)
 
    Bases: :py:obj:`pytomography.projections.projection.ProjectionNet`
 
@@ -80,7 +80,7 @@ Classes
 
 
 
-.. py:class:: ProjectionNet(obj2obj_nets, im2im_nets, object_meta, image_meta, device = 'cpu')
+.. py:class:: ProjectionNet(obj2obj_nets, im2im_nets, object_meta, image_meta, device = None)
 
    Bases: :py:obj:`torch.nn.Module`
 

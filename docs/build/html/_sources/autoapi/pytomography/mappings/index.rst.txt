@@ -64,7 +64,7 @@ Classes
 
 
 
-.. py:class:: SPECTAttenuationNet(CT, device = 'cpu')
+.. py:class:: SPECTAttenuationNet(CT, device = None)
 
    Bases: :py:obj:`pytomography.mappings.MapNet`
 
@@ -72,7 +72,7 @@ Classes
 
    :param CT: Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{cm}^{-1}}` at the photon energy corresponding to the particular scan
    :type CT: torch.tensor
-   :param device: Pytorch computation device. Defaults to 'cpu'.
+   :param device: Pytorch device used for computation. If None, uses the default device `pytomography.device` Defaults to None.
    :type device: str, optional
 
    .. py:method:: forward(object_i, i, norm_constant = None)
@@ -91,7 +91,7 @@ Classes
 
 
 
-.. py:class:: SPECTPSFNet(psf_meta, device = 'cpu')
+.. py:class:: SPECTPSFNet(psf_meta, device = None)
 
    Bases: :py:obj:`pytomography.mappings.MapNet`
 
@@ -99,7 +99,7 @@ Classes
 
    :param psf_meta: Metadata corresponding to the parameters of PSF blurring
    :type psf_meta: PSFMeta
-   :param device: Pytorch device used for computation. Defaults to 'cpu'.
+   :param device: Pytorch device used for computation. If None, uses the default device `pytomography.device` Defaults to None.
    :type device: str, optional
 
    .. py:method:: initialize_network(object_meta, image_meta)

@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import os
+import pytomography
 from pytomography.metadata import ObjectMeta, ImageMeta
 from pytomography.projections import ForwardProjectionNet, BackProjectionNet
 from pytomography.mappings import SPECTAttenuationNet, SPECTPSFNet
@@ -136,30 +137,24 @@ def get_SPECT_recon_algorithm_simind(
     psf_meta: PSFMeta = None,
     prior: Prior = None,
     object_initial: torch.Tensor | None = None,
-    recon_algorithm_class: nn.Module = OSEMOSL,
-    device: str = 'cpu'
+    recon_algorithm_class: nn.Module = OSEMOSL
 ) -> nn.Module:
-    
     if scatter_headers is None:
         object_meta, image_meta, projections = simind_projections_to_data(projections_header)
         projections_scatter = 0 # equivalent to 0 estimated scatter everywhere
     else:
         object_meta, image_meta, projections, projections_scatter = simind_MEW_to_data([projections_header, *scatter_headers])
-        projections_scatter.to(device)
-    projections.to(device)
     if CT_header is not None:
         CT = simind_CT_to_data(CT_header)
     object_correction_nets = []
     image_correction_nets = []
     if CT_header is not None:
-        CT_net = SPECTAttenuationNet(CT.unsqueeze(dim=0).to(device), device=device)
+        CT_net = SPECTAttenuationNet(CT.unsqueeze(dim=0))
         object_correction_nets.append(CT_net)
     if psf_meta is not None:
-        psf_net = SPECTPSFNet(psf_meta, device=device)
+        psf_net = SPECTPSFNet(psf_meta)
         object_correction_nets.append(psf_net)
-    fp_net = ForwardProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device=device)
-    bp_net = BackProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta, device=device)
-    if prior is not None:
-        prior.set_device(device)
+    fp_net = ForwardProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta)
+    bp_net = BackProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta)
     recon_algorithm = recon_algorithm_class(projections, fp_net, bp_net, object_initial, projections_scatter, prior)
     return recon_algorithm

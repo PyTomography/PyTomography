@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from .prior import Prior
+import pytomography
 from pytomography.metadata import ObjectMeta
 from collections.abc import Callable
 
@@ -17,7 +18,7 @@ class DiffAndSumSmoothnessPrior(Prior):
         self,
         beta: float,
         phi: Callable, 
-        device: str = 'cpu', 
+        device: str = None, 
         **kwargs
     ) -> None:
         super(DiffAndSumSmoothnessPrior, self).__init__(beta, device)
@@ -90,7 +91,7 @@ class RelativeDifferencePrior(DiffAndSumSmoothnessPrior):
         self, 
         beta: float = 1, 
         gamma: float = 1, 
-        device: str ='cpu'
+        device: str = None
     ) -> None:
         super(RelativeDifferencePrior, self).__init__(beta, self.gradient, gamma=gamma, device=device)
 

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import abc
+import pytomography
 from pytomography.metadata import ObjectMeta, ImageMeta
 
 class Prior(nn.Module):
@@ -12,11 +13,11 @@ class Prior(nn.Module):
             device (float): Pytorch device used for computation. Defaults to 'cpu'.
     """
     @abc.abstractmethod
-    def __init__(self, beta: float, device : str ='cpu'):
+    def __init__(self, beta: float, device : str = None):
         super(Prior, self).__init__()
         self.beta = beta
         self.beta_scale_factor = 1
-        self.device = device
+        self.device = pytomography.device if device is None else device
 
     def set_object_meta(self, object_meta: ObjectMeta) -> None:
         """Sets object metadata parameters.
@@ -42,7 +43,7 @@ class Prior(nn.Module):
         """
         self.object = object
 
-    def set_device(self, device: str = 'cpu') -> None:
+    def set_device(self, device: str) -> None:
         """Sets the pytorch computation device
 
         Args:

@@ -6,6 +6,7 @@ import torch.nn as nn
 import numpy as np
 from pytomography.projections import ForwardProjectionNet, BackProjectionNet
 import abc
+import pytomography
 from pytomography.priors import Prior
 from pytomography.callbacks import CallBack
 from collections.abc import Callable
@@ -31,13 +32,12 @@ class OSML(nn.Module):
         object_initial: torch.tensor | None = None,
         scatter: torch.tensor | float = 0,
         prior: Prior = None,
+        device: str = None,
     ) -> None:
         super(OSML, self).__init__()
         self.forward_projection_net = forward_projection_net
         self.back_projection_net = back_projection_net
-        if forward_projection_net.device!=back_projection_net.device:
-            Exception('Forward projection net and back projection net should be on same device')
-        self.device = forward_projection_net.device
+        self.device = pytomography.device if device is None else device
         if object_initial is None:
             self.object_prediction = torch.ones((image.shape[0], *self.forward_projection_net.object_meta.shape)).to(self.device)
         else:

@@ -25,7 +25,7 @@ Functions
 
 
 
-.. py:function:: get_PSF_transform(sigma, kernel_size, kernel_dimensions = '2D', delta = 1e-12, device='cpu')
+.. py:function:: get_PSF_transform(sigma, kernel_size, kernel_dimensions = '2D', delta = 1e-12, device=pytomography.device)
 
    Creates a 2D convolutional layer that is used for PSF modeling.
 
@@ -45,7 +45,7 @@ Functions
    :rtype: torch.nn.Conv2d
 
 
-.. py:class:: SPECTPSFNet(psf_meta, device = 'cpu')
+.. py:class:: SPECTPSFNet(psf_meta, device = None)
 
    Bases: :py:obj:`pytomography.mappings.MapNet`
 
@@ -53,7 +53,7 @@ Functions
 
    :param psf_meta: Metadata corresponding to the parameters of PSF blurring
    :type psf_meta: PSFMeta
-   :param device: Pytorch device used for computation. Defaults to 'cpu'.
+   :param device: Pytorch device used for computation. If None, uses the default device `pytomography.device` Defaults to None.
    :type device: str, optional
 
    .. py:method:: initialize_network(object_meta, image_meta)
