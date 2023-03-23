@@ -506,10 +506,7 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span>
-<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;/home/gpuvmadm/PyTomography/src&#39;</span><span class="p">)</span>
-
-<span class="kn">import</span> <span class="nn">os</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
@@ -526,6 +523,7 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
+<p>Set the device used in pytomography, and the path where you saved the files (you will need to modify path)</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
@@ -592,7 +590,7 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_quantitative_12_0.png" src="../_images/notebooks_t_quantitative_12_0.png" />
+<img alt="../_images/notebooks_t_quantitative_13_0.png" src="../_images/notebooks_t_quantitative_13_0.png" />
 </div>
 </div>
 <p>This constitutes our ground truth; the units are MBq/mL. In a short moment, we’ll open our SPECT projection data, and run our iterative reconstruction algorithm to compare the true activity in each organ to the reconstructed object’s activity as a function of iteration number. To do this, we’ll need masks for each organ.</p>
@@ -649,7 +647,7 @@ torch.Size([128, 128, 384])
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_quantitative_18_0.png" src="../_images/notebooks_t_quantitative_18_0.png" />
+<img alt="../_images/notebooks_t_quantitative_19_0.png" src="../_images/notebooks_t_quantitative_19_0.png" />
 </div>
 </div>
 <p>This mask will allow me to compare the true activity of the liver (0.0735MBq/mL) to the value obtained from the reconstruction in that region.</p>
@@ -683,7 +681,7 @@ torch.Size([128, 128, 384])
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_quantitative_24_0.png" src="../_images/notebooks_t_quantitative_24_0.png" />
+<img alt="../_images/notebooks_t_quantitative_25_0.png" src="../_images/notebooks_t_quantitative_25_0.png" />
 </div>
 </div>
 <div class="nbinput nblast docutils container">
@@ -753,7 +751,7 @@ torch.Size([128, 128, 384])
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-/tmp/ipykernel_6360/2933345111.py:2: MatplotlibDeprecationWarning: Auto-removal of overlapping axes is deprecated since 3.6 and will be removed two minor releases later; explicitly call ax.remove() as needed.
+/tmp/ipykernel_9547/2933345111.py:2: MatplotlibDeprecationWarning: Auto-removal of overlapping axes is deprecated since 3.6 and will be removed two minor releases later; explicitly call ax.remove() as needed.
   plt.subplot(121)
 </pre></div></div>
 </div>
@@ -761,7 +759,7 @@ torch.Size([128, 128, 384])
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_quantitative_33_1.png" src="../_images/notebooks_t_quantitative_33_1.png" />
+<img alt="../_images/notebooks_t_quantitative_34_1.png" src="../_images/notebooks_t_quantitative_34_1.png" />
 </div>
 </div>
 <p>Now we can load the corresponding CT image from SIMIND using the <code class="docutils literal notranslate"><span class="pre">simind_CT_to_data</span></code> function.</p>
@@ -916,7 +914,7 @@ variances in the <code class="docutils literal notranslate"><span class="pre">se
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_quantitative_53_0.png" src="../_images/notebooks_t_quantitative_53_0.png" />
+<img alt="../_images/notebooks_t_quantitative_54_0.png" src="../_images/notebooks_t_quantitative_54_0.png" />
 </div>
 </div>
 <p>Finally, here’s some code written to plot/compare noise-bias curves for each reconstruction algorithm.</p>
@@ -954,7 +952,7 @@ variances in the <code class="docutils literal notranslate"><span class="pre">se
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_quantitative_55_0.png" src="../_images/notebooks_t_quantitative_55_0.png" />
+<img alt="../_images/notebooks_t_quantitative_56_0.png" src="../_images/notebooks_t_quantitative_56_0.png" />
 </div>
 </div>
 <p>The relative difference prior appears to give significant improvement in the Kidneys and salivary glands: both medium sized organs.</p>

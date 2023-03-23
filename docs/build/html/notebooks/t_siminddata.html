@@ -504,9 +504,8 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span>
-<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;/home/gpuvmadm/PyTomography/src&#39;</span><span class="p">)</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">pytomography</span>
 <span class="kn">from</span> <span class="nn">pytomography.io</span> <span class="kn">import</span> <span class="n">get_SPECT_recon_algorithm_simind</span><span class="p">,</span> <span class="n">simind_MEW_to_data</span><span class="p">,</span> <span class="n">simind_CT_to_data</span>
 <span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">PSFMeta</span>
@@ -530,6 +529,15 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
+<p>Set the folder location for downloaded files (you will need to modify this to be the directory where you saved the files)</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">path</span> <span class="o">=</span> <span class="s1">&#39;/home/gpuvmadm/PyTomography/test_files/quantitative&#39;</span>
+</pre></div>
+</div>
+</div>
 <section id="The-Quick-Way">
 <h2>The Quick Way<a class="headerlink" href="#The-Quick-Way" title="Permalink to this heading">#</a></h2>
 <p>The typical file format for SIMIND data is as follows:</p>
@@ -540,13 +548,13 @@ div.rendered_html tbody tr:hover {
 </ul>
 <p>We can create our recontruction algorithm as follows, by passing in the header files, along with the PSF parameters (must be specified using <code class="docutils literal notranslate"><span class="pre">collimator_slope</span></code> and <code class="docutils literal notranslate"><span class="pre">collimator_intercept</span></code>) and the prior function we wish to use. If any of <code class="docutils literal notranslate"><span class="pre">scatter_headers</span></code>, <code class="docutils literal notranslate"><span class="pre">CT_header</span></code>, <code class="docutils literal notranslate"><span class="pre">psf_meta</span></code>, or <code class="docutils literal notranslate"><span class="pre">prior</span></code> is not used as an argument, modeling of that phenomenon isn’t included in the reconstruction.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">osem_net</span> <span class="o">=</span> <span class="n">get_SPECT_recon_algorithm_simind</span><span class="p">(</span><span class="n">projections_header</span> <span class="o">=</span> <span class="s1">&#39;/home/gpuvmadm/PyTomography/test_files/quantitative/body1t2ew6_tot_w2.hdr&#39;</span><span class="p">,</span>
-                        <span class="n">scatter_headers</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;/home/gpuvmadm/PyTomography/test_files/quantitative/body1t2ew6_tot_w1.hdr&#39;</span><span class="p">,</span>
-                                           <span class="s1">&#39;/home/gpuvmadm/PyTomography/test_files/quantitative/body1t2ew6_tot_w3.hdr&#39;</span><span class="p">],</span>
-                        <span class="n">CT_header</span> <span class="o">=</span> <span class="s1">&#39;/home/gpuvmadm/PyTomography/test_files/quantitative/body1.hct&#39;</span><span class="p">,</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">osem_net</span> <span class="o">=</span> <span class="n">get_SPECT_recon_algorithm_simind</span><span class="p">(</span><span class="n">projections_header</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;body1t2ew6_tot_w2.hdr&#39;</span><span class="p">),</span>
+                        <span class="n">scatter_headers</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;body1t2ew6_tot_w1.hdr&#39;</span><span class="p">),</span>
+                                           <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;body1t2ew6_tot_w3.hdr&#39;</span><span class="p">)],</span>
+                        <span class="n">CT_header</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;body1.hct&#39;</span><span class="p">),</span>
                         <span class="n">psf_meta</span><span class="o">=</span><span class="n">PSFMeta</span><span class="p">(</span><span class="n">collimator_slope</span><span class="o">=</span><span class="mf">0.03013</span><span class="p">,</span> <span class="n">collimator_intercept</span><span class="o">=</span><span class="mf">0.1967</span><span class="p">),</span>
                         <span class="n">prior</span> <span class="o">=</span> <span class="n">RelativeDifferencePrior</span><span class="p">(</span><span class="n">beta</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mi">5</span><span class="p">))</span>
 </pre></div>
@@ -554,7 +562,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <p>From there, our object can be reconstructed</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reconstructed_object</span> <span class="o">=</span> <span class="n">osem_net</span><span class="p">(</span><span class="n">n_iters</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">n_subsets</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
@@ -563,7 +571,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <p>and we can view the maximum intensity projections, for example</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
@@ -575,15 +583,23 @@ div.rendered_html tbody tr:hover {
 <span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">reconstructed_object</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;nipy_spectral&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s1">&#39;../images/sample_MIP.png&#39;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">transparent</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(0.0, 128.0, 0.0, 384.0)
+</pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_siminddata_11_0.png" src="../_images/notebooks_t_siminddata_11_0.png" />
+<img alt="../_images/notebooks_t_siminddata_13_1.png" src="../_images/notebooks_t_siminddata_13_1.png" />
 </div>
 </div>
 </section>
@@ -591,29 +607,29 @@ div.rendered_html tbody tr:hover {
 <h2>The Methodical Way<a class="headerlink" href="#The-Methodical-Way" title="Permalink to this heading">#</a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">get_SPECT_recon_algorithm_simind</span></code> is function that allows convenient formation of a reconstruction algorithm for <code class="docutils literal notranslate"><span class="pre">simind</span></code> data. We can also build the reconstruction algorithm from scratch, explicitly defining the components of the system matrix.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">,</span> <span class="n">projections</span><span class="p">,</span> <span class="n">projections_scatter</span> <span class="o">=</span> <span class="n">simind_MEW_to_data</span><span class="p">([</span>
-    <span class="s1">&#39;/home/gpuvmadm/PyTomography/test_files/quantitative/body1t2ew6_tot_w2.hdr&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;/home/gpuvmadm/PyTomography/test_files/quantitative/body1t2ew6_tot_w1.hdr&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;/home/gpuvmadm/PyTomography/test_files/quantitative/body1t2ew6_tot_w3.hdr&#39;</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;body1t2ew6_tot_w2.hdr&#39;</span><span class="p">),</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;body1t2ew6_tot_w1.hdr&#39;</span><span class="p">),</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span>  <span class="s1">&#39;body1t2ew6_tot_w3.hdr&#39;</span><span class="p">)</span>
     <span class="p">])</span>
 </pre></div>
 </div>
 </div>
 <p>The CT data is loaded in a similar fashion</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">CT</span> <span class="o">=</span> <span class="n">simind_CT_to_data</span><span class="p">(</span><span class="s1">&#39;/home/gpuvmadm/PyTomography/test_files/quantitative/body1.hct&#39;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">CT</span> <span class="o">=</span> <span class="n">simind_CT_to_data</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;body1.hct&#39;</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
 <p>As usual, it is good practice to ensure the CT and projections are aligned</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
@@ -637,7 +653,7 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_siminddata_18_0.png" src="../_images/notebooks_t_siminddata_18_0.png" />
+<img alt="../_images/notebooks_t_siminddata_20_0.png" src="../_images/notebooks_t_siminddata_20_0.png" />
 </div>
 </div>
 <p>Now we need to define all the required mappings to model <span class="math notranslate nohighlight">\(g = Hf\)</span></p>
@@ -646,7 +662,7 @@ div.rendered_html tbody tr:hover {
 <li><p>This network corresponds to a mapping <span class="math notranslate nohighlight">\(A_i(\theta)\)</span> as specified in the user manual and takes in an object/corresponding projection angle and returns a modified object</p></li>
 </ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ct_net</span> <span class="o">=</span> <span class="n">SPECTAttenuationNet</span><span class="p">(</span><span class="n">CT</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
@@ -658,7 +674,7 @@ div.rendered_html tbody tr:hover {
 <li><p>This network corresponds to a mapping <span class="math notranslate nohighlight">\(A_i(\theta)\)</span> as specified in the users manual. The <code class="docutils literal notranslate"><span class="pre">collimator_slope</span></code> and <code class="docutils literal notranslate"><span class="pre">collimator_intercept</span></code> are parameters that need to be explicitly known for a given scanner. They can be obtained, for example, by fitting Gaussian profiles to a point source at varying distances from the detector surface, and determining <span class="math notranslate nohighlight">\(\sigma(z)=(\text{collimator slope})\cdot z + \text{collimator intercept}\)</span></p></li>
 </ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">psf_meta</span> <span class="o">=</span> <span class="n">PSFMeta</span><span class="p">(</span><span class="n">collimator_slope</span> <span class="o">=</span> <span class="mf">0.03013</span><span class="p">,</span> <span class="n">collimator_intercept</span> <span class="o">=</span> <span class="mf">0.1967</span><span class="p">)</span>
@@ -671,7 +687,7 @@ div.rendered_html tbody tr:hover {
 <li><p>These correspond to the mappings <span class="math notranslate nohighlight">\(H = \sum_{\theta} P(\theta)A_1(\theta)A_2(\theta) \otimes \hat{\theta}\)</span> (and corresponding expression for <span class="math notranslate nohighlight">\(H^T\)</span>) as specified in the users manual</p></li>
 </ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fp_net</span> <span class="o">=</span> <span class="n">ForwardProjectionNet</span><span class="p">(</span>
@@ -689,7 +705,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <p>We can also define the Baysian Prior:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">prior</span> <span class="o">=</span> <span class="n">RelativeDifferencePrior</span><span class="p">(</span><span class="n">beta</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
@@ -698,7 +714,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <p>We’ll use these FP/BP nets to create the reconstruction algorithm:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">osem_net</span> <span class="o">=</span> <span class="n">OSEMBSR</span><span class="p">(</span>
@@ -712,7 +728,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <p>Get the reconstructed object</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reconstructed_object</span> <span class="o">=</span> <span class="n">osem_net</span><span class="p">(</span><span class="n">n_iters</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">n_subsets</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
@@ -721,7 +737,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <p>Plot the reconstructed object next to the CT. * The reconstructed object has units of counts, and would need to be adjusted by a proportionality factor if one wants to obtain units of MBq</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
@@ -743,7 +759,7 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_siminddata_33_0.png" src="../_images/notebooks_t_siminddata_33_0.png" />
+<img alt="../_images/notebooks_t_siminddata_35_0.png" src="../_images/notebooks_t_siminddata_35_0.png" />
 </div>
 </div>
 </section>
