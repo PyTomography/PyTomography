@@ -1,6 +1,9 @@
 PyTomography is an open source python library for tomographic image reconstruction. For more information, check out [the readthedocs page](https://pytomography.readthedocs.io/en/latest/).
 
 
+===================================
+
+
 Shield: [![CC BY-NC-SA 4.0][cc-by-nc-sa-shield]][cc-by-nc-sa]
 
 This work is licensed under a
