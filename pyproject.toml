@@ -5,6 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "pytomography"
 version = "0.3.0"
+
 authors = [
   { name="Luke Polson", email="lukepolson@outlook.com" },
 ]
