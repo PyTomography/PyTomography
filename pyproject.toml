@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "toml"]
 build-backend = "hatchling.build"
 
 [project]
 name = "pytomography"
-version = "0.21"
+version = "0.2.2"
 authors = [
   { name="Luke Polson", email="lukepolson@outlook.com" },
 ]
