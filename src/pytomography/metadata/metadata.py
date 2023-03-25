@@ -85,3 +85,16 @@ class PSFMeta():
         self.collimator_intercept = collimator_intercept
         self.kernel_dimensions = kernel_dimensions
         self.max_sigmas = max_sigmas
+        
+class PETPSFMeta():
+    def __init__(
+        self,
+        collimator_slope: float,
+        collimator_intercept: float,
+        kernel_dimensions: str = '2D',
+        max_sigmas: float = 3
+    ) -> None:
+        self.collimator_slope = collimator_slope
+        self.collimator_intercept = collimator_intercept
+        self.kernel_dimensions = kernel_dimensions
+        self.max_sigmas = max_sigmas
