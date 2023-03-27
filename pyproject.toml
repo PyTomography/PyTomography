@@ -4,7 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pytomography"
-version = "0.2.2"
+version = "0.3.3"
+
 authors = [
   { name="Luke Polson", email="lukepolson@outlook.com" },
 ]
@@ -28,6 +29,7 @@ dependencies = [
 
 [project.optional-dependencies]
 doc = [
+  "toml",
   "sphinx~=4.2.0",
   "myst-parser",
   "furo",
