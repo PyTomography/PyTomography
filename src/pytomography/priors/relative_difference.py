@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from .prior import Prior
-import pytomography
+from pytomography.priors import Prior
 from pytomography.metadata import ObjectMeta
 from collections.abc import Callable
 
@@ -38,7 +37,7 @@ class DiffAndSumSmoothnessPrior(Prior):
             (torch.nn.Conv3d, torch.tensor): Kernel used for convolution (number of output channels equal to number of :math:`s`), and array of weights :math:`w_s` used in expression for gradient.
         """
         dx, dy, dz = self.object_meta.dr
-        kernels = []
+        kerns = []
         weights = []
         for i in range(3):
             for j in range(3):
@@ -48,13 +47,11 @@ class DiffAndSumSmoothnessPrior(Prior):
                     kernel = torch.zeros((3,3,3))
                     kernel[1,1,1] = 1
                     kernel[i,j,k] = sign
-                    kernels.append(kernel)
-                    weight = dx/np.sqrt((dx*(i-1))**2 + (dy*(j-1))**2 + (dz*(k-1))**2)
-                    weights.append(weight)
-        kern = torch.nn.Conv3d(1, 26, 3, padding='same', padding_mode='reflect', bias=0, device=self.device)
-        kern.weight.data = torch.stack(kernels).unsqueeze(dim=1).to(self.device)
-        weights = torch.tensor(weights).to(self.device)
-        return kern.to(torch.float32), weights.to(torch.float32)
+                    kern = torch.nn.Conv3d(1, 1, 3, padding='same', padding_mode='reflect', bias=0, device=self.device)
+                    kern.weight.data = kernel.reshape((1,1,3,3,3)).to(self.device)
+                    kerns.append(kern)
+                    weights.append(dx/np.sqrt((dx*(i-1))**2 + (dy*(j-1))**2 + (dz*(k-1))**2))
+        return kerns, weights
 
     def set_kernel(self, object_meta: ObjectMeta) -> None:
         """Sets the kernel using  `get_kernel` and the corresponding object metadata.
@@ -63,8 +60,8 @@ class DiffAndSumSmoothnessPrior(Prior):
             object_meta (ObjectMeta): Metadata for object space. 
         """
         self.set_object_meta(object_meta)
-        self.kernel_add, self.weights_add = self.get_kernel(sign=1)
-        self.kernel_sub, self.weights_sub = self.get_kernel(sign=-1)
+        self.kerns_add, self.weights_add = self.get_kernel(sign=1)
+        self.kerns_sub, self.weights_sub = self.get_kernel(sign=-1)
 
     @torch.no_grad()
     def forward(self) -> torch.tensor:
@@ -73,9 +70,10 @@ class DiffAndSumSmoothnessPrior(Prior):
         Returns:
             torch.tensor: Tensor of shape [batch_size, Lx, Ly, Lz] representing :math:`\frac{\partial V}{\partial f_r}`
         """
-        phis = self.phi(self.kernel_add(self.object.unsqueeze(dim=1)), self.kernel_sub(self.object.unsqueeze(dim=1)), **self.kwargs)
-        all_summation_terms = phis * self.weights_add.view(-1,1,1,1)
-        return self.beta*self.beta_scale_factor * all_summation_terms.sum(axis=1)
+        object_return = torch.zeros(self.object.shape).to(self.device)
+        for i in range(26):
+            object_return += self.phi(self.kerns_add[i](self.object), self.kerns_sub[i](self.object), **self.kwargs) * self.weights_add[i]
+        return self.beta*self.beta_scale_factor * object_return
     
 
 class RelativeDifferencePrior(DiffAndSumSmoothnessPrior):
