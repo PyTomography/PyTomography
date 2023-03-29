@@ -49,7 +49,7 @@ class OSML(nn.Module):
         else:
             self.scatter = scatter
         if self.prior is not None:
-            self.prior.set_kernel(self.forward_projection_net.object_meta)
+            self.prior.set_object_meta(self.forward_projection_net.object_meta)
 
     def get_subset_splits(
         self,
