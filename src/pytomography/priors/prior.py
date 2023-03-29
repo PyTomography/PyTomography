@@ -44,14 +44,6 @@ class Prior(nn.Module):
         """
         self.object = object
 
-    def set_device(self, device: str) -> None:
-        """Sets the pytorch computation device
-
-        Args:
-            device (str): sets device.
-        """
-        self.device=device
-
     @abc.abstractmethod
     def forward(self):
         """Abstract method to compute prior based on the ``self.object`` attribute.

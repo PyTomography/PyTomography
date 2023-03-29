@@ -177,3 +177,8 @@ def unpad_object_z(object: torch.Tensor, pad_size: int):
     """
     
     return object[:,:,:,pad_size:-pad_size]
+
+def get_object_nearest_neighbour(object: torch.Tensor, shifts: list[int]):
+    neighbour = pad(object, [1,1,1,1,1,1])
+    neighbour = torch.roll(neighbour, shifts=shifts, dims=(1,2,3))
+    return neighbour[:,1:-1,1:-1,1:-1]
