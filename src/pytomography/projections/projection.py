@@ -6,7 +6,13 @@ from pytomography.mappings import MapNet
 from pytomography.metadata import ObjectMeta, ImageMeta
 
 class ProjectionNet(nn.Module):
-    r"""Abstract parent class for projection networks. Any subclass of this network must implement the ``forward`` method. """
+    r"""Abstract parent class for projection networks. Any subclass of this network must implement the ``forward`` method.
+    Args:
+            obj2obj_nets (list): Sequence of object mappings that occur before forward projection.
+            im2im_nets (list): Sequence of image mappings that occur after forward projection.
+            object_meta (ObjectMeta): Object metadata.
+            image_meta (ImageMeta): Image metadata.
+            device (str, optional): Pytorch device used for computation. If None, uses the default device `pytomography.device` Defaults to None."""
     def __init__(
         self,
         obj2obj_nets: list[MapNet],
@@ -15,15 +21,6 @@ class ProjectionNet(nn.Module):
         image_meta: ImageMeta,
         device: str = None
     ) -> None:
-        """Initializer
-
-        Args:
-            obj2obj_nets (list): Sequence of object mappings that occur before projection.
-            im2im_nets (list): Sequence of image mappings that occur after projection.
-            object_meta (ObjectMeta): Object metadata.
-            image_meta (ImageMeta): Image metadata.
-            device (str, optional): Pytorch device used for computation. If None, uses the default device `pytomography.device` Defaults to None.
-        """
         super(ProjectionNet, self).__init__()
         self.device = pytomography.device if device is None else device
         self.obj2obj_nets = obj2obj_nets
@@ -33,7 +30,7 @@ class ProjectionNet(nn.Module):
         self.initialize_correction_nets()
 
     def initialize_correction_nets(self):
-        """Function that initializes all mapping networks with the required object and image metadata corresponding to the projection network.
+        """Initializes all mapping networks with the required object and image metadata corresponding to the projection network.
         """
         for net in self.obj2obj_nets:
             net.initialize_network(self.object_meta, self.image_meta)

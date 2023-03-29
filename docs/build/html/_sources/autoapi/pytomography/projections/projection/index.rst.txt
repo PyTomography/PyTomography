@@ -22,10 +22,20 @@ Classes
    Bases: :py:obj:`torch.nn.Module`
 
    Abstract parent class for projection networks. Any subclass of this network must implement the ``forward`` method.
+   :param obj2obj_nets: Sequence of object mappings that occur before projection.
+   :type obj2obj_nets: list
+   :param im2im_nets: Sequence of image mappings that occur after projection.
+   :type im2im_nets: list
+   :param object_meta: Object metadata.
+   :type object_meta: ObjectMeta
+   :param image_meta: Image metadata.
+   :type image_meta: ImageMeta
+   :param device: Pytorch device used for computation. If None, uses the default device `pytomography.device` Defaults to None.
+   :type device: str, optional
 
    .. py:method:: initialize_correction_nets()
 
-      Function that initializes all mapping networks with the required object and image metadata corresponding to the projection network.
+      Initializes all mapping networks with the required object and image metadata corresponding to the projection network.
 
 
 

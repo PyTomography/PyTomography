@@ -52,14 +52,6 @@ Classes
       :type object: torch.tensor
 
 
-   .. py:method:: set_device(device)
-
-      Sets the pytorch computation device
-
-      :param device: sets device.
-      :type device: str
-
-
    .. py:method:: forward()
       :abstractmethod:
 

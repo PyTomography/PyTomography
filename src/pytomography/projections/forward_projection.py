@@ -22,6 +22,7 @@ class ForwardProjectionNet(ProjectionNet):
             torch.tensor[batch_size, Ltheta, Lx, Lz]: Forward projected image where Ltheta is specified by `self.image_meta` and `angle_subset`.
         """
         N_angles = self.image_meta.num_projections
+        object = object.to(self.device)
         image = torch.zeros((object.shape[0],*self.image_meta.padded_shape)).to(self.device)
         looper = range(N_angles) if angle_subset is None else angle_subset
         for i in looper:

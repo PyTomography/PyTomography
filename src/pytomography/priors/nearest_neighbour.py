@@ -1,7 +1,10 @@
+"""For all priors implemented here, the neighbouring voxels considered are those directly surrounding a given voxel, so :math:`\sum_s` is a sum over 26 points."""
+
+from __future__ import annotations
 import torch
 import torch.nn as nn
 import numpy as np
-from pytomography.priors import Prior
+from .prior import Prior
 from collections.abc import Callable
 from pytomography.utils import get_object_nearest_neighbour
 
@@ -10,7 +13,7 @@ class NearestNeighbourPrior(Prior):
     
     Args:
             beta (float): Used to scale the weight of the prior
-            phi (function): Function $\phi$ used in formula above. Input arguments should be :math:`f_r`, :math:`f_s`, and any `kwargs` passed to this initialization function.
+            phi (function): Function :math:`\phi` used in formula above. Input arguments should be :math:`f_r`, :math:`f_s`, and any `kwargs` passed to this initialization function.
             device (str, optional): Pytorch device used for computation. Defaults to 'cpu'.
     """
     def __init__(
@@ -45,7 +48,7 @@ class NearestNeighbourPrior(Prior):
     
 
 class QuadraticPrior(NearestNeighbourPrior):
-    r"""Subclass of `NearestNeighbourPrior` where :math:`\phi(f_r, f_s)= (f_r-f_s)/\delta` corresponds to a quadratic prior :math:`V(f)=\frac{1}{4}\sum_{r,s} w_{r,s} \left(\frac{f_r-f_s}{\delta}\right)^2`
+    r"""Subclass of ``NearestNeighbourPrior`` where :math:`\phi(f_r, f_s)= (f_r-f_s)/\delta` corresponds to a quadratic prior :math:`V(f)=\frac{1}{4}\sum_{r,s} w_{r,s} \left(\frac{f_r-f_s}{\delta}\right)^2`
     
     Args:
             beta (float): Used to scale the weight of the prior
@@ -60,7 +63,7 @@ class QuadraticPrior(NearestNeighbourPrior):
         super(QuadraticPrior, self).__init__(beta, gradient, delta=delta)
 
 class LogCoshPrior(NearestNeighbourPrior):
-    r"""Subclass of `NearestNeighbourPrior` where :math:`\phi(f_r,f_s)=\tanh((f_r-f_s)/\delta)` corresponds to the logcosh prior :math:`V(f)=\sum_{r,s} w_{r,s} \log\cosh\left(\frac{f_r-f_s}{\delta}\right)`
+    r"""Subclass of ``NearestNeighbourPrior`` where :math:`\phi(f_r,f_s)=\tanh((f_r-f_s)/\delta)` corresponds to the logcosh prior :math:`V(f)=\sum_{r,s} w_{r,s} \log\cosh\left(\frac{f_r-f_s}{\delta}\right)`
     
     Args:
             beta (float): Used to scale the weight of the prior
@@ -75,12 +78,12 @@ class LogCoshPrior(NearestNeighbourPrior):
         super(LogCoshPrior, self).__init__(beta, gradient, delta=delta)
 
 class RelativeDifferencePrior(NearestNeighbourPrior):
-    r"""Subclass of `NearestNeighbourPrior` where :math:`\phi(f_r,f_s)=\frac{2(f_r-f_s)(\gamma|f_r-f_s|+3f_s + f_r)}{(\gamma|f_r-f_s|+f_r+f_s)^2}` corresponds to the relative difference prior :math:`V(f)=\sum_{r,s} w_{r,s} \frac{(f_r-f_s)^2}{f_r+f_s+\gamma|f_r-f_s|}`
+    r"""Subclass of ``NearestNeighbourPrior`` where :math:`\phi(f_r,f_s)=\frac{2(f_r-f_s)(\gamma|f_r-f_s|+3f_s + f_r)}{(\gamma|f_r-f_s|+f_r+f_s)^2}` corresponds to the relative difference prior :math:`V(f)=\sum_{r,s} w_{r,s} \frac{(f_r-f_s)^2}{f_r+f_s+\gamma|f_r-f_s|}`
     
     Args:
             beta (float): Used to scale the weight of the prior
             gamma (float, optional): Parameter :math:`\gamma` in equation above. Defaults to 1.
-            eps (float, optional): Prevent division by 0, Defaults to 1e-8.
+            epsilon (float, optional): Prevent division by 0, Defaults to 1e-8.
     """
     def __init__(
         self, 
