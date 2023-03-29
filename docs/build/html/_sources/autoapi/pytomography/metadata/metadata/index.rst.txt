@@ -15,6 +15,7 @@ Classes
    pytomography.metadata.metadata.ObjectMeta
    pytomography.metadata.metadata.ImageMeta
    pytomography.metadata.metadata.PSFMeta
+   pytomography.metadata.metadata.PETPSFMeta
 
 
 
@@ -70,5 +71,8 @@ Classes
    :type kernel_dimensions: str
    :param max_sigmas: This is the number of sigmas to consider in PSF correction. PSF are modelled by Gaussian functions whose extension is infinite, so we need to crop the Gaussian when computing this operation numerically. Note that the blurring width is depth dependent, but the kernel size used for PSF blurring is constant. As such, this parameter is used to fix the kernel size such that all locations have at least ``max_sigmas`` of a kernel size.
    :type max_sigmas: float, optional
+
+
+.. py:class:: PETPSFMeta(collimator_slope, collimator_intercept, kernel_dimensions = '2D', max_sigmas = 3)
 
 

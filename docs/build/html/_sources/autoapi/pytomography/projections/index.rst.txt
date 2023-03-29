@@ -10,9 +10,7 @@ Submodules
    :titlesonly:
    :maxdepth: 1
 
-   back_projection/index.rst
-   forward_projection/index.rst
-   projection/index.rst
+   system_matrix/index.rst
 
 
 Package Contents
@@ -23,44 +21,46 @@ Classes
 
 .. autoapisummary::
 
-   pytomography.projections.ForwardProjectionNet
-   pytomography.projections.BackProjectionNet
-   pytomography.projections.ProjectionNet
+   pytomography.projections.SystemMatrix
 
 
 
 
-.. py:class:: ForwardProjectionNet(obj2obj_nets, im2im_nets, object_meta, image_meta, device = None)
+.. py:class:: SystemMatrix(obj2obj_transforms, im2im_transforms, object_meta, image_meta)
 
-   Bases: :py:obj:`pytomography.projections.projection.ProjectionNet`
+   Update this
 
-   Implements a forward projection of mathematical form :math:`g_j = \sum_{i} c_{ij} f_i` where :math:`f_i` is an object, :math:`g_j` is the corresponding image, and :math:`c_{ij}` is the system matrix given by the various phenonemon modeled (e.g. atteunation/PSF).
+   :param obj2obj_transforms: Sequence of object mappings that occur before forward projection.
+   :type obj2obj_transforms: Sequence[Transform]
+   :param im2im_transforms: Sequence of image mappings that occur after forward projection.
+   :type im2im_transforms: Sequence[Transform]
+   :param object_meta: Object metadata.
+   :type object_meta: ObjectMeta
+   :param image_meta: Image metadata.
+   :type image_meta: ImageMeta
+
+   .. py:method:: initialize_correction_nets()
+
+      Initializes all mapping networks with the required object and image metadata corresponding to the projection network.
+
 
 
    .. py:method:: forward(object, angle_subset = None)
 
-      Implements forward projection on an object
+      Implements forward projection :math:`Hf` on an object :math:`f`.
 
       :param object: The object to be forward projected
       :type object: torch.tensor[batch_size, Lx, Ly, Lz]
-      :param angle_subset: Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None,
+      :param angle_subset: Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
       :type angle_subset: list, optional
-      :param which assumes all angles are used.:
 
       :returns: Forward projected image where Ltheta is specified by `self.image_meta` and `angle_subset`.
       :rtype: torch.tensor[batch_size, Ltheta, Lx, Lz]
 
 
+   .. py:method:: backward(image, angle_subset = None, prior = None, normalize = False, return_norm_constant = False, delta = 1e-11)
 
-.. py:class:: BackProjectionNet(obj2obj_nets, im2im_nets, object_meta, image_meta, device = None)
-
-   Bases: :py:obj:`pytomography.projections.projection.ProjectionNet`
-
-   Implements a back projection of mathematical form :math:`f_i = \frac{1}{\sum_j c_{ij}}\sum_{j} c_{ij} g_j`. where :math:`f_j` is an object, :math:`g_j` is an image, and :math:`c_{ij}` is the system matrix given by the various phenonemon modeled (e.g. atteunation correction/PSF). Subclass of the ``ProjectionNet`` class.
-
-   .. py:method:: forward(image, angle_subset = None, prior = None, normalize = False, return_norm_constant = False, delta = 1e-11)
-
-      Implements back projection on an image, returning an object.
+      Implements back projection :math:`H^T g` on an image :math:`g`.
 
       :param image: image which is to be back projected
       :type image: torch.tensor[batch_size, Ltheta, Lr, Lz]
@@ -77,36 +77,6 @@ Classes
 
       :returns: the object obtained from back projection.
       :rtype: torch.tensor[batch_size, Lr, Lr, Lz]
-
-
-
-.. py:class:: ProjectionNet(obj2obj_nets, im2im_nets, object_meta, image_meta, device = None)
-
-   Bases: :py:obj:`torch.nn.Module`
-
-   Abstract parent class for projection networks. Any subclass of this network must implement the ``forward`` method.
-   :param obj2obj_nets: Sequence of object mappings that occur before projection.
-   :type obj2obj_nets: list
-   :param im2im_nets: Sequence of image mappings that occur after projection.
-   :type im2im_nets: list
-   :param object_meta: Object metadata.
-   :type object_meta: ObjectMeta
-   :param image_meta: Image metadata.
-   :type image_meta: ImageMeta
-   :param device: Pytorch device used for computation. If None, uses the default device `pytomography.device` Defaults to None.
-   :type device: str, optional
-
-   .. py:method:: initialize_correction_nets()
-
-      Initializes all mapping networks with the required object and image metadata corresponding to the projection network.
-
-
-
-   .. py:method:: foward()
-      :abstractmethod:
-
-      Abstract method that must be implemented by any subclass of this class.
-
 
 
 

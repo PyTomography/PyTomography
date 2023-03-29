@@ -1,3 +1,4 @@
+from __future__ import annotations
 import numpy as np
 import torch
 import pytomography
@@ -5,15 +6,28 @@ from pytomography.transforms import Transform
 from pytomography.metadata import ObjectMeta, ImageMeta, PSFMeta
 
 class PETPSFTransform(Transform):
-    def __init__(self, kerns, device: str = pytomography.device) -> None:
-        super(PETPSFTransform, self).__init__(device)
+    r"""im2im transform used to model the effects of PSF blurring in PET. The smoothing kernel is assumed to be independent of :math:`\theta` and :math:`z`, but is dependent on :math:`r`. 
+
+    Args:
+        kerns (Sequence[callable]): A sequence of PSF kernels applied to the Lr dimension of the image with shape [batch_size, Lr, Ltheta, Lz]
+    """
+    def __init__(self, kerns) -> None:
+        super(PETPSFTransform, self).__init__()
         self.kerns = kerns
         
     def configure(self, object_meta: ObjectMeta, image_meta: ImageMeta) -> None:
+        """Function used to initalize the transform using corresponding object and image metadata
+
+        Args:
+            object_meta (ObjectMeta): Object metadata.
+            image_meta (ImageMeta): Image metadata.
+        """
         super(PETPSFTransform, self).configure(object_meta, image_meta)
         self.construct_matrix()
         
     def construct_matrix(self):
+        """Constructs the matrix used to apply PSF blurring.
+        """
         Lr = self.image_meta.padded_shape[1]
         dr = self.object_meta.dr[0]
         R = self.image_meta.radii[0]
@@ -35,6 +49,16 @@ class PETPSFTransform(Transform):
 		image: torch.Tensor,
         mode: str = 'forward_project',
 	) -> torch.tensor:
+        """Applies PSF modeling to the PET image.
+
+        Args:
+            image (torch.tensor]): Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the image
+			norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
+            mode (str): Whether or not this is being used in forward (`'forward_project'`) or backward projection (`'back_project'`). Defaults to 'forward_project'
+
+        Returns:
+            torch.tensor: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the PSF corrected image.
+        """
         image = image.permute(0,1,3,2).unsqueeze(dim=-1)
         if mode=='forward_project':
             image = torch.matmul(self.PSF_matrix,image)

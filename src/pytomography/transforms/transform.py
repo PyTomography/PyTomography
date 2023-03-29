@@ -11,13 +11,10 @@ class Transform(metaclass=abc.ABCMeta):
     Args:
         device (str): Pytorch device used for computation
     """
-    def __init__(self, device: str = 'cpu') -> None:
+    def __init__(self) -> None:
         """Used to initialize the correction network.
-
-        Args:
-            device (str, optional): Pytorch computation device. Defaults to 'cpu'.
         """
-        self.device = pytomography.device if device is None else device
+        self.device = pytomography.device
 
     def configure(self, object_meta: ObjectMeta, image_meta: ImageMeta) -> None:
         """Configures the transform to the object/image metadata. This is done after creating the network so that it can be adjusted to the system matrix.

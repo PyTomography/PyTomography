@@ -45,17 +45,15 @@ def get_PSF_transform(
 class SPECTPSFTransform(Transform):
     """obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``PSFMeta`` parameter. 
 
-        Args:
-            psf_meta (PSFMeta): Metadata corresponding to the parameters of PSF blurring
-            device (str, optional): Pytorch device used for computation. If None, uses the default device `pytomography.device` Defaults to None.
-        """
+    Args:
+        psf_meta (PSFMeta): Metadata corresponding to the parameters of PSF blurring
+    """
     def __init__(
         self,
         psf_meta: PSFMeta, 
-        device: str = None
     ) -> None:
         """Initializer that sets corresponding psf parameters"""
-        super(SPECTPSFTransform, self).__init__(device)
+        super(SPECTPSFTransform, self).__init__()
         self.psf_meta = psf_meta
 
     def configure(
@@ -123,12 +121,11 @@ class SPECTPSFTransform(Transform):
 
         Args:
             object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
-			i (int): The projection index: used to find the corresponding angle in image space corresponding to object i
-			norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
+            i (int): The projection index: used to find the corresponding angle in image space corresponding to ``object_i``. In particular, the x axis (tensor `axis=1`) of the object is aligned with the detector at angle i.
+            norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
 
         Returns:
-            torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to
-			an PSF corrected projection.
+            torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.
         """
         z_pad_size = int((self.kernel_size-1)/2)
         object_i = pad_object_z(object_i, z_pad_size)

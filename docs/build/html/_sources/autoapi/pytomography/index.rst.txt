@@ -13,10 +13,10 @@ Subpackages
    algorithms/index.rst
    callbacks/index.rst
    io/index.rst
-   mappings/index.rst
    metadata/index.rst
    priors/index.rst
    projections/index.rst
+   transforms/index.rst
    utils/index.rst
 
 

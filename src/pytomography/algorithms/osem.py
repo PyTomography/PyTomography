@@ -30,10 +30,9 @@ class OSML():
         object_initial: torch.tensor | None = None,
         scatter: torch.tensor | float = 0,
         prior: Prior = None,
-        device: str = None,
     ) -> None:
         self.system_matrix = system_matrix
-        self.device = pytomography.device if device is None else device
+        self.device = pytomography.device
         if object_initial is None:
             self.object_prediction = torch.ones((image.shape[0], *self.system_matrix.object_meta.shape)).to(self.device)
         else:
@@ -53,6 +52,7 @@ class OSML():
         n_angles: int,
     ) -> list:
         """Returns a list of arrays; each array contains indices, corresponding to projection numbers, that are used in ordered-subsets. For example, ``get_subsets_splits(2, 6)`` would return ``[[0,2,4],[1,3,5]]``.
+        
         Args:
             n_subsets (int): number of subsets used in OSEM 
             n_angles (int): total number of projections
@@ -87,9 +87,10 @@ class OSEMOSL(OSML):
     r"""Implements the ordered subset expectation algorithm using the one-step-late method to include prior information: :math:`f_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j c_{ij} + \beta \frac{\partial V}{\partial f_r}|_{f_i=f_i^{n,m}}} \sum_j c_{ij}\frac{g_j}{\sum_i c_{ij}f_i^{n,m}+s_j}`.
 
     Args:
+        image (torch.tensor[batch_size, Lr, Ltheta, Lz]): image data :math:`g_j` to be reconstructed
         object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
-        forward_projection_net (ForwardProjectionNet): the forward projection network used to compute :math:`\sum_{i} c_{ij} a_i` where :math:`a_i` is the object being forward projected.
-        back_projection_net (BackProjectionNet): the back projection network used to compute :math:`\sum_{j} c_{ij} b_j` where :math:`b_j` is the image being back projected.
+        system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.
+        scatter (torch.tensor[batch_size, Lr, Ltheta, Lz]): estimate of scatter contribution :math:`s_j`.
         prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.
     """
     def __call__(
@@ -102,8 +103,8 @@ class OSEMOSL(OSML):
         """Performs the reconstruction using `n_iters` iterations and `n_subsets` subsets.
 
         Args:
-            n_iters (int): _description_
-            n_subsets (int): _description_
+            n_iters (int): Number of iterations
+            n_subsets (int): Number of subsets
             callback (CallBack, optional): Callback function to be evaluated after each subiteration. Defaults to None.
             delta (float, optional): Used to prevent division by zero when calculating ratio, defaults to 1e-11.
 
@@ -130,9 +131,10 @@ class OSEMBSR(OSML):
     r"""Implements the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: :math:`\tilde{f}_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j c_{ij}} \sum_j c_{ij}\frac{g_j^m}{\sum_i c_{ij}f_i^{n,m}+s_j}` followed by :math:`f_i^{n,m+1} = \tilde{f}_i^{n,m+1} \left(1-\beta\frac{\alpha_n}{\sum_j c_{ij}}\frac{\partial V}{\partial \tilde{f}_i^{n,m+1}} \right)`.
 
     Args:
+        image (torch.tensor[batch_size, Lr, Ltheta, Lz]): image data :math:`g_j` to be reconstructed
         object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
-        forward_projection_net (ForwardProjectionNet): the forward projection network used to compute :math:`\sum_{i} c_{ij} a_i` where :math:`a_i` is the object being forward projected.
-        back_projection_net (BackProjectionNet): the back projection network used to compute :math:`\sum_{j} c_{ij} b_j` where :math:`b_j` is the image being back projected.
+        system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.
+        scatter (torch.tensor[batch_size, Lr, Ltheta, Lz]): estimate of scatter contribution :math:`s_j`.
         prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.
 
     """
