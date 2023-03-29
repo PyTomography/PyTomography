@@ -2,6 +2,7 @@
 """
 from __future__ import annotations
 import warnings
+import os
 from typing import Sequence
 from pathlib import Path
 import numpy as np
@@ -14,8 +15,8 @@ from pydicom.dataset import Dataset
 import pytomography
 from pytomography.metadata import ObjectMeta, ImageMeta
 from pytomography.metadata import ObjectMeta, ImageMeta
-from pytomography.projections import ForwardProjectionNet, BackProjectionNet
-from pytomography.mappings import SPECTAttenuationNet, SPECTPSFNet
+from pytomography.projections import SystemMatrix
+from pytomography.transforms import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.priors import Prior
 from pytomography.metadata import PSFMeta
 from pytomography.algorithms import OSEMOSL
@@ -79,7 +80,8 @@ def dicom_MEW_to_data(file, type='DEW'):
 
 
 def get_HU2mu_coefficients(ds):
-    table = np.loadtxt('../../../data/HU_to_mu.csv', skiprows=1)
+    module_path = os.path.dirname(os.path.abspath(__file__))
+    table = np.loadtxt(os.path.join(module_path, '../../../data/HU_to_mu.csv'), skiprows=1)
     energies = table.T[0]
     window_upper = ds.EnergyWindowInformationSequence[0].EnergyWindowRangeSequence[0].EnergyWindowUpperLimit
     window_lower = ds.EnergyWindowInformationSequence[0].EnergyWindowRangeSequence[0].EnergyWindowLowerLimit
@@ -161,7 +163,7 @@ def get_SPECT_recon_algorithm_dicom(
     # Load attenuation data
     if atteunation_files is not None:
         CT = dicom_CT_to_data(atteunation_files, projections_file)
-        CT_net = SPECTAttenuationNet(CT.unsqueeze(dim=0))
+        CT_net = SPECTAttenuationTransform(CT.unsqueeze(dim=0))
         object_correction_nets.append(CT_net)
     # Load PSF parameters
     if use_psf:
@@ -170,11 +172,10 @@ def get_SPECT_recon_algorithm_dicom(
             # Find a more consistent way to do this
             angular_FWHM = ds[0x0055, 0x107f][0]
             psf_meta = PSFMeta(collimator_slope = angular_FWHM/(2*np.sqrt(2*np.log(2))), collimator_intercept = 0.0)
-            psf_net = SPECTPSFNet(psf_meta)
+            psf_net = SPECTPSFTransform(psf_meta)
         else:
             raise Exception('Unable to compute PSF metadata from this DICOM file')
         object_correction_nets.append(psf_net)
-    fp_net = ForwardProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta)
-    bp_net = BackProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta)
-    recon_algorithm = recon_algorithm_class(projections, fp_net, bp_net, object_initial, projections_scatter, prior)
+    system_matrix = SystemMatrix(object_correction_nets, image_correction_nets, object_meta, image_meta)
+    recon_algorithm = recon_algorithm_class(projections, system_matrix, object_initial, projections_scatter, prior)
     return recon_algorithm
