@@ -5,8 +5,8 @@ import torch.nn as nn
 import pytomography
 from pytomography.metadata import ObjectMeta, ImageMeta
 
-class MapNet(nn.Module, metaclass=abc.ABCMeta):
-    """``MapNet`` is the parent class for all mappings used in reconstruction (obj2obj, im2im, obj2im). Subclasses must implement the ``forward`` method.
+class Transform(metaclass=abc.ABCMeta):
+    """The parent class for all transforms used in reconstruction (obj2obj, im2im, obj2im). Subclasses must implement the ``__call__`` method.
 
     Args:
         device (str): Pytorch device used for computation
@@ -17,11 +17,10 @@ class MapNet(nn.Module, metaclass=abc.ABCMeta):
         Args:
             device (str, optional): Pytorch computation device. Defaults to 'cpu'.
         """
-        super(MapNet, self).__init__()
         self.device = pytomography.device if device is None else device
 
-    def initialize_network(self, object_meta: ObjectMeta, image_meta: ImageMeta) -> None:
-        """Initalizes the correction network using the object/image metadata
+    def configure(self, object_meta: ObjectMeta, image_meta: ImageMeta) -> None:
+        """Configures the transform to the object/image metadata. This is done after creating the network so that it can be adjusted to the system matrix.
 
         Args:
             object_meta (ObjectMeta): Object metadata.
@@ -31,7 +30,7 @@ class MapNet(nn.Module, metaclass=abc.ABCMeta):
         self.image_meta = image_meta
 
     @abc.abstractmethod
-    def forward(self, x: torch.tensor):
+    def __call__(self, x: torch.tensor):
         """Abstract method; must be implemented in subclasses to apply a correction to an object/image and return it
         """
         ...

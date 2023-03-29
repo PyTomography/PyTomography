@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import pytomography
 from pytomography.utils.helper_functions import rotate_detector_z, rev_cumsum, pad_object
-from pytomography.mappings import MapNet
+from pytomography.transforms import Transform
 
 
 def get_prob_of_detection_matrix(CT: torch.Tensor, dx: float) -> torch.tensor: 
@@ -18,7 +18,7 @@ def get_prob_of_detection_matrix(CT: torch.Tensor, dx: float) -> torch.tensor:
     """
 	return torch.exp(-rev_cumsum(CT * dx))
 
-class SPECTAttenuationNet(MapNet):
+class SPECTAttenuationTransform(Transform):
 	r"""obj2obj mapping used to model the effects of attenuation in SPECT.
 
 		Args:
@@ -26,11 +26,11 @@ class SPECTAttenuationNet(MapNet):
 			device (str, optional): Pytorch device used for computation. If None, uses the default device `pytomography.device` Defaults to None.
 		"""
 	def __init__(self, CT: torch.Tensor, device: str = None) -> None:
-		super(SPECTAttenuationNet, self).__init__(device)
+		super(SPECTAttenuationTransform, self).__init__(device)
 		self.CT = CT.to(self.device)
                 
 	@torch.no_grad()
-	def forward(
+	def __call__(
 		self,
 		object_i: torch.Tensor,
 		i: int, 

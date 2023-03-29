@@ -4,7 +4,7 @@ import torch.nn as nn
 import numpy as np
 import pytomography
 from pytomography.utils import get_distance, compute_pad_size, pad_object, pad_object_z, unpad_object_z, rotate_detector_z, unpad_object
-from pytomography.mappings import MapNet
+from pytomography.transforms import Transform
 from pytomography.metadata import ObjectMeta, ImageMeta, PSFMeta
 from torchvision.transforms import InterpolationMode
 
@@ -42,8 +42,8 @@ def get_PSF_transform(
     layer.weight.data = kernel.unsqueeze(dim=1).to(device)
     return layer
 
-class SPECTPSFNet(MapNet):
-    """obj2obj network used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``PSFMeta`` parameter. 
+class SPECTPSFTransform(Transform):
+    """obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``PSFMeta`` parameter. 
 
         Args:
             psf_meta (PSFMeta): Metadata corresponding to the parameters of PSF blurring
@@ -55,21 +55,21 @@ class SPECTPSFNet(MapNet):
         device: str = None
     ) -> None:
         """Initializer that sets corresponding psf parameters"""
-        super(SPECTPSFNet, self).__init__(device)
+        super(SPECTPSFTransform, self).__init__(device)
         self.psf_meta = psf_meta
 
-    def initialize_network(
+    def configure(
         self,
         object_meta: ObjectMeta,
         image_meta: ImageMeta
     ) -> None:
-        """Function used to initalize the mapping network using corresponding object and image metadata
+        """Function used to initalize the transform using corresponding object and image metadata
 
         Args:
             object_meta (ObjectMeta): Object metadata.
             image_meta (ImageMeta): Image metadata.
         """
-        super(SPECTPSFNet, self).initialize_network(object_meta, image_meta)
+        super(SPECTPSFTransform, self).configure(object_meta, image_meta)
         self.kernel_size = self.compute_kernel_size()
         self.layers = {}
         for radius in np.unique(image_meta.radii):
@@ -113,7 +113,7 @@ class SPECTPSFNet(MapNet):
         sigma = collimator_slope * distances + collimator_intercept
         return sigma
     @torch.no_grad()
-    def forward(
+    def __call__(
 		self,
 		object_i: torch.Tensor,
 		i: int, 

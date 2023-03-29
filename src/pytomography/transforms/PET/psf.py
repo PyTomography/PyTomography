@@ -1,17 +1,16 @@
 import numpy as np
 import torch
 import pytomography
-from pytomography.mappings import MapNet
+from pytomography.transforms import Transform
 from pytomography.metadata import ObjectMeta, ImageMeta, PSFMeta
 
-class PETPSFNet(MapNet):
+class PETPSFTransform(Transform):
     def __init__(self, kerns, device: str = pytomography.device) -> None:
-        super(PETPSFNet, self).__init__(device)
+        super(PETPSFTransform, self).__init__(device)
         self.kerns = kerns
         
-    def initialize_network(self, object_meta: ObjectMeta, image_meta: ImageMeta) -> None:
-        self.object_meta = object_meta
-        self.image_meta = image_meta
+    def configure(self, object_meta: ObjectMeta, image_meta: ImageMeta) -> None:
+        super(PETPSFTransform, self).configure(object_meta, image_meta)
         self.construct_matrix()
         
     def construct_matrix(self):
@@ -31,7 +30,7 @@ class PETPSFNet(MapNet):
         self.PSF_matrix = self.PSF_matrix.reshape((1,1,1,*self.PSF_matrix.shape)).to(self.device)
     
     @torch.no_grad()
-    def forward(
+    def __call__(
 		self,
 		image: torch.Tensor,
         mode: str = 'forward_project',
