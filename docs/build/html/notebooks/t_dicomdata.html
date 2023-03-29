@@ -679,7 +679,7 @@ Based on primary window with range (74.93, 87.07)keV, using conversion between h
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ct_net</span> <span class="o">=</span> <span class="n">SPECTAttenuationTransform</span><span class="p">(</span><span class="n">CT</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ct_net</span> <span class="o">=</span> <span class="n">SPECTAttenuationTransform</span><span class="p">(</span><span class="n">CT</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -694,7 +694,7 @@ Based on primary window with range (74.93, 87.07)keV, using conversion between h
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file_NM</span><span class="p">)</span>
 <span class="n">angular_FWHM</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="mh">0x0055</span><span class="p">,</span> <span class="mh">0x107f</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
 <span class="n">psf_meta</span> <span class="o">=</span> <span class="n">PSFMeta</span><span class="p">(</span><span class="n">collimator_slope</span> <span class="o">=</span> <span class="n">angular_FWHM</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">))),</span> <span class="n">collimator_intercept</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)</span>
-<span class="n">psf_net</span> <span class="o">=</span> <span class="n">SPECTPSFTransform</span><span class="p">(</span><span class="n">psf_meta</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+<span class="n">psf_net</span> <span class="o">=</span> <span class="n">SPECTPSFTransform</span><span class="p">(</span><span class="n">psf_meta</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -704,7 +704,7 @@ Based on primary window with range (74.93, 87.07)keV, using conversion between h
 <li><p>The backward method <code class="docutils literal notranslate"><span class="pre">system_matrix.backward(g)</span></code> corresponds to <span class="math notranslate nohighlight">\(H^T g\)</span></p></li>
 </ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">system_matrix</span> <span class="o">=</span> <span class="n">SystemMatrix</span><span class="p">(</span>
@@ -717,7 +717,7 @@ Based on primary window with range (74.93, 87.07)keV, using conversion between h
 </div>
 <p>We’ll use these FP/BP nets to create the reconstruction algorithm:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reconstruction_algorithm</span> <span class="o">=</span> <span class="n">OSEMOSL</span><span class="p">(</span>
@@ -729,7 +729,7 @@ Based on primary window with range (74.93, 87.07)keV, using conversion between h
 </div>
 <p>Get the reconstructed object</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reconstructed_object</span> <span class="o">=</span> <span class="n">reconstruction_algorithm</span><span class="p">(</span><span class="n">n_iters</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">n_subsets</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
@@ -738,7 +738,7 @@ Based on primary window with range (74.93, 87.07)keV, using conversion between h
 </div>
 <p>Plot the reconstructed object next to the CT. * The reconstructed object has units of counts, and would need to be adjusted by a proportionality factor if one wants to obtain units of MBq</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
