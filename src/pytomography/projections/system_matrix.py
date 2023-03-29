@@ -12,20 +12,19 @@ class SystemMatrix():
     r"""Update this
     
     Args:
-            obj2obj_transforms (list): Sequence of object mappings that occur before forward projection.
-            im2im_transforms (list): Sequence of image mappings that occur after forward projection.
+            obj2obj_transforms (Sequence[Transform]): Sequence of object mappings that occur before forward projection.
+            im2im_transforms (Sequence[Transform]): Sequence of image mappings that occur after forward projection.
             object_meta (ObjectMeta): Object metadata.
             image_meta (ImageMeta): Image metadata.
-            device (str, optional): Pytorch device used for computation. If None, uses the default device `pytomography.device` Defaults to None."""
+    """
     def __init__(
         self,
         obj2obj_transforms: list[Transform],
         im2im_transforms: list[Transform],
         object_meta: ObjectMeta,
         image_meta: ImageMeta,
-        device: str = None
     ) -> None:
-        self.device = pytomography.device if device is None else device
+        self.device = pytomography.device
         self.obj2obj_transforms = obj2obj_transforms
         self.im2im_transforms = im2im_transforms
         self.object_meta = object_meta
@@ -49,8 +48,7 @@ class SystemMatrix():
 
         Args:
             object (torch.tensor[batch_size, Lx, Ly, Lz]): The object to be forward projected
-            angle_subset (list, optional): Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None,
-            which assumes all angles are used.
+            angle_subset (list, optional): Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
 
         Returns:
             torch.tensor[batch_size, Ltheta, Lx, Lz]: Forward projected image where Ltheta is specified by `self.image_meta` and `angle_subset`.

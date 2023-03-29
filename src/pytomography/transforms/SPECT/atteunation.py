@@ -19,14 +19,13 @@ def get_prob_of_detection_matrix(CT: torch.Tensor, dx: float) -> torch.tensor:
 	return torch.exp(-rev_cumsum(CT * dx))
 
 class SPECTAttenuationTransform(Transform):
-	r"""obj2obj mapping used to model the effects of attenuation in SPECT.
+	r"""obj2obj transform used to model the effects of attenuation in SPECT.
 
 		Args:
 			CT (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{cm}^{-1}}` at the photon energy corresponding to the particular scan
-			device (str, optional): Pytorch device used for computation. If None, uses the default device `pytomography.device` Defaults to None.
 		"""
-	def __init__(self, CT: torch.Tensor, device: str = None) -> None:
-		super(SPECTAttenuationTransform, self).__init__(device)
+	def __init__(self, CT: torch.Tensor) -> None:
+		super(SPECTAttenuationTransform, self).__init__()
 		self.CT = CT.to(self.device)
                 
 	@torch.no_grad()

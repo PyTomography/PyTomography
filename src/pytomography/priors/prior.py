@@ -6,7 +6,7 @@ import abc
 import pytomography
 from pytomography.metadata import ObjectMeta, ImageMeta
 
-class Prior(nn.Module):
+class Prior():
     r"""Abstract class for implementation of prior :math:`V(f)` where :math:`V` is from the log-posterior probability :math:`\ln L(\tilde{f}, f) - \beta V(f)`. Any function inheriting from this class should implement a ``foward`` method that computes the tensor :math:`\frac{\partial V}{\partial f_r}` where :math:`f` is an object tensor.
     
     Args:
@@ -14,11 +14,10 @@ class Prior(nn.Module):
             device (float): Pytorch device used for computation. Defaults to 'cpu'.
     """
     @abc.abstractmethod
-    def __init__(self, beta: float, device : str = None):
-        super(Prior, self).__init__()
+    def __init__(self, beta: float):
         self.beta = beta
         self.beta_scale_factor = 1
-        self.device = pytomography.device if device is None else device
+        self.device = pytomography.device
 
     def set_object_meta(self, object_meta: ObjectMeta) -> None:
         """Sets object metadata parameters.
@@ -45,7 +44,7 @@ class Prior(nn.Module):
         self.object = object
 
     @abc.abstractmethod
-    def forward(self):
+    def __call__(self):
         """Abstract method to compute prior based on the ``self.object`` attribute.
         """
         ...

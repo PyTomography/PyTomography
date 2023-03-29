@@ -20,15 +20,14 @@ class NearestNeighbourPrior(Prior):
         self,
         beta: float,
         phi: Callable, 
-        device: str = None, 
         **kwargs
     ) -> None:
-        super(NearestNeighbourPrior, self).__init__(beta, device)
+        super(NearestNeighbourPrior, self).__init__(beta)
         self.phi = phi
         self.kwargs = kwargs
 
     @torch.no_grad()
-    def forward(self) -> torch.tensor:
+    def __call__(self) -> torch.tensor:
         r"""Computes the prior on ``self.object``
 
         Returns:
