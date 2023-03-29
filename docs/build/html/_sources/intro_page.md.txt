@@ -1,6 +1,18 @@
 # PyTomography
 
-PyTomography is a flexible, high performance python package for open source medical image reconstruction. It draws heavily from the functions and classes of PyTorch, permitting fast GPU-accelerated operations. It's main purposes are (i) fast reconstruction of imaging data and (ii) development of novel reconstruction algorithms. Here is an example of reconstruction on a SIMIND projection output file.
+<p style='text-align: justify;'>
+PyTomography is a flexible, high performance, open source package developed in Python&reg for medical image reconstruction. It uses the functions and classes of PyTorch to enable GPU-accelerated operations. 
+
+## Objectives
+PyTomography aims at:
+1.  Fast reconstruction of medical imaging data. 
+2.  Development of novel reconstruction algorithms. 
+
+## Currently supported medical imaging modalities
+* Single Photon Computed Emission Tomography (SPECT)
+
+# SPECT reconstruction example
+In this example we have generated simulated projections using the XCAT phantom and the SIMIND Monte Carlo code. We apply scatter and attenuation correction to make the images quantitative. We also correct for the blurring of the imaging system. The data is reconstructed using the relative difference prior.
 
 ```
 osem_net = get_SPECT_recon_algorithm_simind(

@@ -1,7 +1,7 @@
 # PyTomography
 
 <p style='text-align: justify;'>
-PyTomography is an open source flexible and high performance package developed in Python&reg for medical image reconstruction. It draws heavily from the functions and classes of PyTorch, permitting fast GPU-accelerated operations. 
+PyTomography is a flexible, high performance, open source package developed in Python&reg for medical image reconstruction. It uses the functions and classes of PyTorch to enable GPU-accelerated operations. 
 
 ## Objectives
 PyTomography aims at:

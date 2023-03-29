@@ -24,6 +24,7 @@ Functions
    pytomography.utils.helper_functions.unpad_image
    pytomography.utils.helper_functions.pad_object_z
    pytomography.utils.helper_functions.unpad_object_z
+   pytomography.utils.helper_functions.get_object_nearest_neighbour
 
 
 
@@ -180,5 +181,8 @@ Functions
 
    :returns: Unpadded object tensor.
    :rtype: torch.Tensor[batch_size, Lx, Ly, Lz]
+
+
+.. py:function:: get_object_nearest_neighbour(object, shifts)
 
 
