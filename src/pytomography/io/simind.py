@@ -7,8 +7,8 @@ import torch.nn as nn
 import os
 import pytomography
 from pytomography.metadata import ObjectMeta, ImageMeta
-from pytomography.projections import ForwardProjectionNet, BackProjectionNet
-from pytomography.mappings import SPECTAttenuationNet, SPECTPSFNet
+from pytomography.projections import SystemMatrix
+from pytomography.transforms import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.priors import Prior
 from pytomography.callbacks import CallBack
 from pytomography.metadata import PSFMeta
@@ -149,12 +149,11 @@ def get_SPECT_recon_algorithm_simind(
     object_correction_nets = []
     image_correction_nets = []
     if CT_header is not None:
-        CT_net = SPECTAttenuationNet(CT.unsqueeze(dim=0))
+        CT_net = SPECTAttenuationTransform(CT.unsqueeze(dim=0))
         object_correction_nets.append(CT_net)
     if psf_meta is not None:
-        psf_net = SPECTPSFNet(psf_meta)
+        psf_net = SPECTPSFTransform(psf_meta)
         object_correction_nets.append(psf_net)
-    fp_net = ForwardProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta)
-    bp_net = BackProjectionNet(object_correction_nets, image_correction_nets, object_meta, image_meta)
-    recon_algorithm = recon_algorithm_class(projections, fp_net, bp_net, object_initial, projections_scatter, prior)
+    system_matrix = SystemMatrix(object_correction_nets, image_correction_nets, object_meta, image_meta)
+    recon_algorithm = recon_algorithm_class(projections, system_matrix, object_initial, projections_scatter, prior)
     return recon_algorithm
