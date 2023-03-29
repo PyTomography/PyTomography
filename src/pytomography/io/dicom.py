@@ -81,7 +81,7 @@ def dicom_MEW_to_data(file, type='DEW'):
 
 def get_HU2mu_coefficients(ds):
     module_path = os.path.dirname(os.path.abspath(__file__))
-    table = np.loadtxt(os.path.join(module_path, '../../../data/HU_to_mu.csv'), skiprows=1)
+    table = np.loadtxt(os.path.join(module_path, '../data/HU_to_mu.csv'), skiprows=1)
     energies = table.T[0]
     window_upper = ds.EnergyWindowInformationSequence[0].EnergyWindowRangeSequence[0].EnergyWindowUpperLimit
     window_lower = ds.EnergyWindowInformationSequence[0].EnergyWindowRangeSequence[0].EnergyWindowLowerLimit

@@ -38,5 +38,3 @@ doc = [
   "ipykernel"
 ]
 
-[project.package_data]
-pytomography = ["data/*.csv"]
