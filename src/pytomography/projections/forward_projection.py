@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 from pytomography.utils import rotate_detector_z, pad_object, unpad_image
 from .projection import ProjectionNet
