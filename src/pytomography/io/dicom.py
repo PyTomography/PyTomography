@@ -3,6 +3,7 @@
 from __future__ import annotations
 import warnings
 import os
+import collections.abc
 from typing import Sequence
 from pathlib import Path
 import numpy as np
@@ -19,10 +20,10 @@ from pytomography.projections import SystemMatrix
 from pytomography.transforms import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.priors import Prior
 from pytomography.metadata import PSFMeta
-from pytomography.algorithms import OSEMOSL
+from pytomography.algorithms import OSEMOSL, OSML
 
-def get_radii_and_angles(ds: Dataset):
-    """Gets projections with corresponding radii and angles corresponding to projection data from a DICOM dataset.
+def get_radii_and_angles(ds: Dataset) -> Sequence[torch.Tensor, np.array, np.array]:
+    """Gets projections with corresponding radii and angles corresponding to projection data from a DICOM file.
 
     Args:
         ds (Dataset): pydicom dataset object.
@@ -35,11 +36,18 @@ def get_radii_and_angles(ds: Dataset):
     radii = np.array([])
     angles = np.array([])
     for detector in np.unique(detectors):
-        radial_positions_detector = ds.DetectorInformationSequence[detector-1].RadialPosition
-        n_angles = len(radial_positions_detector)
-        radii = np.concatenate([radii, radial_positions_detector])
+        n_angles = ds.RotationInformationSequence[0].NumberOfFramesInRotation
         delta_angle = ds.RotationInformationSequence[0].AngularStep
-        angles = np.concatenate([angles, ds.DetectorInformationSequence[detector-1].StartAngle + delta_angle*np.arange(n_angles)])
+        try:
+            start_angle = ds.DetectorInformationSequence[detector-1].StartAngle
+        except:
+            start_angle = ds.RotationInformationSequence[0].StartAngle
+        angles = np.concatenate([angles, start_angle + delta_angle*np.arange(n_angles)])
+        radial_positions_detector = ds.DetectorInformationSequence[detector-1].RadialPosition
+        if not isinstance(radial_positions_detector, collections.abc.Sequence):
+            radial_positions_detector = n_angles * [radial_positions_detector]
+        radii = np.concatenate([radii, radial_positions_detector])
+        
     angles = (angles + 180)%360 # to detector angle convention
     sorted_idxs = np.argsort(angles)
     projections = np.transpose(pixel_array[:,sorted_idxs][:,:,::-1], (0,1,3,2)).astype(np.float32)
@@ -48,7 +56,9 @@ def get_radii_and_angles(ds: Dataset):
              angles[sorted_idxs],
              radii[sorted_idxs]/10)
 
-def dicom_projections_to_data(file):
+def dicom_projections_to_data(
+    file: str
+    ) -> Sequence[ObjectMeta, ImageMeta, torch.Tensor]:
     """Obtains ObjectMeta, ImageMeta, and projections from a .dcm file.
 
     Args:
@@ -68,6 +78,8 @@ def dicom_projections_to_data(file):
     image_meta = ImageMeta(object_meta, angles, radii)
     return object_meta, image_meta, projections
 
+
+# REMOVE THIS FUNCTION
 def dicom_MEW_to_data(file, type='DEW'):
     ds = pydicom.read_file(file)
     if type=='DEW':
@@ -79,12 +91,24 @@ def dicom_MEW_to_data(file, type='DEW'):
         return object_meta, image_meta, projections_primary, projections_scatter
 
 
-def get_HU2mu_coefficients(ds):
+def get_HU2mu_coefficients(
+    ds: Dataset,
+    photopeak_window_index: int = 0
+    ) -> np.array:
+    """Obtains the four coefficients required for the bilinear transformation between Hounsfield Units and linear attenuation coefficient at the photon energy corresponding to the primary window of the given dataset.
+
+    Args:
+        ds (Dataset): DICOM data set of projection data
+        primary_window_index (int, optional): The energy window corresponding to the photopeak. Defaults to 0.
+
+    Returns:
+        np.array: Array of length 4 containins the 4 coefficients required for the bilinear transformation.
+    """
     module_path = os.path.dirname(os.path.abspath(__file__))
     table = np.loadtxt(os.path.join(module_path, '../data/HU_to_mu.csv'), skiprows=1)
     energies = table.T[0]
-    window_upper = ds.EnergyWindowInformationSequence[0].EnergyWindowRangeSequence[0].EnergyWindowUpperLimit
-    window_lower = ds.EnergyWindowInformationSequence[0].EnergyWindowRangeSequence[0].EnergyWindowLowerLimit
+    window_upper = ds.EnergyWindowInformationSequence[photopeak_window_index].EnergyWindowRangeSequence[0].EnergyWindowUpperLimit
+    window_lower = ds.EnergyWindowInformationSequence[photopeak_window_index].EnergyWindowRangeSequence[0].EnergyWindowLowerLimit
     energy = (window_lower + window_upper)/2
     index = np.argmin(np.abs(energies-energy))
     print(f'Based on primary window with range ({window_lower:.2f}, {window_upper:.2f})keV, using conversion between hounsfield to linear attenuation coefficient based on radionuclide with emission energy {table[index,0]}keV')
@@ -92,14 +116,43 @@ def get_HU2mu_coefficients(ds):
     
     
 # conversion from https://www.sciencedirect.com/science/article/pii/S0969804308000067
-def HU_to_mu(HU, a1, b1, a2, b2):
-    mu = np.piecewise(HU, [HU <= 0, HU > 0],
-                 [lambda x: a1*x + b1,
-                  lambda x: a2*x + b2])
-    mu[mu<0] = 0
-    return mu
+def bilinear_transform(
+    arr: np.array,
+    a1: float,
+    b1: float,
+    a2:float ,
+    b2:float
+    ) -> np.array:
+    """Converts an array of Hounsfield Units into linear attenuation coefficient using the bilinear transformation :math:`f(x)=a_1x+b_1` for positive :math:`x` and :math:`f(x)=a_2x+b_2` for negative :math:`x`.
 
-def get_affine_spect(ds):
+    Args:
+        arr (np.array): Array to be transformed using bilinear transformation
+        a1 (float): Bilinear slope for negative input values
+        b1 (float): Bilinear intercept for negative input values
+        a2 (float): Bilinear slope for positive input values
+        b2 (float): Bilinear intercept for positive input values
+
+    Returns:
+        np.array: Transformed array.
+    """
+    arr_transform = np.piecewise(
+        arr,
+        [arr <= 0, arr > 0],
+        [lambda x: a1*x + b1,
+        lambda x: a2*x + b2]
+    )
+    arr_transform[arr_transform<0] = 0
+    return arr_transform
+
+def get_affine_spect(ds: Dataset) -> np.array:
+    """Computes an affine matrix corresponding the coordinate system of a SPECT DICOM file.
+
+    Args:
+        ds (Dataset): DICOM dataset of projection data
+
+    Returns:
+        np.array: Affine matrix.
+    """
     Sx, Sy, Sz = ds.DetectorInformationSequence[0].ImagePositionPatient
     dx = dy = ds.PixelSpacing[0]
     dz = ds.PixelSpacing[1]
@@ -112,7 +165,16 @@ def get_affine_spect(ds):
     M[:,3] = np.array([Sx, Sy, Sz, 1])
     return M
 
-def get_affine_CT(ds, max_z):
+def get_affine_CT(ds: Dataset, max_z: float):
+    """Computes an affine matrix corresponding the coordinate system of a CT DICOM file. Note that since CT scans consist of many independent DICOM files, ds corresponds to an individual one of these files. This is why the maximum z value is also required (across all seperate independent DICOM files).
+
+    Args:
+        ds (Dataset): DICOM dataset of CT data
+        max_z (float): Maximum value of z across all axial slices that make up the CT scan
+
+    Returns:
+        np.array: Affine matrix corresponding to CT scan.
+    """
     M_CT = np.zeros((4,4))
     M_CT[0:3, 0] = np.array(ds.ImageOrientationPatient[0:3])*ds.PixelSpacing[0]
     M_CT[0:3, 1] = np.array(ds.ImageOrientationPatient[3:])*ds.PixelSpacing[1]
@@ -122,7 +184,21 @@ def get_affine_CT(ds, max_z):
     M_CT[3, 3] = 1
     return M_CT
 
-def dicom_CT_to_data(files_CT, file_NM=None):
+def dicom_CT_to_data(
+    files_CT: Sequence[str],
+    file_NM: str,
+    photopeak_window_index: int = 0
+    ) -> torch.Tensor:
+    """Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography. This is primarily intended for opening pre-reconstructed CT data such that it can be used as an attenuation map during PET/SPECT reconstruction.
+
+    Args:
+        files_CT (Sequence[str]): List of all files corresponding to an individual CT scan
+        file_NM (str): File corresponding to raw PET/SPECT data (required to align CT with projections)
+        photopeak_window_index (int, optional): Index corresponding to photopeak in projection data. Defaults to 0.
+
+    Returns:
+        torch.Tensor: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.
+    """
     ds_NM = pydicom.read_file(file_NM)
     CT_scan = []
     slice_locs = []
@@ -138,19 +214,37 @@ def dicom_CT_to_data(files_CT, file_NM=None):
     M = npl.inv(M_CT) @ M_NM
     CT_resampled = affine_transform(CT_scan, M[0:3,0:3], M[:3,3], output_shape=(ds_NM.Rows, ds_NM.Rows, ds_NM.Columns) )
     CT_HU = CT_resampled + ds.RescaleIntercept
-    CT = HU_to_mu(CT_HU, *get_HU2mu_coefficients(ds_NM))
+    CT = bilinear_transform(CT_HU, *get_HU2mu_coefficients(ds_NM, photopeak_window_index))
     CT = torch.tensor(CT[::-1,::-1,::-1].copy())
     return CT
 
+# TODO: Update this function so that it includes photopeak energy window index, and psf should be computed using data tables corresponding to manufactorer data sheets.
 def get_SPECT_recon_algorithm_dicom(
     projections_file: str,
     atteunation_files: Sequence[str] = None,
     use_psf: bool = False,
     scatter_type: str|None = None,
     prior: Prior = None,
-    recon_algorithm_class: nn.Module = OSEMOSL,
+    recon_algorithm_class: OSML = OSEMOSL,
     object_initial: torch.Tensor | None = None,
-) -> nn.Module:
+) -> OSML:
+    """Helper function to quickly create reconstruction algorithm given SPECT DICOM files and CT dicom files.
+
+    Args:
+        projections_file (str): DICOM filepath corresponding to SPECT data.
+        atteunation_files (Sequence[str], optional): DICOM filepaths corresponding to CT data. If None, then atteunation correction is not used. Defaults to None.
+        use_psf (bool, optional): Whether or not to use PSF modeling. Defaults to False.
+        scatter_type (str | None, optional): Type of scatter correction used in reconstruction. Defaults to None.
+        prior (Prior, optional): Bayesian Prior used in reconstruction algorithm. Defaults to None.
+        recon_algorithm_class (nn.Module, optional): Type of reconstruction algorithm used. Defaults to OSEMOSL.
+        object_initial (torch.Tensor | None, optional): Initial object used in reconstruction. If None, defaults to all ones. Defaults to None.
+
+    Raises:
+        Exception: If not able to compute relevant PSF parameters from DICOM data and corresponding data tables.
+
+    Returns:
+        OSML: Reconstruction algorithm used.
+    """
     # Get projections/scatter estimate
     if scatter_type==None:
         object_meta, image_meta, projections = dicom_projections_to_data(projections_file)
