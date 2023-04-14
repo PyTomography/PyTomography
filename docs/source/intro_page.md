@@ -6,7 +6,7 @@ PyTomography is a flexible, high performance, open source package developed in P
 ## Objectives
 PyTomography aims at:
 1.  Fast reconstruction of medical imaging data. 
-2.  Development of novel reconstruction algorithms. 
+2.  Development of novel reconstruction algorithms.
 
 ## Currently supported medical imaging modalities
 * Single Photon Computed Emission Tomography (SPECT)
