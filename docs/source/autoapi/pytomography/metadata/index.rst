@@ -1,0 +1,83 @@
+:py:mod:`pytomography.metadata`
+===============================
+
+.. py:module:: pytomography.metadata
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   metadata/index.rst
+
+
+Package Contents
+----------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.metadata.ObjectMeta
+   pytomography.metadata.ImageMeta
+   pytomography.metadata.PSFMeta
+
+
+
+
+.. py:class:: ObjectMeta(dr, shape)
+
+   Metadata for object space
+
+   :param dr: List of 3 elements specifying voxel dimensions in cm.
+   :type dr: list[float]
+   :param shape: List of 3 elements [Lx, Ly, Lz] specifying the length of each dimension.
+   :type shape: list[int]
+
+   .. py:method:: compute_padded_shape()
+
+      Computes the padded shape of an object required when rotating the object (to avoid anything getting cut off).
+
+      :returns: Padded dimensions of the object.
+      :rtype: list
+
+
+
+.. py:class:: ImageMeta(object_meta, angles, radii=None)
+
+   Metadata for image space
+
+   :param object_meta: Corresponding object space metadata
+   :type object_meta: ObjectMeta
+   :param angles: Specifies the detector angles for all projections in image space
+   :type angles: list
+   :param radii: Specifies the radial distance of the detector corresponding to each angle in `angles`; only required in certain cases (i.e. PSF correction). Defaults to None.
+   :type radii: list, optional
+
+   .. py:method:: compute_padded_shape()
+
+      Computes the padded shape of an object required when rotating the object (to avoid anything getting cut off).
+
+      :returns: Padded dimensions of the object.
+      :rtype: list
+
+
+
+.. py:class:: PSFMeta(collimator_slope, collimator_intercept, kernel_dimensions = '2D', max_sigmas = 3)
+
+   Metadata for PSF correction. PSF blurring is implemented using Gaussian blurring with
+   :math:`\sigma(d) = ad + b` where :math:`a` is the collimator slope, :math:`b` is the collimator intercept, and :math:`d` is the distance from a plane in object space to a detector aligned parallel with the plane: as such, :math:`\frac{1}{\sigma\sqrt{2\pi}}e^{-r^2/(2\sigma(d)^2)}` is the point spread function where :math:`r` is the radial distance between some point in image space and the corresponding point in object space. Blurring is implemented using convolutions with a specified kernel size.
+
+   :param collimator_slope: The collimator slope used for blurring (dimensionless units)
+   :type collimator_slope: float
+   :param collimator_intercept: The collimator intercept used for blurring. Should be in units of cm.
+   :type collimator_intercept: float
+   :param kernel_dimensions: If '1D', blurring is done seperately in each axial plane (so only a 1 dimensional convolution is used). If '2D', blurring is mixed between axial planes (so a 2D convolution is used). Defaults to '2D'.
+   :type kernel_dimensions: str
+   :param max_sigmas: This is the number of sigmas to consider in PSF correction. PSF are modelled by Gaussian functions whose extension is infinite, so we need to crop the Gaussian when computing this operation numerically. Note that the blurring width is depth dependent, but the kernel size used for PSF blurring is constant. As such, this parameter is used to fix the kernel size such that all locations have at least ``max_sigmas`` of a kernel size.
+   :type max_sigmas: float, optional
+
+
