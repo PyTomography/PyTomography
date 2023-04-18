@@ -118,7 +118,7 @@ class SystemMatrix():
         object = unpad_object(object)
         # Apply prior 
         if prior:
-            norm_constant += prior()
+            norm_constant += prior.compute_gradient()
         if normalize:
             object = (object+delta)/(norm_constant + delta)
         # Return
