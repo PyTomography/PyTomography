@@ -171,7 +171,7 @@ class OSEMBSR(OSML):
                 # Apply BSREM after all subsets in this iteration has been ran
                 if self.prior:
                     self.prior.set_object(torch.clone(self.object_prediction))
-                    self.object_prediction = self.object_prediction * (1 - relaxation_function(j)*self.prior() / norm_factor)
+                    self.object_prediction = self.object_prediction * (1 - relaxation_function(j)*self.prior.compute_gradient() / norm_factor)
                     self.object_prediction[self.object_prediction<=0] = 0
                 # Run any callbacks
                 if callback:

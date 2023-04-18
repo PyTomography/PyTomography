@@ -44,7 +44,7 @@ class Prior():
         self.object = object
 
     @abc.abstractmethod
-    def __call__(self):
-        """Abstract method to compute prior based on the ``self.object`` attribute.
+    def compute_gradient(self):
+        """Abstract method to compute the gradient of the prior based on the ``self.object`` attribute.
         """
         ...
