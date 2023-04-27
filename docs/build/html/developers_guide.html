@@ -2,10 +2,12 @@
 <html class="no-js" lang="en">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" />
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="prev" title="Tutorials" href="usage.html" />
 
-    <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 --><title>Python Module Index - PyTomography 0.4.1 documentation</title>
-<link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
+        <title>Developer’s Guide - PyTomography 0.4.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="_static/graphviz.css" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
@@ -153,10 +155,11 @@
   <input type="hidden" name="area" value="default">
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
-  <ul>
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="notebooks/conventions.html">Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Tutorials</a></li>
-<li class="toctree-l1"><a class="reference internal" href="developers_guide.html">Developer’s Guide</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Developer’s Guide</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="autoapi/index.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2 has-children"><a class="reference internal" href="autoapi/pytomography/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l3 has-children"><a class="reference internal" href="autoapi/pytomography/algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -226,7 +229,8 @@
           <span>Back to top</span>
         </a>
         <div class="content-icon-container">
-          <div class="theme-toggle-container theme-toggle-content">
+          
+<div class="theme-toggle-container theme-toggle-content">
             <button class="theme-toggle">
               <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
               <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
@@ -240,170 +244,19 @@
           </label>
         </div>
         <article role="main">
-          
-<section class="domainindex-section">
-  <h1>Python Module Index</h1>
-  <div class="domainindex-jumpbox"><a href="#cap-p"><strong>p</strong></a></div>
+          <section id="developer-s-guide">
+<h1>Developer’s Guide<a class="headerlink" href="#developer-s-guide" title="Permalink to this heading">#</a></h1>
+<p>The PyTomography team highly encourages contributions from the community…in fact, contributions from the imaging community are essential for creating the best possible library! If you wish to make a contribution, please use the following checklist:</p>
+<ol class="arabic simple">
+<li><p>Create an issue on the <a class="reference external" href="https://github.com/qurit/PyTomography/issues">PyTomography Github Issues page</a>. Describe what it is you intend to implement/fix.</p></li>
+<li><p>Once you create the issue, create a corresponding branch for the issue (you should be able to do so on your issue page under “Development” on the right hand side)</p></li>
+<li><p>On your local computer, clone the github repository, Then use the commands <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">fetch</span> <span class="pre">origin</span></code> followed by <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">&lt;branchname&gt;</span></code> where <code class="docutils literal notranslate"><span class="pre">&lt;branchname&gt;</span></code> is replaced by the corresponding name of the branch on GitHub.</p></li>
+<li><p>Make any changes corresponding to the issue you created. If these changes modify essential functionality, please be sure to test them before proceeding.</p></li>
+<li><p>Once the changes are made, use <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">add</span> <span class="pre">--all</span></code> followed by <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span> <span class="pre">-m</span> <span class="pre">&lt;message&gt;</span></code> where <code class="docutils literal notranslate"><span class="pre">&lt;message&gt;</span></code> is replaced by a <em>present tense</em> statement about the changes you made. For example, if you changed the name of a function from <code class="docutils literal notranslate"><span class="pre">do_this()</span></code> to <code class="docutils literal notranslate"><span class="pre">do_that()</span></code>, the message would be something along the lines of <code class="docutils literal notranslate"><span class="pre">rename</span> <span class="pre">do_this()</span> <span class="pre">to</span> <span class="pre">do_that()</span></code>. Then use <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span></code> to push the changes from your branch to GitHub.</p></li>
+<li><p>Create a pull request for your changes. Do this by going to <a class="reference external" href="https://github.com/qurit/PyTomography/pulls">the pull request page</a> and choosing “New Pull Request”. <strong>This is important</strong>: make sure you request to merge from your branch to <strong>the development branch</strong>. This means that the “head ref” (right hand side) should be your branch, and the “base ref” (left hand side) should be the development branch.</p></li>
+<li><p>Someone at the PyTomography team will then review the changes and be in contact via comments on the GitHub page. If the changes are accepted, they’ll be merged into the development branch, and then eventually included in the next release of PyTomography!</p></li>
+</ol>
 </section>
-<table class="domainindex-table">
-  <tr class="pcap">
-    <td></td><td>&#160;</td><td></td>
-  </tr>
-  <tr class="cap" id="cap-p">
-    <td></td><td><strong>p</strong></td><td></td>
-  </tr>
-  <tr>
-    <td><img src="_static/minus.png" class="toggler"
-              id="toggle-1" style="display: none" alt="-" /></td>
-    <td>
-        <a href="autoapi/pytomography/index.html#module-pytomography"><code class="xref">pytomography</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/algorithms/index.html#module-pytomography.algorithms"><code class="xref">pytomography.algorithms</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/algorithms/osem/index.html#module-pytomography.algorithms.osem"><code class="xref">pytomography.algorithms.osem</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/callbacks/index.html#module-pytomography.callbacks"><code class="xref">pytomography.callbacks</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/callbacks/callback/index.html#module-pytomography.callbacks.callback"><code class="xref">pytomography.callbacks.callback</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/io/index.html#module-pytomography.io"><code class="xref">pytomography.io</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/io/dicom/index.html#module-pytomography.io.dicom"><code class="xref">pytomography.io.dicom</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/io/simind/index.html#module-pytomography.io.simind"><code class="xref">pytomography.io.simind</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/metadata/index.html#module-pytomography.metadata"><code class="xref">pytomography.metadata</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/metadata/metadata/index.html#module-pytomography.metadata.metadata"><code class="xref">pytomography.metadata.metadata</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/priors/index.html#module-pytomography.priors"><code class="xref">pytomography.priors</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/priors/nearest_neighbour/index.html#module-pytomography.priors.nearest_neighbour"><code class="xref">pytomography.priors.nearest_neighbour</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/priors/prior/index.html#module-pytomography.priors.prior"><code class="xref">pytomography.priors.prior</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/projections/index.html#module-pytomography.projections"><code class="xref">pytomography.projections</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/projections/system_matrix/index.html#module-pytomography.projections.system_matrix"><code class="xref">pytomography.projections.system_matrix</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/transforms/index.html#module-pytomography.transforms"><code class="xref">pytomography.transforms</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/transforms/PET/index.html#module-pytomography.transforms.PET"><code class="xref">pytomography.transforms.PET</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/transforms/PET/attenuation/index.html#module-pytomography.transforms.PET.attenuation"><code class="xref">pytomography.transforms.PET.attenuation</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/transforms/PET/psf/index.html#module-pytomography.transforms.PET.psf"><code class="xref">pytomography.transforms.PET.psf</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/transforms/SPECT/index.html#module-pytomography.transforms.SPECT"><code class="xref">pytomography.transforms.SPECT</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/transforms/SPECT/atteunation/index.html#module-pytomography.transforms.SPECT.atteunation"><code class="xref">pytomography.transforms.SPECT.atteunation</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/transforms/SPECT/psf/index.html#module-pytomography.transforms.SPECT.psf"><code class="xref">pytomography.transforms.SPECT.psf</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/transforms/transform/index.html#module-pytomography.transforms.transform"><code class="xref">pytomography.transforms.transform</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/utils/index.html#module-pytomography.utils"><code class="xref">pytomography.utils</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="autoapi/pytomography/utils/helper_functions/index.html#module-pytomography.utils.helper_functions"><code class="xref">pytomography.utils.helper_functions</code></a></td><td>
-    <em></em></td>
-  </tr>
-</table>
 
         </article>
       </div>
@@ -411,7 +264,17 @@
         
         <div class="related-pages">
           
-          
+          <a class="prev-page" href="usage.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Tutorials</div>
+                
+              </div>
+            </a>
         </div>
         <div class="bottom-of-page">
           <div class="left-details">
