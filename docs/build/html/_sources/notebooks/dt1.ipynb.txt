@@ -388,7 +388,6 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "image = torch.zeros((1,len(angles),128,128))\n",
     "for i,angle in enumerate(angles):\n",
     "    object_i = rotate_detector_z(obj,angle)\n",
     "    image[:,i] = object_i.sum(axis=1)"

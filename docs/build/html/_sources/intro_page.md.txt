@@ -1,18 +1,17 @@
 # PyTomography
 
 <p style='text-align: justify;'>
-PyTomography is a flexible, high performance, open source package developed in Python&reg for medical image reconstruction. It uses the functions and classes of PyTorch to enable GPU-accelerated operations.
+PyTomography is a flexible, high performance, open source package developed in Python&reg for medical image reconstruction. It uses the functions and classes of PyTorch to enable GPU-accelerated operations. The main focuses are
 
-## Objectives
-PyTomography aims at:
 1.  Fast reconstruction of medical imaging data. 
-2.  Development of novel reconstruction algorithms. 
+2.  Providing a framework for the development of novel reconstruction algorithms.
 
-## Currently supported medical imaging modalities
+## Currently Supported Modalities
 * Single Photon Computed Emission Tomography (SPECT)
+* Positron Emission Tomography (PET) (2D, no scatter). Implementation of full 3D PET with scatter is currently being developed.
 
-# SPECT reconstruction example
-In this example we have generated simulated projections using the XCAT phantom and the SIMIND Monte Carlo code. We apply scatter and attenuation correction to make the images quantitative. We also correct for the blurring of the imaging system. The data is reconstructed using the relative difference prior.
+## Example
+This example uses generated simulated SPECT projections using the XCAT phantom and the SIMIND Monte Carlo code. Scatter, attenuation and PSF modeling are used to make the reconstructed images quantitative. In addition, the Bayesian relative difference prior.
 
 ```
 reconstruction_algorithm = get_SPECT_recon_algorithm_simind(
@@ -27,18 +26,17 @@ reconstructed_object = reconstruction_algorithm(n_iters=10, n_subsets=8)
 ```
 
 Maximum intensity projections corresponding to the reconstructed SPECT object above are shown below:
-
 ![](images/sample_MIPa.png)
 
-# Installation
+## Installation
 
-This library requires a local installation of PyTorch. As such, I recommend first creating a virtual environment using anaconda:
+This library requires a local installation of PyTorch. As such, it is recommended to first create a virtual environment using anaconda:
 
 ```
 conda create --name pytomography
 ```
 
-and then installing the version of PyTorch you need inside that environment [here](https://pytorch.org/get-started/locally/). Finally, install pytomography using the following command:
+and then install the version of PyTorch you need inside that environment [here](https://pytorch.org/get-started/locally/). Finally, install pytomography using the following command:
 
 ```
 pip install pytomography

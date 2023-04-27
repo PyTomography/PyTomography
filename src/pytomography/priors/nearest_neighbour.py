@@ -27,8 +27,8 @@ class NearestNeighbourPrior(Prior):
         self.kwargs = kwargs
 
     @torch.no_grad()
-    def __call__(self) -> torch.tensor:
-        r"""Computes the prior on ``self.object``
+    def compute_gradient(self) -> torch.tensor:
+        r"""Computes the gradient of the prior on ``self.object``
 
         Returns:
             torch.tensor: Tensor of shape [batch_size, Lx, Ly, Lz] representing :math:`\frac{\partial V}{\partial f_r}`

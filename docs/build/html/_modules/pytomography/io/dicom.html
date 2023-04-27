@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
 
     <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
-        <title>pytomography.io.dicom - PyTomography 0.4.0 documentation</title>
+        <title>pytomography.io.dicom - PyTomography 0.4.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
@@ -123,7 +123,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">PyTomography 0.4.0 documentation</div></a>
+      <a href="../../../index.html"><div class="brand">PyTomography 0.4.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -146,7 +146,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
   
-  <span class="sidebar-brand-text">PyTomography 0.4.0 documentation</span>
+  <span class="sidebar-brand-text">PyTomography 0.4.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -154,10 +154,10 @@
   <input type="hidden" name="area" value="default">
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
-  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
+  <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../notebooks/conventions.html">Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../developers_guide.html">Developer’s Guide</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../autoapi/index.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../../autoapi/pytomography/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../../autoapi/pytomography/algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -247,6 +247,7 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">collections.abc</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Sequence</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -263,10 +264,10 @@
 <span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">SPECTAttenuationTransform</span><span class="p">,</span> <span class="n">SPECTPSFTransform</span>
 <span class="kn">from</span> <span class="nn">pytomography.priors</span> <span class="kn">import</span> <span class="n">Prior</span>
 <span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">PSFMeta</span>
-<span class="kn">from</span> <span class="nn">pytomography.algorithms</span> <span class="kn">import</span> <span class="n">OSEMOSL</span>
+<span class="kn">from</span> <span class="nn">pytomography.algorithms</span> <span class="kn">import</span> <span class="n">OSEMOSL</span><span class="p">,</span> <span class="n">OSML</span>
 
-<div class="viewcode-block" id="get_radii_and_angles"><a class="viewcode-back" href="../../../autoapi/pytomography/io/dicom/index.html#pytomography.io.dicom.get_radii_and_angles">[docs]</a><span class="k">def</span> <span class="nf">get_radii_and_angles</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets projections with corresponding radii and angles corresponding to projection data from a DICOM dataset.</span>
+<div class="viewcode-block" id="get_radii_and_angles"><a class="viewcode-back" href="../../../autoapi/pytomography/io/dicom/index.html#pytomography.io.dicom.get_radii_and_angles">[docs]</a><span class="k">def</span> <span class="nf">get_radii_and_angles</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets projections with corresponding radii and angles corresponding to projection data from a DICOM file.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        ds (Dataset): pydicom dataset object.</span>
@@ -279,11 +280,18 @@
     <span class="n">radii</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
     <span class="n">angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
     <span class="k">for</span> <span class="n">detector</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">detectors</span><span class="p">):</span>
-        <span class="n">radial_positions_detector</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">DetectorInformationSequence</span><span class="p">[</span><span class="n">detector</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">RadialPosition</span>
-        <span class="n">n_angles</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">radial_positions_detector</span><span class="p">)</span>
-        <span class="n">radii</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">radii</span><span class="p">,</span> <span class="n">radial_positions_detector</span><span class="p">])</span>
+        <span class="n">n_angles</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">RotationInformationSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">NumberOfFramesInRotation</span>
         <span class="n">delta_angle</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">RotationInformationSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">AngularStep</span>
-        <span class="n">angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">angles</span><span class="p">,</span> <span class="n">ds</span><span class="o">.</span><span class="n">DetectorInformationSequence</span><span class="p">[</span><span class="n">detector</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">StartAngle</span> <span class="o">+</span> <span class="n">delta_angle</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_angles</span><span class="p">)])</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">start_angle</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">DetectorInformationSequence</span><span class="p">[</span><span class="n">detector</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">StartAngle</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">start_angle</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">RotationInformationSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">StartAngle</span>
+        <span class="n">angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">angles</span><span class="p">,</span> <span class="n">start_angle</span> <span class="o">+</span> <span class="n">delta_angle</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_angles</span><span class="p">)])</span>
+        <span class="n">radial_positions_detector</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">DetectorInformationSequence</span><span class="p">[</span><span class="n">detector</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">RadialPosition</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">radial_positions_detector</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Sequence</span><span class="p">):</span>
+            <span class="n">radial_positions_detector</span> <span class="o">=</span> <span class="n">n_angles</span> <span class="o">*</span> <span class="p">[</span><span class="n">radial_positions_detector</span><span class="p">]</span>
+        <span class="n">radii</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">radii</span><span class="p">,</span> <span class="n">radial_positions_detector</span><span class="p">])</span>
+        
     <span class="n">angles</span> <span class="o">=</span> <span class="p">(</span><span class="n">angles</span> <span class="o">+</span> <span class="mi">180</span><span class="p">)</span><span class="o">%</span><span class="mi">360</span> <span class="c1"># to detector angle convention</span>
     <span class="n">sorted_idxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">angles</span><span class="p">)</span>
     <span class="n">projections</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">pixel_array</span><span class="p">[:,</span><span class="n">sorted_idxs</span><span class="p">][:,:,::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
@@ -292,7 +300,9 @@
              <span class="n">angles</span><span class="p">[</span><span class="n">sorted_idxs</span><span class="p">],</span>
              <span class="n">radii</span><span class="p">[</span><span class="n">sorted_idxs</span><span class="p">]</span><span class="o">/</span><span class="mi">10</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="dicom_projections_to_data"><a class="viewcode-back" href="../../../autoapi/pytomography/io/index.html#pytomography.io.dicom.dicom_projections_to_data">[docs]</a><span class="k">def</span> <span class="nf">dicom_projections_to_data</span><span class="p">(</span><span class="n">file</span><span class="p">):</span>
+<div class="viewcode-block" id="dicom_projections_to_data"><a class="viewcode-back" href="../../../autoapi/pytomography/io/index.html#pytomography.io.dicom.dicom_projections_to_data">[docs]</a><span class="k">def</span> <span class="nf">dicom_projections_to_data</span><span class="p">(</span>
+    <span class="n">file</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ImageMeta</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtains ObjectMeta, ImageMeta, and projections from a .dcm file.</span>
 
 <span class="sd">    Args:</span>
@@ -312,6 +322,8 @@
     <span class="n">image_meta</span> <span class="o">=</span> <span class="n">ImageMeta</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">radii</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">,</span> <span class="n">projections</span></div>
 
+
+<span class="c1"># REMOVE THIS FUNCTION</span>
 <div class="viewcode-block" id="dicom_MEW_to_data"><a class="viewcode-back" href="../../../autoapi/pytomography/io/index.html#pytomography.io.dicom.dicom_MEW_to_data">[docs]</a><span class="k">def</span> <span class="nf">dicom_MEW_to_data</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;DEW&#39;</span><span class="p">):</span>
     <span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">type</span><span class="o">==</span><span class="s1">&#39;DEW&#39;</span><span class="p">:</span>
@@ -323,12 +335,24 @@
         <span class="k">return</span> <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">,</span> <span class="n">projections_primary</span><span class="p">,</span> <span class="n">projections_scatter</span></div>
 
 
-<div class="viewcode-block" id="get_HU2mu_coefficients"><a class="viewcode-back" href="../../../autoapi/pytomography/io/dicom/index.html#pytomography.io.dicom.get_HU2mu_coefficients">[docs]</a><span class="k">def</span> <span class="nf">get_HU2mu_coefficients</span><span class="p">(</span><span class="n">ds</span><span class="p">):</span>
+<div class="viewcode-block" id="get_HU2mu_coefficients"><a class="viewcode-back" href="../../../autoapi/pytomography/io/dicom/index.html#pytomography.io.dicom.get_HU2mu_coefficients">[docs]</a><span class="k">def</span> <span class="nf">get_HU2mu_coefficients</span><span class="p">(</span>
+    <span class="n">ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span>
+    <span class="n">photopeak_window_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtains the four coefficients required for the bilinear transformation between Hounsfield Units and linear attenuation coefficient at the photon energy corresponding to the primary window of the given dataset.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        ds (Dataset): DICOM data set of projection data</span>
+<span class="sd">        primary_window_index (int, optional): The energy window corresponding to the photopeak. Defaults to 0.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.array: Array of length 4 containins the 4 coefficients required for the bilinear transformation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">module_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
-    <span class="n">table</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">module_path</span><span class="p">,</span> <span class="s1">&#39;../../../data/HU_to_mu.csv&#39;</span><span class="p">),</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">table</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">module_path</span><span class="p">,</span> <span class="s1">&#39;../data/HU_to_mu.csv&#39;</span><span class="p">),</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">energies</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">window_upper</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">EnergyWindowInformationSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowRangeSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowUpperLimit</span>
-    <span class="n">window_lower</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">EnergyWindowInformationSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowRangeSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowLowerLimit</span>
+    <span class="n">window_upper</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">EnergyWindowInformationSequence</span><span class="p">[</span><span class="n">photopeak_window_index</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowRangeSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowUpperLimit</span>
+    <span class="n">window_lower</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">EnergyWindowInformationSequence</span><span class="p">[</span><span class="n">photopeak_window_index</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowRangeSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowLowerLimit</span>
     <span class="n">energy</span> <span class="o">=</span> <span class="p">(</span><span class="n">window_lower</span> <span class="o">+</span> <span class="n">window_upper</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span>
     <span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">energies</span><span class="o">-</span><span class="n">energy</span><span class="p">))</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Based on primary window with range (</span><span class="si">{</span><span class="n">window_lower</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="n">window_upper</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1">)keV, using conversion between hounsfield to linear attenuation coefficient based on radionuclide with emission energy </span><span class="si">{</span><span class="n">table</span><span class="p">[</span><span class="n">index</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1">keV&#39;</span><span class="p">)</span>
@@ -336,14 +360,43 @@
     
     
 <span class="c1"># conversion from https://www.sciencedirect.com/science/article/pii/S0969804308000067</span>
-<div class="viewcode-block" id="HU_to_mu"><a class="viewcode-back" href="../../../autoapi/pytomography/io/dicom/index.html#pytomography.io.dicom.HU_to_mu">[docs]</a><span class="k">def</span> <span class="nf">HU_to_mu</span><span class="p">(</span><span class="n">HU</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">b1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span> <span class="n">b2</span><span class="p">):</span>
-    <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">piecewise</span><span class="p">(</span><span class="n">HU</span><span class="p">,</span> <span class="p">[</span><span class="n">HU</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">HU</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">],</span>
-                 <span class="p">[</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">a1</span><span class="o">*</span><span class="n">x</span> <span class="o">+</span> <span class="n">b1</span><span class="p">,</span>
-                  <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">a2</span><span class="o">*</span><span class="n">x</span> <span class="o">+</span> <span class="n">b2</span><span class="p">])</span>
-    <span class="n">mu</span><span class="p">[</span><span class="n">mu</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">return</span> <span class="n">mu</span></div>
+<div class="viewcode-block" id="bilinear_transform"><a class="viewcode-back" href="../../../autoapi/pytomography/io/dicom/index.html#pytomography.io.dicom.bilinear_transform">[docs]</a><span class="k">def</span> <span class="nf">bilinear_transform</span><span class="p">(</span>
+    <span class="n">arr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+    <span class="n">a1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">b1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">a2</span><span class="p">:</span><span class="nb">float</span> <span class="p">,</span>
+    <span class="n">b2</span><span class="p">:</span><span class="nb">float</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts an array of Hounsfield Units into linear attenuation coefficient using the bilinear transformation :math:`f(x)=a_1x+b_1` for positive :math:`x` and :math:`f(x)=a_2x+b_2` for negative :math:`x`.</span>
 
-<div class="viewcode-block" id="get_affine_spect"><a class="viewcode-back" href="../../../autoapi/pytomography/io/dicom/index.html#pytomography.io.dicom.get_affine_spect">[docs]</a><span class="k">def</span> <span class="nf">get_affine_spect</span><span class="p">(</span><span class="n">ds</span><span class="p">):</span>
+<span class="sd">    Args:</span>
+<span class="sd">        arr (np.array): Array to be transformed using bilinear transformation</span>
+<span class="sd">        a1 (float): Bilinear slope for negative input values</span>
+<span class="sd">        b1 (float): Bilinear intercept for negative input values</span>
+<span class="sd">        a2 (float): Bilinear slope for positive input values</span>
+<span class="sd">        b2 (float): Bilinear intercept for positive input values</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.array: Transformed array.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">arr_transform</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">piecewise</span><span class="p">(</span>
+        <span class="n">arr</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">arr</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">arr</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">],</span>
+        <span class="p">[</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">a1</span><span class="o">*</span><span class="n">x</span> <span class="o">+</span> <span class="n">b1</span><span class="p">,</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">a2</span><span class="o">*</span><span class="n">x</span> <span class="o">+</span> <span class="n">b2</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">arr_transform</span><span class="p">[</span><span class="n">arr_transform</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">arr_transform</span></div>
+
+<div class="viewcode-block" id="get_affine_spect"><a class="viewcode-back" href="../../../autoapi/pytomography/io/dicom/index.html#pytomography.io.dicom.get_affine_spect">[docs]</a><span class="k">def</span> <span class="nf">get_affine_spect</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes an affine matrix corresponding the coordinate system of a SPECT DICOM file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        ds (Dataset): DICOM dataset of projection data</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.array: Affine matrix.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">Sx</span><span class="p">,</span> <span class="n">Sy</span><span class="p">,</span> <span class="n">Sz</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">DetectorInformationSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ImagePositionPatient</span>
     <span class="n">dx</span> <span class="o">=</span> <span class="n">dy</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">dz</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
@@ -356,7 +409,16 @@
     <span class="n">M</span><span class="p">[:,</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">Sx</span><span class="p">,</span> <span class="n">Sy</span><span class="p">,</span> <span class="n">Sz</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">M</span></div>
 
-<div class="viewcode-block" id="get_affine_CT"><a class="viewcode-back" href="../../../autoapi/pytomography/io/dicom/index.html#pytomography.io.dicom.get_affine_CT">[docs]</a><span class="k">def</span> <span class="nf">get_affine_CT</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">max_z</span><span class="p">):</span>
+<div class="viewcode-block" id="get_affine_CT"><a class="viewcode-back" href="../../../autoapi/pytomography/io/dicom/index.html#pytomography.io.dicom.get_affine_CT">[docs]</a><span class="k">def</span> <span class="nf">get_affine_CT</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">max_z</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes an affine matrix corresponding the coordinate system of a CT DICOM file. Note that since CT scans consist of many independent DICOM files, ds corresponds to an individual one of these files. This is why the maximum z value is also required (across all seperate independent DICOM files).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        ds (Dataset): DICOM dataset of CT data</span>
+<span class="sd">        max_z (float): Maximum value of z across all axial slices that make up the CT scan</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.array: Affine matrix corresponding to CT scan.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">M_CT</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
     <span class="n">M_CT</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">ImageOrientationPatient</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">])</span><span class="o">*</span><span class="n">ds</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">M_CT</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">ImageOrientationPatient</span><span class="p">[</span><span class="mi">3</span><span class="p">:])</span><span class="o">*</span><span class="n">ds</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
@@ -366,7 +428,21 @@
     <span class="n">M_CT</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">return</span> <span class="n">M_CT</span></div>
 
-<div class="viewcode-block" id="dicom_CT_to_data"><a class="viewcode-back" href="../../../autoapi/pytomography/io/index.html#pytomography.io.dicom.dicom_CT_to_data">[docs]</a><span class="k">def</span> <span class="nf">dicom_CT_to_data</span><span class="p">(</span><span class="n">files_CT</span><span class="p">,</span> <span class="n">file_NM</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="dicom_CT_to_data"><a class="viewcode-back" href="../../../autoapi/pytomography/io/index.html#pytomography.io.dicom.dicom_CT_to_data">[docs]</a><span class="k">def</span> <span class="nf">dicom_CT_to_data</span><span class="p">(</span>
+    <span class="n">files_CT</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">file_NM</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">photopeak_window_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography. This is primarily intended for opening pre-reconstructed CT data such that it can be used as an attenuation map during PET/SPECT reconstruction.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        files_CT (Sequence[str]): List of all files corresponding to an individual CT scan</span>
+<span class="sd">        file_NM (str): File corresponding to raw PET/SPECT data (required to align CT with projections)</span>
+<span class="sd">        photopeak_window_index (int, optional): Index corresponding to photopeak in projection data. Defaults to 0.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ds_NM</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file_NM</span><span class="p">)</span>
     <span class="n">CT_scan</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">slice_locs</span> <span class="o">=</span> <span class="p">[]</span>
@@ -382,19 +458,37 @@
     <span class="n">M</span> <span class="o">=</span> <span class="n">npl</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">M_CT</span><span class="p">)</span> <span class="o">@</span> <span class="n">M_NM</span>
     <span class="n">CT_resampled</span> <span class="o">=</span> <span class="n">affine_transform</span><span class="p">(</span><span class="n">CT_scan</span><span class="p">,</span> <span class="n">M</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">],</span> <span class="n">M</span><span class="p">[:</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">],</span> <span class="n">output_shape</span><span class="o">=</span><span class="p">(</span><span class="n">ds_NM</span><span class="o">.</span><span class="n">Rows</span><span class="p">,</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">Rows</span><span class="p">,</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">Columns</span><span class="p">)</span> <span class="p">)</span>
     <span class="n">CT_HU</span> <span class="o">=</span> <span class="n">CT_resampled</span> <span class="o">+</span> <span class="n">ds</span><span class="o">.</span><span class="n">RescaleIntercept</span>
-    <span class="n">CT</span> <span class="o">=</span> <span class="n">HU_to_mu</span><span class="p">(</span><span class="n">CT_HU</span><span class="p">,</span> <span class="o">*</span><span class="n">get_HU2mu_coefficients</span><span class="p">(</span><span class="n">ds_NM</span><span class="p">))</span>
+    <span class="n">CT</span> <span class="o">=</span> <span class="n">bilinear_transform</span><span class="p">(</span><span class="n">CT_HU</span><span class="p">,</span> <span class="o">*</span><span class="n">get_HU2mu_coefficients</span><span class="p">(</span><span class="n">ds_NM</span><span class="p">,</span> <span class="n">photopeak_window_index</span><span class="p">))</span>
     <span class="n">CT</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">CT</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">,::</span><span class="o">-</span><span class="mi">1</span><span class="p">,::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
     <span class="k">return</span> <span class="n">CT</span></div>
 
+<span class="c1"># TODO: Update this function so that it includes photopeak energy window index, and psf should be computed using data tables corresponding to manufactorer data sheets.</span>
 <div class="viewcode-block" id="get_SPECT_recon_algorithm_dicom"><a class="viewcode-back" href="../../../autoapi/pytomography/io/index.html#pytomography.io.dicom.get_SPECT_recon_algorithm_dicom">[docs]</a><span class="k">def</span> <span class="nf">get_SPECT_recon_algorithm_dicom</span><span class="p">(</span>
     <span class="n">projections_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">atteunation_files</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">use_psf</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">scatter_type</span><span class="p">:</span> <span class="nb">str</span><span class="o">|</span><span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">prior</span><span class="p">:</span> <span class="n">Prior</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">recon_algorithm_class</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="n">OSEMOSL</span><span class="p">,</span>
+    <span class="n">recon_algorithm_class</span><span class="p">:</span> <span class="n">OSML</span> <span class="o">=</span> <span class="n">OSEMOSL</span><span class="p">,</span>
     <span class="n">object_initial</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OSML</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Helper function to quickly create reconstruction algorithm given SPECT DICOM files and CT dicom files.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        projections_file (str): DICOM filepath corresponding to SPECT data.</span>
+<span class="sd">        atteunation_files (Sequence[str], optional): DICOM filepaths corresponding to CT data. If None, then atteunation correction is not used. Defaults to None.</span>
+<span class="sd">        use_psf (bool, optional): Whether or not to use PSF modeling. Defaults to False.</span>
+<span class="sd">        scatter_type (str | None, optional): Type of scatter correction used in reconstruction. Defaults to None.</span>
+<span class="sd">        prior (Prior, optional): Bayesian Prior used in reconstruction algorithm. Defaults to None.</span>
+<span class="sd">        recon_algorithm_class (nn.Module, optional): Type of reconstruction algorithm used. Defaults to OSEMOSL.</span>
+<span class="sd">        object_initial (torch.Tensor | None, optional): Initial object used in reconstruction. If None, defaults to all ones. Defaults to None.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        Exception: If not able to compute relevant PSF parameters from DICOM data and corresponding data tables.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        OSML: Reconstruction algorithm used.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Get projections/scatter estimate</span>
     <span class="k">if</span> <span class="n">scatter_type</span><span class="o">==</span><span class="kc">None</span><span class="p">:</span>
         <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">,</span> <span class="n">projections</span> <span class="o">=</span> <span class="n">dicom_projections_to_data</span><span class="p">(</span><span class="n">projections_file</span><span class="p">)</span>

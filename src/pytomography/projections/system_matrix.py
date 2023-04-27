@@ -80,9 +80,9 @@ class SystemMatrix():
         Args:
             image (torch.tensor[batch_size, Ltheta, Lr, Lz]): image which is to be back projected
             angle_subset (list, optional): Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
-            prior (Prior, optional): If included, modifes normalizing factor to :math:`\frac{1}{\sum_j c_{ij} + P_i}` where :math:`P_i` is given by the prior. Used, for example, during in MAP OSEM. Defaults to None.
-            normalize (bool): Whether or not to divide result by :math:`\sum_j c_{ij}`
-            return_norm_constant (bool): Whether or not to return :math:`1/\sum_j c_{ij}` along with back projection. Defaults to 'False'.
+            prior (Prior, optional): If included, modifes normalizing factor to :math:`\frac{1}{\sum_j H_{ij} + P_i}` where :math:`P_i` is given by the prior. Used, for example, during in MAP OSEM. Defaults to None.
+            normalize (bool): Whether or not to divide result by :math:`\sum_j H_{ij}`
+            return_norm_constant (bool): Whether or not to return :math:`1/\sum_j H_{ij}` along with back projection. Defaults to 'False'.
             delta (float, optional): Prevents division by zero when dividing by normalizing constant. Defaults to 1e-11.
 
         Returns:
@@ -90,7 +90,7 @@ class SystemMatrix():
         """
         # Box used to perform back projection
         boundary_box_bp = pad_object(torch.ones((1, *self.object_meta.shape)).to(self.device), mode='back_project')
-        # Pad image and norm_image (norm_image used to compute sum_j c_ij)
+        # Pad image and norm_image (norm_image used to compute sum_j H_ij)
         norm_image = torch.ones(image.shape).to(self.device)
         image = pad_image(image)
         norm_image = pad_image(norm_image)
@@ -118,7 +118,7 @@ class SystemMatrix():
         object = unpad_object(object)
         # Apply prior 
         if prior:
-            norm_constant += prior()
+            norm_constant += prior.compute_gradient()
         if normalize:
             object = (object+delta)/(norm_constant + delta)
         # Return

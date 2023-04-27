@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
 
     <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
-        <title>pytomography.io - PyTomography 0.4.0 documentation</title>
+        <title>pytomography.io - PyTomography 0.4.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">PyTomography 0.4.0 documentation</div></a>
+      <a href="../../../index.html"><div class="brand">PyTomography 0.4.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -147,7 +147,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
   
-  <span class="sidebar-brand-text">PyTomography 0.4.0 documentation</span>
+  <span class="sidebar-brand-text">PyTomography 0.4.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -155,10 +155,10 @@
   <input type="hidden" name="area" value="default">
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
-  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+  <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../../notebooks/conventions.html">Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../developers_guide.html">Developer’s Guide</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l3 has-children"><a class="reference internal" href="../algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -276,14 +276,14 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.dicom_projections_to_data" title="pytomography.io.dicom_projections_to_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dicom_projections_to_data</span></code></a>(file)</p></td>
 <td><p>Obtains ObjectMeta, ImageMeta, and projections from a .dcm file.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.dicom_CT_to_data" title="pytomography.io.dicom_CT_to_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dicom_CT_to_data</span></code></a>(files_CT[, file_NM])</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.dicom_CT_to_data" title="pytomography.io.dicom_CT_to_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dicom_CT_to_data</span></code></a>(files_CT, file_NM[, ...])</p></td>
+<td><p>Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography. This is primarily intended for opening pre-reconstructed CT data such that it can be used as an attenuation map during PET/SPECT reconstruction.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.dicom_MEW_to_data" title="pytomography.io.dicom_MEW_to_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dicom_MEW_to_data</span></code></a>(file[, type])</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.get_SPECT_recon_algorithm_dicom" title="pytomography.io.get_SPECT_recon_algorithm_dicom"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_SPECT_recon_algorithm_dicom</span></code></a>(projections_file[, ...])</p></td>
-<td><p></p></td>
+<td><p>Helper function to quickly create reconstruction algorithm given SPECT DICOM files and CT dicom files.</p></td>
 </tr>
 </tbody>
 </table>
@@ -385,8 +385,24 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.io.dicom_CT_to_data">
-<span class="sig-prename descclassname"><span class="pre">pytomography.io.</span></span><span class="sig-name descname"><span class="pre">dicom_CT_to_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files_CT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_NM</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/io/dicom.html#dicom_CT_to_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.dicom_CT_to_data" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.</span></span><span class="sig-name descname"><span class="pre">dicom_CT_to_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files_CT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_NM</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">photopeak_window_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/io/dicom.html#dicom_CT_to_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.dicom_CT_to_data" title="Permalink to this definition">#</a></dt>
+<dd><p>Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography. This is primarily intended for opening pre-reconstructed CT data such that it can be used as an attenuation map during PET/SPECT reconstruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>files_CT</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>) – List of all files corresponding to an individual CT scan</p></li>
+<li><p><strong>file_NM</strong> (<em>str</em>) – File corresponding to raw PET/SPECT data (required to align CT with projections)</p></li>
+<li><p><strong>photopeak_window_index</strong> (<em>int</em><em>, </em><em>optional</em>) – Index corresponding to photopeak in projection data. Defaults to 0.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.io.dicom_MEW_to_data">
@@ -396,20 +412,27 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.io.get_SPECT_recon_algorithm_dicom">
 <span class="sig-prename descclassname"><span class="pre">pytomography.io.</span></span><span class="sig-name descname"><span class="pre">get_SPECT_recon_algorithm_dicom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">projections_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atteunation_files</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_psf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prior</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recon_algorithm_class</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">OSEMOSL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_initial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/io/dicom.html#get_SPECT_recon_algorithm_dicom"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.get_SPECT_recon_algorithm_dicom" title="Permalink to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Helper function to quickly create reconstruction algorithm given SPECT DICOM files and CT dicom files.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>projections_file</strong> (<em>str</em>) – </p></li>
-<li><p><strong>atteunation_files</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>) – </p></li>
-<li><p><strong>use_psf</strong> (<em>bool</em>) – </p></li>
-<li><p><strong>scatter_type</strong> (<em>str</em><em> | </em><em>None</em>) – </p></li>
-<li><p><strong>prior</strong> (<a class="reference internal" href="../priors/index.html#pytomography.priors.Prior" title="pytomography.priors.Prior"><em>pytomography.priors.Prior</em></a>) – </p></li>
-<li><p><strong>recon_algorithm_class</strong> (<em>torch.nn.Module</em>) – </p></li>
-<li><p><strong>object_initial</strong> (<em>torch.Tensor</em><em> | </em><em>None</em>) – </p></li>
+<li><p><strong>projections_file</strong> (<em>str</em>) – DICOM filepath corresponding to SPECT data.</p></li>
+<li><p><strong>atteunation_files</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – DICOM filepaths corresponding to CT data. If None, then atteunation correction is not used. Defaults to None.</p></li>
+<li><p><strong>use_psf</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether or not to use PSF modeling. Defaults to False.</p></li>
+<li><p><strong>scatter_type</strong> (<em>str</em><em> | </em><em>None</em><em>, </em><em>optional</em>) – Type of scatter correction used in reconstruction. Defaults to None.</p></li>
+<li><p><strong>prior</strong> (<a class="reference internal" href="../priors/index.html#pytomography.priors.Prior" title="pytomography.priors.Prior"><em>Prior</em></a><em>, </em><em>optional</em>) – Bayesian Prior used in reconstruction algorithm. Defaults to None.</p></li>
+<li><p><strong>recon_algorithm_class</strong> (<em>nn.Module</em><em>, </em><em>optional</em>) – Type of reconstruction algorithm used. Defaults to OSEMOSL.</p></li>
+<li><p><strong>object_initial</strong> (<em>torch.Tensor</em><em> | </em><em>None</em><em>, </em><em>optional</em>) – Initial object used in reconstruction. If None, defaults to all ones. Defaults to None.</p></li>
 </ul>
 </dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>Exception</strong> – If not able to compute relevant PSF parameters from DICOM data and corresponding data tables.</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Reconstruction algorithm used.</p>
+</dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>torch.nn.Module</p>
+<dd class="field-even"><p><a class="reference internal" href="../algorithms/index.html#pytomography.algorithms.OSML" title="pytomography.algorithms.OSML">OSML</a></p>
 </dd>
 </dl>
 </dd></dl>

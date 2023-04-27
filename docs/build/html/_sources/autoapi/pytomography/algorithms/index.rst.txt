@@ -74,7 +74,7 @@ Classes
 
    Bases: :py:obj:`OSML`
 
-   Implements the ordered subset expectation algorithm using the one-step-late method to include prior information: :math:`f_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j c_{ij} + \beta \frac{\partial V}{\partial f_r}|_{f_i=f_i^{n,m}}} \sum_j c_{ij}\frac{g_j}{\sum_i c_{ij}f_i^{n,m}+s_j}`.
+   Implements the ordered subset expectation algorithm using the one-step-late method to include prior information: :math:`f_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j H_{ij} + \beta \frac{\partial V}{\partial f_r}|_{f_i=f_i^{n,m}}} \sum_j H_{ij}\frac{g_j}{\sum_i H_{ij}f_i^{n,m}+s_j}`.
 
    :param image: image data :math:`g_j` to be reconstructed
    :type image: torch.tensor[batch_size, Lr, Ltheta, Lz]
@@ -109,7 +109,7 @@ Classes
 
    Bases: :py:obj:`OSML`
 
-   Implements the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: :math:`\tilde{f}_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j c_{ij}} \sum_j c_{ij}\frac{g_j^m}{\sum_i c_{ij}f_i^{n,m}+s_j}` followed by :math:`f_i^{n,m+1} = \tilde{f}_i^{n,m+1} \left(1-\beta\frac{\alpha_n}{\sum_j c_{ij}}\frac{\partial V}{\partial \tilde{f}_i^{n,m+1}} \right)`.
+   Implements the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: :math:`\tilde{f}_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j H_{ij}} \sum_j H_{ij}\frac{g_j^m}{\sum_i H_{ij}f_i^{n,m}+s_j}` followed by :math:`f_i^{n,m+1} = \tilde{f}_i^{n,m+1} \left(1-\beta\frac{\alpha_n}{\sum_j H_{ij}}\frac{\partial V}{\partial \tilde{f}_i^{n,m+1}} \right)`.
 
    :param image: image data :math:`g_j` to be reconstructed
    :type image: torch.tensor[batch_size, Lr, Ltheta, Lz]

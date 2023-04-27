@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
 
     <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
-        <title>pytomography.algorithms - PyTomography 0.4.0 documentation</title>
+        <title>pytomography.algorithms - PyTomography 0.4.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">PyTomography 0.4.0 documentation</div></a>
+      <a href="../../../index.html"><div class="brand">PyTomography 0.4.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -147,7 +147,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
   
-  <span class="sidebar-brand-text">PyTomography 0.4.0 documentation</span>
+  <span class="sidebar-brand-text">PyTomography 0.4.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -155,10 +155,10 @@
   <input type="hidden" name="area" value="default">
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
-  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+  <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../../notebooks/conventions.html">Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../developers_guide.html">Developer’s Guide</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l3 current has-children current-page"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -264,10 +264,10 @@
 <td><p>Abstract class for different algorithms. The difference between subclasses of this class is the method by which they include prior information. If no prior function is used, they are all equivalent.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.algorithms.OSEMOSL" title="pytomography.algorithms.OSEMOSL"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OSEMOSL</span></code></a></p></td>
-<td><p>Implements the ordered subset expectation algorithm using the one-step-late method to include prior information: <span class="math notranslate nohighlight">\(f_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j c_{ij} + \beta \frac{\partial V}{\partial f_r}|_{f_i=f_i^{n,m}}} \sum_j c_{ij}\frac{g_j}{\sum_i c_{ij}f_i^{n,m}+s_j}\)</span>.</p></td>
+<td><p>Implements the ordered subset expectation algorithm using the one-step-late method to include prior information: <span class="math notranslate nohighlight">\(f_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j H_{ij} + \beta \frac{\partial V}{\partial f_r}|_{f_i=f_i^{n,m}}} \sum_j H_{ij}\frac{g_j}{\sum_i H_{ij}f_i^{n,m}+s_j}\)</span>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.algorithms.OSEMBSR" title="pytomography.algorithms.OSEMBSR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OSEMBSR</span></code></a></p></td>
-<td><p>Implements the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: <span class="math notranslate nohighlight">\(\tilde{f}_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j c_{ij}} \sum_j c_{ij}\frac{g_j^m}{\sum_i c_{ij}f_i^{n,m}+s_j}\)</span> followed by <span class="math notranslate nohighlight">\(f_i^{n,m+1} = \tilde{f}_i^{n,m+1} \left(1-\beta\frac{\alpha_n}{\sum_j c_{ij}}\frac{\partial V}{\partial \tilde{f}_i^{n,m+1}} \right)\)</span>.</p></td>
+<td><p>Implements the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: <span class="math notranslate nohighlight">\(\tilde{f}_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j H_{ij}} \sum_j H_{ij}\frac{g_j^m}{\sum_i H_{ij}f_i^{n,m}+s_j}\)</span> followed by <span class="math notranslate nohighlight">\(f_i^{n,m+1} = \tilde{f}_i^{n,m+1} \left(1-\beta\frac{\alpha_n}{\sum_j H_{ij}}\frac{\partial V}{\partial \tilde{f}_i^{n,m+1}} \right)\)</span>.</p></td>
 </tr>
 </tbody>
 </table>
@@ -331,7 +331,7 @@
 <dt class="sig sig-object py" id="pytomography.algorithms.OSEMOSL">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.algorithms.</span></span><span class="sig-name descname"><span class="pre">OSEMOSL</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_initial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prior</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/algorithms/osem.html#OSEMOSL"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.OSEMOSL" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pytomography.algorithms.OSML" title="pytomography.algorithms.OSML"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OSML</span></code></a></p>
-<p>Implements the ordered subset expectation algorithm using the one-step-late method to include prior information: <span class="math notranslate nohighlight">\(f_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j c_{ij} + \beta \frac{\partial V}{\partial f_r}|_{f_i=f_i^{n,m}}} \sum_j c_{ij}\frac{g_j}{\sum_i c_{ij}f_i^{n,m}+s_j}\)</span>.</p>
+<p>Implements the ordered subset expectation algorithm using the one-step-late method to include prior information: <span class="math notranslate nohighlight">\(f_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j H_{ij} + \beta \frac{\partial V}{\partial f_r}|_{f_i=f_i^{n,m}}} \sum_j H_{ij}\frac{g_j}{\sum_i H_{ij}f_i^{n,m}+s_j}\)</span>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -371,7 +371,7 @@
 <dt class="sig sig-object py" id="pytomography.algorithms.OSEMBSR">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.algorithms.</span></span><span class="sig-name descname"><span class="pre">OSEMBSR</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_initial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prior</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/algorithms/osem.html#OSEMBSR"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.OSEMBSR" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pytomography.algorithms.OSML" title="pytomography.algorithms.OSML"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OSML</span></code></a></p>
-<p>Implements the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: <span class="math notranslate nohighlight">\(\tilde{f}_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j c_{ij}} \sum_j c_{ij}\frac{g_j^m}{\sum_i c_{ij}f_i^{n,m}+s_j}\)</span> followed by <span class="math notranslate nohighlight">\(f_i^{n,m+1} = \tilde{f}_i^{n,m+1} \left(1-\beta\frac{\alpha_n}{\sum_j c_{ij}}\frac{\partial V}{\partial \tilde{f}_i^{n,m+1}} \right)\)</span>.</p>
+<p>Implements the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: <span class="math notranslate nohighlight">\(\tilde{f}_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j H_{ij}} \sum_j H_{ij}\frac{g_j^m}{\sum_i H_{ij}f_i^{n,m}+s_j}\)</span> followed by <span class="math notranslate nohighlight">\(f_i^{n,m+1} = \tilde{f}_i^{n,m+1} \left(1-\beta\frac{\alpha_n}{\sum_j H_{ij}}\frac{\partial V}{\partial \tilde{f}_i^{n,m+1}} \right)\)</span>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
