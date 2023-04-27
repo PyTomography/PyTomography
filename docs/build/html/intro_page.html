@@ -155,10 +155,10 @@
   <input type="hidden" name="area" value="default">
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
-  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
+  <ul>
 <li class="toctree-l1"><a class="reference internal" href="notebooks/conventions.html">Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developers_guide.html">Developer’s Guide</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="autoapi/index.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2 has-children"><a class="reference internal" href="autoapi/pytomography/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l3 has-children"><a class="reference internal" href="autoapi/pytomography/algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -246,25 +246,21 @@
           <section id="pytomography">
 <h1>PyTomography<a class="headerlink" href="#pytomography" title="Permalink to this heading">#</a></h1>
 <p style='text-align: justify;'>
-PyTomography is a flexible, high performance, open source package developed in Python&reg for medical image reconstruction. It uses the functions and classes of PyTorch to enable GPU-accelerated operations.
-<section id="objectives">
-<h2>Objectives<a class="headerlink" href="#objectives" title="Permalink to this heading">#</a></h2>
-<p>PyTomography aims at:</p>
+PyTomography is a flexible, high performance, open source package developed in Python&reg for medical image reconstruction. It uses the functions and classes of PyTorch to enable GPU-accelerated operations. The main focuses are
 <ol class="arabic simple">
 <li><p>Fast reconstruction of medical imaging data.</p></li>
-<li><p>Development of novel reconstruction algorithms.</p></li>
+<li><p>Providing a framework for the development of novel reconstruction algorithms.</p></li>
 </ol>
-</section>
-<section id="currently-supported-medical-imaging-modalities">
-<h2>Currently supported medical imaging modalities<a class="headerlink" href="#currently-supported-medical-imaging-modalities" title="Permalink to this heading">#</a></h2>
+<section id="currently-supported-modalities">
+<h2>Currently Supported Modalities<a class="headerlink" href="#currently-supported-modalities" title="Permalink to this heading">#</a></h2>
 <ul class="simple">
 <li><p>Single Photon Computed Emission Tomography (SPECT)</p></li>
+<li><p>Positron Emission Tomography (PET) (2D, no scatter). Implementation of full 3D PET with scatter is currently being developed.</p></li>
 </ul>
 </section>
-</section>
-<section id="spect-reconstruction-example">
-<h1>SPECT reconstruction example<a class="headerlink" href="#spect-reconstruction-example" title="Permalink to this heading">#</a></h1>
-<p>In this example we have generated simulated projections using the XCAT phantom and the SIMIND Monte Carlo code. We apply scatter and attenuation correction to make the images quantitative. We also correct for the blurring of the imaging system. The data is reconstructed using the relative difference prior.</p>
+<section id="example">
+<h2>Example<a class="headerlink" href="#example" title="Permalink to this heading">#</a></h2>
+<p>This example uses generated simulated SPECT projections using the XCAT phantom and the SIMIND Monte Carlo code. Scatter, attenuation and PSF modeling are used to make the reconstructed images quantitative. In addition, the Bayesian relative difference prior.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">reconstruction_algorithm</span> <span class="o">=</span> <span class="n">get_SPECT_recon_algorithm_simind</span><span class="p">(</span>
     <span class="n">projections_header</span> <span class="o">=</span> <span class="s1">&#39;body1t2ew6_tot_w2.hdr&#39;</span><span class="p">,</span>
     <span class="n">scatter_headers</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;body1t2ew6_tot_w1.hdr&#39;</span><span class="p">,</span>
@@ -276,19 +272,20 @@ PyTomography is a flexible, high performance, open source package developed in P
 <span class="n">reconstructed_object</span> <span class="o">=</span> <span class="n">reconstruction_algorithm</span><span class="p">(</span><span class="n">n_iters</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">n_subsets</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>                 
 </pre></div>
 </div>
-<p>Maximum intensity projections corresponding to the reconstructed SPECT object above are shown below:</p>
-<p><img alt="" src="_images/sample_MIPa.png" /></p>
+<p>Maximum intensity projections corresponding to the reconstructed SPECT object above are shown below:
+<img alt="" src="_images/sample_MIPa.png" /></p>
 </section>
 <section id="installation">
-<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">#</a></h1>
-<p>This library requires a local installation of PyTorch. As such, I recommend first creating a virtual environment using anaconda:</p>
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">#</a></h2>
+<p>This library requires a local installation of PyTorch. As such, it is recommended to first create a virtual environment using anaconda:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">--</span><span class="n">name</span> <span class="n">pytomography</span>
 </pre></div>
 </div>
-<p>and then installing the version of PyTorch you need inside that environment <a class="reference external" href="https://pytorch.org/get-started/locally/">here</a>. Finally, install pytomography using the following command:</p>
+<p>and then install the version of PyTorch you need inside that environment <a class="reference external" href="https://pytorch.org/get-started/locally/">here</a>. Finally, install pytomography using the following command:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">pytomography</span>
 </pre></div>
 </div>
+</section>
 </section>
 
         </article>
@@ -329,12 +326,11 @@ PyTomography is a flexible, high performance, open source package developed in P
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">PyTomography</a><ul>
-<li><a class="reference internal" href="#objectives">Objectives</a></li>
-<li><a class="reference internal" href="#currently-supported-medical-imaging-modalities">Currently supported medical imaging modalities</a></li>
+<li><a class="reference internal" href="#currently-supported-modalities">Currently Supported Modalities</a></li>
+<li><a class="reference internal" href="#example">Example</a></li>
+<li><a class="reference internal" href="#installation">Installation</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#spect-reconstruction-example">SPECT reconstruction example</a></li>
-<li><a class="reference internal" href="#installation">Installation</a></li>
 </ul>
 
           </div>

@@ -7,17 +7,15 @@
 ```{include} intro_page.md
 ```
 
-Be sure to check out {doc}`notebooks/conventions` and  {doc}`usage` for some simple examples.
+Be sure to check out {doc}`notebooks/conventions` and  {doc}`usage` for some simple examples. If you wish to make a contribution, please read the {doc}`developers_guide`.
 
-```{warning}
-This library is still under heavy development.
-```
+## Contents
 
 ```{toctree}
-:caption: 'Contents:'
 :maxdepth: 3
 
 notebooks/conventions
 usage
+developers_guide
 ```
 

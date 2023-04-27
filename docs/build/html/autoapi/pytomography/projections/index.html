@@ -155,10 +155,10 @@
   <input type="hidden" name="area" value="default">
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
-  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+  <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../../notebooks/conventions.html">Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../developers_guide.html">Developer’s Guide</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l3 has-children"><a class="reference internal" href="../algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -315,9 +315,9 @@
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>image</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Ltheta</em><em>, </em><em>Lr</em><em>, </em><em>Lz</em><em>]</em>) – image which is to be back projected</p></li>
 <li><p><strong>angle_subset</strong> (<em>list</em><em>, </em><em>optional</em>) – Only uses a subset of angles (i.e. only certain values of <span class="math notranslate nohighlight">\(j\)</span> in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.</p></li>
-<li><p><strong>prior</strong> (<a class="reference internal" href="../priors/index.html#pytomography.priors.Prior" title="pytomography.priors.Prior"><em>Prior</em></a><em>, </em><em>optional</em>) – If included, modifes normalizing factor to <span class="math notranslate nohighlight">\(\frac{1}{\sum_j c_{ij} + P_i}\)</span> where <span class="math notranslate nohighlight">\(P_i\)</span> is given by the prior. Used, for example, during in MAP OSEM. Defaults to None.</p></li>
-<li><p><strong>normalize</strong> (<em>bool</em>) – Whether or not to divide result by <span class="math notranslate nohighlight">\(\sum_j c_{ij}\)</span></p></li>
-<li><p><strong>return_norm_constant</strong> (<em>bool</em>) – Whether or not to return <span class="math notranslate nohighlight">\(1/\sum_j c_{ij}\)</span> along with back projection. Defaults to ‘False’.</p></li>
+<li><p><strong>prior</strong> (<a class="reference internal" href="../priors/index.html#pytomography.priors.Prior" title="pytomography.priors.Prior"><em>Prior</em></a><em>, </em><em>optional</em>) – If included, modifes normalizing factor to <span class="math notranslate nohighlight">\(\frac{1}{\sum_j H_{ij} + P_i}\)</span> where <span class="math notranslate nohighlight">\(P_i\)</span> is given by the prior. Used, for example, during in MAP OSEM. Defaults to None.</p></li>
+<li><p><strong>normalize</strong> (<em>bool</em>) – Whether or not to divide result by <span class="math notranslate nohighlight">\(\sum_j H_{ij}\)</span></p></li>
+<li><p><strong>return_norm_constant</strong> (<em>bool</em>) – Whether or not to return <span class="math notranslate nohighlight">\(1/\sum_j H_{ij}\)</span> along with back projection. Defaults to ‘False’.</p></li>
 <li><p><strong>delta</strong> (<em>float</em><em>, </em><em>optional</em>) – Prevents division by zero when dividing by normalizing constant. Defaults to 1e-11.</p></li>
 </ul>
 </dd>
