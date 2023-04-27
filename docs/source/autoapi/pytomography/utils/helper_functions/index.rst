@@ -1,0 +1,188 @@
+:py:mod:`pytomography.utils.helper_functions`
+=============================================
+
+.. py:module:: pytomography.utils.helper_functions
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.utils.helper_functions.rev_cumsum
+   pytomography.utils.helper_functions.rotate_detector_z
+   pytomography.utils.helper_functions.get_distance
+   pytomography.utils.helper_functions.compute_pad_size
+   pytomography.utils.helper_functions.compute_pad_size_padded
+   pytomography.utils.helper_functions.pad_object
+   pytomography.utils.helper_functions.unpad_object
+   pytomography.utils.helper_functions.pad_image
+   pytomography.utils.helper_functions.unpad_image
+   pytomography.utils.helper_functions.pad_object_z
+   pytomography.utils.helper_functions.unpad_object_z
+   pytomography.utils.helper_functions.get_object_nearest_neighbour
+
+
+
+.. py:function:: rev_cumsum(x)
+
+   Reverse cumulative sum along the first axis of a tensor of shape [batch_size, Lx, Ly, Lz].
+   since this is used with CT correction, the initial voxel only contributes 1/2.
+
+   :param x: Tensor to be summed
+   :type x: torch.tensor[batch_size,Lx,Ly,Lz]
+
+   :returns: The cumulatively summed tensor.
+   :rtype: torch.tensor[batch_size, Lx, Ly, Lz]
+
+
+.. py:function:: rotate_detector_z(x, angle, interpolation = InterpolationMode.BILINEAR, negative = False)
+
+   Returns an object tensor in a rotated reference frame such that the scanner is located at the +x axis. Note that the scanner angle $eta$ is related to $\phi$ (azimuthal angle) by $\phi = 3\pi/2 - eta$.
+
+   :param x: Tensor aligned with cartesian coordinate system specified
+   :type x: torch.tensor[batch_size, Lx, Ly, Lz]
+   :param by the manual.:
+   :param angle: The angle $eta$ where the scanner is located.
+   :type angle: float
+   :param interpolation: Method of interpolation used to get rotated image.
+   :type interpolation: InterpolationMode, optional
+   :param Defaults to InterpolationMode.BILINEAR.:
+   :param negative: If True, applies an inverse rotation. In this case, the tensor
+   :type negative: bool, optional
+   :param x is an object in a coordinate system aligned with $eta$:
+   :param and the function rotates the:
+   :param x back to the original cartesian coordinate system specified by the users manual. In particular:
+   :param if one:
+   :param uses this function on a tensor with negative=False:
+   :param then applies this function to that returned:
+   :param tensor with negative=True:
+   :param it should return the same tensor. Defaults to False.:
+
+   :returns: Rotated tensor.
+   :rtype: torch.tensor[batch_size, Lx, Ly, Lz]
+
+
+.. py:function:: get_distance(Lx, r, dx)
+
+   Given the radial distance to center of object space from the scanner, computes the distance
+     between each parallel plane (i.e. (y-z plane)) and a detector located at +x. This function is used for point spread function (PSF) blurring where the amount of blurring depends on thedistance from the detector.
+
+   :param Lx: The number of y-z planes to compute the distance of
+   :type Lx: int
+   :param r: The radial distance between the central y-z plane and the detector at +x.
+   :type r: float
+   :param dx: The spacing between y-z planes in Euclidean distance.
+   :type dx: float
+
+   :returns: An array of distances for each y-z plane to the detector.
+   :rtype: np.array[Lx]
+
+
+.. py:function:: compute_pad_size(width)
+
+   Computes the pad width required such that subsequent rotation retains the entire image
+
+   :param width: width of the corresponding axis (i.e. number of elements in the dimension)
+   :type width: int
+
+   :returns: the number of pixels by which the axis needs to be padded on each side
+   :rtype: int
+
+
+.. py:function:: compute_pad_size_padded(width)
+
+   Computes the width by which an object was padded, given its padded size.
+
+   :param width: width of the corresponding axis (i.e. number of elements in the dimension)
+   :type width: int
+
+   :returns: the number of pixels by which the object was padded to get to this width
+   :rtype: int
+
+
+.. py:function:: pad_object(object, mode='constant')
+
+   Pads object tensors by enough pixels in the xy plane so that subsequent rotations don't crop out any of the object
+
+   :param object: object tensor to be padded
+   :type object: torch.Tensor[batch_size, Lx, Ly, Lz]
+   :param mode: _description_. Defaults to 'constant'.
+   :type mode: str, optional
+
+   :returns: _description_
+   :rtype: _type_
+
+
+.. py:function:: unpad_object(object)
+
+   Unpads a padded object tensor in the xy plane back to its original dimensions
+
+   :param object: padded object tensor
+   :type object: torch.Tensor[batch_size, Lx', Ly', Lz]
+
+   :returns: Object tensor back to it's original dimensions.
+   :rtype: torch.Tensor[batch_size, Lx, Ly, Lz]
+
+
+.. py:function:: pad_image(image, mode = 'constant', value = 0)
+
+   Pads an image along the Lr axis
+
+   :param image: Image tensor.
+   :type image: torch.Tensor[batch_size, Ltheta, Lr, Lz]
+   :param mode: Padding mode to use. Defaults to 'constant'.
+   :type mode: str, optional
+   :param value: If padding mode is constant, fill with this value. Defaults to 0.
+   :type value: float, optional
+
+   :returns: Padded image tensor.
+   :rtype: torch.Tensor[batch_size, Ltheta, Lr', Lz]
+
+
+.. py:function:: unpad_image(image)
+
+   Unpads the image back to original Lr dimensions
+
+   :param image: Padded image tensor
+   :type image: torch.Tensor[batch_size, Ltheta, Lr', Lz]
+
+   :returns: Unpadded image tensor
+   :rtype: torch.Tensor[batch_size, Ltheta, Lr, Lz]
+
+
+.. py:function:: pad_object_z(object, pad_size, mode='constant')
+
+   Pads an object tensor along z. Useful for PSF modeling
+
+   :param object: Object tensor
+   :type object: torch.Tensor[batch_size, Lx, Ly, Lz]
+   :param pad_size: Amount by which to pad in -z and +z
+   :type pad_size: int
+   :param mode: Padding mode. Defaults to 'constant'.
+   :type mode: str, optional
+
+   :returns: Padded object tensor along z.
+   :rtype: torch.Tensor[torch.Tensor[batch_size, Lx, Ly, Lz']]
+
+
+.. py:function:: unpad_object_z(object, pad_size)
+
+   Unpads an object along the z dimension
+
+   :param object: Padded object tensor along z.
+   :type object: torch.Tensor[batch_size, Lx, Ly, Lz']
+   :param pad_size: Amount by which the padded tensor was padded in the z direcion
+   :type pad_size: int
+
+   :returns: Unpadded object tensor.
+   :rtype: torch.Tensor[batch_size, Lx, Ly, Lz]
+
+
+.. py:function:: get_object_nearest_neighbour(object, shifts)
+
+
