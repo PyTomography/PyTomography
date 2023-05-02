@@ -1,0 +1,8 @@
+camera_model,collimator_name,hole_diameter,hole_length
+SymbiaTSeries,LEHR,0.111,2.405
+SymbiaTSeries,LEAP,0.145,2.405
+SymbiaTSeries,LEUHR,0.116,3.58
+SymbiaTSeries,LEFB,0.153,3.5
+SymbiaTSeries,ME,0.294,4.064
+SymbiaTSeries,HE,0.4,5.97
+SymbiaTSeries,IQ_SPECT,0.19,4.025
