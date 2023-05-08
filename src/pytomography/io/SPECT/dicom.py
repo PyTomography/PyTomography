@@ -115,6 +115,32 @@ def get_attenuation_map_from_file(file_AM: str) -> torch.Tensor:
     attenuation_map =  ds.pixel_array / ds[0x033,0x1038].value
     return torch.tensor(np.transpose(attenuation_map, (2,1,0))).unsqueeze(dim=0)
 
+def get_psfmeta_from_scanner_params(camera_model, collimator_name, energy_keV):
+
+    module_path = os.path.dirname(os.path.abspath(__file__))
+    
+    scanner_datasheet = np.genfromtxt(os.path.join(module_path, '../../data/data_sheet.csv'), skip_header=1, dtype=['U50,U50,float,float'], delimiter=',', unpack=True)
+    attenuation_coefficient_energy = np.genfromtxt(os.path.join(module_path, '../../data/attenuation_values.csv'), skip_header = 1, dtype=['float,float'], delimiter=',', unpack = True)
+        
+    for i in range(len(scanner_datasheet)):
+        if camera_model == scanner_datasheet[i][0] and collimator_name == scanner_datasheet[i][1]:
+            hole_diameter = scanner_datasheet[i][2]
+            hole_length = scanner_datasheet[i][3]
+
+    for i in range(len(attenuation_coefficient_energy)):
+        if energy_keV == attenuation_coefficient_energy[i][0]:
+            attenuation_coefficient = attenuation_coefficient_energy[i][1]
+
+    collimator_slope_FWHM = hole_diameter/(hole_length - (2/attenuation_coefficient))
+    collimator_intercept_FWHM = hole_diameter
+
+    collimator_slope = collimator_slope_FWHM * (1/(2*np.sqrt(2*np.log(2))))
+    collimator_intercept = collimator_intercept_FWHM * (1/(2*np.sqrt(2*np.log(2))))
+
+    psf_meta = PSFMeta(collimator_slope, collimator_intercept)
+    
+    return (psf_meta)
+
 def get_attenuation_map_from_CT_slices(
     files_CT: Sequence[str],
     file_NM: str,
