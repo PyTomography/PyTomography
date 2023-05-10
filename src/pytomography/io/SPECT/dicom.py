@@ -42,7 +42,11 @@ def get_radii_and_angles(ds: Dataset) -> Sequence[torch.Tensor, np.array, np.arr
             start_angle = ds.DetectorInformationSequence[detector-1].StartAngle
         except:
             start_angle = ds.RotationInformationSequence[0].StartAngle
-        angles = np.concatenate([angles, start_angle + delta_angle*np.arange(n_angles)])
+        rotation_direction = ds.RotationInformationSequence[0].RotationDirection
+        if rotation_direction=='CC' or rotation_direction=='CCW':
+            angles = np.concatenate([angles, start_angle + delta_angle*np.arange(n_angles)])
+        else:
+            angles = np.concatenate([angles, start_angle - delta_angle*np.arange(n_angles)])
         radial_positions_detector = ds.DetectorInformationSequence[detector-1].RadialPosition
         if not isinstance(radial_positions_detector, collections.abc.Sequence):
             radial_positions_detector = n_angles * [radial_positions_detector]
@@ -93,7 +97,18 @@ def get_scatter_from_TEW(
     index_peak: int,
     index_lower: int,
     index_upper: int
-    ):
+    ) -> torch.Tensor:
+    """Gets scatter estimate using the triple energy window method
+
+    Args:
+        file (str): Filepath of the DICOM file
+        index_peak (int): Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to the photopeak.
+        index_lower (int): Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to lower scatter window.
+        index_upper (int): Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to upper scatter window.
+
+    Returns:
+        torch.Tensor[1,Ltheta,Lr,Lz]: Tensor corresponding to the scatter estimate.
+    """
     ds = pydicom.read_file(file)
     ww_peak = get_window_width(ds, index_peak)
     ww_lower = get_window_width(ds, index_lower)
@@ -114,6 +129,45 @@ def get_attenuation_map_from_file(file_AM: str) -> torch.Tensor:
     ds = pydicom.read_file(file_AM)
     attenuation_map =  ds.pixel_array / ds[0x033,0x1038].value
     return torch.tensor(np.transpose(attenuation_map, (2,1,0))).unsqueeze(dim=0)
+
+def get_psfmeta_from_scanner_params(
+    camera_model: str,
+    collimator_name: str,
+    energy_keV: float
+    ) -> PSFMeta:
+    """Obtains PSF metadata from SPECT camera/collimator parameters
+
+    Args:
+        camera_model (str): Name of SPECT camera. 
+        collimator_name (str): Name of collimator used.
+        energy_keV (float): Energy of the photopeak
+
+    Returns:
+        PSFMeta: PSF metadata.
+    """
+
+    module_path = os.path.dirname(os.path.abspath(__file__))
+    
+    scanner_datasheet = np.genfromtxt(os.path.join(module_path, '../../data/SPECT_collimator_parameters.csv'), skip_header=1, dtype=['U50,U50,float,float'], delimiter=',', unpack=True)
+    attenuation_coefficient_energy = np.genfromtxt(os.path.join(module_path, '../../data/lead_attenuation_values.csv'), skip_header = 1, dtype=['float,float'], delimiter=',', unpack = True)
+        
+    for i in range(len(scanner_datasheet)):
+        if camera_model == scanner_datasheet[i][0] and collimator_name == scanner_datasheet[i][1]:
+            hole_diameter = scanner_datasheet[i][2]
+            hole_length = scanner_datasheet[i][3]
+
+    for i in range(len(attenuation_coefficient_energy)):
+        if energy_keV == attenuation_coefficient_energy[i][0]:
+            attenuation_coefficient = attenuation_coefficient_energy[i][1]
+
+    collimator_slope_FWHM = hole_diameter/(hole_length - (2/attenuation_coefficient))
+    collimator_intercept_FWHM = hole_diameter
+
+    # convert to units of sigma
+    collimator_slope = collimator_slope_FWHM * (1/(2*np.sqrt(2*np.log(2))))
+    collimator_intercept = collimator_intercept_FWHM * (1/(2*np.sqrt(2*np.log(2))))
+
+    return PSFMeta(collimator_slope, collimator_intercept)
 
 def get_attenuation_map_from_CT_slices(
     files_CT: Sequence[str],
@@ -246,6 +300,53 @@ def get_affine_CT(ds: Dataset, max_z: float):
     M_CT[2, 3] = max_z
     M_CT[3, 3] = 1
     return M_CT
+
+
+def stitch_multibed(recons, files_NM, manufacturer='Siemens'):
+    """Stitches together multiple reconstructed objects corresponding to different bed positions on the same scan
+
+    Args:
+        recons (torch.Tensor[n_beds, Lx, Ly, Lz]): Reconstructed objects. The first index of the tensor corresponds to different bed positions
+        files_NM (list): List of length ``n_beds`` corresponding to the DICOM file of each reconstruction
+        manufacturer (str, optional): Scanner manufacturer. There are some secret DICOM headers that differ between manufacturers, so unfortunately this is needed as an argument to this function. So far, only Siemens is supported. Defaults to 'Siemens'.
+
+    Returns:
+        torch.Tensor[1, Lx, Ly, Lz']: Stitched together DICOM file. Note the new z-dimension size :math:`L_z'`.
+    """
+    dss = np.array([pydicom.read_file(file_NM) for file_NM in files_NM])
+    zs = np.array([ds.DetectorInformationSequence[0].ImagePositionPatient[-1] for ds in dss])
+    # Sort by increasing z-position
+    order = np.argsort(zs)
+    dss = dss[order]
+    zs = zs[order]
+    recons = recons[order]
+    #convert to voxel height
+    zs = np.round((zs - zs[0])/dss[0].PixelSpacing[1]).astype(int) 
+    new_z_height = zs[-1] + recons.shape[-1]
+    recon_aligned = torch.zeros((1, dss[0].Rows, dss[0].Rows, new_z_height)).to(pytomography.device)
+    if manufacturer == 'Siemens':
+        blank_below, blank_above = dss[0][0x0055,0x10c0][0], dss[0][0x0055,0x10c0][2]
+    else:
+        # May not work
+        blank_below, blank_above = 0
+    for i in range(len(zs)):
+        recon_aligned[:,:,:,zs[i]+blank_below:zs[i]+blank_above] = recons[i,:,:,blank_below:blank_above]
+    # Improve stitching for overlapping segments
+    for i in range(1,len(zs)):
+        zmin = zs[i] + blank_below
+        zmax = zs[i-1] + blank_above
+        half = round((zmax - zmin)/2)
+        if zmax>zmin+1: #at least two voxels apart
+            zmin_upper = blank_below
+            zmax_lower = blank_above
+            delta =  -(zs[i] - zs[i-1]) - blank_below + blank_above
+            r1 = recons[i-1][:,:,zmax_lower-delta:zmax_lower]
+            r2 = recons[i][:,:,zmin_upper:zmin_upper+delta]
+            #recon_aligned[:,:,:,zmin:zmax] = 0.5 * (r1 + r2)
+            #recon_aligned[:,:,:,zmin:zmax] = torch.max(torch.stack([r1,r2]), axis=0)[0]
+            recon_aligned[:,:,:,zmin:zmin+half] = r1[:,:,:half]
+            recon_aligned[:,:,:,zmin+half:zmax] = r2[:,:,half:]       
+    return recon_aligned
 
 
 # TODO: Update this function so that it includes photopeak energy window index, and psf should be computed using data tables corresponding to manufactorer data sheets.
