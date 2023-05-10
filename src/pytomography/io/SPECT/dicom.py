@@ -42,7 +42,11 @@ def get_radii_and_angles(ds: Dataset) -> Sequence[torch.Tensor, np.array, np.arr
             start_angle = ds.DetectorInformationSequence[detector-1].StartAngle
         except:
             start_angle = ds.RotationInformationSequence[0].StartAngle
-        angles = np.concatenate([angles, start_angle + delta_angle*np.arange(n_angles)])
+        rotation_direction = ds.RotationInformationSequence[0].RotationDirection
+        if rotation_direction=='CC' or rotation_direction=='CCW':
+            angles = np.concatenate([angles, start_angle + delta_angle*np.arange(n_angles)])
+        else:
+            angles = np.concatenate([angles, start_angle - delta_angle*np.arange(n_angles)])
         radial_positions_detector = ds.DetectorInformationSequence[detector-1].RadialPosition
         if not isinstance(radial_positions_detector, collections.abc.Sequence):
             radial_positions_detector = n_angles * [radial_positions_detector]
@@ -272,6 +276,53 @@ def get_affine_CT(ds: Dataset, max_z: float):
     M_CT[2, 3] = max_z
     M_CT[3, 3] = 1
     return M_CT
+
+
+def stitch_multibed(recons, files_NM, manufacturer='Siemens'):
+    """Stitches together multiple reconstructed objects corresponding to different bed positions on the same scan
+
+    Args:
+        recons (torch.Tensor[n_beds, Lx, Ly, Lz]): Reconstructed objects. The first index of the tensor corresponds to different bed positions
+        files_NM (list): List of length ``n_beds`` corresponding to the DICOM file of each reconstruction
+        manufacturer (str, optional): Scanner manufacturer. There are some secret DICOM headers that differ between manufacturers, so unfortunately this is needed as an argument to this function. So far, only Siemens is supported. Defaults to 'Siemens'.
+
+    Returns:
+        torch.Tensor[1, Lx, Ly, Lz']: Stitched together DICOM file. Note the new z-dimension size :math:`L_z'`.
+    """
+    dss = np.array([pydicom.read_file(file_NM) for file_NM in files_NM])
+    zs = np.array([ds.DetectorInformationSequence[0].ImagePositionPatient[-1] for ds in dss])
+    # Sort by increasing z-position
+    order = np.argsort(zs)
+    dss = dss[order]
+    zs = zs[order]
+    recons = recons[order]
+    #convert to voxel height
+    zs = np.round((zs - zs[0])/dss[0].PixelSpacing[1]).astype(int) 
+    new_z_height = zs[-1] + recons.shape[-1]
+    recon_aligned = torch.zeros((1, dss[0].Rows, dss[0].Rows, new_z_height)).to(pytomography.device)
+    if manufacturer == 'Siemens':
+        blank_below, blank_above = dss[0][0x0055,0x10c0][0], dss[0][0x0055,0x10c0][2]
+    else:
+        # May not work
+        blank_below, blank_above = 0
+    for i in range(len(zs)):
+        recon_aligned[:,:,:,zs[i]+blank_below:zs[i]+blank_above] = recons[i,:,:,blank_below:blank_above]
+    # Improve stitching for overlapping segments
+    for i in range(1,len(zs)):
+        zmin = zs[i] + blank_below
+        zmax = zs[i-1] + blank_above
+        half = round((zmax - zmin)/2)
+        if zmax>zmin+1: #at least two voxels apart
+            zmin_upper = blank_below
+            zmax_lower = blank_above
+            delta =  -(zs[i] - zs[i-1]) - blank_below + blank_above
+            r1 = recons[i-1][:,:,zmax_lower-delta:zmax_lower]
+            r2 = recons[i][:,:,zmin_upper:zmin_upper+delta]
+            #recon_aligned[:,:,:,zmin:zmax] = 0.5 * (r1 + r2)
+            #recon_aligned[:,:,:,zmin:zmax] = torch.max(torch.stack([r1,r2]), axis=0)[0]
+            recon_aligned[:,:,:,zmin:zmin+half] = r1[:,:,:half]
+            recon_aligned[:,:,:,zmin+half:zmax] = r2[:,:,half:]       
+    return recon_aligned
 
 
 # TODO: Update this function so that it includes photopeak energy window index, and psf should be computed using data tables corresponding to manufactorer data sheets.
