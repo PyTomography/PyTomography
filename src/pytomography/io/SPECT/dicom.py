@@ -136,7 +136,7 @@ def get_psfmeta_from_scanner_params(
     collimator_name: str,
     energy_keV: float
     ) -> PSFMeta:
-    """Obtains PSF metadata from SPECT camera/collimator parameters. Performs linear interpolation to find linear attenuation coefficient for energy values within the range 100keV - 600keV not present in '../../data/lead_attenuation_values.csv'
+    """Obtains PSF metadata from SPECT camera/collimator parameters. Performs linear interpolation to find linear attenuation coefficient for for lead collimators for energy values within the range 100keV - 600keV.
 
     Args:
         camera_model (str): Name of SPECT camera. 
@@ -162,10 +162,7 @@ def get_psfmeta_from_scanner_params(
             hole_diameter = scanner_datasheet[i][2]
             hole_length = scanner_datasheet[i][3]
 
-    for i in range(len(attenuation_coefficient_energy)):
-        if energy_keV == attenuation_coefficient_energy[i][0]:
-            attenuation_coefficient = attenuation_coefficient_energy[i][1]
-        else: attenuation_coefficient = linear_attenuation_coef_val_interp(energy_keV)
+    attenuation_coefficient = linear_attenuation_coef_val_interp(energy_keV)
 
     collimator_slope_FWHM = hole_diameter/(hole_length - (2/attenuation_coefficient))
     collimator_intercept_FWHM = hole_diameter
