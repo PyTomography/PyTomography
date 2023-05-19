@@ -27,7 +27,7 @@ These values are essential for calculations involving lead shielding and radiati
 
 Please note that the data in these files should be used for reference purposes and should be validated and cross-checked against trusted sources when applied to specific applications.
 # License
-The data files in this repository are provided under the MIT License. Feel free to use and modify them according to your needs.
+The data files in this repository are provided under the Creative Commons License.
 
 
 
