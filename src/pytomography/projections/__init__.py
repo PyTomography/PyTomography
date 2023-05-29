@@ -1,1 +1,1 @@
-from .system_matrix import SystemMatrix
+from .system_matrix import SystemMatrix, SystemMatrixMaskedSegments

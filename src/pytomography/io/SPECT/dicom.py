@@ -114,7 +114,7 @@ def get_scatter_from_TEW(
     ww_lower = get_window_width(ds, index_lower)
     ww_upper = get_window_width(ds, index_upper)
     _, _, projections_all = get_projections(file)
-    scatter = (projections_all[2]/ww_lower + projections_all[4]/ww_upper)* ww_peak / 2
+    scatter = (projections_all[index_lower]/ww_lower + projections_all[index_upper]/ww_upper)* ww_peak / 2
     return scatter.unsqueeze(dim=0)
 
 def get_attenuation_map_from_file(file_AM: str) -> torch.Tensor:
