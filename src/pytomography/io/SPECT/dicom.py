@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 import numpy.linalg as npl
 from scipy.ndimage import affine_transform
+import scipy.interpolate
 import torch
 import torch.nn as nn
 import pydicom
@@ -133,7 +134,7 @@ def get_psfmeta_from_scanner_params(
     collimator_name: str,
     energy_keV: float
     ) -> PSFMeta:
-    """Obtains PSF metadata from SPECT camera/collimator parameters
+    """Obtains PSF metadata from SPECT camera/collimator parameters. Performs linear interpolation to find linear attenuation coefficient for for lead collimators for energy values within the range 100keV - 600keV.
 
     Args:
         camera_model (str): Name of SPECT camera. 
@@ -149,14 +150,17 @@ def get_psfmeta_from_scanner_params(
     scanner_datasheet = np.genfromtxt(os.path.join(module_path, '../../data/SPECT_collimator_parameters.csv'), skip_header=1, dtype=['U50,U50,float,float'], delimiter=',', unpack=True)
     attenuation_coefficient_energy = np.genfromtxt(os.path.join(module_path, '../../data/lead_attenuation_values.csv'), skip_header = 1, dtype=['float,float'], delimiter=',', unpack = True)
         
+    energies_keV = (list(zip(*attenuation_coefficient_energy))[0])
+    linear_attenuation_coef_vals = (list(zip(*attenuation_coefficient_energy))[1])
+
+    linear_attenuation_coef_val_interp = scipy.interpolate.interp1d(energies_keV, linear_attenuation_coef_vals)
+
     for i in range(len(scanner_datasheet)):
         if camera_model == scanner_datasheet[i][0] and collimator_name == scanner_datasheet[i][1]:
             hole_diameter = scanner_datasheet[i][2]
             hole_length = scanner_datasheet[i][3]
 
-    for i in range(len(attenuation_coefficient_energy)):
-        if energy_keV == attenuation_coefficient_energy[i][0]:
-            attenuation_coefficient = attenuation_coefficient_energy[i][1]
+    attenuation_coefficient = linear_attenuation_coef_val_interp(energy_keV)
 
     collimator_slope_FWHM = hole_diameter/(hole_length - (2/attenuation_coefficient))
     collimator_intercept_FWHM = hole_diameter
