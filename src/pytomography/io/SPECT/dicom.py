@@ -17,10 +17,8 @@ import pytomography
 from pytomography.metadata import ObjectMeta, ImageMeta
 from pytomography.metadata import ObjectMeta, ImageMeta
 from pytomography.projections import SystemMatrix
-from pytomography.transforms import SPECTAttenuationTransform, SPECTPSFTransform
-from pytomography.priors import Prior
 from pytomography.metadata import PSFMeta
-from pytomography.algorithms import OSEMOSL, OSML
+from pytomography.utils import get_blank_below_above
 
 def get_radii_and_angles(ds: Dataset) -> Sequence[torch.Tensor, np.array, np.array]:
     """Gets projections with corresponding radii and angles corresponding to projection data from a DICOM file.
@@ -72,7 +70,7 @@ def get_projections(
     Returns:
         (ObjectMeta, ImageMeta, torch.Tensor[1, Ltheta, Lr, Lz]): Required information for reconstruction in PyTomography.
     """
-    ds = pydicom.read_file(file)
+    ds = pydicom.read_file(file, force=True)
     dx = ds.PixelSpacing[0] / 10
     dz = ds.PixelSpacing[1] / 10
     dr = (dx, dx, dz)
@@ -109,7 +107,7 @@ def get_scatter_from_TEW(
     Returns:
         torch.Tensor[1,Ltheta,Lr,Lz]: Tensor corresponding to the scatter estimate.
     """
-    ds = pydicom.read_file(file)
+    ds = pydicom.read_file(file, force=True)
     ww_peak = get_window_width(ds, index_peak)
     ww_lower = get_window_width(ds, index_lower)
     ww_upper = get_window_width(ds, index_upper)
@@ -126,7 +124,7 @@ def get_attenuation_map_from_file(file_AM: str) -> torch.Tensor:
     Returns:
         torch.Tensor: Tensor of shape [batch_size, Lx, Ly, Lz] corresponding to the atteunation map.
     """
-    ds = pydicom.read_file(file_AM)
+    ds = pydicom.read_file(file_AM, force=True)
     attenuation_map =  ds.pixel_array / ds[0x033,0x1038].value
     return torch.tensor(np.transpose(attenuation_map, (2,1,0))).unsqueeze(dim=0)
 
@@ -184,17 +182,17 @@ def get_attenuation_map_from_CT_slices(
     Returns:
         torch.Tensor: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.
     """
-    ds_NM = pydicom.read_file(file_NM)
+    ds_NM = pydicom.read_file(file_NM, force=True)
     CT_scan = []
     slice_locs = []
     for file in files_CT:
-        ds = pydicom.read_file(file)
+        ds = pydicom.read_file(file, force=True)
         CT_scan.append(ds.pixel_array)
         slice_locs.append(float(ds.SliceLocation))
     CT_scan = np.transpose(np.array(CT_scan)[np.argsort(slice_locs)], (2,1,0)).astype(np.float32)
    # Affine matrix
     M_CT = get_affine_CT(ds, np.max(np.abs(slice_locs)))
-    M_NM = get_affine_spect(pydicom.read_file(file_NM))
+    M_NM = get_affine_spect(pydicom.read_file(file_NM, force=True))
     # Resample CT and convert to mu at 208keV and save
     M = npl.inv(M_CT) @ M_NM
     CT_resampled = affine_transform(CT_scan, M[0:3,0:3], M[:3,3], output_shape=(ds_NM.Rows, ds_NM.Rows, ds_NM.Columns) )
@@ -301,14 +299,17 @@ def get_affine_CT(ds: Dataset, max_z: float):
     M_CT[3, 3] = 1
     return M_CT
 
-
-def stitch_multibed(recons, files_NM, manufacturer='Siemens'):
-    """Stitches together multiple reconstructed objects corresponding to different bed positions on the same scan
+def stitch_multibed(
+    recons: torch.Tensor,
+    files_NM: Sequence[str],
+    method: str ='midslice'
+    ) -> torch.Tensor:
+    """Stitches together multiple reconstructed objects corresponding to different bed positions.
 
     Args:
         recons (torch.Tensor[n_beds, Lx, Ly, Lz]): Reconstructed objects. The first index of the tensor corresponds to different bed positions
         files_NM (list): List of length ``n_beds`` corresponding to the DICOM file of each reconstruction
-        manufacturer (str, optional): Scanner manufacturer. There are some secret DICOM headers that differ between manufacturers, so unfortunately this is needed as an argument to this function. So far, only Siemens is supported. Defaults to 'Siemens'.
+        method (str, optional): Method to perform stitching (see https://doi.org/10.1117/12.2254096 for all methods described). Available methods include ``'midslice'``, ``'average'``, ``'crossfade'``, and ``'TEM;`` (transition error minimization).
 
     Returns:
         torch.Tensor[1, Lx, Ly, Lz']: Stitched together DICOM file. Note the new z-dimension size :math:`L_z'`.
@@ -324,17 +325,14 @@ def stitch_multibed(recons, files_NM, manufacturer='Siemens'):
     zs = np.round((zs - zs[0])/dss[0].PixelSpacing[1]).astype(int) 
     new_z_height = zs[-1] + recons.shape[-1]
     recon_aligned = torch.zeros((1, dss[0].Rows, dss[0].Rows, new_z_height)).to(pytomography.device)
-    if manufacturer == 'Siemens':
-        blank_below, blank_above = dss[0][0x0055,0x10c0][0], dss[0][0x0055,0x10c0][2]
-    else:
-        # May not work
-        blank_below, blank_above = 0
+    blank_below, blank_above = get_blank_below_above(files_NM[0])
     for i in range(len(zs)):
         recon_aligned[:,:,:,zs[i]+blank_below:zs[i]+blank_above] = recons[i,:,:,blank_below:blank_above]
-    # Improve stitching for overlapping segments
+    # Apply stitching method
     for i in range(1,len(zs)):
         zmin = zs[i] + blank_below
         zmax = zs[i-1] + blank_above
+        dL = zmax - zmin
         half = round((zmax - zmin)/2)
         if zmax>zmin+1: #at least two voxels apart
             zmin_upper = blank_below
@@ -342,14 +340,26 @@ def stitch_multibed(recons, files_NM, manufacturer='Siemens'):
             delta =  -(zs[i] - zs[i-1]) - blank_below + blank_above
             r1 = recons[i-1][:,:,zmax_lower-delta:zmax_lower]
             r2 = recons[i][:,:,zmin_upper:zmin_upper+delta]
-            #recon_aligned[:,:,:,zmin:zmax] = 0.5 * (r1 + r2)
-            #recon_aligned[:,:,:,zmin:zmax] = torch.max(torch.stack([r1,r2]), axis=0)[0]
-            recon_aligned[:,:,:,zmin:zmin+half] = r1[:,:,:half]
-            recon_aligned[:,:,:,zmin+half:zmax] = r2[:,:,half:]       
+            if method=='midslice':
+                recon_aligned[:,:,:,zmin:zmin+half] = r1[:,:,:half]
+                recon_aligned[:,:,:,zmin+half:zmax] = r2[:,:,half:] 
+            elif method=='average':
+                recon_aligned[:,:,:,zmin:zmax] = 0.5 * (r1 + r2)
+            elif method=='crossfade':
+                idx = torch.arange(dL).to(pytomography.device) + 0.5
+                recon_aligned[:,:,:,zmin:zmax] = ((dL-idx)*r1 + idx*r2) / dL
+            elif method=='TEM':
+                stitch_index = torch.min(torch.abs(r1-r2), axis=2)[1]
+                range_tensor = torch.arange(dL).unsqueeze(0).unsqueeze(0).to(pytomography.device)
+                mask_tensor = range_tensor < stitch_index.unsqueeze(-1)
+                expanded_mask = mask_tensor.expand(*stitch_index.shape, dL)
+                recon_aligned[:,:,:,zmin:zmax][expanded_mask.unsqueeze(0)] = r1[expanded_mask]
+                recon_aligned[:,:,:,zmin:zmax][~expanded_mask.unsqueeze(0)] = r2[~expanded_mask]
     return recon_aligned
 
 
 # TODO: Update this function so that it includes photopeak energy window index, and psf should be computed using data tables corresponding to manufactorer data sheets.
+'''
 def get_SPECT_recon_algorithm_dicom(
     projections_file: str,
     atteunation_files: Sequence[str] = None,
@@ -392,7 +402,7 @@ def get_SPECT_recon_algorithm_dicom(
         object_correction_nets.append(CT_net)
     # Load PSF parameters
     if use_psf:
-        ds = pydicom.read_file(projections_file)
+        ds = pydicom.read_file(projections_file, force=True)
         if ds.Manufacturer =='SIEMENS NM':
             # Find a more consistent way to do this
             angular_FWHM = ds[0x0055, 0x107f][0]
@@ -404,3 +414,4 @@ def get_SPECT_recon_algorithm_dicom(
     system_matrix = SystemMatrix(object_correction_nets, image_correction_nets, object_meta, image_meta)
     recon_algorithm = recon_algorithm_class(projections, system_matrix, object_initial, projections_scatter, prior)
     return recon_algorithm
+'''

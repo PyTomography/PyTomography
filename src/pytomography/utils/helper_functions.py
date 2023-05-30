@@ -4,6 +4,7 @@ from torch.nn.functional import pad
 from torchvision.transforms.functional import rotate
 from torchvision.transforms import InterpolationMode
 import numpy as np
+import pydicom
 
 def rev_cumsum(x: torch.Tensor):
     """Reverse cumulative sum along the first axis of a tensor of shape [batch_size, Lx, Ly, Lz].
@@ -182,3 +183,23 @@ def get_object_nearest_neighbour(object: torch.Tensor, shifts: list[int]):
     neighbour = pad(object, [1,1,1,1,1,1])
     neighbour = torch.roll(neighbour, shifts=shifts, dims=(1,2,3))
     return neighbour[:,1:-1,1:-1,1:-1]
+
+def get_blank_below_above(file_NM: str):
+    """Obtains the number of blank z-slices at the sup (``blank_above``) and inf (``blank_below``) of the projection data. This method is entirely empircal, and looks for z slices where there are zero detected counts.
+
+    Args:
+        file_NM (str): Filepath to DICOM file.
+
+    Returns:
+        Sequence[int]: A tuple of two elements corresponding to the number of blank slices at the inf, and the number of blank slices at the sup.
+    """
+    ds = pydicom.read_file(file_NM)
+    # Try accessing DICOM fields that explicitly state the number of blank slices. Works for Siemens Symbia
+    try:
+        blank_below, blank_above = ds[0x0055,0x10c0][0], ds[0x0055,0x10c0][2]
+    # Otherwise obtain these empirically by looking for z-slices with no counts.
+    except:
+        greater_than_zero = ds.pixel_array.sum(axis=(0,2)) > 0
+        blank_below = np.argmax(greater_than_zero)
+        blank_above = ds.pixel_array.shape[1] - np.argmax(greater_than_zero[::-1])
+    return blank_below, blank_above
