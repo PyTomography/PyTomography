@@ -50,10 +50,10 @@ Classes
       :type object: torch.tensor
 
 
-   .. py:method:: __call__()
+   .. py:method:: compute_gradient()
       :abstractmethod:
 
-      Abstract method to compute prior based on the ``self.object`` attribute.
+      Abstract method to compute the gradient of the prior based on the ``self.object`` attribute.
 
 
 

@@ -203,3 +203,31 @@ def get_blank_below_above(file_NM: str):
         blank_below = np.argmax(greater_than_zero)
         blank_above = ds.pixel_array.shape[1] - np.argmax(greater_than_zero[::-1])
     return blank_below, blank_above
+
+def bilinear_transform(
+    arr: np.array,
+    a1: float,
+    b1: float,
+    a2:float ,
+    b2:float
+    ) -> np.array:
+    """Converts an array of Hounsfield Units into linear attenuation coefficient using the bilinear transformation :math:`f(x)=a_1x+b_1` for positive :math:`x` and :math:`f(x)=a_2x+b_2` for negative :math:`x`.
+
+    Args:
+        arr (np.array): Array to be transformed using bilinear transformation
+        a1 (float): Bilinear slope for negative input values
+        b1 (float): Bilinear intercept for negative input values
+        a2 (float): Bilinear slope for positive input values
+        b2 (float): Bilinear intercept for positive input values
+
+    Returns:
+        np.array: Transformed array.
+    """
+    arr_transform = np.piecewise(
+        arr,
+        [arr <= 0, arr > 0],
+        [lambda x: a1*x + b1,
+        lambda x: a2*x + b2]
+    )
+    arr_transform[arr_transform<0] = 0
+    return arr_transform

@@ -1,0 +1,603 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+<link rel="index" title="Index" href="../../../../../genindex.html" /><link rel="search" title="Search" href="../../../../../search.html" />
+
+    <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
+        <title>pytomography.io.SPECT.dicom - PyTomography 0.6.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../../../index.html"><div class="brand">PyTomography 0.6.0 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../../index.html">
+  
+  
+  <span class="sidebar-brand-text">PyTomography 0.6.0 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../../notebooks/conventions.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../usage.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../developers_guide.html">Developer’s Guide</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../../../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../algorithms/osem/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.osem</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../callbacks/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../callbacks/callback/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.callback</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 current has-children"><a class="reference internal" href="../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l4 current has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l5 current current-page"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../simind/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.simind</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../metadata/metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.metadata</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../priors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../priors/nearest_neighbour/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.nearest_neighbour</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../priors/prior/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.prior</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../projections/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../projections/system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections.system_matrix</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../transforms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../../transforms/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../../transforms/PET/attenuation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.PET.attenuation</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../transforms/PET/psf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.PET.psf</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../../transforms/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../../transforms/SPECT/atteunation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.atteunation</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../transforms/SPECT/cutoff/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.cutoff</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../transforms/SPECT/psf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.psf</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../../../transforms/transform/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.transform</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../utils/helper_functions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.helper_functions</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="module-pytomography.io.SPECT.dicom">
+<span id="pytomography-io-spect-dicom"></span><h1><a class="reference internal" href="#module-pytomography.io.SPECT.dicom" title="pytomography.io.SPECT.dicom"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a><a class="headerlink" href="#module-pytomography.io.SPECT.dicom" title="Permalink to this heading">#</a></h1>
+<p>Note: This module is still being built and is not yet finished.</p>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this heading">#</a></h2>
+<section id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this heading">#</a></h3>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_radii_and_angles" title="pytomography.io.SPECT.dicom.get_radii_and_angles"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_radii_and_angles</span></code></a>(ds)</p></td>
+<td><p>Gets projections with corresponding radii and angles corresponding to projection data from a DICOM file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_projections" title="pytomography.io.SPECT.dicom.get_projections"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_projections</span></code></a>(file[, index_peak])</p></td>
+<td><p>Gets ObjectMeta, ImageMeta, and projections from a .dcm file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_window_width" title="pytomography.io.SPECT.dicom.get_window_width"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_window_width</span></code></a>(ds, index)</p></td>
+<td><p>Computes the width of an energy window corresponding to a particular index in the DetectorInformationSequence DICOM attribute.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_scatter_from_TEW" title="pytomography.io.SPECT.dicom.get_scatter_from_TEW"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_scatter_from_TEW</span></code></a>(file, index_peak, index_lower, ...)</p></td>
+<td><p>Gets an estimate of scatter projection data from a DICOM file using the triple energy window method.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_attenuation_map_from_file" title="pytomography.io.SPECT.dicom.get_attenuation_map_from_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_attenuation_map_from_file</span></code></a>(file_AM)</p></td>
+<td><p>Gets an attenuation map from a DICOM file. This data is usually provided by the manufacturer of the SPECT scanner.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_psfmeta_from_scanner_params" title="pytomography.io.SPECT.dicom.get_psfmeta_from_scanner_params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_psfmeta_from_scanner_params</span></code></a>(camera_model, ...)</p></td>
+<td><p>Gets PSF metadata from SPECT camera/collimator parameters. Performs linear interpolation to find linear attenuation coefficient for lead collimators for energy values within the range 100keV - 600keV.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_attenuation_map_from_CT_slices" title="pytomography.io.SPECT.dicom.get_attenuation_map_from_CT_slices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_attenuation_map_from_CT_slices</span></code></a>(files_CT, file_NM)</p></td>
+<td><p>Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography. Note that it is recommended by <a class="reference external" href="https://jnm.snmjournals.org/content/57/1/151.long">https://jnm.snmjournals.org/content/57/1/151.long</a> to use the vendors attenuation map as opposed to creating your own. As such, the <code class="docutils literal notranslate"><span class="pre">get_attenuation_map_from_file</span></code> should be used preferentially over this function, if you have access to an attenuation map from the vendor.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom.CT_to_attenuation_map" title="pytomography.io.SPECT.dicom.CT_to_attenuation_map"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CT_to_attenuation_map</span></code></a>(CT_HU, ds[, photopeak_window_index])</p></td>
+<td><p>Obtains an attenuation map from a CT file. Requires dataset corresponding to projection data because energy windows are used to convert from HU to linear attenuation coefficients. See <a class="reference external" href="https://www.sciencedirect.com/science/article/pii/S0969804308000067">https://www.sciencedirect.com/science/article/pii/S0969804308000067</a> for more details.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_affine_spect" title="pytomography.io.SPECT.dicom.get_affine_spect"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_affine_spect</span></code></a>(ds)</p></td>
+<td><p>Computes an affine matrix corresponding the coordinate system of a SPECT DICOM file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_affine_CT" title="pytomography.io.SPECT.dicom.get_affine_CT"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_affine_CT</span></code></a>(ds, max_z)</p></td>
+<td><p>Computes an affine matrix corresponding the coordinate system of a CT DICOM file. Note that since CT scans consist of many independent DICOM files, ds corresponds to an individual one of these files. This is why the maximum z value is also required (across all seperate independent DICOM files).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom.stitch_multibed" title="pytomography.io.SPECT.dicom.stitch_multibed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stitch_multibed</span></code></a>(recons, files_NM[, method])</p></td>
+<td><p>Stitches together multiple reconstructed objects corresponding to different bed positions.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.dicom.get_radii_and_angles">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.dicom.</span></span><span class="sig-name descname"><span class="pre">get_radii_and_angles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/dicom.html#get_radii_and_angles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.dicom.get_radii_and_angles" title="Permalink to this definition">#</a></dt>
+<dd><p>Gets projections with corresponding radii and angles corresponding to projection data from a DICOM file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ds</strong> (<em>Dataset</em>) – pydicom dataset object.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Required image data for reconstruction.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(torch.tensor[1,Ltheta, Lr, Lz], np.array, np.array)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.dicom.get_projections">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.dicom.</span></span><span class="sig-name descname"><span class="pre">get_projections</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_peak</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/dicom.html#get_projections"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.dicom.get_projections" title="Permalink to this definition">#</a></dt>
+<dd><p>Gets ObjectMeta, ImageMeta, and projections from a .dcm file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file</strong> (<em>str</em>) – Path to the .dcm file</p></li>
+<li><p><strong>index_peak</strong> (<em>int</em>) – If not none, then the returned projections correspond to the index of this energy window. Otherwise returns all energy windows. Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Required information for reconstruction in PyTomography.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(<a class="reference internal" href="../../../metadata/index.html#pytomography.metadata.ObjectMeta" title="pytomography.metadata.ObjectMeta">ObjectMeta</a>, <a class="reference internal" href="../../../metadata/index.html#pytomography.metadata.ImageMeta" title="pytomography.metadata.ImageMeta">ImageMeta</a>, torch.Tensor[1, Ltheta, Lr, Lz])</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.dicom.get_window_width">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.dicom.</span></span><span class="sig-name descname"><span class="pre">get_window_width</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/dicom.html#get_window_width"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.dicom.get_window_width" title="Permalink to this definition">#</a></dt>
+<dd><p>Computes the width of an energy window corresponding to a particular index in the DetectorInformationSequence DICOM attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ds</strong> (<em>Dataset</em>) – DICOM dataset.</p></li>
+<li><p><strong>index</strong> (<em>int</em>) – Energy window index corresponding to the DICOM dataset.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Range of the energy window in keV</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.dicom.get_scatter_from_TEW">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.dicom.</span></span><span class="sig-name descname"><span class="pre">get_scatter_from_TEW</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_peak</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_upper</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/dicom.html#get_scatter_from_TEW"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.dicom.get_scatter_from_TEW" title="Permalink to this definition">#</a></dt>
+<dd><p>Gets an estimate of scatter projection data from a DICOM file using the triple energy window method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file</strong> (<em>str</em>) – Filepath of the DICOM file</p></li>
+<li><p><strong>index_peak</strong> (<em>int</em>) – Index of the <code class="docutils literal notranslate"><span class="pre">EnergyWindowInformationSequence</span></code> DICOM attribute corresponding to the photopeak.</p></li>
+<li><p><strong>index_lower</strong> (<em>int</em>) – Index of the <code class="docutils literal notranslate"><span class="pre">EnergyWindowInformationSequence</span></code> DICOM attribute corresponding to lower scatter window.</p></li>
+<li><p><strong>index_upper</strong> (<em>int</em>) – Index of the <code class="docutils literal notranslate"><span class="pre">EnergyWindowInformationSequence</span></code> DICOM attribute corresponding to upper scatter window.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tensor corresponding to the scatter estimate.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor[1,Ltheta,Lr,Lz]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.dicom.get_attenuation_map_from_file">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.dicom.</span></span><span class="sig-name descname"><span class="pre">get_attenuation_map_from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_AM</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/dicom.html#get_attenuation_map_from_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.dicom.get_attenuation_map_from_file" title="Permalink to this definition">#</a></dt>
+<dd><p>Gets an attenuation map from a DICOM file. This data is usually provided by the manufacturer of the SPECT scanner.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file_AM</strong> (<em>str</em>) – File name of attenuation map</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tensor of shape [batch_size, Lx, Ly, Lz] corresponding to the atteunation map in units of cm:math:<cite>^{-1}</cite></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.dicom.get_psfmeta_from_scanner_params">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.dicom.</span></span><span class="sig-name descname"><span class="pre">get_psfmeta_from_scanner_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collimator_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_keV</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/dicom.html#get_psfmeta_from_scanner_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.dicom.get_psfmeta_from_scanner_params" title="Permalink to this definition">#</a></dt>
+<dd><p>Gets PSF metadata from SPECT camera/collimator parameters. Performs linear interpolation to find linear attenuation coefficient for lead collimators for energy values within the range 100keV - 600keV.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>camera_model</strong> (<em>str</em>) – Name of SPECT camera.</p></li>
+<li><p><strong>collimator_name</strong> (<em>str</em>) – Name of collimator used.</p></li>
+<li><p><strong>energy_keV</strong> (<em>float</em>) – Energy of the photopeak</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>PSF metadata.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="../../../metadata/index.html#pytomography.metadata.PSFMeta" title="pytomography.metadata.PSFMeta">PSFMeta</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.dicom.get_attenuation_map_from_CT_slices">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.dicom.</span></span><span class="sig-name descname"><span class="pre">get_attenuation_map_from_CT_slices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files_CT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_NM</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_peak</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/dicom.html#get_attenuation_map_from_CT_slices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.dicom.get_attenuation_map_from_CT_slices" title="Permalink to this definition">#</a></dt>
+<dd><p>Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography. Note that it is recommended by <a class="reference external" href="https://jnm.snmjournals.org/content/57/1/151.long">https://jnm.snmjournals.org/content/57/1/151.long</a> to use the vendors attenuation map as opposed to creating your own. As such, the <code class="docutils literal notranslate"><span class="pre">get_attenuation_map_from_file</span></code> should be used preferentially over this function, if you have access to an attenuation map from the vendor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>files_CT</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>) – List of all files corresponding to an individual CT scan</p></li>
+<li><p><strong>file_NM</strong> (<em>str</em>) – File corresponding to raw PET/SPECT data (required to align CT with projections)</p></li>
+<li><p><strong>index_peak</strong> (<em>int</em><em>, </em><em>optional</em>) – Index corresponding to photopeak in projection data. Defaults to 0.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.dicom.CT_to_attenuation_map">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.dicom.</span></span><span class="sig-name descname"><span class="pre">CT_to_attenuation_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">CT_HU</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">photopeak_window_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/dicom.html#CT_to_attenuation_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.dicom.CT_to_attenuation_map" title="Permalink to this definition">#</a></dt>
+<dd><p>Obtains an attenuation map from a CT file. Requires dataset corresponding to projection data because energy windows are used to convert from HU to linear attenuation coefficients. See <a class="reference external" href="https://www.sciencedirect.com/science/article/pii/S0969804308000067">https://www.sciencedirect.com/science/article/pii/S0969804308000067</a> for more details.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>CT_HU</strong> (<em>np.array</em>) – CT object in units of hounsfield units.</p></li>
+<li><p><strong>ds</strong> (<em>Dataset</em>) – DICOM data set of projection data</p></li>
+<li><p><strong>primary_window_index</strong> (<em>int</em><em>, </em><em>optional</em>) – The energy window corresponding to the photopeak. Defaults to 0.</p></li>
+<li><p><strong>photopeak_window_index</strong> (<em>int</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Array of length 4 containins the 4 coefficients required for the bilinear transformation.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.dicom.get_affine_spect">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.dicom.</span></span><span class="sig-name descname"><span class="pre">get_affine_spect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/dicom.html#get_affine_spect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.dicom.get_affine_spect" title="Permalink to this definition">#</a></dt>
+<dd><p>Computes an affine matrix corresponding the coordinate system of a SPECT DICOM file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ds</strong> (<em>Dataset</em>) – DICOM dataset of projection data</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Affine matrix.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.dicom.get_affine_CT">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.dicom.</span></span><span class="sig-name descname"><span class="pre">get_affine_CT</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_z</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/dicom.html#get_affine_CT"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.dicom.get_affine_CT" title="Permalink to this definition">#</a></dt>
+<dd><p>Computes an affine matrix corresponding the coordinate system of a CT DICOM file. Note that since CT scans consist of many independent DICOM files, ds corresponds to an individual one of these files. This is why the maximum z value is also required (across all seperate independent DICOM files).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ds</strong> (<em>Dataset</em>) – DICOM dataset of CT data</p></li>
+<li><p><strong>max_z</strong> (<em>float</em>) – Maximum value of z across all axial slices that make up the CT scan</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Affine matrix corresponding to CT scan.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.dicom.stitch_multibed">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.dicom.</span></span><span class="sig-name descname"><span class="pre">stitch_multibed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">recons</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">files_NM</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'midslice'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/dicom.html#stitch_multibed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.dicom.stitch_multibed" title="Permalink to this definition">#</a></dt>
+<dd><p>Stitches together multiple reconstructed objects corresponding to different bed positions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>recons</strong> (<em>torch.Tensor</em><em>[</em><em>n_beds</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>]</em>) – Reconstructed objects. The first index of the tensor corresponds to different bed positions</p></li>
+<li><p><strong>files_NM</strong> (<em>list</em>) – List of length <code class="docutils literal notranslate"><span class="pre">n_beds</span></code> corresponding to the DICOM file of each reconstruction</p></li>
+<li><p><strong>method</strong> (<em>str</em><em>, </em><em>optional</em>) – Method to perform stitching (see <a class="reference external" href="https://doi.org/10.1117/12.2254096">https://doi.org/10.1117/12.2254096</a> for all methods described). Available methods include <code class="docutils literal notranslate"><span class="pre">'midslice'</span></code>, <code class="docutils literal notranslate"><span class="pre">'average'</span></code>, <code class="docutils literal notranslate"><span class="pre">'crossfade'</span></code>, and <code class="docutils literal notranslate"><span class="pre">'TEM;</span></code> (transition error minimization).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Stitched together DICOM file. Note the new z-dimension size <span class="math notranslate nohighlight">\(L_z'\)</span>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor[1, Lx, Ly, Lz’]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2023, Luke Polson
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a><ul>
+<li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
+<li><a class="reference internal" href="#functions">Functions</a><ul>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_radii_and_angles"><code class="docutils literal notranslate"><span class="pre">get_radii_and_angles()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_projections"><code class="docutils literal notranslate"><span class="pre">get_projections()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_window_width"><code class="docutils literal notranslate"><span class="pre">get_window_width()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_scatter_from_TEW"><code class="docutils literal notranslate"><span class="pre">get_scatter_from_TEW()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_attenuation_map_from_file"><code class="docutils literal notranslate"><span class="pre">get_attenuation_map_from_file()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_psfmeta_from_scanner_params"><code class="docutils literal notranslate"><span class="pre">get_psfmeta_from_scanner_params()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_attenuation_map_from_CT_slices"><code class="docutils literal notranslate"><span class="pre">get_attenuation_map_from_CT_slices()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.CT_to_attenuation_map"><code class="docutils literal notranslate"><span class="pre">CT_to_attenuation_map()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_affine_spect"><code class="docutils literal notranslate"><span class="pre">get_affine_spect()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_affine_CT"><code class="docutils literal notranslate"><span class="pre">get_affine_CT()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.stitch_multibed"><code class="docutils literal notranslate"><span class="pre">stitch_multibed()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_radii_and_angles">get_radii_and_angles</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_projections">get_projections</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_window_width">get_window_width</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_scatter_from_TEW">get_scatter_from_TEW</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_attenuation_map_from_file">get_attenuation_map_from_file</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_psfmeta_from_scanner_params">get_psfmeta_from_scanner_params</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_attenuation_map_from_CT_slices">get_attenuation_map_from_CT_slices</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.CT_to_attenuation_map">CT_to_attenuation_map</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_affine_spect">get_affine_spect</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_affine_CT">get_affine_CT</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.dicom.stitch_multibed">stitch_multibed</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
+    <script src="../../../../../_static/doctools.js"></script>
+    <script src="../../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../../_static/scripts/furo.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    </body>
+</html>

@@ -1,0 +1,91 @@
+:py:mod:`pytomography.io.SPECT.simind`
+======================================
+
+.. py:module:: pytomography.io.SPECT.simind
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.io.SPECT.simind.find_first_entry_containing_header
+   pytomography.io.SPECT.simind.get_projections
+   pytomography.io.SPECT.simind.get_scatter_from_TEW
+   pytomography.io.SPECT.simind.get_atteuation_map
+   pytomography.io.SPECT.simind.get_SPECT_recon_algorithm_simind
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.io.SPECT.simind.relation_dict
+
+
+.. py:data:: relation_dict
+
+   
+
+.. py:function:: find_first_entry_containing_header(list_of_attributes, header, dtype = np.float32)
+
+   Finds the first entry in a SIMIND Interfile output corresponding to the header (header).
+
+   :param list_of_attributes: Simind data file, as a list of lines.
+   :type list_of_attributes: list[str]
+   :param header: The header looked for
+   :type header: str
+   :param dtype: The data type to be returned corresponding to the value of the header. Defaults to np.float32.
+   :type dtype: type, optional
+
+   :returns: The value corresponding to the header (header).
+   :rtype: float|str|int
+
+
+.. py:function:: get_projections(headerfile, distance = 'cm')
+
+   Obtains ObjectMeta, ImageMeta, and projections from a SIMIND header file.
+
+   :param headerfile: Path to the header file
+   :type headerfile: str
+   :param distance: The units of measurements in the SIMIND file (this is required as input, since SIMIND uses mm/cm but doesn't specify). Defaults to 'cm'.
+   :type distance: str, optional
+
+   :returns: Required information for reconstruction in PyTomography.
+   :rtype: (ObjectMeta, ImageMeta, torch.Tensor[1, Ltheta, Lr, Lz])
+
+
+.. py:function:: get_scatter_from_TEW(headerfile_peak, headerfile_lower, headerfile_upper, distance = 'cm')
+
+   Obtains a triple energy window scatter estimate from corresponding photopeak, lower, and upper energy windows.
+
+   :param headerfile_peak: Headerfile corresponding to the photopeak
+   :param headerfile_lower: Headerfile corresponding to the lower energy window
+   :param headerfile_upper: Headerfile corresponding to the upper energy window
+   :param distance: The units of measurements in the SIMIND file (this is required as input, since SIMIND uses mm/cm but doesn't specify). Defaults to 'cm'.
+   :type distance: str, optional
+
+   :returns: Estimated scatter from the triple energy window.
+   :rtype: torch.Tensor[1, Ltheta, Lr, Lz]
+
+
+.. py:function:: get_atteuation_map(headerfile)
+
+   Opens attenuation data from SIMIND output
+
+   :param headerfile: Path to header file
+   :type headerfile: str
+
+   :returns: Tensor containing CT data.
+   :rtype: torch.tensor[Lx,Ly,Lz]
+
+
+.. py:function:: get_SPECT_recon_algorithm_simind(projections_header, scatter_headers = None, CT_header = None, psf_meta = None, prior = None, object_initial = None, recon_algorithm_class = OSEMOSL)
+
+

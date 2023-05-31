@@ -1,0 +1,44 @@
+:py:mod:`pytomography.transforms.SPECT.cutoff`
+==============================================
+
+.. py:module:: pytomography.transforms.SPECT.cutoff
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.transforms.SPECT.cutoff.CutOffTransform
+
+
+
+
+.. py:class:: CutOffTransform(file_NM)
+
+   Bases: :py:obj:`pytomography.transforms.Transform`
+
+   im2im transformation used to set pixel values equal to zero at the first and last few z slices. This is often required when reconstructing DICOM data due to the finite field of view of the projection data, where additional axial slices are included on the top and bottom, with zero measured detection events. This transform is included in the system matrix, to model the sharp cutoff at the finite FOV.
+
+   :param file_NM: Filepath of the DICOM file corresponding to the reconstructed object. This is needed to obtain the number of blank z-slices on the top and bottom of the projections corresponding to the particular scanner.
+   :type file_NM: str
+
+   .. py:method:: __call__(image, norm_constant = None, mode = 'forward_project')
+
+      Applies the transformation.
+
+      :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
+      :type image: torch.Tensor
+      :param norm_constant: A tensor used to normalize the output during back projection. Defaults to None.
+      :type norm_constant: torch.Tensor | None, optional
+      :param mode: Whether or not this is being used in forward (`'forward_project'`) or backward projection (`'back_project'`). Defaults to 'forward_project'.
+      :type mode: str, optional
+
+      :returns: Original image, but with certain z-slices equal to zero.
+      :rtype: torch.tensor
+
+
+

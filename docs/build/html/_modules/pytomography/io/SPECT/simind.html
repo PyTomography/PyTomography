@@ -1,0 +1,452 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../../genindex.html" /><link rel="search" title="Search" href="../../../../search.html" />
+
+    <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
+        <title>pytomography.io.SPECT.simind - PyTomography 0.6.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../../index.html"><div class="brand">PyTomography 0.6.0 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
+  
+  
+  <span class="sidebar-brand-text">PyTomography 0.6.0 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebooks/conventions.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../usage.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../developers_guide.html">Developer’s Guide</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../autoapi/index.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/pytomography/algorithms/osem/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.osem</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/callbacks/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/pytomography/callbacks/callback/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.callback</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/io/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/io/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.simind</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/pytomography/metadata/metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.metadata</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/priors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/pytomography/priors/nearest_neighbour/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.nearest_neighbour</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/pytomography/priors/prior/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.prior</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/projections/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/pytomography/projections/system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections.system_matrix</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/transforms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/transforms/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../../../autoapi/pytomography/transforms/PET/attenuation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.PET.attenuation</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../../autoapi/pytomography/transforms/PET/psf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.PET.psf</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/transforms/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../../../autoapi/pytomography/transforms/SPECT/atteunation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.atteunation</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../../autoapi/pytomography/transforms/SPECT/cutoff/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.cutoff</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.psf</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/pytomography/transforms/transform/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.transform</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/pytomography/utils/helper_functions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.helper_functions</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <h1>Source code for pytomography.io.SPECT.simind</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ImageMeta</span>
+<span class="kn">from</span> <span class="nn">pytomography.projections</span> <span class="kn">import</span> <span class="n">SystemMatrix</span>
+<span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">SPECTAttenuationTransform</span><span class="p">,</span> <span class="n">SPECTPSFTransform</span>
+<span class="kn">from</span> <span class="nn">pytomography.priors</span> <span class="kn">import</span> <span class="n">Prior</span>
+<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">PSFMeta</span>
+<span class="kn">from</span> <span class="nn">pytomography.algorithms</span> <span class="kn">import</span> <span class="n">OSEMOSL</span>
+
+<div class="viewcode-block" id="relation_dict"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.relation_dict">[docs]</a><span class="n">relation_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;unsignedinteger&#39;</span><span class="p">:</span> <span class="s1">&#39;int&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;shortfloat&#39;</span><span class="p">:</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;int&#39;</span><span class="p">:</span> <span class="s1">&#39;int&#39;</span><span class="p">}</span></div>
+
+<div class="viewcode-block" id="find_first_entry_containing_header"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.find_first_entry_containing_header">[docs]</a><span class="k">def</span> <span class="nf">find_first_entry_containing_header</span><span class="p">(</span>
+    <span class="n">list_of_attributes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">header</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="nb">type</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="o">|</span><span class="nb">str</span><span class="o">|</span><span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Finds the first entry in a SIMIND Interfile output corresponding to the header (header).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        list_of_attributes (list[str]): Simind data file, as a list of lines.</span>
+<span class="sd">        header (str): The header looked for</span>
+<span class="sd">        dtype (type, optional): The data type to be returned corresponding to the value of the header. Defaults to np.float32.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float|str|int: The value corresponding to the header (header).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="n">list_of_attributes</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">list_of_attributes</span><span class="p">,</span> <span class="n">header</span><span class="p">)</span><span class="o">&gt;=</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:=&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">elif</span> <span class="n">dtype</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:=&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">dtype</span> <span class="o">==</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:=&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="get_projections"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.get_projections">[docs]</a><span class="k">def</span> <span class="nf">get_projections</span><span class="p">(</span><span class="n">headerfile</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">distance</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;cm&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtains ObjectMeta, ImageMeta, and projections from a SIMIND header file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        headerfile (str): Path to the header file</span>
+<span class="sd">        distance (str, optional): The units of measurements in the SIMIND file (this is required as input, since SIMIND uses mm/cm but doesn&#39;t specify). Defaults to &#39;cm&#39;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (ObjectMeta, ImageMeta, torch.Tensor[1, Ltheta, Lr, Lz]): Required information for reconstruction in PyTomography.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">distance</span><span class="o">==</span><span class="s1">&#39;mm&#39;</span><span class="p">:</span>
+        <span class="n">scale_factor</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">10</span>
+    <span class="k">elif</span> <span class="n">distance</span><span class="o">==</span><span class="s1">&#39;cm&#39;</span><span class="p">:</span>
+        <span class="n">scale_factor</span> <span class="o">=</span> <span class="mi">1</span>    
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">headerfile</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">headerdata</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="n">headerdata</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">headerdata</span><span class="p">)</span>
+    <span class="n">num_proj</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;total number of images&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">proj_dim1</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;matrix size [1]&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">proj_dim2</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;matrix size [2]&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">dx</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;scaling factor (mm/pixel) [1]&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span> <span class="c1"># to mm</span>
+    <span class="n">dz</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;scaling factor (mm/pixel) [2]&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span> <span class="c1"># to mm</span>
+    <span class="n">dr</span> <span class="o">=</span> <span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dz</span><span class="p">)</span>
+    <span class="n">number_format</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;number format&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+    <span class="n">number_format</span><span class="o">=</span> <span class="n">relation_dict</span><span class="p">[</span><span class="n">number_format</span><span class="p">]</span>
+    <span class="n">num_bytes_per_pixel</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;number of bytes per pixel&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">extent_of_rotation</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;extent of rotation&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">number_of_projections</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;number of projections&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">start_angle</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;start angle&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">start_angle</span><span class="p">,</span> <span class="n">extent_of_rotation</span><span class="p">,</span> <span class="n">number_of_projections</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">radius</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;Radius&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span><span class="n">scale_factor</span>
+    <span class="n">imagefile</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;name of data file&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+    <span class="n">shape_proj</span><span class="o">=</span> <span class="p">(</span><span class="n">num_proj</span><span class="p">,</span> <span class="n">proj_dim1</span><span class="p">,</span> <span class="n">proj_dim2</span><span class="p">)</span>
+    <span class="n">shape_obj</span> <span class="o">=</span> <span class="p">(</span><span class="n">proj_dim1</span><span class="p">,</span> <span class="n">proj_dim1</span><span class="p">,</span> <span class="n">proj_dim2</span><span class="p">)</span>
+    <span class="n">object_meta</span> <span class="o">=</span> <span class="n">ObjectMeta</span><span class="p">(</span><span class="n">dr</span><span class="p">,</span><span class="n">shape_obj</span><span class="p">)</span>
+    <span class="n">image_meta</span> <span class="o">=</span> <span class="n">ImageMeta</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">angles</span><span class="p">))</span><span class="o">*</span><span class="n">radius</span><span class="p">)</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;np.</span><span class="si">{</span><span class="n">number_format</span><span class="si">}{</span><span class="n">num_bytes_per_pixel</span><span class="o">*</span><span class="mi">8</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">projections</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">headerfile</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="p">),</span> <span class="n">imagefile</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">projections</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">projections</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">num_proj</span><span class="p">,</span><span class="n">proj_dim2</span><span class="p">,</span><span class="n">proj_dim1</span><span class="p">))[:,::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">projections</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">projections</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">,</span> <span class="n">projections</span></div>
+
+<div class="viewcode-block" id="get_scatter_from_TEW"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.get_scatter_from_TEW">[docs]</a><span class="k">def</span> <span class="nf">get_scatter_from_TEW</span><span class="p">(</span>
+    <span class="n">headerfile_peak</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">headerfile_lower</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">headerfile_upper</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">distance</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;cm&#39;</span>
+    <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtains a triple energy window scatter estimate from corresponding photopeak, lower, and upper energy windows.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        headerfile_peak: Headerfile corresponding to the photopeak</span>
+<span class="sd">        headerfile_lower: Headerfile corresponding to the lower energy window</span>
+<span class="sd">        headerfile_upper: Headerfile corresponding to the upper energy window</span>
+<span class="sd">        distance (str, optional): The units of measurements in the SIMIND file (this is required as input, since SIMIND uses mm/cm but doesn&#39;t specify). Defaults to &#39;cm&#39;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor[1, Ltheta, Lr, Lz]: Estimated scatter from the triple energy window.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="c1"># assumes all three energy windows have same metadata</span>
+    <span class="n">projectionss</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">window_widths</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">headerfile</span> <span class="ow">in</span> <span class="p">[</span><span class="n">headerfile_peak</span><span class="p">,</span> <span class="n">headerfile_lower</span><span class="p">,</span> <span class="n">headerfile_upper</span><span class="p">]:</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">projections</span> <span class="o">=</span> <span class="n">get_projections</span><span class="p">(</span><span class="n">headerfile</span><span class="p">,</span> <span class="n">distance</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">headerfile</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">headerdata</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+        <span class="n">headerdata</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">headerdata</span><span class="p">)</span>
+        <span class="n">lwr_window</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;energy window lower level&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">upr_window</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;energy window upper level&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">window_widths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">upr_window</span> <span class="o">-</span> <span class="n">lwr_window</span><span class="p">)</span>
+        <span class="n">projectionss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">projections</span><span class="p">)</span>
+    <span class="n">projections_scatter</span> <span class="o">=</span> <span class="p">(</span><span class="n">projectionss</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="n">window_widths</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">projectionss</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">/</span><span class="n">window_widths</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">*</span> <span class="n">window_widths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="k">return</span> <span class="n">projections_scatter</span></div>
+
+<div class="viewcode-block" id="get_atteuation_map"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.get_atteuation_map">[docs]</a><span class="k">def</span> <span class="nf">get_atteuation_map</span><span class="p">(</span><span class="n">headerfile</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Opens attenuation data from SIMIND output</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        headerfile (str): Path to header file</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.tensor[Lx,Ly,Lz]: Tensor containing CT data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">headerfile</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">headerdata</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="n">headerdata</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">headerdata</span><span class="p">)</span>
+    <span class="n">matrix_size_1</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;matrix size [1]&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">matrix_size_2</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;matrix size [2]&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">matrix_size_3</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;matrix size [3]&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">matrix_size_3</span><span class="p">,</span> <span class="n">matrix_size_2</span><span class="p">,</span> <span class="n">matrix_size_1</span><span class="p">)</span>
+    <span class="n">imagefile</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;name of data file&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+    <span class="n">CT</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">headerfile</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="p">),</span> <span class="n">imagefile</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">CT</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">CT</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shape</span><span class="p">)[::</span><span class="o">-</span><span class="mi">1</span><span class="p">,::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+    <span class="n">CT</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">CT</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">CT</span></div>
+
+<div class="viewcode-block" id="get_SPECT_recon_algorithm_simind"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.get_SPECT_recon_algorithm_simind">[docs]</a><span class="k">def</span> <span class="nf">get_SPECT_recon_algorithm_simind</span><span class="p">(</span>
+    <span class="n">projections_header</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">scatter_headers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">CT_header</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">psf_meta</span><span class="p">:</span> <span class="n">PSFMeta</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">prior</span><span class="p">:</span> <span class="n">Prior</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">object_initial</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">recon_algorithm_class</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="n">OSEMOSL</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
+    <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">,</span> <span class="n">projections</span> <span class="o">=</span> <span class="n">get_projections</span><span class="p">(</span><span class="n">projections_header</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">scatter_headers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">projections_scatter</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># equivalent to 0 estimated scatter everywhere</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">projections_scatter</span> <span class="o">=</span> <span class="n">get_scatter_from_TEW</span><span class="p">(</span><span class="n">projections_header</span><span class="p">,</span> <span class="o">*</span><span class="n">scatter_headers</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">CT_header</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">CT</span> <span class="o">=</span> <span class="n">get_atteuation_map</span><span class="p">(</span><span class="n">CT_header</span><span class="p">)</span>
+    <span class="n">object_correction_nets</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">image_correction_nets</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">CT_header</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">CT_net</span> <span class="o">=</span> <span class="n">SPECTAttenuationTransform</span><span class="p">(</span><span class="n">CT</span><span class="p">)</span>
+        <span class="n">object_correction_nets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">CT_net</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">psf_meta</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">psf_net</span> <span class="o">=</span> <span class="n">SPECTPSFTransform</span><span class="p">(</span><span class="n">psf_meta</span><span class="p">)</span>
+        <span class="n">object_correction_nets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">psf_net</span><span class="p">)</span>
+    <span class="n">system_matrix</span> <span class="o">=</span> <span class="n">SystemMatrix</span><span class="p">(</span><span class="n">object_correction_nets</span><span class="p">,</span> <span class="n">image_correction_nets</span><span class="p">,</span> <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">)</span>
+    <span class="n">recon_algorithm</span> <span class="o">=</span> <span class="n">recon_algorithm_class</span><span class="p">(</span><span class="n">projections</span><span class="p">,</span> <span class="n">system_matrix</span><span class="p">,</span> <span class="n">object_initial</span><span class="p">,</span> <span class="n">projections_scatter</span><span class="p">,</span> <span class="n">prior</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">recon_algorithm</span></div>
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2023, Luke Polson
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../_static/scripts/furo.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    </body>
+</html>

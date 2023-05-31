@@ -25,6 +25,8 @@ Functions
    pytomography.utils.helper_functions.pad_object_z
    pytomography.utils.helper_functions.unpad_object_z
    pytomography.utils.helper_functions.get_object_nearest_neighbour
+   pytomography.utils.helper_functions.get_blank_below_above
+   pytomography.utils.helper_functions.bilinear_transform
 
 
 
@@ -184,5 +186,35 @@ Functions
 
 
 .. py:function:: get_object_nearest_neighbour(object, shifts)
+
+
+.. py:function:: get_blank_below_above(file_NM)
+
+   Obtains the number of blank z-slices at the sup (``blank_above``) and inf (``blank_below``) of the projection data. This method is entirely empircal, and looks for z slices where there are zero detected counts.
+
+   :param file_NM: Filepath to DICOM file.
+   :type file_NM: str
+
+   :returns: A tuple of two elements corresponding to the number of blank slices at the inf, and the number of blank slices at the sup.
+   :rtype: Sequence[int]
+
+
+.. py:function:: bilinear_transform(arr, a1, b1, a2, b2)
+
+   Converts an array of Hounsfield Units into linear attenuation coefficient using the bilinear transformation :math:`f(x)=a_1x+b_1` for positive :math:`x` and :math:`f(x)=a_2x+b_2` for negative :math:`x`.
+
+   :param arr: Array to be transformed using bilinear transformation
+   :type arr: np.array
+   :param a1: Bilinear slope for negative input values
+   :type a1: float
+   :param b1: Bilinear intercept for negative input values
+   :type b1: float
+   :param a2: Bilinear slope for positive input values
+   :type a2: float
+   :param b2: Bilinear intercept for positive input values
+   :type b2: float
+
+   :returns: Transformed array.
+   :rtype: np.array
 
 
