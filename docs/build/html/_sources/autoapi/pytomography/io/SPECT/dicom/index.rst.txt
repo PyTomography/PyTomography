@@ -1,0 +1,183 @@
+:py:mod:`pytomography.io.SPECT.dicom`
+=====================================
+
+.. py:module:: pytomography.io.SPECT.dicom
+
+.. autoapi-nested-parse::
+
+   Note: This module is still being built and is not yet finished.
+
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.io.SPECT.dicom.get_radii_and_angles
+   pytomography.io.SPECT.dicom.get_projections
+   pytomography.io.SPECT.dicom.get_window_width
+   pytomography.io.SPECT.dicom.get_scatter_from_TEW
+   pytomography.io.SPECT.dicom.get_attenuation_map_from_file
+   pytomography.io.SPECT.dicom.get_psfmeta_from_scanner_params
+   pytomography.io.SPECT.dicom.get_attenuation_map_from_CT_slices
+   pytomography.io.SPECT.dicom.CT_to_attenuation_map
+   pytomography.io.SPECT.dicom.get_affine_spect
+   pytomography.io.SPECT.dicom.get_affine_CT
+   pytomography.io.SPECT.dicom.stitch_multibed
+
+
+
+.. py:function:: get_radii_and_angles(ds)
+
+   Gets projections with corresponding radii and angles corresponding to projection data from a DICOM file.
+
+   :param ds: pydicom dataset object.
+   :type ds: Dataset
+
+   :returns: Required image data for reconstruction.
+   :rtype: (torch.tensor[1,Ltheta, Lr, Lz], np.array, np.array)
+
+
+.. py:function:: get_projections(file, index_peak = None)
+
+   Gets ObjectMeta, ImageMeta, and projections from a .dcm file.
+
+   :param file: Path to the .dcm file
+   :type file: str
+   :param index_peak: If not none, then the returned projections correspond to the index of this energy window. Otherwise returns all energy windows. Defaults to None.
+   :type index_peak: int
+
+   :returns: Required information for reconstruction in PyTomography.
+   :rtype: (ObjectMeta, ImageMeta, torch.Tensor[1, Ltheta, Lr, Lz])
+
+
+.. py:function:: get_window_width(ds, index)
+
+   Computes the width of an energy window corresponding to a particular index in the DetectorInformationSequence DICOM attribute.
+
+   :param ds: DICOM dataset.
+   :type ds: Dataset
+   :param index: Energy window index corresponding to the DICOM dataset.
+   :type index: int
+
+   :returns: Range of the energy window in keV
+   :rtype: float
+
+
+.. py:function:: get_scatter_from_TEW(file, index_peak, index_lower, index_upper)
+
+   Gets an estimate of scatter projection data from a DICOM file using the triple energy window method.
+
+   :param file: Filepath of the DICOM file
+   :type file: str
+   :param index_peak: Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to the photopeak.
+   :type index_peak: int
+   :param index_lower: Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to lower scatter window.
+   :type index_lower: int
+   :param index_upper: Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to upper scatter window.
+   :type index_upper: int
+
+   :returns: Tensor corresponding to the scatter estimate.
+   :rtype: torch.Tensor[1,Ltheta,Lr,Lz]
+
+
+.. py:function:: get_attenuation_map_from_file(file_AM)
+
+   Gets an attenuation map from a DICOM file. This data is usually provided by the manufacturer of the SPECT scanner.
+
+   :param file_AM: File name of attenuation map
+   :type file_AM: str
+
+   :returns: Tensor of shape [batch_size, Lx, Ly, Lz] corresponding to the atteunation map in units of cm:math:`^{-1}`
+   :rtype: torch.Tensor
+
+
+.. py:function:: get_psfmeta_from_scanner_params(camera_model, collimator_name, energy_keV)
+
+   Gets PSF metadata from SPECT camera/collimator parameters. Performs linear interpolation to find linear attenuation coefficient for lead collimators for energy values within the range 100keV - 600keV.
+
+   :param camera_model: Name of SPECT camera.
+   :type camera_model: str
+   :param collimator_name: Name of collimator used.
+   :type collimator_name: str
+   :param energy_keV: Energy of the photopeak
+   :type energy_keV: float
+
+   :returns: PSF metadata.
+   :rtype: PSFMeta
+
+
+.. py:function:: get_attenuation_map_from_CT_slices(files_CT, file_NM, index_peak = 0)
+
+   Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography. Note that it is recommended by https://jnm.snmjournals.org/content/57/1/151.long to use the vendors attenuation map as opposed to creating your own. As such, the ``get_attenuation_map_from_file`` should be used preferentially over this function, if you have access to an attenuation map from the vendor.
+
+   :param files_CT: List of all files corresponding to an individual CT scan
+   :type files_CT: Sequence[str]
+   :param file_NM: File corresponding to raw PET/SPECT data (required to align CT with projections)
+   :type file_NM: str
+   :param index_peak: Index corresponding to photopeak in projection data. Defaults to 0.
+   :type index_peak: int, optional
+
+   :returns: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.
+   :rtype: torch.Tensor
+
+
+.. py:function:: CT_to_attenuation_map(CT_HU, ds, photopeak_window_index = 0)
+
+   Obtains an attenuation map from a CT file. Requires dataset corresponding to projection data because energy windows are used to convert from HU to linear attenuation coefficients. See https://www.sciencedirect.com/science/article/pii/S0969804308000067 for more details.
+
+   :param CT_HU: CT object in units of hounsfield units.
+   :type CT_HU: np.array
+   :param ds: DICOM data set of projection data
+   :type ds: Dataset
+   :param primary_window_index: The energy window corresponding to the photopeak. Defaults to 0.
+   :type primary_window_index: int, optional
+
+   :returns: Array of length 4 containins the 4 coefficients required for the bilinear transformation.
+   :rtype: np.array
+
+
+.. py:function:: get_affine_spect(ds)
+
+   Computes an affine matrix corresponding the coordinate system of a SPECT DICOM file.
+
+   :param ds: DICOM dataset of projection data
+   :type ds: Dataset
+
+   :returns: Affine matrix.
+   :rtype: np.array
+
+
+.. py:function:: get_affine_CT(ds, max_z)
+
+   Computes an affine matrix corresponding the coordinate system of a CT DICOM file. Note that since CT scans consist of many independent DICOM files, ds corresponds to an individual one of these files. This is why the maximum z value is also required (across all seperate independent DICOM files).
+
+   :param ds: DICOM dataset of CT data
+   :type ds: Dataset
+   :param max_z: Maximum value of z across all axial slices that make up the CT scan
+   :type max_z: float
+
+   :returns: Affine matrix corresponding to CT scan.
+   :rtype: np.array
+
+
+.. py:function:: stitch_multibed(recons, files_NM, method = 'midslice')
+
+   Stitches together multiple reconstructed objects corresponding to different bed positions.
+
+   :param recons: Reconstructed objects. The first index of the tensor corresponds to different bed positions
+   :type recons: torch.Tensor[n_beds, Lx, Ly, Lz]
+   :param files_NM: List of length ``n_beds`` corresponding to the DICOM file of each reconstruction
+   :type files_NM: list
+   :param method: Method to perform stitching (see https://doi.org/10.1117/12.2254096 for all methods described). Available methods include ``'midslice'``, ``'average'``, ``'crossfade'``, and ``'TEM;`` (transition error minimization).
+   :type method: str, optional
+
+   :returns: Stitched together DICOM file. Note the new z-dimension size :math:`L_z'`.
+   :rtype: torch.Tensor[1, Lx, Ly, Lz']
+
+

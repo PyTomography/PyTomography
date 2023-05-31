@@ -69,10 +69,10 @@ Classes
       :type object: torch.tensor
 
 
-   .. py:method:: __call__()
+   .. py:method:: compute_gradient()
       :abstractmethod:
 
-      Abstract method to compute prior based on the ``self.object`` attribute.
+      Abstract method to compute the gradient of the prior based on the ``self.object`` attribute.
 
 
 
@@ -90,9 +90,9 @@ Classes
    :param device: Pytorch device used for computation. Defaults to 'cpu'.
    :type device: str, optional
 
-   .. py:method:: __call__()
+   .. py:method:: compute_gradient()
 
-      Computes the prior on ``self.object``
+      Computes the gradient of the prior on ``self.object``
 
       :returns: Tensor of shape [batch_size, Lx, Ly, Lz] representing :math:`\frac{\partial V}{\partial f_r}`
       :rtype: torch.tensor
