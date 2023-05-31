@@ -1,0 +1,132 @@
+:py:mod:`pytomography.io.SPECT`
+===============================
+
+.. py:module:: pytomography.io.SPECT
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   dicom/index.rst
+   simind/index.rst
+
+
+Package Contents
+----------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.io.SPECT.get_atteuation_map
+   pytomography.io.SPECT.get_SPECT_recon_algorithm_simind
+   pytomography.io.SPECT.get_projections
+   pytomography.io.SPECT.get_attenuation_map_from_file
+   pytomography.io.SPECT.get_attenuation_map_from_CT_slices
+   pytomography.io.SPECT.get_scatter_from_TEW
+   pytomography.io.SPECT.get_blank_below_above
+   pytomography.io.SPECT.get_psfmeta_from_scanner_params
+
+
+
+.. py:function:: get_atteuation_map(headerfile)
+
+   Opens attenuation data from SIMIND output
+
+   :param headerfile: Path to header file
+   :type headerfile: str
+
+   :returns: Tensor containing CT data.
+   :rtype: torch.tensor[Lx,Ly,Lz]
+
+
+.. py:function:: get_SPECT_recon_algorithm_simind(projections_header, scatter_headers = None, CT_header = None, psf_meta = None, prior = None, object_initial = None, recon_algorithm_class = OSEMOSL)
+
+
+.. py:function:: get_projections(file, index_peak = None)
+
+   Gets ObjectMeta, ImageMeta, and projections from a .dcm file.
+
+   :param file: Path to the .dcm file
+   :type file: str
+   :param index_peak: If not none, then the returned projections correspond to the index of this energy window. Otherwise returns all energy windows. Defaults to None.
+   :type index_peak: int
+
+   :returns: Required information for reconstruction in PyTomography.
+   :rtype: (ObjectMeta, ImageMeta, torch.Tensor[1, Ltheta, Lr, Lz])
+
+
+.. py:function:: get_attenuation_map_from_file(file_AM)
+
+   Gets an attenuation map from a DICOM file. This data is usually provided by the manufacturer of the SPECT scanner.
+
+   :param file_AM: File name of attenuation map
+   :type file_AM: str
+
+   :returns: Tensor of shape [batch_size, Lx, Ly, Lz] corresponding to the atteunation map in units of cm:math:`^{-1}`
+   :rtype: torch.Tensor
+
+
+.. py:function:: get_attenuation_map_from_CT_slices(files_CT, file_NM, index_peak = 0)
+
+   Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography. Note that it is recommended by https://jnm.snmjournals.org/content/57/1/151.long to use the vendors attenuation map as opposed to creating your own. As such, the ``get_attenuation_map_from_file`` should be used preferentially over this function, if you have access to an attenuation map from the vendor.
+
+   :param files_CT: List of all files corresponding to an individual CT scan
+   :type files_CT: Sequence[str]
+   :param file_NM: File corresponding to raw PET/SPECT data (required to align CT with projections)
+   :type file_NM: str
+   :param index_peak: Index corresponding to photopeak in projection data. Defaults to 0.
+   :type index_peak: int, optional
+
+   :returns: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.
+   :rtype: torch.Tensor
+
+
+.. py:function:: get_scatter_from_TEW(file, index_peak, index_lower, index_upper)
+
+   Gets an estimate of scatter projection data from a DICOM file using the triple energy window method.
+
+   :param file: Filepath of the DICOM file
+   :type file: str
+   :param index_peak: Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to the photopeak.
+   :type index_peak: int
+   :param index_lower: Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to lower scatter window.
+   :type index_lower: int
+   :param index_upper: Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to upper scatter window.
+   :type index_upper: int
+
+   :returns: Tensor corresponding to the scatter estimate.
+   :rtype: torch.Tensor[1,Ltheta,Lr,Lz]
+
+
+.. py:function:: get_blank_below_above(file_NM)
+
+   Obtains the number of blank z-slices at the sup (``blank_above``) and inf (``blank_below``) of the projection data. This method is entirely empircal, and looks for z slices where there are zero detected counts.
+
+   :param file_NM: Filepath to DICOM file.
+   :type file_NM: str
+
+   :returns: A tuple of two elements corresponding to the number of blank slices at the inf, and the number of blank slices at the sup.
+   :rtype: Sequence[int]
+
+
+.. py:function:: get_psfmeta_from_scanner_params(camera_model, collimator_name, energy_keV)
+
+   Gets PSF metadata from SPECT camera/collimator parameters. Performs linear interpolation to find linear attenuation coefficient for lead collimators for energy values within the range 100keV - 600keV.
+
+   :param camera_model: Name of SPECT camera.
+   :type camera_model: str
+   :param collimator_name: Name of collimator used.
+   :type collimator_name: str
+   :param energy_keV: Energy of the photopeak
+   :type energy_keV: float
+
+   :returns: PSF metadata.
+   :rtype: PSFMeta
+
+

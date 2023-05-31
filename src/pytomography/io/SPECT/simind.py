@@ -5,12 +5,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 import os
-import pytomography
 from pytomography.metadata import ObjectMeta, ImageMeta
 from pytomography.projections import SystemMatrix
 from pytomography.transforms import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.priors import Prior
-from pytomography.callbacks import CallBack
 from pytomography.metadata import PSFMeta
 from pytomography.algorithms import OSEMOSL
 

@@ -126,3 +126,77 @@ class SystemMatrix():
             return object, norm_constant+delta
         else:
             return object
+        
+        
+class SystemMatrixMaskedSegments(SystemMatrix):
+    r"""Update this
+    
+    Args:
+            obj2obj_transforms (Sequence[Transform]): Sequence of object mappings that occur before forward projection.
+            im2im_transforms (Sequence[Transform]): Sequence of image mappings that occur after forward projection.
+            object_meta (ObjectMeta): Object metadata.
+            image_meta (ImageMeta): Image metadata.
+            masks (torch.Tensor): Masks corresponding to each segmented region.
+    """
+    def __init__(
+        self,
+        obj2obj_transforms: list[Transform],
+        im2im_transforms: list[Transform],
+        object_meta: ObjectMeta,
+        image_meta: ImageMeta,
+        masks: torch.Tensor
+        
+    ) -> None:
+        super(SystemMatrixMaskedSegments, self).__init__(obj2obj_transforms, im2im_transforms, object_meta, image_meta)
+        self.masks = masks.to(self.device)
+
+    def forward(
+        self,
+        activities: torch.Tensor,
+        angle_subset: list[int] = None,
+    ) -> torch.Tensor:
+        r"""Implements forward projection :math:`HUa` on a vector of activities :math:`a` corresponding to `self.masks`.
+
+        Args:
+            activities (torch.tensor[batch_size, n_masks]): Activities in each mask region.
+            angle_subset (list, optional): Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
+
+        Returns:
+            torch.tensor[batch_size, Ltheta, Lx, Lz]: Forward projected image where Ltheta is specified by `self.image_meta` and `angle_subset`.
+        """
+        object = 0
+        activities = activities.reshape((*activities.shape, 1, 1, 1)).to(self.device)
+        object = (activities*self.masks).sum(axis=1)
+        return super(SystemMatrixMaskedSegments, self).forward(object, angle_subset)
+    
+    def backward(
+        self,
+        image: torch.Tensor,
+        angle_subset: list | None = None,
+        prior: Prior | None = None,
+        normalize: bool = False,
+        return_norm_constant: bool = False,
+        delta: float = 1e-11
+    ) -> torch.Tensor:
+        """Implements back projection :math:`U^T H^T g` on an image :math:`g`, returning a vector of activities for each mask region.
+
+        Args:
+            image (torch.tensor[batch_size, Ltheta, Lr, Lz]): image which is to be back projected
+            angle_subset (list, optional): Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
+            prior (Prior, optional): If included, modifes normalizing factor to :math:`\frac{1}{\sum_j H_{ij} + P_i}` where :math:`P_i` is given by the prior. Used, for example, during in MAP OSEM. Defaults to None.
+            normalize (bool): Whether or not to divide result by :math:`\sum_j H_{ij}`
+            return_norm_constant (bool): Whether or not to return :math:`1/\sum_j H_{ij}` along with back projection. Defaults to 'False'.
+            delta (float, optional): Prevents division by zero when dividing by normalizing constant. Defaults to 1e-11.
+
+        Returns:
+            torch.tensor[batch_size, n_masks]: the activities in each mask region.
+        """
+        object, norm_constant = super(SystemMatrixMaskedSegments, self).backward(image, angle_subset, prior, normalize=False, return_norm_constant = True, delta = delta)
+        activities = (object.unsqueeze(dim=1) * self.masks).sum(axis=(-1,-2,-3))
+        norm_constant = (norm_constant.unsqueeze(dim=1) * self.masks).sum(axis=(-1,-2,-3))
+        if normalize:
+            activities = (activities+delta)/(norm_constant + delta)
+        if return_norm_constant:
+            return activities, norm_constant+delta
+        else:
+            return activities

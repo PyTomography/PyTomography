@@ -1,0 +1,687 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../../genindex.html" /><link rel="search" title="Search" href="../../../../search.html" />
+
+    <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
+        <title>pytomography.io.SPECT.dicom - PyTomography 0.6.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../../index.html"><div class="brand">PyTomography 0.6.0 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
+  
+  
+  <span class="sidebar-brand-text">PyTomography 0.6.0 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebooks/conventions.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../usage.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../developers_guide.html">Developer’s Guide</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../autoapi/index.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/pytomography/algorithms/osem/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.osem</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/callbacks/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/pytomography/callbacks/callback/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.callback</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/io/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/io/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.simind</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/pytomography/metadata/metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.metadata</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/priors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/pytomography/priors/nearest_neighbour/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.nearest_neighbour</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/pytomography/priors/prior/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.prior</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/projections/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/pytomography/projections/system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections.system_matrix</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/transforms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/transforms/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../../../autoapi/pytomography/transforms/PET/attenuation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.PET.attenuation</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../../autoapi/pytomography/transforms/PET/psf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.PET.psf</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/transforms/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../../../autoapi/pytomography/transforms/SPECT/atteunation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.atteunation</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../../autoapi/pytomography/transforms/SPECT/cutoff/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.cutoff</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.psf</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/pytomography/transforms/transform/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.transform</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/pytomography/utils/helper_functions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.helper_functions</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <h1>Source code for pytomography.io.SPECT.dicom</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Note: This module is still being built and is not yet finished. </span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">collections.abc</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numpy.linalg</span> <span class="k">as</span> <span class="nn">npl</span>
+<span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="kn">import</span> <span class="n">affine_transform</span>
+<span class="kn">import</span> <span class="nn">scipy.interpolate</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">import</span> <span class="nn">pydicom</span>
+<span class="kn">from</span> <span class="nn">pydicom.dataset</span> <span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">import</span> <span class="nn">pytomography</span>
+<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ImageMeta</span>
+<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ImageMeta</span>
+<span class="kn">from</span> <span class="nn">pytomography.projections</span> <span class="kn">import</span> <span class="n">SystemMatrix</span>
+<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">PSFMeta</span>
+<span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">get_blank_below_above</span><span class="p">,</span> <span class="n">bilinear_transform</span>
+
+<div class="viewcode-block" id="get_radii_and_angles"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html#pytomography.io.SPECT.dicom.get_radii_and_angles">[docs]</a><span class="k">def</span> <span class="nf">get_radii_and_angles</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets projections with corresponding radii and angles corresponding to projection data from a DICOM file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        ds (Dataset): pydicom dataset object.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (torch.tensor[1,Ltheta, Lr, Lz], np.array, np.array): Required image data for reconstruction.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pixel_array</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">pixel_array</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">ds</span><span class="o">.</span><span class="n">NumberOfEnergyWindows</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">ds</span><span class="o">.</span><span class="n">Rows</span><span class="p">,</span> <span class="n">ds</span><span class="o">.</span><span class="n">Columns</span><span class="p">))</span>
+    <span class="n">detectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">DetectorVector</span><span class="p">)</span>
+    <span class="n">radii</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+    <span class="n">angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+    <span class="k">for</span> <span class="n">detector</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">detectors</span><span class="p">):</span>
+        <span class="n">n_angles</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">RotationInformationSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">NumberOfFramesInRotation</span>
+        <span class="n">delta_angle</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">RotationInformationSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">AngularStep</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">start_angle</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">DetectorInformationSequence</span><span class="p">[</span><span class="n">detector</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">StartAngle</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">start_angle</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">RotationInformationSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">StartAngle</span>
+        <span class="n">rotation_direction</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">RotationInformationSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">RotationDirection</span>
+        <span class="k">if</span> <span class="n">rotation_direction</span><span class="o">==</span><span class="s1">&#39;CC&#39;</span> <span class="ow">or</span> <span class="n">rotation_direction</span><span class="o">==</span><span class="s1">&#39;CCW&#39;</span><span class="p">:</span>
+            <span class="n">angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">angles</span><span class="p">,</span> <span class="n">start_angle</span> <span class="o">+</span> <span class="n">delta_angle</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_angles</span><span class="p">)])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">angles</span><span class="p">,</span> <span class="n">start_angle</span> <span class="o">-</span> <span class="n">delta_angle</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_angles</span><span class="p">)])</span>
+        <span class="n">radial_positions_detector</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">DetectorInformationSequence</span><span class="p">[</span><span class="n">detector</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">RadialPosition</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">radial_positions_detector</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Sequence</span><span class="p">):</span>
+            <span class="n">radial_positions_detector</span> <span class="o">=</span> <span class="n">n_angles</span> <span class="o">*</span> <span class="p">[</span><span class="n">radial_positions_detector</span><span class="p">]</span>
+        <span class="n">radii</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">radii</span><span class="p">,</span> <span class="n">radial_positions_detector</span><span class="p">])</span>
+        
+    <span class="n">angles</span> <span class="o">=</span> <span class="p">(</span><span class="n">angles</span> <span class="o">+</span> <span class="mi">180</span><span class="p">)</span><span class="o">%</span><span class="mi">360</span> <span class="c1"># to detector angle convention</span>
+    <span class="n">sorted_idxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">angles</span><span class="p">)</span>
+    <span class="n">projections</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">pixel_array</span><span class="p">[:,</span><span class="n">sorted_idxs</span><span class="p">][:,:,::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">projections</span><span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">projections</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">projections</span><span class="p">,</span>
+             <span class="n">angles</span><span class="p">[</span><span class="n">sorted_idxs</span><span class="p">],</span>
+             <span class="n">radii</span><span class="p">[</span><span class="n">sorted_idxs</span><span class="p">]</span><span class="o">/</span><span class="mi">10</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="get_projections"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/index.html#pytomography.io.SPECT.dicom.get_projections">[docs]</a><span class="k">def</span> <span class="nf">get_projections</span><span class="p">(</span>
+    <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">index_peak</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ImageMeta</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets ObjectMeta, ImageMeta, and projections from a .dcm file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        file (str): Path to the .dcm file</span>
+<span class="sd">        index_peak (int): If not none, then the returned projections correspond to the index of this energy window. Otherwise returns all energy windows. Defaults to None.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        (ObjectMeta, ImageMeta, torch.Tensor[1, Ltheta, Lr, Lz]): Required information for reconstruction in PyTomography.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">dx</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mi">10</span>
+    <span class="n">dz</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="mi">10</span>
+    <span class="n">dr</span> <span class="o">=</span> <span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dz</span><span class="p">)</span>
+    <span class="n">projections</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">radii</span> <span class="o">=</span> <span class="n">get_radii_and_angles</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+    <span class="n">shape_proj</span><span class="o">=</span> <span class="n">projections</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">shape_obj</span> <span class="o">=</span> <span class="p">(</span><span class="n">shape_proj</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">shape_proj</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">shape_proj</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">object_meta</span> <span class="o">=</span> <span class="n">ObjectMeta</span><span class="p">(</span><span class="n">dr</span><span class="p">,</span><span class="n">shape_obj</span><span class="p">)</span>
+    <span class="n">image_meta</span> <span class="o">=</span> <span class="n">ImageMeta</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">radii</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">index_peak</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">projections</span> <span class="o">=</span> <span class="n">projections</span><span class="p">[</span><span class="n">index_peak</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">,</span> <span class="n">projections</span></div>
+
+<span class="c1"># used in the function below</span>
+<div class="viewcode-block" id="get_window_width"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html#pytomography.io.SPECT.dicom.get_window_width">[docs]</a><span class="k">def</span> <span class="nf">get_window_width</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the width of an energy window corresponding to a particular index in the DetectorInformationSequence DICOM attribute.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        ds (Dataset): DICOM dataset.</span>
+<span class="sd">        index (int): Energy window index corresponding to the DICOM dataset.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: Range of the energy window in keV</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">energy_window</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">EnergyWindowInformationSequence</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+    <span class="n">window_range1</span> <span class="o">=</span> <span class="n">energy_window</span><span class="o">.</span><span class="n">EnergyWindowRangeSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowLowerLimit</span>
+    <span class="n">window_range2</span> <span class="o">=</span> <span class="n">energy_window</span><span class="o">.</span><span class="n">EnergyWindowRangeSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowUpperLimit</span>
+    <span class="k">return</span> <span class="n">window_range2</span> <span class="o">-</span> <span class="n">window_range1</span></div>
+
+<div class="viewcode-block" id="get_scatter_from_TEW"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/index.html#pytomography.io.SPECT.dicom.get_scatter_from_TEW">[docs]</a><span class="k">def</span> <span class="nf">get_scatter_from_TEW</span><span class="p">(</span>
+    <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">index_peak</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">index_lower</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">index_upper</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets an estimate of scatter projection data from a DICOM file using the triple energy window method.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        file (str): Filepath of the DICOM file</span>
+<span class="sd">        index_peak (int): Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to the photopeak.</span>
+<span class="sd">        index_lower (int): Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to lower scatter window.</span>
+<span class="sd">        index_upper (int): Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to upper scatter window.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor[1,Ltheta,Lr,Lz]: Tensor corresponding to the scatter estimate.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">ww_peak</span> <span class="o">=</span> <span class="n">get_window_width</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">index_peak</span><span class="p">)</span>
+    <span class="n">ww_lower</span> <span class="o">=</span> <span class="n">get_window_width</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">index_lower</span><span class="p">)</span>
+    <span class="n">ww_upper</span> <span class="o">=</span> <span class="n">get_window_width</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">index_upper</span><span class="p">)</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">projections_all</span> <span class="o">=</span> <span class="n">get_projections</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+    <span class="n">scatter</span> <span class="o">=</span> <span class="p">(</span><span class="n">projections_all</span><span class="p">[</span><span class="n">index_lower</span><span class="p">]</span><span class="o">/</span><span class="n">ww_lower</span> <span class="o">+</span> <span class="n">projections_all</span><span class="p">[</span><span class="n">index_upper</span><span class="p">]</span><span class="o">/</span><span class="n">ww_upper</span><span class="p">)</span><span class="o">*</span> <span class="n">ww_peak</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="k">return</span> <span class="n">scatter</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="get_attenuation_map_from_file"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/index.html#pytomography.io.SPECT.dicom.get_attenuation_map_from_file">[docs]</a><span class="k">def</span> <span class="nf">get_attenuation_map_from_file</span><span class="p">(</span><span class="n">file_AM</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets an attenuation map from a DICOM file. This data is usually provided by the manufacturer of the SPECT scanner. </span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        file_AM (str): File name of attenuation map</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor: Tensor of shape [batch_size, Lx, Ly, Lz] corresponding to the atteunation map in units of cm:math:`^{-1}`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file_AM</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">attenuation_map</span> <span class="o">=</span>  <span class="n">ds</span><span class="o">.</span><span class="n">pixel_array</span> <span class="o">/</span> <span class="n">ds</span><span class="p">[</span><span class="mh">0x033</span><span class="p">,</span><span class="mh">0x1038</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">attenuation_map</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">)))</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="get_psfmeta_from_scanner_params"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/index.html#pytomography.io.SPECT.dicom.get_psfmeta_from_scanner_params">[docs]</a><span class="k">def</span> <span class="nf">get_psfmeta_from_scanner_params</span><span class="p">(</span>
+    <span class="n">camera_model</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">collimator_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">energy_keV</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PSFMeta</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets PSF metadata from SPECT camera/collimator parameters. Performs linear interpolation to find linear attenuation coefficient for lead collimators for energy values within the range 100keV - 600keV.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        camera_model (str): Name of SPECT camera. </span>
+<span class="sd">        collimator_name (str): Name of collimator used.</span>
+<span class="sd">        energy_keV (float): Energy of the photopeak</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        PSFMeta: PSF metadata.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">module_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+    
+    <span class="n">scanner_datasheet</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">module_path</span><span class="p">,</span> <span class="s1">&#39;../../data/SPECT_collimator_parameters.csv&#39;</span><span class="p">),</span> <span class="n">skip_header</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;U50,U50,float,float&#39;</span><span class="p">],</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">attenuation_coefficient_energy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">module_path</span><span class="p">,</span> <span class="s1">&#39;../../data/lead_attenuation_values.csv&#39;</span><span class="p">),</span> <span class="n">skip_header</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;float,float&#39;</span><span class="p">],</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="n">unpack</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+        
+    <span class="n">energies_keV</span> <span class="o">=</span> <span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">attenuation_coefficient_energy</span><span class="p">))[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">linear_attenuation_coef_vals</span> <span class="o">=</span> <span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">attenuation_coefficient_energy</span><span class="p">))[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">linear_attenuation_coef_val_interp</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">interpolate</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span><span class="n">energies_keV</span><span class="p">,</span> <span class="n">linear_attenuation_coef_vals</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">scanner_datasheet</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">camera_model</span> <span class="o">==</span> <span class="n">scanner_datasheet</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">collimator_name</span> <span class="o">==</span> <span class="n">scanner_datasheet</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">hole_diameter</span> <span class="o">=</span> <span class="n">scanner_datasheet</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">hole_length</span> <span class="o">=</span> <span class="n">scanner_datasheet</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span>
+
+    <span class="n">attenuation_coefficient</span> <span class="o">=</span> <span class="n">linear_attenuation_coef_val_interp</span><span class="p">(</span><span class="n">energy_keV</span><span class="p">)</span>
+
+    <span class="n">collimator_slope_FWHM</span> <span class="o">=</span> <span class="n">hole_diameter</span><span class="o">/</span><span class="p">(</span><span class="n">hole_length</span> <span class="o">-</span> <span class="p">(</span><span class="mi">2</span><span class="o">/</span><span class="n">attenuation_coefficient</span><span class="p">))</span>
+    <span class="n">collimator_intercept_FWHM</span> <span class="o">=</span> <span class="n">hole_diameter</span>
+
+    <span class="c1"># convert to units of sigma</span>
+    <span class="n">collimator_slope</span> <span class="o">=</span> <span class="n">collimator_slope_FWHM</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">))))</span>
+    <span class="n">collimator_intercept</span> <span class="o">=</span> <span class="n">collimator_intercept_FWHM</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">))))</span>
+
+    <span class="k">return</span> <span class="n">PSFMeta</span><span class="p">(</span><span class="n">collimator_slope</span><span class="p">,</span> <span class="n">collimator_intercept</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="get_attenuation_map_from_CT_slices"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/index.html#pytomography.io.SPECT.dicom.get_attenuation_map_from_CT_slices">[docs]</a><span class="k">def</span> <span class="nf">get_attenuation_map_from_CT_slices</span><span class="p">(</span>
+    <span class="n">files_CT</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">file_NM</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">index_peak</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography. Note that it is recommended by https://jnm.snmjournals.org/content/57/1/151.long to use the vendors attenuation map as opposed to creating your own. As such, the ``get_attenuation_map_from_file`` should be used preferentially over this function, if you have access to an attenuation map from the vendor.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        files_CT (Sequence[str]): List of all files corresponding to an individual CT scan</span>
+<span class="sd">        file_NM (str): File corresponding to raw PET/SPECT data (required to align CT with projections)</span>
+<span class="sd">        index_peak (int, optional): Index corresponding to photopeak in projection data. Defaults to 0.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ds_NM</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file_NM</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">CT_scan</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">slice_locs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files_CT</span><span class="p">:</span>
+        <span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">CT_scan</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">pixel_array</span><span class="p">)</span>
+        <span class="n">slice_locs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">SliceLocation</span><span class="p">))</span>
+    <span class="n">CT_scan</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">CT_scan</span><span class="p">)[</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">slice_locs</span><span class="p">)],</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+   <span class="c1"># Affine matrix</span>
+    <span class="n">M_CT</span> <span class="o">=</span> <span class="n">get_affine_CT</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">slice_locs</span><span class="p">)))</span>
+    <span class="n">M_NM</span> <span class="o">=</span> <span class="n">get_affine_spect</span><span class="p">(</span><span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file_NM</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="c1"># Resample CT and convert to mu at 208keV and save</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">npl</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">M_CT</span><span class="p">)</span> <span class="o">@</span> <span class="n">M_NM</span>
+    <span class="n">CT_resampled</span> <span class="o">=</span> <span class="n">affine_transform</span><span class="p">(</span><span class="n">CT_scan</span><span class="p">,</span> <span class="n">M</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">],</span> <span class="n">M</span><span class="p">[:</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">],</span> <span class="n">output_shape</span><span class="o">=</span><span class="p">(</span><span class="n">ds_NM</span><span class="o">.</span><span class="n">Rows</span><span class="p">,</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">Rows</span><span class="p">,</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">Columns</span><span class="p">)</span> <span class="p">)</span>
+    <span class="n">CT_HU</span> <span class="o">=</span> <span class="n">CT_resampled</span> <span class="o">+</span> <span class="n">ds</span><span class="o">.</span><span class="n">RescaleIntercept</span>
+    <span class="n">CT</span> <span class="o">=</span> <span class="n">CT_to_attenuation_map</span><span class="p">(</span><span class="n">CT_HU</span><span class="p">,</span> <span class="n">ds_NM</span><span class="p">,</span> <span class="n">index_peak</span><span class="p">)</span>
+    <span class="n">CT</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">CT</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">,::</span><span class="o">-</span><span class="mi">1</span><span class="p">,::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">CT</span></div>
+
+<div class="viewcode-block" id="CT_to_attenuation_map"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html#pytomography.io.SPECT.dicom.CT_to_attenuation_map">[docs]</a><span class="k">def</span> <span class="nf">CT_to_attenuation_map</span><span class="p">(</span>
+    <span class="n">CT_HU</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+    <span class="n">ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span>
+    <span class="n">photopeak_window_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtains an attenuation map from a CT file. Requires dataset corresponding to projection data because energy windows are used to convert from HU to linear attenuation coefficients. See https://www.sciencedirect.com/science/article/pii/S0969804308000067 for more details.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        CT_HU (np.array): CT object in units of hounsfield units.</span>
+<span class="sd">        ds (Dataset): DICOM data set of projection data</span>
+<span class="sd">        primary_window_index (int, optional): The energy window corresponding to the photopeak. Defaults to 0.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.array: Array of length 4 containins the 4 coefficients required for the bilinear transformation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">module_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+    <span class="n">table</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">module_path</span><span class="p">,</span> <span class="s1">&#39;../../data/HU_to_mu.csv&#39;</span><span class="p">),</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">energies</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">window_upper</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">EnergyWindowInformationSequence</span><span class="p">[</span><span class="n">photopeak_window_index</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowRangeSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowUpperLimit</span>
+    <span class="n">window_lower</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">EnergyWindowInformationSequence</span><span class="p">[</span><span class="n">photopeak_window_index</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowRangeSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowLowerLimit</span>
+    <span class="n">energy</span> <span class="o">=</span> <span class="p">(</span><span class="n">window_lower</span> <span class="o">+</span> <span class="n">window_upper</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span>
+    <span class="n">index_upper</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">energies</span><span class="p">,</span> <span class="n">energy</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+    <span class="n">index_lower</span> <span class="o">=</span> <span class="n">index_upper</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">CT_mu_lower</span> <span class="o">=</span> <span class="n">bilinear_transform</span><span class="p">(</span><span class="n">CT_HU</span><span class="p">,</span> <span class="o">*</span><span class="n">table</span><span class="p">[</span><span class="n">index_lower</span><span class="p">,</span><span class="mi">1</span><span class="p">:])</span>
+    <span class="n">CT_mu_upper</span> <span class="o">=</span> <span class="n">bilinear_transform</span><span class="p">(</span><span class="n">CT_HU</span><span class="p">,</span> <span class="o">*</span><span class="n">table</span><span class="p">[</span><span class="n">index_upper</span><span class="p">,</span><span class="mi">1</span><span class="p">:])</span>
+    <span class="n">CT_mu_avg</span> <span class="o">=</span> <span class="n">CT_mu_lower</span> <span class="o">+</span> <span class="p">(</span><span class="n">CT_mu_upper</span> <span class="o">-</span> <span class="n">CT_mu_lower</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">energies</span><span class="p">[</span><span class="n">index_upper</span><span class="p">]</span> <span class="o">-</span> <span class="n">energies</span><span class="p">[</span><span class="n">index_lower</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="n">energy</span><span class="o">-</span><span class="n">energies</span><span class="p">[</span><span class="n">index_lower</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">CT_mu_avg</span></div>
+
+<div class="viewcode-block" id="get_affine_spect"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html#pytomography.io.SPECT.dicom.get_affine_spect">[docs]</a><span class="k">def</span> <span class="nf">get_affine_spect</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes an affine matrix corresponding the coordinate system of a SPECT DICOM file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        ds (Dataset): DICOM dataset of projection data</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.array: Affine matrix.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">Sx</span><span class="p">,</span> <span class="n">Sy</span><span class="p">,</span> <span class="n">Sz</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">DetectorInformationSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ImagePositionPatient</span>
+    <span class="n">dx</span> <span class="o">=</span> <span class="n">dy</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">dz</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">Sx</span> <span class="o">-=</span> <span class="n">ds</span><span class="o">.</span><span class="n">Rows</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">dx</span><span class="p">)</span>
+    <span class="n">Sy</span> <span class="o">-=</span> <span class="n">ds</span><span class="o">.</span><span class="n">Rows</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">dy</span><span class="p">)</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+    <span class="n">M</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="n">dx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="n">M</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="n">dy</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="n">M</span><span class="p">[:,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="n">dz</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="n">M</span><span class="p">[:,</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">Sx</span><span class="p">,</span> <span class="n">Sy</span><span class="p">,</span> <span class="n">Sz</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">M</span></div>
+
+<div class="viewcode-block" id="get_affine_CT"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html#pytomography.io.SPECT.dicom.get_affine_CT">[docs]</a><span class="k">def</span> <span class="nf">get_affine_CT</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">max_z</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes an affine matrix corresponding the coordinate system of a CT DICOM file. Note that since CT scans consist of many independent DICOM files, ds corresponds to an individual one of these files. This is why the maximum z value is also required (across all seperate independent DICOM files).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        ds (Dataset): DICOM dataset of CT data</span>
+<span class="sd">        max_z (float): Maximum value of z across all axial slices that make up the CT scan</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.array: Affine matrix corresponding to CT scan.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">M_CT</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+    <span class="n">M_CT</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">ImageOrientationPatient</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">])</span><span class="o">*</span><span class="n">ds</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">M_CT</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">ImageOrientationPatient</span><span class="p">[</span><span class="mi">3</span><span class="p">:])</span><span class="o">*</span><span class="n">ds</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">M_CT</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">ds</span><span class="o">.</span><span class="n">SliceThickness</span> 
+    <span class="n">M_CT</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">ImagePositionPatient</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> 
+    <span class="n">M_CT</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_z</span>
+    <span class="n">M_CT</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">M_CT</span></div>
+
+<div class="viewcode-block" id="stitch_multibed"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html#pytomography.io.SPECT.dicom.stitch_multibed">[docs]</a><span class="k">def</span> <span class="nf">stitch_multibed</span><span class="p">(</span>
+    <span class="n">recons</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">files_NM</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span><span class="s1">&#39;midslice&#39;</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Stitches together multiple reconstructed objects corresponding to different bed positions.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        recons (torch.Tensor[n_beds, Lx, Ly, Lz]): Reconstructed objects. The first index of the tensor corresponds to different bed positions</span>
+<span class="sd">        files_NM (list): List of length ``n_beds`` corresponding to the DICOM file of each reconstruction</span>
+<span class="sd">        method (str, optional): Method to perform stitching (see https://doi.org/10.1117/12.2254096 for all methods described). Available methods include ``&#39;midslice&#39;``, ``&#39;average&#39;``, ``&#39;crossfade&#39;``, and ``&#39;TEM;`` (transition error minimization).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor[1, Lx, Ly, Lz&#39;]: Stitched together DICOM file. Note the new z-dimension size :math:`L_z&#39;`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file_NM</span><span class="p">)</span> <span class="k">for</span> <span class="n">file_NM</span> <span class="ow">in</span> <span class="n">files_NM</span><span class="p">])</span>
+    <span class="n">zs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ds</span><span class="o">.</span><span class="n">DetectorInformationSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ImagePositionPatient</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">ds</span> <span class="ow">in</span> <span class="n">dss</span><span class="p">])</span>
+    <span class="c1"># Sort by increasing z-position</span>
+    <span class="n">order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">zs</span><span class="p">)</span>
+    <span class="n">dss</span> <span class="o">=</span> <span class="n">dss</span><span class="p">[</span><span class="n">order</span><span class="p">]</span>
+    <span class="n">zs</span> <span class="o">=</span> <span class="n">zs</span><span class="p">[</span><span class="n">order</span><span class="p">]</span>
+    <span class="n">recons</span> <span class="o">=</span> <span class="n">recons</span><span class="p">[</span><span class="n">order</span><span class="p">]</span>
+    <span class="c1">#convert to voxel height</span>
+    <span class="n">zs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">((</span><span class="n">zs</span> <span class="o">-</span> <span class="n">zs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="n">dss</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span> 
+    <span class="n">new_z_height</span> <span class="o">=</span> <span class="n">zs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">recons</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">recon_aligned</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">dss</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">Rows</span><span class="p">,</span> <span class="n">dss</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">Rows</span><span class="p">,</span> <span class="n">new_z_height</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">blank_below</span><span class="p">,</span> <span class="n">blank_above</span> <span class="o">=</span> <span class="n">get_blank_below_above</span><span class="p">(</span><span class="n">files_NM</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">zs</span><span class="p">)):</span>
+        <span class="n">recon_aligned</span><span class="p">[:,:,:,</span><span class="n">zs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="n">blank_below</span><span class="p">:</span><span class="n">zs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="n">blank_above</span><span class="p">]</span> <span class="o">=</span> <span class="n">recons</span><span class="p">[</span><span class="n">i</span><span class="p">,:,:,</span><span class="n">blank_below</span><span class="p">:</span><span class="n">blank_above</span><span class="p">]</span>
+    <span class="c1"># Apply stitching method</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">zs</span><span class="p">)):</span>
+        <span class="n">zmin</span> <span class="o">=</span> <span class="n">zs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">blank_below</span>
+        <span class="n">zmax</span> <span class="o">=</span> <span class="n">zs</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">blank_above</span>
+        <span class="n">dL</span> <span class="o">=</span> <span class="n">zmax</span> <span class="o">-</span> <span class="n">zmin</span>
+        <span class="n">half</span> <span class="o">=</span> <span class="nb">round</span><span class="p">((</span><span class="n">zmax</span> <span class="o">-</span> <span class="n">zmin</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">zmax</span><span class="o">&gt;</span><span class="n">zmin</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span> <span class="c1">#at least two voxels apart</span>
+            <span class="n">zmin_upper</span> <span class="o">=</span> <span class="n">blank_below</span>
+            <span class="n">zmax_lower</span> <span class="o">=</span> <span class="n">blank_above</span>
+            <span class="n">delta</span> <span class="o">=</span>  <span class="o">-</span><span class="p">(</span><span class="n">zs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">zs</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="n">blank_below</span> <span class="o">+</span> <span class="n">blank_above</span>
+            <span class="n">r1</span> <span class="o">=</span> <span class="n">recons</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">][:,:,</span><span class="n">zmax_lower</span><span class="o">-</span><span class="n">delta</span><span class="p">:</span><span class="n">zmax_lower</span><span class="p">]</span>
+            <span class="n">r2</span> <span class="o">=</span> <span class="n">recons</span><span class="p">[</span><span class="n">i</span><span class="p">][:,:,</span><span class="n">zmin_upper</span><span class="p">:</span><span class="n">zmin_upper</span><span class="o">+</span><span class="n">delta</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">method</span><span class="o">==</span><span class="s1">&#39;midslice&#39;</span><span class="p">:</span>
+                <span class="n">recon_aligned</span><span class="p">[:,:,:,</span><span class="n">zmin</span><span class="p">:</span><span class="n">zmin</span><span class="o">+</span><span class="n">half</span><span class="p">]</span> <span class="o">=</span> <span class="n">r1</span><span class="p">[:,:,:</span><span class="n">half</span><span class="p">]</span>
+                <span class="n">recon_aligned</span><span class="p">[:,:,:,</span><span class="n">zmin</span><span class="o">+</span><span class="n">half</span><span class="p">:</span><span class="n">zmax</span><span class="p">]</span> <span class="o">=</span> <span class="n">r2</span><span class="p">[:,:,</span><span class="n">half</span><span class="p">:]</span> 
+            <span class="k">elif</span> <span class="n">method</span><span class="o">==</span><span class="s1">&#39;average&#39;</span><span class="p">:</span>
+                <span class="n">recon_aligned</span><span class="p">[:,:,:,</span><span class="n">zmin</span><span class="p">:</span><span class="n">zmax</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">r1</span> <span class="o">+</span> <span class="n">r2</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">method</span><span class="o">==</span><span class="s1">&#39;crossfade&#39;</span><span class="p">:</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">dL</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span>
+                <span class="n">recon_aligned</span><span class="p">[:,:,:,</span><span class="n">zmin</span><span class="p">:</span><span class="n">zmax</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="n">dL</span><span class="o">-</span><span class="n">idx</span><span class="p">)</span><span class="o">*</span><span class="n">r1</span> <span class="o">+</span> <span class="n">idx</span><span class="o">*</span><span class="n">r2</span><span class="p">)</span> <span class="o">/</span> <span class="n">dL</span>
+            <span class="k">elif</span> <span class="n">method</span><span class="o">==</span><span class="s1">&#39;TEM&#39;</span><span class="p">:</span>
+                <span class="n">stitch_index</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">r1</span><span class="o">-</span><span class="n">r2</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">range_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">dL</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+                <span class="n">mask_tensor</span> <span class="o">=</span> <span class="n">range_tensor</span> <span class="o">&lt;</span> <span class="n">stitch_index</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">expanded_mask</span> <span class="o">=</span> <span class="n">mask_tensor</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">*</span><span class="n">stitch_index</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dL</span><span class="p">)</span>
+                <span class="n">recon_aligned</span><span class="p">[:,:,:,</span><span class="n">zmin</span><span class="p">:</span><span class="n">zmax</span><span class="p">][</span><span class="n">expanded_mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span> <span class="o">=</span> <span class="n">r1</span><span class="p">[</span><span class="n">expanded_mask</span><span class="p">]</span>
+                <span class="n">recon_aligned</span><span class="p">[:,:,:,</span><span class="n">zmin</span><span class="p">:</span><span class="n">zmax</span><span class="p">][</span><span class="o">~</span><span class="n">expanded_mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span> <span class="o">=</span> <span class="n">r2</span><span class="p">[</span><span class="o">~</span><span class="n">expanded_mask</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">recon_aligned</span></div>
+
+
+<span class="c1"># TODO: Update this function so that it includes photopeak energy window index, and psf should be computed using data tables corresponding to manufactorer data sheets.</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">def get_SPECT_recon_algorithm_dicom(</span>
+<span class="sd">    projections_file: str,</span>
+<span class="sd">    atteunation_files: Sequence[str] = None,</span>
+<span class="sd">    use_psf: bool = False,</span>
+<span class="sd">    scatter_type: str|None = None,</span>
+<span class="sd">    prior: Prior = None,</span>
+<span class="sd">    recon_algorithm_class: OSML = OSEMOSL,</span>
+<span class="sd">    object_initial: torch.Tensor | None = None,</span>
+<span class="sd">) -&gt; OSML:</span>
+<span class="sd">    &quot;&quot;&quot;Helper function to quickly create reconstruction algorithm given SPECT DICOM files and CT dicom files.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        projections_file (str): DICOM filepath corresponding to SPECT data.</span>
+<span class="sd">        atteunation_files (Sequence[str], optional): DICOM filepaths corresponding to CT data. If None, then atteunation correction is not used. Defaults to None.</span>
+<span class="sd">        use_psf (bool, optional): Whether or not to use PSF modeling. Defaults to False.</span>
+<span class="sd">        scatter_type (str | None, optional): Type of scatter correction used in reconstruction. Defaults to None.</span>
+<span class="sd">        prior (Prior, optional): Bayesian Prior used in reconstruction algorithm. Defaults to None.</span>
+<span class="sd">        recon_algorithm_class (nn.Module, optional): Type of reconstruction algorithm used. Defaults to OSEMOSL.</span>
+<span class="sd">        object_initial (torch.Tensor | None, optional): Initial object used in reconstruction. If None, defaults to all ones. Defaults to None.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        Exception: If not able to compute relevant PSF parameters from DICOM data and corresponding data tables.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        OSML: Reconstruction algorithm used.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    # Get projections/scatter estimate</span>
+<span class="sd">    if scatter_type==None:</span>
+<span class="sd">        object_meta, image_meta, projections = get_projections(projections_file)</span>
+<span class="sd">        projections_scatter = 0 # equivalent to 0 estimated scatter everywhere</span>
+<span class="sd">    else:</span>
+<span class="sd">        object_meta, image_meta, projections, projections_scatter = dicom_MEW_to_data(projections_file, type=scatter_type)</span>
+<span class="sd">    # obj2obj and im2im nets.</span>
+<span class="sd">    object_correction_nets = []</span>
+<span class="sd">    image_correction_nets = []</span>
+<span class="sd">    # Load attenuation data</span>
+<span class="sd">    if atteunation_files is not None:</span>
+<span class="sd">        CT = dicom_CT_to_data(atteunation_files, projections_file)</span>
+<span class="sd">        CT_net = SPECTAttenuationTransform(CT.unsqueeze(dim=0))</span>
+<span class="sd">        object_correction_nets.append(CT_net)</span>
+<span class="sd">    # Load PSF parameters</span>
+<span class="sd">    if use_psf:</span>
+<span class="sd">        ds = pydicom.read_file(projections_file, force=True)</span>
+<span class="sd">        if ds.Manufacturer ==&#39;SIEMENS NM&#39;:</span>
+<span class="sd">            # Find a more consistent way to do this</span>
+<span class="sd">            angular_FWHM = ds[0x0055, 0x107f][0]</span>
+<span class="sd">            psf_meta = PSFMeta(collimator_slope = angular_FWHM/(2*np.sqrt(2*np.log(2))), collimator_intercept = 0.0)</span>
+<span class="sd">            psf_net = SPECTPSFTransform(psf_meta)</span>
+<span class="sd">        else:</span>
+<span class="sd">            raise Exception(&#39;Unable to compute PSF metadata from this DICOM file&#39;)</span>
+<span class="sd">        object_correction_nets.append(psf_net)</span>
+<span class="sd">    system_matrix = SystemMatrix(object_correction_nets, image_correction_nets, object_meta, image_meta)</span>
+<span class="sd">    recon_algorithm = recon_algorithm_class(projections, system_matrix, object_initial, projections_scatter, prior)</span>
+<span class="sd">    return recon_algorithm</span>
+<span class="sd">&#39;&#39;&#39;</span>
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2023, Luke Polson
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../_static/scripts/furo.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    </body>
+</html>
