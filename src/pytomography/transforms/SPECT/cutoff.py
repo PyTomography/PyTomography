@@ -7,11 +7,11 @@ class CutOffTransform(Transform):
     """im2im transformation used to set pixel values equal to zero at the first and last few z slices. This is often required when reconstructing DICOM data due to the finite field of view of the projection data, where additional axial slices are included on the top and bottom, with zero measured detection events. This transform is included in the system matrix, to model the sharp cutoff at the finite FOV.
 
         Args:
-            file_NM (str): Filepath of the DICOM file corresponding to the reconstructed object. This is needed to obtain the number of blank z-slices on the top and bottom of the projections corresponding to the particular scanner.
+            image (torch.tensor): Measured image data.
     """
-    def __init__(self, file_NM: str) -> None:
+    def __init__(self, image: torch.tensor) -> None:
         super(CutOffTransform, self).__init__()
-        self.blank_below, self.blank_above = get_blank_below_above(file_NM)
+        self.blank_below, self.blank_above = get_blank_below_above(image)
     @torch.no_grad()
     def __call__(
 		self,
