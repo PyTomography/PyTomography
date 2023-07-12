@@ -11,6 +11,7 @@ from pytomography.transforms import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.priors import Prior
 from pytomography.metadata import PSFMeta
 from pytomography.algorithms import OSEMOSL
+from .helpers import get_mu_from_spectrum_interp
 
 relation_dict = {'unsignedinteger': 'int',
                  'shortfloat': 'float',
@@ -135,6 +136,19 @@ def get_atteuation_map(headerfile: str):
     CT = np.transpose(CT.reshape(shape)[::-1,::-1], (2,1,0))
     CT = torch.tensor(CT.copy()).unsqueeze(dim=0)
     return CT
+
+def get_psfmeta_from_header(headerfile):
+    module_path = os.path.dirname(os.path.abspath(__file__))
+    with open(headerfile) as f:
+        headerdata = f.readlines()
+    headerdata = np.array(headerdata)
+    hole_diameter = find_first_entry_containing_header(headerdata, 'Collimator hole diameter', np.float32)
+    hole_length = find_first_entry_containing_header(headerdata, 'Collimator thickness', np.float32)
+    energy_keV = find_first_entry_containing_header(headerdata, 'Photon Energy', np.float32)
+    lead_attenuation = get_mu_from_spectrum_interp(os.path.join(module_path, '../../data/NIST_attenuation_data/lead.csv'), energy_keV)
+    collimator_slope = hole_diameter/(hole_length - (2/lead_attenuation)) * 1/(2*np.sqrt(2*np.log(2)))
+    collimator_intercept = hole_diameter * 1/(2*np.sqrt(2*np.log(2)))
+    return PSFMeta((collimator_slope, collimator_intercept))
 
 def get_SPECT_recon_algorithm_simind(
     projections_header: str,

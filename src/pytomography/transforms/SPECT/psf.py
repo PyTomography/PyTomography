@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Sequence
 import torch
 import torch.nn as nn
 import numpy as np
@@ -71,7 +72,7 @@ class SPECTPSFTransform(Transform):
         self.kernel_size = self.compute_kernel_size()
         self.layers = {}
         for radius in np.unique(image_meta.radii):
-            sigma = self.get_sigma(radius, object_meta.dx, object_meta.shape, self.psf_meta.collimator_slope, self.psf_meta.collimator_intercept)
+            sigma = self.get_sigma(radius, object_meta.dx, object_meta.shape, self.psf_meta.sigma_fit, self.psf_meta.sigma_fit_params)
             self.layers[radius] = get_PSF_transform(sigma/object_meta.dx, self.kernel_size, kernel_dimensions=self.psf_meta.kernel_dimensions, device=self.device)
         
     def compute_kernel_size(self) -> int:
@@ -82,7 +83,7 @@ class SPECTPSFTransform(Transform):
         """
         s = self.object_meta.padded_shape[0]
         dx = self.object_meta.dr[0]
-        largest_sigma = self.psf_meta.collimator_slope*(s/2 * dx) + self.psf_meta.collimator_intercept
+        largest_sigma = self.psf_meta.sigma_fit(s/2 * dx, *self.psf_meta.sigma_fit_params)
         return int(np.round(largest_sigma/dx * self.psf_meta.max_sigmas)*2 + 1)
     
     def get_sigma(
@@ -90,25 +91,24 @@ class SPECTPSFTransform(Transform):
         radius: float,
         dx: float,
         shape: tuple,
-        collimator_slope: float,
-        collimator_intercept: float
+        sigma_fit: function,
+        sigma_fit_params: Sequence[float]
     ) -> np.array:
-        """Uses PSF Meta data information to get blurring :math:`\sigma` as a function of distance from detector. It is assumed that ``sigma=collimator_slope*d + collimator_intercept`` where :math:`d` is the distance from the detector.
+        """Uses PSF Meta data information to get blurring :math:`\sigma` as a function of distance from detector.
 
         Args:
             radius (float): The distance from the detector
             dx (float): Transaxial plane pixel spacing
             shape (tuple): Tuple containing (Lx, Ly, Lz): dimensions of object space 
-            collimator_slope (float): See collimator intercept
-            collimator_intercept (float): Collimator slope and collimator intercept are defined such that sigma(d) = collimator_slope*d + collimator_intercept
-            where sigma corresponds to sigma of a Gaussian function that characterizes blurring as a function of distance from the detector.
+            sigma_fit (function): Function that gives PSF width as a function of radial distance from the scanner.
+            sigma_fit_params (Sequence): Extra parameters required for the sigma_fit function.
 
         Returns:
             array: An array of length Lx corresponding to blurring at each point along the 1st axis in object space
         """
         dim = shape[0] + 2*compute_pad_size(shape[0])
         distances = get_distance(dim, radius, dx)
-        sigma = collimator_slope * distances + collimator_intercept
+        sigma = sigma_fit(distances, *sigma_fit_params)
         return sigma
     @torch.no_grad()
     def __call__(
