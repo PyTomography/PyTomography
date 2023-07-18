@@ -32,21 +32,21 @@ class SPECTAttenuationTransform(Transform):
 	def __call__(
 		self,
 		object_i: torch.Tensor,
-		i: int, 
+		ang_idx: torch.Tensor, 
 		norm_constant: torch.Tensor | None = None,
 	) -> torch.Tensor:
 		"""Applies attenuation modeling to an object that's being detected on the right of its first axis.
 
 		Args:
 			object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along ``axis=1``.
-			i (int): The projection index: used to find the corresponding angle in image space corresponding to ``object_i``. In particular, the x axis (tensor `axis=1`) of the object is aligned with the detector at angle i.
+			ang_idx (torch.Tensor): The projection induces: used to find the corresponding angles in image space corresponding to ``object_i``. In particular, the x axis (tensor `axis=1`) of the object is aligned with the detector at angle i.
 			norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
 
 		Returns:
 			torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.
 		"""
 		CT = pad_object(self.CT)
-		norm_factor = get_prob_of_detection_matrix(rotate_detector_z(CT, self.image_meta.angles[i]), self.object_meta.dx)
+		norm_factor = get_prob_of_detection_matrix(rotate_detector_z(CT.repeat(len(ang_idx),1,1,1), self.image_meta.angles[ang_idx]), self.object_meta.dx)
 		object_i*=norm_factor
 		if norm_constant is not None:
 			norm_constant*=norm_factor

@@ -23,7 +23,7 @@ class SystemMatrix():
         im2im_transforms: list[Transform],
         object_meta: ObjectMeta,
         image_meta: ImageMeta,
-        n_parallel = 10,
+        n_parallel = 15,
     ) -> None:
         self.device = pytomography.device
         self.obj2obj_transforms = obj2obj_transforms
@@ -63,7 +63,7 @@ class SystemMatrix():
             ang_idx_parallel = ang_idx[i:i+self.n_parallel]
             object_i = rotate_detector_z(pad_object(object.repeat(len(ang_idx_parallel),1,1,1)), self.image_meta.angles[ang_idx_parallel])
             for net in self.obj2obj_transforms:
-                object_i = net(object_i, i)
+                object_i = net(object_i, ang_idx_parallel)
             image[:,ang_idx_parallel] = object_i.sum(axis=1)
         for net in self.im2im_transforms:
             image = net(image)
@@ -113,7 +113,7 @@ class SystemMatrix():
             norm_constant_i = norm_image[0,ang_idx_parallel].unsqueeze(1) * boundary_box_bp
             # Apply object mappings
             for net in self.obj2obj_transforms[::-1]:
-                object_i, norm_constant_i = net(object_i, i, norm_constant=norm_constant_i)
+                object_i, norm_constant_i = net(object_i, ang_idx_parallel, norm_constant=norm_constant_i)
             # Add to total
             norm_constant += rotate_detector_z(norm_constant_i, self.image_meta.angles[ang_idx_parallel], negative=True).sum(axis=0).unsqueeze(0)
             object += rotate_detector_z(object_i, self.image_meta.angles[ang_idx_parallel], negative=True).sum(axis=0).unsqueeze(0)
