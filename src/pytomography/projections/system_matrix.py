@@ -43,6 +43,7 @@ class SystemMatrix():
         self,
         object: torch.tensor,
         angle_subset: list[int] = None,
+        n_parallel=10,
     ) -> torch.tensor:
         r"""Implements forward projection :math:`Hf` on an object :math:`f`.
 
@@ -56,12 +57,13 @@ class SystemMatrix():
         N_angles = self.image_meta.num_projections
         object = object.to(self.device)
         image = torch.zeros((object.shape[0],*self.image_meta.padded_shape)).to(self.device)
-        looper = range(N_angles) if angle_subset is None else angle_subset
-        for i in looper:
-            object_i = rotate_detector_z(pad_object(object), self.image_meta.angles[i])
+        ang_idx = torch.arange(N_angles) if angle_subset is None else angle_subset
+        for i in range(0, len(ang_idx), n_parallel):
+            ang_idx_parallel = ang_idx[i:i+n_parallel]
+            object_i = rotate_detector_z(pad_object(object.repeat(len(ang_idx_parallel),1,1,1)), self.image_meta.angles[ang_idx_parallel])
             for net in self.obj2obj_transforms:
                 object_i = net(object_i, i)
-            image[:,i] = object_i.sum(axis=1)
+            image[:,ang_idx_parallel] = object_i.sum(axis=1)
         for net in self.im2im_transforms:
             image = net(image)
         return unpad_image(image)

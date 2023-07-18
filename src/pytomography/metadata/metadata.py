@@ -1,7 +1,8 @@
 from __future__ import annotations
 from typing import Sequence
+import pytomography
 from pytomography.utils import compute_pad_size
-import numpy as np
+import torch
 import inspect
 
 class ObjectMeta():
@@ -46,11 +47,11 @@ class ImageMeta():
     def __init__(
         self,
         object_meta: ObjectMeta,
-        angles: np.array,
+        angles: Sequence,
         radii=None
     ) -> None:
         self.object_meta = object_meta
-        self.angles = angles
+        self.angles = torch.tensor(angles).to(pytomography.device).to(torch.float32)
         self.radii = radii
         self.num_projections = len(angles)
         self.shape = (self.num_projections, object_meta.shape[1], object_meta.shape[2])
