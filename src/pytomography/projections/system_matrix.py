@@ -23,12 +23,14 @@ class SystemMatrix():
         im2im_transforms: list[Transform],
         object_meta: ObjectMeta,
         image_meta: ImageMeta,
+        n_parallel = 10,
     ) -> None:
         self.device = pytomography.device
         self.obj2obj_transforms = obj2obj_transforms
         self.im2im_transforms = im2im_transforms
         self.object_meta = object_meta
         self.image_meta = image_meta
+        self.n_parallel = n_parallel
         self.initialize_correction_nets()
 
     def initialize_correction_nets(self):
@@ -43,7 +45,6 @@ class SystemMatrix():
         self,
         object: torch.tensor,
         angle_subset: list[int] = None,
-        n_parallel=10,
     ) -> torch.tensor:
         r"""Implements forward projection :math:`Hf` on an object :math:`f`.
 
@@ -58,8 +59,8 @@ class SystemMatrix():
         object = object.to(self.device)
         image = torch.zeros((object.shape[0],*self.image_meta.padded_shape)).to(self.device)
         ang_idx = torch.arange(N_angles) if angle_subset is None else angle_subset
-        for i in range(0, len(ang_idx), n_parallel):
-            ang_idx_parallel = ang_idx[i:i+n_parallel]
+        for i in range(0, len(ang_idx), self.n_parallel):
+            ang_idx_parallel = ang_idx[i:i+self.n_parallel]
             object_i = rotate_detector_z(pad_object(object.repeat(len(ang_idx_parallel),1,1,1)), self.image_meta.angles[ang_idx_parallel])
             for net in self.obj2obj_transforms:
                 object_i = net(object_i, i)
@@ -104,17 +105,18 @@ class SystemMatrix():
         N_angles = self.image_meta.num_projections
         object = torch.zeros([image.shape[0], *self.object_meta.padded_shape]).to(self.device)
         norm_constant = torch.zeros([image.shape[0], *self.object_meta.padded_shape]).to(self.device)
-        looper = range(N_angles) if angle_subset is None else angle_subset
-        for i in looper:
+        ang_idx = torch.arange(N_angles) if angle_subset is None else angle_subset
+        for i in range(0, len(ang_idx), self.n_parallel):
+            ang_idx_parallel = ang_idx[i:i+self.n_parallel]
             # Perform back projection
-            object_i = image[:,i].unsqueeze(dim=1) * boundary_box_bp
-            norm_constant_i = norm_image[:,i].unsqueeze(dim=1) * boundary_box_bp
+            object_i = image[0,ang_idx_parallel].unsqueeze(1) * boundary_box_bp
+            norm_constant_i = norm_image[0,ang_idx_parallel].unsqueeze(1) * boundary_box_bp
             # Apply object mappings
             for net in self.obj2obj_transforms[::-1]:
                 object_i, norm_constant_i = net(object_i, i, norm_constant=norm_constant_i)
             # Add to total
-            norm_constant += rotate_detector_z(norm_constant_i, self.image_meta.angles[i], negative=True)
-            object += rotate_detector_z(object_i, self.image_meta.angles[i], negative=True)
+            norm_constant += rotate_detector_z(norm_constant_i, self.image_meta.angles[ang_idx_parallel], negative=True).sum(axis=0).unsqueeze(0)
+            object += rotate_detector_z(object_i, self.image_meta.angles[ang_idx_parallel], negative=True).sum(axis=0).unsqueeze(0)
         # Unpad
         norm_constant = unpad_object(norm_constant)
         object = unpad_object(object)
