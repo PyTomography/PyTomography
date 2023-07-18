@@ -114,7 +114,7 @@ class SPECTPSFTransform(Transform):
     def __call__(
 		self,
 		object_i: torch.Tensor,
-		i: int, 
+		ang_idx: int, 
 		norm_constant: torch.Tensor | None = None,
 	) -> torch.tensor:
         """Applies PSF modeling for the situation where an object is being detector by a detector at the :math:`+x` axis.
@@ -127,15 +127,23 @@ class SPECTPSFTransform(Transform):
         Returns:
             torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.
         """
-        z_pad_size = int((self.kernel_size-1)/2)
-        object_i = pad_object_z(object_i, z_pad_size)
-        object_i = self.layers[self.image_meta.radii[i]](object_i) 
-        object_i = unpad_object_z(object_i, pad_size=z_pad_size)
+        object_return = torch.zeros(object_i.shape).to(pytomography.device)
+        if norm_constant is not None:
+            norm_constant_return = torch.zeros(norm_constant.shape).to(pytomography.device)
+        for i in range(len(ang_idx)):
+            object_temp = object_i[i].unsqueeze(0)
+            z_pad_size = int((self.kernel_size-1)/2)
+            object_temp = pad_object_z(object_temp, z_pad_size)
+            object_temp = self.layers[self.image_meta.radii[ang_idx[i]]](object_temp) 
+            object_temp = unpad_object_z(object_temp, pad_size=z_pad_size)
+            object_return[i] = object_temp[0]
         # Adjust normalization constant
         if norm_constant is not None:
-            norm_constant = pad_object_z(norm_constant, z_pad_size)
-            norm_constant = self.layers[self.image_meta.radii[i]](norm_constant) 
-            norm_constant = unpad_object_z(norm_constant, pad_size=z_pad_size)
-            return object_i, norm_constant
+            norm_constant_temp = norm_constant[i].unsqueeze(0)
+            norm_constant_temp = pad_object_z(norm_constant_temp, z_pad_size)
+            norm_constant_temp = self.layers[self.image_meta.radii[ang_idx[i]]](norm_constant_temp) 
+            norm_constant_temp = unpad_object_z(norm_constant_temp, pad_size=z_pad_size)
+            norm_constant_return[i] = norm_constant_temp[0]
+            return object_return, norm_constant_return
         else:
-            return object_i 
+            return object_return
