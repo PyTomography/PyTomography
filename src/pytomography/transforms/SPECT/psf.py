@@ -76,7 +76,7 @@ class SPECTPSFTransform(Transform):
             self.layers[radius] = get_PSF_transform(sigma/object_meta.dx, self.kernel_size, kernel_dimensions=self.psf_meta.kernel_dimensions, device=self.device)
         
     def compute_kernel_size(self) -> int:
-        """Function used to compute the kernel size used for PSF blurring. In particular, uses the ``max_sigmas`` attribute of ``PSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``max_sigmas`` at all points in the object. 
+        """Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``PSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object. 
 
         Returns:
             int: The corresponding kernel size used for PSF blurring.
@@ -84,7 +84,7 @@ class SPECTPSFTransform(Transform):
         s = self.object_meta.padded_shape[0]
         dx = self.object_meta.dr[0]
         largest_sigma = self.psf_meta.sigma_fit(s/2 * dx, *self.psf_meta.sigma_fit_params)
-        return int(np.round(largest_sigma/dx * self.psf_meta.max_sigmas)*2 + 1)
+        return int(np.round(largest_sigma/dx * self.psf_meta.min_sigmas)*2 + 1)
     
     def get_sigma(
         self,

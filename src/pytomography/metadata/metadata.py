@@ -79,22 +79,22 @@ class PSFMeta():
         sigma_fit_params (float): Parameters to the sigma fit function
         sigma_fit (function): Function used to model blurring as a function of radial distance. Defaults to a 2 parameter linear model.
         kernel_dimensions (str): If '1D', blurring is done seperately in each axial plane (so only a 1 dimensional convolution is used). If '2D', blurring is mixed between axial planes (so a 2D convolution is used). Defaults to '2D'.
-        max_sigmas (float, optional): This is the number of sigmas to consider in PSF correction. PSF are modelled by Gaussian functions whose extension is infinite, so we need to crop the Gaussian when computing this operation numerically. Note that the blurring width is depth dependent, but the kernel size used for PSF blurring is constant. As such, this parameter is used to fix the kernel size such that all locations have at least ``max_sigmas`` of a kernel size.
+        min_sigmas (float, optional): This is the number of sigmas to consider in PSF correction. PSF are modelled by Gaussian functions whose extension is infinite, so we need to crop the Gaussian when computing this operation numerically. Note that the blurring width is depth dependent, but the kernel size used for PSF blurring is constant. As such, this parameter is used to fix the kernel size such that all locations have at least ``min_sigmas`` of a kernel size.
     """
     def __init__(
         self,
         sigma_fit_params: Sequence[float, float],
         sigma_fit : function = lambda r, a, b: a*r+b,
         kernel_dimensions: str = '2D',
-        max_sigmas: float = 3
+        min_sigmas: float = 3
     ) -> None:
         self.sigma_fit_params = sigma_fit_params
         self.sigma_fit = sigma_fit
         self.kernel_dimensions = kernel_dimensions
-        self.max_sigmas = max_sigmas
+        self.min_sigmas = min_sigmas
         
     def __repr__(self):
-        return f"Function: {inspect.getsource(self.sigma_fit)}\nParameters: {self.sigma_fit_params}\nDimensions: {self.kernel_dimensions}\nMaximum sigmas: {self.max_sigmas}"
+        return f"Function: {inspect.getsource(self.sigma_fit)}\nParameters: {self.sigma_fit_params}\nDimensions: {self.kernel_dimensions}\nMaximum sigmas: {self.min_sigmas}"
         
 class PETPSFMeta():
     def __init__(
@@ -102,10 +102,10 @@ class PETPSFMeta():
         sigma_fit_params: Sequence[float, float],
         sigma_fit : function = lambda r, a, b: a*r+b,
         kernel_dimensions: str = '2D',
-        max_sigmas: float = 3
+        min_sigmas: float = 3
         
     ) -> None:
         self.sigma_fit_params = sigma_fit_params
         self.sigma_fit = sigma_fit
         self.kernel_dimensions = kernel_dimensions
-        self.max_sigmas = max_sigmas
+        self.min_sigmas = min_sigmas

@@ -148,7 +148,8 @@ def get_attenuation_map_from_file(file_AM: str) -> torch.Tensor:
 def get_psfmeta_from_scanner_params(
     camera_model: str,
     collimator_name: str,
-    energy_keV: float
+    energy_keV: float,
+    min_sigmas: float = 3
     ) -> PSFMeta:
     """Gets PSF metadata from SPECT camera/collimator parameters. Performs linear interpolation to find linear attenuation coefficient for lead collimators for energy values within the range 100keV - 600keV.
 
@@ -156,6 +157,7 @@ def get_psfmeta_from_scanner_params(
         camera_model (str): Name of SPECT camera. 
         collimator_name (str): Name of collimator used.
         energy_keV (float): Energy of the photopeak
+        min_sigmas (float): Minimum size of the blurring kernel used. Fixes the convolutional kernel size so that all locations have at least ``min_sigmas`` in dimensions (some will be greater)
 
     Returns:
         PSFMeta: PSF metadata.
@@ -175,12 +177,13 @@ def get_psfmeta_from_scanner_params(
     collimator_slope = hole_diameter/(hole_length - (2/lead_attenuation)) * 1/(2*np.sqrt(2*np.log(2)))
     collimator_intercept = hole_diameter * 1/(2*np.sqrt(2*np.log(2)))
     
-    return PSFMeta((collimator_slope, collimator_intercept))
+    return PSFMeta((collimator_slope, collimator_intercept), min_sigmas=min_sigmas)
 
 def get_attenuation_map_from_CT_slices(
     files_CT: Sequence[str],
     file_NM: str | None = None,
     index_peak: int = 0,
+    keep_as_HU: bool = False
     ) -> torch.Tensor:
     """Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography. Note that it is recommended by https://jnm.snmjournals.org/content/57/1/151.long to use the vendors attenuation map as opposed to creating your own. As such, the ``get_attenuation_map_from_file`` should be used preferentially over this function, if you have access to an attenuation map from the vendor.
 
@@ -213,9 +216,12 @@ def get_attenuation_map_from_CT_slices(
     E_SPECT = (window_lower + window_upper)/2
     KVP = pydicom.read_file(files_CT[0]).KVP
     HU2mu_conversion = get_HU2mu_conversion(files_CT, KVP, E_SPECT)
-    CT_mu = HU2mu_conversion(CT_HU)
-    CT_mu = torch.tensor(CT_mu[::-1,::-1,::-1].copy()).unsqueeze(dim=0)
-    return CT_mu
+    if keep_as_HU:
+        CT = CT_HU
+    else:
+        CT= HU2mu_conversion(CT_HU)
+    CT = torch.tensor(CT[::-1,::-1,::-1].copy()).unsqueeze(dim=0)
+    return CT
 
 
 def get_affine_spect(ds: Dataset) -> np.array:
