@@ -17,14 +17,14 @@ Classes
 
 
 
-.. py:class:: CutOffTransform(file_NM)
+.. py:class:: CutOffTransform(image)
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 
    im2im transformation used to set pixel values equal to zero at the first and last few z slices. This is often required when reconstructing DICOM data due to the finite field of view of the projection data, where additional axial slices are included on the top and bottom, with zero measured detection events. This transform is included in the system matrix, to model the sharp cutoff at the finite FOV.
 
-   :param file_NM: Filepath of the DICOM file corresponding to the reconstructed object. This is needed to obtain the number of blank z-slices on the top and bottom of the projections corresponding to the particular scanner.
-   :type file_NM: str
+   :param image: Measured image data.
+   :type image: torch.tensor
 
    .. py:method:: __call__(image, norm_constant = None, mode = 'forward_project')
 

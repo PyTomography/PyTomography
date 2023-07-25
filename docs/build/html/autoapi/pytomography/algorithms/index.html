@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
 
     <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
-        <title>pytomography.algorithms - PyTomography 0.7.0 documentation</title>
+        <title>pytomography.algorithms - PyTomography 0.8.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">PyTomography 0.7.0 documentation</div></a>
+      <a href="../../../index.html"><div class="brand">PyTomography 0.8.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -147,7 +147,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
   
-  <span class="sidebar-brand-text">PyTomography 0.7.0 documentation</span>
+  <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -172,6 +172,7 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="../io/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4 has-children"><a class="reference internal" href="../io/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="../io/SPECT/dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../io/SPECT/helpers/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.helpers</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../io/SPECT/simind/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.simind</span></code></a></li>
 </ul>
 </li>
@@ -249,6 +250,7 @@
         <article role="main">
           <section id="module-pytomography.algorithms">
 <span id="pytomography-algorithms"></span><h1><a class="reference internal" href="#module-pytomography.algorithms" title="pytomography.algorithms"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><a class="headerlink" href="#module-pytomography.algorithms" title="Permalink to this heading">#</a></h1>
+<p>This module contains all the available reconstruction algorithms in PyTomography</p>
 <section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading">#</a></h2>
 <div class="toctree-wrapper compound">
@@ -284,8 +286,8 @@
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>image</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lr</em><em>, </em><em>Ltheta</em><em>, </em><em>Lz</em><em>]</em>) – image data <span class="math notranslate nohighlight">\(g_j\)</span> to be reconstructed</p></li>
-<li><p><strong>object_initial</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>]</em>) – represents the initial object guess <span class="math notranslate nohighlight">\(f_i^{0,0}\)</span> for the algorithm in object space</p></li>
 <li><p><strong>system_matrix</strong> (<a class="reference internal" href="../projections/index.html#pytomography.projections.SystemMatrix" title="pytomography.projections.SystemMatrix"><em>SystemMatrix</em></a>) – System matrix <span class="math notranslate nohighlight">\(H\)</span> used in <span class="math notranslate nohighlight">\(g=Hf\)</span>.</p></li>
+<li><p><strong>object_initial</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>]</em>) – represents the initial object guess <span class="math notranslate nohighlight">\(f_i^{0,0}\)</span> for the algorithm in object space</p></li>
 <li><p><strong>scatter</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lr</em><em>, </em><em>Ltheta</em><em>, </em><em>Lz</em><em>]</em>) – estimate of scatter contribution <span class="math notranslate nohighlight">\(s_j\)</span>.</p></li>
 <li><p><strong>prior</strong> (<a class="reference internal" href="../priors/index.html#pytomography.priors.Prior" title="pytomography.priors.Prior"><em>Prior</em></a><em>, </em><em>optional</em>) – the Bayesian prior; computes <span class="math notranslate nohighlight">\(\beta \frac{\partial V}{\partial f_r}\)</span>. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, then this term is 0. Defaults to None.</p></li>
 </ul>
@@ -340,8 +342,8 @@
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>image</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lr</em><em>, </em><em>Ltheta</em><em>, </em><em>Lz</em><em>]</em>) – image data <span class="math notranslate nohighlight">\(g_j\)</span> to be reconstructed</p></li>
-<li><p><strong>object_initial</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>]</em>) – represents the initial object guess <span class="math notranslate nohighlight">\(f_i^{0,0}\)</span> for the algorithm in object space</p></li>
 <li><p><strong>system_matrix</strong> (<a class="reference internal" href="../projections/index.html#pytomography.projections.SystemMatrix" title="pytomography.projections.SystemMatrix"><em>SystemMatrix</em></a>) – System matrix <span class="math notranslate nohighlight">\(H\)</span> used in <span class="math notranslate nohighlight">\(g=Hf\)</span>.</p></li>
+<li><p><strong>object_initial</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>]</em>) – represents the initial object guess <span class="math notranslate nohighlight">\(f_i^{0,0}\)</span> for the algorithm in object space</p></li>
 <li><p><strong>scatter</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lr</em><em>, </em><em>Ltheta</em><em>, </em><em>Lz</em><em>]</em>) – estimate of scatter contribution <span class="math notranslate nohighlight">\(s_j\)</span>.</p></li>
 <li><p><strong>prior</strong> (<a class="reference internal" href="../priors/index.html#pytomography.priors.Prior" title="pytomography.priors.Prior"><em>Prior</em></a><em>, </em><em>optional</em>) – the Bayesian prior; computes <span class="math notranslate nohighlight">\(\beta \frac{\partial V}{\partial f_r}\)</span>. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, then this term is 0. Defaults to None.</p></li>
 </ul>
@@ -349,7 +351,7 @@
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.algorithms.OSEMOSL.__call__">
-<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_iters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-11</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.algorithms.OSEMOSL.__call__" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_iters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.algorithms.OSEMOSL.__call__" title="Permalink to this definition">#</a></dt>
 <dd><p>Performs the reconstruction using <cite>n_iters</cite> iterations and <cite>n_subsets</cite> subsets.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -357,7 +359,6 @@
 <li><p><strong>n_iters</strong> (<em>int</em>) – Number of iterations</p></li>
 <li><p><strong>n_subsets</strong> (<em>int</em>) – Number of subsets</p></li>
 <li><p><strong>callback</strong> (<a class="reference internal" href="../callbacks/callback/index.html#pytomography.callbacks.callback.CallBack" title="pytomography.callbacks.callback.CallBack"><em>CallBack</em></a><em>, </em><em>optional</em>) – Callback function to be evaluated after each subiteration. Defaults to None.</p></li>
-<li><p><strong>delta</strong> (<em>float</em><em>, </em><em>optional</em>) – Used to prevent division by zero when calculating ratio, defaults to 1e-11.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -389,7 +390,7 @@
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.algorithms.OSEMBSR.__call__">
-<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_iters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relaxation_function</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">lambda</span> <span class="pre">x:</span> <span class="pre">...</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-11</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.algorithms.OSEMBSR.__call__" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_iters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relaxation_function</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">lambda</span> <span class="pre">x:</span> <span class="pre">...</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.algorithms.OSEMBSR.__call__" title="Permalink to this definition">#</a></dt>
 <dd><p>Performs the reconstruction using <cite>n_iters</cite> iterations and <cite>n_subsets</cite> subsets.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>

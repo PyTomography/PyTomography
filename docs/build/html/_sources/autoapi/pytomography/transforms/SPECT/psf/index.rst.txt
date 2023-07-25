@@ -12,6 +12,7 @@ Classes
 
 .. autoapisummary::
 
+   pytomography.transforms.SPECT.psf.GaussianBlurNet
    pytomography.transforms.SPECT.psf.SPECTPSFTransform
 
 
@@ -21,25 +22,57 @@ Functions
 
 .. autoapisummary::
 
-   pytomography.transforms.SPECT.psf.get_PSF_transform
+   pytomography.transforms.SPECT.psf.get_1D_PSF_layer
 
 
 
-.. py:function:: get_PSF_transform(sigma, kernel_size, kernel_dimensions = '2D', delta = 1e-12, device=pytomography.device)
+.. py:class:: GaussianBlurNet(layer_r, layer_z=None)
 
-   Creates a 2D convolutional layer that is used for PSF modeling.
+   Bases: :py:obj:`torch.nn.Module`
 
-   :param sigma: Array of length Lx corresponding to blurring (sigma of Gaussian) as a function of distance from scanner
-   :type sigma: array
+   Base class for all neural network modules.
+
+   Your models should also subclass this class.
+
+   Modules can also contain other Modules, allowing to nest them in
+   a tree structure. You can assign the submodules as regular attributes::
+
+       import torch.nn as nn
+       import torch.nn.functional as F
+
+       class Model(nn.Module):
+           def __init__(self):
+               super().__init__()
+               self.conv1 = nn.Conv2d(1, 20, 5)
+               self.conv2 = nn.Conv2d(20, 20, 5)
+
+           def forward(self, x):
+               x = F.relu(self.conv1(x))
+               return F.relu(self.conv2(x))
+
+   Submodules assigned in this way will be registered, and will have their
+   parameters converted too when you call :meth:`to`, etc.
+
+   .. note::
+       As per the example above, an ``__init__()`` call to the parent class
+       must be made before assignment on the child.
+
+   :ivar training: Boolean represents whether this module is in training or
+                   evaluation mode.
+   :vartype training: bool
+
+   .. py:method:: forward(input)
+
+
+
+.. py:function:: get_1D_PSF_layer(sigmas, kernel_size)
+
+   Creates a 1D convolutional layer that is used for PSF modeling.
+
+   :param sigmas: Array of length Lx corresponding to blurring (sigma of Gaussian) as a function of distance from scanner
+   :type sigmas: array
    :param kernel_size: Size of the kernel used in each layer. Needs to be large enough to cover most of Gaussian
    :type kernel_size: int
-   :param delta: Used to prevent division by 0 when sigma=0. Defaults to 1e-9.
-   :type delta: float, optional
-   :param device: Pytorch device used for computation. Defaults to 'cpu'.
-   :type device: str, optional
-   :param kernel_dimensions: Whether or not blurring is done independently in each transaxial slice ('1D') or
-                             if blurring is done between transaxial slices ('2D'). Defaults to '2D'.
-   :type kernel_dimensions: str, optional
 
    :returns: Convolutional neural network layer used to apply blurring to objects of shape [batch_size, Lx, Ly, Lz]
    :rtype: torch.nn.Conv2d
@@ -64,35 +97,29 @@ Functions
       :type image_meta: ImageMeta
 
 
-   .. py:method:: compute_kernel_size()
+   .. py:method:: compute_kernel_size(radius, axis)
 
-      Function used to compute the kernel size used for PSF blurring. In particular, uses the ``max_sigmas`` attribute of ``PSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``max_sigmas`` at all points in the object.
+      Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``PSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object.
 
       :returns: The corresponding kernel size used for PSF blurring.
       :rtype: int
 
 
-   .. py:method:: get_sigma(radius, dx, shape, collimator_slope, collimator_intercept)
+   .. py:method:: get_sigma(radius)
 
-      Uses PSF Meta data information to get blurring :math:`\sigma` as a function of distance from detector. It is assumed that ``sigma=collimator_slope*d + collimator_intercept`` where :math:`d` is the distance from the detector.
+      Uses PSF Meta data information to get blurring :math:`\sigma` as a function of distance from detector.
 
-      :param radius: The distance from the detector
+      :param radius: The distance from the detector.
       :type radius: float
-      :param dx: Transaxial plane pixel spacing
-      :type dx: float
-      :param shape: Tuple containing (Lx, Ly, Lz): dimensions of object space
-      :type shape: tuple
-      :param collimator_slope: See collimator intercept
-      :type collimator_slope: float
-      :param collimator_intercept: Collimator slope and collimator intercept are defined such that sigma(d) = collimator_slope*d + collimator_intercept
-      :type collimator_intercept: float
-      :param where sigma corresponds to sigma of a Gaussian function that characterizes blurring as a function of distance from the detector.:
 
       :returns: An array of length Lx corresponding to blurring at each point along the 1st axis in object space
       :rtype: array
 
 
-   .. py:method:: __call__(object_i, i, norm_constant = None)
+   .. py:method:: apply_psf(object, ang_idx)
+
+
+   .. py:method:: __call__(object_i, ang_idx, norm_constant = None)
 
       Applies PSF modeling for the situation where an object is being detector by a detector at the :math:`+x` axis.
 

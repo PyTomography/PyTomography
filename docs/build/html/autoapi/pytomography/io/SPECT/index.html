@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../../../genindex.html" /><link rel="search" title="Search" href="../../../../search.html" />
 
     <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
-        <title>pytomography.io.SPECT - PyTomography 0.7.0 documentation</title>
+        <title>pytomography.io.SPECT - PyTomography 0.8.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../../index.html"><div class="brand">PyTomography 0.7.0 documentation</div></a>
+      <a href="../../../../index.html"><div class="brand">PyTomography 0.8.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -147,7 +147,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
   
   
-  <span class="sidebar-brand-text">PyTomography 0.7.0 documentation</span>
+  <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -172,6 +172,7 @@
 <li class="toctree-l3 current has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l4 current has-children current-page"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="helpers/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.helpers</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="simind/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.simind</span></code></a></li>
 </ul>
 </li>
@@ -254,6 +255,7 @@
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="helpers/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.helpers</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="simind/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.simind</span></code></a></li>
 </ul>
 </div>
@@ -277,16 +279,16 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.get_attenuation_map_from_file" title="pytomography.io.SPECT.get_attenuation_map_from_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_attenuation_map_from_file</span></code></a>(file_AM)</p></td>
 <td><p>Gets an attenuation map from a DICOM file. This data is usually provided by the manufacturer of the SPECT scanner.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.get_attenuation_map_from_CT_slices" title="pytomography.io.SPECT.get_attenuation_map_from_CT_slices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_attenuation_map_from_CT_slices</span></code></a>(files_CT, file_NM)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.get_attenuation_map_from_CT_slices" title="pytomography.io.SPECT.get_attenuation_map_from_CT_slices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_attenuation_map_from_CT_slices</span></code></a>(files_CT[, ...])</p></td>
 <td><p>Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography. Note that it is recommended by <a class="reference external" href="https://jnm.snmjournals.org/content/57/1/151.long">https://jnm.snmjournals.org/content/57/1/151.long</a> to use the vendors attenuation map as opposed to creating your own. As such, the <code class="docutils literal notranslate"><span class="pre">get_attenuation_map_from_file</span></code> should be used preferentially over this function, if you have access to an attenuation map from the vendor.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.get_scatter_from_TEW" title="pytomography.io.SPECT.get_scatter_from_TEW"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_scatter_from_TEW</span></code></a>(file, index_peak, index_lower, ...)</p></td>
 <td><p>Gets an estimate of scatter projection data from a DICOM file using the triple energy window method.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.get_blank_below_above" title="pytomography.io.SPECT.get_blank_below_above"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_blank_below_above</span></code></a>(file_NM)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.get_blank_below_above" title="pytomography.io.SPECT.get_blank_below_above"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_blank_below_above</span></code></a>(image)</p></td>
 <td><p>Obtains the number of blank z-slices at the sup (<code class="docutils literal notranslate"><span class="pre">blank_above</span></code>) and inf (<code class="docutils literal notranslate"><span class="pre">blank_below</span></code>) of the projection data. This method is entirely empircal, and looks for z slices where there are zero detected counts.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.get_psfmeta_from_scanner_params" title="pytomography.io.SPECT.get_psfmeta_from_scanner_params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_psfmeta_from_scanner_params</span></code></a>(camera_model, ...)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.get_psfmeta_from_scanner_params" title="pytomography.io.SPECT.get_psfmeta_from_scanner_params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_psfmeta_from_scanner_params</span></code></a>(camera_model, ...[, ...])</p></td>
 <td><p>Gets PSF metadata from SPECT camera/collimator parameters. Performs linear interpolation to find linear attenuation coefficient for lead collimators for energy values within the range 100keV - 600keV.</p></td>
 </tr>
 </tbody>
@@ -301,10 +303,10 @@
 <dd class="field-odd"><p><strong>headerfile</strong> (<em>str</em>) – Path to header file</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tensor containing CT data.</p>
+<dd class="field-even"><p>Tensor containing attenuation map required for attenuation correction in SPECT/PET imaging.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>torch.tensor[Lx,Ly,Lz]</p>
+<dd class="field-odd"><p>torch.Tensor[batch_size, Lx, Ly, Lz]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -369,14 +371,15 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.io.SPECT.get_attenuation_map_from_CT_slices">
-<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.</span></span><span class="sig-name descname"><span class="pre">get_attenuation_map_from_CT_slices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files_CT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_NM</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_peak</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/io/SPECT/dicom.html#get_attenuation_map_from_CT_slices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.get_attenuation_map_from_CT_slices" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.</span></span><span class="sig-name descname"><span class="pre">get_attenuation_map_from_CT_slices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files_CT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_NM</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_peak</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_as_HU</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/io/SPECT/dicom.html#get_attenuation_map_from_CT_slices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.get_attenuation_map_from_CT_slices" title="Permalink to this definition">#</a></dt>
 <dd><p>Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography. Note that it is recommended by <a class="reference external" href="https://jnm.snmjournals.org/content/57/1/151.long">https://jnm.snmjournals.org/content/57/1/151.long</a> to use the vendors attenuation map as opposed to creating your own. As such, the <code class="docutils literal notranslate"><span class="pre">get_attenuation_map_from_file</span></code> should be used preferentially over this function, if you have access to an attenuation map from the vendor.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>files_CT</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>) – List of all files corresponding to an individual CT scan</p></li>
-<li><p><strong>file_NM</strong> (<em>str</em>) – File corresponding to raw PET/SPECT data (required to align CT with projections)</p></li>
+<li><p><strong>file_NM</strong> (<em>str</em>) – File corresponding to raw PET/SPECT data (required to align CT with projections). If None, then no alignment is done. Defaults to None.</p></li>
 <li><p><strong>index_peak</strong> (<em>int</em><em>, </em><em>optional</em>) – Index corresponding to photopeak in projection data. Defaults to 0.</p></li>
+<li><p><strong>keep_as_HU</strong> (<em>bool</em>) – If True, then don’t convert to linear attenuation coefficient and keep as Hounsfield units. Defaults to False</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -412,11 +415,11 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.io.SPECT.get_blank_below_above">
-<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.</span></span><span class="sig-name descname"><span class="pre">get_blank_below_above</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_NM</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.io.SPECT.get_blank_below_above" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.</span></span><span class="sig-name descname"><span class="pre">get_blank_below_above</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.io.SPECT.get_blank_below_above" title="Permalink to this definition">#</a></dt>
 <dd><p>Obtains the number of blank z-slices at the sup (<code class="docutils literal notranslate"><span class="pre">blank_above</span></code>) and inf (<code class="docutils literal notranslate"><span class="pre">blank_below</span></code>) of the projection data. This method is entirely empircal, and looks for z slices where there are zero detected counts.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>file_NM</strong> (<em>str</em>) – Filepath to DICOM file.</p>
+<dd class="field-odd"><p><strong>image</strong> (<em>torch.tensor</em>) – Image data from a scanner</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>A tuple of two elements corresponding to the number of blank slices at the inf, and the number of blank slices at the sup.</p>
@@ -429,7 +432,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.io.SPECT.get_psfmeta_from_scanner_params">
-<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.</span></span><span class="sig-name descname"><span class="pre">get_psfmeta_from_scanner_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collimator_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_keV</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/io/SPECT/dicom.html#get_psfmeta_from_scanner_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.get_psfmeta_from_scanner_params" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.</span></span><span class="sig-name descname"><span class="pre">get_psfmeta_from_scanner_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collimator_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_keV</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_sigmas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/io/SPECT/dicom.html#get_psfmeta_from_scanner_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.get_psfmeta_from_scanner_params" title="Permalink to this definition">#</a></dt>
 <dd><p>Gets PSF metadata from SPECT camera/collimator parameters. Performs linear interpolation to find linear attenuation coefficient for lead collimators for energy values within the range 100keV - 600keV.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -437,6 +440,7 @@
 <li><p><strong>camera_model</strong> (<em>str</em>) – Name of SPECT camera.</p></li>
 <li><p><strong>collimator_name</strong> (<em>str</em>) – Name of collimator used.</p></li>
 <li><p><strong>energy_keV</strong> (<em>float</em>) – Energy of the photopeak</p></li>
+<li><p><strong>min_sigmas</strong> (<em>float</em>) – Minimum size of the blurring kernel used. Fixes the convolutional kernel size so that all locations have at least <code class="docutils literal notranslate"><span class="pre">min_sigmas</span></code> in dimensions (some will be greater)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>

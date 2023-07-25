@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../../../genindex.html" /><link rel="search" title="Search" href="../../../../search.html" />
 
     <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
-        <title>pytomography.metadata.metadata - PyTomography 0.7.0 documentation</title>
+        <title>pytomography.metadata.metadata - PyTomography 0.8.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../../index.html"><div class="brand">PyTomography 0.7.0 documentation</div></a>
+      <a href="../../../../index.html"><div class="brand">PyTomography 0.8.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -147,7 +147,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
   
   
-  <span class="sidebar-brand-text">PyTomography 0.7.0 documentation</span>
+  <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -172,6 +172,7 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../io/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4 has-children"><a class="reference internal" href="../../io/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="../../io/SPECT/dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../io/SPECT/helpers/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.helpers</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../io/SPECT/simind/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.simind</span></code></a></li>
 </ul>
 </li>
@@ -263,10 +264,7 @@
 <td><p>Metadata for image space</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.metadata.metadata.PSFMeta" title="pytomography.metadata.metadata.PSFMeta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PSFMeta</span></code></a></p></td>
-<td><p>Metadata for PSF correction. PSF blurring is implemented using Gaussian blurring with</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.metadata.metadata.PETPSFMeta" title="pytomography.metadata.metadata.PETPSFMeta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PETPSFMeta</span></code></a></p></td>
-<td><p></p></td>
+<td><p>Metadata for PSF correction. PSF blurring is implemented using Gaussian blurring with <span class="math notranslate nohighlight">\(\sigma(r) = f(r,p)\)</span> where <span class="math notranslate nohighlight">\(r\)</span> is the distance from the detector, :math`sigma` is the width of the Gaussian blurring at that location, and <span class="math notranslate nohighlight">\(f(r,p)\)</span> is the <cite>sigma_fit</cite> function which takes in additional parameters <span class="math notranslate nohighlight">\(p\)</span> called <cite>sigma_fit_params</cite>. (By default, <cite>sigma_fit</cite> is a linear curve). As such, <span class="math notranslate nohighlight">\(\frac{1}{\sigma\sqrt{2\pi}}e^{-r^2/(2\sigma(r)^2)}\)</span> is the point spread function. Blurring is implemented using convolutions with a specified kernel size.</p></td>
 </tr>
 </tbody>
 </table>
@@ -288,13 +286,16 @@
 <span class="sig-name descname"><span class="pre">compute_padded_shape</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/metadata/metadata.html#ObjectMeta.compute_padded_shape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.metadata.metadata.ObjectMeta.compute_padded_shape" title="Permalink to this definition">#</a></dt>
 <dd><p>Computes the padded shape of an object required when rotating the object (to avoid anything getting cut off).</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Padded dimensions of the object.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>list</p>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.metadata.metadata.ObjectMeta.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/metadata/metadata.html#ObjectMeta.__repr__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.metadata.metadata.ObjectMeta.__repr__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return repr(self).</p>
 </dd></dl>
 
 </dd></dl>
@@ -317,47 +318,40 @@
 <span class="sig-name descname"><span class="pre">compute_padded_shape</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/metadata/metadata.html#ImageMeta.compute_padded_shape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.metadata.metadata.ImageMeta.compute_padded_shape" title="Permalink to this definition">#</a></dt>
 <dd><p>Computes the padded shape of an object required when rotating the object (to avoid anything getting cut off).</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Padded dimensions of the object.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>list</p>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.metadata.metadata.ImageMeta.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/metadata/metadata.html#ImageMeta.__repr__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.metadata.metadata.ImageMeta.__repr__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return repr(self).</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomography.metadata.metadata.PSFMeta">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.metadata.metadata.</span></span><span class="sig-name descname"><span class="pre">PSFMeta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">collimator_slope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collimator_intercept</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_dimensions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'2D'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_sigmas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/metadata/metadata.html#PSFMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.metadata.metadata.PSFMeta" title="Permalink to this definition">#</a></dt>
-<dd><p>Metadata for PSF correction. PSF blurring is implemented using Gaussian blurring with
-<span class="math notranslate nohighlight">\(\sigma(d) = ad + b\)</span> where <span class="math notranslate nohighlight">\(a\)</span> is the collimator slope, <span class="math notranslate nohighlight">\(b\)</span> is the collimator intercept, and <span class="math notranslate nohighlight">\(d\)</span> is the distance from a plane in object space to a detector aligned parallel with the plane: as such, <span class="math notranslate nohighlight">\(\frac{1}{\sigma\sqrt{2\pi}}e^{-r^2/(2\sigma(d)^2)}\)</span> is the point spread function where <span class="math notranslate nohighlight">\(r\)</span> is the radial distance between some point in image space and the corresponding point in object space. Blurring is implemented using convolutions with a specified kernel size.</p>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.metadata.metadata.</span></span><span class="sig-name descname"><span class="pre">PSFMeta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sigma_fit_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_fit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">lambda</span> <span class="pre">r,</span> <span class="pre">a,</span> <span class="pre">b:</span> <span class="pre">...</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_dimensions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'2D'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_sigmas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/metadata/metadata.html#PSFMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.metadata.metadata.PSFMeta" title="Permalink to this definition">#</a></dt>
+<dd><p>Metadata for PSF correction. PSF blurring is implemented using Gaussian blurring with <span class="math notranslate nohighlight">\(\sigma(r) = f(r,p)\)</span> where <span class="math notranslate nohighlight">\(r\)</span> is the distance from the detector, :math`sigma` is the width of the Gaussian blurring at that location, and <span class="math notranslate nohighlight">\(f(r,p)\)</span> is the <cite>sigma_fit</cite> function which takes in additional parameters <span class="math notranslate nohighlight">\(p\)</span> called <cite>sigma_fit_params</cite>. (By default, <cite>sigma_fit</cite> is a linear curve). As such, <span class="math notranslate nohighlight">\(\frac{1}{\sigma\sqrt{2\pi}}e^{-r^2/(2\sigma(r)^2)}\)</span> is the point spread function. Blurring is implemented using convolutions with a specified kernel size.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>collimator_slope</strong> (<em>float</em>) – The collimator slope used for blurring (dimensionless units)</p></li>
-<li><p><strong>collimator_intercept</strong> (<em>float</em>) – The collimator intercept used for blurring. Should be in units of cm.</p></li>
+<li><p><strong>sigma_fit_params</strong> (<em>float</em>) – Parameters to the sigma fit function</p></li>
+<li><p><strong>sigma_fit</strong> (<em>function</em>) – Function used to model blurring as a function of radial distance. Defaults to a 2 parameter linear model.</p></li>
 <li><p><strong>kernel_dimensions</strong> (<em>str</em>) – If ‘1D’, blurring is done seperately in each axial plane (so only a 1 dimensional convolution is used). If ‘2D’, blurring is mixed between axial planes (so a 2D convolution is used). Defaults to ‘2D’.</p></li>
-<li><p><strong>max_sigmas</strong> (<em>float</em><em>, </em><em>optional</em>) – This is the number of sigmas to consider in PSF correction. PSF are modelled by Gaussian functions whose extension is infinite, so we need to crop the Gaussian when computing this operation numerically. Note that the blurring width is depth dependent, but the kernel size used for PSF blurring is constant. As such, this parameter is used to fix the kernel size such that all locations have at least <code class="docutils literal notranslate"><span class="pre">max_sigmas</span></code> of a kernel size.</p></li>
+<li><p><strong>min_sigmas</strong> (<em>float</em><em>, </em><em>optional</em>) – This is the number of sigmas to consider in PSF correction. PSF are modelled by Gaussian functions whose extension is infinite, so we need to crop the Gaussian when computing this operation numerically. Note that the blurring width is depth dependent, but the kernel size used for PSF blurring is constant. As such, this parameter is used to fix the kernel size such that all locations have at least <code class="docutils literal notranslate"><span class="pre">min_sigmas</span></code> of a kernel size.</p></li>
 </ul>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.metadata.metadata.PSFMeta.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/metadata/metadata.html#PSFMeta.__repr__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.metadata.metadata.PSFMeta.__repr__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return repr(self).</p>
 </dd></dl>
 
-<dl class="py class">
-<dt class="sig sig-object py" id="pytomography.metadata.metadata.PETPSFMeta">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.metadata.metadata.</span></span><span class="sig-name descname"><span class="pre">PETPSFMeta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">collimator_slope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collimator_intercept</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_dimensions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'2D'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_sigmas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/metadata/metadata.html#PETPSFMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.metadata.metadata.PETPSFMeta" title="Permalink to this definition">#</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>collimator_slope</strong> (<em>float</em>) – </p></li>
-<li><p><strong>collimator_intercept</strong> (<em>float</em>) – </p></li>
-<li><p><strong>kernel_dimensions</strong> (<em>str</em>) – </p></li>
-<li><p><strong>max_sigmas</strong> (<em>float</em>) – </p></li>
-</ul>
-</dd>
-</dl>
 </dd></dl>
 
 </section>
@@ -406,24 +400,32 @@
 <li><a class="reference internal" href="#classes">Classes</a><ul>
 <li><a class="reference internal" href="#pytomography.metadata.metadata.ObjectMeta"><code class="docutils literal notranslate"><span class="pre">ObjectMeta</span></code></a><ul>
 <li><a class="reference internal" href="#pytomography.metadata.metadata.ObjectMeta.compute_padded_shape"><code class="docutils literal notranslate"><span class="pre">ObjectMeta.compute_padded_shape()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.metadata.metadata.ObjectMeta.__repr__"><code class="docutils literal notranslate"><span class="pre">ObjectMeta.__repr__()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#pytomography.metadata.metadata.ImageMeta"><code class="docutils literal notranslate"><span class="pre">ImageMeta</span></code></a><ul>
 <li><a class="reference internal" href="#pytomography.metadata.metadata.ImageMeta.compute_padded_shape"><code class="docutils literal notranslate"><span class="pre">ImageMeta.compute_padded_shape()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.metadata.metadata.ImageMeta.__repr__"><code class="docutils literal notranslate"><span class="pre">ImageMeta.__repr__()</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#pytomography.metadata.metadata.PSFMeta"><code class="docutils literal notranslate"><span class="pre">PSFMeta</span></code></a></li>
-<li><a class="reference internal" href="#pytomography.metadata.metadata.PETPSFMeta"><code class="docutils literal notranslate"><span class="pre">PETPSFMeta</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.metadata.metadata.PSFMeta"><code class="docutils literal notranslate"><span class="pre">PSFMeta</span></code></a><ul>
+<li><a class="reference internal" href="#pytomography.metadata.metadata.PSFMeta.__repr__"><code class="docutils literal notranslate"><span class="pre">PSFMeta.__repr__()</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#pytomography.metadata.metadata.ObjectMeta">ObjectMeta</a><ul>
 <li><a class="reference internal" href="#pytomography.metadata.metadata.ObjectMeta.compute_padded_shape">compute_padded_shape</a></li>
+<li><a class="reference internal" href="#pytomography.metadata.metadata.ObjectMeta.__repr__">__repr__</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#pytomography.metadata.metadata.ImageMeta">ImageMeta</a><ul>
 <li><a class="reference internal" href="#pytomography.metadata.metadata.ImageMeta.compute_padded_shape">compute_padded_shape</a></li>
+<li><a class="reference internal" href="#pytomography.metadata.metadata.ImageMeta.__repr__">__repr__</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#pytomography.metadata.metadata.PSFMeta">PSFMeta</a></li>
-<li><a class="reference internal" href="#pytomography.metadata.metadata.PETPSFMeta">PETPSFMeta</a></li>
+<li><a class="reference internal" href="#pytomography.metadata.metadata.PSFMeta">PSFMeta</a><ul>
+<li><a class="reference internal" href="#pytomography.metadata.metadata.PSFMeta.__repr__">__repr__</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

@@ -193,7 +193,7 @@ def get_blank_below_above(image: torch.tensor):
     """
     greater_than_zero = image[0].cpu().numpy().sum(axis=(0,1)) > 0
     blank_below = np.argmax(greater_than_zero)
-    blank_above = image[0].cpu().numpy().shape[1] - np.argmax(greater_than_zero[::-1])
+    blank_above = image[0].cpu().numpy().shape[-1] - np.argmax(greater_than_zero[::-1])
     return blank_below, blank_above
 
 def bilinear_transform(
@@ -223,3 +223,6 @@ def bilinear_transform(
     )
     arr_transform[arr_transform<0] = 0
     return arr_transform
+
+
+    

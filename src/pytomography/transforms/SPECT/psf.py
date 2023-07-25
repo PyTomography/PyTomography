@@ -7,40 +7,42 @@ import pytomography
 from pytomography.utils import get_distance, compute_pad_size, pad_object, pad_object_z, unpad_object_z, rotate_detector_z, unpad_object
 from pytomography.transforms import Transform
 from pytomography.metadata import ObjectMeta, ImageMeta, PSFMeta
-from torchvision.transforms import InterpolationMode
+import time
+    
+class GaussianBlurNet(nn.Module):
+    def __init__(self, layer_r, layer_z=None):
+        super(GaussianBlurNet, self).__init__()
+        self.layer_r = layer_r
+        self.layer_z = layer_z
 
-def get_PSF_transform(
-    sigma: np.array,
+    def forward(self, input):
+        output = self.layer_r(torch.permute(input[0],(1,0,2)))
+        # If 2D blurring
+        if self.layer_z:
+            output = self.layer_z(torch.permute(output,(2,1,0)))
+        return torch.permute(output,(1,2,0)).unsqueeze(0)
+
+def get_1D_PSF_layer(
+    sigmas: np.array,
     kernel_size: int,
-    kernel_dimensions: str ='2D',
-    delta: float = 1e-12,
-    device=pytomography.device
-    ) -> torch.nn.Conv2d:
-    """Creates a 2D convolutional layer that is used for PSF modeling.
+    ) -> torch.nn.Conv1d:
+    """Creates a 1D convolutional layer that is used for PSF modeling.
 
     Args:
-        sigma (array): Array of length Lx corresponding to blurring (sigma of Gaussian) as a function of distance from scanner
+        sigmas (array): Array of length Lx corresponding to blurring (sigma of Gaussian) as a function of distance from scanner
         kernel_size (int): Size of the kernel used in each layer. Needs to be large enough to cover most of Gaussian
-        delta (float, optional): Used to prevent division by 0 when sigma=0. Defaults to 1e-9.
-        device (str, optional): Pytorch device used for computation. Defaults to 'cpu'.
-        kernel_dimensions (str, optional): Whether or not blurring is done independently in each transaxial slice ('1D') or
-                                            if blurring is done between transaxial slices ('2D'). Defaults to '2D'.
-
+        
     Returns:
         torch.nn.Conv2d: Convolutional neural network layer used to apply blurring to objects of shape [batch_size, Lx, Ly, Lz]
     """
-    N = len(sigma)
-    layer = torch.nn.Conv2d(N, N, kernel_size, groups=N, padding='same',
-                            padding_mode='zeros', bias=0, device=device)
-    x_grid, y_grid = torch.meshgrid(2*[torch.arange(-int(kernel_size//2), int(kernel_size//2)+1)], indexing='ij')
-    x_grid = x_grid.unsqueeze(dim=0).repeat((N,1,1))
-    y_grid = y_grid.unsqueeze(dim=0).repeat((N,1,1))
-    sigma = torch.tensor(sigma, dtype=torch.float32).reshape((N,1,1))
-    kernel = torch.exp(-(x_grid**2 + y_grid**2) / (2*sigma**2 + delta))
-    if kernel_dimensions=='1D':
-        kernel[y_grid!=0] = 0
-    kernel = kernel / kernel.sum(axis=(1,2)).reshape(N,1,1)
-    layer.weight.data = kernel.unsqueeze(dim=1).to(device)
+    N = len(sigmas)
+    layer = nn.Conv1d(N, N, kernel_size, groups=N, padding='same',
+                    padding_mode='zeros', bias=0, device=pytomography.device)
+    x = torch.arange(-int(kernel_size//2), int(kernel_size//2)+1).to(pytomography.device).unsqueeze(0).unsqueeze(0).repeat((N,1,1))
+    sigmas = torch.tensor(sigmas).to(pytomography.device).to(pytomography.dtype).reshape((N,1,1))
+    kernel = torch.exp(-x**2 / (2*sigmas**2 + pytomography.delta))
+    kernel = kernel / kernel.sum(axis=-1).unsqueeze(-1)
+    layer.weight.data = kernel.to(torch.float32)
     return layer
 
 class SPECTPSFTransform(Transform):
@@ -69,47 +71,55 @@ class SPECTPSFTransform(Transform):
             image_meta (ImageMeta): Image metadata.
         """
         super(SPECTPSFTransform, self).configure(object_meta, image_meta)
-        self.kernel_size = self.compute_kernel_size()
         self.layers = {}
         for radius in np.unique(image_meta.radii):
-            sigma = self.get_sigma(radius, object_meta.dx, object_meta.shape, self.psf_meta.sigma_fit, self.psf_meta.sigma_fit_params)
-            self.layers[radius] = get_PSF_transform(sigma/object_meta.dx, self.kernel_size, kernel_dimensions=self.psf_meta.kernel_dimensions, device=self.device)
+            kernel_size_r = self.compute_kernel_size(radius, axis=0)
+            kernel_size_z = self.compute_kernel_size(radius, axis=2)
+            # Compute sigmas and normalize to pixel units
+            sigma_r = self.get_sigma(radius)/object_meta.dx
+            sigma_z = self.get_sigma(radius)/object_meta.dz
+            layer_r = get_1D_PSF_layer(sigma_r, kernel_size_r)
+            layer_z = get_1D_PSF_layer(sigma_z, kernel_size_z)
+            if self.psf_meta.kernel_dimensions=='2D':
+                self.layers[radius] = GaussianBlurNet(layer_r, layer_z)
+            else: # 1D blurring
+                self.layers[radius] = GaussianBlurNet(layer_r)
         
-    def compute_kernel_size(self) -> int:
+    def compute_kernel_size(self, radius, axis) -> int:
         """Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``PSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object. 
 
         Returns:
             int: The corresponding kernel size used for PSF blurring.
         """
-        s = self.object_meta.padded_shape[0]
-        dx = self.object_meta.dr[0]
-        largest_sigma = self.psf_meta.sigma_fit(s/2 * dx, *self.psf_meta.sigma_fit_params)
-        return int(np.round(largest_sigma/dx * self.psf_meta.min_sigmas)*2 + 1)
+        sigma_max = max(self.get_sigma(radius))
+        sigma_max /= self.object_meta.dr[axis]
+        return (np.ceil(sigma_max * self.psf_meta.min_sigmas)*2 + 1).astype(int)
     
     def get_sigma(
         self,
         radius: float,
-        dx: float,
-        shape: tuple,
-        sigma_fit: function,
-        sigma_fit_params: Sequence[float]
     ) -> np.array:
         """Uses PSF Meta data information to get blurring :math:`\sigma` as a function of distance from detector.
 
         Args:
-            radius (float): The distance from the detector
-            dx (float): Transaxial plane pixel spacing
-            shape (tuple): Tuple containing (Lx, Ly, Lz): dimensions of object space 
-            sigma_fit (function): Function that gives PSF width as a function of radial distance from the scanner.
-            sigma_fit_params (Sequence): Extra parameters required for the sigma_fit function.
+            radius (float): The distance from the detector.
 
         Returns:
             array: An array of length Lx corresponding to blurring at each point along the 1st axis in object space
         """
-        dim = shape[0] + 2*compute_pad_size(shape[0])
-        distances = get_distance(dim, radius, dx)
-        sigma = sigma_fit(distances, *sigma_fit_params)
+        dim = self.object_meta.shape[0] + 2*compute_pad_size(self.object_meta.shape[0])
+        distances = get_distance(dim, radius, self.object_meta.dx)
+        sigma = self.psf_meta.sigma_fit(distances, *self.psf_meta.sigma_fit_params)
         return sigma
+    
+    def apply_psf(self, object, ang_idx):
+        object_return = []
+        for i in range(len(ang_idx)):
+            object_temp = object[i].unsqueeze(0)
+            object_temp = self.layers[self.image_meta.radii[ang_idx[i]]](object_temp) 
+            object_return.append(object_temp)
+        return torch.vstack(object_return)
+    
     @torch.no_grad()
     def __call__(
 		self,
@@ -127,23 +137,9 @@ class SPECTPSFTransform(Transform):
         Returns:
             torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.
         """
-        object_return = torch.zeros(object_i.shape).to(pytomography.device)
         if norm_constant is not None:
-            norm_constant_return = torch.zeros(norm_constant.shape).to(pytomography.device)
-        for i in range(len(ang_idx)):
-            object_temp = object_i[i].unsqueeze(0)
-            z_pad_size = int((self.kernel_size-1)/2)
-            object_temp = pad_object_z(object_temp, z_pad_size)
-            object_temp = self.layers[self.image_meta.radii[ang_idx[i]]](object_temp) 
-            object_temp = unpad_object_z(object_temp, pad_size=z_pad_size)
-            object_return[i] = object_temp[0]
-        # Adjust normalization constant
-        if norm_constant is not None:
-            norm_constant_temp = norm_constant[i].unsqueeze(0)
-            norm_constant_temp = pad_object_z(norm_constant_temp, z_pad_size)
-            norm_constant_temp = self.layers[self.image_meta.radii[ang_idx[i]]](norm_constant_temp) 
-            norm_constant_temp = unpad_object_z(norm_constant_temp, pad_size=z_pad_size)
-            norm_constant_return[i] = norm_constant_temp[0]
-            return object_return, norm_constant_return
+            object_i = self.apply_psf(object_i, ang_idx)
+            norm_constant = self.apply_psf(norm_constant, ang_idx)
+            return object_i, norm_constant
         else:
-            return object_return
+            return self.apply_psf(object_i, ang_idx)

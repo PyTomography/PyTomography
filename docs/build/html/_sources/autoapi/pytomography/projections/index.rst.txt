@@ -3,6 +3,11 @@
 
 .. py:module:: pytomography.projections
 
+.. autoapi-nested-parse::
+
+   This module contains classes/functionality for operators that map between distinct vector spaces. One major example of this is the system matrix :math:`H:\mathbb{U} \to \mathbb{V}`, which maps from object space :math:`\mathbb{U}` to image space :math:`\mathbb{V}`
+
+
 
 Submodules
 ----------
@@ -27,7 +32,7 @@ Classes
 
 
 
-.. py:class:: SystemMatrix(obj2obj_transforms, im2im_transforms, object_meta, image_meta)
+.. py:class:: SystemMatrix(obj2obj_transforms, im2im_transforms, object_meta, image_meta, n_parallel=15)
 
    Update this
 
@@ -59,7 +64,7 @@ Classes
       :rtype: torch.tensor[batch_size, Ltheta, Lx, Lz]
 
 
-   .. py:method:: backward(image, angle_subset = None, prior = None, normalize = False, return_norm_constant = False, delta = 1e-11)
+   .. py:method:: backward(image, angle_subset = None, prior = None, normalize = False, return_norm_constant = False)
 
       Implements back projection :math:`H^T g` on an image :math:`g`.
 
@@ -73,8 +78,6 @@ Classes
       :type normalize: bool
       :param return_norm_constant: Whether or not to return :math:`1/\sum_j H_{ij}` along with back projection. Defaults to 'False'.
       :type return_norm_constant: bool
-      :param delta: Prevents division by zero when dividing by normalizing constant. Defaults to 1e-11.
-      :type delta: float, optional
 
       :returns: the object obtained from back projection.
       :rtype: torch.tensor[batch_size, Lr, Lr, Lz]
@@ -111,7 +114,7 @@ Classes
       :rtype: torch.tensor[batch_size, Ltheta, Lx, Lz]
 
 
-   .. py:method:: backward(image, angle_subset = None, prior = None, normalize = False, return_norm_constant = False, delta = 1e-11)
+   .. py:method:: backward(image, angle_subset = None, prior = None, normalize = False, return_norm_constant = False, delta = 1e-06)
 
       Implements back projection :math:`U^T H^T g` on an image :math:`g`, returning a vector of activities for each mask region.
 

@@ -32,4 +32,9 @@ class CutOffTransform(Transform):
         # Diagonal matrix so FP and BP is the same
         image[:,:,:,:self.blank_below] = 0
         image[:,:,:,self.blank_above:] = 0
-        return image
+        if norm_constant is not None:
+            norm_constant[:,:,:,:self.blank_below] = 0
+            norm_constant[:,:,:,self.blank_above:] = 0
+            return image, norm_constant
+        else:
+            return image

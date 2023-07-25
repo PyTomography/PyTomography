@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import os
+import pytomography
 from pytomography.metadata import ObjectMeta, ImageMeta
 from pytomography.projections import SystemMatrix
 from pytomography.transforms import SPECTAttenuationTransform, SPECTPSFTransform
@@ -122,7 +123,7 @@ def get_atteuation_map(headerfile: str):
         headerfile (str): Path to header file
 
     Returns:
-        torch.tensor[Lx,Ly,Lz]: Tensor containing CT data.
+        torch.Tensor[batch_size, Lx, Ly, Lz]: Tensor containing attenuation map required for attenuation correction in SPECT/PET imaging.
     """
     with open(headerfile) as f:
         headerdata = f.readlines()
@@ -135,9 +136,17 @@ def get_atteuation_map(headerfile: str):
     CT = np.fromfile(os.path.join(str(Path(headerfile).parent), imagefile), dtype=np.float32)
     CT = np.transpose(CT.reshape(shape)[::-1,::-1], (2,1,0))
     CT = torch.tensor(CT.copy()).unsqueeze(dim=0)
-    return CT
+    return CT.to(pytomography.device)
 
-def get_psfmeta_from_header(headerfile):
+def get_psfmeta_from_header(headerfile: str):
+    """Obtains the PSFMeta data corresponding to a SIMIND simulation scan from the headerfile
+
+    Args:
+        headerfile (str): SIMIND headerfile.
+
+    Returns:
+        PSFMeta: PSF metadata required for PSF modeling in reconstruction.
+    """
     module_path = os.path.dirname(os.path.abspath(__file__))
     with open(headerfile) as f:
         headerdata = f.readlines()

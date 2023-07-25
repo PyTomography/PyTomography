@@ -21,11 +21,14 @@ Classes
    pytomography.priors.nearest_neighbour.QuadraticPrior
    pytomography.priors.nearest_neighbour.LogCoshPrior
    pytomography.priors.nearest_neighbour.RelativeDifferencePrior
+   pytomography.priors.nearest_neighbour.NeighbourWeight
+   pytomography.priors.nearest_neighbour.EuclideanNeighbourWeight
+   pytomography.priors.nearest_neighbour.AnatomyNeighbourWeight
 
 
 
 
-.. py:class:: NearestNeighbourPrior(beta, phi, **kwargs)
+.. py:class:: NearestNeighbourPrior(beta, phi, weight = None, **kwargs)
 
    Bases: :py:obj:`pytomography.priors.prior.Prior`
 
@@ -38,6 +41,14 @@ Classes
    :param device: Pytorch device used for computation. Defaults to 'cpu'.
    :type device: str, optional
 
+   .. py:method:: set_object_meta(object_meta)
+
+      Sets object metadata parameters.
+
+      :param object_meta: Object metadata describing the system.
+      :type object_meta: ObjectMeta
+
+
    .. py:method:: compute_gradient()
 
       Computes the gradient of the prior on ``self.object``
@@ -47,7 +58,7 @@ Classes
 
 
 
-.. py:class:: QuadraticPrior(beta, delta = 1)
+.. py:class:: QuadraticPrior(beta, delta = 1, weight = None)
 
    Bases: :py:obj:`NearestNeighbourPrior`
 
@@ -59,7 +70,7 @@ Classes
    :type delta: float, optional
 
 
-.. py:class:: LogCoshPrior(beta, delta = 1)
+.. py:class:: LogCoshPrior(beta, delta = 1, weight = None)
 
    Bases: :py:obj:`NearestNeighbourPrior`
 
@@ -71,7 +82,7 @@ Classes
    :type delta: float, optional
 
 
-.. py:class:: RelativeDifferencePrior(beta = 1, gamma = 1, epsilon = 1e-08)
+.. py:class:: RelativeDifferencePrior(beta = 1, gamma = 1, epsilon = 1e-08, weight = None)
 
    Bases: :py:obj:`NearestNeighbourPrior`
 
@@ -83,5 +94,72 @@ Classes
    :type gamma: float, optional
    :param epsilon: Prevent division by 0, Defaults to 1e-8.
    :type epsilon: float, optional
+
+
+.. py:class:: NeighbourWeight
+
+   Abstract class for assigning weight :math:`w_{r,s}` in nearest neighbour priors.
+
+
+   .. py:method:: set_object_meta(object_meta)
+
+      Sets object meta to get appropriate spacing information
+
+      :param object_meta: Object metadata.
+      :type object_meta: ObjectMeta
+
+
+   .. py:method:: __call__(coords)
+      :abstractmethod:
+
+      Computes the weight :math:`w_{r,s}` given the relative position :math:`s` of the nearest neighbour
+
+      :param coords: Tuple of coordinates ``(i,j,k)`` that represent the shift of neighbour :math:`s` relative to :math:`r`.
+      :type coords: Sequence[int,int,int]
+
+
+
+.. py:class:: EuclideanNeighbourWeight
+
+   Bases: :py:obj:`NeighbourWeight`
+
+   Implementation of ``NeighbourWeight`` where inverse Euclidean distance is the weighting between nearest neighbours.
+
+
+   .. py:method:: __call__(coords)
+
+      Computes the weight :math:`w_{r,s}` using inverse Euclidean distance between :math:`r` and :math:`s`.
+
+      :param coords: Tuple of coordinates ``(i,j,k)`` that represent the shift of neighbour :math:`s` relative to :math:`r`.
+      :type coords: Sequence[int,int,int]
+
+
+
+.. py:class:: AnatomyNeighbourWeight(anatomy_image, similarity_function)
+
+   Bases: :py:obj:`NeighbourWeight`
+
+   Implementation of ``NeighbourWeight`` where inverse Euclidean distance and anatomical similarity is used to compute neighbour weight.
+
+   :param anatomy_image: Object corresponding to an anatomical image (such as CT/MRI)
+   :type anatomy_image: torch.Tensor[batch_size,Lx,Ly,Lz]
+   :param similarity_function: User-defined function that computes the similarity between :math:`r` and :math:`s` in the anatomical image. The function should be bounded between 0 and 1 where 1 represets complete similarity and 0 represents complete dissimilarity.
+   :type similarity_function: Callable
+
+   .. py:method:: set_object_meta(object_meta)
+
+      Sets object meta to get appropriate spacing information
+
+      :param object_meta: Object metadata.
+      :type object_meta: ObjectMeta
+
+
+   .. py:method:: __call__(coords)
+
+      Computes the weight :math:`w_{r,s}` using inverse Euclidean distance and anatomical similarity between :math:`r` and :math:`s`.
+
+      :param coords: Tuple of coordinates ``(i,j,k)`` that represent the shift of neighbour :math:`s` relative to :math:`r`.
+      :type coords: Sequence[int,int,int]
+
 
 

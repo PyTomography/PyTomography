@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../../../../genindex.html" /><link rel="search" title="Search" href="../../../../../search.html" />
 
     <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
-        <title>pytomography.io.SPECT.simind - PyTomography 0.7.0 documentation</title>
+        <title>pytomography.io.SPECT.simind - PyTomography 0.8.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../../../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../../../../../_static/graphviz.css" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../../../index.html"><div class="brand">PyTomography 0.7.0 documentation</div></a>
+      <a href="../../../../../index.html"><div class="brand">PyTomography 0.8.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -147,7 +147,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../../index.html">
   
   
-  <span class="sidebar-brand-text">PyTomography 0.7.0 documentation</span>
+  <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -172,6 +172,7 @@
 <li class="toctree-l3 current has-children"><a class="reference internal" href="../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l4 current has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l5"><a class="reference internal" href="../dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../helpers/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.helpers</span></code></a></li>
 <li class="toctree-l5 current current-page"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.simind</span></code></a></li>
 </ul>
 </li>
@@ -268,7 +269,10 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.simind.get_atteuation_map" title="pytomography.io.SPECT.simind.get_atteuation_map"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_atteuation_map</span></code></a>(headerfile)</p></td>
 <td><p>Opens attenuation data from SIMIND output</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.simind.get_SPECT_recon_algorithm_simind" title="pytomography.io.SPECT.simind.get_SPECT_recon_algorithm_simind"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_SPECT_recon_algorithm_simind</span></code></a>(projections_header[, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.simind.get_psfmeta_from_header" title="pytomography.io.SPECT.simind.get_psfmeta_from_header"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_psfmeta_from_header</span></code></a>(headerfile)</p></td>
+<td><p>Obtains the PSFMeta data corresponding to a SIMIND simulation scan from the headerfile</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.simind.get_SPECT_recon_algorithm_simind" title="pytomography.io.SPECT.simind.get_SPECT_recon_algorithm_simind"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_SPECT_recon_algorithm_simind</span></code></a>(projections_header[, ...])</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -363,10 +367,27 @@
 <dd class="field-odd"><p><strong>headerfile</strong> (<em>str</em>) – Path to header file</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tensor containing CT data.</p>
+<dd class="field-even"><p>Tensor containing attenuation map required for attenuation correction in SPECT/PET imaging.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>torch.tensor[Lx,Ly,Lz]</p>
+<dd class="field-odd"><p>torch.Tensor[batch_size, Lx, Ly, Lz]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.simind.get_psfmeta_from_header">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.simind.</span></span><span class="sig-name descname"><span class="pre">get_psfmeta_from_header</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">headerfile</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/simind.html#get_psfmeta_from_header"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.simind.get_psfmeta_from_header" title="Permalink to this definition">#</a></dt>
+<dd><p>Obtains the PSFMeta data corresponding to a SIMIND simulation scan from the headerfile</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>headerfile</strong> (<em>str</em>) – SIMIND headerfile.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>PSF metadata required for PSF modeling in reconstruction.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="../../../metadata/index.html#pytomography.metadata.PSFMeta" title="pytomography.metadata.PSFMeta">PSFMeta</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -442,12 +463,14 @@
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.get_projections"><code class="docutils literal notranslate"><span class="pre">get_projections()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.get_scatter_from_TEW"><code class="docutils literal notranslate"><span class="pre">get_scatter_from_TEW()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.get_atteuation_map"><code class="docutils literal notranslate"><span class="pre">get_atteuation_map()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.simind.get_psfmeta_from_header"><code class="docutils literal notranslate"><span class="pre">get_psfmeta_from_header()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.get_SPECT_recon_algorithm_simind"><code class="docutils literal notranslate"><span class="pre">get_SPECT_recon_algorithm_simind()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.relation_dict">relation_dict</a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.find_first_entry_containing_header">find_first_entry_containing_header</a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.get_projections">get_projections</a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.get_scatter_from_TEW">get_scatter_from_TEW</a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.get_atteuation_map">get_atteuation_map</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.simind.get_psfmeta_from_header">get_psfmeta_from_header</a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.get_SPECT_recon_algorithm_simind">get_SPECT_recon_algorithm_simind</a></li>
 </ul>
 </li>

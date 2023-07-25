@@ -17,6 +17,7 @@ Functions
    pytomography.io.SPECT.simind.get_projections
    pytomography.io.SPECT.simind.get_scatter_from_TEW
    pytomography.io.SPECT.simind.get_atteuation_map
+   pytomography.io.SPECT.simind.get_psfmeta_from_header
    pytomography.io.SPECT.simind.get_SPECT_recon_algorithm_simind
 
 
@@ -82,8 +83,19 @@ Attributes
    :param headerfile: Path to header file
    :type headerfile: str
 
-   :returns: Tensor containing CT data.
-   :rtype: torch.tensor[Lx,Ly,Lz]
+   :returns: Tensor containing attenuation map required for attenuation correction in SPECT/PET imaging.
+   :rtype: torch.Tensor[batch_size, Lx, Ly, Lz]
+
+
+.. py:function:: get_psfmeta_from_header(headerfile)
+
+   Obtains the PSFMeta data corresponding to a SIMIND simulation scan from the headerfile
+
+   :param headerfile: SIMIND headerfile.
+   :type headerfile: str
+
+   :returns: PSF metadata required for PSF modeling in reconstruction.
+   :rtype: PSFMeta
 
 
 .. py:function:: get_SPECT_recon_algorithm_simind(projections_header, scatter_headers = None, CT_header = None, psf_meta = None, prior = None, object_initial = None, recon_algorithm_class = OSEMOSL)
