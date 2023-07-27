@@ -3,6 +3,11 @@
 
 .. py:module:: pytomography.algorithms
 
+.. autoapi-nested-parse::
+
+   This module contains all the available reconstruction algorithms in PyTomography
+
+
 
 Submodules
 ----------
@@ -34,10 +39,10 @@ Classes
 
    :param image: image data :math:`g_j` to be reconstructed
    :type image: torch.tensor[batch_size, Lr, Ltheta, Lz]
-   :param object_initial: represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
-   :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
    :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
    :type system_matrix: SystemMatrix
+   :param object_initial: represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
+   :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
    :param scatter: estimate of scatter contribution :math:`s_j`.
    :type scatter: torch.tensor[batch_size, Lr, Ltheta, Lz]
    :param prior: the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.
@@ -78,16 +83,16 @@ Classes
 
    :param image: image data :math:`g_j` to be reconstructed
    :type image: torch.tensor[batch_size, Lr, Ltheta, Lz]
-   :param object_initial: represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
-   :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
    :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
    :type system_matrix: SystemMatrix
+   :param object_initial: represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
+   :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
    :param scatter: estimate of scatter contribution :math:`s_j`.
    :type scatter: torch.tensor[batch_size, Lr, Ltheta, Lz]
    :param prior: the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.
    :type prior: Prior, optional
 
-   .. py:method:: __call__(n_iters, n_subsets, callback = None, delta = 1e-11)
+   .. py:method:: __call__(n_iters, n_subsets, callback = None)
 
       Performs the reconstruction using `n_iters` iterations and `n_subsets` subsets.
 
@@ -97,8 +102,6 @@ Classes
       :type n_subsets: int
       :param callback: Callback function to be evaluated after each subiteration. Defaults to None.
       :type callback: CallBack, optional
-      :param delta: Used to prevent division by zero when calculating ratio, defaults to 1e-11.
-      :type delta: float, optional
 
       :returns: reconstructed object
       :rtype: torch.tensor[batch_size, Lx, Ly, Lz]
@@ -122,7 +125,7 @@ Classes
    :param prior: the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.
    :type prior: Prior, optional
 
-   .. py:method:: __call__(n_iters, n_subsets, relaxation_function = lambda x: 1, callback = None, delta = 1e-11)
+   .. py:method:: __call__(n_iters, n_subsets, relaxation_function = lambda x: 1, callback = None)
 
       Performs the reconstruction using `n_iters` iterations and `n_subsets` subsets.
 

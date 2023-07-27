@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../../../../genindex.html" /><link rel="search" title="Search" href="../../../../../search.html" />
 
     <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
-        <title>pytomography.transforms.SPECT.psf - PyTomography 0.6.0 documentation</title>
+        <title>pytomography.transforms.SPECT.psf - PyTomography 0.8.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../../../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../../../../../_static/graphviz.css" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../../../index.html"><div class="brand">PyTomography 0.6.0 documentation</div></a>
+      <a href="../../../../../index.html"><div class="brand">PyTomography 0.8.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -146,8 +146,11 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../../../_static/PT1.png" alt="Logo"/>
+  </div>
   
-  <span class="sidebar-brand-text">PyTomography 0.6.0 documentation</span>
+  <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -172,6 +175,7 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../../io/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4 has-children"><a class="reference internal" href="../../../io/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="../../../io/SPECT/dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../io/SPECT/helpers/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.helpers</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../../io/SPECT/simind/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.simind</span></code></a></li>
 </ul>
 </li>
@@ -256,7 +260,10 @@
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform" title="pytomography.transforms.SPECT.psf.SPECTPSFTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SPECTPSFTransform</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.transforms.SPECT.psf.GaussianBlurNet" title="pytomography.transforms.SPECT.psf.GaussianBlurNet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GaussianBlurNet</span></code></a></p></td>
+<td><p>Base class for all neural network modules.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform" title="pytomography.transforms.SPECT.psf.SPECTPSFTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SPECTPSFTransform</span></code></a></p></td>
 <td><p>obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width <span class="math notranslate nohighlight">\(\sigma\)</span> dependent on the distance of the point to the detector; that information is specified in the <code class="docutils literal notranslate"><span class="pre">PSFMeta</span></code> parameter.</p></td>
 </tr>
 </tbody>
@@ -268,25 +275,63 @@
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.transforms.SPECT.psf.get_PSF_transform" title="pytomography.transforms.SPECT.psf.get_PSF_transform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_PSF_transform</span></code></a>(sigma, kernel_size[, ...])</p></td>
-<td><p>Creates a 2D convolutional layer that is used for PSF modeling.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.transforms.SPECT.psf.get_1D_PSF_layer" title="pytomography.transforms.SPECT.psf.get_1D_PSF_layer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_1D_PSF_layer</span></code></a>(sigmas, kernel_size)</p></td>
+<td><p>Creates a 1D convolutional layer that is used for PSF modeling.</p></td>
 </tr>
 </tbody>
 </table>
 </div>
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.GaussianBlurNet">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.transforms.SPECT.psf.</span></span><span class="sig-name descname"><span class="pre">GaussianBlurNet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer_r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_z</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#GaussianBlurNet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.GaussianBlurNet" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
+<p>Base class for all neural network modules.</p>
+<p>Your models should also subclass this class.</p>
+<p>Modules can also contain other Modules, allowing to nest them in
+a tree structure. You can assign the submodules as regular attributes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+
+<span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv2</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call <code class="xref py py-meth docutils literal notranslate"><span class="pre">to()</span></code>, etc.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>As per the example above, an <code class="docutils literal notranslate"><span class="pre">__init__()</span></code> call to the parent class
+must be made before assignment on the child.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>training</strong> (<em>bool</em>) – Boolean represents whether this module is in training or
+evaluation mode.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.GaussianBlurNet.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#GaussianBlurNet.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.GaussianBlurNet.forward" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 <dl class="py function">
-<dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.get_PSF_transform">
-<span class="sig-prename descclassname"><span class="pre">pytomography.transforms.SPECT.psf.</span></span><span class="sig-name descname"><span class="pre">get_PSF_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_dimensions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'2D'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-12</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">pytomography.device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#get_PSF_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.get_PSF_transform" title="Permalink to this definition">#</a></dt>
-<dd><p>Creates a 2D convolutional layer that is used for PSF modeling.</p>
+<dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.get_1D_PSF_layer">
+<span class="sig-prename descclassname"><span class="pre">pytomography.transforms.SPECT.psf.</span></span><span class="sig-name descname"><span class="pre">get_1D_PSF_layer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sigmas</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#get_1D_PSF_layer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.get_1D_PSF_layer" title="Permalink to this definition">#</a></dt>
+<dd><p>Creates a 1D convolutional layer that is used for PSF modeling.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sigma</strong> (<em>array</em>) – Array of length Lx corresponding to blurring (sigma of Gaussian) as a function of distance from scanner</p></li>
+<li><p><strong>sigmas</strong> (<em>array</em>) – Array of length Lx corresponding to blurring (sigma of Gaussian) as a function of distance from scanner</p></li>
 <li><p><strong>kernel_size</strong> (<em>int</em>) – Size of the kernel used in each layer. Needs to be large enough to cover most of Gaussian</p></li>
-<li><p><strong>delta</strong> (<em>float</em><em>, </em><em>optional</em>) – Used to prevent division by 0 when sigma=0. Defaults to 1e-9.</p></li>
-<li><p><strong>device</strong> (<em>str</em><em>, </em><em>optional</em>) – Pytorch device used for computation. Defaults to ‘cpu’.</p></li>
-<li><p><strong>kernel_dimensions</strong> (<em>str</em><em>, </em><em>optional</em>) – Whether or not blurring is done independently in each transaxial slice (‘1D’) or
-if blurring is done between transaxial slices (‘2D’). Defaults to ‘2D’.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -327,8 +372,8 @@ if blurring is done between transaxial slices (‘2D’). Defaults to ‘2D’.<
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.SPECTPSFTransform.compute_kernel_size">
-<span class="sig-name descname"><span class="pre">compute_kernel_size</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#SPECTPSFTransform.compute_kernel_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.compute_kernel_size" title="Permalink to this definition">#</a></dt>
-<dd><p>Function used to compute the kernel size used for PSF blurring. In particular, uses the <code class="docutils literal notranslate"><span class="pre">max_sigmas</span></code> attribute of <code class="docutils literal notranslate"><span class="pre">PSFMeta</span></code> to determine what the kernel size should be such that the kernel encompasses at least <code class="docutils literal notranslate"><span class="pre">max_sigmas</span></code> at all points in the object.</p>
+<span class="sig-name descname"><span class="pre">compute_kernel_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">radius</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#SPECTPSFTransform.compute_kernel_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.compute_kernel_size" title="Permalink to this definition">#</a></dt>
+<dd><p>Function used to compute the kernel size used for PSF blurring. In particular, uses the <code class="docutils literal notranslate"><span class="pre">min_sigmas</span></code> attribute of <code class="docutils literal notranslate"><span class="pre">PSFMeta</span></code> to determine what the kernel size should be such that the kernel encompasses at least <code class="docutils literal notranslate"><span class="pre">min_sigmas</span></code> at all points in the object.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>The corresponding kernel size used for PSF blurring.</p>
@@ -341,18 +386,11 @@ if blurring is done between transaxial slices (‘2D’). Defaults to ‘2D’.<
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.SPECTPSFTransform.get_sigma">
-<span class="sig-name descname"><span class="pre">get_sigma</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">radius</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collimator_slope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collimator_intercept</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#SPECTPSFTransform.get_sigma"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.get_sigma" title="Permalink to this definition">#</a></dt>
-<dd><p>Uses PSF Meta data information to get blurring <span class="math notranslate nohighlight">\(\sigma\)</span> as a function of distance from detector. It is assumed that <code class="docutils literal notranslate"><span class="pre">sigma=collimator_slope*d</span> <span class="pre">+</span> <span class="pre">collimator_intercept</span></code> where <span class="math notranslate nohighlight">\(d\)</span> is the distance from the detector.</p>
+<span class="sig-name descname"><span class="pre">get_sigma</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">radius</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#SPECTPSFTransform.get_sigma"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.get_sigma" title="Permalink to this definition">#</a></dt>
+<dd><p>Uses PSF Meta data information to get blurring <span class="math notranslate nohighlight">\(\sigma\)</span> as a function of distance from detector.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>radius</strong> (<em>float</em>) – The distance from the detector</p></li>
-<li><p><strong>dx</strong> (<em>float</em>) – Transaxial plane pixel spacing</p></li>
-<li><p><strong>shape</strong> (<em>tuple</em>) – Tuple containing (Lx, Ly, Lz): dimensions of object space</p></li>
-<li><p><strong>collimator_slope</strong> (<em>float</em>) – See collimator intercept</p></li>
-<li><p><strong>collimator_intercept</strong> (<em>float</em>) – Collimator slope and collimator intercept are defined such that sigma(d) = collimator_slope*d + collimator_intercept</p></li>
-<li><p><strong>detector.</strong> (<em>where sigma corresponds to sigma</em><em> of </em><em>a Gaussian function that characterizes blurring as a function</em><em> of </em><em>distance from the</em>) – </p></li>
-</ul>
+<dd class="field-odd"><p><strong>radius</strong> (<em>float</em>) – The distance from the detector.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>An array of length Lx corresponding to blurring at each point along the 1st axis in object space</p>
@@ -364,14 +402,39 @@ if blurring is done between transaxial slices (‘2D’). Defaults to ‘2D’.<
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.SPECTPSFTransform.__call__">
-<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#SPECTPSFTransform.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.__call__" title="Permalink to this definition">#</a></dt>
-<dd><p>Applies PSF modeling for the situation where an object is being detector by a detector at the <span class="math notranslate nohighlight">\(+x\)</span> axis.</p>
+<dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.SPECTPSFTransform.apply_psf">
+<span class="sig-name descname"><span class="pre">apply_psf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ang_idx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#SPECTPSFTransform.apply_psf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.apply_psf" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.SPECTPSFTransform.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ang_idx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#SPECTPSFTransform.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.forward" title="Permalink to this definition">#</a></dt>
+<dd><p>Applies the PSF transform <span class="math notranslate nohighlight">\(A:\mathbb{U} \to \mathbb{U}\)</span> for the situation where an object is being detector by a detector at the <span class="math notranslate nohighlight">\(+x\)</span> axis.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>object_i</strong> (<em>torch.tensor</em>) – Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis</p></li>
-<li><p><strong>i</strong> (<em>int</em>) – The projection index: used to find the corresponding angle in image space corresponding to <code class="docutils literal notranslate"><span class="pre">object_i</span></code>. In particular, the x axis (tensor <cite>axis=1</cite>) of the object is aligned with the detector at angle i.</p></li>
+<li><p><strong>ang_idx</strong> (<em>int</em>) – The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in <code class="docutils literal notranslate"><span class="pre">object_i</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.SPECTPSFTransform.backward">
+<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ang_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#SPECTPSFTransform.backward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.backward" title="Permalink to this definition">#</a></dt>
+<dd><p>Applies the transpose of the PSF transform <span class="math notranslate nohighlight">\(A^T:\mathbb{U} \to \mathbb{U}\)</span> for the situation where an object is being detector by a detector at the <span class="math notranslate nohighlight">\(+x\)</span> axis. Since the PSF transform is a symmetric matrix, its implemtation is the same as the <code class="docutils literal notranslate"><span class="pre">forward</span></code> method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>object_i</strong> (<em>torch.tensor</em>) – Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis</p></li>
+<li><p><strong>ang_idx</strong> (<em>int</em>) – The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in <code class="docutils literal notranslate"><span class="pre">object_i</span></code>.</p></li>
 <li><p><strong>norm_constant</strong> (<em>torch.tensor</em><em>, </em><em>optional</em>) – A tensor used to normalize the output during back projection. Defaults to None.</p></li>
 </ul>
 </dd>
@@ -431,20 +494,32 @@ if blurring is done between transaxial slices (‘2D’). Defaults to ‘2D’.<
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
 <li><a class="reference internal" href="#classes">Classes</a></li>
 <li><a class="reference internal" href="#functions">Functions</a><ul>
-<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.get_PSF_transform"><code class="docutils literal notranslate"><span class="pre">get_PSF_transform()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.GaussianBlurNet"><code class="docutils literal notranslate"><span class="pre">GaussianBlurNet</span></code></a><ul>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.GaussianBlurNet.forward"><code class="docutils literal notranslate"><span class="pre">GaussianBlurNet.forward()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.get_1D_PSF_layer"><code class="docutils literal notranslate"><span class="pre">get_1D_PSF_layer()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform</span></code></a><ul>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.configure"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.configure()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.compute_kernel_size"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.compute_kernel_size()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.get_sigma"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.get_sigma()</span></code></a></li>
-<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.__call__"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.__call__()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.apply_psf"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.apply_psf()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.forward"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.forward()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.backward"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.backward()</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.get_PSF_transform">get_PSF_transform</a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.GaussianBlurNet">GaussianBlurNet</a><ul>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.GaussianBlurNet.forward">forward</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.get_1D_PSF_layer">get_1D_PSF_layer</a></li>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform">SPECTPSFTransform</a><ul>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.configure">configure</a></li>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.compute_kernel_size">compute_kernel_size</a></li>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.get_sigma">get_sigma</a></li>
-<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.__call__">__call__</a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.apply_psf">apply_psf</a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.forward">forward</a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.backward">backward</a></li>
 </ul>
 </li>
 </ul>

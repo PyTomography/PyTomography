@@ -1,6 +1,6 @@
 # Developer's Guide
 
-The PyTomography team highly encourages contributions from the community...in fact, contributions from the imaging community are essential for creating the best possible library! If you wish to make a contribution, please use the following checklist:
+The PyTomography team highly encourages contributions from the community. We believe that such contributions will allow PyTomography to reach it's full potential as a multimodal, open-source, reconstruction framework. If you want to contribute:
 
 1. Create an issue on the [PyTomography Github Issues page](https://github.com/qurit/PyTomography/issues). Describe what it is you intend to implement/fix. 
 2. Once you create the issue, create a corresponding branch for the issue (you should be able to do so on your issue page under "Development" on the right hand side)

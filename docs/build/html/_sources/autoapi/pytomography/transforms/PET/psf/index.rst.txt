@@ -52,15 +52,24 @@ Functions
 
 
 
-   .. py:method:: __call__(image, mode = 'forward_project')
+   .. py:method:: forward(image)
 
-      Applies PSF modeling to the PET image.
+      Applies the forward projection of PSF modeling :math:`B:\mathbb{V} \to \mathbb{V}` to a PET image.
+
+      :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the image
+      :type image: torch.tensor]
+
+      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the PSF corrected image.
+      :rtype: torch.tensor
+
+
+   .. py:method:: backward(image, norm_constant = None)
+
+      Applies the back projection of PSF modeling :math:`B^T:\mathbb{V} \to \mathbb{V}` to a PET image.
 
       :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the image
                     norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
       :type image: torch.tensor]
-      :param mode: Whether or not this is being used in forward (`'forward_project'`) or backward projection (`'back_project'`). Defaults to 'forward_project'
-      :type mode: str
 
       :returns: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the PSF corrected image.
       :rtype: torch.tensor

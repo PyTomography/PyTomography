@@ -23,7 +23,43 @@ Subpackages
 Package Contents
 ----------------
 
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.set_dtype
+   pytomography.set_device
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.device
+   pytomography.dtype
+   pytomography.delta
+
+
 .. py:data:: device
 
    
+
+.. py:data:: dtype
+
+   
+
+.. py:data:: delta
+   :value: 1e-11
+
+   
+
+.. py:function:: set_dtype(dt)
+
+
+.. py:function:: set_device(d)
+
 

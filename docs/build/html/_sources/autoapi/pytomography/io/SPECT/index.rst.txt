@@ -11,6 +11,7 @@ Submodules
    :maxdepth: 1
 
    dicom/index.rst
+   helpers/index.rst
    simind/index.rst
 
 
@@ -41,8 +42,8 @@ Functions
    :param headerfile: Path to header file
    :type headerfile: str
 
-   :returns: Tensor containing CT data.
-   :rtype: torch.tensor[Lx,Ly,Lz]
+   :returns: Tensor containing attenuation map required for attenuation correction in SPECT/PET imaging.
+   :rtype: torch.Tensor[batch_size, Lx, Ly, Lz]
 
 
 .. py:function:: get_SPECT_recon_algorithm_simind(projections_header, scatter_headers = None, CT_header = None, psf_meta = None, prior = None, object_initial = None, recon_algorithm_class = OSEMOSL)
@@ -72,16 +73,18 @@ Functions
    :rtype: torch.Tensor
 
 
-.. py:function:: get_attenuation_map_from_CT_slices(files_CT, file_NM, index_peak = 0)
+.. py:function:: get_attenuation_map_from_CT_slices(files_CT, file_NM = None, index_peak = 0, keep_as_HU = False, mode = 'nearest')
 
    Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography. Note that it is recommended by https://jnm.snmjournals.org/content/57/1/151.long to use the vendors attenuation map as opposed to creating your own. As such, the ``get_attenuation_map_from_file`` should be used preferentially over this function, if you have access to an attenuation map from the vendor.
 
    :param files_CT: List of all files corresponding to an individual CT scan
    :type files_CT: Sequence[str]
-   :param file_NM: File corresponding to raw PET/SPECT data (required to align CT with projections)
+   :param file_NM: File corresponding to raw PET/SPECT data (required to align CT with projections). If None, then no alignment is done. Defaults to None.
    :type file_NM: str
    :param index_peak: Index corresponding to photopeak in projection data. Defaults to 0.
    :type index_peak: int, optional
+   :param keep_as_HU: If True, then don't convert to linear attenuation coefficient and keep as Hounsfield units. Defaults to False
+   :type keep_as_HU: bool
 
    :returns: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.
    :rtype: torch.Tensor
@@ -104,18 +107,18 @@ Functions
    :rtype: torch.Tensor[1,Ltheta,Lr,Lz]
 
 
-.. py:function:: get_blank_below_above(file_NM)
+.. py:function:: get_blank_below_above(image)
 
    Obtains the number of blank z-slices at the sup (``blank_above``) and inf (``blank_below``) of the projection data. This method is entirely empircal, and looks for z slices where there are zero detected counts.
 
-   :param file_NM: Filepath to DICOM file.
-   :type file_NM: str
+   :param image: Image data from a scanner
+   :type image: torch.tensor
 
    :returns: A tuple of two elements corresponding to the number of blank slices at the inf, and the number of blank slices at the sup.
    :rtype: Sequence[int]
 
 
-.. py:function:: get_psfmeta_from_scanner_params(camera_model, collimator_name, energy_keV)
+.. py:function:: get_psfmeta_from_scanner_params(camera_model, collimator_name, energy_keV, min_sigmas = 3)
 
    Gets PSF metadata from SPECT camera/collimator parameters. Performs linear interpolation to find linear attenuation coefficient for lead collimators for energy values within the range 100keV - 600keV.
 
@@ -125,6 +128,8 @@ Functions
    :type collimator_name: str
    :param energy_keV: Energy of the photopeak
    :type energy_keV: float
+   :param min_sigmas: Minimum size of the blurring kernel used. Fixes the convolutional kernel size so that all locations have at least ``min_sigmas`` in dimensions (some will be greater)
+   :type min_sigmas: float
 
    :returns: PSF metadata.
    :rtype: PSFMeta

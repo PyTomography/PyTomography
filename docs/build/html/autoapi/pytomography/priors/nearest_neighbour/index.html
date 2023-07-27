@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../../../genindex.html" /><link rel="search" title="Search" href="../../../../search.html" />
 
     <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
-        <title>pytomography.priors.nearest_neighbour - PyTomography 0.6.0 documentation</title>
+        <title>pytomography.priors.nearest_neighbour - PyTomography 0.8.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../../index.html"><div class="brand">PyTomography 0.6.0 documentation</div></a>
+      <a href="../../../../index.html"><div class="brand">PyTomography 0.8.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -146,8 +146,11 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../../_static/PT1.png" alt="Logo"/>
+  </div>
   
-  <span class="sidebar-brand-text">PyTomography 0.6.0 documentation</span>
+  <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -172,6 +175,7 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../io/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4 has-children"><a class="reference internal" href="../../io/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="../../io/SPECT/dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../io/SPECT/helpers/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.helpers</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../io/SPECT/simind/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.simind</span></code></a></li>
 </ul>
 </li>
@@ -269,12 +273,21 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.priors.nearest_neighbour.RelativeDifferencePrior" title="pytomography.priors.nearest_neighbour.RelativeDifferencePrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RelativeDifferencePrior</span></code></a></p></td>
 <td><p>Subclass of <code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code> where <span class="math notranslate nohighlight">\(\phi(f_r,f_s)=\frac{2(f_r-f_s)(\gamma|f_r-f_s|+3f_s + f_r)}{(\gamma|f_r-f_s|+f_r+f_s)^2}\)</span> corresponds to the relative difference prior <span class="math notranslate nohighlight">\(V(f)=\sum_{r,s} w_{r,s} \frac{(f_r-f_s)^2}{f_r+f_s+\gamma|f_r-f_s|}\)</span></p></td>
 </tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.priors.nearest_neighbour.NeighbourWeight" title="pytomography.priors.nearest_neighbour.NeighbourWeight"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NeighbourWeight</span></code></a></p></td>
+<td><p>Abstract class for assigning weight <span class="math notranslate nohighlight">\(w_{r,s}\)</span> in nearest neighbour priors.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.priors.nearest_neighbour.EuclideanNeighbourWeight" title="pytomography.priors.nearest_neighbour.EuclideanNeighbourWeight"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EuclideanNeighbourWeight</span></code></a></p></td>
+<td><p>Implementation of <code class="docutils literal notranslate"><span class="pre">NeighbourWeight</span></code> where inverse Euclidean distance is the weighting between nearest neighbours.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.priors.nearest_neighbour.AnatomyNeighbourWeight" title="pytomography.priors.nearest_neighbour.AnatomyNeighbourWeight"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AnatomyNeighbourWeight</span></code></a></p></td>
+<td><p>Implementation of <code class="docutils literal notranslate"><span class="pre">NeighbourWeight</span></code> where inverse Euclidean distance and anatomical similarity is used to compute neighbour weight.</p></td>
+</tr>
 </tbody>
 </table>
 </div>
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomography.priors.nearest_neighbour.NearestNeighbourPrior">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.nearest_neighbour.</span></span><span class="sig-name descname"><span class="pre">NearestNeighbourPrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/nearest_neighbour.html#NearestNeighbourPrior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.nearest_neighbour.NearestNeighbourPrior" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.nearest_neighbour.</span></span><span class="sig-name descname"><span class="pre">NearestNeighbourPrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/nearest_neighbour.html#NearestNeighbourPrior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.nearest_neighbour.NearestNeighbourPrior" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="../prior/index.html#pytomography.priors.prior.Prior" title="pytomography.priors.prior.Prior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pytomography.priors.prior.Prior</span></code></a></p>
 <p>Implementation of priors where gradients depend on summation over nearest neighbours <span class="math notranslate nohighlight">\(s\)</span> to voxel <span class="math notranslate nohighlight">\(r\)</span> given by : <span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}=\beta\sum_{r,s}w_{r,s}\phi(f_r, f_s)\)</span> where <span class="math notranslate nohighlight">\(V\)</span> is from the log-posterior probability <span class="math notranslate nohighlight">\(\ln L (\tilde{f}, f) - \beta V(f)\)</span>.</p>
 <dl class="field-list simple">
@@ -282,10 +295,24 @@
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>beta</strong> (<em>float</em>) – Used to scale the weight of the prior</p></li>
 <li><p><strong>phi</strong> (<em>function</em>) – Function <span class="math notranslate nohighlight">\(\phi\)</span> used in formula above. Input arguments should be <span class="math notranslate nohighlight">\(f_r\)</span>, <span class="math notranslate nohighlight">\(f_s\)</span>, and any <cite>kwargs</cite> passed to this initialization function.</p></li>
-<li><p><strong>device</strong> (<em>str</em><em>, </em><em>optional</em>) – Pytorch device used for computation. Defaults to ‘cpu’.</p></li>
+<li><p><strong>weight</strong> (<a class="reference internal" href="#pytomography.priors.nearest_neighbour.NeighbourWeight" title="pytomography.priors.nearest_neighbour.NeighbourWeight"><em>NeighbourWeight</em></a><em>, </em><em>optional</em>) – </p></li>
 </ul>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.priors.nearest_neighbour.NearestNeighbourPrior.set_object_meta">
+<span class="sig-name descname"><span class="pre">set_object_meta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/nearest_neighbour.html#NearestNeighbourPrior.set_object_meta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.nearest_neighbour.NearestNeighbourPrior.set_object_meta" title="Permalink to this definition">#</a></dt>
+<dd><p>Sets object metadata parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>object_meta</strong> (<a class="reference internal" href="../../metadata/index.html#pytomography.metadata.ObjectMeta" title="pytomography.metadata.ObjectMeta"><em>ObjectMeta</em></a>) – Object metadata describing the system.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.priors.nearest_neighbour.NearestNeighbourPrior.compute_gradient">
 <span class="sig-name descname"><span class="pre">compute_gradient</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/nearest_neighbour.html#NearestNeighbourPrior.compute_gradient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.nearest_neighbour.NearestNeighbourPrior.compute_gradient" title="Permalink to this definition">#</a></dt>
@@ -304,7 +331,7 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomography.priors.nearest_neighbour.QuadraticPrior">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.nearest_neighbour.</span></span><span class="sig-name descname"><span class="pre">QuadraticPrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/nearest_neighbour.html#QuadraticPrior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.nearest_neighbour.QuadraticPrior" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.nearest_neighbour.</span></span><span class="sig-name descname"><span class="pre">QuadraticPrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/nearest_neighbour.html#QuadraticPrior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.nearest_neighbour.QuadraticPrior" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pytomography.priors.nearest_neighbour.NearestNeighbourPrior" title="pytomography.priors.nearest_neighbour.NearestNeighbourPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code></a></p>
 <p>Subclass of <code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code> where <span class="math notranslate nohighlight">\(\phi(f_r, f_s)= (f_r-f_s)/\delta\)</span> corresponds to a quadratic prior <span class="math notranslate nohighlight">\(V(f)=\frac{1}{4}\sum_{r,s} w_{r,s} \left(\frac{f_r-f_s}{\delta}\right)^2\)</span></p>
 <dl class="field-list simple">
@@ -312,6 +339,7 @@
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>beta</strong> (<em>float</em>) – Used to scale the weight of the prior</p></li>
 <li><p><strong>delta</strong> (<em>float</em><em>, </em><em>optional</em>) – Parameter <span class="math notranslate nohighlight">\(\delta\)</span> in equation above. Defaults to 1.</p></li>
+<li><p><strong>weight</strong> (<a class="reference internal" href="#pytomography.priors.nearest_neighbour.NeighbourWeight" title="pytomography.priors.nearest_neighbour.NeighbourWeight"><em>NeighbourWeight</em></a><em>, </em><em>optional</em>) – </p></li>
 </ul>
 </dd>
 </dl>
@@ -319,7 +347,7 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomography.priors.nearest_neighbour.LogCoshPrior">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.nearest_neighbour.</span></span><span class="sig-name descname"><span class="pre">LogCoshPrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/nearest_neighbour.html#LogCoshPrior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.nearest_neighbour.LogCoshPrior" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.nearest_neighbour.</span></span><span class="sig-name descname"><span class="pre">LogCoshPrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/nearest_neighbour.html#LogCoshPrior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.nearest_neighbour.LogCoshPrior" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pytomography.priors.nearest_neighbour.NearestNeighbourPrior" title="pytomography.priors.nearest_neighbour.NearestNeighbourPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code></a></p>
 <p>Subclass of <code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code> where <span class="math notranslate nohighlight">\(\phi(f_r,f_s)=\tanh((f_r-f_s)/\delta)\)</span> corresponds to the logcosh prior <span class="math notranslate nohighlight">\(V(f)=\sum_{r,s} w_{r,s} \log\cosh\left(\frac{f_r-f_s}{\delta}\right)\)</span></p>
 <dl class="field-list simple">
@@ -327,6 +355,7 @@
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>beta</strong> (<em>float</em>) – Used to scale the weight of the prior</p></li>
 <li><p><strong>delta</strong> (<em>float</em><em>, </em><em>optional</em>) – Parameter <span class="math notranslate nohighlight">\(\delta\)</span> in equation above. Defaults to 1.</p></li>
+<li><p><strong>weight</strong> (<a class="reference internal" href="#pytomography.priors.nearest_neighbour.NeighbourWeight" title="pytomography.priors.nearest_neighbour.NeighbourWeight"><em>NeighbourWeight</em></a><em>, </em><em>optional</em>) – </p></li>
 </ul>
 </dd>
 </dl>
@@ -334,7 +363,7 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomography.priors.nearest_neighbour.RelativeDifferencePrior">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.nearest_neighbour.</span></span><span class="sig-name descname"><span class="pre">RelativeDifferencePrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-08</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/nearest_neighbour.html#RelativeDifferencePrior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.nearest_neighbour.RelativeDifferencePrior" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.nearest_neighbour.</span></span><span class="sig-name descname"><span class="pre">RelativeDifferencePrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-08</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/nearest_neighbour.html#RelativeDifferencePrior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.nearest_neighbour.RelativeDifferencePrior" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pytomography.priors.nearest_neighbour.NearestNeighbourPrior" title="pytomography.priors.nearest_neighbour.NearestNeighbourPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code></a></p>
 <p>Subclass of <code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code> where <span class="math notranslate nohighlight">\(\phi(f_r,f_s)=\frac{2(f_r-f_s)(\gamma|f_r-f_s|+3f_s + f_r)}{(\gamma|f_r-f_s|+f_r+f_s)^2}\)</span> corresponds to the relative difference prior <span class="math notranslate nohighlight">\(V(f)=\sum_{r,s} w_{r,s} \frac{(f_r-f_s)^2}{f_r+f_s+\gamma|f_r-f_s|}\)</span></p>
 <dl class="field-list simple">
@@ -343,9 +372,96 @@
 <li><p><strong>beta</strong> (<em>float</em>) – Used to scale the weight of the prior</p></li>
 <li><p><strong>gamma</strong> (<em>float</em><em>, </em><em>optional</em>) – Parameter <span class="math notranslate nohighlight">\(\gamma\)</span> in equation above. Defaults to 1.</p></li>
 <li><p><strong>epsilon</strong> (<em>float</em><em>, </em><em>optional</em>) – Prevent division by 0, Defaults to 1e-8.</p></li>
+<li><p><strong>weight</strong> (<a class="reference internal" href="#pytomography.priors.nearest_neighbour.NeighbourWeight" title="pytomography.priors.nearest_neighbour.NeighbourWeight"><em>NeighbourWeight</em></a><em>, </em><em>optional</em>) – </p></li>
 </ul>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomography.priors.nearest_neighbour.NeighbourWeight">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.nearest_neighbour.</span></span><span class="sig-name descname"><span class="pre">NeighbourWeight</span></span><a class="reference internal" href="../../../../_modules/pytomography/priors/nearest_neighbour.html#NeighbourWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.nearest_neighbour.NeighbourWeight" title="Permalink to this definition">#</a></dt>
+<dd><p>Abstract class for assigning weight <span class="math notranslate nohighlight">\(w_{r,s}\)</span> in nearest neighbour priors.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.priors.nearest_neighbour.NeighbourWeight.set_object_meta">
+<span class="sig-name descname"><span class="pre">set_object_meta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/nearest_neighbour.html#NeighbourWeight.set_object_meta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.nearest_neighbour.NeighbourWeight.set_object_meta" title="Permalink to this definition">#</a></dt>
+<dd><p>Sets object meta to get appropriate spacing information</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>object_meta</strong> (<a class="reference internal" href="../../metadata/index.html#pytomography.metadata.ObjectMeta" title="pytomography.metadata.ObjectMeta"><em>ObjectMeta</em></a>) – Object metadata.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.priors.nearest_neighbour.NeighbourWeight.__call__">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coords</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/nearest_neighbour.html#NeighbourWeight.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.nearest_neighbour.NeighbourWeight.__call__" title="Permalink to this definition">#</a></dt>
+<dd><p>Computes the weight <span class="math notranslate nohighlight">\(w_{r,s}\)</span> given the relative position <span class="math notranslate nohighlight">\(s\)</span> of the nearest neighbour</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>coords</strong> (<em>Sequence</em><em>[</em><em>int</em><em>,</em><em>int</em><em>,</em><em>int</em><em>]</em>) – Tuple of coordinates <code class="docutils literal notranslate"><span class="pre">(i,j,k)</span></code> that represent the shift of neighbour <span class="math notranslate nohighlight">\(s\)</span> relative to <span class="math notranslate nohighlight">\(r\)</span>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomography.priors.nearest_neighbour.EuclideanNeighbourWeight">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.nearest_neighbour.</span></span><span class="sig-name descname"><span class="pre">EuclideanNeighbourWeight</span></span><a class="reference internal" href="../../../../_modules/pytomography/priors/nearest_neighbour.html#EuclideanNeighbourWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.nearest_neighbour.EuclideanNeighbourWeight" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pytomography.priors.nearest_neighbour.NeighbourWeight" title="pytomography.priors.nearest_neighbour.NeighbourWeight"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NeighbourWeight</span></code></a></p>
+<p>Implementation of <code class="docutils literal notranslate"><span class="pre">NeighbourWeight</span></code> where inverse Euclidean distance is the weighting between nearest neighbours.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.priors.nearest_neighbour.EuclideanNeighbourWeight.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coords</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/nearest_neighbour.html#EuclideanNeighbourWeight.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.nearest_neighbour.EuclideanNeighbourWeight.__call__" title="Permalink to this definition">#</a></dt>
+<dd><p>Computes the weight <span class="math notranslate nohighlight">\(w_{r,s}\)</span> using inverse Euclidean distance between <span class="math notranslate nohighlight">\(r\)</span> and <span class="math notranslate nohighlight">\(s\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>coords</strong> (<em>Sequence</em><em>[</em><em>int</em><em>,</em><em>int</em><em>,</em><em>int</em><em>]</em>) – Tuple of coordinates <code class="docutils literal notranslate"><span class="pre">(i,j,k)</span></code> that represent the shift of neighbour <span class="math notranslate nohighlight">\(s\)</span> relative to <span class="math notranslate nohighlight">\(r\)</span>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomography.priors.nearest_neighbour.AnatomyNeighbourWeight">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.nearest_neighbour.</span></span><span class="sig-name descname"><span class="pre">AnatomyNeighbourWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">anatomy_image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">similarity_function</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/nearest_neighbour.html#AnatomyNeighbourWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.nearest_neighbour.AnatomyNeighbourWeight" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pytomography.priors.nearest_neighbour.NeighbourWeight" title="pytomography.priors.nearest_neighbour.NeighbourWeight"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NeighbourWeight</span></code></a></p>
+<p>Implementation of <code class="docutils literal notranslate"><span class="pre">NeighbourWeight</span></code> where inverse Euclidean distance and anatomical similarity is used to compute neighbour weight.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>anatomy_image</strong> (<em>torch.Tensor</em><em>[</em><em>batch_size</em><em>,</em><em>Lx</em><em>,</em><em>Ly</em><em>,</em><em>Lz</em><em>]</em>) – Object corresponding to an anatomical image (such as CT/MRI)</p></li>
+<li><p><strong>similarity_function</strong> (<em>Callable</em>) – User-defined function that computes the similarity between <span class="math notranslate nohighlight">\(r\)</span> and <span class="math notranslate nohighlight">\(s\)</span> in the anatomical image. The function should be bounded between 0 and 1 where 1 represets complete similarity and 0 represents complete dissimilarity.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.priors.nearest_neighbour.AnatomyNeighbourWeight.set_object_meta">
+<span class="sig-name descname"><span class="pre">set_object_meta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/nearest_neighbour.html#AnatomyNeighbourWeight.set_object_meta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.nearest_neighbour.AnatomyNeighbourWeight.set_object_meta" title="Permalink to this definition">#</a></dt>
+<dd><p>Sets object meta to get appropriate spacing information</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>object_meta</strong> (<a class="reference internal" href="../../metadata/index.html#pytomography.metadata.ObjectMeta" title="pytomography.metadata.ObjectMeta"><em>ObjectMeta</em></a>) – Object metadata.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.priors.nearest_neighbour.AnatomyNeighbourWeight.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coords</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/nearest_neighbour.html#AnatomyNeighbourWeight.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.nearest_neighbour.AnatomyNeighbourWeight.__call__" title="Permalink to this definition">#</a></dt>
+<dd><p>Computes the weight <span class="math notranslate nohighlight">\(w_{r,s}\)</span> using inverse Euclidean distance and anatomical similarity between <span class="math notranslate nohighlight">\(r\)</span> and <span class="math notranslate nohighlight">\(s\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>coords</strong> (<em>Sequence</em><em>[</em><em>int</em><em>,</em><em>int</em><em>,</em><em>int</em><em>]</em>) – Tuple of coordinates <code class="docutils literal notranslate"><span class="pre">(i,j,k)</span></code> that represent the shift of neighbour <span class="math notranslate nohighlight">\(s\)</span> relative to <span class="math notranslate nohighlight">\(r\)</span>.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -393,19 +509,49 @@
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
 <li><a class="reference internal" href="#classes">Classes</a><ul>
 <li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.NearestNeighbourPrior"><code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code></a><ul>
+<li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.NearestNeighbourPrior.set_object_meta"><code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior.set_object_meta()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.NearestNeighbourPrior.compute_gradient"><code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior.compute_gradient()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.QuadraticPrior"><code class="docutils literal notranslate"><span class="pre">QuadraticPrior</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.LogCoshPrior"><code class="docutils literal notranslate"><span class="pre">LogCoshPrior</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.RelativeDifferencePrior"><code class="docutils literal notranslate"><span class="pre">RelativeDifferencePrior</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.NeighbourWeight"><code class="docutils literal notranslate"><span class="pre">NeighbourWeight</span></code></a><ul>
+<li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.NeighbourWeight.set_object_meta"><code class="docutils literal notranslate"><span class="pre">NeighbourWeight.set_object_meta()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.NeighbourWeight.__call__"><code class="docutils literal notranslate"><span class="pre">NeighbourWeight.__call__()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.EuclideanNeighbourWeight"><code class="docutils literal notranslate"><span class="pre">EuclideanNeighbourWeight</span></code></a><ul>
+<li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.EuclideanNeighbourWeight.__call__"><code class="docutils literal notranslate"><span class="pre">EuclideanNeighbourWeight.__call__()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.AnatomyNeighbourWeight"><code class="docutils literal notranslate"><span class="pre">AnatomyNeighbourWeight</span></code></a><ul>
+<li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.AnatomyNeighbourWeight.set_object_meta"><code class="docutils literal notranslate"><span class="pre">AnatomyNeighbourWeight.set_object_meta()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.AnatomyNeighbourWeight.__call__"><code class="docutils literal notranslate"><span class="pre">AnatomyNeighbourWeight.__call__()</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.NearestNeighbourPrior">NearestNeighbourPrior</a><ul>
+<li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.NearestNeighbourPrior.set_object_meta">set_object_meta</a></li>
 <li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.NearestNeighbourPrior.compute_gradient">compute_gradient</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.QuadraticPrior">QuadraticPrior</a></li>
 <li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.LogCoshPrior">LogCoshPrior</a></li>
 <li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.RelativeDifferencePrior">RelativeDifferencePrior</a></li>
+<li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.NeighbourWeight">NeighbourWeight</a><ul>
+<li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.NeighbourWeight.set_object_meta">set_object_meta</a></li>
+<li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.NeighbourWeight.__call__">__call__</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.EuclideanNeighbourWeight">EuclideanNeighbourWeight</a><ul>
+<li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.EuclideanNeighbourWeight.__call__">__call__</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.AnatomyNeighbourWeight">AnatomyNeighbourWeight</a><ul>
+<li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.AnatomyNeighbourWeight.set_object_meta">set_object_meta</a></li>
+<li><a class="reference internal" href="#pytomography.priors.nearest_neighbour.AnatomyNeighbourWeight.__call__">__call__</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

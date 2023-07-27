@@ -16,7 +16,10 @@ Functions
    pytomography.io.SPECT.simind.find_first_entry_containing_header
    pytomography.io.SPECT.simind.get_projections
    pytomography.io.SPECT.simind.get_scatter_from_TEW
+   pytomography.io.SPECT.simind.combine_projection_data
+   pytomography.io.SPECT.simind.combine_scatter_data_TEW
    pytomography.io.SPECT.simind.get_atteuation_map
+   pytomography.io.SPECT.simind.get_psfmeta_from_header
    pytomography.io.SPECT.simind.get_SPECT_recon_algorithm_simind
 
 
@@ -75,6 +78,36 @@ Attributes
    :rtype: torch.Tensor[1, Ltheta, Lr, Lz]
 
 
+.. py:function:: combine_projection_data(headerfiles, weights)
+
+   Takes in a list of SIMIND headerfiles corresponding to different simulated regions and adds the projection data together based on the `weights`.
+
+   :param headerfiles: List of filepaths corresponding to the SIMIND header files of different simulated regions
+   :type headerfiles: Sequence[str]
+   :param weights: Amount by which to weight each projection relative.
+   :type weights: Sequence[str]
+
+   :returns: Returns necessary object/image metadata along with the projection data
+   :rtype: (ObjectMeta, ImageMeta, torch.Tensor)
+
+
+.. py:function:: combine_scatter_data_TEW(headerfiles_peak, headerfiles_lower, headerfiles_upper, weights)
+
+   Computes the triple energy window scatter estimate of the sequence of projection data weighted by `weights`. See `combine_projection_data` for more details.
+
+   :param headerfiles_peak: List of headerfiles corresponding to the photopeak
+   :type headerfiles_peak: Sequence[str]
+   :param headerfiles_lower: List of headerfiles corresponding to the lower scatter window
+   :type headerfiles_lower: Sequence[str]
+   :param headerfiles_upper: List of headerfiles corresponding to the upper scatter window
+   :type headerfiles_upper: Sequence[str]
+   :param weights: Amount by which to weight each set of projection data by.
+   :type weights: Sequence[float]
+
+   :returns: _description_
+   :rtype: _type_
+
+
 .. py:function:: get_atteuation_map(headerfile)
 
    Opens attenuation data from SIMIND output
@@ -82,8 +115,19 @@ Attributes
    :param headerfile: Path to header file
    :type headerfile: str
 
-   :returns: Tensor containing CT data.
-   :rtype: torch.tensor[Lx,Ly,Lz]
+   :returns: Tensor containing attenuation map required for attenuation correction in SPECT/PET imaging.
+   :rtype: torch.Tensor[batch_size, Lx, Ly, Lz]
+
+
+.. py:function:: get_psfmeta_from_header(headerfile)
+
+   Obtains the PSFMeta data corresponding to a SIMIND simulation scan from the headerfile
+
+   :param headerfile: SIMIND headerfile.
+   :type headerfile: str
+
+   :returns: PSF metadata required for PSF modeling in reconstruction.
+   :rtype: PSFMeta
 
 
 .. py:function:: get_SPECT_recon_algorithm_simind(projections_header, scatter_headers = None, CT_header = None, psf_meta = None, prior = None, object_initial = None, recon_algorithm_class = OSEMOSL)

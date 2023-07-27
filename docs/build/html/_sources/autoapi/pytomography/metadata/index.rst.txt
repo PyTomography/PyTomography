@@ -3,6 +3,11 @@
 
 .. py:module:: pytomography.metadata
 
+.. autoapi-nested-parse::
+
+   This module contains classes pertaining to metadata in PyTomography. Metadata classes contain required information for interpretting data; for example, metadata corresponding to an object (with object data stored in a ``torch.Tensor``) contains the voxel spacing and voxel dimensions.
+
+
 
 Submodules
 ----------
@@ -41,8 +46,11 @@ Classes
 
       Computes the padded shape of an object required when rotating the object (to avoid anything getting cut off).
 
-      :returns: Padded dimensions of the object.
-      :rtype: list
+
+
+   .. py:method:: __repr__()
+
+      Return repr(self).
 
 
 
@@ -61,23 +69,30 @@ Classes
 
       Computes the padded shape of an object required when rotating the object (to avoid anything getting cut off).
 
-      :returns: Padded dimensions of the object.
-      :rtype: list
+
+
+   .. py:method:: __repr__()
+
+      Return repr(self).
 
 
 
-.. py:class:: PSFMeta(collimator_slope, collimator_intercept, kernel_dimensions = '2D', max_sigmas = 3)
+.. py:class:: PSFMeta(sigma_fit_params, sigma_fit = lambda r, a, b: a * r + b, kernel_dimensions = '2D', min_sigmas = 3)
 
-   Metadata for PSF correction. PSF blurring is implemented using Gaussian blurring with
-   :math:`\sigma(d) = ad + b` where :math:`a` is the collimator slope, :math:`b` is the collimator intercept, and :math:`d` is the distance from a plane in object space to a detector aligned parallel with the plane: as such, :math:`\frac{1}{\sigma\sqrt{2\pi}}e^{-r^2/(2\sigma(d)^2)}` is the point spread function where :math:`r` is the radial distance between some point in image space and the corresponding point in object space. Blurring is implemented using convolutions with a specified kernel size.
+   Metadata for PSF correction. PSF blurring is implemented using Gaussian blurring with :math:`\sigma(r) = f(r,p)` where :math:`r` is the distance from the detector, :math`\sigma` is the width of the Gaussian blurring at that location, and :math:`f(r,p)` is the `sigma_fit` function which takes in additional parameters :math:`p` called `sigma_fit_params`. (By default, `sigma_fit` is a linear curve). As such, :math:`\frac{1}{\sigma\sqrt{2\pi}}e^{-r^2/(2\sigma(r)^2)}` is the point spread function. Blurring is implemented using convolutions with a specified kernel size.
 
-   :param collimator_slope: The collimator slope used for blurring (dimensionless units)
-   :type collimator_slope: float
-   :param collimator_intercept: The collimator intercept used for blurring. Should be in units of cm.
-   :type collimator_intercept: float
+   :param sigma_fit_params: Parameters to the sigma fit function
+   :type sigma_fit_params: float
+   :param sigma_fit: Function used to model blurring as a function of radial distance. Defaults to a 2 parameter linear model.
+   :type sigma_fit: function
    :param kernel_dimensions: If '1D', blurring is done seperately in each axial plane (so only a 1 dimensional convolution is used). If '2D', blurring is mixed between axial planes (so a 2D convolution is used). Defaults to '2D'.
    :type kernel_dimensions: str
-   :param max_sigmas: This is the number of sigmas to consider in PSF correction. PSF are modelled by Gaussian functions whose extension is infinite, so we need to crop the Gaussian when computing this operation numerically. Note that the blurring width is depth dependent, but the kernel size used for PSF blurring is constant. As such, this parameter is used to fix the kernel size such that all locations have at least ``max_sigmas`` of a kernel size.
-   :type max_sigmas: float, optional
+   :param min_sigmas: This is the number of sigmas to consider in PSF correction. PSF are modelled by Gaussian functions whose extension is infinite, so we need to crop the Gaussian when computing this operation numerically. Note that the blurring width is depth dependent, but the kernel size used for PSF blurring is constant. As such, this parameter is used to fix the kernel size such that all locations have at least ``min_sigmas`` of a kernel size.
+   :type min_sigmas: float, optional
+
+   .. py:method:: __repr__()
+
+      Return repr(self).
+
 
 

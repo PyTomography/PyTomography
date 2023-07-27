@@ -7,9 +7,10 @@ from pytomography.transforms import Transform
 from pytomography.metadata import ObjectMeta, ImageMeta
 from pytomography.priors import Prior
 from pytomography.utils import rotate_detector_z, pad_object, unpad_object, pad_image, unpad_image
+import time
 
 class SystemMatrix():
-    r"""Update this
+    r"""The system matrix :math:`H:\mathbb{U} \to \mathbb{V}` simulates an imaging system; it takes in an object :math:`f \in \mathbb{U}` and maps it to a corresponding image :math:`g \in \mathbb{V}` that would be produced by the imaging system. A system matrix consists of sequences of object-to-object and image-to-image transforms that model various characteristics of the imaging system, such as attenuation and blurring. While the class implements the operator :math:`H:\mathbb{U} \to \mathbb{V}` through the ``forward`` method, it also implements :math:`H^T:\mathbb{V} \to \mathbb{U}` through the `backward` method, required during iterative reconstruction algorithms such as OSEM.
     
     Args:
             obj2obj_transforms (Sequence[Transform]): Sequence of object mappings that occur before forward projection.
@@ -23,21 +24,22 @@ class SystemMatrix():
         im2im_transforms: list[Transform],
         object_meta: ObjectMeta,
         image_meta: ImageMeta,
+        n_parallel = 15,
     ) -> None:
-        self.device = pytomography.device
         self.obj2obj_transforms = obj2obj_transforms
         self.im2im_transforms = im2im_transforms
         self.object_meta = object_meta
         self.image_meta = image_meta
-        self.initialize_correction_nets()
+        self.n_parallel = n_parallel
+        self.initialize_transforms()
 
-    def initialize_correction_nets(self):
-        """Initializes all mapping networks with the required object and image metadata corresponding to the projection network.
+    def initialize_transforms(self):
+        """Initializes all transforms used to build the system matrix
         """
-        for net in self.obj2obj_transforms:
-            net.configure(self.object_meta, self.image_meta)
-        for net in self.im2im_transforms:
-            net.configure(self.object_meta, self.image_meta)
+        for transform in self.obj2obj_transforms:
+            transform.configure(self.object_meta, self.image_meta)
+        for transform in self.im2im_transforms:
+            transform.configure(self.object_meta, self.image_meta)
 
     def forward(
         self,
@@ -54,16 +56,17 @@ class SystemMatrix():
             torch.tensor[batch_size, Ltheta, Lx, Lz]: Forward projected image where Ltheta is specified by `self.image_meta` and `angle_subset`.
         """
         N_angles = self.image_meta.num_projections
-        object = object.to(self.device)
-        image = torch.zeros((object.shape[0],*self.image_meta.padded_shape)).to(self.device)
-        looper = range(N_angles) if angle_subset is None else angle_subset
-        for i in looper:
-            object_i = rotate_detector_z(pad_object(object), self.image_meta.angles[i])
-            for net in self.obj2obj_transforms:
-                object_i = net(object_i, i)
-            image[:,i] = object_i.sum(axis=1)
-        for net in self.im2im_transforms:
-            image = net(image)
+        object = object.to(pytomography.device)
+        image = torch.zeros((object.shape[0],*self.image_meta.padded_shape)).to(pytomography.device)
+        ang_idx = torch.arange(N_angles) if angle_subset is None else angle_subset
+        for i in range(0, len(ang_idx), self.n_parallel):
+            ang_idx_parallel = ang_idx[i:i+self.n_parallel]
+            object_i = rotate_detector_z(pad_object(object.repeat(len(ang_idx_parallel),1,1,1)), self.image_meta.angles[ang_idx_parallel])
+            for transform in self.obj2obj_transforms:
+                object_i = transform.forward(object_i, ang_idx_parallel)
+            image[:,ang_idx_parallel] = object_i.sum(axis=1)
+        for transform in self.im2im_transforms:
+            image = transform.forward(image)
         return unpad_image(image)
     
     def backward(
@@ -73,7 +76,6 @@ class SystemMatrix():
         prior: Prior | None = None,
         normalize: bool = False,
         return_norm_constant: bool = False,
-        delta: float = 1e-11
     ) -> torch.tensor:
         r"""Implements back projection :math:`H^T g` on an image :math:`g`.
 
@@ -83,36 +85,35 @@ class SystemMatrix():
             prior (Prior, optional): If included, modifes normalizing factor to :math:`\frac{1}{\sum_j H_{ij} + P_i}` where :math:`P_i` is given by the prior. Used, for example, during in MAP OSEM. Defaults to None.
             normalize (bool): Whether or not to divide result by :math:`\sum_j H_{ij}`
             return_norm_constant (bool): Whether or not to return :math:`1/\sum_j H_{ij}` along with back projection. Defaults to 'False'.
-            delta (float, optional): Prevents division by zero when dividing by normalizing constant. Defaults to 1e-11.
 
         Returns:
             torch.tensor[batch_size, Lr, Lr, Lz]: the object obtained from back projection.
         """
         # Box used to perform back projection
-        boundary_box_bp = pad_object(torch.ones((1, *self.object_meta.shape)).to(self.device), mode='back_project')
+        boundary_box_bp = pad_object(torch.ones((1, *self.object_meta.shape)).to(pytomography.device), mode='back_project')
         # Pad image and norm_image (norm_image used to compute sum_j H_ij)
-        norm_image = torch.ones(image.shape).to(self.device)
+        norm_image = torch.ones(image.shape).to(pytomography.device)
         image = pad_image(image)
         norm_image = pad_image(norm_image)
-        # First apply image mappings before back projecting
-        for net in self.im2im_transforms[::-1]:
-            image = net(image, mode='back_project')
-            norm_image = net(norm_image, mode='back_project')
+        # First apply image transforms before back projecting
+        for transform in self.im2im_transforms[::-1]:
+            image, norm_image = transform.backward(image, norm_image)
         # Setup for back projection
         N_angles = self.image_meta.num_projections
-        object = torch.zeros([image.shape[0], *self.object_meta.padded_shape]).to(self.device)
-        norm_constant = torch.zeros([image.shape[0], *self.object_meta.padded_shape]).to(self.device)
-        looper = range(N_angles) if angle_subset is None else angle_subset
-        for i in looper:
+        object = torch.zeros([image.shape[0], *self.object_meta.padded_shape]).to(pytomography.device)
+        norm_constant = torch.zeros([image.shape[0], *self.object_meta.padded_shape]).to(pytomography.device)
+        ang_idx = torch.arange(N_angles) if angle_subset is None else angle_subset
+        for i in range(0, len(ang_idx), self.n_parallel):
+            ang_idx_parallel = ang_idx[i:i+self.n_parallel]
             # Perform back projection
-            object_i = image[:,i].unsqueeze(dim=1) * boundary_box_bp
-            norm_constant_i = norm_image[:,i].unsqueeze(dim=1) * boundary_box_bp
+            object_i = image[0,ang_idx_parallel].unsqueeze(1) * boundary_box_bp
+            norm_constant_i = norm_image[0,ang_idx_parallel].unsqueeze(1) * boundary_box_bp
             # Apply object mappings
-            for net in self.obj2obj_transforms[::-1]:
-                object_i, norm_constant_i = net(object_i, i, norm_constant=norm_constant_i)
+            for transform in self.obj2obj_transforms[::-1]:
+                object_i, norm_constant_i = transform.backward(object_i, ang_idx_parallel, norm_constant=norm_constant_i)
             # Add to total
-            norm_constant += rotate_detector_z(norm_constant_i, self.image_meta.angles[i], negative=True)
-            object += rotate_detector_z(object_i, self.image_meta.angles[i], negative=True)
+            norm_constant += rotate_detector_z(norm_constant_i, self.image_meta.angles[ang_idx_parallel], negative=True).sum(axis=0).unsqueeze(0)
+            object += rotate_detector_z(object_i, self.image_meta.angles[ang_idx_parallel], negative=True).sum(axis=0).unsqueeze(0)
         # Unpad
         norm_constant = unpad_object(norm_constant)
         object = unpad_object(object)
@@ -120,10 +121,10 @@ class SystemMatrix():
         if prior:
             norm_constant += prior.compute_gradient()
         if normalize:
-            object = (object+delta)/(norm_constant + delta)
+            object = (object+pytomography.delta)/(norm_constant + pytomography.delta)
         # Return
         if return_norm_constant:
-            return object, norm_constant+delta
+            return object, norm_constant+pytomography.delta
         else:
             return object
         
@@ -148,7 +149,7 @@ class SystemMatrixMaskedSegments(SystemMatrix):
         
     ) -> None:
         super(SystemMatrixMaskedSegments, self).__init__(obj2obj_transforms, im2im_transforms, object_meta, image_meta)
-        self.masks = masks.to(self.device)
+        self.masks = masks.to(pytomography.device)
 
     def forward(
         self,
@@ -165,7 +166,7 @@ class SystemMatrixMaskedSegments(SystemMatrix):
             torch.tensor[batch_size, Ltheta, Lx, Lz]: Forward projected image where Ltheta is specified by `self.image_meta` and `angle_subset`.
         """
         object = 0
-        activities = activities.reshape((*activities.shape, 1, 1, 1)).to(self.device)
+        activities = activities.reshape((*activities.shape, 1, 1, 1)).to(pytomography.device)
         object = (activities*self.masks).sum(axis=1)
         return super(SystemMatrixMaskedSegments, self).forward(object, angle_subset)
     
@@ -176,7 +177,7 @@ class SystemMatrixMaskedSegments(SystemMatrix):
         prior: Prior | None = None,
         normalize: bool = False,
         return_norm_constant: bool = False,
-        delta: float = 1e-11
+        delta: float = 1e-6
     ) -> torch.Tensor:
         """Implements back projection :math:`U^T H^T g` on an image :math:`g`, returning a vector of activities for each mask region.
 

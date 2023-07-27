@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../../../genindex.html" /><link rel="search" title="Search" href="../../../../search.html" />
 
     <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
-        <title>pytomography.transforms.transform - PyTomography 0.6.0 documentation</title>
+        <title>pytomography.transforms.transform - PyTomography 0.8.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../../index.html"><div class="brand">PyTomography 0.6.0 documentation</div></a>
+      <a href="../../../../index.html"><div class="brand">PyTomography 0.8.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -146,8 +146,11 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../../_static/PT1.png" alt="Logo"/>
+  </div>
   
-  <span class="sidebar-brand-text">PyTomography 0.6.0 documentation</span>
+  <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -172,6 +175,7 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../io/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4 has-children"><a class="reference internal" href="../../io/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="../../io/SPECT/dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../io/SPECT/helpers/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.helpers</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../io/SPECT/simind/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.simind</span></code></a></li>
 </ul>
 </li>
@@ -289,8 +293,19 @@
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pytomography.transforms.transform.Transform.__call__">
-<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/transforms/transform.html#Transform.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.transform.Transform.__call__" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="pytomography.transforms.transform.Transform.forward">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/transforms/transform.html#Transform.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.transform.Transform.forward" title="Permalink to this definition">#</a></dt>
+<dd><p>Abstract method; must be implemented in subclasses to apply a correction to an object/image and return it</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>torch.tensor</em>) – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.transforms.transform.Transform.backward">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/transforms/transform.html#Transform.backward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.transform.Transform.backward" title="Permalink to this definition">#</a></dt>
 <dd><p>Abstract method; must be implemented in subclasses to apply a correction to an object/image and return it</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -347,12 +362,14 @@
 <li><a class="reference internal" href="#classes">Classes</a><ul>
 <li><a class="reference internal" href="#pytomography.transforms.transform.Transform"><code class="docutils literal notranslate"><span class="pre">Transform</span></code></a><ul>
 <li><a class="reference internal" href="#pytomography.transforms.transform.Transform.configure"><code class="docutils literal notranslate"><span class="pre">Transform.configure()</span></code></a></li>
-<li><a class="reference internal" href="#pytomography.transforms.transform.Transform.__call__"><code class="docutils literal notranslate"><span class="pre">Transform.__call__()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.transforms.transform.Transform.forward"><code class="docutils literal notranslate"><span class="pre">Transform.forward()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.transforms.transform.Transform.backward"><code class="docutils literal notranslate"><span class="pre">Transform.backward()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#pytomography.transforms.transform.Transform">Transform</a><ul>
 <li><a class="reference internal" href="#pytomography.transforms.transform.Transform.configure">configure</a></li>
-<li><a class="reference internal" href="#pytomography.transforms.transform.Transform.__call__">__call__</a></li>
+<li><a class="reference internal" href="#pytomography.transforms.transform.Transform.forward">forward</a></li>
+<li><a class="reference internal" href="#pytomography.transforms.transform.Transform.backward">backward</a></li>
 </ul>
 </li>
 </ul>

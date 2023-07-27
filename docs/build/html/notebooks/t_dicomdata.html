@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
 
     <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
-        <title>Reconstructing DICOM Data - PyTomography 0.6.0 documentation</title>
+        <title>Reconstructing DICOM Data - PyTomography 0.8.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">PyTomography 0.6.0 documentation</div></a>
+      <a href="../index.html"><div class="brand">PyTomography 0.8.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -146,8 +146,11 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../_static/PT1.png" alt="Logo"/>
+  </div>
   
-  <span class="sidebar-brand-text">PyTomography 0.6.0 documentation</span>
+  <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -172,6 +175,7 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pytomography/io/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4 has-children"><a class="reference internal" href="../autoapi/pytomography/io/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="../autoapi/pytomography/io/SPECT/dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../autoapi/pytomography/io/SPECT/helpers/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.helpers</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../autoapi/pytomography/io/SPECT/simind/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.simind</span></code></a></li>
 </ul>
 </li>
@@ -526,13 +530,14 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-<p>First we specify the required filepaths for the SPECT scan (<code class="docutils literal notranslate"><span class="pre">file_NM</span></code>) and the corresponding filepaths for the atteunation map. Note that</p>
+<p>First we specify the required filepaths for the SPECT scan (<code class="docutils literal notranslate"><span class="pre">file_NM</span></code>) and the corresponding filepaths for the atteunation map. Note that we open the CT data (in units of Hounsfield units) and an attenuation map here. Only one is needed for reconstruction (PyTomography has functionality for converting CT images in units of HU to attenuation maps in units of <span class="math notranslate nohighlight">\(\text{cm}^{-1}\)</span>). We will compare reconstruction using the vendor attenuation map and the attenuation map created using
+PyTomography.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># initialize the `path`` variable below to specify the location of the required data</span>
-<span class="n">path</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+<span class="n">path</span> <span class="o">=</span> <span class="s1">&#39;/disk1/pytomography_tutorial_data/dicom_tutorial/&#39;</span>
 <span class="n">path_CT</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;CT_files&#39;</span><span class="p">)</span>
 <span class="n">files_CT</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path_CT</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span> <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">path_CT</span><span class="p">)]</span>
 <span class="n">file_AM</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;attenuation_map.dcm&#39;</span><span class="p">)</span>
@@ -550,9 +555,36 @@ opening the dicom file using pydicom and looking at the <code class="docutils li
 </pre></div>
 </div>
 </div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">photopeak</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;nipy_spectral&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;Counts&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.colorbar.Colorbar at 0x7fd69ee83cd0&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_t_dicomdata_6_1.png" src="../_images/notebooks_t_dicomdata_6_1.png" />
+</div>
+</div>
 <p>Scatter projections can be estimated using the triple energy window function <code class="docutils literal notranslate"><span class="pre">dicom_get_scatterTEW</span></code>. One needs to specify the index of the peak, and lower/upper energy windows</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">scatter</span> <span class="o">=</span> <span class="n">dicom</span><span class="o">.</span><span class="n">get_scatter_from_TEW</span><span class="p">(</span><span class="n">file_NM</span><span class="p">,</span> <span class="n">index_peak</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">index_lower</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">index_upper</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
@@ -561,12 +593,12 @@ opening the dicom file using pydicom and looking at the <code class="docutils li
 </div>
 <p>The attenuation map can be obtained in two ways</p>
 <ol class="arabic simple">
-<li><p>(Preferable): If you have access to an attenuation map from the manufactorer in a single DICOM file, you should use this. This is obtained using the <code class="docutils literal notranslate"><span class="pre">get_attenuation_map_from_file</span></code></p></li>
-<li><p>(Last Resort): If you don’t have access to this attenuation map, then you’re not out of luck. PyTomography has functionality to arrange, align, resize, and rescale a sequence of CT scans into an attenuation map. It uses an approximate bilinear relationship between Hounsfield Units and linear attenuation coefficients. Because accurate conversion between Hounsfield Units depends non-trivially on the CT system parameters as well as the SPECT system parameters, <a class="reference external" href="https://jnm.snmjournals.org/content/57/1/151.long">this
-paper</a> recommends using the manufacturers attenuation map. If you don’t have access to this, however, you can use the <code class="docutils literal notranslate"><span class="pre">get_attenuation_map_from_CT_slices</span></code> function, and give as input the files corresponding to the CT scan, the raw projection file name, and the index in the raw projection file corresponding to the photopeak.</p></li>
+<li><p>If you have access to an attenuation map from the manufacturer in a single DICOM file, you should use this. This is obtained using the <code class="docutils literal notranslate"><span class="pre">get_attenuation_map_from_file</span></code></p></li>
+<li><p>If you don’t have access to this attenuation map, then you’re not out of luck. PyTomography has functionality to arrange, align, resize, and rescale a sequence of CT scans into an attenuation map. It uses an approximate bilinear relationship between Hounsfield Units and linear attenuation coefficients. You can use the <code class="docutils literal notranslate"><span class="pre">get_attenuation_map_from_CT_slices</span></code> function, and give as input the files corresponding to the CT scan, the raw projection file name, and the index in the raw projection file
+corresponding to the photopeak.</p></li>
 </ol>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">attenuation_map_from_file</span> <span class="o">=</span> <span class="n">dicom</span><span class="o">.</span><span class="n">get_attenuation_map_from_file</span><span class="p">(</span><span class="n">file_AM</span><span class="p">)</span>
@@ -574,9 +606,27 @@ paper</a> recommends using the manufacturers attenuation map. If you don’t hav
 </pre></div>
 </div>
 </div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Cortical Bone Peak: 1419.3499755859375 HU
+Effective CT Energy Determined: 75.89505539164563 keV
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/home/gpuvmadm/PyTomography/src/pytomography/io/SPECT/helpers.py:43: RuntimeWarning: overflow encountered in exp
+  return c1*np.exp(-d1*np.sqrt(energy)) + c2*np.exp(-d2*np.sqrt(energy))
+</pre></div></div>
+</div>
 <p>We can compare the vendor obtained attenuation map and the approximated one below:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sample_slice_from_file</span> <span class="o">=</span> <span class="n">attenuation_map_from_file</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
@@ -586,7 +636,7 @@ paper</a> recommends using the manufacturers attenuation map. If you don’t hav
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
@@ -606,33 +656,32 @@ paper</a> recommends using the manufacturers attenuation map. If you don’t hav
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.colorbar.Colorbar at 0x7ff3b6283df0&gt;
+&lt;matplotlib.colorbar.Colorbar at 0x7fd69ac43fa0&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_dicomdata_12_1.png" src="../_images/notebooks_t_dicomdata_12_1.png" />
+<img alt="../_images/notebooks_t_dicomdata_13_1.png" src="../_images/notebooks_t_dicomdata_13_1.png" />
 </div>
 </div>
 <p>While the two maps are very similar, they differ by approximately <span class="math notranslate nohighlight">\(\pm 5\%\)</span> in highly attenuating regions. This minor difference can have significant implications on the reconstruction (as we shall see shortly).</p>
 <p>We can obtain the required parameters for PSF modeling provided we know the name of the scanner (<code class="docutils literal notranslate"><span class="pre">scanner_model</span></code>), the type of collimators used (<code class="docutils literal notranslate"><span class="pre">collimator_name</span></code>) and the energy (<code class="docutils literal notranslate"><span class="pre">energy_kev</span></code>) for finding the linear attenuation coefficient of lead. In this case, we know the radioactive substance used was Lu177, so we set the energy to the energy of the photopeak: 208keV.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">camera_model</span> <span class="o">=</span> <span class="s1">&#39;SymbiaTSeries&#39;</span>
-<span class="n">collimator_name</span> <span class="o">=</span> <span class="s1">&#39;HE&#39;</span>
+<span class="n">collimator_name</span> <span class="o">=</span> <span class="s1">&#39;ME&#39;</span>
 <span class="n">energy_kev</span> <span class="o">=</span> <span class="mi">208</span>
 <span class="n">psf_meta</span> <span class="o">=</span> <span class="n">dicom</span><span class="o">.</span><span class="n">get_psfmeta_from_scanner_params</span><span class="p">(</span><span class="n">camera_model</span><span class="p">,</span> <span class="n">collimator_name</span><span class="p">,</span> <span class="n">energy_kev</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;collimator slope: </span><span class="si">{</span><span class="n">psf_meta</span><span class="o">.</span><span class="n">collimator_slope</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;collimator intercept: </span><span class="si">{</span><span class="n">psf_meta</span><span class="o">.</span><span class="n">collimator_intercept</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">psf_meta</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -641,8 +690,11 @@ paper</a> recommends using the manufacturers attenuation map. If you don’t hav
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-collimator slope: 0.029428518051390292
-collimator intercept: 0.16986436005760383
+Function:         sigma_fit : function = lambda r, a, b: a*r+b,
+
+Parameters: (0.03161992134409504, 0.12485030464233879)
+Dimensions: 2D
+Maximum sigmas: 3
 </pre></div></div>
 </div>
 </section>
@@ -651,7 +703,7 @@ collimator intercept: 0.16986436005760383
 <p>We’re now ready to reconstruct the DICOM object. We’ll try using attenuation correction with both the vendors attenuation map and the one created by PyTomography</p>
 <p>So we’ll create a function that performs reconstruction given a particular attenuation map:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">reconstruct_phantom</span><span class="p">(</span><span class="n">attenuation_map</span><span class="p">):</span>
@@ -676,7 +728,7 @@ collimator intercept: 0.16986436005760383
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reconstructed_object_atten_from_file</span> <span class="o">=</span> <span class="n">reconstruct_phantom</span><span class="p">(</span><span class="n">attenuation_map_from_file</span><span class="p">)</span>
@@ -686,7 +738,7 @@ collimator intercept: 0.16986436005760383
 </div>
 <p>We’ll compare these reconstructions to one done on the vendors software, which also performed OSEM with 4 iterations, 10 subsets, with attenuation modeling, PSF modeling, and triple energy window scatter correction.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ds_recon</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;scanner_recon.dcm&#39;</span><span class="p">))</span>
@@ -700,7 +752,7 @@ collimator intercept: 0.16986436005760383
 <h1>Plotting<a class="headerlink" href="#Plotting" title="Permalink to this heading">#</a></h1>
 <p>We can looks at axial slices from all three reconstructions.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">slice_atten_from_file</span> <span class="o">=</span> <span class="n">reconstructed_object_atten_from_file</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[</span><span class="mi">0</span><span class="p">][:,:,</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
@@ -710,7 +762,7 @@ collimator intercept: 0.16986436005760383
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
@@ -737,7 +789,7 @@ collimator intercept: 0.16986436005760383
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_dicomdata_25_0.png" src="../_images/notebooks_t_dicomdata_25_0.png" />
+<img alt="../_images/notebooks_t_dicomdata_26_0.png" src="../_images/notebooks_t_dicomdata_26_0.png" />
 </div>
 </div>
 <p>Careful observation of the top bright lobe shows that the reconstruction obtained by using the vendors attenuation map gives a reconstruction more consistent with the vendor than that using seperate CT slices.</p>

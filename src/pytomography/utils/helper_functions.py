@@ -1,8 +1,7 @@
 from __future__ import annotations
 import torch
 from torch.nn.functional import pad
-from torchvision.transforms.functional import rotate
-from torchvision.transforms import InterpolationMode
+from kornia.geometry.transform import rotate
 import numpy as np
 import pydicom
 
@@ -20,17 +19,16 @@ def rev_cumsum(x: torch.Tensor):
 
 def rotate_detector_z(
     x: torch.Tensor,
-    angle: float,
-    interpolation: InterpolationMode = InterpolationMode.BILINEAR,
+    angles: torch.tensor,
+    mode: str = 'bilinear',
     negative: bool = False):
     """Returns an object tensor in a rotated reference frame such that the scanner is located at the +x axis. Note that the scanner angle $\beta$ is related to $\phi$ (azimuthal angle) by $\phi = 3\pi/2 - \beta$. 
 
     Args:
         x (torch.tensor[batch_size, Lx, Ly, Lz]): Tensor aligned with cartesian coordinate system specified
         by the manual. 
-        angle (float): The angle $\beta$ where the scanner is located.
-        interpolation (InterpolationMode, optional): Method of interpolation used to get rotated image.
-        Defaults to InterpolationMode.BILINEAR.
+        angles (torch.Tensor): The angles $\beta$ where the scanner is located for each element in the batch x.
+        mode (str, optional): Method of interpolation used to get rotated image. Defaults to bilinear.
         negative (bool, optional): If True, applies an inverse rotation. In this case, the tensor
         x is an object in a coordinate system aligned with $\beta$, and the function rotates the
         x back to the original cartesian coordinate system specified by the users manual. In particular, if one
@@ -40,11 +38,11 @@ def rotate_detector_z(
     Returns:
         torch.tensor[batch_size, Lx, Ly, Lz]: Rotated tensor.
     """
-    phi = 270 - angle
+    phi = 270 - angles
     if not negative:
-        x = rotate(x.permute(0,3,1,2), -phi, interpolation).permute(0,2,3,1)
+        x = rotate(x.permute(0,3,1,2), -phi, mode=mode).permute(0,2,3,1)
     else:
-        x = rotate(x.permute(0,3,1,2), phi, interpolation).permute(0,2,3,1)
+        x = rotate(x.permute(0,3,1,2), phi, mode=mode).permute(0,2,3,1)
     return x
 
 
@@ -184,24 +182,18 @@ def get_object_nearest_neighbour(object: torch.Tensor, shifts: list[int]):
     neighbour = torch.roll(neighbour, shifts=shifts, dims=(1,2,3))
     return neighbour[:,1:-1,1:-1,1:-1]
 
-def get_blank_below_above(file_NM: str):
+def get_blank_below_above(image: torch.tensor):
     """Obtains the number of blank z-slices at the sup (``blank_above``) and inf (``blank_below``) of the projection data. This method is entirely empircal, and looks for z slices where there are zero detected counts.
 
     Args:
-        file_NM (str): Filepath to DICOM file.
+        image (torch.tensor): Image data from a scanner
 
     Returns:
         Sequence[int]: A tuple of two elements corresponding to the number of blank slices at the inf, and the number of blank slices at the sup.
     """
-    ds = pydicom.read_file(file_NM)
-    # Try accessing DICOM fields that explicitly state the number of blank slices. Works for Siemens Symbia
-    try:
-        blank_below, blank_above = ds[0x0055,0x10c0][0], ds[0x0055,0x10c0][2]
-    # Otherwise obtain these empirically by looking for z-slices with no counts.
-    except:
-        greater_than_zero = ds.pixel_array.sum(axis=(0,2)) > 0
-        blank_below = np.argmax(greater_than_zero)
-        blank_above = ds.pixel_array.shape[1] - np.argmax(greater_than_zero[::-1])
+    greater_than_zero = image[0].cpu().numpy().sum(axis=(0,1)) > 0
+    blank_below = np.argmax(greater_than_zero)
+    blank_above = image[0].cpu().numpy().shape[-1] - np.argmax(greater_than_zero[::-1])
     return blank_below, blank_above
 
 def bilinear_transform(
@@ -231,3 +223,6 @@ def bilinear_transform(
     )
     arr_transform[arr_transform<0] = 0
     return arr_transform
+
+
+    
