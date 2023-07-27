@@ -1,0 +1,677 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+<link rel="index" title="Index" href="../../../../../genindex.html" /><link rel="search" title="Search" href="../../../../../search.html" />
+
+    <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
+        <title>pytomography.io.SPECT.helpers - PyTomography 0.8.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../../../index.html"><div class="brand">PyTomography 0.8.0 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../../../_static/PT1.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../../notebooks/conventions.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../usage.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../developers_guide.html">Developer’s Guide</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../../../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../algorithms/osem/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.osem</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../callbacks/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../callbacks/callback/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.callback</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 current has-children"><a class="reference internal" href="../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l4 current has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l5"><a class="reference internal" href="../dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a></li>
+<li class="toctree-l5 current current-page"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.helpers</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../simind/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.simind</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../metadata/metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.metadata</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../priors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../priors/nearest_neighbour/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.nearest_neighbour</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../priors/prior/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.prior</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../projections/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../projections/system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections.system_matrix</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../transforms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../../transforms/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../../transforms/PET/attenuation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.PET.attenuation</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../transforms/PET/psf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.PET.psf</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../../transforms/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../../transforms/SPECT/atteunation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.atteunation</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../transforms/SPECT/cutoff/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.cutoff</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../transforms/SPECT/psf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.psf</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../../../transforms/transform/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.transform</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../utils/helper_functions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.helper_functions</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="module-pytomography.io.SPECT.helpers">
+<span id="pytomography-io-spect-helpers"></span><h1><a class="reference internal" href="#module-pytomography.io.SPECT.helpers" title="pytomography.io.SPECT.helpers"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.helpers</span></code></a><a class="headerlink" href="#module-pytomography.io.SPECT.helpers" title="Permalink to this heading">#</a></h1>
+<p>This module contains helper function for inputting/outputting/interpretting SPECT/CT data in the SIMIND and DICOM file formats. A considerable amount of these functions have to do with creating attenuation maps from CT data files for attenuation correction in SPECT imaging.</p>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this heading">#</a></h2>
+<section id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this heading">#</a></h3>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.compute_TEW" title="pytomography.io.SPECT.helpers.compute_TEW"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_TEW</span></code></a>(projection_lower, projection_upper, ...)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.dual_sqrt_exponential" title="pytomography.io.SPECT.helpers.dual_sqrt_exponential"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dual_sqrt_exponential</span></code></a>(energy, c1, c2, d1, d2)</p></td>
+<td><p>Function used for curve fitting of linear attenuation coefficient vs. photon energy curves from NIST. It's given by the functional form <span class="math notranslate nohighlight">\(f(x) = c_1e^{-d_1\sqrt{x}} + c_2e^{-d_2\sqrt{x}}\)</span>. It was chosen purely because it gave good fit results.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.bilinear_transform" title="pytomography.io.SPECT.helpers.bilinear_transform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bilinear_transform</span></code></a>(HU, a1, a2, b1, b2)</p></td>
+<td><p>Function used to convert between Hounsfield Units at an effective CT energy and linear attenuation coefficient at a given SPECT radionuclide energy. It consists of two distinct linear curves in regions <span class="math notranslate nohighlight">\(HU&lt;0\)</span> and <span class="math notranslate nohighlight">\(HU \geq 0\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.open_CT_file" title="pytomography.io.SPECT.helpers.open_CT_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open_CT_file</span></code></a>(files_CT[, return_max_slice_loc])</p></td>
+<td><p>Given a list of seperate DICOM files, opens them up and stacks them together into a single CT image.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_E_mu_data_from_datasheet" title="pytomography.io.SPECT.helpers.get_E_mu_data_from_datasheet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_E_mu_data_from_datasheet</span></code></a>(file)</p></td>
+<td><p>Return energy and linear attenuation data from NIST datafiles of mass attenuation coefficients between 50keV and 511keV.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_mu_from_spectrum_interp" title="pytomography.io.SPECT.helpers.get_mu_from_spectrum_interp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_mu_from_spectrum_interp</span></code></a>(file, energy)</p></td>
+<td><p>Gets linear attenuation corresponding to a given energy in in the data from <code class="docutils literal notranslate"><span class="pre">file</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_HU_from_spectrum_interp" title="pytomography.io.SPECT.helpers.get_HU_from_spectrum_interp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_HU_from_spectrum_interp</span></code></a>(file, energy)</p></td>
+<td><p>Obtains the Hounsfield Units of some material at a given energy</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_HU_mu_curve" title="pytomography.io.SPECT.helpers.get_HU_mu_curve"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_HU_mu_curve</span></code></a>(files_CT, CT_kvp, E_SPECT)</p></td>
+<td><p>Gets Housnfield Unit vs. linear attenuation coefficient for air, water, and cortical bone data points</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.HU_to_mu" title="pytomography.io.SPECT.helpers.HU_to_mu"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HU_to_mu</span></code></a>(HU, E, p_water_opt, p_air_opt)</p></td>
+<td><p>Converts hounsfield units to linear attenuation coefficient</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_HU_corticalbone" title="pytomography.io.SPECT.helpers.get_HU_corticalbone"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_HU_corticalbone</span></code></a>(files_CT)</p></td>
+<td><p>Obtains the Hounsfield Unit corresponding to cortical bone from a CT scan.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_ECT_from_corticalbone_HU" title="pytomography.io.SPECT.helpers.get_ECT_from_corticalbone_HU"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_ECT_from_corticalbone_HU</span></code></a>(HU)</p></td>
+<td><p>Finds the effective CT energy that gives a cortical bone Hounsfield Unit value corresponding to <code class="docutils literal notranslate"><span class="pre">HU</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_HU2mu_conversion" title="pytomography.io.SPECT.helpers.get_HU2mu_conversion"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_HU2mu_conversion</span></code></a>(files_CT, CT_kvp, E_SPECT)</p></td>
+<td><p>Obtains the HU to mu conversion function that converts CT data to the required linear attenuation value in units of 1/cm required for attenuation correction in SPECT/PET imaging.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="attributes">
+<h3>Attributes<a class="headerlink" href="#attributes" title="Permalink to this heading">#</a></h3>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.module_path" title="pytomography.io.SPECT.helpers.module_path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">module_path</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.DATADIR" title="pytomography.io.SPECT.helpers.DATADIR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DATADIR</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.FILE_WATER" title="pytomography.io.SPECT.helpers.FILE_WATER"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FILE_WATER</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.FILE_AIR" title="pytomography.io.SPECT.helpers.FILE_AIR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FILE_AIR</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.FILE_CBONE" title="pytomography.io.SPECT.helpers.FILE_CBONE"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FILE_CBONE</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.helpers.module_path">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.helpers.</span></span><span class="sig-name descname"><span class="pre">module_path</span></span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/helpers.html#module_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.helpers.module_path" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.helpers.DATADIR">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.helpers.</span></span><span class="sig-name descname"><span class="pre">DATADIR</span></span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/helpers.html#DATADIR"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.helpers.DATADIR" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.helpers.FILE_WATER">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.helpers.</span></span><span class="sig-name descname"><span class="pre">FILE_WATER</span></span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/helpers.html#FILE_WATER"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.helpers.FILE_WATER" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.helpers.FILE_AIR">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.helpers.</span></span><span class="sig-name descname"><span class="pre">FILE_AIR</span></span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/helpers.html#FILE_AIR"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.helpers.FILE_AIR" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.helpers.FILE_CBONE">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.helpers.</span></span><span class="sig-name descname"><span class="pre">FILE_CBONE</span></span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/helpers.html#FILE_CBONE"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.helpers.FILE_CBONE" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.helpers.compute_TEW">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.helpers.</span></span><span class="sig-name descname"><span class="pre">compute_TEW</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">projection_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projection_upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_peak</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/helpers.html#compute_TEW"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.helpers.compute_TEW" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.helpers.dual_sqrt_exponential">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.helpers.</span></span><span class="sig-name descname"><span class="pre">dual_sqrt_exponential</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">energy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/helpers.html#dual_sqrt_exponential"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.helpers.dual_sqrt_exponential" title="Permalink to this definition">#</a></dt>
+<dd><p>Function used for curve fitting of linear attenuation coefficient vs. photon energy curves from NIST. It’s given by the functional form <span class="math notranslate nohighlight">\(f(x) = c_1e^{-d_1\sqrt{x}} + c_2e^{-d_2\sqrt{x}}\)</span>. It was chosen purely because it gave good fit results.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>energy</strong> (<em>float</em>) – Energy of photon</p></li>
+<li><p><strong>c1</strong> (<em>float</em>) – Fit parameter 1</p></li>
+<li><p><strong>c2</strong> (<em>float</em>) – Fit parameter 2</p></li>
+<li><p><strong>d1</strong> (<em>float</em>) – Fit parameter 3</p></li>
+<li><p><strong>d2</strong> (<em>float</em>) – Fit parameter 4</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>_description_</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.helpers.bilinear_transform">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.helpers.</span></span><span class="sig-name descname"><span class="pre">bilinear_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">HU</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/helpers.html#bilinear_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.helpers.bilinear_transform" title="Permalink to this definition">#</a></dt>
+<dd><p>Function used to convert between Hounsfield Units at an effective CT energy and linear attenuation coefficient at a given SPECT radionuclide energy. It consists of two distinct linear curves in regions <span class="math notranslate nohighlight">\(HU&lt;0\)</span> and <span class="math notranslate nohighlight">\(HU \geq 0\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>HU</strong> (<em>float</em>) – Hounsfield units at CT energy</p></li>
+<li><p><strong>a1</strong> (<em>float</em>) – Fit parameter 1</p></li>
+<li><p><strong>a2</strong> (<em>float</em>) – Fit parameter 2</p></li>
+<li><p><strong>b1</strong> (<em>float</em>) – Fit parameter 3</p></li>
+<li><p><strong>b2</strong> (<em>float</em>) – Fit parameter 4</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Linear attenuation coefficient at SPECT energy</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.helpers.open_CT_file">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.helpers.</span></span><span class="sig-name descname"><span class="pre">open_CT_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files_CT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_max_slice_loc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/helpers.html#open_CT_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.helpers.open_CT_file" title="Permalink to this definition">#</a></dt>
+<dd><p>Given a list of seperate DICOM files, opens them up and stacks them together into a single CT image.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>files_CT</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>) – List of DICOM files corresponding to a particular scan</p></li>
+<li><p><strong>return_max_slice_loc</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether or not to return the max slice location of all the CT files. Needed when applying affine transformation to align CT and SPECT images. Defaults to False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>CT scan in units of Hounsfield Units at the effective CT energy.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.helpers.get_E_mu_data_from_datasheet">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.helpers.</span></span><span class="sig-name descname"><span class="pre">get_E_mu_data_from_datasheet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/helpers.html#get_E_mu_data_from_datasheet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.helpers.get_E_mu_data_from_datasheet" title="Permalink to this definition">#</a></dt>
+<dd><p>Return energy and linear attenuation data from NIST datafiles of mass attenuation coefficients between 50keV and 511keV.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file</strong> (<em>str</em>) – Location of NIST data file. Corresponds to a particular element/material.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Energy and linear attenuation values.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[np.array, np.array]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.helpers.get_mu_from_spectrum_interp">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.helpers.</span></span><span class="sig-name descname"><span class="pre">get_mu_from_spectrum_interp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/helpers.html#get_mu_from_spectrum_interp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.helpers.get_mu_from_spectrum_interp" title="Permalink to this definition">#</a></dt>
+<dd><p>Gets linear attenuation corresponding to a given energy in in the data from <code class="docutils literal notranslate"><span class="pre">file</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file</strong> (<em>str</em>) – Filepath of the mu-energy data</p></li>
+<li><p><strong>energy</strong> (<em>float</em>) – Energy at which mu is computed</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Linear attenuation coefficient (in 1/cm) at the desired energies.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.helpers.get_HU_from_spectrum_interp">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.helpers.</span></span><span class="sig-name descname"><span class="pre">get_HU_from_spectrum_interp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/helpers.html#get_HU_from_spectrum_interp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.helpers.get_HU_from_spectrum_interp" title="Permalink to this definition">#</a></dt>
+<dd><p>Obtains the Hounsfield Units of some material at a given energy</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file</strong> (<em>str</em>) – Filepath of material</p></li>
+<li><p><strong>energy</strong> (<em>float</em>) – Energy at which HU is desired</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>HU at the desired energies.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.helpers.get_HU_mu_curve">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.helpers.</span></span><span class="sig-name descname"><span class="pre">get_HU_mu_curve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files_CT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CT_kvp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_SPECT</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/helpers.html#get_HU_mu_curve"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.helpers.get_HU_mu_curve" title="Permalink to this definition">#</a></dt>
+<dd><p>Gets Housnfield Unit vs. linear attenuation coefficient for air, water, and cortical bone data points</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>files_CT</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>) – Filepaths of all CT slices</p></li>
+<li><p><strong>CT_kvp</strong> (<em>float</em>) – Value of kVp for the CT scan</p></li>
+<li><p><strong>E_SPECT</strong> (<em>float</em>) – Photopeak energy of the SPECT scan</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple[np.array, np.array]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.helpers.HU_to_mu">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.helpers.</span></span><span class="sig-name descname"><span class="pre">HU_to_mu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">HU</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p_water_opt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p_air_opt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/helpers.html#HU_to_mu"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.helpers.HU_to_mu" title="Permalink to this definition">#</a></dt>
+<dd><p>Converts hounsfield units to linear attenuation coefficient</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>HU</strong> (<em>float</em>) – Hounsfield Unit value</p></li>
+<li><p><strong>E</strong> (<em>float</em>) – Effective CT energy</p></li>
+<li><p><strong>p_water_opt</strong> (<em>Sequence</em><em>[</em><em>float</em><em>]</em>) – Optimal fit parameters for mu vs. E data for water</p></li>
+<li><p><strong>p_air_opt</strong> (<em>Sequence</em><em>[</em><em>float</em><em>]</em>) – Optimal fit parameters for mu vs. E data for air</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>_description_</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>_type_</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.helpers.get_HU_corticalbone">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.helpers.</span></span><span class="sig-name descname"><span class="pre">get_HU_corticalbone</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files_CT</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/helpers.html#get_HU_corticalbone"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.helpers.get_HU_corticalbone" title="Permalink to this definition">#</a></dt>
+<dd><p>Obtains the Hounsfield Unit corresponding to cortical bone from a CT scan.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>files_CT</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>) – CT data files</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Hounsfield unit of bone. If not found, then returns <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.helpers.get_ECT_from_corticalbone_HU">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.helpers.</span></span><span class="sig-name descname"><span class="pre">get_ECT_from_corticalbone_HU</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">HU</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/helpers.html#get_ECT_from_corticalbone_HU"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.helpers.get_ECT_from_corticalbone_HU" title="Permalink to this definition">#</a></dt>
+<dd><p>Finds the effective CT energy that gives a cortical bone Hounsfield Unit value corresponding to <code class="docutils literal notranslate"><span class="pre">HU</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>HU</strong> (<em>float</em>) – Hounsfield Unit of Cortical bone at effective CT energy</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Effective CT energy</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.helpers.get_HU2mu_conversion">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.helpers.</span></span><span class="sig-name descname"><span class="pre">get_HU2mu_conversion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files_CT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CT_kvp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_SPECT</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/helpers.html#get_HU2mu_conversion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.helpers.get_HU2mu_conversion" title="Permalink to this definition">#</a></dt>
+<dd><p>Obtains the HU to mu conversion function that converts CT data to the required linear attenuation value in units of 1/cm required for attenuation correction in SPECT/PET imaging.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>files_CT</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>) – CT data files</p></li>
+<li><p><strong>CT_kvp</strong> (<em>float</em>) – kVp value for CT scan</p></li>
+<li><p><strong>E_SPECT</strong> (<em>float</em>) – Energy of photopeak in SPECT scan</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Conversion function from HU to mu.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>function</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2023, Luke Polson
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.helpers</span></code></a><ul>
+<li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
+<li><a class="reference internal" href="#functions">Functions</a></li>
+<li><a class="reference internal" href="#attributes">Attributes</a><ul>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.module_path"><code class="docutils literal notranslate"><span class="pre">module_path</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.DATADIR"><code class="docutils literal notranslate"><span class="pre">DATADIR</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.FILE_WATER"><code class="docutils literal notranslate"><span class="pre">FILE_WATER</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.FILE_AIR"><code class="docutils literal notranslate"><span class="pre">FILE_AIR</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.FILE_CBONE"><code class="docutils literal notranslate"><span class="pre">FILE_CBONE</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.compute_TEW"><code class="docutils literal notranslate"><span class="pre">compute_TEW()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.dual_sqrt_exponential"><code class="docutils literal notranslate"><span class="pre">dual_sqrt_exponential()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.bilinear_transform"><code class="docutils literal notranslate"><span class="pre">bilinear_transform()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.open_CT_file"><code class="docutils literal notranslate"><span class="pre">open_CT_file()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_E_mu_data_from_datasheet"><code class="docutils literal notranslate"><span class="pre">get_E_mu_data_from_datasheet()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_mu_from_spectrum_interp"><code class="docutils literal notranslate"><span class="pre">get_mu_from_spectrum_interp()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_HU_from_spectrum_interp"><code class="docutils literal notranslate"><span class="pre">get_HU_from_spectrum_interp()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_HU_mu_curve"><code class="docutils literal notranslate"><span class="pre">get_HU_mu_curve()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.HU_to_mu"><code class="docutils literal notranslate"><span class="pre">HU_to_mu()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_HU_corticalbone"><code class="docutils literal notranslate"><span class="pre">get_HU_corticalbone()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_ECT_from_corticalbone_HU"><code class="docutils literal notranslate"><span class="pre">get_ECT_from_corticalbone_HU()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_HU2mu_conversion"><code class="docutils literal notranslate"><span class="pre">get_HU2mu_conversion()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.module_path">module_path</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.DATADIR">DATADIR</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.FILE_WATER">FILE_WATER</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.FILE_AIR">FILE_AIR</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.FILE_CBONE">FILE_CBONE</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.compute_TEW">compute_TEW</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.dual_sqrt_exponential">dual_sqrt_exponential</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.bilinear_transform">bilinear_transform</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.open_CT_file">open_CT_file</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_E_mu_data_from_datasheet">get_E_mu_data_from_datasheet</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_mu_from_spectrum_interp">get_mu_from_spectrum_interp</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_HU_from_spectrum_interp">get_HU_from_spectrum_interp</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_HU_mu_curve">get_HU_mu_curve</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.HU_to_mu">HU_to_mu</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_HU_corticalbone">get_HU_corticalbone</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_ECT_from_corticalbone_HU">get_ECT_from_corticalbone_HU</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_HU2mu_conversion">get_HU2mu_conversion</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
+    <script src="../../../../../_static/doctools.js"></script>
+    <script src="../../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../../_static/scripts/furo.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    </body>
+</html>

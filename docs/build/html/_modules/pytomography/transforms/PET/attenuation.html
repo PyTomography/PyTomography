@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../../genindex.html" /><link rel="search" title="Search" href="../../../../search.html" />
 
     <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
-        <title>pytomography.transforms.PET.attenuation - PyTomography 0.7.0 documentation</title>
+        <title>pytomography.transforms.PET.attenuation - PyTomography 0.8.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
@@ -123,7 +123,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../../index.html"><div class="brand">PyTomography 0.7.0 documentation</div></a>
+      <a href="../../../../index.html"><div class="brand">PyTomography 0.8.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -145,8 +145,11 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../../_static/PT1.png" alt="Logo"/>
+  </div>
   
-  <span class="sidebar-brand-text">PyTomography 0.7.0 documentation</span>
+  <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -171,6 +174,7 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/io/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4 has-children"><a class="reference internal" href="../../../../autoapi/pytomography/io/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../../autoapi/pytomography/io/SPECT/helpers/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.helpers</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.simind</span></code></a></li>
 </ul>
 </li>
@@ -290,23 +294,41 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">norm_image</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_prob_of_detection_matrix</span><span class="p">(</span><span class="n">rotate_detector_z</span><span class="p">(</span><span class="n">CT</span><span class="p">,</span> <span class="n">angle</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_meta</span><span class="o">.</span><span class="n">dx</span><span class="p">)</span></div>
     
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
-<div class="viewcode-block" id="PETAttenuationTransform.__call__"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/PET/attenuation/index.html#pytomography.transforms.PET.attenuation.PETAttenuationTransform.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+<div class="viewcode-block" id="PETAttenuationTransform.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/PET/attenuation/index.html#pytomography.transforms.PET.attenuation.PETAttenuationTransform.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+		<span class="n">image</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Applies forward projection of attenuation modeling :math:`B:\mathbb{V} \to \mathbb{V}` to a 2D PET image.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            image (torch.Tensor): Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected image.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">image</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">norm_image</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+    
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+<div class="viewcode-block" id="PETAttenuationTransform.backward"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/PET/attenuation/index.html#pytomography.transforms.PET.attenuation.PETAttenuationTransform.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">image</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
 		<span class="n">norm_constant</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;forward_project&#39;</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Applies attenuation modeling to a PET image.</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Applies back projection of attenuation modeling :math:`B^T:\mathbb{V} \to \mathbb{V}` to a 2D PET image. Since the matrix is diagonal, its the ``backward`` implementation is identical to the ``forward`` implementation; the only difference is the optional ``norm_constant`` which is needed if one wants to normalize the back projection.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            image (torch.Tensor): Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to</span>
 <span class="sd">            norm_constant (torch.Tensor | None, optional): A tensor used to normalize the output during back projection. Defaults to None.</span>
-<span class="sd">            mode (str, optional): Whether or not this is being used in forward (`&#39;forward_project&#39;`) or backward projection (`&#39;back_project&#39;`). Defaults to &#39;forward_project&#39;.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            torch.tensor: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected image.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">image</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">norm_image</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div></div>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">image</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">norm_image</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">norm_constant</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">norm_constant</span> <span class="o">=</span> <span class="n">norm_constant</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">norm_image</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">image</span><span class="p">,</span> <span class="n">norm_constant</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">image</span></div></div>
     
 </pre></div>
         </article>

@@ -23,8 +23,6 @@ Classes
 
    :param beta: Used to scale the weight of the prior
    :type beta: float
-   :param device: Pytorch device used for computation. Defaults to 'cpu'.
-   :type device: float
 
    .. py:method:: set_object_meta(object_meta)
 
@@ -36,9 +34,9 @@ Classes
 
    .. py:method:: set_beta_scale(factor)
 
-      Sets :math:`\beta`
+      Sets a scale factor for :math:`\beta` required for OSEM when finite subsets are used per iteration.
 
-      :param factor: Value of :math:`\beta`
+      :param factor: Value by which to scale :math:`\beta`
       :type factor: float
 
 

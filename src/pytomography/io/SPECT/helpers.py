@@ -1,3 +1,5 @@
+"""This module contains helper function for inputting/outputting/interpretting SPECT/CT data in the SIMIND and DICOM file formats. A considerable amount of these functions have to do with creating attenuation maps from CT data files for attenuation correction in SPECT imaging.
+"""
 from __future__ import annotations
 from typing import Sequence
 import warnings
@@ -15,6 +17,9 @@ DATADIR = os.path.join(module_path, '../../data/NIST_attenuation_data')
 FILE_WATER = os.path.join(DATADIR, 'water.csv')
 FILE_AIR = os.path.join(DATADIR, 'air.csv')
 FILE_CBONE = os.path.join(DATADIR, 'bonecortical.csv')
+
+def compute_TEW(projection_lower, projection_upper, width_lower, width_upper, width_peak):
+    return (projection_lower/width_lower + projection_upper/width_upper)*width_peak / 2
 
 def dual_sqrt_exponential(
     energy: float,
@@ -115,6 +120,15 @@ def get_mu_from_spectrum_interp(
     file: str,
     energy: float
     ) -> np.array:
+    """Gets linear attenuation corresponding to a given energy in in the data from ``file``.
+
+    Args:
+        file (str): Filepath of the mu-energy data
+        energy (float): Energy at which mu is computed
+
+    Returns:
+        np.array: Linear attenuation coefficient (in 1/cm) at the desired energies.
+    """
     Edata, mudata = get_E_mu_data_from_datasheet(file)
     p_f2_opt = curve_fit(dual_sqrt_exponential, Edata, mudata)[0]
     return dual_sqrt_exponential(energy, *p_f2_opt)
@@ -123,18 +137,37 @@ def get_HU_from_spectrum_interp(
     file: str,
     energy: float
     ) -> np.array:
+    """Obtains the Hounsfield Units of some material at a given energy
+
+    Args:
+        file (str): Filepath of material
+        energy (float): Energy at which HU is desired
+
+    Returns:
+        np.array: HU at the desired energies.
+    """
     mu_water = get_mu_from_spectrum_interp(FILE_WATER, energy)
     mu_air = get_mu_from_spectrum_interp(FILE_AIR, energy)
     mu_material = get_mu_from_spectrum_interp(file, energy)
     return (mu_material - mu_water)/(mu_water-mu_air) * 1000
 
 def get_HU_mu_curve(
-    files: Sequence[str],
+    files_CT: Sequence[str],
     CT_kvp: float,
     E_SPECT: float
     ) ->tuple[np.array, np.array]:
+    """Gets Housnfield Unit vs. linear attenuation coefficient for air, water, and cortical bone data points
+
+    Args:
+        files_CT (Sequence[str]): Filepaths of all CT slices
+        CT_kvp (float): Value of kVp for the CT scan
+        E_SPECT (float): Photopeak energy of the SPECT scan
+
+    Returns:
+        tuple[np.array, np.array]: 
+    """
     # try to get HU corresponding to cortical bone
-    HU_cortical_bone = get_HU_corticalbone(files)
+    HU_cortical_bone = get_HU_corticalbone(files_CT)
     if HU_cortical_bone is not None:
         # compute effective CT energy from CBone HU
         E_CT = get_ECT_from_corticalbone_HU(HU_cortical_bone)
@@ -157,6 +190,18 @@ def HU_to_mu(
     p_water_opt: Sequence[float],
     p_air_opt: Sequence[float]
     ):
+    """Converts hounsfield units to linear attenuation coefficient
+
+    Args:
+        HU (float): Hounsfield Unit value
+        E (float): Effective CT energy
+        p_water_opt (Sequence[float]): Optimal fit parameters for mu vs. E data for water
+        p_air_opt (Sequence[float]): Optimal fit parameters for mu vs. E data for air
+
+    Returns:
+        _type_: _description_
+    """
+    
     mu_water = dual_sqrt_exponential(E, *p_water_opt)
     mu_air = dual_sqrt_exponential(E, *p_air_opt)
     return 1/1000 * HU * (mu_water - mu_air) + mu_water
@@ -164,6 +209,14 @@ def HU_to_mu(
 def get_HU_corticalbone(
     files_CT: Sequence[str]
     ) -> float | None:
+    """Obtains the Hounsfield Unit corresponding to cortical bone from a CT scan.
+
+    Args:
+        files_CT (Sequence[str]): CT data files
+
+    Returns:
+        float | None: Hounsfield unit of bone. If not found, then returns ``None``.
+    """
     HU_from_CT_slices = open_CT_file(files_CT)
     x = HU_from_CT_slices.ravel()
     N, bin_edges = np.histogram(x[(x>1200)*(x<1600)], bins=10, density=True)
@@ -176,7 +229,15 @@ def get_HU_corticalbone(
     else:
         return None
     
-def get_ECT_from_corticalbone_HU(HU: float) -> Sequence[float]:
+def get_ECT_from_corticalbone_HU(HU: float) -> float:
+    """Finds the effective CT energy that gives a cortical bone Hounsfield Unit value corresponding to ``HU``.
+
+    Args:
+        HU (float): Hounsfield Unit of Cortical bone at effective CT energy
+
+    Returns:
+        float: Effective CT energy
+    """
     Edata, mudata_CB = get_E_mu_data_from_datasheet(FILE_CBONE)
     Edata, mudata_water = get_E_mu_data_from_datasheet(FILE_WATER)
     Edata, mudata_air = get_E_mu_data_from_datasheet(FILE_AIR)
@@ -191,6 +252,16 @@ def get_HU2mu_conversion(
     CT_kvp: float,
     E_SPECT: float
     ) -> function:
+    """Obtains the HU to mu conversion function that converts CT data to the required linear attenuation value in units of 1/cm required for attenuation correction in SPECT/PET imaging.
+
+    Args:
+        files_CT (Sequence[str]): CT data files
+        CT_kvp (float): kVp value for CT scan
+        E_SPECT (float): Energy of photopeak in SPECT scan
+
+    Returns:
+        function: Conversion function from HU to mu.
+    """
     HU_CT, mu_SPECT = get_HU_mu_curve(files_CT, CT_kvp, E_SPECT)
     b1opt = b2opt = mu_SPECT[1] #water atten value
     a1opt = (mu_SPECT[1] - mu_SPECT[0]) / (HU_CT[1] - HU_CT[0])

@@ -5,13 +5,14 @@ import numpy as np
 import torch
 import torch.nn as nn
 import os
+import pytomography
 from pytomography.metadata import ObjectMeta, ImageMeta
 from pytomography.projections import SystemMatrix
 from pytomography.transforms import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.priors import Prior
 from pytomography.metadata import PSFMeta
 from pytomography.algorithms import OSEMOSL
-from .helpers import get_mu_from_spectrum_interp
+from .helpers import get_mu_from_spectrum_interp, compute_TEW
 
 relation_dict = {'unsignedinteger': 'int',
                  'shortfloat': 'float',
@@ -79,7 +80,7 @@ def get_projections(headerfile: str, distance: str = 'cm'):
     dtype = eval(f'np.{number_format}{num_bytes_per_pixel*8}')
     projections = np.fromfile(os.path.join(str(Path(headerfile).parent), imagefile), dtype=dtype)
     projections = np.transpose(projections.reshape((num_proj,proj_dim2,proj_dim1))[:,::-1], (0,2,1))
-    projections = torch.tensor(projections.copy()).unsqueeze(dim=0)
+    projections = torch.tensor(projections.copy()).unsqueeze(dim=0).to(pytomography.device)
     return object_meta, image_meta, projections
 
 def get_scatter_from_TEW(
@@ -112,8 +113,49 @@ def get_scatter_from_TEW(
         upr_window = find_first_entry_containing_header(headerdata, 'energy window upper level', np.float32)
         window_widths.append(upr_window - lwr_window)
         projectionss.append(projections)
-    projections_scatter = (projectionss[1]/window_widths[1] + projectionss[2]/window_widths[2])* window_widths[0] / 2
+    projections_scatter = compute_TEW(projectionss[1], projectionss[2], window_widths[1], window_widths[2], window_widths[0])
     return projections_scatter
+
+def combine_projection_data(
+    headerfiles: Sequence[str],
+    weights: Sequence[float]
+    ):
+    """Takes in a list of SIMIND headerfiles corresponding to different simulated regions and adds the projection data together based on the `weights`.
+
+    Args:
+        headerfiles (Sequence[str]): List of filepaths corresponding to the SIMIND header files of different simulated regions
+        weights (Sequence[str]): Amount by which to weight each projection relative.
+
+    Returns:
+        (ObjectMeta, ImageMeta, torch.Tensor): Returns necessary object/image metadata along with the projection data
+    """
+    projections = 0 
+    for headerfile, weight in zip(headerfiles, weights):
+        object_meta, image_meta, projections_i = get_projections(headerfile)
+        projections += projections_i * weight
+    return object_meta, image_meta, projections
+
+def combine_scatter_data_TEW(
+    headerfiles_peak: Sequence[str],
+    headerfiles_lower: Sequence[str],
+    headerfiles_upper: Sequence[str],
+    weights: Sequence[float]
+    ):
+    """Computes the triple energy window scatter estimate of the sequence of projection data weighted by `weights`. See `combine_projection_data` for more details.
+
+    Args:
+        headerfiles_peak (Sequence[str]): List of headerfiles corresponding to the photopeak
+        headerfiles_lower (Sequence[str]): List of headerfiles corresponding to the lower scatter window
+        headerfiles_upper (Sequence[str]): List of headerfiles corresponding to the upper scatter window
+        weights (Sequence[float]): Amount by which to weight each set of projection data by.
+
+    Returns:
+        _type_: _description_
+    """
+    scatter = 0 
+    for headerfile_peak, headerfile_lower, headerfile_upper, weight in zip(headerfiles_peak, headerfiles_lower, headerfiles_upper, weights):
+        scatter+= weight * get_scatter_from_TEW(headerfile_peak, headerfile_lower, headerfile_upper)
+    return scatter   
 
 def get_atteuation_map(headerfile: str):
     """Opens attenuation data from SIMIND output
@@ -122,7 +164,7 @@ def get_atteuation_map(headerfile: str):
         headerfile (str): Path to header file
 
     Returns:
-        torch.tensor[Lx,Ly,Lz]: Tensor containing CT data.
+        torch.Tensor[batch_size, Lx, Ly, Lz]: Tensor containing attenuation map required for attenuation correction in SPECT/PET imaging.
     """
     with open(headerfile) as f:
         headerdata = f.readlines()
@@ -135,9 +177,17 @@ def get_atteuation_map(headerfile: str):
     CT = np.fromfile(os.path.join(str(Path(headerfile).parent), imagefile), dtype=np.float32)
     CT = np.transpose(CT.reshape(shape)[::-1,::-1], (2,1,0))
     CT = torch.tensor(CT.copy()).unsqueeze(dim=0)
-    return CT
+    return CT.to(pytomography.device)
 
-def get_psfmeta_from_header(headerfile):
+def get_psfmeta_from_header(headerfile: str):
+    """Obtains the PSFMeta data corresponding to a SIMIND simulation scan from the headerfile
+
+    Args:
+        headerfile (str): SIMIND headerfile.
+
+    Returns:
+        PSFMeta: PSF metadata required for PSF modeling in reconstruction.
+    """
     module_path = os.path.dirname(os.path.abspath(__file__))
     with open(headerfile) as f:
         headerdata = f.readlines()

@@ -1,0 +1,226 @@
+:py:mod:`pytomography.io.SPECT.helpers`
+=======================================
+
+.. py:module:: pytomography.io.SPECT.helpers
+
+.. autoapi-nested-parse::
+
+   This module contains helper function for inputting/outputting/interpretting SPECT/CT data in the SIMIND and DICOM file formats. A considerable amount of these functions have to do with creating attenuation maps from CT data files for attenuation correction in SPECT imaging.
+
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.io.SPECT.helpers.compute_TEW
+   pytomography.io.SPECT.helpers.dual_sqrt_exponential
+   pytomography.io.SPECT.helpers.bilinear_transform
+   pytomography.io.SPECT.helpers.open_CT_file
+   pytomography.io.SPECT.helpers.get_E_mu_data_from_datasheet
+   pytomography.io.SPECT.helpers.get_mu_from_spectrum_interp
+   pytomography.io.SPECT.helpers.get_HU_from_spectrum_interp
+   pytomography.io.SPECT.helpers.get_HU_mu_curve
+   pytomography.io.SPECT.helpers.HU_to_mu
+   pytomography.io.SPECT.helpers.get_HU_corticalbone
+   pytomography.io.SPECT.helpers.get_ECT_from_corticalbone_HU
+   pytomography.io.SPECT.helpers.get_HU2mu_conversion
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.io.SPECT.helpers.module_path
+   pytomography.io.SPECT.helpers.DATADIR
+   pytomography.io.SPECT.helpers.FILE_WATER
+   pytomography.io.SPECT.helpers.FILE_AIR
+   pytomography.io.SPECT.helpers.FILE_CBONE
+
+
+.. py:data:: module_path
+
+   
+
+.. py:data:: DATADIR
+
+   
+
+.. py:data:: FILE_WATER
+
+   
+
+.. py:data:: FILE_AIR
+
+   
+
+.. py:data:: FILE_CBONE
+
+   
+
+.. py:function:: compute_TEW(projection_lower, projection_upper, width_lower, width_upper, width_peak)
+
+
+.. py:function:: dual_sqrt_exponential(energy, c1, c2, d1, d2)
+
+   Function used for curve fitting of linear attenuation coefficient vs. photon energy curves from NIST. It's given by the functional form :math:`f(x) = c_1e^{-d_1\sqrt{x}} + c_2e^{-d_2\sqrt{x}}`. It was chosen purely because it gave good fit results.
+
+   :param energy: Energy of photon
+   :type energy: float
+   :param c1: Fit parameter 1
+   :type c1: float
+   :param c2: Fit parameter 2
+   :type c2: float
+   :param d1: Fit parameter 3
+   :type d1: float
+   :param d2: Fit parameter 4
+   :type d2: float
+
+   :returns: _description_
+   :rtype: float
+
+
+.. py:function:: bilinear_transform(HU, a1, a2, b1, b2)
+
+   Function used to convert between Hounsfield Units at an effective CT energy and linear attenuation coefficient at a given SPECT radionuclide energy. It consists of two distinct linear curves in regions :math:`HU<0` and :math:`HU \geq 0`.
+
+   :param HU: Hounsfield units at CT energy
+   :type HU: float
+   :param a1: Fit parameter 1
+   :type a1: float
+   :param a2: Fit parameter 2
+   :type a2: float
+   :param b1: Fit parameter 3
+   :type b1: float
+   :param b2: Fit parameter 4
+   :type b2: float
+
+   :returns: Linear attenuation coefficient at SPECT energy
+   :rtype: float
+
+
+.. py:function:: open_CT_file(files_CT, return_max_slice_loc = False)
+
+   Given a list of seperate DICOM files, opens them up and stacks them together into a single CT image.
+
+   :param files_CT: List of DICOM files corresponding to a particular scan
+   :type files_CT: Sequence[str]
+   :param return_max_slice_loc: Whether or not to return the max slice location of all the CT files. Needed when applying affine transformation to align CT and SPECT images. Defaults to False.
+   :type return_max_slice_loc: bool, optional
+
+   :returns: CT scan in units of Hounsfield Units at the effective CT energy.
+   :rtype: np.array
+
+
+.. py:function:: get_E_mu_data_from_datasheet(file)
+
+   Return energy and linear attenuation data from NIST datafiles of mass attenuation coefficients between 50keV and 511keV.
+
+   :param file: Location of NIST data file. Corresponds to a particular element/material.
+   :type file: str
+
+   :returns: Energy and linear attenuation values.
+   :rtype: tuple[np.array, np.array]
+
+
+.. py:function:: get_mu_from_spectrum_interp(file, energy)
+
+   Gets linear attenuation corresponding to a given energy in in the data from ``file``.
+
+   :param file: Filepath of the mu-energy data
+   :type file: str
+   :param energy: Energy at which mu is computed
+   :type energy: float
+
+   :returns: Linear attenuation coefficient (in 1/cm) at the desired energies.
+   :rtype: np.array
+
+
+.. py:function:: get_HU_from_spectrum_interp(file, energy)
+
+   Obtains the Hounsfield Units of some material at a given energy
+
+   :param file: Filepath of material
+   :type file: str
+   :param energy: Energy at which HU is desired
+   :type energy: float
+
+   :returns: HU at the desired energies.
+   :rtype: np.array
+
+
+.. py:function:: get_HU_mu_curve(files_CT, CT_kvp, E_SPECT)
+
+   Gets Housnfield Unit vs. linear attenuation coefficient for air, water, and cortical bone data points
+
+   :param files_CT: Filepaths of all CT slices
+   :type files_CT: Sequence[str]
+   :param CT_kvp: Value of kVp for the CT scan
+   :type CT_kvp: float
+   :param E_SPECT: Photopeak energy of the SPECT scan
+   :type E_SPECT: float
+
+   :rtype: tuple[np.array, np.array]
+
+
+.. py:function:: HU_to_mu(HU, E, p_water_opt, p_air_opt)
+
+   Converts hounsfield units to linear attenuation coefficient
+
+   :param HU: Hounsfield Unit value
+   :type HU: float
+   :param E: Effective CT energy
+   :type E: float
+   :param p_water_opt: Optimal fit parameters for mu vs. E data for water
+   :type p_water_opt: Sequence[float]
+   :param p_air_opt: Optimal fit parameters for mu vs. E data for air
+   :type p_air_opt: Sequence[float]
+
+   :returns: _description_
+   :rtype: _type_
+
+
+.. py:function:: get_HU_corticalbone(files_CT)
+
+   Obtains the Hounsfield Unit corresponding to cortical bone from a CT scan.
+
+   :param files_CT: CT data files
+   :type files_CT: Sequence[str]
+
+   :returns: Hounsfield unit of bone. If not found, then returns ``None``.
+   :rtype: float | None
+
+
+.. py:function:: get_ECT_from_corticalbone_HU(HU)
+
+   Finds the effective CT energy that gives a cortical bone Hounsfield Unit value corresponding to ``HU``.
+
+   :param HU: Hounsfield Unit of Cortical bone at effective CT energy
+   :type HU: float
+
+   :returns: Effective CT energy
+   :rtype: float
+
+
+.. py:function:: get_HU2mu_conversion(files_CT, CT_kvp, E_SPECT)
+
+   Obtains the HU to mu conversion function that converts CT data to the required linear attenuation value in units of 1/cm required for attenuation correction in SPECT/PET imaging.
+
+   :param files_CT: CT data files
+   :type files_CT: Sequence[str]
+   :param CT_kvp: kVp value for CT scan
+   :type CT_kvp: float
+   :param E_SPECT: Energy of photopeak in SPECT scan
+   :type E_SPECT: float
+
+   :returns: Conversion function from HU to mu.
+   :rtype: function
+
+

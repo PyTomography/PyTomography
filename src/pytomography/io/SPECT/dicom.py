@@ -1,5 +1,3 @@
-"""Note: This module is still being built and is not yet finished. 
-"""
 from __future__ import annotations
 import warnings
 import os
@@ -55,7 +53,7 @@ def get_radii_and_angles(ds: Dataset) -> Sequence[torch.Tensor, np.array, np.arr
     angles = (angles + 180)%360 # to detector angle convention
     sorted_idxs = np.argsort(angles)
     projections = np.transpose(pixel_array[:,sorted_idxs][:,:,::-1], (0,1,3,2)).astype(np.float32)
-    projections= torch.tensor(projections.copy())
+    projections= torch.tensor(projections.copy()).to(pytomography.dtype).to(pytomography.device) 
     return (projections,
              angles[sorted_idxs],
              radii[sorted_idxs]/10)
@@ -85,7 +83,6 @@ def get_projections(
         projections = projections[index_peak].unsqueeze(dim=0)
     return object_meta, image_meta, projections
 
-# used in the function below
 def get_window_width(ds: Dataset, index: int) -> float:
     """Computes the width of an energy window corresponding to a particular index in the DetectorInformationSequence DICOM attribute.
 
@@ -124,7 +121,7 @@ def get_scatter_from_TEW(
     ww_upper = get_window_width(ds, index_upper)
     _, _, projections_all = get_projections(file)
     scatter = (projections_all[index_lower]/ww_lower + projections_all[index_upper]/ww_upper)* ww_peak / 2
-    return scatter.unsqueeze(dim=0)
+    return scatter.unsqueeze(dim=0).to(pytomography.device)
 
 def get_attenuation_map_from_file(file_AM: str) -> torch.Tensor:
     """Gets an attenuation map from a DICOM file. This data is usually provided by the manufacturer of the SPECT scanner. 
@@ -143,12 +140,13 @@ def get_attenuation_map_from_file(file_AM: str) -> torch.Tensor:
         scale_factor = 1
     attenuation_map =  ds.pixel_array * scale_factor
     
-    return torch.tensor(np.transpose(attenuation_map, (2,1,0))).unsqueeze(dim=0)
+    return torch.tensor(np.transpose(attenuation_map, (2,1,0))).unsqueeze(dim=0).to(pytomography.dtype).to(pytomography.device)
 
 def get_psfmeta_from_scanner_params(
     camera_model: str,
     collimator_name: str,
-    energy_keV: float
+    energy_keV: float,
+    min_sigmas: float = 3
     ) -> PSFMeta:
     """Gets PSF metadata from SPECT camera/collimator parameters. Performs linear interpolation to find linear attenuation coefficient for lead collimators for energy values within the range 100keV - 600keV.
 
@@ -156,6 +154,7 @@ def get_psfmeta_from_scanner_params(
         camera_model (str): Name of SPECT camera. 
         collimator_name (str): Name of collimator used.
         energy_keV (float): Energy of the photopeak
+        min_sigmas (float): Minimum size of the blurring kernel used. Fixes the convolutional kernel size so that all locations have at least ``min_sigmas`` in dimensions (some will be greater)
 
     Returns:
         PSFMeta: PSF metadata.
@@ -175,29 +174,34 @@ def get_psfmeta_from_scanner_params(
     collimator_slope = hole_diameter/(hole_length - (2/lead_attenuation)) * 1/(2*np.sqrt(2*np.log(2)))
     collimator_intercept = hole_diameter * 1/(2*np.sqrt(2*np.log(2)))
     
-    return PSFMeta((collimator_slope, collimator_intercept))
+    return PSFMeta((collimator_slope, collimator_intercept), min_sigmas=min_sigmas)
 
 def get_attenuation_map_from_CT_slices(
     files_CT: Sequence[str],
     file_NM: str | None = None,
     index_peak: int = 0,
+    keep_as_HU: bool = False,
+    mode: str = 'nearest'
     ) -> torch.Tensor:
     """Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography. Note that it is recommended by https://jnm.snmjournals.org/content/57/1/151.long to use the vendors attenuation map as opposed to creating your own. As such, the ``get_attenuation_map_from_file`` should be used preferentially over this function, if you have access to an attenuation map from the vendor.
 
     Args:
         files_CT (Sequence[str]): List of all files corresponding to an individual CT scan
-        file_NM (str): File corresponding to raw PET/SPECT data (required to align CT with projections)
+        file_NM (str): File corresponding to raw PET/SPECT data (required to align CT with projections). If None, then no alignment is done. Defaults to None.
         index_peak (int, optional): Index corresponding to photopeak in projection data. Defaults to 0.
         keep_as_HU (bool): If True, then don't convert to linear attenuation coefficient and keep as Hounsfield units. Defaults to False
-        align_with_SPECT (bool): If true, then align CT slices with ``file_NM`` argument using an affine transform. Defaults to true.
 
     Returns:
         torch.Tensor: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.
     """
-    ds_NM = pydicom.read_file(file_NM)
+    
     ds = pydicom.read_file(files_CT[0])
     CT_HU, max_slice_loc = open_CT_file(files_CT, return_max_slice_loc=True)
     
+    if file_NM is None:
+        return torch.tensor(CT_HU[::-1,::-1,::-1].copy()).unsqueeze(dim=0).to(pytomography.dtype).to(pytomography.device)
+    
+    ds_NM = pydicom.read_file(file_NM)
     # 1. Align with SPECT
     # Affine matrix
     M_CT = get_affine_CT(ds, max_slice_loc)
@@ -205,7 +209,7 @@ def get_attenuation_map_from_CT_slices(
     # Resample CT and convert to mu at 208keV and save
     M = npl.inv(M_CT) @ M_NM
     # When doing affine transform, fill outside with point below -1000HU so it automatically gets converted to mu=0 after bilinear transform
-    CT_HU = affine_transform(CT_HU, M, output_shape=(ds_NM.Rows, ds_NM.Rows, ds_NM.Columns), mode='constant', cval=-1500)
+    CT_HU = affine_transform(CT_HU, M, output_shape=(ds_NM.Rows, ds_NM.Rows, ds_NM.Columns), mode=mode, cval=-1500)
     
     #2. Scale to linear attenuation coefficient
     window_upper = ds_NM.EnergyWindowInformationSequence[index_peak].EnergyWindowRangeSequence[0].EnergyWindowUpperLimit
@@ -213,9 +217,12 @@ def get_attenuation_map_from_CT_slices(
     E_SPECT = (window_lower + window_upper)/2
     KVP = pydicom.read_file(files_CT[0]).KVP
     HU2mu_conversion = get_HU2mu_conversion(files_CT, KVP, E_SPECT)
-    CT_mu = HU2mu_conversion(CT_HU)
-    CT_mu = torch.tensor(CT_mu[::-1,::-1,::-1].copy()).unsqueeze(dim=0)
-    return CT_mu
+    if keep_as_HU:
+        CT = CT_HU
+    else:
+        CT= HU2mu_conversion(CT_HU)
+    CT = torch.tensor(CT[::-1,::-1,::-1].copy()).unsqueeze(dim=0).to(pytomography.dtype).to(pytomography.device)
+    return CT
 
 
 def get_affine_spect(ds: Dataset) -> np.array:
@@ -230,8 +237,8 @@ def get_affine_spect(ds: Dataset) -> np.array:
     Sx, Sy, Sz = ds.DetectorInformationSequence[0].ImagePositionPatient
     dx = dy = ds.PixelSpacing[0]
     dz = ds.PixelSpacing[1]
-    Sx -= ds.Rows / 2 * (-dx)
-    Sy -= ds.Rows / 2 * (-dy)
+    Sx += ds.Rows / 2 * dx
+    Sy += ds.Rows / 2 * dy
     M = np.zeros((4,4))
     # x and y negative b/c opposite of CT. z is negative in both
     M[:,0] = np.array([-dx, 0, 0, 0])
@@ -285,7 +292,7 @@ def stitch_multibed(
     zs = np.round((zs - zs[0])/dss[0].PixelSpacing[1]).astype(int) 
     new_z_height = zs[-1] + recons.shape[-1]
     recon_aligned = torch.zeros((1, dss[0].Rows, dss[0].Rows, new_z_height)).to(pytomography.device)
-    blank_below, blank_above = get_blank_below_above(files_NM[0])
+    blank_below, blank_above = get_blank_below_above(get_projections(files_NM[0])[2])
     for i in range(len(zs)):
         recon_aligned[:,:,:,zs[i]+blank_below:zs[i]+blank_above] = recons[i,:,:,blank_below:blank_above]
     # Apply stitching method

@@ -17,8 +17,8 @@ class OSML():
 
         Args:
             image (torch.tensor[batch_size, Lr, Ltheta, Lz]): image data :math:`g_j` to be reconstructed
-            object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
             system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.
+            object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
             scatter (torch.tensor[batch_size, Lr, Ltheta, Lz]): estimate of scatter contribution :math:`s_j`.
             prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.
     """
@@ -88,8 +88,8 @@ class OSEMOSL(OSML):
 
     Args:
         image (torch.tensor[batch_size, Lr, Ltheta, Lz]): image data :math:`g_j` to be reconstructed
-        object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
         system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.
+        object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
         scatter (torch.tensor[batch_size, Lr, Ltheta, Lz]): estimate of scatter contribution :math:`s_j`.
         prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.
     """
@@ -98,7 +98,6 @@ class OSEMOSL(OSML):
         n_iters: int,
         n_subsets: int,
         callback: CallBack | None = None,
-        delta: float = 1e-11
     ) -> torch.tensor:
         """Performs the reconstruction using `n_iters` iterations and `n_subsets` subsets.
 
@@ -106,8 +105,6 @@ class OSEMOSL(OSML):
             n_iters (int): Number of iterations
             n_subsets (int): Number of subsets
             callback (CallBack, optional): Callback function to be evaluated after each subiteration. Defaults to None.
-            delta (float, optional): Used to prevent division by zero when calculating ratio, defaults to 1e-11.
-
         Returns:
             torch.tensor[batch_size, Lx, Ly, Lz]: reconstructed object
         """
@@ -120,7 +117,7 @@ class OSEMOSL(OSML):
                 # Set OSL Prior to have object from previous prediction
                 if self.prior:
                     self.prior.set_object(torch.clone(self.object_prediction))
-                ratio = (self.image+delta) / (self.system_matrix.forward(self.object_prediction, angle_subset=subset_indices) + self.scatter + delta)
+                ratio = (self.image+pytomography.delta) / (self.system_matrix.forward(self.object_prediction, angle_subset=subset_indices) + self.scatter + pytomography.delta)
                 self.object_prediction = self.object_prediction * self.system_matrix.backward(ratio, angle_subset=subset_indices, normalize=True, prior=self.prior)
                 if callback is not None:
                     callback.run(self.object_prediction, n_iter=j, n_subset=k)
@@ -145,7 +142,6 @@ class OSEMBSR(OSML):
         n_subsets: int,
         relaxation_function: Callable =lambda x: 1,
         callback: CallBack|None =None,
-        delta: float = 1e-11
     ) -> torch.tensor:
         r"""Performs the reconstruction using `n_iters` iterations and `n_subsets` subsets.
 
@@ -165,7 +161,7 @@ class OSEMBSR(OSML):
             self.prior.set_beta_scale(1/n_subsets)
         for j in range(n_iters):
             for k, subset_indices in enumerate(subset_indices_array):
-                ratio = (self.image+delta) / (self.system_matrix.forward(self.object_prediction, angle_subset=subset_indices) + self.scatter + delta)
+                ratio = (self.image+pytomography.delta) / (self.system_matrix.forward(self.object_prediction, angle_subset=subset_indices) + self.scatter + pytomography.delta)
                 bp, norm_factor = self.system_matrix.backward(ratio, angle_subset=subset_indices, normalize=True, return_norm_constant=True)
                 self.object_prediction = self.object_prediction * bp
                 # Apply BSREM after all subsets in this iteration has been ran

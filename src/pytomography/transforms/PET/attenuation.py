@@ -42,21 +42,39 @@ class PETAttenuationTransform(Transform):
             self.norm_image[i] = get_prob_of_detection_matrix(rotate_detector_z(CT, angle), self.object_meta.dx)
     
     @torch.no_grad()
-    def __call__(
+    def forward(
+		self,
+		image: torch.Tensor,
+	) -> torch.Tensor:
+        r"""Applies forward projection of attenuation modeling :math:`B:\mathbb{V} \to \mathbb{V}` to a 2D PET image.
+
+        Args:
+            image (torch.Tensor): Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
+
+        Returns:
+            torch.Tensor: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected image.
+        """
+        return image*self.norm_image.unsqueeze(dim=0)
+    
+    @torch.no_grad()
+    def backward(
 		self,
 		image: torch.Tensor,
 		norm_constant: torch.Tensor | None = None,
-        mode: str = 'forward_project'
 	) -> torch.tensor:
-        """Applies attenuation modeling to a PET image.
+        r"""Applies back projection of attenuation modeling :math:`B^T:\mathbb{V} \to \mathbb{V}` to a 2D PET image. Since the matrix is diagonal, its the ``backward`` implementation is identical to the ``forward`` implementation; the only difference is the optional ``norm_constant`` which is needed if one wants to normalize the back projection.
 
         Args:
             image (torch.Tensor): Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
             norm_constant (torch.Tensor | None, optional): A tensor used to normalize the output during back projection. Defaults to None.
-            mode (str, optional): Whether or not this is being used in forward (`'forward_project'`) or backward projection (`'back_project'`). Defaults to 'forward_project'.
 
         Returns:
             torch.tensor: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected image.
         """
-        return image*self.norm_image.unsqueeze(dim=0)
+        image = image*self.norm_image.unsqueeze(dim=0)
+        if norm_constant is not None:
+            norm_constant = norm_constant*self.norm_image.unsqueeze(dim=0)
+            return image, norm_constant
+        else:
+            return image
     
