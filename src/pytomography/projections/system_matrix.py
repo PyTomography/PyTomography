@@ -31,15 +31,15 @@ class SystemMatrix():
         self.object_meta = object_meta
         self.image_meta = image_meta
         self.n_parallel = n_parallel
-        self.initialize_correction_nets()
+        self.initialize_transforms()
 
-    def initialize_correction_nets(self):
-        """Initializes all mapping networks with the required object and image metadata corresponding to the projection network.
+    def initialize_transforms(self):
+        """Initializes all transforms used to build the system matrix
         """
-        for net in self.obj2obj_transforms:
-            net.configure(self.object_meta, self.image_meta)
-        for net in self.im2im_transforms:
-            net.configure(self.object_meta, self.image_meta)
+        for transform in self.obj2obj_transforms:
+            transform.configure(self.object_meta, self.image_meta)
+        for transform in self.im2im_transforms:
+            transform.configure(self.object_meta, self.image_meta)
 
     def forward(
         self,
@@ -62,11 +62,11 @@ class SystemMatrix():
         for i in range(0, len(ang_idx), self.n_parallel):
             ang_idx_parallel = ang_idx[i:i+self.n_parallel]
             object_i = rotate_detector_z(pad_object(object.repeat(len(ang_idx_parallel),1,1,1)), self.image_meta.angles[ang_idx_parallel])
-            for net in self.obj2obj_transforms:
-                object_i = net(object_i, ang_idx_parallel)
+            for transform in self.obj2obj_transforms:
+                object_i = transform.forward(object_i, ang_idx_parallel)
             image[:,ang_idx_parallel] = object_i.sum(axis=1)
-        for net in self.im2im_transforms:
-            image = net(image)
+        for transform in self.im2im_transforms:
+            image = transform.forward(image)
         return unpad_image(image)
     
     def backward(
@@ -95,9 +95,9 @@ class SystemMatrix():
         norm_image = torch.ones(image.shape).to(pytomography.device)
         image = pad_image(image)
         norm_image = pad_image(norm_image)
-        # First apply image mappings before back projecting
-        for net in self.im2im_transforms[::-1]:
-            image, norm_image = net(image, norm_image, mode='back_project')
+        # First apply image transforms before back projecting
+        for transform in self.im2im_transforms[::-1]:
+            image, norm_image = transform.backward(image, norm_image)
         # Setup for back projection
         N_angles = self.image_meta.num_projections
         object = torch.zeros([image.shape[0], *self.object_meta.padded_shape]).to(pytomography.device)
@@ -109,8 +109,8 @@ class SystemMatrix():
             object_i = image[0,ang_idx_parallel].unsqueeze(1) * boundary_box_bp
             norm_constant_i = norm_image[0,ang_idx_parallel].unsqueeze(1) * boundary_box_bp
             # Apply object mappings
-            for net in self.obj2obj_transforms[::-1]:
-                object_i, norm_constant_i = net(object_i, ang_idx_parallel, norm_constant=norm_constant_i)
+            for transform in self.obj2obj_transforms[::-1]:
+                object_i, norm_constant_i = transform.backward(object_i, ang_idx_parallel, norm_constant=norm_constant_i)
             # Add to total
             norm_constant += rotate_detector_z(norm_constant_i, self.image_meta.angles[ang_idx_parallel], negative=True).sum(axis=0).unsqueeze(0)
             object += rotate_detector_z(object_i, self.image_meta.angles[ang_idx_parallel], negative=True).sum(axis=0).unsqueeze(0)

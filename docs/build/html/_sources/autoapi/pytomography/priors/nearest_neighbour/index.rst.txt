@@ -38,8 +38,8 @@ Classes
    :type beta: float
    :param phi: Function :math:`\phi` used in formula above. Input arguments should be :math:`f_r`, :math:`f_s`, and any `kwargs` passed to this initialization function.
    :type phi: function
-   :param device: Pytorch device used for computation. Defaults to 'cpu'.
-   :type device: str, optional
+   :param weight:
+   :type weight: NeighbourWeight, optional
 
    .. py:method:: set_object_meta(object_meta)
 
@@ -68,6 +68,8 @@ Classes
    :type beta: float
    :param delta: Parameter :math:`\delta` in equation above. Defaults to 1.
    :type delta: float, optional
+   :param weight:
+   :type weight: NeighbourWeight, optional
 
 
 .. py:class:: LogCoshPrior(beta, delta = 1, weight = None)
@@ -80,6 +82,8 @@ Classes
    :type beta: float
    :param delta: Parameter :math:`\delta` in equation above. Defaults to 1.
    :type delta: float, optional
+   :param weight:
+   :type weight: NeighbourWeight, optional
 
 
 .. py:class:: RelativeDifferencePrior(beta = 1, gamma = 1, epsilon = 1e-08, weight = None)
@@ -94,6 +98,8 @@ Classes
    :type gamma: float, optional
    :param epsilon: Prevent division by 0, Defaults to 1e-8.
    :type epsilon: float, optional
+   :param weight:
+   :type weight: NeighbourWeight, optional
 
 
 .. py:class:: NeighbourWeight

@@ -146,6 +146,9 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="#">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="_static/PT1.png" alt="Logo"/>
+  </div>
   
   <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
   
@@ -251,34 +254,48 @@
           <section id="pytomography">
 <h1>PyTomography<a class="headerlink" href="#pytomography" title="Permalink to this heading">#</a></h1>
 <p style='text-align: justify;'>
-PyTomography is a flexible, high performance, open source package developed in Python&reg for medical image reconstruction. It uses the functions and classes of PyTorch to enable GPU-accelerated operations. The main focuses are
-<ol class="arabic simple">
-<li><p>Fast reconstruction of medical imaging data with standard clinical reconstruction algorithms.</p></li>
-<li><p>Providing a framework for the development of novel reconstruction algorithms.</p></li>
-</ol>
-<section id="currently-supported-modalities">
-<h2>Currently Supported Modalities<a class="headerlink" href="#currently-supported-modalities" title="Permalink to this heading">#</a></h2>
+PyTomography is a python library for medical image reconstruction. It uses the functionality of PyTorch to (i) enable fast GPU-accelerated reconstruction and (ii) permit easy integration of deep-learning models in traditional reconstruction algorithms
+<section id="supported-modalities">
+<h2>Supported Modalities<a class="headerlink" href="#supported-modalities" title="Permalink to this heading">#</a></h2>
 <ul class="simple">
-<li><p>Single Photon Computed Emission Tomography (SPECT)</p></li>
-<li><p>Positron Emission Tomography (PET) (2D, no scatter). Implementation of full 3D PET with scatter is currently being developed.</p></li>
+<li><p>Single Photon Computed Emission Tomography (SPECT)</p>
+<ul>
+<li><p>System matrix modeling includes attenuation correction, PSF modeling, scatter correction</p></li>
+</ul>
+</li>
+<li><p>2D Positron Emission Tomography (PET)</p>
+<ul>
+<li><p>System matrix modeling includes attenuation correction and radially dependent PSF modeling.</p></li>
+</ul>
+</li>
 </ul>
 </section>
-<section id="example">
-<h2>Example<a class="headerlink" href="#example" title="Permalink to this heading">#</a></h2>
-<p>This example uses generated simulated SPECT projections using the XCAT phantom and the SIMIND Monte Carlo code. Scatter, attenuation and PSF modeling are used to make the reconstructed images quantitative. In addition, the Bayesian relative difference prior.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">reconstruction_algorithm</span> <span class="o">=</span> <span class="n">get_SPECT_recon_algorithm_simind</span><span class="p">(</span>
-    <span class="n">projections_header</span> <span class="o">=</span> <span class="s1">&#39;body1t2ew6_tot_w2.hdr&#39;</span><span class="p">,</span>
-    <span class="n">scatter_headers</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;body1t2ew6_tot_w1.hdr&#39;</span><span class="p">,</span>
-                       <span class="s1">&#39;body1t2ew6_tot_w3.hdr&#39;</span><span class="p">],</span>
-    <span class="n">CT_header</span> <span class="o">=</span> <span class="s1">&#39;body1.hct&#39;</span><span class="p">,</span>
-    <span class="n">psf_meta</span><span class="o">=</span><span class="n">PSFMeta</span><span class="p">(</span><span class="n">collimator_slope</span><span class="o">=</span><span class="mf">0.03013</span><span class="p">,</span> <span class="n">collimator_intercept</span><span class="o">=</span><span class="mf">0.1967</span><span class="p">),</span>
-    <span class="n">prior</span> <span class="o">=</span> <span class="n">RelativeDifferencePrior</span><span class="p">(</span><span class="n">beta</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mi">5</span><span class="p">),</span>
-    <span class="n">recon_algorithm_class</span><span class="o">=</span><span class="n">OSEMBSR</span><span class="p">)</span>
-<span class="n">reconstructed_object</span> <span class="o">=</span> <span class="n">reconstruction_algorithm</span><span class="p">(</span><span class="n">n_iters</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">n_subsets</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>                 
-</pre></div>
-</div>
-<p>Maximum intensity projections corresponding to the reconstructed SPECT object above are shown below:
-<img alt="" src="_images/sample_MIPa.png" /></p>
+<section id="reconstruction-algorithms">
+<h2>Reconstruction Algorithms<a class="headerlink" href="#reconstruction-algorithms" title="Permalink to this heading">#</a></h2>
+<ul class="simple">
+<li><p>Maximum Liklihood Expectation Maxmimum (MLEM) and Ordered Subset Expectation Maximum (OSEM)</p>
+<ul>
+<li><p>One-Step-Late and Block-Sequential-Regularization techniques to encorporate Bayesian priors</p></li>
+<li><p>Option to include anatomical information (such as MRI/CT) in Bayesian priors</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="supported-datatypes">
+<h2>Supported Datatypes<a class="headerlink" href="#supported-datatypes" title="Permalink to this heading">#</a></h2>
+<ul class="simple">
+<li><p>DICOM</p>
+<ul>
+<li><p>Ability to open and align SPECT/CT data and create attenuation maps</p></li>
+<li><p>Repository of collimator parameters for different scanners for obtaining PSF information</p></li>
+</ul>
+</li>
+<li><p>SIMIND output files (interfile)</p>
+<ul>
+<li><p>Functionality to combine multiple sets of projections (representing different organs/regions) into a single set of projection data</p></li>
+</ul>
+</li>
+</ul>
 </section>
 <section id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">#</a></h2>
@@ -372,8 +389,9 @@ PyTomography is a flexible, high performance, open source package developed in P
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">PyTomography</a><ul>
-<li><a class="reference internal" href="#currently-supported-modalities">Currently Supported Modalities</a></li>
-<li><a class="reference internal" href="#example">Example</a></li>
+<li><a class="reference internal" href="#supported-modalities">Supported Modalities</a></li>
+<li><a class="reference internal" href="#reconstruction-algorithms">Reconstruction Algorithms</a></li>
+<li><a class="reference internal" href="#supported-datatypes">Supported Datatypes</a></li>
 <li><a class="reference internal" href="#installation">Installation</a></li>
 <li><a class="reference internal" href="#contents">Contents</a></li>
 </ul>

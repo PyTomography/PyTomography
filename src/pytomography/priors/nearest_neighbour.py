@@ -16,7 +16,7 @@ class NearestNeighbourPrior(Prior):
     Args:
             beta (float): Used to scale the weight of the prior
             phi (function): Function :math:`\phi` used in formula above. Input arguments should be :math:`f_r`, :math:`f_s`, and any `kwargs` passed to this initialization function.
-            device (str, optional): Pytorch device used for computation. Defaults to 'cpu'.
+            weight (NeighbourWeight, optional). Weighting scheme to use for nearest neighbours. If ``None``, then uses EuclideanNeighbourWeight. Defaults to None.
     """
     def __init__(
         self,
@@ -68,6 +68,7 @@ class QuadraticPrior(NearestNeighbourPrior):
     Args:
             beta (float): Used to scale the weight of the prior
             delta (float, optional): Parameter :math:`\delta` in equation above. Defaults to 1.
+            weight (NeighbourWeight, optional). Weighting scheme to use for nearest neighbours. If ``None``, then uses EuclideanNeighbourWeight. Defaults to None.
     """
     def __init__(
         self,
@@ -84,6 +85,7 @@ class LogCoshPrior(NearestNeighbourPrior):
     Args:
             beta (float): Used to scale the weight of the prior
             delta (float, optional): Parameter :math:`\delta` in equation above. Defaults to 1.
+            weight (NeighbourWeight, optional). Weighting scheme to use for nearest neighbours. If ``None``, then uses EuclideanNeighbourWeight. Defaults to None.
     """
     def __init__(
         self,
@@ -101,6 +103,7 @@ class RelativeDifferencePrior(NearestNeighbourPrior):
             beta (float): Used to scale the weight of the prior
             gamma (float, optional): Parameter :math:`\gamma` in equation above. Defaults to 1.
             epsilon (float, optional): Prevent division by 0, Defaults to 1e-8.
+            weight (NeighbourWeight, optional). Weighting scheme to use for nearest neighbours. If ``None``, then uses EuclideanNeighbourWeight. Defaults to None.
     """
     def __init__(
         self, 

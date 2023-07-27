@@ -145,6 +145,9 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../../_static/PT1.png" alt="Logo"/>
+  </div>
   
   <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
   
@@ -429,7 +432,8 @@
     <span class="n">files_CT</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">file_NM</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">index_peak</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
-    <span class="n">keep_as_HU</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">keep_as_HU</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;nearest&#39;</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography. Note that it is recommended by https://jnm.snmjournals.org/content/57/1/151.long to use the vendors attenuation map as opposed to creating your own. As such, the ``get_attenuation_map_from_file`` should be used preferentially over this function, if you have access to an attenuation map from the vendor.</span>
 
@@ -457,7 +461,7 @@
     <span class="c1"># Resample CT and convert to mu at 208keV and save</span>
     <span class="n">M</span> <span class="o">=</span> <span class="n">npl</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">M_CT</span><span class="p">)</span> <span class="o">@</span> <span class="n">M_NM</span>
     <span class="c1"># When doing affine transform, fill outside with point below -1000HU so it automatically gets converted to mu=0 after bilinear transform</span>
-    <span class="n">CT_HU</span> <span class="o">=</span> <span class="n">affine_transform</span><span class="p">(</span><span class="n">CT_HU</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">output_shape</span><span class="o">=</span><span class="p">(</span><span class="n">ds_NM</span><span class="o">.</span><span class="n">Rows</span><span class="p">,</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">Rows</span><span class="p">,</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">Columns</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">)</span>
+    <span class="n">CT_HU</span> <span class="o">=</span> <span class="n">affine_transform</span><span class="p">(</span><span class="n">CT_HU</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">output_shape</span><span class="o">=</span><span class="p">(</span><span class="n">ds_NM</span><span class="o">.</span><span class="n">Rows</span><span class="p">,</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">Rows</span><span class="p">,</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">Columns</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">cval</span><span class="o">=-</span><span class="mi">1500</span><span class="p">)</span>
     
     <span class="c1">#2. Scale to linear attenuation coefficient</span>
     <span class="n">window_upper</span> <span class="o">=</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">EnergyWindowInformationSequence</span><span class="p">[</span><span class="n">index_peak</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowRangeSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowUpperLimit</span>

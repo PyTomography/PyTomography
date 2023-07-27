@@ -145,6 +145,9 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../_static/PT1.png" alt="Logo"/>
+  </div>
   
   <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
   
@@ -265,7 +268,7 @@
 <span class="sd">    Args:</span>
 <span class="sd">            beta (float): Used to scale the weight of the prior</span>
 <span class="sd">            phi (function): Function :math:`\phi` used in formula above. Input arguments should be :math:`f_r`, :math:`f_s`, and any `kwargs` passed to this initialization function.</span>
-<span class="sd">            device (str, optional): Pytorch device used for computation. Defaults to &#39;cpu&#39;.</span>
+<span class="sd">            weight (NeighbourWeight, optional). Weighting scheme to use for nearest neighbours. If ``None``, then uses EuclideanNeighbourWeight. Defaults to None.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -317,6 +320,7 @@
 <span class="sd">    Args:</span>
 <span class="sd">            beta (float): Used to scale the weight of the prior</span>
 <span class="sd">            delta (float, optional): Parameter :math:`\delta` in equation above. Defaults to 1.</span>
+<span class="sd">            weight (NeighbourWeight, optional). Weighting scheme to use for nearest neighbours. If ``None``, then uses EuclideanNeighbourWeight. Defaults to None.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -333,6 +337,7 @@
 <span class="sd">    Args:</span>
 <span class="sd">            beta (float): Used to scale the weight of the prior</span>
 <span class="sd">            delta (float, optional): Parameter :math:`\delta` in equation above. Defaults to 1.</span>
+<span class="sd">            weight (NeighbourWeight, optional). Weighting scheme to use for nearest neighbours. If ``None``, then uses EuclideanNeighbourWeight. Defaults to None.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -350,6 +355,7 @@
 <span class="sd">            beta (float): Used to scale the weight of the prior</span>
 <span class="sd">            gamma (float, optional): Parameter :math:`\gamma` in equation above. Defaults to 1.</span>
 <span class="sd">            epsilon (float, optional): Prevent division by 0, Defaults to 1e-8.</span>
+<span class="sd">            weight (NeighbourWeight, optional). Weighting scheme to use for nearest neighbours. If ``None``, then uses EuclideanNeighbourWeight. Defaults to None.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> 

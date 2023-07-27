@@ -3,6 +3,11 @@
 
 .. py:module:: pytomography.transforms
 
+.. autoapi-nested-parse::
+
+   This module contains transforms; operators that map within the same vector space; such operators are used to build the system matrix. For example, the ``SPECTAttenuationTransform`` is an operator :math:`A:\mathbb{U} \to \mathbb{U}` which adjusts each voxel in an image based on the probability of it being attenuated before it reaches a detector at the :math:`+x` axis. As another example, the ``CutOffTransform`` is an operator :math:`B:\mathbb{V} \to \mathbb{V}` which sets all pixels in image space equal to zero which exist beyond the detector boundaries. Since operators are often used in reconstruction algorithms, their transpose also must be implemented
+
+
 
 Subpackages
 -----------
@@ -58,7 +63,14 @@ Classes
       :type image_meta: ImageMeta
 
 
-   .. py:method:: __call__(x)
+   .. py:method:: forward(x)
+      :abstractmethod:
+
+      Abstract method; must be implemented in subclasses to apply a correction to an object/image and return it
+
+
+
+   .. py:method:: backward(x)
       :abstractmethod:
 
       Abstract method; must be implemented in subclasses to apply a correction to an object/image and return it
@@ -75,13 +87,26 @@ Classes
    :param CT: Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{cm}^{-1}}` at the photon energy corresponding to the particular scan
    :type CT: torch.tensor
 
-   .. py:method:: __call__(object_i, ang_idx, norm_constant = None)
+   .. py:method:: forward(object_i, ang_idx)
 
-      Applies attenuation modeling to an object that's being detected on the right of its first axis.
+      Forward projection :math:`A:\mathbb{U} \to \mathbb{U}` of attenuation correction
 
       :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along ``axis=1``.
       :type object_i: torch.tensor
-      :param ang_idx: The projection induces: used to find the corresponding angles in image space corresponding to ``object_i``. In particular, the x axis (tensor `axis=1`) of the object is aligned with the detector at angle i.
+      :param ang_idx: The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+      :type ang_idx: torch.Tensor
+
+      :returns: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.
+      :rtype: torch.tensor
+
+
+   .. py:method:: backward(object_i, ang_idx, norm_constant = None)
+
+      Back projection :math:`A^T:\mathbb{U} \to \mathbb{U}` of attenuation correction. Since the matrix is diagonal, the implementation is the same as forward projection. The only difference is the optional normalization parameter.
+
+      :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along ``axis=1``.
+      :type object_i: torch.tensor
+      :param ang_idx: The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
       :type ang_idx: torch.Tensor
       :param norm_constant: A tensor used to normalize the output during back projection. Defaults to None.
       :type norm_constant: torch.tensor, optional
@@ -132,14 +157,27 @@ Classes
    .. py:method:: apply_psf(object, ang_idx)
 
 
-   .. py:method:: __call__(object_i, ang_idx, norm_constant = None)
+   .. py:method:: forward(object_i, ang_idx)
 
-      Applies PSF modeling for the situation where an object is being detector by a detector at the :math:`+x` axis.
+      Applies the PSF transform :math:`A:\mathbb{U} \to \mathbb{U}` for the situation where an object is being detector by a detector at the :math:`+x` axis.
 
       :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
       :type object_i: torch.tensor
-      :param i: The projection index: used to find the corresponding angle in image space corresponding to ``object_i``. In particular, the x axis (tensor `axis=1`) of the object is aligned with the detector at angle i.
-      :type i: int
+      :param ang_idx: The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+      :type ang_idx: int
+
+      :returns: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.
+      :rtype: torch.tensor
+
+
+   .. py:method:: backward(object_i, ang_idx, norm_constant = None)
+
+      Applies the transpose of the PSF transform :math:`A^T:\mathbb{U} \to \mathbb{U}` for the situation where an object is being detector by a detector at the :math:`+x` axis. Since the PSF transform is a symmetric matrix, its implemtation is the same as the ``forward`` method.
+
+      :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
+      :type object_i: torch.tensor
+      :param ang_idx: The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+      :type ang_idx: int
       :param norm_constant: A tensor used to normalize the output during back projection. Defaults to None.
       :type norm_constant: torch.tensor, optional
 
@@ -157,16 +195,25 @@ Classes
    :param image: Measured image data.
    :type image: torch.tensor
 
-   .. py:method:: __call__(image, norm_constant = None, mode = 'forward_project')
+   .. py:method:: forward(image)
 
-      Applies the transformation.
+      Forward projection :math:`B:\mathbb{V} \to \mathbb{V}` of the cutoff transform.
+
+      :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
+      :type image: torch.Tensor
+
+      :returns: Original image, but with certain z-slices equal to zero.
+      :rtype: torch.tensor
+
+
+   .. py:method:: backward(image, norm_constant = None)
+
+      Back projection :math:`B^T:\mathbb{V} \to \mathbb{V}` of the cutoff transform. Since this is a diagonal matrix, the implementation is the same as forward projection, but with the optional `norm_constant` argument.
 
       :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
       :type image: torch.Tensor
       :param norm_constant: A tensor used to normalize the output during back projection. Defaults to None.
       :type norm_constant: torch.Tensor | None, optional
-      :param mode: Whether or not this is being used in forward (`'forward_project'`) or backward projection (`'back_project'`). Defaults to 'forward_project'.
-      :type mode: str, optional
 
       :returns: Original image, but with certain z-slices equal to zero.
       :rtype: torch.tensor
@@ -194,16 +241,25 @@ Classes
       :type image_meta: ImageMeta
 
 
-   .. py:method:: __call__(image, norm_constant = None, mode = 'forward_project')
+   .. py:method:: forward(image)
 
-      Applies attenuation modeling to a PET image.
+      Applies forward projection of attenuation modeling :math:`B:\mathbb{V} \to \mathbb{V}` to a 2D PET image.
+
+      :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
+      :type image: torch.Tensor
+
+      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected image.
+      :rtype: torch.Tensor
+
+
+   .. py:method:: backward(image, norm_constant = None)
+
+      Applies back projection of attenuation modeling :math:`B^T:\mathbb{V} \to \mathbb{V}` to a 2D PET image. Since the matrix is diagonal, its the ``backward`` implementation is identical to the ``forward`` implementation; the only difference is the optional ``norm_constant`` which is needed if one wants to normalize the back projection.
 
       :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
       :type image: torch.Tensor
       :param norm_constant: A tensor used to normalize the output during back projection. Defaults to None.
       :type norm_constant: torch.Tensor | None, optional
-      :param mode: Whether or not this is being used in forward (`'forward_project'`) or backward projection (`'back_project'`). Defaults to 'forward_project'.
-      :type mode: str, optional
 
       :returns: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected image.
       :rtype: torch.tensor
@@ -235,15 +291,24 @@ Classes
 
 
 
-   .. py:method:: __call__(image, mode = 'forward_project')
+   .. py:method:: forward(image)
 
-      Applies PSF modeling to the PET image.
+      Applies the forward projection of PSF modeling :math:`B:\mathbb{V} \to \mathbb{V}` to a PET image.
+
+      :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the image
+      :type image: torch.tensor]
+
+      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the PSF corrected image.
+      :rtype: torch.tensor
+
+
+   .. py:method:: backward(image, norm_constant = None)
+
+      Applies the back projection of PSF modeling :math:`B^T:\mathbb{V} \to \mathbb{V}` to a PET image.
 
       :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the image
                     norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
       :type image: torch.tensor]
-      :param mode: Whether or not this is being used in forward (`'forward_project'`) or backward projection (`'back_project'`). Defaults to 'forward_project'
-      :type mode: str
 
       :returns: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the PSF corrected image.
       :rtype: torch.tensor

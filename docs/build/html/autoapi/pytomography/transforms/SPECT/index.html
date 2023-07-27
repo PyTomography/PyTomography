@@ -146,6 +146,9 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../../_static/PT1.png" alt="Logo"/>
+  </div>
   
   <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
   
@@ -290,14 +293,34 @@
 </dd>
 </dl>
 <dl class="py method">
-<dt class="sig sig-object py" id="pytomography.transforms.SPECT.SPECTAttenuationTransform.__call__">
-<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ang_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.SPECT.SPECTAttenuationTransform.__call__" title="Permalink to this definition">#</a></dt>
-<dd><p>Applies attenuation modeling to an object that’s being detected on the right of its first axis.</p>
+<dt class="sig sig-object py" id="pytomography.transforms.SPECT.SPECTAttenuationTransform.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ang_idx</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.SPECT.SPECTAttenuationTransform.forward" title="Permalink to this definition">#</a></dt>
+<dd><p>Forward projection <span class="math notranslate nohighlight">\(A:\mathbb{U} \to \mathbb{U}\)</span> of attenuation correction</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>object_i</strong> (<em>torch.tensor</em>) – Tensor of size [batch_size, Lx, Ly, Lz] being projected along <code class="docutils literal notranslate"><span class="pre">axis=1</span></code>.</p></li>
-<li><p><strong>ang_idx</strong> (<em>torch.Tensor</em>) – The projection induces: used to find the corresponding angles in image space corresponding to <code class="docutils literal notranslate"><span class="pre">object_i</span></code>. In particular, the x axis (tensor <cite>axis=1</cite>) of the object is aligned with the detector at angle i.</p></li>
+<li><p><strong>ang_idx</strong> (<em>torch.Tensor</em>) – The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in <code class="docutils literal notranslate"><span class="pre">object_i</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.transforms.SPECT.SPECTAttenuationTransform.backward">
+<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ang_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.SPECT.SPECTAttenuationTransform.backward" title="Permalink to this definition">#</a></dt>
+<dd><p>Back projection <span class="math notranslate nohighlight">\(A^T:\mathbb{U} \to \mathbb{U}\)</span> of attenuation correction. Since the matrix is diagonal, the implementation is the same as forward projection. The only difference is the optional normalization parameter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>object_i</strong> (<em>torch.tensor</em>) – Tensor of size [batch_size, Lx, Ly, Lz] being projected along <code class="docutils literal notranslate"><span class="pre">axis=1</span></code>.</p></li>
+<li><p><strong>ang_idx</strong> (<em>torch.Tensor</em>) – The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in <code class="docutils literal notranslate"><span class="pre">object_i</span></code>.</p></li>
 <li><p><strong>norm_constant</strong> (<em>torch.tensor</em><em>, </em><em>optional</em>) – A tensor used to normalize the output during back projection. Defaults to None.</p></li>
 </ul>
 </dd>
@@ -376,16 +399,35 @@
 <dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pytomography.transforms.SPECT.SPECTPSFTransform.__call__">
-<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ang_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.SPECT.SPECTPSFTransform.__call__" title="Permalink to this definition">#</a></dt>
-<dd><p>Applies PSF modeling for the situation where an object is being detector by a detector at the <span class="math notranslate nohighlight">\(+x\)</span> axis.</p>
+<dt class="sig sig-object py" id="pytomography.transforms.SPECT.SPECTPSFTransform.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ang_idx</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.SPECT.SPECTPSFTransform.forward" title="Permalink to this definition">#</a></dt>
+<dd><p>Applies the PSF transform <span class="math notranslate nohighlight">\(A:\mathbb{U} \to \mathbb{U}\)</span> for the situation where an object is being detector by a detector at the <span class="math notranslate nohighlight">\(+x\)</span> axis.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>object_i</strong> (<em>torch.tensor</em>) – Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis</p></li>
-<li><p><strong>i</strong> (<em>int</em>) – The projection index: used to find the corresponding angle in image space corresponding to <code class="docutils literal notranslate"><span class="pre">object_i</span></code>. In particular, the x axis (tensor <cite>axis=1</cite>) of the object is aligned with the detector at angle i.</p></li>
+<li><p><strong>ang_idx</strong> (<em>int</em>) – The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in <code class="docutils literal notranslate"><span class="pre">object_i</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.transforms.SPECT.SPECTPSFTransform.backward">
+<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ang_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.SPECT.SPECTPSFTransform.backward" title="Permalink to this definition">#</a></dt>
+<dd><p>Applies the transpose of the PSF transform <span class="math notranslate nohighlight">\(A^T:\mathbb{U} \to \mathbb{U}\)</span> for the situation where an object is being detector by a detector at the <span class="math notranslate nohighlight">\(+x\)</span> axis. Since the PSF transform is a symmetric matrix, its implemtation is the same as the <code class="docutils literal notranslate"><span class="pre">forward</span></code> method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>object_i</strong> (<em>torch.tensor</em>) – Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis</p></li>
+<li><p><strong>ang_idx</strong> (<em>int</em>) – The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in <code class="docutils literal notranslate"><span class="pre">object_i</span></code>.</p></li>
 <li><p><strong>norm_constant</strong> (<em>torch.tensor</em><em>, </em><em>optional</em>) – A tensor used to normalize the output during back projection. Defaults to None.</p></li>
-<li><p><strong>ang_idx</strong> (<em>int</em>) – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -410,15 +452,31 @@
 </dd>
 </dl>
 <dl class="py method">
-<dt class="sig sig-object py" id="pytomography.transforms.SPECT.CutOffTransform.__call__">
-<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'forward_project'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.SPECT.CutOffTransform.__call__" title="Permalink to this definition">#</a></dt>
-<dd><p>Applies the transformation.</p>
+<dt class="sig sig-object py" id="pytomography.transforms.SPECT.CutOffTransform.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.SPECT.CutOffTransform.forward" title="Permalink to this definition">#</a></dt>
+<dd><p>Forward projection <span class="math notranslate nohighlight">\(B:\mathbb{V} \to \mathbb{V}\)</span> of the cutoff transform.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>image</strong> (<em>torch.Tensor</em>) – Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Original image, but with certain z-slices equal to zero.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.transforms.SPECT.CutOffTransform.backward">
+<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.SPECT.CutOffTransform.backward" title="Permalink to this definition">#</a></dt>
+<dd><p>Back projection <span class="math notranslate nohighlight">\(B^T:\mathbb{V} \to \mathbb{V}\)</span> of the cutoff transform. Since this is a diagonal matrix, the implementation is the same as forward projection, but with the optional <cite>norm_constant</cite> argument.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>image</strong> (<em>torch.Tensor</em>) – Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to</p></li>
 <li><p><strong>norm_constant</strong> (<em>torch.Tensor</em><em> | </em><em>None</em><em>, </em><em>optional</em>) – A tensor used to normalize the output during back projection. Defaults to None.</p></li>
-<li><p><strong>mode</strong> (<em>str</em><em>, </em><em>optional</em>) – Whether or not this is being used in forward (<cite>‘forward_project’</cite>) or backward projection (<cite>‘back_project’</cite>). Defaults to ‘forward_project’.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -478,7 +536,8 @@
 <li><a class="reference internal" href="#package-contents">Package Contents</a><ul>
 <li><a class="reference internal" href="#classes">Classes</a><ul>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTAttenuationTransform"><code class="docutils literal notranslate"><span class="pre">SPECTAttenuationTransform</span></code></a><ul>
-<li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTAttenuationTransform.__call__"><code class="docutils literal notranslate"><span class="pre">SPECTAttenuationTransform.__call__()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTAttenuationTransform.forward"><code class="docutils literal notranslate"><span class="pre">SPECTAttenuationTransform.forward()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTAttenuationTransform.backward"><code class="docutils literal notranslate"><span class="pre">SPECTAttenuationTransform.backward()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTPSFTransform"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform</span></code></a><ul>
@@ -486,15 +545,18 @@
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTPSFTransform.compute_kernel_size"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.compute_kernel_size()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTPSFTransform.get_sigma"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.get_sigma()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTPSFTransform.apply_psf"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.apply_psf()</span></code></a></li>
-<li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTPSFTransform.__call__"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.__call__()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTPSFTransform.forward"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.forward()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTPSFTransform.backward"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.backward()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.CutOffTransform"><code class="docutils literal notranslate"><span class="pre">CutOffTransform</span></code></a><ul>
-<li><a class="reference internal" href="#pytomography.transforms.SPECT.CutOffTransform.__call__"><code class="docutils literal notranslate"><span class="pre">CutOffTransform.__call__()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.CutOffTransform.forward"><code class="docutils literal notranslate"><span class="pre">CutOffTransform.forward()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.CutOffTransform.backward"><code class="docutils literal notranslate"><span class="pre">CutOffTransform.backward()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTAttenuationTransform">SPECTAttenuationTransform</a><ul>
-<li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTAttenuationTransform.__call__">__call__</a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTAttenuationTransform.forward">forward</a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTAttenuationTransform.backward">backward</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTPSFTransform">SPECTPSFTransform</a><ul>
@@ -502,11 +564,13 @@
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTPSFTransform.compute_kernel_size">compute_kernel_size</a></li>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTPSFTransform.get_sigma">get_sigma</a></li>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTPSFTransform.apply_psf">apply_psf</a></li>
-<li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTPSFTransform.__call__">__call__</a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTPSFTransform.forward">forward</a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.SPECTPSFTransform.backward">backward</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.CutOffTransform">CutOffTransform</a><ul>
-<li><a class="reference internal" href="#pytomography.transforms.SPECT.CutOffTransform.__call__">__call__</a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.CutOffTransform.forward">forward</a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.CutOffTransform.backward">backward</a></li>
 </ul>
 </li>
 </ul>

@@ -119,14 +119,27 @@ Functions
    .. py:method:: apply_psf(object, ang_idx)
 
 
-   .. py:method:: __call__(object_i, ang_idx, norm_constant = None)
+   .. py:method:: forward(object_i, ang_idx)
 
-      Applies PSF modeling for the situation where an object is being detector by a detector at the :math:`+x` axis.
+      Applies the PSF transform :math:`A:\mathbb{U} \to \mathbb{U}` for the situation where an object is being detector by a detector at the :math:`+x` axis.
 
       :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
       :type object_i: torch.tensor
-      :param i: The projection index: used to find the corresponding angle in image space corresponding to ``object_i``. In particular, the x axis (tensor `axis=1`) of the object is aligned with the detector at angle i.
-      :type i: int
+      :param ang_idx: The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+      :type ang_idx: int
+
+      :returns: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.
+      :rtype: torch.tensor
+
+
+   .. py:method:: backward(object_i, ang_idx, norm_constant = None)
+
+      Applies the transpose of the PSF transform :math:`A^T:\mathbb{U} \to \mathbb{U}` for the situation where an object is being detector by a detector at the :math:`+x` axis. Since the PSF transform is a symmetric matrix, its implemtation is the same as the ``forward`` method.
+
+      :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
+      :type object_i: torch.tensor
+      :param ang_idx: The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+      :type ang_idx: int
       :param norm_constant: A tensor used to normalize the output during back projection. Defaults to None.
       :type norm_constant: torch.tensor, optional
 

@@ -145,6 +145,9 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../../_static/PT1.png" alt="Logo"/>
+  </div>
   
   <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
   
@@ -370,17 +373,34 @@
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">object_return</span><span class="p">)</span></div>
     
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
-<div class="viewcode-block" id="SPECTPSFTransform.__call__"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html#pytomography.transforms.SPECT.SPECTPSFTransform.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+<div class="viewcode-block" id="SPECTPSFTransform.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html#pytomography.transforms.SPECT.SPECTPSFTransform.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+		<span class="n">object_i</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+		<span class="n">ang_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> 
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Applies the PSF transform :math:`A:\mathbb{U} \to \mathbb{U}` for the situation where an object is being detector by a detector at the :math:`+x` axis.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis</span>
+<span class="sd">            ang_idx (int): The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_psf</span><span class="p">(</span><span class="n">object_i</span><span class="p">,</span> <span class="n">ang_idx</span><span class="p">)</span></div>
+        
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+<div class="viewcode-block" id="SPECTPSFTransform.backward"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html#pytomography.transforms.SPECT.SPECTPSFTransform.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">object_i</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
 		<span class="n">ang_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> 
 		<span class="n">norm_constant</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Applies PSF modeling for the situation where an object is being detector by a detector at the :math:`+x` axis.</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Applies the transpose of the PSF transform :math:`A^T:\mathbb{U} \to \mathbb{U}` for the situation where an object is being detector by a detector at the :math:`+x` axis. Since the PSF transform is a symmetric matrix, its implemtation is the same as the ``forward`` method.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis</span>
-<span class="sd">            i (int): The projection index: used to find the corresponding angle in image space corresponding to ``object_i``. In particular, the x axis (tensor `axis=1`) of the object is aligned with the detector at angle i.</span>
+<span class="sd">            ang_idx (int): The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.</span>
 <span class="sd">            norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.</span>
 
 <span class="sd">        Returns:</span>

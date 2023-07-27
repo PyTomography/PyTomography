@@ -146,6 +146,9 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../../../_static/PT1.png" alt="Logo"/>
+  </div>
   
   <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
   
@@ -274,15 +277,31 @@
 </dd>
 </dl>
 <dl class="py method">
-<dt class="sig sig-object py" id="pytomography.transforms.SPECT.cutoff.CutOffTransform.__call__">
-<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'forward_project'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/cutoff.html#CutOffTransform.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.cutoff.CutOffTransform.__call__" title="Permalink to this definition">#</a></dt>
-<dd><p>Applies the transformation.</p>
+<dt class="sig sig-object py" id="pytomography.transforms.SPECT.cutoff.CutOffTransform.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/cutoff.html#CutOffTransform.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.cutoff.CutOffTransform.forward" title="Permalink to this definition">#</a></dt>
+<dd><p>Forward projection <span class="math notranslate nohighlight">\(B:\mathbb{V} \to \mathbb{V}\)</span> of the cutoff transform.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>image</strong> (<em>torch.Tensor</em>) – Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Original image, but with certain z-slices equal to zero.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.transforms.SPECT.cutoff.CutOffTransform.backward">
+<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/cutoff.html#CutOffTransform.backward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.cutoff.CutOffTransform.backward" title="Permalink to this definition">#</a></dt>
+<dd><p>Back projection <span class="math notranslate nohighlight">\(B^T:\mathbb{V} \to \mathbb{V}\)</span> of the cutoff transform. Since this is a diagonal matrix, the implementation is the same as forward projection, but with the optional <cite>norm_constant</cite> argument.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>image</strong> (<em>torch.Tensor</em>) – Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to</p></li>
 <li><p><strong>norm_constant</strong> (<em>torch.Tensor</em><em> | </em><em>None</em><em>, </em><em>optional</em>) – A tensor used to normalize the output during back projection. Defaults to None.</p></li>
-<li><p><strong>mode</strong> (<em>str</em><em>, </em><em>optional</em>) – Whether or not this is being used in forward (<cite>‘forward_project’</cite>) or backward projection (<cite>‘back_project’</cite>). Defaults to ‘forward_project’.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -341,11 +360,13 @@
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
 <li><a class="reference internal" href="#classes">Classes</a><ul>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.cutoff.CutOffTransform"><code class="docutils literal notranslate"><span class="pre">CutOffTransform</span></code></a><ul>
-<li><a class="reference internal" href="#pytomography.transforms.SPECT.cutoff.CutOffTransform.__call__"><code class="docutils literal notranslate"><span class="pre">CutOffTransform.__call__()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.cutoff.CutOffTransform.forward"><code class="docutils literal notranslate"><span class="pre">CutOffTransform.forward()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.cutoff.CutOffTransform.backward"><code class="docutils literal notranslate"><span class="pre">CutOffTransform.backward()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.cutoff.CutOffTransform">CutOffTransform</a><ul>
-<li><a class="reference internal" href="#pytomography.transforms.SPECT.cutoff.CutOffTransform.__call__">__call__</a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.cutoff.CutOffTransform.forward">forward</a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.cutoff.CutOffTransform.backward">backward</a></li>
 </ul>
 </li>
 </ul>
@@ -368,5 +389,7 @@
     <script src="../../../../../_static/sphinx_highlight.js"></script>
     <script src="../../../../../_static/scripts/furo.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

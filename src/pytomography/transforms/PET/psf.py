@@ -44,29 +44,49 @@ class PETPSFTransform(Transform):
         self.PSF_matrix = self.PSF_matrix.reshape((1,1,1,*self.PSF_matrix.shape)).to(self.device)
     
     @torch.no_grad()
-    def __call__(
+    def forward(
 		self,
 		image: torch.Tensor,
-        mode: str = 'forward_project',
 	) -> torch.tensor:
-        """Applies PSF modeling to the PET image.
+        r"""Applies the forward projection of PSF modeling :math:`B:\mathbb{V} \to \mathbb{V}` to a PET image.
 
         Args:
             image (torch.tensor]): Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the image
-			norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
-            mode (str): Whether or not this is being used in forward (`'forward_project'`) or backward projection (`'back_project'`). Defaults to 'forward_project'
 
         Returns:
             torch.tensor: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the PSF corrected image.
         """
         image = image.permute(0,1,3,2).unsqueeze(dim=-1)
-        if mode=='forward_project':
-            image = torch.matmul(self.PSF_matrix,image)
-        else:
-            # Tranpose multiplication
-            image = torch.matmul(self.PSF_matrix.permute(0,1,2,4,3),image)
-        image = image.squeeze(dim=-1).permute(0,1,3,2)
+        image = torch.matmul(self.PSF_matrix,image)
         return image
+    
+    @torch.no_grad()
+    def backward(
+		self,
+		image: torch.Tensor,
+        norm_constant: torch.Tensor | None = None,
+	) -> torch.tensor:
+        r"""Applies the back projection of PSF modeling :math:`B^T:\mathbb{V} \to \mathbb{V}` to a PET image.
+
+        Args:
+            image (torch.tensor]): Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the image
+			norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
+
+        Returns:
+            torch.tensor: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the PSF corrected image.
+        """
+        image = image.permute(0,1,3,2).unsqueeze(dim=-1)
+        # Tranpose multiplication
+        image = torch.matmul(self.PSF_matrix.permute(0,1,2,4,3),image)
+        image = image.squeeze(dim=-1).permute(0,1,3,2)
+        if norm_constant is not None:
+            norm_constant = norm_constant.permute(0,1,3,2).unsqueeze(dim=-1)
+            # Tranpose multiplication
+            norm_constant = torch.matmul(self.PSF_matrix.permute(0,1,2,4,3),norm_constant)
+            norm_constant = norm_constant.squeeze(dim=-1).permute(0,1,3,2)
+            return image, norm_constant
+        else:
+            return image
     
 def kernel_noncol(x,r,R, delta=1e-8):
     if r**2<R**2:

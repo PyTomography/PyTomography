@@ -3,6 +3,11 @@
 
 .. py:module:: pytomography.utils
 
+.. autoapi-nested-parse::
+
+   This module contains utility functions used in the other modules of PyTomography
+
+
 
 Submodules
 ----------

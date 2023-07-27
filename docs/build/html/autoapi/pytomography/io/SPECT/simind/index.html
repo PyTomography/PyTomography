@@ -146,6 +146,9 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../../../_static/PT1.png" alt="Logo"/>
+  </div>
   
   <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
   
@@ -266,6 +269,12 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.simind.get_scatter_from_TEW" title="pytomography.io.SPECT.simind.get_scatter_from_TEW"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_scatter_from_TEW</span></code></a>(headerfile_peak, ...[, distance])</p></td>
 <td><p>Obtains a triple energy window scatter estimate from corresponding photopeak, lower, and upper energy windows.</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.simind.combine_projection_data" title="pytomography.io.SPECT.simind.combine_projection_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">combine_projection_data</span></code></a>(headerfiles, weights)</p></td>
+<td><p>Takes in a list of SIMIND headerfiles corresponding to different simulated regions and adds the projection data together based on the <cite>weights</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.simind.combine_scatter_data_TEW" title="pytomography.io.SPECT.simind.combine_scatter_data_TEW"><code class="xref py py-obj docutils literal notranslate"><span class="pre">combine_scatter_data_TEW</span></code></a>(headerfiles_peak, ...)</p></td>
+<td><p>Computes the triple energy window scatter estimate of the sequence of projection data weighted by <cite>weights</cite>. See <cite>combine_projection_data</cite> for more details.</p></td>
+</tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.simind.get_atteuation_map" title="pytomography.io.SPECT.simind.get_atteuation_map"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_atteuation_map</span></code></a>(headerfile)</p></td>
 <td><p>Opens attenuation data from SIMIND output</p></td>
 </tr>
@@ -354,6 +363,48 @@
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>torch.Tensor[1, Ltheta, Lr, Lz]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.simind.combine_projection_data">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.simind.</span></span><span class="sig-name descname"><span class="pre">combine_projection_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">headerfiles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/simind.html#combine_projection_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.simind.combine_projection_data" title="Permalink to this definition">#</a></dt>
+<dd><p>Takes in a list of SIMIND headerfiles corresponding to different simulated regions and adds the projection data together based on the <cite>weights</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>headerfiles</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>) – List of filepaths corresponding to the SIMIND header files of different simulated regions</p></li>
+<li><p><strong>weights</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>) – Amount by which to weight each projection relative.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Returns necessary object/image metadata along with the projection data</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(<a class="reference internal" href="../../../metadata/index.html#pytomography.metadata.ObjectMeta" title="pytomography.metadata.ObjectMeta">ObjectMeta</a>, <a class="reference internal" href="../../../metadata/index.html#pytomography.metadata.ImageMeta" title="pytomography.metadata.ImageMeta">ImageMeta</a>, torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.simind.combine_scatter_data_TEW">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.simind.</span></span><span class="sig-name descname"><span class="pre">combine_scatter_data_TEW</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">headerfiles_peak</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headerfiles_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headerfiles_upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/simind.html#combine_scatter_data_TEW"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.simind.combine_scatter_data_TEW" title="Permalink to this definition">#</a></dt>
+<dd><p>Computes the triple energy window scatter estimate of the sequence of projection data weighted by <cite>weights</cite>. See <cite>combine_projection_data</cite> for more details.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>headerfiles_peak</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>) – List of headerfiles corresponding to the photopeak</p></li>
+<li><p><strong>headerfiles_lower</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>) – List of headerfiles corresponding to the lower scatter window</p></li>
+<li><p><strong>headerfiles_upper</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>) – List of headerfiles corresponding to the upper scatter window</p></li>
+<li><p><strong>weights</strong> (<em>Sequence</em><em>[</em><em>float</em><em>]</em>) – Amount by which to weight each set of projection data by.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>_description_</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>_type_</p>
 </dd>
 </dl>
 </dd></dl>
@@ -462,6 +513,8 @@
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.find_first_entry_containing_header"><code class="docutils literal notranslate"><span class="pre">find_first_entry_containing_header()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.get_projections"><code class="docutils literal notranslate"><span class="pre">get_projections()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.get_scatter_from_TEW"><code class="docutils literal notranslate"><span class="pre">get_scatter_from_TEW()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.simind.combine_projection_data"><code class="docutils literal notranslate"><span class="pre">combine_projection_data()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.simind.combine_scatter_data_TEW"><code class="docutils literal notranslate"><span class="pre">combine_scatter_data_TEW()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.get_atteuation_map"><code class="docutils literal notranslate"><span class="pre">get_atteuation_map()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.get_psfmeta_from_header"><code class="docutils literal notranslate"><span class="pre">get_psfmeta_from_header()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.get_SPECT_recon_algorithm_simind"><code class="docutils literal notranslate"><span class="pre">get_SPECT_recon_algorithm_simind()</span></code></a></li>
@@ -469,6 +522,8 @@
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.find_first_entry_containing_header">find_first_entry_containing_header</a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.get_projections">get_projections</a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.get_scatter_from_TEW">get_scatter_from_TEW</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.simind.combine_projection_data">combine_projection_data</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.simind.combine_scatter_data_TEW">combine_scatter_data_TEW</a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.get_atteuation_map">get_atteuation_map</a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.get_psfmeta_from_header">get_psfmeta_from_header</a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.simind.get_SPECT_recon_algorithm_simind">get_SPECT_recon_algorithm_simind</a></li>

@@ -146,6 +146,9 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../../../_static/PT1.png" alt="Logo"/>
+  </div>
   
   <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
   
@@ -258,37 +261,40 @@
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.dual_sqrt_exponential" title="pytomography.io.SPECT.helpers.dual_sqrt_exponential"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dual_sqrt_exponential</span></code></a>(energy, c1, c2, d1, d2)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.compute_TEW" title="pytomography.io.SPECT.helpers.compute_TEW"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_TEW</span></code></a>(projection_lower, projection_upper, ...)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.dual_sqrt_exponential" title="pytomography.io.SPECT.helpers.dual_sqrt_exponential"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dual_sqrt_exponential</span></code></a>(energy, c1, c2, d1, d2)</p></td>
 <td><p>Function used for curve fitting of linear attenuation coefficient vs. photon energy curves from NIST. It's given by the functional form <span class="math notranslate nohighlight">\(f(x) = c_1e^{-d_1\sqrt{x}} + c_2e^{-d_2\sqrt{x}}\)</span>. It was chosen purely because it gave good fit results.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.bilinear_transform" title="pytomography.io.SPECT.helpers.bilinear_transform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bilinear_transform</span></code></a>(HU, a1, a2, b1, b2)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.bilinear_transform" title="pytomography.io.SPECT.helpers.bilinear_transform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bilinear_transform</span></code></a>(HU, a1, a2, b1, b2)</p></td>
 <td><p>Function used to convert between Hounsfield Units at an effective CT energy and linear attenuation coefficient at a given SPECT radionuclide energy. It consists of two distinct linear curves in regions <span class="math notranslate nohighlight">\(HU&lt;0\)</span> and <span class="math notranslate nohighlight">\(HU \geq 0\)</span>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.open_CT_file" title="pytomography.io.SPECT.helpers.open_CT_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open_CT_file</span></code></a>(files_CT[, return_max_slice_loc])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.open_CT_file" title="pytomography.io.SPECT.helpers.open_CT_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open_CT_file</span></code></a>(files_CT[, return_max_slice_loc])</p></td>
 <td><p>Given a list of seperate DICOM files, opens them up and stacks them together into a single CT image.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_E_mu_data_from_datasheet" title="pytomography.io.SPECT.helpers.get_E_mu_data_from_datasheet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_E_mu_data_from_datasheet</span></code></a>(file)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_E_mu_data_from_datasheet" title="pytomography.io.SPECT.helpers.get_E_mu_data_from_datasheet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_E_mu_data_from_datasheet</span></code></a>(file)</p></td>
 <td><p>Return energy and linear attenuation data from NIST datafiles of mass attenuation coefficients between 50keV and 511keV.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_mu_from_spectrum_interp" title="pytomography.io.SPECT.helpers.get_mu_from_spectrum_interp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_mu_from_spectrum_interp</span></code></a>(file, energy)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_mu_from_spectrum_interp" title="pytomography.io.SPECT.helpers.get_mu_from_spectrum_interp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_mu_from_spectrum_interp</span></code></a>(file, energy)</p></td>
 <td><p>Gets linear attenuation corresponding to a given energy in in the data from <code class="docutils literal notranslate"><span class="pre">file</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_HU_from_spectrum_interp" title="pytomography.io.SPECT.helpers.get_HU_from_spectrum_interp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_HU_from_spectrum_interp</span></code></a>(file, energy)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_HU_from_spectrum_interp" title="pytomography.io.SPECT.helpers.get_HU_from_spectrum_interp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_HU_from_spectrum_interp</span></code></a>(file, energy)</p></td>
 <td><p>Obtains the Hounsfield Units of some material at a given energy</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_HU_mu_curve" title="pytomography.io.SPECT.helpers.get_HU_mu_curve"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_HU_mu_curve</span></code></a>(files_CT, CT_kvp, E_SPECT)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_HU_mu_curve" title="pytomography.io.SPECT.helpers.get_HU_mu_curve"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_HU_mu_curve</span></code></a>(files_CT, CT_kvp, E_SPECT)</p></td>
 <td><p>Gets Housnfield Unit vs. linear attenuation coefficient for air, water, and cortical bone data points</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.HU_to_mu" title="pytomography.io.SPECT.helpers.HU_to_mu"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HU_to_mu</span></code></a>(HU, E, p_water_opt, p_air_opt)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.HU_to_mu" title="pytomography.io.SPECT.helpers.HU_to_mu"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HU_to_mu</span></code></a>(HU, E, p_water_opt, p_air_opt)</p></td>
 <td><p>Converts hounsfield units to linear attenuation coefficient</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_HU_corticalbone" title="pytomography.io.SPECT.helpers.get_HU_corticalbone"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_HU_corticalbone</span></code></a>(files_CT)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_HU_corticalbone" title="pytomography.io.SPECT.helpers.get_HU_corticalbone"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_HU_corticalbone</span></code></a>(files_CT)</p></td>
 <td><p>Obtains the Hounsfield Unit corresponding to cortical bone from a CT scan.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_ECT_from_corticalbone_HU" title="pytomography.io.SPECT.helpers.get_ECT_from_corticalbone_HU"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_ECT_from_corticalbone_HU</span></code></a>(HU)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_ECT_from_corticalbone_HU" title="pytomography.io.SPECT.helpers.get_ECT_from_corticalbone_HU"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_ECT_from_corticalbone_HU</span></code></a>(HU)</p></td>
 <td><p>Finds the effective CT energy that gives a cortical bone Hounsfield Unit value corresponding to <code class="docutils literal notranslate"><span class="pre">HU</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_HU2mu_conversion" title="pytomography.io.SPECT.helpers.get_HU2mu_conversion"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_HU2mu_conversion</span></code></a>(files_CT, CT_kvp, E_SPECT)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.helpers.get_HU2mu_conversion" title="pytomography.io.SPECT.helpers.get_HU2mu_conversion"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_HU2mu_conversion</span></code></a>(files_CT, CT_kvp, E_SPECT)</p></td>
 <td><p>Obtains the HU to mu conversion function that converts CT data to the required linear attenuation value in units of 1/cm required for attenuation correction in SPECT/PET imaging.</p></td>
 </tr>
 </tbody>
@@ -341,6 +347,11 @@
 <dl class="py data">
 <dt class="sig sig-object py" id="pytomography.io.SPECT.helpers.FILE_CBONE">
 <span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.helpers.</span></span><span class="sig-name descname"><span class="pre">FILE_CBONE</span></span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/helpers.html#FILE_CBONE"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.helpers.FILE_CBONE" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.SPECT.helpers.compute_TEW">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.helpers.</span></span><span class="sig-name descname"><span class="pre">compute_TEW</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">projection_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projection_upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_peak</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/helpers.html#compute_TEW"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.helpers.compute_TEW" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
@@ -611,6 +622,7 @@
 <li><a class="reference internal" href="#pytomography.io.SPECT.helpers.FILE_WATER"><code class="docutils literal notranslate"><span class="pre">FILE_WATER</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.helpers.FILE_AIR"><code class="docutils literal notranslate"><span class="pre">FILE_AIR</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.helpers.FILE_CBONE"><code class="docutils literal notranslate"><span class="pre">FILE_CBONE</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.compute_TEW"><code class="docutils literal notranslate"><span class="pre">compute_TEW()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.helpers.dual_sqrt_exponential"><code class="docutils literal notranslate"><span class="pre">dual_sqrt_exponential()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.helpers.bilinear_transform"><code class="docutils literal notranslate"><span class="pre">bilinear_transform()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.helpers.open_CT_file"><code class="docutils literal notranslate"><span class="pre">open_CT_file()</span></code></a></li>
@@ -627,6 +639,7 @@
 <li><a class="reference internal" href="#pytomography.io.SPECT.helpers.FILE_WATER">FILE_WATER</a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.helpers.FILE_AIR">FILE_AIR</a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.helpers.FILE_CBONE">FILE_CBONE</a></li>
+<li><a class="reference internal" href="#pytomography.io.SPECT.helpers.compute_TEW">compute_TEW</a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.helpers.dual_sqrt_exponential">dual_sqrt_exponential</a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.helpers.bilinear_transform">bilinear_transform</a></li>
 <li><a class="reference internal" href="#pytomography.io.SPECT.helpers.open_CT_file">open_CT_file</a></li>

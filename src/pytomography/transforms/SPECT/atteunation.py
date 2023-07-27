@@ -29,17 +29,37 @@ class SPECTAttenuationTransform(Transform):
 		self.CT = CT.to(self.device)
                 
 	@torch.no_grad()
-	def __call__(
+	def forward(
+		self,
+		object_i: torch.Tensor,
+		ang_idx: torch.Tensor, 
+	) -> torch.Tensor:
+		r"""Forward projection :math:`A:\mathbb{U} \to \mathbb{U}` of attenuation correction 
+
+		Args:
+			object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along ``axis=1``.
+			ang_idx (torch.Tensor): The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+
+		Returns:
+			torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.
+		"""
+		CT = pad_object(self.CT)
+		norm_factor = get_prob_of_detection_matrix(rotate_detector_z(CT.repeat(len(ang_idx),1,1,1), self.image_meta.angles[ang_idx]), self.object_meta.dx)
+		object_i*=norm_factor
+		return object_i
+
+	@torch.no_grad()
+	def backward(
 		self,
 		object_i: torch.Tensor,
 		ang_idx: torch.Tensor, 
 		norm_constant: torch.Tensor | None = None,
 	) -> torch.Tensor:
-		"""Applies attenuation modeling to an object that's being detected on the right of its first axis.
+		r"""Back projection :math:`A^T:\mathbb{U} \to \mathbb{U}` of attenuation correction. Since the matrix is diagonal, the implementation is the same as forward projection. The only difference is the optional normalization parameter.
 
 		Args:
 			object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along ``axis=1``.
-			ang_idx (torch.Tensor): The projection induces: used to find the corresponding angles in image space corresponding to ``object_i``. In particular, the x axis (tensor `axis=1`) of the object is aligned with the detector at angle i.
+			ang_idx (torch.Tensor): The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
 			norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
 
 		Returns:

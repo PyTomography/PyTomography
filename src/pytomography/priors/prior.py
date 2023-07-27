@@ -11,12 +11,11 @@ class Prior():
     
     Args:
             beta (float): Used to scale the weight of the prior
-            device (float): Pytorch device used for computation. Defaults to 'cpu'.
+
     """
     @abc.abstractmethod
     def __init__(self, beta: float):
         self.beta = beta
-        self.beta_scale_factor = 1
         self.device = pytomography.device
 
     def set_object_meta(self, object_meta: ObjectMeta) -> None:
@@ -28,14 +27,14 @@ class Prior():
         self.object_meta = object_meta
 
     def set_beta_scale(self, factor: float) -> None:
-        r"""Sets :math:`\beta` 
+        r"""Sets a scale factor for :math:`\beta` required for OSEM when finite subsets are used per iteration.
 
         Args:
-            factor (float): Value of :math:`\beta` 
+            factor (float): Value by which to scale :math:`\beta` 
         """
         self.beta_scale_factor = factor
 
-    def set_object(self, object: ObjectMeta) -> None:
+    def set_object(self, object: torch.Tensor) -> None:
         r"""Sets the object :math:`f_r` used to compute :math:`\frac{\partial V}{\partial f_r}` 
 
         Args:

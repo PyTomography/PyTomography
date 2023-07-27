@@ -27,7 +27,12 @@ class Transform(metaclass=abc.ABCMeta):
         self.image_meta = image_meta
 
     @abc.abstractmethod
-    def __call__(self, x: torch.tensor):
+    def forward(self, x: torch.tensor):
+        """Abstract method; must be implemented in subclasses to apply a correction to an object/image and return it
+        """
+        ...
+    @abc.abstractmethod
+    def backward(self, x: torch.tensor):
         """Abstract method; must be implemented in subclasses to apply a correction to an object/image and return it
         """
         ...

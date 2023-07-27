@@ -59,16 +59,25 @@ Functions
       :type image_meta: ImageMeta
 
 
-   .. py:method:: __call__(image, norm_constant = None, mode = 'forward_project')
+   .. py:method:: forward(image)
 
-      Applies attenuation modeling to a PET image.
+      Applies forward projection of attenuation modeling :math:`B:\mathbb{V} \to \mathbb{V}` to a 2D PET image.
+
+      :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
+      :type image: torch.Tensor
+
+      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected image.
+      :rtype: torch.Tensor
+
+
+   .. py:method:: backward(image, norm_constant = None)
+
+      Applies back projection of attenuation modeling :math:`B^T:\mathbb{V} \to \mathbb{V}` to a 2D PET image. Since the matrix is diagonal, its the ``backward`` implementation is identical to the ``forward`` implementation; the only difference is the optional ``norm_constant`` which is needed if one wants to normalize the back projection.
 
       :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
       :type image: torch.Tensor
       :param norm_constant: A tensor used to normalize the output during back projection. Defaults to None.
       :type norm_constant: torch.Tensor | None, optional
-      :param mode: Whether or not this is being used in forward (`'forward_project'`) or backward projection (`'back_project'`). Defaults to 'forward_project'.
-      :type mode: str, optional
 
       :returns: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected image.
       :rtype: torch.tensor

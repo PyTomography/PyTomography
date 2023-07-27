@@ -121,17 +121,34 @@ class SPECTPSFTransform(Transform):
         return torch.vstack(object_return)
     
     @torch.no_grad()
-    def __call__(
+    def forward(
+		self,
+		object_i: torch.Tensor,
+		ang_idx: int, 
+	) -> torch.tensor:
+        r"""Applies the PSF transform :math:`A:\mathbb{U} \to \mathbb{U}` for the situation where an object is being detector by a detector at the :math:`+x` axis.
+
+        Args:
+            object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
+            ang_idx (int): The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+
+        Returns:
+            torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.
+        """
+        return self.apply_psf(object_i, ang_idx)
+        
+    @torch.no_grad()
+    def backward(
 		self,
 		object_i: torch.Tensor,
 		ang_idx: int, 
 		norm_constant: torch.Tensor | None = None,
 	) -> torch.tensor:
-        """Applies PSF modeling for the situation where an object is being detector by a detector at the :math:`+x` axis.
+        r"""Applies the transpose of the PSF transform :math:`A^T:\mathbb{U} \to \mathbb{U}` for the situation where an object is being detector by a detector at the :math:`+x` axis. Since the PSF transform is a symmetric matrix, its implemtation is the same as the ``forward`` method.
 
         Args:
             object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
-            i (int): The projection index: used to find the corresponding angle in image space corresponding to ``object_i``. In particular, the x axis (tensor `axis=1`) of the object is aligned with the detector at angle i.
+            ang_idx (int): The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
             norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
 
         Returns:

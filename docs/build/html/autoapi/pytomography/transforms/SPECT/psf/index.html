@@ -146,6 +146,9 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../../../_static/PT1.png" alt="Logo"/>
+  </div>
   
   <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
   
@@ -404,16 +407,35 @@ evaluation mode.</p>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.SPECTPSFTransform.__call__">
-<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ang_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#SPECTPSFTransform.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.__call__" title="Permalink to this definition">#</a></dt>
-<dd><p>Applies PSF modeling for the situation where an object is being detector by a detector at the <span class="math notranslate nohighlight">\(+x\)</span> axis.</p>
+<dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.SPECTPSFTransform.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ang_idx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#SPECTPSFTransform.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.forward" title="Permalink to this definition">#</a></dt>
+<dd><p>Applies the PSF transform <span class="math notranslate nohighlight">\(A:\mathbb{U} \to \mathbb{U}\)</span> for the situation where an object is being detector by a detector at the <span class="math notranslate nohighlight">\(+x\)</span> axis.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>object_i</strong> (<em>torch.tensor</em>) – Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis</p></li>
-<li><p><strong>i</strong> (<em>int</em>) – The projection index: used to find the corresponding angle in image space corresponding to <code class="docutils literal notranslate"><span class="pre">object_i</span></code>. In particular, the x axis (tensor <cite>axis=1</cite>) of the object is aligned with the detector at angle i.</p></li>
+<li><p><strong>ang_idx</strong> (<em>int</em>) – The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in <code class="docutils literal notranslate"><span class="pre">object_i</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.SPECTPSFTransform.backward">
+<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ang_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#SPECTPSFTransform.backward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.backward" title="Permalink to this definition">#</a></dt>
+<dd><p>Applies the transpose of the PSF transform <span class="math notranslate nohighlight">\(A^T:\mathbb{U} \to \mathbb{U}\)</span> for the situation where an object is being detector by a detector at the <span class="math notranslate nohighlight">\(+x\)</span> axis. Since the PSF transform is a symmetric matrix, its implemtation is the same as the <code class="docutils literal notranslate"><span class="pre">forward</span></code> method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>object_i</strong> (<em>torch.tensor</em>) – Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis</p></li>
+<li><p><strong>ang_idx</strong> (<em>int</em>) – The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in <code class="docutils literal notranslate"><span class="pre">object_i</span></code>.</p></li>
 <li><p><strong>norm_constant</strong> (<em>torch.tensor</em><em>, </em><em>optional</em>) – A tensor used to normalize the output during back projection. Defaults to None.</p></li>
-<li><p><strong>ang_idx</strong> (<em>int</em>) – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -482,7 +504,8 @@ evaluation mode.</p>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.compute_kernel_size"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.compute_kernel_size()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.get_sigma"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.get_sigma()</span></code></a></li>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.apply_psf"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.apply_psf()</span></code></a></li>
-<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.__call__"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.__call__()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.forward"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.forward()</span></code></a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.backward"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.backward()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.GaussianBlurNet">GaussianBlurNet</a><ul>
@@ -495,7 +518,8 @@ evaluation mode.</p>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.compute_kernel_size">compute_kernel_size</a></li>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.get_sigma">get_sigma</a></li>
 <li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.apply_psf">apply_psf</a></li>
-<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.__call__">__call__</a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.forward">forward</a></li>
+<li><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.backward">backward</a></li>
 </ul>
 </li>
 </ul>

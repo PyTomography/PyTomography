@@ -53,7 +53,7 @@ def get_radii_and_angles(ds: Dataset) -> Sequence[torch.Tensor, np.array, np.arr
     angles = (angles + 180)%360 # to detector angle convention
     sorted_idxs = np.argsort(angles)
     projections = np.transpose(pixel_array[:,sorted_idxs][:,:,::-1], (0,1,3,2)).astype(np.float32)
-    projections= torch.tensor(projections.copy()).to(pytomography.dtype) 
+    projections= torch.tensor(projections.copy()).to(pytomography.dtype).to(pytomography.device) 
     return (projections,
              angles[sorted_idxs],
              radii[sorted_idxs]/10)
@@ -121,7 +121,7 @@ def get_scatter_from_TEW(
     ww_upper = get_window_width(ds, index_upper)
     _, _, projections_all = get_projections(file)
     scatter = (projections_all[index_lower]/ww_lower + projections_all[index_upper]/ww_upper)* ww_peak / 2
-    return scatter.unsqueeze(dim=0)
+    return scatter.unsqueeze(dim=0).to(pytomography.device)
 
 def get_attenuation_map_from_file(file_AM: str) -> torch.Tensor:
     """Gets an attenuation map from a DICOM file. This data is usually provided by the manufacturer of the SPECT scanner. 
@@ -140,7 +140,7 @@ def get_attenuation_map_from_file(file_AM: str) -> torch.Tensor:
         scale_factor = 1
     attenuation_map =  ds.pixel_array * scale_factor
     
-    return torch.tensor(np.transpose(attenuation_map, (2,1,0))).unsqueeze(dim=0).to(pytomography.dtype)
+    return torch.tensor(np.transpose(attenuation_map, (2,1,0))).unsqueeze(dim=0).to(pytomography.dtype).to(pytomography.device)
 
 def get_psfmeta_from_scanner_params(
     camera_model: str,
@@ -180,7 +180,8 @@ def get_attenuation_map_from_CT_slices(
     files_CT: Sequence[str],
     file_NM: str | None = None,
     index_peak: int = 0,
-    keep_as_HU: bool = False
+    keep_as_HU: bool = False,
+    mode: str = 'nearest'
     ) -> torch.Tensor:
     """Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography. Note that it is recommended by https://jnm.snmjournals.org/content/57/1/151.long to use the vendors attenuation map as opposed to creating your own. As such, the ``get_attenuation_map_from_file`` should be used preferentially over this function, if you have access to an attenuation map from the vendor.
 
@@ -198,7 +199,7 @@ def get_attenuation_map_from_CT_slices(
     CT_HU, max_slice_loc = open_CT_file(files_CT, return_max_slice_loc=True)
     
     if file_NM is None:
-        return torch.tensor(CT_HU[::-1,::-1,::-1].copy()).unsqueeze(dim=0).to(pytomography.dtype)
+        return torch.tensor(CT_HU[::-1,::-1,::-1].copy()).unsqueeze(dim=0).to(pytomography.dtype).to(pytomography.device)
     
     ds_NM = pydicom.read_file(file_NM)
     # 1. Align with SPECT
@@ -208,7 +209,7 @@ def get_attenuation_map_from_CT_slices(
     # Resample CT and convert to mu at 208keV and save
     M = npl.inv(M_CT) @ M_NM
     # When doing affine transform, fill outside with point below -1000HU so it automatically gets converted to mu=0 after bilinear transform
-    CT_HU = affine_transform(CT_HU, M, output_shape=(ds_NM.Rows, ds_NM.Rows, ds_NM.Columns), mode='nearest')
+    CT_HU = affine_transform(CT_HU, M, output_shape=(ds_NM.Rows, ds_NM.Rows, ds_NM.Columns), mode=mode, cval=-1500)
     
     #2. Scale to linear attenuation coefficient
     window_upper = ds_NM.EnergyWindowInformationSequence[index_peak].EnergyWindowRangeSequence[0].EnergyWindowUpperLimit
@@ -220,7 +221,7 @@ def get_attenuation_map_from_CT_slices(
         CT = CT_HU
     else:
         CT= HU2mu_conversion(CT_HU)
-    CT = torch.tensor(CT[::-1,::-1,::-1].copy()).unsqueeze(dim=0).to(pytomography.dtype)
+    CT = torch.tensor(CT[::-1,::-1,::-1].copy()).unsqueeze(dim=0).to(pytomography.dtype).to(pytomography.device)
     return CT
 
 
@@ -291,7 +292,7 @@ def stitch_multibed(
     zs = np.round((zs - zs[0])/dss[0].PixelSpacing[1]).astype(int) 
     new_z_height = zs[-1] + recons.shape[-1]
     recon_aligned = torch.zeros((1, dss[0].Rows, dss[0].Rows, new_z_height)).to(pytomography.device)
-    blank_below, blank_above = get_blank_below_above(files_NM[0])
+    blank_below, blank_above = get_blank_below_above(get_projections(files_NM[0])[2])
     for i in range(len(zs)):
         recon_aligned[:,:,:,zs[i]+blank_below:zs[i]+blank_above] = recons[i,:,:,blank_below:blank_above]
     # Apply stitching method

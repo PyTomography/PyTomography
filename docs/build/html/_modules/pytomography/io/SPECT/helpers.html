@@ -145,6 +145,9 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../../_static/PT1.png" alt="Logo"/>
+  </div>
   
   <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
   
@@ -266,6 +269,9 @@
 <div class="viewcode-block" id="FILE_WATER"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/helpers/index.html#pytomography.io.SPECT.helpers.FILE_WATER">[docs]</a><span class="n">FILE_WATER</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATADIR</span><span class="p">,</span> <span class="s1">&#39;water.csv&#39;</span><span class="p">)</span></div>
 <div class="viewcode-block" id="FILE_AIR"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/helpers/index.html#pytomography.io.SPECT.helpers.FILE_AIR">[docs]</a><span class="n">FILE_AIR</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATADIR</span><span class="p">,</span> <span class="s1">&#39;air.csv&#39;</span><span class="p">)</span></div>
 <div class="viewcode-block" id="FILE_CBONE"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/helpers/index.html#pytomography.io.SPECT.helpers.FILE_CBONE">[docs]</a><span class="n">FILE_CBONE</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATADIR</span><span class="p">,</span> <span class="s1">&#39;bonecortical.csv&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="compute_TEW"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/helpers/index.html#pytomography.io.SPECT.helpers.compute_TEW">[docs]</a><span class="k">def</span> <span class="nf">compute_TEW</span><span class="p">(</span><span class="n">projection_lower</span><span class="p">,</span> <span class="n">projection_upper</span><span class="p">,</span> <span class="n">width_lower</span><span class="p">,</span> <span class="n">width_upper</span><span class="p">,</span> <span class="n">width_peak</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">projection_lower</span><span class="o">/</span><span class="n">width_lower</span> <span class="o">+</span> <span class="n">projection_upper</span><span class="o">/</span><span class="n">width_upper</span><span class="p">)</span><span class="o">*</span><span class="n">width_peak</span> <span class="o">/</span> <span class="mi">2</span></div>
 
 <div class="viewcode-block" id="dual_sqrt_exponential"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/helpers/index.html#pytomography.io.SPECT.helpers.dual_sqrt_exponential">[docs]</a><span class="k">def</span> <span class="nf">dual_sqrt_exponential</span><span class="p">(</span>
     <span class="n">energy</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>

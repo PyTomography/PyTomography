@@ -146,6 +146,9 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../../_static/PT1.png" alt="Logo"/>
+  </div>
   
   <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
   
@@ -371,7 +374,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.io.SPECT.get_attenuation_map_from_CT_slices">
-<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.</span></span><span class="sig-name descname"><span class="pre">get_attenuation_map_from_CT_slices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files_CT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_NM</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_peak</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_as_HU</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/io/SPECT/dicom.html#get_attenuation_map_from_CT_slices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.get_attenuation_map_from_CT_slices" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.</span></span><span class="sig-name descname"><span class="pre">get_attenuation_map_from_CT_slices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files_CT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_NM</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_peak</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_as_HU</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'nearest'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/io/SPECT/dicom.html#get_attenuation_map_from_CT_slices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.get_attenuation_map_from_CT_slices" title="Permalink to this definition">#</a></dt>
 <dd><p>Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography. Note that it is recommended by <a class="reference external" href="https://jnm.snmjournals.org/content/57/1/151.long">https://jnm.snmjournals.org/content/57/1/151.long</a> to use the vendors attenuation map as opposed to creating your own. As such, the <code class="docutils literal notranslate"><span class="pre">get_attenuation_map_from_file</span></code> should be used preferentially over this function, if you have access to an attenuation map from the vendor.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -380,6 +383,7 @@
 <li><p><strong>file_NM</strong> (<em>str</em>) – File corresponding to raw PET/SPECT data (required to align CT with projections). If None, then no alignment is done. Defaults to None.</p></li>
 <li><p><strong>index_peak</strong> (<em>int</em><em>, </em><em>optional</em>) – Index corresponding to photopeak in projection data. Defaults to 0.</p></li>
 <li><p><strong>keep_as_HU</strong> (<em>bool</em>) – If True, then don’t convert to linear attenuation coefficient and keep as Hounsfield units. Defaults to False</p></li>
+<li><p><strong>mode</strong> (<em>str</em>) – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>

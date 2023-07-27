@@ -18,6 +18,7 @@ Functions
 
 .. autoapisummary::
 
+   pytomography.io.SPECT.helpers.compute_TEW
    pytomography.io.SPECT.helpers.dual_sqrt_exponential
    pytomography.io.SPECT.helpers.bilinear_transform
    pytomography.io.SPECT.helpers.open_CT_file
@@ -63,6 +64,9 @@ Attributes
 .. py:data:: FILE_CBONE
 
    
+
+.. py:function:: compute_TEW(projection_lower, projection_upper, width_lower, width_upper, width_peak)
+
 
 .. py:function:: dual_sqrt_exponential(energy, c1, c2, d1, d2)
 

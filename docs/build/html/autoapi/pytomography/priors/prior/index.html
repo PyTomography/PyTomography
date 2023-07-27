@@ -146,6 +146,9 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../../_static/PT1.png" alt="Logo"/>
+  </div>
   
   <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
   
@@ -269,10 +272,7 @@
 <dd><p>Abstract class for implementation of prior <span class="math notranslate nohighlight">\(V(f)\)</span> where <span class="math notranslate nohighlight">\(V\)</span> is from the log-posterior probability <span class="math notranslate nohighlight">\(\ln L(\tilde{f}, f) - \beta V(f)\)</span>. Any function inheriting from this class should implement a <code class="docutils literal notranslate"><span class="pre">foward</span></code> method that computes the tensor <span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}\)</span> where <span class="math notranslate nohighlight">\(f\)</span> is an object tensor.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>beta</strong> (<em>float</em>) – Used to scale the weight of the prior</p></li>
-<li><p><strong>device</strong> (<em>float</em>) – Pytorch device used for computation. Defaults to ‘cpu’.</p></li>
-</ul>
+<dd class="field-odd"><p><strong>beta</strong> (<em>float</em>) – Used to scale the weight of the prior</p>
 </dd>
 </dl>
 <dl class="py method">
@@ -292,10 +292,10 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.priors.prior.Prior.set_beta_scale">
 <span class="sig-name descname"><span class="pre">set_beta_scale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">factor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/priors/prior.html#Prior.set_beta_scale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.prior.Prior.set_beta_scale" title="Permalink to this definition">#</a></dt>
-<dd><p>Sets <span class="math notranslate nohighlight">\(\beta\)</span></p>
+<dd><p>Sets a scale factor for <span class="math notranslate nohighlight">\(\beta\)</span> required for OSEM when finite subsets are used per iteration.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>factor</strong> (<em>float</em>) – Value of <span class="math notranslate nohighlight">\(\beta\)</span></p>
+<dd class="field-odd"><p><strong>factor</strong> (<em>float</em>) – Value by which to scale <span class="math notranslate nohighlight">\(\beta\)</span></p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>
