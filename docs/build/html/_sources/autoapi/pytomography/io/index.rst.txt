@@ -18,3 +18,12 @@ Subpackages
    SPECT/index.rst
 
 
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   io_utils/index.rst
+
+

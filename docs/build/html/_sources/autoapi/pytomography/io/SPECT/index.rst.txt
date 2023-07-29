@@ -11,7 +11,6 @@ Submodules
    :maxdepth: 1
 
    dicom/index.rst
-   helpers/index.rst
    simind/index.rst
 
 

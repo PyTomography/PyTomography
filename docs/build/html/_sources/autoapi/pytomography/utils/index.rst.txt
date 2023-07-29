@@ -57,18 +57,18 @@ Functions
 
 .. py:function:: rotate_detector_z(x, angles, mode = 'bilinear', negative = False)
 
-   Returns an object tensor in a rotated reference frame such that the scanner is located at the +x axis. Note that the scanner angle $eta$ is related to $\phi$ (azimuthal angle) by $\phi = 3\pi/2 - eta$.
+   Returns an object tensor in a rotated reference frame such that the scanner is located at the +x axis. Note that the scanner angle :math:`\beta` is related to :math:`\phi` (azimuthal angle) by :math:`\phi = 3\pi/2 - \beta`.
 
    :param x: Tensor aligned with cartesian coordinate system specified
    :type x: torch.tensor[batch_size, Lx, Ly, Lz]
    :param by the manual.:
-   :param angles: The angles $eta$ where the scanner is located for each element in the batch x.
+   :param angles: The angles :math:`\beta` where the scanner is located for each element in the batch x.
    :type angles: torch.Tensor
    :param mode: Method of interpolation used to get rotated image. Defaults to bilinear.
    :type mode: str, optional
    :param negative: If True, applies an inverse rotation. In this case, the tensor
    :type negative: bool, optional
-   :param x is an object in a coordinate system aligned with $eta$:
+   :param x is an object in a coordinate system aligned with :math:`\beta`:
    :param and the function rotates the:
    :param x back to the original cartesian coordinate system specified by the users manual. In particular:
    :param if one:

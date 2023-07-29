@@ -9,7 +9,7 @@ def set_dtype(dt):
     dtype = dt
     torch.set_default_dtype(dt)
     if dt==torch.float16:
-        delta = 1e-6
+        delta = 1e-5
     elif dt==torch.float32:
         delta = 1e-11
     
