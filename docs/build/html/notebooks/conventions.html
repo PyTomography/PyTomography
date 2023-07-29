@@ -1,263 +1,349 @@
-<!doctype html>
-<html class="no-js" lang="en">
-  <head><meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Tutorials" href="../usage.html" /><link rel="prev" title="PyTomography" href="../index.html" />
 
-    <!-- Generated with Sphinx 6.1.3 and Furo 2022.12.07 -->
-        <title>Manual - PyTomography 0.8.0 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
-    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
-    
-    
+<!DOCTYPE html>
 
 
-<style>
-  body {
-    --color-code-background: #f8f8f8;
-  --color-code-foreground: black;
+<html lang="en" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Manual &#8212; PyTomography 0.8.0 documentation</title>
   
-  }
-  @media not print {
-    body[data-theme="dark"] {
-      --color-code-background: #202020;
-  --color-code-foreground: #d0d0d0;
   
-    }
-    @media (prefers-color-scheme: dark) {
-      body:not([data-theme="light"]) {
-        --color-code-background: #202020;
-  --color-code-foreground: #d0d0d0;
   
-      }
-    }
-  }
-</style></head>
-  <body>
-    
-    <script>
-      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
-    </script>
-    
-
-<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
-  <symbol id="svg-toc" viewBox="0 0 24 24">
-    <title>Contents</title>
-    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
-      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
-    </svg>
-  </symbol>
-  <symbol id="svg-menu" viewBox="0 0 24 24">
-    <title>Menu</title>
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
-      <line x1="3" y1="12" x2="21" y2="12"></line>
-      <line x1="3" y1="6" x2="21" y2="6"></line>
-      <line x1="3" y1="18" x2="21" y2="18"></line>
-    </svg>
-  </symbol>
-  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
-    <title>Expand</title>
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
-      <polyline points="9 18 15 12 9 6"></polyline>
-    </svg>
-  </symbol>
-  <symbol id="svg-sun" viewBox="0 0 24 24">
-    <title>Light mode</title>
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
-      <circle cx="12" cy="12" r="5"></circle>
-      <line x1="12" y1="1" x2="12" y2="3"></line>
-      <line x1="12" y1="21" x2="12" y2="23"></line>
-      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-      <line x1="1" y1="12" x2="3" y2="12"></line>
-      <line x1="21" y1="12" x2="23" y2="12"></line>
-      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-    </svg>
-  </symbol>
-  <symbol id="svg-moon" viewBox="0 0 24 24">
-    <title>Dark mode</title>
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
-      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
-    </svg>
-  </symbol>
-  <symbol id="svg-sun-half" viewBox="0 0 24 24">
-    <title>Auto light/dark mode</title>
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
-      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M13 12h5" />
-      <path d="M13 15h4" />
-      <path d="M13 18h1" />
-      <path d="M13 9h4" />
-      <path d="M13 6h1" />
-    </svg>
-  </symbol>
-</svg>
-
-<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
-<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
-<label class="overlay sidebar-overlay" for="__navigation">
-  <div class="visually-hidden">Hide navigation sidebar</div>
-</label>
-<label class="overlay toc-overlay" for="__toc">
-  <div class="visually-hidden">Hide table of contents sidebar</div>
-</label>
-
-
-
-<div class="page">
-  <header class="mobile-header">
-    <div class="header-left">
-      <label class="nav-overlay-icon" for="__navigation">
-        <div class="visually-hidden">Toggle site navigation sidebar</div>
-        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
-      </label>
-    </div>
-    <div class="header-center">
-      <a href="../index.html"><div class="brand">PyTomography 0.8.0 documentation</div></a>
-    </div>
-    <div class="header-right">
-      <div class="theme-toggle-container theme-toggle-header">
-        <button class="theme-toggle">
-          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
-          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
-          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
-          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
-        </button>
-      </div>
-      <label class="toc-overlay-icon toc-header-icon" for="__toc">
-        <div class="visually-hidden">Toggle table of contents sidebar</div>
-        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
-      </label>
-    </div>
-  </header>
-  <aside class="sidebar-drawer">
-    <div class="sidebar-container">
-      
-      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
   
-  <div class="sidebar-logo-container">
-    <img class="sidebar-logo" src="../_static/PT1.png" alt="Logo"/>
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=e353d410970836974a52" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=362ab14a" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=eafc0fe6" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
+
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b425c228"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'notebooks/conventions';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Tutorials" href="../usage.html" />
+    <link rel="prev" title="PyTomography" href="../index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
   </div>
   
-  <span class="sidebar-brand-text">PyTomography 0.8.0 documentation</span>
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+<div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+    <span class="fa-solid fa-bars"></span>
+  </label>
   
-</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
-  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
-  <input type="hidden" name="check_keywords" value="yes">
-  <input type="hidden" name="area" value="default">
-</form>
-<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
-  <ul class="current">
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Manual</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../usage.html">Tutorials</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../developers_guide.html">Developer’s Guide</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../autoapi/index.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../autoapi/pytomography/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pytomography/algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l4"><a class="reference internal" href="../autoapi/pytomography/algorithms/osem/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.osem</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pytomography/callbacks/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l4"><a class="reference internal" href="../autoapi/pytomography/callbacks/callback/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.callback</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pytomography/io/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l4 has-children"><a class="reference internal" href="../autoapi/pytomography/io/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l5"><a class="reference internal" href="../autoapi/pytomography/io/SPECT/dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../autoapi/pytomography/io/SPECT/helpers/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.helpers</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../autoapi/pytomography/io/SPECT/simind/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.simind</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pytomography/metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l4"><a class="reference internal" href="../autoapi/pytomography/metadata/metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.metadata</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pytomography/priors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l4"><a class="reference internal" href="../autoapi/pytomography/priors/nearest_neighbour/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.nearest_neighbour</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../autoapi/pytomography/priors/prior/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.prior</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pytomography/projections/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l4"><a class="reference internal" href="../autoapi/pytomography/projections/system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections.system_matrix</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pytomography/transforms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l4 has-children"><a class="reference internal" href="../autoapi/pytomography/transforms/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l5"><a class="reference internal" href="../autoapi/pytomography/transforms/PET/attenuation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.PET.attenuation</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../autoapi/pytomography/transforms/PET/psf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.PET.psf</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l4 has-children"><a class="reference internal" href="../autoapi/pytomography/transforms/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l5"><a class="reference internal" href="../autoapi/pytomography/transforms/SPECT/atteunation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.atteunation</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../autoapi/pytomography/transforms/SPECT/cutoff/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.cutoff</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../autoapi/pytomography/transforms/SPECT/psf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.psf</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l4"><a class="reference internal" href="../autoapi/pytomography/transforms/transform/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.transform</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pytomography/utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l4"><a class="reference internal" href="../autoapi/pytomography/utils/helper_functions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.helper_functions</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
+  <div class="navbar-header-items__start">
+    
+      <div class="navbar-item">
+  
 
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/PT1.png" class="logo__image only-light" alt="Logo image"/>
+    <script>document.write(`<img src="../_static/PT1.png" class="logo__image only-dark" alt="Logo image"/>`);</script>
+  
+  
+</a></div>
+    
+  </div>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="#">
+                        Manual
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../autoapi/index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+        </div>
+      
+      
+        <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+    </div>
+  
+
+  
+    <label class="sidebar-toggle secondary-toggle" for="__secondary">
+      <span class="fa-solid fa-outdent"></span>
+    </label>
+  
 </div>
-</div>
+
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="#">
+                        Manual
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../autoapi/index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
 
       </div>
       
+      <main id="main-content" class="bd-main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumbs">
+  <ul class="bd-breadcrumbs" role="navigation" aria-label="Breadcrumb">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">Manual</li>
+  </ul>
+</nav>
+</div>
+      
     </div>
-  </aside>
-  <div class="main">
-    <div class="content">
-      <div class="article-container">
-        <a href="#" class="back-to-top muted-link">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
-          </svg>
-          <span>Back to top</span>
-        </a>
-        <div class="content-icon-container">
-          
-<div class="theme-toggle-container theme-toggle-content">
-            <button class="theme-toggle">
-              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
-              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
-              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
-              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
-            </button>
-          </div>
-          <label class="toc-overlay-icon toc-content-icon" for="__toc">
-            <div class="visually-hidden">Toggle table of contents sidebar</div>
-            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
-          </label>
-        </div>
-        <article role="main">
-          <section id="Manual">
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section id="Manual">
 <h1>Manual<a class="headerlink" href="#Manual" title="Permalink to this heading">#</a></h1>
-<section id="Conventions">
-<h2>Conventions<a class="headerlink" href="#Conventions" title="Permalink to this heading">#</a></h2>
 <section id="Coordinates">
-<h3>Coordinates<a class="headerlink" href="#Coordinates" title="Permalink to this heading">#</a></h3>
+<h2>Coordinates<a class="headerlink" href="#Coordinates" title="Permalink to this heading">#</a></h2>
 <p>Our choice of cartesian coordinate system is the same as the DICOM standard, where <span class="math notranslate nohighlight">\(x\)</span> points from patient right to patient left, <span class="math notranslate nohighlight">\(y\)</span> points from anterior to posterior, and <span class="math notranslate nohighlight">\(z\)</span> points from inferior to superior.</p>
+<section id="SPECT-Imaging">
+<h3>SPECT Imaging<a class="headerlink" href="#SPECT-Imaging" title="Permalink to this heading">#</a></h3>
 <p>A positive scanner angle <span class="math notranslate nohighlight">\(\beta\)</span> in the DICOM standard is defines as a counterclockwise rotation of angle <span class="math notranslate nohighlight">\(\beta\)</span> from 12 o’clock when looking into the scanner. When compared to the standard azimuthal angle our defined cartesian coordinate system, it follows that <span class="math notranslate nohighlight">\(\phi = 3 \pi / 2 - \beta\)</span>. Since <span class="math notranslate nohighlight">\(\beta\)</span> is defined in the range <span class="math notranslate nohighlight">\([0, 2\pi]\)</span> it follows that <span class="math notranslate nohighlight">\(\phi\)</span> is defined in the range <span class="math notranslate nohighlight">\([-\pi/2, 3\pi/2]\)</span>.</p>
 <p>There are two primary coordinate systems considered here</p>
 <ol class="arabic simple">
@@ -265,54 +351,51 @@
 <li><p><strong>Sinogram</strong>: Specified by <span class="math notranslate nohighlight">\(r\)</span>, <span class="math notranslate nohighlight">\(\beta\)</span>, and <span class="math notranslate nohighlight">\(z\)</span>. Sinogram space is used to represent a series of 2D scans (in the <span class="math notranslate nohighlight">\(r-z\)</span> plane) at different angles <span class="math notranslate nohighlight">\(\beta\)</span>. Any item in this coordinate system are referred to as <strong>Image</strong>.</p></li>
 </ol>
 <p>As a convention, <span class="math notranslate nohighlight">\(r\)</span> is aligned with the <span class="math notranslate nohighlight">\(x\)</span>-axis at <span class="math notranslate nohighlight">\(\beta=0\)</span>. (Note this implies that <span class="math notranslate nohighlight">\(r\)</span> is aligned with the negative <span class="math notranslate nohighlight">\(y\)</span>-axis at <span class="math notranslate nohighlight">\(\beta=90^{\circ}\)</span>. which can be counterintuitive when viewing images)</p>
-<p><img alt="8c3bf809e1cf4b848a5b3c4214ca5fbd" class="no-scaled-link" src="../_images/coordinate_conventions.png" style="width: 300px;" /></p>
+<p><img alt="547c01b6cb0d4fbcb8264aa7fe83ce66" class="no-scaled-link" src="../_images/coordinate_conventions.png" style="width: 300px;" /></p>
 </section>
-<section id="Arrays">
-<h3>Arrays<a class="headerlink" href="#Arrays" title="Permalink to this heading">#</a></h3>
-<p>Objects and images are stored using pytorch tensors. The dimensions of objects are <span class="math notranslate nohighlight">\([B, L_x, L_y, L_z]\)</span> and the dimensions of images are <span class="math notranslate nohighlight">\([B, L_{\theta}, L_{r}, L_z]\)</span> where <span class="math notranslate nohighlight">\(B\)</span> specifies a batch size dimension. When reconstructing multiple objects, using batches may computational time. Batches can also be used to store images taken at different energy windows in SPECT.</p>
-<p>The index of an object tensor gives a correpsonding voxel in object space; the index of an image tensor gives a corresponding pixel in image space. Indices are arranged such that smaller indices correspond to smaller coordinate values. For example, <code class="docutils literal notranslate"><span class="pre">object_tensor[0,-1,0,0]</span></code> gives the voxel at the largest value of <span class="math notranslate nohighlight">\(x\)</span>, and the smallest values of <span class="math notranslate nohighlight">\(y\)</span> and <span class="math notranslate nohighlight">\(z\)</span>. As another example, <code class="docutils literal notranslate"><span class="pre">image_tensor[0,10,0,-1]</span></code> gives the pixel at the 10th detector angle corresponding to the smallest
-value of <span class="math notranslate nohighlight">\(r\)</span> and the largest value of <span class="math notranslate nohighlight">\(z\)</span>.</p>
-<p>When configuring data for reconstruction in this software, it is important that that all objects and projections are aligned properly along the various axes. When importing your own data, this can be achieved through a combination of transposing and inverting axes. For example, a plot of a projection at <span class="math notranslate nohighlight">\(\beta=90^{\circ}\)</span> with <span class="math notranslate nohighlight">\(r\)</span> as the horizontal axis and <span class="math notranslate nohighlight">\(z\)</span> as the vertical axis should have the patient looking to the right (see coordinate system above).</p>
 </section>
-<section id="Mathematics">
-<h3>Mathematics<a class="headerlink" href="#Mathematics" title="Permalink to this heading">#</a></h3>
-<p>Throughout tutorials and documentation, mathematical notation is often used to represent different operations. In this section we define some of the notation. Unless otherwise spcified, the symbols refer to the following:</p>
+<section id="Datatypes">
+<h2>Datatypes<a class="headerlink" href="#Datatypes" title="Permalink to this heading">#</a></h2>
+<section id="Objects/Images">
+<h3>Objects/Images<a class="headerlink" href="#Objects/Images" title="Permalink to this heading">#</a></h3>
+<p>Objects and images are stored using pytorch’s <code class="docutils literal notranslate"><span class="pre">torch.Tensor</span></code> class. The dimensions of objects are <span class="math notranslate nohighlight">\([1, L_x, L_y, L_z]\)</span> and the dimensions of images are <span class="math notranslate nohighlight">\([1,...]\)</span> where … depends on the imaging modality.</p>
 <ul class="simple">
-<li><p><span class="math notranslate nohighlight">\(f\)</span> refers to an object, and <span class="math notranslate nohighlight">\(f_i\)</span> refers to the value of the object at voxel <span class="math notranslate nohighlight">\(i\)</span></p></li>
-<li><p><span class="math notranslate nohighlight">\(g\)</span> refers to an object, and <span class="math notranslate nohighlight">\(f_j\)</span> refers to the value of the object at voxel <span class="math notranslate nohighlight">\(j\)</span></p></li>
-<li><p><span class="math notranslate nohighlight">\(H\)</span> refers to the system matrix and <span class="math notranslate nohighlight">\(H_{ji}\)</span> refers to the components: which quantifies the contribution of voxel <span class="math notranslate nohighlight">\(i\)</span> in object space to detector element <span class="math notranslate nohighlight">\(j\)</span> in image space</p></li>
+<li><p><strong>SPECT</strong>: Image has dimensions <span class="math notranslate nohighlight">\([1,L_{\theta}, L_r, L_z]\)</span> where <span class="math notranslate nohighlight">\(L_{\theta}\)</span> is the number of projections and <span class="math notranslate nohighlight">\(L_r\)</span> and <span class="math notranslate nohighlight">\(L_z\)</span> give the dimensions of the scanner.</p></li>
+<li><p><strong>2D PET</strong>: Image has dimensions <span class="math notranslate nohighlight">\([1,L_{\theta}, L_r, L_z]\)</span> where <span class="math notranslate nohighlight">\(L_{\theta}\)</span> is the number of discrete angles considered and <span class="math notranslate nohighlight">\(L_r\)</span> and <span class="math notranslate nohighlight">\(L_z\)</span> give number of radial and transaxial bins.</p></li>
 </ul>
-<p>Note that <span class="math notranslate nohighlight">\(f_i\)</span> is still represented by a four dimensional tensor, as specified in the previous section (as is <span class="math notranslate nohighlight">\(g_j\)</span>). The system matrix is never explicitly represented by a tensor (it is very large, and there are tricks we can use to simulate the operation of the system matrix without actually using matrix operations).</p>
+<p>Indices are arranged such that smaller indices correspond to smaller coordinate values. For example, <code class="docutils literal notranslate"><span class="pre">object_tensor[0,-1,0,0]</span></code> gives the voxel at the largest value of <span class="math notranslate nohighlight">\(x\)</span>, and the smallest values of <span class="math notranslate nohighlight">\(y\)</span> and <span class="math notranslate nohighlight">\(z\)</span>. As another example, <code class="docutils literal notranslate"><span class="pre">image_tensor[0,10,0,-1]</span></code> for SPECT imaging returns the number of counts detected by the pixel at the 10th detector angle corresponding to the smallest value of <span class="math notranslate nohighlight">\(r\)</span> and the largest value of <span class="math notranslate nohighlight">\(z\)</span>.</p>
 </section>
 </section>
 <section id="Mathematical-Foundations">
 <h2>Mathematical Foundations<a class="headerlink" href="#Mathematical-Foundations" title="Permalink to this heading">#</a></h2>
+<p>Throughout tutorials and documentation, mathematical notation is often used to represent different operations. Unless otherwise spcified, the symbols refer to the following:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(f\)</span> refers to an object, and <span class="math notranslate nohighlight">\(f_j\)</span> refers to the value of the object at voxel <span class="math notranslate nohighlight">\(j\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(g\)</span> refers to an object, and <span class="math notranslate nohighlight">\(g_i\)</span> refers to the value of the image at detector element <span class="math notranslate nohighlight">\(i\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(H\)</span> refers to the system matrix with components <span class="math notranslate nohighlight">\(H_{ij}\)</span>: the contribution voxel <span class="math notranslate nohighlight">\(j\)</span> in object space makes to detector element <span class="math notranslate nohighlight">\(j\)</span> in image space</p></li>
+</ul>
 <p>This section establishes a mathematical paradigm for tomography in medical imaging, and is thus mostly intended for those who wish to use PyTomography to implement novel reconstruction algorithms. It is still useful, however, for everyone to know.</p>
 <section id="Projections">
 <h3>Projections<a class="headerlink" href="#Projections" title="Permalink to this heading">#</a></h3>
 <p>PyTomography is built around two fundamental operations used in image reconstruction: <strong>Forward Projection</strong> and <strong>Back Projection</strong>.</p>
 <ul class="simple">
-<li><p><strong>Forward Projection</strong>: Takes something in object space <span class="math notranslate nohighlight">\(\mathbb{U}\)</span> and converts it to something in image space <span class="math notranslate nohighlight">\(\mathbb{V}\)</span> using the system matrix: <span class="math notranslate nohighlight">\(b_j = \sum_{i} H_{ji} a_i\)</span> (or <span class="math notranslate nohighlight">\(b = Ha\)</span>). This operation is implemented by the <code class="docutils literal notranslate"><span class="pre">forward</span></code> method of the <code class="docutils literal notranslate"><span class="pre">SystemMatrix</span></code> class.</p></li>
-<li><p><strong>Back Projection</strong>: Takes something in image space <span class="math notranslate nohighlight">\(\mathbb{V}\)</span> and converts it to something in object space <span class="math notranslate nohighlight">\(\mathbb{U}\)</span> using the system matrix: <span class="math notranslate nohighlight">\(a_i' = \frac{1}{\sum_j H_{ji}}\sum_{j} H_{ji} b_j\)</span> (or <span class="math notranslate nohighlight">\(a'=\frac{1}{H^T \vec{1}}H^T b\)</span>). This operation is implemented by the <code class="docutils literal notranslate"><span class="pre">backward</span></code> method of the <code class="docutils literal notranslate"><span class="pre">SystemMatrix</span></code> class.</p></li>
+<li><p><strong>Forward Projection</strong>: Takes an object <span class="math notranslate nohighlight">\(a\)</span> (in vector space <span class="math notranslate nohighlight">\(\mathbb{U}\)</span>) and maps to to an image <span class="math notranslate nohighlight">\(b\)</span> (in vector space <span class="math notranslate nohighlight">\(\mathbb{V}\)</span>) using the system matrix: <span class="math notranslate nohighlight">\(b_i = \sum_{i} H_{ij} a_j\)</span> (or <span class="math notranslate nohighlight">\(b = Ha\)</span>). This operation is implemented by the <code class="docutils literal notranslate"><span class="pre">forward</span></code> method a <code class="docutils literal notranslate"><span class="pre">SystemMatrix</span></code> class corresponding to a particular imaging modality.</p></li>
+<li><p><strong>Back Projection</strong>: Takes an image <span class="math notranslate nohighlight">\(b\)</span> (in vector space <span class="math notranslate nohighlight">\(\mathbb{V}\)</span>) and maps to to an image <span class="math notranslate nohighlight">\(\hat{a}\)</span> (in vector space <span class="math notranslate nohighlight">\(\mathbb{U}\)</span>) using the system matrix: <span class="math notranslate nohighlight">\(\hat{a}_i = \sum_{i} H_{ij} b_i\)</span> (or <span class="math notranslate nohighlight">\(\hat{a}=H^T b\)</span>). This operation is implemented by the <code class="docutils literal notranslate"><span class="pre">backward</span></code> method of a <code class="docutils literal notranslate"><span class="pre">SystemMatrix</span></code> class.</p></li>
 </ul>
-<p>It’s worth noting that <span class="math notranslate nohighlight">\(a_i\)</span> and <span class="math notranslate nohighlight">\(b_j\)</span> don’t have to represent physical objects or images. In the case of the OSEM algorithm, it is the ratio of two quantities that is forward projected: such a ratio does not represent a physical object.</p>
+<p>Note that projections map between distinct vector space <span class="math notranslate nohighlight">\(H:\mathbb{U} \to \mathbb{V}\)</span>. This makes them distinct from <strong>transforms</strong>, which are discussed next.</p>
 </section>
-<section id="Mappings">
-<h3>Mappings<a class="headerlink" href="#Mappings" title="Permalink to this heading">#</a></h3>
-<p>Consider the case of of a 128x128x128 object being scanned at 64 different angles, each with resolution 128x128: in this situation, the object is a vector of length 2097152 and the image is a vector of length 1048576. If each component <span class="math notranslate nohighlight">\(H_{ij}\)</span> is stored using an 8 byte float, the system matrix would require 17.6TB of harddrive space to store. Fortunately, <span class="math notranslate nohighlight">\(H\)</span> is a sparse matrix containing mostly zeros, and can be stored in a memory efficient format on a computer.</p>
-<p>Note also that <span class="math notranslate nohighlight">\(H:\mathbb{U} \to \mathbb{V}\)</span> is a non square matrix that maps from one vector space to another. In practice, it’s useful to seperate <span class="math notranslate nohighlight">\(H\)</span> into a combination of operations consisting of square matrices <span class="math notranslate nohighlight">\(A_i:\mathbb{U}\to\mathbb{U}\)</span> (object to object) and <span class="math notranslate nohighlight">\(B_i:\mathbb{V}\to \mathbb{V}\)</span> (image to image) and a single projection operator <span class="math notranslate nohighlight">\(P:\mathbb{U} \to \mathbb{V}\)</span> (object to image). The projection operator <span class="math notranslate nohighlight">\(P\)</span> is a simple operator that exists
-independently of any phenonema being modeled, while the <span class="math notranslate nohighlight">\(A_i\)</span>’s and <span class="math notranslate nohighlight">\(B_i\)</span>’s are used to model phenomena such as atteunation/PSF in SPECT/PET.</p>
-<p>A peculiar feature of PET/SPECT/CT imaging is that they are <strong>projection-based</strong>: namely, that image space <span class="math notranslate nohighlight">\(\mathbb{V}\)</span> consists of a sequence of 2D “projections”, where each item in the sequence corresponds to a particular projection angle. We can choose to express the image as <span class="math notranslate nohighlight">\(g = \sum_{\theta} g_{\theta} \otimes \hat{\theta}\)</span> where <span class="math notranslate nohighlight">\(\theta\)</span> corresponds to a particular projection angle, and <span class="math notranslate nohighlight">\(\hat{\theta}\)</span> is a unit vector that represents a specific projection angle.
-Note that <span class="math notranslate nohighlight">\(g\)</span> and <span class="math notranslate nohighlight">\(g_{\theta}\)</span> <strong>do not</strong> lie in the same vector space. In this paradigm, we can represent <span class="math notranslate nohighlight">\(H\)</span> as</p>
-<div class="math-wrapper docutils container">
+<section id="Transforms">
+<h3>Transforms<a class="headerlink" href="#Transforms" title="Permalink to this heading">#</a></h3>
+<p>Consider the case of of a 128x128x128 object being scanned at 64 different angles, each with resolution 128x128: in this situation, the object is a vector of length 2097152 and the image is a vector of length 1048576. If each component <span class="math notranslate nohighlight">\(H_{ij}\)</span> is stored using an 8 byte float, the system matrix would require 17.6TB of harddrive space to store. Fortunately, <span class="math notranslate nohighlight">\(H\)</span> is a sparse matrix containing mostly zeros, and can be implemented using efficient techniques. One of the building blocks for
+these techniques is the <strong>transform</strong>.</p>
+<p>In practice, it’s useful to decompose <span class="math notranslate nohighlight">\(H\)</span> into a combination of operations consisting of square matrices <span class="math notranslate nohighlight">\(A_i:\mathbb{U}\to\mathbb{U}\)</span> (object to object) and <span class="math notranslate nohighlight">\(B_i:\mathbb{V}\to \mathbb{V}\)</span> (image to image) and a single projection operator <span class="math notranslate nohighlight">\(P:\mathbb{U} \to \mathbb{V}\)</span> (object to image). The <span class="math notranslate nohighlight">\(A_i\)</span>’s and <span class="math notranslate nohighlight">\(B_i\)</span>’s are known as <strong>transforms</strong> and can be used to model phenomena such as atteunation/PSF in SPECT/PET.</p>
+<p>A peculiar feature of most imaging modalities is that they can be decomposed into a series of projections: namely, that image space <span class="math notranslate nohighlight">\(\mathbb{V}\)</span> consists of a sequence of <em>projections</em>. In SPECT, this corresponds to a particular rotation of the scanner, while in 3D PET, this corresponds to a particular rotatation <em>and</em> difference between axial detection coordinates of a photon pair. In either case, we can choose to express the image as
+<span class="math notranslate nohighlight">\(g = \sum_{\theta} g_{\theta} \otimes \hat{\theta}\)</span> where <span class="math notranslate nohighlight">\(\theta\)</span> corresponds to a particular projection, and <span class="math notranslate nohighlight">\(\hat{\theta}\)</span> is a unit vector that represents a specific projection. Note that <span class="math notranslate nohighlight">\(g\)</span> and <span class="math notranslate nohighlight">\(g_{\theta}\)</span> therefor <strong>do not</strong> lie in the same vector space. In this paradigm, we can represent <span class="math notranslate nohighlight">\(H\)</span> as</p>
 <div class="math notranslate nohighlight">
 \[H = \sum_{\theta} \left(\prod_i B_i(\theta) \right) P(\theta) \left(\prod_i A_i(\theta) \right) \otimes \hat{\theta}\]</div>
-</div>
 <p>To implement back projection, we also need <span class="math notranslate nohighlight">\(H^T\)</span>, which can be written as</p>
-<div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[H^T = \sum_{\theta} \left(\prod_{i,\text{reverse}} A_i^T(\theta) \right) P^T(\theta) \left(\prod_{i,\text{reverse}} B_i^T(\theta) \right) \otimes \hat{\theta}^T\]</div>
-</div>
 <p><strong>Example:</strong>: Modeling of a SPECT scanner can be written as <span class="math notranslate nohighlight">\(H_{\text{SPECT}} = \sum_{\theta} P(\theta) A_1(\theta) A_2(\theta) \otimes \hat{\theta}\)</span>. Consider a particular projection: say <span class="math notranslate nohighlight">\(\theta = 10^{\circ}\)</span>. The operator <span class="math notranslate nohighlight">\(A_2(10^{\circ})\)</span> implements atteunation modeling when the object is being projected at a scanner angle of <span class="math notranslate nohighlight">\(10^{\circ}\)</span>. It will adjust the object based on the amount of attenuating material photons have to travel through to reach the scanner at that
 particular angle. The matrix <span class="math notranslate nohighlight">\(A_1\)</span> (which is independent of scanner angle for a circular orbit) implements PSF blurring for that particular projection by blurring planes parallel to the <span class="math notranslate nohighlight">\(10^{\circ}\)</span> scanner based on the distance between the plane and the scanner. The matrix <span class="math notranslate nohighlight">\(P(\theta)\)</span> sums all the voxels together in the direction of the scanner, turning a 3D object into a 2D projection. The projection at that particular angle becomes
 <span class="math notranslate nohighlight">\(g_{10^{\circ}} = P(\theta) A_1(\theta) A_2(\theta) f\)</span> and the corresponding image (containing only 1 projection) would be <span class="math notranslate nohighlight">\(g = g_{10^{\circ}} \otimes \hat{10^{\circ}} = P(\theta) A_1(\theta) A_2(\theta) f \otimes \hat{10^{\circ}}\)</span> The net image (consisting of all projections) requires summing over all the different projections: <span class="math notranslate nohighlight">\(g = \sum_{\theta} g_{\theta} \otimes \hat{\theta}\)</span>.</p>
@@ -325,89 +408,61 @@ blurring: unlike in SPECT, it is assumed that the blurring is constant as a func
 <p>In realtity, the object <span class="math notranslate nohighlight">\(f\)</span> (and hence the image <span class="math notranslate nohighlight">\(g\)</span>) are random vectors, while the system matrix <span class="math notranslate nohighlight">\(H\)</span> is deterministic. In addition, only the vector <span class="math notranslate nohighlight">\(g\)</span> is measured. For notational simplicity, we’ll let <span class="math notranslate nohighlight">\(\tilde{f}\)</span> represent the random vector, and <span class="math notranslate nohighlight">\(f=E[\tilde{f}]\)</span> represent the mean value of <span class="math notranslate nohighlight">\(f\)</span>. This notation will be convention for the entire manual and API. As such, we can write <span class="math notranslate nohighlight">\(g=H\tilde{f}\)</span></p>
 <p>The standard reconstruction algorithm for PET and SPECT is known as the <strong>ordered-subsets expectation maximum</strong> (OSEM) algorithm. It assumes that <span class="math notranslate nohighlight">\(\tilde{f}\)</span> (and hence <span class="math notranslate nohighlight">\(g\)</span>) is a Poisson random vector, which holds when <span class="math notranslate nohighlight">\(\tilde{f}\)</span> represents the number of emissions from a radionuclide in a spatial location and in a given time interval. Before we begin the derivation, we define a new matrix <span class="math notranslate nohighlight">\(\tilde{F}\)</span> such that <span class="math notranslate nohighlight">\(\tilde{F}_{ij} = H_{ji} \tilde{f}_i\)</span>. The components
 of <span class="math notranslate nohighlight">\(\tilde{F}\)</span> denoted <span class="math notranslate nohighlight">\(\tilde{F}_{ij}\)</span> represent the number of counts from voxel <span class="math notranslate nohighlight">\(i\)</span> in image space contributing to pixel <span class="math notranslate nohighlight">\(j\)</span> in image space. Since <span class="math notranslate nohighlight">\(F\)</span> is a random vector that counts number of emissions, it is also Poisson with <span class="math notranslate nohighlight">\(\tilde{F} \sim \text{Poisson}(F)\)</span>. We now seek a maximum liklihood solution for <span class="math notranslate nohighlight">\(f\)</span>, and write the liklihood function for probability density function as</p>
-<div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{align*}
 L(\tilde{f},f) &amp;= \prod_i \prod_j \frac{F_{ij}^{\tilde{F}_{ij}}e^{-F_{ij}}}{\tilde{F}_{ij}!}\\
 \implies  \ln L(\tilde{f},f) &amp;= \sum_i \sum_j -F_{ij} + \tilde{F}_{ij} \ln(F_{ij}) - \ln(\tilde{F}_{ij}!)\\
 &amp;= \sum_i \sum_j -H_{ji}f_i + H_{ji}\tilde{f}_i \ln(H_{ji}f_i) - \ln(H_{ji}\tilde{f}_i!)
 \end{align*}\end{split}\]</div>
-</div>
 <p>Setting <span class="math notranslate nohighlight">\(\nabla_{f} \ln L(\tilde{f},f) = 0\)</span> simply yields <span class="math notranslate nohighlight">\(f = \tilde{f}\)</span>. In reality, however, we measure <span class="math notranslate nohighlight">\(g\)</span>, not <span class="math notranslate nohighlight">\(\tilde{f}\)</span>, so we need to obtain <span class="math notranslate nohighlight">\(\bar{f}\)</span> as some function of <span class="math notranslate nohighlight">\(f\)</span>. As such, the standard maximum liklihood technique will not work. What we can do, however, is consider the quantity:</p>
-<div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[E_{\tilde{f}}[\ln L(\tilde{f},f) | g, f^{(n)}] = \sum_i \sum_j -H_{ji}f_i + E[H_{ji}\tilde{f}_i|g, f^{(n)}] \ln(H_{ji}f_i) + ...\]</div>
-</div>
 <p>where <span class="math notranslate nohighlight">\(E_{\tilde{f}}\)</span> represents an operator that yields the expectation value over <span class="math notranslate nohighlight">\(\tilde{f}\)</span>. It’s important that you properly understand the interpretation of this expression. It yields the expected value of the log-liklihood, given the measured projection data <span class="math notranslate nohighlight">\(g\)</span> <strong>and</strong> a “guess” about what the distribution would look like: <span class="math notranslate nohighlight">\(f^{(n)}\)</span>. There’s just one question: what does <span class="math notranslate nohighlight">\(E_f[H_{ji}\tilde{f}_i|g, f^{(n)}]\)</span> (i.e. the expected number of emissions from voxel
 <span class="math notranslate nohighlight">\(i\)</span> contributing to image pixel <span class="math notranslate nohighlight">\(j\)</span>) look like? I claim</p>
-<div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[E_f[H_{ji}\tilde{f}_i|g, f^{(n)}] = \frac{g_j}{(Hf^{(n)})_j} H_{ji}f_i^{(n)}\]</div>
-</div>
 <p>Why? Because we’re also given information about <span class="math notranslate nohighlight">\(g\)</span>, we know information about the sums of counts along each projection line, and we can adjust the <span class="math notranslate nohighlight">\(H_{ji}f_i^{(n)}\)</span> by the ratio <span class="math notranslate nohighlight">\(\frac{g}{Hf^{(n)}}\)</span> to ensure the counts add up along projection lines. Substituting this in yields</p>
-<div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[E_{\tilde{f}}[\ln L(\tilde{f},f) | g, f^{(n)}] = \sum_i \sum_j -H_{ji}f_i + \frac{g_j}{(Hf^{(n)})_j} H_{ji}f_i^{(n)} \ln(H_{ji}f_i) + ...\]</div>
-</div>
 <p>Setting <span class="math notranslate nohighlight">\(\nabla_{f} E[\ln L(\tilde{f},f) | g, f^{(n)}]= 0\)</span> now yields</p>
-<div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[f_i =  \frac{1}{\sum_j H_{ji}} \sum_j \frac{g_j}{(Hf^{(n)})_j} H_{ji} f_i^{(n)}\]</div>
-</div>
 <p>We can rewrite this in vector notation as</p>
-<div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[f = \left[\frac{1}{H^T \vec{1}} H^T \left( \frac{g}{Hf^{(n)}}\right) \right]f^{(n)}\]</div>
-</div>
 <p>The <span class="math notranslate nohighlight">\(f\)</span> on the LHS becomes the “next guess” for the distribution <span class="math notranslate nohighlight">\(f\)</span>, so it’s better to rewrite the equation as</p>
-<div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\boxed{f^{(n+1)} = \left[\frac{1}{H^T \vec{1}} H^T \left( \frac{g}{Hf^{(n)}}\right) \right]f^{(n)}}\]</div>
-</div>
 <p>This is the basic form of the maximum liklihood expectation maximum (MLEM) algorithm. It requires an initial guess <span class="math notranslate nohighlight">\(f^{(0)}\)</span>, which is typically set to all 1’s. The ordered-subset expectation maximum (OSEM) algorithm is a projection-imaging based technique that uses a subset of the total number of angles during each iteration. While it requires more iterations to converge to a solution, it often saves time due to the smaller computational cost of projecting a small subset of angles. Using
 the same notation as the previous section, we can express <span class="math notranslate nohighlight">\(g = \sum_{\theta} g_{\theta} \otimes \hat{\theta}\)</span> and <span class="math notranslate nohighlight">\(H = \sum_{\theta} H_{\theta} \otimes \hat{\theta}\)</span>. If we seperate all the angles <span class="math notranslate nohighlight">\(\theta\)</span> into <span class="math notranslate nohighlight">\(M\)</span> distinct subsets <span class="math notranslate nohighlight">\(\Theta_0...\Theta_{M-1}\)</span>, we can write <span class="math notranslate nohighlight">\(g_m = \sum_{\theta \in \Theta_m} g_{\theta} \otimes \hat{\theta}\)</span> and <span class="math notranslate nohighlight">\(H_m = \sum_{\theta \in \Theta_m} H_{\theta} \otimes \hat{\theta}\)</span>. We can then write the OSEM algorithm as</p>
-<div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\boxed{f^{(n,m+1)} = \left[\frac{1}{H_m^T \vec{1}} H_m^T \left( \frac{g_m}{H_mf^{(n,m)}}\right) \right]f^{(n,m)}}\]</div>
-</div>
 <p>where <span class="math notranslate nohighlight">\(f^{n,M} \equiv f^{n+1,0}\)</span> (so we cycle through all the subsets, then move to the next iteration).</p>
 <section id="Scatter">
 <h4>Scatter<a class="headerlink" href="#Scatter" title="Permalink to this heading">#</a></h4>
 <p>Scatter for PET is not currently implemented in PyTomography, but it is planned for the near future. Scatter in SPECT involves modififying the denominator of the MLEM/OSEM algorithm to include scatter projections:</p>
-<div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[f^{(n,m+1)} = \left[\frac{1}{H_m^T \vec{1}} H_m^T \left( \frac{g_m}{H_mf^{(n,m)} + s_m}\right) \right]f^{(n,m)}\]</div>
-</div>
 <p>where <span class="math notranslate nohighlight">\(s_m\)</span> represents a scatter image (which is often obtained in SPECT through the triple energy window technique).</p>
 </section>
 <section id="Priors">
 <h4>Priors<a class="headerlink" href="#Priors" title="Permalink to this heading">#</a></h4>
 <p>Prior functions are used to encapsulate prior beliefs about what the reconstructed object should look like before reconstructing. For example, it may be a reasonable prior belief that adjacent voxels should have similar radiopharmaceutical concentration. Prior information can be included by modifying the liklihood function:</p>
-<div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[L(\tilde{f},f) \to  L(\tilde{f},f)e^{-\beta V(f)}\]</div>
-</div>
 <p>where <span class="math notranslate nohighlight">\(\beta\)</span> is a factor that scales the strength of the prior (note the similarity to temperature <span class="math notranslate nohighlight">\(\beta\)</span> used in statistical mechanics). Using the log liklihood method:</p>
-<div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[f^{(n,m+1)} = \left[\frac{1}{H_m^T \vec{1} + \beta \nabla_{f} V(f)} H_m^T \left( \frac{g_m}{H_mf^{(n,m)} + s_m}\right) \right]f^{(n,m)}\]</div>
-</div>
 <p>We run into a problem: what value of <span class="math notranslate nohighlight">\(f\)</span> do we use when computing the gradient of <span class="math notranslate nohighlight">\(V\)</span>? There are a few approaches to solve this issue. The first is the <strong>one step late</strong> (OSL) formalism, that uses the previous iteration value of <span class="math notranslate nohighlight">\(f\)</span>:</p>
-<div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[f^{(n,m+1)} = \left[\frac{1}{H_m^T \vec{1} + \beta \nabla_{f} V(f)|_{f=f^{(n,m)}}} H_m^T \left( \frac{g_m}{H_mf^{(n,m)} + s_m}\right) \right]f^{(n,m)}\]</div>
-</div>
 <p>The second is the <strong>block sequential regularizer</strong> (BSR) technique, which seperates each iteration into two steps:</p>
 <ol class="arabic">
-<li><div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
+<li><div class="math notranslate nohighlight">
 \[f^{(n,m+1)}_{1/2} = \left[\frac{1}{H_m^T \vec{1}} H_m^T \left( \frac{g_m}{H_mf^{(n,m)}}\right) \right]f^{(n,m)}\]</div>
-</div>
 </li>
-<li><div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
+<li><div class="math notranslate nohighlight">
 \[f^{(n,m+1)} = f^{(n,m+1)}_{1/2}\left(1-\beta \frac{\alpha_n}{H_m^T \vec{1}} \nabla_{f} V(f)|_{f=f^{(n,m)}_{1/2}}\right)\]</div>
-</div>
 </li>
 </ol>
 </section>
@@ -415,95 +470,132 @@ the same notation as the previous section, we can express <span class="math notr
 </section>
 </section>
 
-        </article>
-      </div>
-      <footer>
-        
-        <div class="related-pages">
-          <a class="next-page" href="../usage.html">
-              <div class="page-info">
-                <div class="context">
-                  <span>Next</span>
-                </div>
-                <div class="title">Tutorials</div>
-              </div>
-              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
-            </a>
-          <a class="prev-page" href="../index.html">
-              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
-              <div class="page-info">
-                <div class="context">
-                  <span>Previous</span>
-                </div>
-                
-                <div class="title">Home</div>
-                
-              </div>
-            </a>
-        </div>
-        <div class="bottom-of-page">
-          <div class="left-details">
-            <div class="copyright">
-                Copyright &#169; 2023, Luke Polson
-            </div>
-            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
-            
-            <a href="https://github.com/pradyunsg/furo">Furo</a>
-            
-          </div>
-          <div class="right-details">
-            
-          </div>
-        </div>
-        
-      </footer>
-    </div>
-    <aside class="toc-drawer">
-      
-      
-      <div class="toc-sticky toc-scroll">
-        <div class="toc-title-container">
-          <span class="toc-title">
-            On this page
-          </span>
-        </div>
-        <div class="toc-tree-container">
-          <div class="toc-tree">
-            <ul>
-<li><a class="reference internal" href="#">Manual</a><ul>
-<li><a class="reference internal" href="#Conventions">Conventions</a><ul>
-<li><a class="reference internal" href="#Coordinates">Coordinates</a></li>
-<li><a class="reference internal" href="#Arrays">Arrays</a></li>
-<li><a class="reference internal" href="#Mathematics">Mathematics</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#Mathematical-Foundations">Mathematical Foundations</a><ul>
-<li><a class="reference internal" href="#Projections">Projections</a></li>
-<li><a class="reference internal" href="#Mappings">Mappings</a></li>
-<li><a class="reference internal" href="#Reconstruction-Algorithms">Reconstruction Algorithms</a><ul>
-<li><a class="reference internal" href="#Scatter">Scatter</a></li>
-<li><a class="reference internal" href="#Priors">Priors</a></li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
 
-          </div>
-        </div>
+                </article>
+              
+              
+              
+                <footer class="bd-footer-article">
+                  
+<div class="footer-article-items footer-article__inner">
+  
+    <div class="footer-article-item"><!-- Previous / next buttons -->
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">PyTomography</p>
       </div>
-      
-      
-    </aside>
+    </a>
+    <a class="right-next"
+       href="../usage.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Tutorials</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div></div>
+  
+</div>
+
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
   </div>
-</div><script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-    <script src="../_static/doctools.js"></script>
-    <script src="../_static/sphinx_highlight.js"></script>
-    <script src="../_static/scripts/furo.js"></script>
-    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
-    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    </body>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Coordinates">Coordinates</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#SPECT-Imaging">SPECT Imaging</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Datatypes">Datatypes</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Objects/Images">Objects/Images</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Mathematical-Foundations">Mathematical Foundations</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Projections">Projections</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Transforms">Transforms</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Reconstruction-Algorithms">Reconstruction Algorithms</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#Scatter">Scatter</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#Priors">Priors</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div class="tocsection sourcelink">
+    <a href="../_sources/notebooks/conventions.ipynb.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=e353d410970836974a52"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+  <p class="copyright">
+    
+      © Copyright 2023, Luke Polson.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item"><p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.13.3.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
 </html>

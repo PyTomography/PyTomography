@@ -16,10 +16,10 @@ class OSML():
     r"""Abstract class for different algorithms. The difference between subclasses of this class is the method by which they include prior information. If no prior function is used, they are all equivalent.
 
         Args:
-            image (torch.tensor[batch_size, Lr, Ltheta, Lz]): image data :math:`g_j` to be reconstructed
+            image (torch.Tensor): image data :math:`g_j` to be reconstructed
             system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.
-            object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
-            scatter (torch.tensor[batch_size, Lr, Ltheta, Lz]): estimate of scatter contribution :math:`s_j`.
+            object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space. If None, then initial guess consists of all 1s. Defaults to None.
+            scatter (torch.Tensor): estimate of scatter contribution :math:`s_j`.Defaults to 0.
             prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.
     """
 
@@ -32,15 +32,14 @@ class OSML():
         prior: Prior = None,
     ) -> None:
         self.system_matrix = system_matrix
-        self.device = pytomography.device
         if object_initial is None:
-            self.object_prediction = torch.ones((image.shape[0], *self.system_matrix.object_meta.shape)).to(self.device)
+            self.object_prediction = torch.ones((image.shape[0], *self.system_matrix.object_meta.shape)).to(pytomography.device).to(pytomography.dtype)
         else:
-            self.object_prediction = object_initial.to(self.device)
+            self.object_prediction = object_initial.to(pytomography.device).to(pytomography.dtype)
         self.prior = prior
-        self.image = image.to(self.device)
+        self.image = image.to(pytomography.device).to(pytomography.dtype)
         if type(scatter) is torch.Tensor:
-            self.scatter = scatter.to(self.device)
+            self.scatter = scatter.to(pytomography.device).to(pytomography.dtype)
         else:
             self.scatter = scatter
         if self.prior is not None:
@@ -87,10 +86,10 @@ class OSEMOSL(OSML):
     r"""Implements the ordered subset expectation algorithm using the one-step-late method to include prior information: :math:`f_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j H_{ij} + \beta \frac{\partial V}{\partial f_r}|_{f_i=f_i^{n,m}}} \sum_j H_{ij}\frac{g_j}{\sum_i H_{ij}f_i^{n,m}+s_j}`.
 
     Args:
-        image (torch.tensor[batch_size, Lr, Ltheta, Lz]): image data :math:`g_j` to be reconstructed
+        image (torch.Tensor): image data :math:`g_j` to be reconstructed
         system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.
         object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
-        scatter (torch.tensor[batch_size, Lr, Ltheta, Lz]): estimate of scatter contribution :math:`s_j`.
+        scatter (torch.Tensor): estimate of scatter contribution :math:`s_j`.
         prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.
     """
     def __call__(
@@ -118,7 +117,10 @@ class OSEMOSL(OSML):
                 if self.prior:
                     self.prior.set_object(torch.clone(self.object_prediction))
                 ratio = (self.image+pytomography.delta) / (self.system_matrix.forward(self.object_prediction, angle_subset=subset_indices) + self.scatter + pytomography.delta)
-                self.object_prediction = self.object_prediction * self.system_matrix.backward(ratio, angle_subset=subset_indices, normalize=True, prior=self.prior)
+                ratio_BP, norm_BP = self.system_matrix.backward(ratio, angle_subset=subset_indices, return_norm_constant=True)
+                if self.prior:
+                    norm_BP += self.prior.compute_gradient()
+                self.object_prediction = self.object_prediction * ratio_BP /norm_BP
                 if callback is not None:
                     callback.run(self.object_prediction, n_iter=j, n_subset=k)
         return self.object_prediction
@@ -128,10 +130,10 @@ class OSEMBSR(OSML):
     r"""Implements the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: :math:`\tilde{f}_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j H_{ij}} \sum_j H_{ij}\frac{g_j^m}{\sum_i H_{ij}f_i^{n,m}+s_j}` followed by :math:`f_i^{n,m+1} = \tilde{f}_i^{n,m+1} \left(1-\beta\frac{\alpha_n}{\sum_j H_{ij}}\frac{\partial V}{\partial \tilde{f}_i^{n,m+1}} \right)`.
 
     Args:
-        image (torch.tensor[batch_size, Lr, Ltheta, Lz]): image data :math:`g_j` to be reconstructed
+        image (torch.Tensor): image data :math:`g_j` to be reconstructed
         object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
         system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.
-        scatter (torch.tensor[batch_size, Lr, Ltheta, Lz]): estimate of scatter contribution :math:`s_j`.
+        scatter (torch.Tensor): estimate of scatter contribution :math:`s_j`.
         prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.
 
     """
@@ -150,7 +152,6 @@ class OSEMBSR(OSML):
             n_subsets (int): Number of subsets
             relaxation_function (function): Specifies relaxation sequence :math:`\alpha_n` where :math:`n` is the iteration number. Defaults to :math:`\alpha_n=1` for all :math:`n`.
             callback (CallBack, optional): Callback function to be called after each subiteration. Defaults to None.
-            delta (_type_, optional): Used to prevent division by zero when calculating ratio, defaults to 1e-11.
 
         Returns:
             torch.tensor[batch_size, Lx, Ly, Lz]: reconstructed object
@@ -162,12 +163,13 @@ class OSEMBSR(OSML):
         for j in range(n_iters):
             for k, subset_indices in enumerate(subset_indices_array):
                 ratio = (self.image+pytomography.delta) / (self.system_matrix.forward(self.object_prediction, angle_subset=subset_indices) + self.scatter + pytomography.delta)
-                bp, norm_factor = self.system_matrix.backward(ratio, angle_subset=subset_indices, normalize=True, return_norm_constant=True)
-                self.object_prediction = self.object_prediction * bp
+                ratio_BP, norm_BP = self.system_matrix.backward(ratio, angle_subset=subset_indices, return_norm_constant=True)
+                self.object_prediction = self.object_prediction * ratio_BP / norm_BP
                 # Apply BSREM after all subsets in this iteration has been ran
                 if self.prior:
                     self.prior.set_object(torch.clone(self.object_prediction))
-                    self.object_prediction = self.object_prediction * (1 - relaxation_function(j)*self.prior.compute_gradient() / norm_factor)
+                    gradient = self.prior.compute_gradient()
+                    self.object_prediction = self.object_prediction * (1 - (relaxation_function(j)*(gradient +torch.sign(gradient)*pytomography.delta)) / (norm_BP+torch.sign(norm_BP)*pytomography.delta))
                     self.object_prediction[self.object_prediction<=0] = 0
                 # Run any callbacks
                 if callback:

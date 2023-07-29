@@ -7,6 +7,7 @@ import torch.nn as nn
 import numpy as np
 from .prior import Prior
 from collections.abc import Callable
+import pytomography
 from pytomography.utils import get_object_nearest_neighbour
 from pytomography.metadata import ObjectMeta
 
@@ -102,18 +103,16 @@ class RelativeDifferencePrior(NearestNeighbourPrior):
     Args:
             beta (float): Used to scale the weight of the prior
             gamma (float, optional): Parameter :math:`\gamma` in equation above. Defaults to 1.
-            epsilon (float, optional): Prevent division by 0, Defaults to 1e-8.
             weight (NeighbourWeight, optional). Weighting scheme to use for nearest neighbours. If ``None``, then uses EuclideanNeighbourWeight. Defaults to None.
     """
     def __init__(
         self, 
         beta: float = 1, 
         gamma: float = 1, 
-        epsilon: float = 1e-8,
         weight: NeighbourWeight | None = None,
     ) -> None:
-        gradient = lambda object, nearest, gamma, epsilon: 2*(object-nearest)*(gamma*torch.abs(object-nearest)+3*nearest+object) / (object + nearest + gamma*torch.abs(object-nearest) + epsilon)**2
-        super(RelativeDifferencePrior, self).__init__(beta, gradient, gamma=gamma, weight=weight, epsilon=epsilon)
+        gradient = lambda object, nearest, gamma: 2*(object-nearest)*(gamma*torch.abs(object-nearest)+3*nearest+object + pytomography.delta) / ((object + nearest + gamma*torch.abs(object-nearest))**2 + pytomography.delta)
+        super(RelativeDifferencePrior, self).__init__(beta, gradient, gamma=gamma, weight=weight)
         
 class NeighbourWeight():
     r"""Abstract class for assigning weight :math:`w_{r,s}` in nearest neighbour priors. 
@@ -188,4 +187,58 @@ class AnatomyNeighbourWeight(NeighbourWeight):
         # Now get weight from anatomy image
         neighbour = get_object_nearest_neighbour(self.anatomy_image, coords)
         weight *= self.similarity_function(self.anatomy_image, neighbour)
+        return weight
+    
+class TopNAnatomyNeighbourWeight(NeighbourWeight):
+    r"""Implementation of ``NeighbourWeight`` where inverse Euclidean distance and anatomical similarity is used. In this case, only the top N most similar neighbours are used as weight
+
+    Args:
+        anatomy_image (torch.Tensor[batch_size,Lx,Ly,Lz]): Object corresponding to an anatomical image (such as CT/MRI)
+        N_neighbours (int): Number of most similar neighbours to use
+    """
+    def __init__(
+        self,
+        anatomy_image: torch.Tensor,
+        N_neighbours: int,
+    ):
+        super(TopNAnatomyNeighbourWeight, self).__init__()
+        self.eucliden_neighbour_weight = EuclideanNeighbourWeight()
+        self.anatomy_image = anatomy_image
+        self.N = N_neighbours
+        self.compute_inclusion_tensor()
+        
+    def set_object_meta(self, object_meta):
+        """Sets object meta to get appropriate spacing information
+
+        Args:
+            object_meta (ObjectMeta): Object metadata.
+        """ 
+        self.object_meta = object_meta
+        self.eucliden_neighbour_weight.set_object_meta(object_meta)
+        
+    def compute_inclusion_tensor(self):
+        shape = self.anatomy_image.shape[1:]
+        self.inclusion_image = torch.zeros((3, 3, 3, *shape))
+        anatomy_cpu = self.anatomy_image.cpu()
+        for i in [-1,0,1]:
+            for j in [-1,0,1]:
+                for k in [-1,0,1]:
+                    if (i==0)*(j==0)*(k==0):
+                        self.inclusion_image[i+1,j+1,k+1] = torch.inf
+                        continue
+                    self.inclusion_image[i+1,j+1,k+1] = torch.abs(anatomy_cpu - get_object_nearest_neighbour(anatomy_cpu, (i,j,k)))
+        self.inclusion_image = self.inclusion_image.reshape((27,*shape))
+        self.inclusion_image = (torch.argsort(torch.argsort(self.inclusion_image, dim=0), dim=0)<self.N)
+        self.inclusion_image = self.inclusion_image.reshape((3,3,3,*shape))
+    
+    def __call__(self, coords):
+        r"""Computes the weight :math:`w_{r,s}` using inverse Euclidean distance and anatomical similarity between :math:`r` and :math:`s`.
+
+        Args:
+            coords (Sequence[int,int,int]): Tuple of coordinates ``(i,j,k)`` that represent the shift of neighbour :math:`s` relative to :math:`r`.
+        """
+        # Get Euclidean weight
+        weight = self.eucliden_neighbour_weight(coords)
+        # Now get weight from anatomy image
+        weight *= self.inclusion_image[coords[0]+1,coords[1]+1,coords[2]+1].to(pytomography.device).to(pytomography.dtype)
         return weight
