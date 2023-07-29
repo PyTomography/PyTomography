@@ -24,6 +24,7 @@ Classes
    pytomography.priors.nearest_neighbour.NeighbourWeight
    pytomography.priors.nearest_neighbour.EuclideanNeighbourWeight
    pytomography.priors.nearest_neighbour.AnatomyNeighbourWeight
+   pytomography.priors.nearest_neighbour.TopNAnatomyNeighbourWeight
 
 
 
@@ -86,7 +87,7 @@ Classes
    :type weight: NeighbourWeight, optional
 
 
-.. py:class:: RelativeDifferencePrior(beta = 1, gamma = 1, epsilon = 1e-08, weight = None)
+.. py:class:: RelativeDifferencePrior(beta = 1, gamma = 1, weight = None)
 
    Bases: :py:obj:`NearestNeighbourPrior`
 
@@ -96,8 +97,6 @@ Classes
    :type beta: float
    :param gamma: Parameter :math:`\gamma` in equation above. Defaults to 1.
    :type gamma: float, optional
-   :param epsilon: Prevent division by 0, Defaults to 1e-8.
-   :type epsilon: float, optional
    :param weight:
    :type weight: NeighbourWeight, optional
 
@@ -158,6 +157,37 @@ Classes
 
       :param object_meta: Object metadata.
       :type object_meta: ObjectMeta
+
+
+   .. py:method:: __call__(coords)
+
+      Computes the weight :math:`w_{r,s}` using inverse Euclidean distance and anatomical similarity between :math:`r` and :math:`s`.
+
+      :param coords: Tuple of coordinates ``(i,j,k)`` that represent the shift of neighbour :math:`s` relative to :math:`r`.
+      :type coords: Sequence[int,int,int]
+
+
+
+.. py:class:: TopNAnatomyNeighbourWeight(anatomy_image, N_neighbours)
+
+   Bases: :py:obj:`NeighbourWeight`
+
+   Implementation of ``NeighbourWeight`` where inverse Euclidean distance and anatomical similarity is used. In this case, only the top N most similar neighbours are used as weight
+
+   :param anatomy_image: Object corresponding to an anatomical image (such as CT/MRI)
+   :type anatomy_image: torch.Tensor[batch_size,Lx,Ly,Lz]
+   :param N_neighbours: Number of most similar neighbours to use
+   :type N_neighbours: int
+
+   .. py:method:: set_object_meta(object_meta)
+
+      Sets object meta to get appropriate spacing information
+
+      :param object_meta: Object metadata.
+      :type object_meta: ObjectMeta
+
+
+   .. py:method:: compute_inclusion_tensor()
 
 
    .. py:method:: __call__(coords)

@@ -42,7 +42,7 @@ def get_1D_PSF_layer(
     sigmas = torch.tensor(sigmas).to(pytomography.device).to(pytomography.dtype).reshape((N,1,1))
     kernel = torch.exp(-x**2 / (2*sigmas**2 + pytomography.delta))
     kernel = kernel / kernel.sum(axis=-1).unsqueeze(-1)
-    layer.weight.data = kernel.to(torch.float32)
+    layer.weight.data = kernel.to(pytomography.dtype)
     return layer
 
 class SPECTPSFTransform(Transform):

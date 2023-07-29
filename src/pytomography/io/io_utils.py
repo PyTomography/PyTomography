@@ -13,7 +13,7 @@ from functools import partial
 
 # Set filepaths of the module
 module_path = os.path.dirname(os.path.abspath(__file__))
-DATADIR = os.path.join(module_path, '../../data/NIST_attenuation_data')
+DATADIR = os.path.join(module_path, '../data/NIST_attenuation_data')
 FILE_WATER = os.path.join(DATADIR, 'water.csv')
 FILE_AIR = os.path.join(DATADIR, 'air.csv')
 FILE_CBONE = os.path.join(DATADIR, 'bonecortical.csv')
@@ -267,4 +267,3 @@ def get_HU2mu_conversion(
     a1opt = (mu_SPECT[1] - mu_SPECT[0]) / (HU_CT[1] - HU_CT[0])
     a2opt = (mu_SPECT[2] - mu_SPECT[1]) / (HU_CT[2] - HU_CT[1])
     return partial(bilinear_transform, a1=a1opt, a2=a2opt, b1=b1opt, b2=b2opt)
-

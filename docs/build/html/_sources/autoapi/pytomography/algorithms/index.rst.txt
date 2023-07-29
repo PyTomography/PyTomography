@@ -38,13 +38,13 @@ Classes
    Abstract class for different algorithms. The difference between subclasses of this class is the method by which they include prior information. If no prior function is used, they are all equivalent.
 
    :param image: image data :math:`g_j` to be reconstructed
-   :type image: torch.tensor[batch_size, Lr, Ltheta, Lz]
+   :type image: torch.Tensor
    :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
    :type system_matrix: SystemMatrix
-   :param object_initial: represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
+   :param object_initial: represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space. If None, then initial guess consists of all 1s. Defaults to None.
    :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
-   :param scatter: estimate of scatter contribution :math:`s_j`.
-   :type scatter: torch.tensor[batch_size, Lr, Ltheta, Lz]
+   :param scatter: estimate of scatter contribution :math:`s_j`.Defaults to 0.
+   :type scatter: torch.Tensor
    :param prior: the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.
    :type prior: Prior, optional
 
@@ -82,13 +82,13 @@ Classes
    Implements the ordered subset expectation algorithm using the one-step-late method to include prior information: :math:`f_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j H_{ij} + \beta \frac{\partial V}{\partial f_r}|_{f_i=f_i^{n,m}}} \sum_j H_{ij}\frac{g_j}{\sum_i H_{ij}f_i^{n,m}+s_j}`.
 
    :param image: image data :math:`g_j` to be reconstructed
-   :type image: torch.tensor[batch_size, Lr, Ltheta, Lz]
+   :type image: torch.Tensor
    :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
    :type system_matrix: SystemMatrix
    :param object_initial: represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
    :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
    :param scatter: estimate of scatter contribution :math:`s_j`.
-   :type scatter: torch.tensor[batch_size, Lr, Ltheta, Lz]
+   :type scatter: torch.Tensor
    :param prior: the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.
    :type prior: Prior, optional
 
@@ -115,13 +115,13 @@ Classes
    Implements the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: :math:`\tilde{f}_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j H_{ij}} \sum_j H_{ij}\frac{g_j^m}{\sum_i H_{ij}f_i^{n,m}+s_j}` followed by :math:`f_i^{n,m+1} = \tilde{f}_i^{n,m+1} \left(1-\beta\frac{\alpha_n}{\sum_j H_{ij}}\frac{\partial V}{\partial \tilde{f}_i^{n,m+1}} \right)`.
 
    :param image: image data :math:`g_j` to be reconstructed
-   :type image: torch.tensor[batch_size, Lr, Ltheta, Lz]
+   :type image: torch.Tensor
    :param object_initial: represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
    :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
    :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
    :type system_matrix: SystemMatrix
    :param scatter: estimate of scatter contribution :math:`s_j`.
-   :type scatter: torch.tensor[batch_size, Lr, Ltheta, Lz]
+   :type scatter: torch.Tensor
    :param prior: the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.
    :type prior: Prior, optional
 
@@ -137,8 +137,6 @@ Classes
       :type relaxation_function: function
       :param callback: Callback function to be called after each subiteration. Defaults to None.
       :type callback: CallBack, optional
-      :param delta: Used to prevent division by zero when calculating ratio, defaults to 1e-11.
-      :type delta: _type_, optional
 
       :returns: reconstructed object
       :rtype: torch.tensor[batch_size, Lx, Ly, Lz]

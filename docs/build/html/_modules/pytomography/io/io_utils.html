@@ -1,0 +1,679 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pytomography.io.io_utils &#8212; PyTomography 0.8.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../../../_static/styles/bootstrap.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+
+  
+  <link href="../../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=e353d410970836974a52" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=362ab14a" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=eafc0fe6" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
+
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js?v=b425c228"></script>
+    <script src="../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pytomography/io/io_utils';</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+<div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+    <span class="fa-solid fa-bars"></span>
+  </label>
+  
+  <div class="navbar-header-items__start">
+    
+      <div class="navbar-item">
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/PT1.png" class="logo__image only-light" alt="Logo image"/>
+    <script>document.write(`<img src="../../../_static/PT1.png" class="logo__image only-dark" alt="Logo image"/>`);</script>
+  
+  
+</a></div>
+    
+  </div>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../notebooks/conventions.html">
+                        Manual
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../autoapi/index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+        </div>
+      
+      
+        <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+    </div>
+  
+
+  
+</div>
+
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../notebooks/conventions.html">
+                        Manual
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../autoapi/index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumbs">
+  <ul class="bd-breadcrumbs" role="navigation" aria-label="Breadcrumb">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../pytomography.html" class="nav-link">pytomography</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page">pytomography.io.io_utils</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <h1>Source code for pytomography.io.io_utils</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;This module contains helper function for inputting/outputting/interpretting SPECT/CT data in the SIMIND and DICOM file formats. A considerable amount of these functions have to do with creating attenuation maps from CT data files for attenuation correction in SPECT imaging.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">curve_fit</span><span class="p">,</span> <span class="n">minimize</span>
+<span class="kn">from</span> <span class="nn">scipy.signal</span> <span class="kn">import</span> <span class="n">find_peaks</span>
+<span class="kn">import</span> <span class="nn">pydicom</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+
+<span class="c1"># Set filepaths of the module</span>
+<div class="viewcode-block" id="module_path"><a class="viewcode-back" href="../../../autoapi/pytomography/io/io_utils/index.html#pytomography.io.io_utils.module_path">[docs]</a><span class="n">module_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span></div>
+<div class="viewcode-block" id="DATADIR"><a class="viewcode-back" href="../../../autoapi/pytomography/io/io_utils/index.html#pytomography.io.io_utils.DATADIR">[docs]</a><span class="n">DATADIR</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">module_path</span><span class="p">,</span> <span class="s1">&#39;../data/NIST_attenuation_data&#39;</span><span class="p">)</span></div>
+<div class="viewcode-block" id="FILE_WATER"><a class="viewcode-back" href="../../../autoapi/pytomography/io/io_utils/index.html#pytomography.io.io_utils.FILE_WATER">[docs]</a><span class="n">FILE_WATER</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATADIR</span><span class="p">,</span> <span class="s1">&#39;water.csv&#39;</span><span class="p">)</span></div>
+<div class="viewcode-block" id="FILE_AIR"><a class="viewcode-back" href="../../../autoapi/pytomography/io/io_utils/index.html#pytomography.io.io_utils.FILE_AIR">[docs]</a><span class="n">FILE_AIR</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATADIR</span><span class="p">,</span> <span class="s1">&#39;air.csv&#39;</span><span class="p">)</span></div>
+<div class="viewcode-block" id="FILE_CBONE"><a class="viewcode-back" href="../../../autoapi/pytomography/io/io_utils/index.html#pytomography.io.io_utils.FILE_CBONE">[docs]</a><span class="n">FILE_CBONE</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATADIR</span><span class="p">,</span> <span class="s1">&#39;bonecortical.csv&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="compute_TEW"><a class="viewcode-back" href="../../../autoapi/pytomography/io/io_utils/index.html#pytomography.io.io_utils.compute_TEW">[docs]</a><span class="k">def</span> <span class="nf">compute_TEW</span><span class="p">(</span><span class="n">projection_lower</span><span class="p">,</span> <span class="n">projection_upper</span><span class="p">,</span> <span class="n">width_lower</span><span class="p">,</span> <span class="n">width_upper</span><span class="p">,</span> <span class="n">width_peak</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">projection_lower</span><span class="o">/</span><span class="n">width_lower</span> <span class="o">+</span> <span class="n">projection_upper</span><span class="o">/</span><span class="n">width_upper</span><span class="p">)</span><span class="o">*</span><span class="n">width_peak</span> <span class="o">/</span> <span class="mi">2</span></div>
+
+<div class="viewcode-block" id="dual_sqrt_exponential"><a class="viewcode-back" href="../../../autoapi/pytomography/io/io_utils/index.html#pytomography.io.io_utils.dual_sqrt_exponential">[docs]</a><span class="k">def</span> <span class="nf">dual_sqrt_exponential</span><span class="p">(</span>
+    <span class="n">energy</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">c1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">c2</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">d1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">d2</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Function used for curve fitting of linear attenuation coefficient vs. photon energy curves from NIST. It&#39;s given by the functional form :math:`f(x) = c_1e^{-d_1\sqrt{x}} + c_2e^{-d_2\sqrt{x}}`. It was chosen purely because it gave good fit results.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        energy (float): Energy of photon</span>
+<span class="sd">        c1 (float): Fit parameter 1</span>
+<span class="sd">        c2 (float): Fit parameter 2</span>
+<span class="sd">        d1 (float): Fit parameter 3</span>
+<span class="sd">        d2 (float): Fit parameter 4</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: _description_</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">c1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">d1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">energy</span><span class="p">))</span> <span class="o">+</span> <span class="n">c2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">d2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">energy</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="bilinear_transform"><a class="viewcode-back" href="../../../autoapi/pytomography/io/io_utils/index.html#pytomography.io.io_utils.bilinear_transform">[docs]</a><span class="k">def</span> <span class="nf">bilinear_transform</span><span class="p">(</span>
+    <span class="n">HU</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">a1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">a2</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">b1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">b2</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Function used to convert between Hounsfield Units at an effective CT energy and linear attenuation coefficient at a given SPECT radionuclide energy. It consists of two distinct linear curves in regions :math:`HU&lt;0` and :math:`HU \geq 0`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        HU (float): Hounsfield units at CT energy</span>
+<span class="sd">        a1 (float): Fit parameter 1</span>
+<span class="sd">        a2 (float): Fit parameter 2</span>
+<span class="sd">        b1 (float): Fit parameter 3</span>
+<span class="sd">        b2 (float): Fit parameter 4</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: Linear attenuation coefficient at SPECT energy</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">output</span> <span class="o">=</span>  <span class="n">np</span><span class="o">.</span><span class="n">piecewise</span><span class="p">(</span>
+        <span class="n">HU</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">HU</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">HU</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">],</span>
+        <span class="p">[</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">a1</span><span class="o">*</span><span class="n">x</span> <span class="o">+</span> <span class="n">b1</span><span class="p">,</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">a2</span><span class="o">*</span><span class="n">x</span> <span class="o">+</span> <span class="n">b2</span><span class="p">])</span>
+    <span class="n">output</span><span class="p">[</span><span class="n">output</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">output</span></div>
+
+<div class="viewcode-block" id="open_CT_file"><a class="viewcode-back" href="../../../autoapi/pytomography/io/io_utils/index.html#pytomography.io.io_utils.open_CT_file">[docs]</a><span class="k">def</span> <span class="nf">open_CT_file</span><span class="p">(</span>
+    <span class="n">files_CT</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">return_max_slice_loc</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Given a list of seperate DICOM files, opens them up and stacks them together into a single CT image. </span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        files_CT (Sequence[str]): List of DICOM files corresponding to a particular scan</span>
+<span class="sd">        return_max_slice_loc (bool, optional): Whether or not to return the max slice location of all the CT files. Needed when applying affine transformation to align CT and SPECT images. Defaults to False.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.array: CT scan in units of Hounsfield Units at the effective CT energy.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">CT</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">slice_locs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files_CT</span><span class="p">:</span>
+        <span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        <span class="n">CT</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">pixel_array</span><span class="p">)</span>
+        <span class="n">slice_locs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">SliceLocation</span><span class="p">))</span>
+    <span class="n">CT</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">CT</span><span class="p">)[</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">slice_locs</span><span class="p">)],</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">CT</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">RescaleSlope</span> <span class="o">*</span> <span class="n">CT</span> <span class="o">+</span> <span class="n">ds</span><span class="o">.</span><span class="n">RescaleIntercept</span>
+    <span class="k">if</span> <span class="n">return_max_slice_loc</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">CT</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">slice_locs</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">CT</span></div>
+
+<div class="viewcode-block" id="get_E_mu_data_from_datasheet"><a class="viewcode-back" href="../../../autoapi/pytomography/io/io_utils/index.html#pytomography.io.io_utils.get_E_mu_data_from_datasheet">[docs]</a><span class="k">def</span> <span class="nf">get_E_mu_data_from_datasheet</span><span class="p">(</span><span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return energy and linear attenuation data from NIST datafiles of mass attenuation coefficients between 50keV and 511keV.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        file (str): Location of NIST data file. Corresponds to a particular element/material.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple[np.array, np.array]: Energy and linear attenuation values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">)):</span>
+        <span class="n">lines</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\s+&#39;</span><span class="p">,</span> <span class="n">lines</span><span class="p">[</span><span class="n">i</span><span class="p">])[</span><span class="o">-</span><span class="mi">4</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">E</span><span class="p">,</span> <span class="n">mu_rho</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">E</span><span class="o">*=</span><span class="mi">1000</span>
+    <span class="n">mu</span> <span class="o">=</span> <span class="n">mu_rho</span> <span class="o">*</span> <span class="n">rho</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="p">(</span><span class="n">E</span><span class="o">&gt;</span><span class="mi">50</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">E</span><span class="o">&lt;</span><span class="mi">550</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">E</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">mu</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="get_mu_from_spectrum_interp"><a class="viewcode-back" href="../../../autoapi/pytomography/io/io_utils/index.html#pytomography.io.io_utils.get_mu_from_spectrum_interp">[docs]</a><span class="k">def</span> <span class="nf">get_mu_from_spectrum_interp</span><span class="p">(</span>
+    <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">energy</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets linear attenuation corresponding to a given energy in in the data from ``file``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        file (str): Filepath of the mu-energy data</span>
+<span class="sd">        energy (float): Energy at which mu is computed</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.array: Linear attenuation coefficient (in 1/cm) at the desired energies.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">Edata</span><span class="p">,</span> <span class="n">mudata</span> <span class="o">=</span> <span class="n">get_E_mu_data_from_datasheet</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+    <span class="n">p_f2_opt</span> <span class="o">=</span> <span class="n">curve_fit</span><span class="p">(</span><span class="n">dual_sqrt_exponential</span><span class="p">,</span> <span class="n">Edata</span><span class="p">,</span> <span class="n">mudata</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">dual_sqrt_exponential</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span> <span class="o">*</span><span class="n">p_f2_opt</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="get_HU_from_spectrum_interp"><a class="viewcode-back" href="../../../autoapi/pytomography/io/io_utils/index.html#pytomography.io.io_utils.get_HU_from_spectrum_interp">[docs]</a><span class="k">def</span> <span class="nf">get_HU_from_spectrum_interp</span><span class="p">(</span>
+    <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">energy</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtains the Hounsfield Units of some material at a given energy</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        file (str): Filepath of material</span>
+<span class="sd">        energy (float): Energy at which HU is desired</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.array: HU at the desired energies.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mu_water</span> <span class="o">=</span> <span class="n">get_mu_from_spectrum_interp</span><span class="p">(</span><span class="n">FILE_WATER</span><span class="p">,</span> <span class="n">energy</span><span class="p">)</span>
+    <span class="n">mu_air</span> <span class="o">=</span> <span class="n">get_mu_from_spectrum_interp</span><span class="p">(</span><span class="n">FILE_AIR</span><span class="p">,</span> <span class="n">energy</span><span class="p">)</span>
+    <span class="n">mu_material</span> <span class="o">=</span> <span class="n">get_mu_from_spectrum_interp</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">energy</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">mu_material</span> <span class="o">-</span> <span class="n">mu_water</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">mu_water</span><span class="o">-</span><span class="n">mu_air</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span></div>
+
+<div class="viewcode-block" id="get_HU_mu_curve"><a class="viewcode-back" href="../../../autoapi/pytomography/io/io_utils/index.html#pytomography.io.io_utils.get_HU_mu_curve">[docs]</a><span class="k">def</span> <span class="nf">get_HU_mu_curve</span><span class="p">(</span>
+    <span class="n">files_CT</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">CT_kvp</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">E_SPECT</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="p">)</span> <span class="o">-&gt;</span><span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets Housnfield Unit vs. linear attenuation coefficient for air, water, and cortical bone data points</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        files_CT (Sequence[str]): Filepaths of all CT slices</span>
+<span class="sd">        CT_kvp (float): Value of kVp for the CT scan</span>
+<span class="sd">        E_SPECT (float): Photopeak energy of the SPECT scan</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple[np.array, np.array]: </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># try to get HU corresponding to cortical bone</span>
+    <span class="n">HU_cortical_bone</span> <span class="o">=</span> <span class="n">get_HU_corticalbone</span><span class="p">(</span><span class="n">files_CT</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">HU_cortical_bone</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># compute effective CT energy from CBone HU</span>
+        <span class="n">E_CT</span> <span class="o">=</span> <span class="n">get_ECT_from_corticalbone_HU</span><span class="p">(</span><span class="n">HU_cortical_bone</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Cortical Bone Peak: </span><span class="si">{</span><span class="n">HU_cortical_bone</span><span class="si">}</span><span class="s1"> HU&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Effective CT Energy Determined: </span><span class="si">{</span><span class="n">E_CT</span><span class="si">}</span><span class="s1"> keV&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># If can&#39;t get cortical bone peak, default to 75% KVP value</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Could not find cortical bone peak: defaulting to 75% kVp value&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">Warning</span><span class="p">)</span>
+        <span class="n">E_CT</span> <span class="o">=</span> <span class="mf">0.75</span> <span class="o">*</span> <span class="n">CT_kvp</span>
+    <span class="n">HU_CT</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">mu_SPECT</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="p">[</span><span class="n">FILE_AIR</span><span class="p">,</span> <span class="n">FILE_WATER</span><span class="p">,</span> <span class="n">FILE_CBONE</span><span class="p">]:</span>
+        <span class="n">HU_CT</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">get_HU_from_spectrum_interp</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">E_CT</span><span class="p">))</span>
+        <span class="n">mu_SPECT</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">get_mu_from_spectrum_interp</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">E_SPECT</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">HU_CT</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">mu_SPECT</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HU_to_mu"><a class="viewcode-back" href="../../../autoapi/pytomography/io/io_utils/index.html#pytomography.io.io_utils.HU_to_mu">[docs]</a><span class="k">def</span> <span class="nf">HU_to_mu</span><span class="p">(</span>
+    <span class="n">HU</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">E</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">p_water_opt</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+    <span class="n">p_air_opt</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+    <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts hounsfield units to linear attenuation coefficient</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        HU (float): Hounsfield Unit value</span>
+<span class="sd">        E (float): Effective CT energy</span>
+<span class="sd">        p_water_opt (Sequence[float]): Optimal fit parameters for mu vs. E data for water</span>
+<span class="sd">        p_air_opt (Sequence[float]): Optimal fit parameters for mu vs. E data for air</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        _type_: _description_</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">mu_water</span> <span class="o">=</span> <span class="n">dual_sqrt_exponential</span><span class="p">(</span><span class="n">E</span><span class="p">,</span> <span class="o">*</span><span class="n">p_water_opt</span><span class="p">)</span>
+    <span class="n">mu_air</span> <span class="o">=</span> <span class="n">dual_sqrt_exponential</span><span class="p">(</span><span class="n">E</span><span class="p">,</span> <span class="o">*</span><span class="n">p_air_opt</span><span class="p">)</span>
+    <span class="k">return</span> <span class="mi">1</span><span class="o">/</span><span class="mi">1000</span> <span class="o">*</span> <span class="n">HU</span> <span class="o">*</span> <span class="p">(</span><span class="n">mu_water</span> <span class="o">-</span> <span class="n">mu_air</span><span class="p">)</span> <span class="o">+</span> <span class="n">mu_water</span></div>
+
+<div class="viewcode-block" id="get_HU_corticalbone"><a class="viewcode-back" href="../../../autoapi/pytomography/io/io_utils/index.html#pytomography.io.io_utils.get_HU_corticalbone">[docs]</a><span class="k">def</span> <span class="nf">get_HU_corticalbone</span><span class="p">(</span>
+    <span class="n">files_CT</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtains the Hounsfield Unit corresponding to cortical bone from a CT scan.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        files_CT (Sequence[str]): CT data files</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float | None: Hounsfield unit of bone. If not found, then returns ``None``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">HU_from_CT_slices</span> <span class="o">=</span> <span class="n">open_CT_file</span><span class="p">(</span><span class="n">files_CT</span><span class="p">)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">HU_from_CT_slices</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="n">N</span><span class="p">,</span> <span class="n">bin_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">x</span><span class="p">[(</span><span class="n">x</span><span class="o">&gt;</span><span class="mi">1200</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="o">&lt;</span><span class="mi">1600</span><span class="p">)],</span> <span class="n">bins</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">bins</span> <span class="o">=</span> <span class="n">bin_edges</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">bin_edges</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span>
+    <span class="c1"># Compute laplacian of histogram</span>
+    <span class="n">N_laplace</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">N</span><span class="p">))</span>
+    <span class="n">peaks</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">find_peaks</span><span class="p">(</span><span class="n">N_laplace</span><span class="p">,</span> <span class="n">prominence</span><span class="o">=</span><span class="mf">8e-5</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">bins</span><span class="p">[</span><span class="n">peaks</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+    
+<div class="viewcode-block" id="get_ECT_from_corticalbone_HU"><a class="viewcode-back" href="../../../autoapi/pytomography/io/io_utils/index.html#pytomography.io.io_utils.get_ECT_from_corticalbone_HU">[docs]</a><span class="k">def</span> <span class="nf">get_ECT_from_corticalbone_HU</span><span class="p">(</span><span class="n">HU</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Finds the effective CT energy that gives a cortical bone Hounsfield Unit value corresponding to ``HU``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        HU (float): Hounsfield Unit of Cortical bone at effective CT energy</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: Effective CT energy</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">Edata</span><span class="p">,</span> <span class="n">mudata_CB</span> <span class="o">=</span> <span class="n">get_E_mu_data_from_datasheet</span><span class="p">(</span><span class="n">FILE_CBONE</span><span class="p">)</span>
+    <span class="n">Edata</span><span class="p">,</span> <span class="n">mudata_water</span> <span class="o">=</span> <span class="n">get_E_mu_data_from_datasheet</span><span class="p">(</span><span class="n">FILE_WATER</span><span class="p">)</span>
+    <span class="n">Edata</span><span class="p">,</span> <span class="n">mudata_air</span> <span class="o">=</span> <span class="n">get_E_mu_data_from_datasheet</span><span class="p">(</span><span class="n">FILE_AIR</span><span class="p">)</span>
+    <span class="n">p_CB_opt</span> <span class="o">=</span> <span class="n">curve_fit</span><span class="p">(</span><span class="n">dual_sqrt_exponential</span><span class="p">,</span> <span class="n">Edata</span><span class="p">,</span> <span class="n">mudata_CB</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">p_water_opt</span> <span class="o">=</span> <span class="n">curve_fit</span><span class="p">(</span><span class="n">dual_sqrt_exponential</span><span class="p">,</span> <span class="n">Edata</span><span class="p">,</span> <span class="n">mudata_water</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">p_air_opt</span> <span class="o">=</span> <span class="n">curve_fit</span><span class="p">(</span><span class="n">dual_sqrt_exponential</span><span class="p">,</span> <span class="n">Edata</span><span class="p">,</span> <span class="n">mudata_air</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">E</span><span class="p">:</span> <span class="mi">100</span><span class="o">*</span><span class="p">(</span><span class="n">dual_sqrt_exponential</span><span class="p">(</span><span class="n">E</span><span class="p">,</span> <span class="o">*</span><span class="n">p_CB_opt</span><span class="p">)</span> <span class="o">-</span> <span class="n">HU_to_mu</span><span class="p">(</span><span class="n">HU</span><span class="p">,</span> <span class="n">E</span><span class="p">,</span> <span class="n">p_water_opt</span><span class="p">,</span> <span class="n">p_air_opt</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span>
+    <span class="k">return</span> <span class="n">minimize</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">x0</span><span class="o">=</span><span class="p">(</span><span class="mi">115</span><span class="p">),</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;SLSQP&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="get_HU2mu_conversion"><a class="viewcode-back" href="../../../autoapi/pytomography/io/io_utils/index.html#pytomography.io.io_utils.get_HU2mu_conversion">[docs]</a><span class="k">def</span> <span class="nf">get_HU2mu_conversion</span><span class="p">(</span>
+    <span class="n">files_CT</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">CT_kvp</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">E_SPECT</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">function</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtains the HU to mu conversion function that converts CT data to the required linear attenuation value in units of 1/cm required for attenuation correction in SPECT/PET imaging.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        files_CT (Sequence[str]): CT data files</span>
+<span class="sd">        CT_kvp (float): kVp value for CT scan</span>
+<span class="sd">        E_SPECT (float): Energy of photopeak in SPECT scan</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        function: Conversion function from HU to mu.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">HU_CT</span><span class="p">,</span> <span class="n">mu_SPECT</span> <span class="o">=</span> <span class="n">get_HU_mu_curve</span><span class="p">(</span><span class="n">files_CT</span><span class="p">,</span> <span class="n">CT_kvp</span><span class="p">,</span> <span class="n">E_SPECT</span><span class="p">)</span>
+    <span class="n">b1opt</span> <span class="o">=</span> <span class="n">b2opt</span> <span class="o">=</span> <span class="n">mu_SPECT</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="c1">#water atten value</span>
+    <span class="n">a1opt</span> <span class="o">=</span> <span class="p">(</span><span class="n">mu_SPECT</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">mu_SPECT</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="n">HU_CT</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">HU_CT</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">a2opt</span> <span class="o">=</span> <span class="p">(</span><span class="n">mu_SPECT</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">mu_SPECT</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="n">HU_CT</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">HU_CT</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">partial</span><span class="p">(</span><span class="n">bilinear_transform</span><span class="p">,</span> <span class="n">a1</span><span class="o">=</span><span class="n">a1opt</span><span class="p">,</span> <span class="n">a2</span><span class="o">=</span><span class="n">a2opt</span><span class="p">,</span> <span class="n">b1</span><span class="o">=</span><span class="n">b1opt</span><span class="p">,</span> <span class="n">b2</span><span class="o">=</span><span class="n">b2opt</span><span class="p">)</span></div>
+</pre></div>
+
+                </article>
+              
+              
+              
+                <footer class="bd-footer-article">
+                  
+<div class="footer-article-items footer-article__inner">
+  
+    <div class="footer-article-item"><!-- Previous / next buttons -->
+<div class="prev-next-area">
+</div></div>
+  
+</div>
+
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52"></script>
+<script src="../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+  <p class="copyright">
+    
+      © Copyright 2023, Luke Polson.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item"><p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.13.3.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

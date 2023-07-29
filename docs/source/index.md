@@ -12,7 +12,7 @@ Be sure to check out {doc}`notebooks/conventions` and  {doc}`usage` for some sim
 ## Contents
 
 ```{toctree}
-:maxdepth: 3
+:maxdepth: 1
 
 notebooks/conventions
 usage

@@ -12,7 +12,7 @@ from pytomography.transforms import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.priors import Prior
 from pytomography.metadata import PSFMeta
 from pytomography.algorithms import OSEMOSL
-from .helpers import get_mu_from_spectrum_interp, compute_TEW
+from ..io_utils import get_mu_from_spectrum_interp, compute_TEW
 
 relation_dict = {'unsignedinteger': 'int',
                  'shortfloat': 'float',

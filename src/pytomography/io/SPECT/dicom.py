@@ -18,7 +18,7 @@ from pytomography.metadata import ObjectMeta, ImageMeta
 from pytomography.projections import SystemMatrix
 from pytomography.metadata import PSFMeta
 from pytomography.utils import get_blank_below_above, bilinear_transform
-from .helpers import open_CT_file, get_HU2mu_conversion, get_mu_from_spectrum_interp
+from ..io_utils import open_CT_file, get_HU2mu_conversion, get_mu_from_spectrum_interp
 
 def get_radii_and_angles(ds: Dataset) -> Sequence[torch.Tensor, np.array, np.array]:
     """Gets projections with corresponding radii and angles corresponding to projection data from a DICOM file.

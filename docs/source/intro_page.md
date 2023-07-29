@@ -1,7 +1,10 @@
 # PyTomography
 
 <p style='text-align: justify;'>
-PyTomography is a python library for medical image reconstruction. It uses the functionality of PyTorch to (i) enable fast GPU-accelerated reconstruction and (ii) permit easy integration of deep-learning models in traditional reconstruction algorithms
+PyTomography is a python library for medical image reconstruction. It uses the functionality of PyTorch to (i) enable fast GPU-accelerated reconstruction and (ii) permit easy integration of deep-learning models in traditional reconstruction algorithms.
+
+![](images/deepblue.png)
+* *SPECT/CT Images of patient receiving targeted radionuclide therapy with Lu177 DOTATATE for neuroendocrine tumours (4 cycles of 7.4 GBq/cycle administered every 8 weeks). Columns correspond to images taken X days after injection. Top row corresponds to reconstruction using OSEM (5 iterations, 8 subsets) while bottom row corresponds to use of BSREM (30 iterations, 8 subsets) using the relative difference prior using anatomical information to include only similar neighbours.*
 
 ## Supported Modalities
 * Single Photon Computed Emission Tomography (SPECT)
