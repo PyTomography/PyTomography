@@ -58,6 +58,7 @@ class PETPSFTransform(Transform):
         """
         image = image.permute(0,1,3,2).unsqueeze(dim=-1)
         image = torch.matmul(self.PSF_matrix,image)
+        image = image.squeeze(dim=-1).permute(0,1,3,2)
         return image
     
     @torch.no_grad()
