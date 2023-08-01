@@ -1,6 +1,5 @@
 import torch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-torch.set_default_device(device)
 if device == "cpu":
     print("PyTomography did not find a GPU available on this machine. If this is not expected, please check your CUDA installation.")
 dtype = torch.float32
