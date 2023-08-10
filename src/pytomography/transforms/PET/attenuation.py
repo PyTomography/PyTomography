@@ -1,7 +1,7 @@
 from __future__ import annotations
 import torch
 import pytomography
-from pytomography.utils.helper_functions import rotate_detector_z, pad_image
+from pytomography.utils import rotate_detector_z, pad_image
 from pytomography.transforms import Transform
 from pytomography.metadata import ObjectMeta, ImageMeta
 

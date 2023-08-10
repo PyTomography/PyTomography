@@ -1,13 +1,11 @@
 from __future__ import annotations
-from typing import Sequence
 import torch
 import torch.nn as nn
 import numpy as np
 import pytomography
-from pytomography.utils import get_distance, compute_pad_size, pad_object, pad_object_z, unpad_object_z, rotate_detector_z, unpad_object
+from pytomography.utils import get_distance, compute_pad_size
 from pytomography.transforms import Transform
-from pytomography.metadata import ObjectMeta, ImageMeta, PSFMeta
-import time
+from pytomography.metadata import SPECTObjectMeta, SPECTImageMeta, SPECTPSFMeta
     
 class GaussianBlurNet(nn.Module):
     def __init__(self, layer_r, layer_z=None):
@@ -46,29 +44,31 @@ def get_1D_PSF_layer(
     return layer
 
 class SPECTPSFTransform(Transform):
-    """obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``PSFMeta`` parameter. 
+    """obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``SPECTPSFMeta`` parameter. 
 
     Args:
-        psf_meta (PSFMeta): Metadata corresponding to the parameters of PSF blurring
+        psf_meta (SPECTPSFMeta): Metadata corresponding to the parameters of PSF blurring
     """
     def __init__(
         self,
-        psf_meta: PSFMeta, 
+        psf_meta: SPECTPSFMeta, 
     ) -> None:
         """Initializer that sets corresponding psf parameters"""
         super(SPECTPSFTransform, self).__init__()
         self.psf_meta = psf_meta
+        
+    
 
     def configure(
         self,
-        object_meta: ObjectMeta,
-        image_meta: ImageMeta
+        object_meta: SPECTObjectMeta,
+        image_meta: SPECTImageMeta
     ) -> None:
         """Function used to initalize the transform using corresponding object and image metadata
 
         Args:
-            object_meta (ObjectMeta): Object metadata.
-            image_meta (ImageMeta): Image metadata.
+            object_meta (SPECTObjectMeta): Object metadata.
+            image_meta (SPECTImageMeta): Image metadata.
         """
         super(SPECTPSFTransform, self).configure(object_meta, image_meta)
         self.layers = {}
@@ -86,7 +86,7 @@ class SPECTPSFTransform(Transform):
                 self.layers[radius] = GaussianBlurNet(layer_r)
         
     def compute_kernel_size(self, radius, axis) -> int:
-        """Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``PSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object. 
+        """Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``SPECTPSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object. 
 
         Returns:
             int: The corresponding kernel size used for PSF blurring.

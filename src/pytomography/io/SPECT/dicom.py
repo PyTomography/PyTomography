@@ -2,23 +2,20 @@ from __future__ import annotations
 import warnings
 import os
 import collections.abc
-from typing import Sequence
 from pathlib import Path
+from typing import Sequence
 import numpy as np
 import numpy.linalg as npl
 from scipy.ndimage import affine_transform
-import scipy.interpolate
 import torch
-import torch.nn as nn
 import pydicom
 from pydicom.dataset import Dataset
+from pydicom.uid import generate_uid
 import pytomography
-from pytomography.metadata import ObjectMeta, ImageMeta
-from pytomography.metadata import ObjectMeta, ImageMeta
-from pytomography.projections import SystemMatrix
-from pytomography.metadata import PSFMeta
-from pytomography.utils import get_blank_below_above, bilinear_transform
-from ..io_utils import open_CT_file, get_HU2mu_conversion, get_mu_from_spectrum_interp
+from pytomography.metadata import SPECTObjectMeta, SPECTImageMeta, SPECTPSFMeta
+from pytomography.utils import get_blank_below_above, compute_TEW, get_mu_from_spectrum_interp
+from ..CT import get_HU2mu_conversion, open_CT_file, compute_max_slice_loc_CT
+from ..shared import create_ds
 
 def get_radii_and_angles(ds: Dataset) -> Sequence[torch.Tensor, np.array, np.array]:
     """Gets projections with corresponding radii and angles corresponding to projection data from a DICOM file.
@@ -57,18 +54,18 @@ def get_radii_and_angles(ds: Dataset) -> Sequence[torch.Tensor, np.array, np.arr
     return (projections,
              angles[sorted_idxs],
              radii[sorted_idxs]/10)
-
-def get_projections(
+    
+def get_metadata(
     file: str,
-    index_peak: None | int = None
-    ) -> Sequence[ObjectMeta, ImageMeta, torch.Tensor]:
-    """Gets ObjectMeta, ImageMeta, and projections from a .dcm file.
+    index_peak: int = 0,
+) -> Sequence[SPECTObjectMeta, SPECTImageMeta]:
+    """Gets PyTomography metadata from a .dcm file.
 
     Args:
-        file (str): Path to the .dcm file
-        index_peak (int): If not none, then the returned projections correspond to the index of this energy window. Otherwise returns all energy windows. Defaults to None.
+        file (str): Path to the .dcm file of SPECT projection data.
+        index_peak (int): EnergyWindowInformationSequence index corresponding to the photopeak. Defaults to 0.
     Returns:
-        (ObjectMeta, ImageMeta, torch.Tensor[1, Ltheta, Lr, Lz]): Required information for reconstruction in PyTomography.
+        (ObjectMeta, ImageMeta): Required metadata information for reconstruction in PyTomography.
     """
     ds = pydicom.read_file(file, force=True)
     dx = ds.PixelSpacing[0] / 10
@@ -77,11 +74,30 @@ def get_projections(
     projections, angles, radii = get_radii_and_angles(ds)
     shape_proj= projections[0].shape
     shape_obj = (shape_proj[1], shape_proj[1], shape_proj[2])
-    object_meta = ObjectMeta(dr,shape_obj)
-    image_meta = ImageMeta(object_meta, angles, radii)
+    object_meta = SPECTObjectMeta(dr,shape_obj)
+    image_meta = SPECTImageMeta((shape_proj[1], shape_proj[2]), angles, radii)
+    object_meta.affine_matrix = _get_affine_spect(file)
+    image_meta.filepath = file
+    image_meta.index_peak = index_peak
+    return object_meta, image_meta
+
+def get_projections(
+    file: str,
+    index_peak: None | int = None
+    ) -> Sequence[SPECTObjectMeta, SPECTImageMeta, torch.Tensor]:
+    """Gets projections from a .dcm file.
+
+    Args:
+        file (str): Path to the .dcm file of SPECT projection data.
+        index_peak (int): If not none, then the returned projections correspond to the index of this energy window. Otherwise returns all energy windows. Defaults to None.
+    Returns:
+        (SPECTObjectMeta, SPECTImageMeta, torch.Tensor[1, Ltheta, Lr, Lz]): Required information for reconstruction in PyTomography.
+    """
+    ds = pydicom.read_file(file, force=True)
+    projections, _, _ = get_radii_and_angles(ds)
     if index_peak is not None:
         projections = projections[index_peak].unsqueeze(dim=0)
-    return object_meta, image_meta, projections
+    return projections
 
 def get_window_width(ds: Dataset, index: int) -> float:
     """Computes the width of an energy window corresponding to a particular index in the DetectorInformationSequence DICOM attribute.
@@ -119,8 +135,8 @@ def get_scatter_from_TEW(
     ww_peak = get_window_width(ds, index_peak)
     ww_lower = get_window_width(ds, index_lower)
     ww_upper = get_window_width(ds, index_upper)
-    _, _, projections_all = get_projections(file)
-    scatter = (projections_all[index_lower]/ww_lower + projections_all[index_upper]/ww_upper)* ww_peak / 2
+    projections_all = get_projections(file)
+    scatter = compute_TEW(projections_all[index_lower],projections_all[index_upper], ww_lower, ww_upper, ww_peak)
     return scatter.unsqueeze(dim=0).to(pytomography.device)
 
 def get_attenuation_map_from_file(file_AM: str) -> torch.Tensor:
@@ -143,11 +159,10 @@ def get_attenuation_map_from_file(file_AM: str) -> torch.Tensor:
     return torch.tensor(np.transpose(attenuation_map, (2,1,0))).unsqueeze(dim=0).to(pytomography.dtype).to(pytomography.device)
 
 def get_psfmeta_from_scanner_params(
-    camera_model: str,
     collimator_name: str,
     energy_keV: float,
     min_sigmas: float = 3
-    ) -> PSFMeta:
+    ) -> SPECTPSFMeta:
     """Gets PSF metadata from SPECT camera/collimator parameters. Performs linear interpolation to find linear attenuation coefficient for lead collimators for energy values within the range 100keV - 600keV.
 
     Args:
@@ -157,24 +172,39 @@ def get_psfmeta_from_scanner_params(
         min_sigmas (float): Minimum size of the blurring kernel used. Fixes the convolutional kernel size so that all locations have at least ``min_sigmas`` in dimensions (some will be greater)
 
     Returns:
-        PSFMeta: PSF metadata.
+        SPECTPSFMeta: PSF metadata.
     """
 
     module_path = os.path.dirname(os.path.abspath(__file__))
+    collimator_filepath = os.path.join(module_path, '../../data/collim.col')
+    with open(collimator_filepath) as f:
+        collimator_data = f.readlines()
+    collimator_data = np.array(collimator_data)
+    try:
+        line = collimator_data[np.char.find(collimator_data, collimator_name)>=0][0]
+    except:
+        Exception(f'Cannot find data for collimator name {collimator_name}. For a list of available collimator names, run `from pytomography.utils import print_collimator_parameters` and then `print_collimator_parameters()`.')
     
-    scanner_datasheet = np.genfromtxt(os.path.join(module_path, '../../data/SPECT_collimator_parameters.csv'), skip_header=1, dtype=['U50,U50,float,float'], delimiter=',', unpack=True)
-
-    for i in range(len(scanner_datasheet)):
-        if camera_model == scanner_datasheet[i][0] and collimator_name == scanner_datasheet[i][1]:
-            hole_diameter = scanner_datasheet[i][2]
-            hole_length = scanner_datasheet[i][3]
+    # TODO: Support for other collimator types. Right now just parallel hole
+    hole_length = float(line.split()[3])
+    hole_diameter = float(line.split()[1])
 
     lead_attenuation = get_mu_from_spectrum_interp(os.path.join(module_path, '../../data/NIST_attenuation_data/lead.csv'), energy_keV)
     
     collimator_slope = hole_diameter/(hole_length - (2/lead_attenuation)) * 1/(2*np.sqrt(2*np.log(2)))
     collimator_intercept = hole_diameter * 1/(2*np.sqrt(2*np.log(2)))
     
-    return PSFMeta((collimator_slope, collimator_intercept), min_sigmas=min_sigmas)
+    return SPECTPSFMeta((collimator_slope, collimator_intercept), min_sigmas=min_sigmas)
+
+def CT_to_mumap(CT, files_CT, file_NM, index_peak=0):
+    ds_NM = pydicom.read_file(file_NM)
+    window_upper = ds_NM.EnergyWindowInformationSequence[index_peak].EnergyWindowRangeSequence[0].EnergyWindowUpperLimit
+    window_lower = ds_NM.EnergyWindowInformationSequence[index_peak].EnergyWindowRangeSequence[0].EnergyWindowLowerLimit
+    E_SPECT = (window_lower + window_upper)/2
+    KVP = pydicom.read_file(files_CT[0]).KVP
+    HU2mu_conversion = get_HU2mu_conversion(files_CT, KVP, E_SPECT)
+    return HU2mu_conversion(CT)
+    
 
 def get_attenuation_map_from_CT_slices(
     files_CT: Sequence[str],
@@ -183,7 +213,7 @@ def get_attenuation_map_from_CT_slices(
     keep_as_HU: bool = False,
     mode: str = 'nearest'
     ) -> torch.Tensor:
-    """Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography. Note that it is recommended by https://jnm.snmjournals.org/content/57/1/151.long to use the vendors attenuation map as opposed to creating your own. As such, the ``get_attenuation_map_from_file`` should be used preferentially over this function, if you have access to an attenuation map from the vendor.
+    """Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography.
 
     Args:
         files_CT (Sequence[str]): List of all files corresponding to an individual CT scan
@@ -195,37 +225,38 @@ def get_attenuation_map_from_CT_slices(
         torch.Tensor: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.
     """
     
-    ds = pydicom.read_file(files_CT[0])
-    CT_HU, max_slice_loc = open_CT_file(files_CT, return_max_slice_loc=True)
+    CT_HU = open_CT_file(files_CT)
     
     if file_NM is None:
-        return torch.tensor(CT_HU[::-1,::-1,::-1].copy()).unsqueeze(dim=0).to(pytomography.dtype).to(pytomography.device)
+        return torch.tensor(CT_HU[:,:,::-1].copy()).unsqueeze(dim=0).to(pytomography.dtype).to(pytomography.device)
     
     ds_NM = pydicom.read_file(file_NM)
-    # 1. Align with SPECT
-    # Affine matrix
-    M_CT = get_affine_CT(ds, max_slice_loc)
-    M_NM = get_affine_spect(ds_NM)
+    # Align with SPECT:
+    M_CT = get_affine_matrix(files_CT)
+    M_NM = get_affine_matrix(file_NM)
     # Resample CT and convert to mu at 208keV and save
     M = npl.inv(M_CT) @ M_NM
     # When doing affine transform, fill outside with point below -1000HU so it automatically gets converted to mu=0 after bilinear transform
     CT_HU = affine_transform(CT_HU, M, output_shape=(ds_NM.Rows, ds_NM.Rows, ds_NM.Columns), mode=mode, cval=-1500)
     
-    #2. Scale to linear attenuation coefficient
-    window_upper = ds_NM.EnergyWindowInformationSequence[index_peak].EnergyWindowRangeSequence[0].EnergyWindowUpperLimit
-    window_lower = ds_NM.EnergyWindowInformationSequence[index_peak].EnergyWindowRangeSequence[0].EnergyWindowLowerLimit
-    E_SPECT = (window_lower + window_upper)/2
-    KVP = pydicom.read_file(files_CT[0]).KVP
-    HU2mu_conversion = get_HU2mu_conversion(files_CT, KVP, E_SPECT)
     if keep_as_HU:
         CT = CT_HU
     else:
-        CT= HU2mu_conversion(CT_HU)
-    CT = torch.tensor(CT[::-1,::-1,::-1].copy()).unsqueeze(dim=0).to(pytomography.dtype).to(pytomography.device)
+        CT= CT_to_mumap(CT_HU, files_CT, file_NM, index_peak)
+    CT = torch.tensor(CT[:,:,::-1].copy()).unsqueeze(dim=0).to(pytomography.dtype).to(pytomography.device)
     return CT
 
+def get_affine_matrix(filename: Sequence[str] | str) -> np.array:
+    if type(filename) is list:
+         ds_test = pydicom.read_file(filename[0])
+         if ds_test.Modality=='CT':
+             return _get_affine_CT(filename)
+    else:
+        ds = pydicom.read_file(filename)
+        if ds.Modality=='NM':
+            return _get_affine_spect(filename)
 
-def get_affine_spect(ds: Dataset) -> np.array:
+def _get_affine_spect(filename:str) -> np.array:
     """Computes an affine matrix corresponding the coordinate system of a SPECT DICOM file.
 
     Args:
@@ -234,20 +265,22 @@ def get_affine_spect(ds: Dataset) -> np.array:
     Returns:
         np.array: Affine matrix.
     """
+    # Note: per DICOM convention z actually decreases as the z-index increases (initial z slices start with the head)
+    ds = pydicom.read_file(filename)
     Sx, Sy, Sz = ds.DetectorInformationSequence[0].ImagePositionPatient
     dx = dy = ds.PixelSpacing[0]
     dz = ds.PixelSpacing[1]
-    Sx += ds.Rows / 2 * dx
-    Sy += ds.Rows / 2 * dy
+    Sx -= ds.Rows / 2 * dx
+    Sy -= ds.Rows / 2 * dy
+    Sy -= ds.RotationInformationSequence[0].TableHeight
     M = np.zeros((4,4))
-    # x and y negative b/c opposite of CT. z is negative in both
-    M[:,0] = np.array([-dx, 0, 0, 0])
-    M[:,1] = np.array([0, -dy, 0, 0])
-    M[:,2] = np.array([0, 0, -dz, 0])
-    M[:,3] = np.array([Sx, Sy, Sz, 1])
+    M[0] = np.array([dx, 0, 0, Sx])
+    M[1] = np.array([0, dy, 0, Sy])
+    M[2] = np.array([0, 0, -dz, Sz])
+    M[3] = np.array([0, 0, 0, 1])
     return M
 
-def get_affine_CT(ds: Dataset, max_z: float):
+def _get_affine_CT(filenames: Sequence[str]):
     """Computes an affine matrix corresponding the coordinate system of a CT DICOM file. Note that since CT scans consist of many independent DICOM files, ds corresponds to an individual one of these files. This is why the maximum z value is also required (across all seperate independent DICOM files).
 
     Args:
@@ -257,11 +290,14 @@ def get_affine_CT(ds: Dataset, max_z: float):
     Returns:
         np.array: Affine matrix corresponding to CT scan.
     """
+    # Note: per DICOM convention z actually decreases as the z-index increases (initial z slices start with the head)
+    ds = pydicom.read_file(filenames[0])
+    max_z = compute_max_slice_loc_CT(filenames)
     M = np.zeros((4,4))
     M[0:3, 0] = np.array(ds.ImageOrientationPatient[0:3])*ds.PixelSpacing[0]
     M[0:3, 1] = np.array(ds.ImageOrientationPatient[3:])*ds.PixelSpacing[1]
-    M[0:3, 2] = -np.array([0,0,1]) * ds.SliceThickness 
-    M[0:2, 3] = ds.ImagePositionPatient[0] 
+    M[0:3, 2] = - np.array([0,0,1]) * ds.SliceThickness 
+    M[0:2, 3] = np.array(ds.ImagePositionPatient)[0:2] 
     M[2, 3] = max_z
     M[3, 3] = 1
     return M
@@ -324,61 +360,68 @@ def stitch_multibed(
                 recon_aligned[:,:,:,zmin:zmax][~expanded_mask.unsqueeze(0)] = r2[~expanded_mask]
     return recon_aligned
 
-
-# TODO: Update this function so that it includes photopeak energy window index, and psf should be computed using data tables corresponding to manufactorer data sheets.
-'''
-def get_SPECT_recon_algorithm_dicom(
-    projections_file: str,
-    atteunation_files: Sequence[str] = None,
-    use_psf: bool = False,
-    scatter_type: str|None = None,
-    prior: Prior = None,
-    recon_algorithm_class: OSML = OSEMOSL,
-    object_initial: torch.Tensor | None = None,
-) -> OSML:
-    """Helper function to quickly create reconstruction algorithm given SPECT DICOM files and CT dicom files.
+def save_dcm(
+    save_path: str,
+    object: torch.Tensor,
+    file_NM: str,
+    recon_method_string: str = '',
+    scale_factor: float = 1024
+    ) -> None:
+    """Saves the reconstructed object `object` to a series of DICOM files in the folder given by `save_path`. Requires the filepath of the projection data `file_NM` to get Study information.
 
     Args:
-        projections_file (str): DICOM filepath corresponding to SPECT data.
-        atteunation_files (Sequence[str], optional): DICOM filepaths corresponding to CT data. If None, then atteunation correction is not used. Defaults to None.
-        use_psf (bool, optional): Whether or not to use PSF modeling. Defaults to False.
-        scatter_type (str | None, optional): Type of scatter correction used in reconstruction. Defaults to None.
-        prior (Prior, optional): Bayesian Prior used in reconstruction algorithm. Defaults to None.
-        recon_algorithm_class (nn.Module, optional): Type of reconstruction algorithm used. Defaults to OSEMOSL.
-        object_initial (torch.Tensor | None, optional): Initial object used in reconstruction. If None, defaults to all ones. Defaults to None.
-
-    Raises:
-        Exception: If not able to compute relevant PSF parameters from DICOM data and corresponding data tables.
-
-    Returns:
-        OSML: Reconstruction algorithm used.
+        object (torch.Tensor): Reconstructed object of shape [1,Lx,Ly,Lz].
+        save_path (str): Location of folder where to save the DICOM output files.
+        file_NM (str): File path of the projection data corresponding to the reconstruction.
+        recon_method_str (str): Type of reconstruction performed. Obtained from the `recon_method_str` attribute of a reconstruction algorithm class.
+        scale_factor (float, optional): Amount by which to scale output data so that it can be converted into a 16 bit integer. Defaults to 1024.
     """
-    # Get projections/scatter estimate
-    if scatter_type==None:
-        object_meta, image_meta, projections = get_projections(projections_file)
-        projections_scatter = 0 # equivalent to 0 estimated scatter everywhere
-    else:
-        object_meta, image_meta, projections, projections_scatter = dicom_MEW_to_data(projections_file, type=scatter_type)
-    # obj2obj and im2im nets.
-    object_correction_nets = []
-    image_correction_nets = []
-    # Load attenuation data
-    if atteunation_files is not None:
-        CT = dicom_CT_to_data(atteunation_files, projections_file)
-        CT_net = SPECTAttenuationTransform(CT.unsqueeze(dim=0))
-        object_correction_nets.append(CT_net)
-    # Load PSF parameters
-    if use_psf:
-        ds = pydicom.read_file(projections_file, force=True)
-        if ds.Manufacturer =='SIEMENS NM':
-            # Find a more consistent way to do this
-            angular_FWHM = ds[0x0055, 0x107f][0]
-            psf_meta = PSFMeta(collimator_slope = angular_FWHM/(2*np.sqrt(2*np.log(2))), collimator_intercept = 0.0)
-            psf_net = SPECTPSFTransform(psf_meta)
-        else:
-            raise Exception('Unable to compute PSF metadata from this DICOM file')
-        object_correction_nets.append(psf_net)
-    system_matrix = SystemMatrix(object_correction_nets, image_correction_nets, object_meta, image_meta)
-    recon_algorithm = recon_algorithm_class(projections, system_matrix, object_initial, projections_scatter, prior)
-    return recon_algorithm
-'''
+    try:
+        Path(save_path).resolve().mkdir(parents=True, exist_ok=False)
+    except:
+        raise Exception(f'Folder {save_path} already exists; new folder name is required.')
+    # Convert tensor image to numpy array
+    pixel_data = torch.permute(object.squeeze(),(2,1,0)) * scale_factor
+    pixel_data = pixel_data.cpu().numpy().astype(np.uint16)
+    # Get affine information
+    ds_NM = pydicom.dcmread(file_NM)
+    Sx, Sy, Sz = ds_NM.DetectorInformationSequence[0].ImagePositionPatient
+    dx = dy = ds_NM.PixelSpacing[0]
+    dz = ds_NM.PixelSpacing[1]
+    Sx -= ds_NM.Rows / 2 * dx
+    Sy -= ds_NM.Rows / 2 * dy
+    # Y-Origin point at tableheight=0
+    Sy -= ds_NM.RotationInformationSequence[0].TableHeight
+    # Sz now refers to location of lowest slice
+    Sz -= (pixel_data.shape[0]-1) * dz
+    SOP_instance_UID = generate_uid()
+    SOP_class_UID = '1.2.840.10008.5.1.4.1.1.128' #SPECT storage
+    modality = 'PT' # SPECT storage
+    ds = create_ds(ds_NM, SOP_instance_UID, SOP_class_UID, modality)
+    ds.Rows, ds.Columns = pixel_data.shape[1:]
+    ds.SeriesNumber = 1
+    ds.NumberOfSlices = pixel_data.shape[0]
+    ds.PixelSpacing = [dx,dy]
+    ds.SliceThickness = dz
+    ds.ImageOrientationPatient = [1,0,0,0,1,0]
+    ds.RescaleSlope = 1/scale_factor
+    # Set other things
+    ds.BitsAllocated = 16
+    ds.BitsStored = 16
+    ds.SamplesPerPixel = 1
+    ds.PhotometricInterpretation = 'MONOCHROME2'
+    ds.PixelRepresentation = 0
+    ds.ReconstructionMethod = recon_method_string
+    # Create all slices
+    for i in range(pixel_data.shape[0]):
+        # Load existing DICOM file
+        ds_i = ds.copy()
+        ds_i.InstanceNumber = i+1
+        ds_i.ImagePositionPatient = [Sx,Sy,Sz+i*dz]
+        # Create SOP Instance UID unique to slice
+        SOP_instance_UID_slice = f'{ds_i.SOPInstanceUID[:-3]}{i+1:03d}'
+        ds_i.SOPInstanceUID = SOP_instance_UID_slice 
+        ds_i.file_meta.MediaStorageSOPInstanceUID = (SOP_instance_UID_slice)
+        # Set the pixel data
+        ds_i.PixelData = pixel_data[i].tobytes()
+        ds_i.save_as(os.path.join(save_path, f'{ds.SOPInstanceUID}.dcm'))

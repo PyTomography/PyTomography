@@ -17,5 +17,6 @@ Be sure to check out {doc}`notebooks/conventions` and  {doc}`usage` for some sim
 notebooks/conventions
 usage
 developers_guide
+external_data
 ```
 

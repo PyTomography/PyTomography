@@ -1,4 +1,4 @@
-"""This module contains classes that implement ordered-subset maximum liklihood iterative reconstruction algorithms. Such algorithms compute :math:`f_i^{n,m+1}` from :math:`f_i^{n,m}` where :math:`n` is the index for an iteration, and :math:`m` is the index for a subiteration (i.e. for a given subset). The notation is defined such that given :math:`M` total subsets of equal size, :math:`f_i^{n+1,0} \equiv f_i^{n,M}` (i.e. after completing a subiteration for each subset, we start the next iteration). Any class that inherits from this class must implement the ``forward`` method. ``__init__`` initializes the reconstruction algorithm with the image data :math:`g_j`, the forward and back projections used (i.e. networks to compute :math:`\sum_i H_{ij} a_i` and :math:`\sum_j H_{ij} b_j`), the initial object guess :math:`f_i^{0,0}`, the estimated scatter contribution :math:`s_j`, and the Bayesian Prior function :math:`V(f)`. Once the class is initialized, the number of iterations and subsets are specified at recon time when the ``forward`` method is called.
+"""This module contains classes that implement ordered-subset maximum liklihood iterative reconstruction algorithms. Such algorithms compute :math:`f^{n,m+1}` from :math:`f^{n,m}` where :math:`n` is the index for an iteration, and :math:`m` is the index for a subiteration (i.e. for a given subset). The notation is defined such that given :math:`M` total subsets of equal size, :math:`f^{n+1,0} \equiv f^{n,M}` (i.e. after completing a subiteration for each subset, we start the next iteration). Any class that inherits from this class must implement the ``forward`` method. ``__init__`` initializes the reconstruction algorithm with the measured image data :math:`g`, the system matrix :math:`H`, the initial object guess :math:`f^{0,0}`, the estimated scatter contribution :math:`s`, and the Bayesian Prior function :math:`V(f)`. Once the class is initialized, the number of iterations and subsets are specified at recon time when the ``forward`` method is called.
 """
 from __future__ import annotations
 import torch
@@ -16,11 +16,11 @@ class OSML():
     r"""Abstract class for different algorithms. The difference between subclasses of this class is the method by which they include prior information. If no prior function is used, they are all equivalent.
 
         Args:
-            image (torch.Tensor): image data :math:`g_j` to be reconstructed
+            image (torch.Tensor): image data :math:`g` to be reconstructed
             system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.
-            object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space. If None, then initial guess consists of all 1s. Defaults to None.
-            scatter (torch.Tensor): estimate of scatter contribution :math:`s_j`.Defaults to 0.
-            prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.
+            object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f^{0,0}` for the algorithm in object space. If None, then initial guess consists of all 1s. Defaults to None.
+            scatter (torch.Tensor): estimate of scatter contribution :math:`s`.Defaults to 0.
+            prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.
     """
 
     def __init__(
@@ -44,6 +44,8 @@ class OSML():
             self.scatter = scatter
         if self.prior is not None:
             self.prior.set_object_meta(self.system_matrix.object_meta)
+        # Unique string used to identify the type of reconstruction performed
+        self.recon_method_string = ''
 
     def get_subset_splits(
         self,
@@ -79,19 +81,29 @@ class OSML():
             n_subsets (int): Number of subsets
             callbacks (CallBack, optional): CallBacks to be evaluated after each subiteration. Defaults to None.
         """
-        ...
-    
 
 class OSEMOSL(OSML):
-    r"""Implements the ordered subset expectation algorithm using the one-step-late method to include prior information: :math:`f_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j H_{ij} + \beta \frac{\partial V}{\partial f_r}|_{f_i=f_i^{n,m}}} \sum_j H_{ij}\frac{g_j}{\sum_i H_{ij}f_i^{n,m}+s_j}`.
+    r"""Implements the ordered subset expectation algorithm using the one-step-late method to include prior information: :math:` \hat{f}^{n,m+1} = \left[\frac{1}{H_m^T 1  + \beta \frac{\partial V}{\partial \hat{f}}|_{\hat{f}=\hat{f}^{n,m}}} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}`.
 
     Args:
-        image (torch.Tensor): image data :math:`g_j` to be reconstructed
+        image (torch.Tensor): image data :math:`g` to be reconstructed
         system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.
-        object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
-        scatter (torch.Tensor): estimate of scatter contribution :math:`s_j`.
-        prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.
+        object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f^{0,0}` for the algorithm in object space
+        scatter (torch.Tensor): estimate of scatter contribution :math:`s`.
+        prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.
     """
+    def _set_recon_params_string(self, n_iters, n_subsets):
+        """Set the unique identifier for the type of reconstruction performed. Useful for saving to DICOM files
+
+        Args:
+            n_iters (int): Number of iterations
+            n_subsets (int): Number of subsets
+        """
+        if self.prior is None:
+            self.recon_method_string = f'OSEM_{n_iters}it{n_subsets}ss'
+        else:
+            self.recon_method_string = f'OSEMOSL_{n_iters}it{n_subsets}ss'
+    
     def __call__(
         self,
         n_iters: int,
@@ -123,20 +135,34 @@ class OSEMOSL(OSML):
                 self.object_prediction = self.object_prediction * ratio_BP /norm_BP
                 if callback is not None:
                     callback.run(self.object_prediction, n_iter=j, n_subset=k)
+        # Set unique string for identifying the type of reconstruction
+        self._set_recon_params_string(n_iters, n_subsets)
         return self.object_prediction
     
 
 class OSEMBSR(OSML):
-    r"""Implements the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: :math:`\tilde{f}_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j H_{ij}} \sum_j H_{ij}\frac{g_j^m}{\sum_i H_{ij}f_i^{n,m}+s_j}` followed by :math:`f_i^{n,m+1} = \tilde{f}_i^{n,m+1} \left(1-\beta\frac{\alpha_n}{\sum_j H_{ij}}\frac{\partial V}{\partial \tilde{f}_i^{n,m+1}} \right)`.
+    r"""Implements the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: :math:`\tilde{\hat{f}}^{n,m+1} = \left[\frac{1}{H_m^T 1} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}` followed by :math:`\hat{f}^{n,m+1} = \tilde{\hat{f}}^{n,m+1} \left(1-\beta\frac{\alpha_n}{H_m^T 1}\frac{\partial V}{\partial \tilde{\hat{f}}^{n,m+1}} \right)`.
 
     Args:
-        image (torch.Tensor): image data :math:`g_j` to be reconstructed
-        object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
+        image (torch.Tensor): image data :math:`g` to be reconstructed
+        object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f^{0,0}` for the algorithm in object space
         system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.
-        scatter (torch.Tensor): estimate of scatter contribution :math:`s_j`.
-        prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.
+        scatter (torch.Tensor): estimate of scatter contribution :math:`s`.
+        prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.
 
     """
+    
+    def _set_recon_params_string(self, n_iters, n_subsets):
+        """Set the unique identifier for the type of reconstruction performed. Useful for saving to DICOM files
+
+        Args:
+            n_iters (int): Number of iterations
+            n_subsets (int): Number of subsets
+        """
+        if self.prior is None:
+            self.recon_method_string = f'OSEM_{n_iters}it{n_subsets}ss'
+        else:
+            self.recon_method_string = f'BSREM_{n_iters}it{n_subsets}ss'
     
     def __call__(
         self,
@@ -174,4 +200,6 @@ class OSEMBSR(OSML):
                 # Run any callbacks
                 if callback:
                     callback.run(self.object_prediction, n_iter=j, n_subset=k)
+        # Set unique string for identifying the type of reconstruction
+        self._set_recon_params_string(n_iters, n_subsets)
         return self.object_prediction

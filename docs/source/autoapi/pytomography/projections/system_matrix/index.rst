@@ -1,0 +1,165 @@
+:py:mod:`pytomography.projections.system_matrix`
+================================================
+
+.. py:module:: pytomography.projections.system_matrix
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.projections.system_matrix.SystemMatrix
+   pytomography.projections.system_matrix.SPECTSystemMatrix
+   pytomography.projections.system_matrix.SystemMatrixMaskedSegments
+
+
+
+
+.. py:class:: SystemMatrix(obj2obj_transforms, im2im_transforms, object_meta, image_meta)
+
+   Abstract class for a general system matrix :math:`H:\mathbb{U} \to \mathbb{V}` which takes in an object :math:`f \in \mathbb{U}` and maps it to a corresponding image :math:`g \in \mathbb{V}` that would be produced by the imaging system. A system matrix consists of sequences of object-to-object and image-to-image transforms that model various characteristics of the imaging system, such as attenuation and blurring. While the class implements the operator :math:`H:\mathbb{U} \to \mathbb{V}` through the ``forward`` method, it also implements :math:`H^T:\mathbb{V} \to \mathbb{U}` through the `backward` method, required during iterative reconstruction algorithms such as OSEM.
+
+   :param obj2obj_transforms: Sequence of object mappings that occur before forward projection.
+   :type obj2obj_transforms: Sequence[Transform]
+   :param im2im_transforms: Sequence of image mappings that occur after forward projection.
+   :type im2im_transforms: Sequence[Transform]
+   :param object_meta: Object metadata.
+   :type object_meta: ObjectMeta
+   :param image_meta: Image metadata.
+   :type image_meta: ImageMeta
+
+   .. py:method:: initialize_transforms()
+
+      Initializes all transforms used to build the system matrix
+
+
+
+   .. py:method:: forward(object, **kwargs)
+      :abstractmethod:
+
+      Implements forward projection :math:`Hf` on an object :math:`f`.
+
+      :param object: The object to be forward projected
+      :type object: torch.tensor[batch_size, Lx, Ly, Lz]
+      :param angle_subset: Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
+      :type angle_subset: list, optional
+
+      :returns: Forward projected image where Ltheta is specified by `self.image_meta` and `angle_subset`.
+      :rtype: torch.tensor[batch_size, Ltheta, Lx, Lz]
+
+
+   .. py:method:: backward(image, angle_subset = None, return_norm_constant = False)
+      :abstractmethod:
+
+      Implements back projection :math:`H^T g` on an image :math:`g`.
+
+      :param image: image which is to be back projected
+      :type image: torch.Tensor
+      :param angle_subset: Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
+      :type angle_subset: list, optional
+      :param return_norm_constant: Whether or not to return :math:`1/\sum_j H_{ij}` along with back projection. Defaults to 'False'.
+      :type return_norm_constant: bool
+
+      :returns: the object obtained from back projection.
+      :rtype: torch.tensor[batch_size, Lr, Lr, Lz]
+
+
+
+.. py:class:: SPECTSystemMatrix(obj2obj_transforms, im2im_transforms, object_meta, image_meta, n_parallel=1)
+
+   Bases: :py:obj:`SystemMatrix`
+
+   System matrix for SPECT imaging. By default, this applies to parallel hole collimators, but appropriate use of `im2im_transforms` can allow this system matrix to also model converging/diverging collimator configurations as well.
+
+   :param obj2obj_transforms: Sequence of object mappings that occur before forward projection.
+   :type obj2obj_transforms: Sequence[Transform]
+   :param im2im_transforms: Sequence of image mappings that occur after forward projection.
+   :type im2im_transforms: Sequence[Transform]
+   :param object_meta: Object metadata.
+   :type object_meta: ObjectMeta
+   :param image_meta: Image metadata.
+   :type image_meta: ImageMeta
+   :param n_parallel: Number of projections to use in parallel when applying transforms. More parallel events may speed up reconstruction time, but also increases GPU usage. Defaults to 1.
+   :type n_parallel: int
+
+   .. py:method:: forward(object, angle_subset = None)
+
+      Applies forward projection to ``object`` for a SPECT imaging system.
+
+      :param object: The object to be forward projected
+      :type object: torch.tensor[batch_size, Lx, Ly, Lz]
+      :param angle_subset: Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
+      :type angle_subset: list, optional
+
+      :returns: Forward projected image where Ltheta is specified by `self.image_meta` and `angle_subset`.
+      :rtype: torch.tensor[batch_size, Ltheta, Lx, Lz]
+
+
+   .. py:method:: backward(image, angle_subset = None, return_norm_constant = False)
+
+      Applies back projection to ``image`` for a SPECT imaging system.
+
+      :param image: image which is to be back projected
+      :type image: torch.tensor[batch_size, Ltheta, Lr, Lz]
+      :param angle_subset: Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
+      :type angle_subset: list, optional
+      :param return_norm_constant: Whether or not to return :math:`1/\sum_j H_{ij}` along with back projection. Defaults to 'False'.
+      :type return_norm_constant: bool
+
+      :returns: the object obtained from back projection.
+      :rtype: torch.tensor[batch_size, Lr, Lr, Lz]
+
+
+
+.. py:class:: SystemMatrixMaskedSegments(obj2obj_transforms, im2im_transforms, object_meta, image_meta, masks)
+
+   Bases: :py:obj:`SPECTSystemMatrix`
+
+   Update this
+
+   :param obj2obj_transforms: Sequence of object mappings that occur before forward projection.
+   :type obj2obj_transforms: Sequence[Transform]
+   :param im2im_transforms: Sequence of image mappings that occur after forward projection.
+   :type im2im_transforms: Sequence[Transform]
+   :param object_meta: Object metadata.
+   :type object_meta: ObjectMeta
+   :param image_meta: Image metadata.
+   :type image_meta: ImageMeta
+   :param masks: Masks corresponding to each segmented region.
+   :type masks: torch.Tensor
+
+   .. py:method:: forward(activities, angle_subset = None)
+
+      Implements forward projection :math:`HUa` on a vector of activities :math:`a` corresponding to `self.masks`.
+
+      :param activities: Activities in each mask region.
+      :type activities: torch.tensor[batch_size, n_masks]
+      :param angle_subset: Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
+      :type angle_subset: list, optional
+
+      :returns: Forward projected image where Ltheta is specified by `self.image_meta` and `angle_subset`.
+      :rtype: torch.tensor[batch_size, Ltheta, Lx, Lz]
+
+
+   .. py:method:: backward(image, angle_subset = None, prior = None, normalize = False, return_norm_constant = False)
+
+      Implements back projection :math:`U^T H^T g` on an image :math:`g`, returning a vector of activities for each mask region.
+
+              Args:
+                  image (torch.tensor[batch_size, Ltheta, Lr, Lz]): image which is to be back projected
+                  angle_subset (list, optional): Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
+                  prior (Prior, optional): If included, modifes normalizing factor to :math:`
+      rac{1}{\sum_j H_{ij} + P_i}` where :math:`P_i` is given by the prior. Used, for example, during in MAP OSEM. Defaults to None.
+                  normalize (bool): Whether or not to divide result by :math:`\sum_j H_{ij}`
+                  return_norm_constant (bool): Whether or not to return :math:`1/\sum_j H_{ij}` along with back projection. Defaults to 'False'.
+
+              Returns:
+                  torch.tensor[batch_size, n_masks]: the activities in each mask region.
+
+
+
+
