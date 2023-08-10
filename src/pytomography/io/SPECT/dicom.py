@@ -263,7 +263,7 @@ def _get_affine_spect(filename:str) -> np.array:
         ds (Dataset): DICOM dataset of projection data
 
     Returns:
-        np.array: Affine matrix.
+        np.array: Affine matrix
     """
     # Note: per DICOM convention z actually decreases as the z-index increases (initial z slices start with the head)
     ds = pydicom.read_file(filename)
