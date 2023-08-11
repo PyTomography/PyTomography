@@ -24,9 +24,17 @@ def get_radii_and_angles(ds: Dataset) -> Sequence[torch.Tensor, np.array, np.arr
         ds (Dataset): pydicom dataset object.
 
     Returns:
-        (torch.tensor[1,Ltheta, Lr, Lz], np.array, np.array): Required image data for reconstruction.
+        (torch.tensor[EWindows, TimeWindows, Ltheta, Lr, Lz], np.array, np.array): Required image data for reconstruction.
     """
-    pixel_array = ds.pixel_array.reshape((ds.NumberOfEnergyWindows, -1, ds.Rows, ds.Columns))
+    pixel_array = ds.pixel_array
+    
+    energy_window_vector = np.array(ds.EnergyWindowVector)
+    detector_vector = np.array(ds.DetectorVector)
+    try:
+        time_slot_vector = np.array(ds.TimeSlotVector)
+    except:
+        time_slot_vector = np.ones(len(detector_vector)).astype(int)
+    
     detectors = np.array(ds.DetectorVector)
     radii = np.array([])
     angles = np.array([])
@@ -46,10 +54,19 @@ def get_radii_and_angles(ds: Dataset) -> Sequence[torch.Tensor, np.array, np.arr
         if not isinstance(radial_positions_detector, collections.abc.Sequence):
             radial_positions_detector = n_angles * [radial_positions_detector]
         radii = np.concatenate([radii, radial_positions_detector])
-        
+    
+    projections = []
+    for energy_window in np.unique(energy_window_vector):
+        t_slot_projections = []
+        for time_slot in np.unique(time_slot_vector):
+            pixel_array_i = pixel_array[(time_slot_vector==time_slot)*(energy_window_vector==energy_window)]
+            t_slot_projections.append(pixel_array_i)
+        projections.append(t_slot_projections)
+    projections = np.array(projections)
+    
     angles = (angles + 180)%360 # to detector angle convention
     sorted_idxs = np.argsort(angles)
-    projections = np.transpose(pixel_array[:,sorted_idxs][:,:,::-1], (0,1,3,2)).astype(np.float32)
+    projections = np.transpose(projections[:,:,sorted_idxs,::-1], (0,1,2,4,3)).astype(np.float32)
     projections= torch.tensor(projections.copy()).to(pytomography.dtype).to(pytomography.device) 
     return (projections,
              angles[sorted_idxs],
@@ -72,7 +89,7 @@ def get_metadata(
     dz = ds.PixelSpacing[1] / 10
     dr = (dx, dx, dz)
     projections, angles, radii = get_radii_and_angles(ds)
-    shape_proj= projections[0].shape
+    shape_proj= (projections.shape[-3], projections.shape[-2], projections.shape[-1])
     shape_obj = (shape_proj[1], shape_proj[1], shape_proj[2])
     object_meta = SPECTObjectMeta(dr,shape_obj)
     image_meta = SPECTImageMeta((shape_proj[1], shape_proj[2]), angles, radii)
@@ -83,7 +100,8 @@ def get_metadata(
 
 def get_projections(
     file: str,
-    index_peak: None | int = None
+    index_peak: None | int = None,
+    index_time: None | int = None
     ) -> Sequence[SPECTObjectMeta, SPECTImageMeta, torch.Tensor]:
     """Gets projections from a .dcm file.
 
@@ -97,7 +115,9 @@ def get_projections(
     projections, _, _ = get_radii_and_angles(ds)
     if index_peak is not None:
         projections = projections[index_peak].unsqueeze(dim=0)
-    return projections
+    if index_time is not None:
+        projections = projections[:,index_time].unsqueeze(dim=1)
+    return projections.squeeze().unsqueeze(dim=0)
 
 def get_window_width(ds: Dataset, index: int) -> float:
     """Computes the width of an energy window corresponding to a particular index in the DetectorInformationSequence DICOM attribute.
@@ -135,7 +155,7 @@ def get_scatter_from_TEW(
     ww_peak = get_window_width(ds, index_peak)
     ww_lower = get_window_width(ds, index_lower)
     ww_upper = get_window_width(ds, index_upper)
-    projections_all = get_projections(file)
+    projections_all = get_projections(file)[0]
     scatter = compute_TEW(projections_all[index_lower],projections_all[index_upper], ww_lower, ww_upper, ww_peak)
     return scatter.unsqueeze(dim=0).to(pytomography.device)
 

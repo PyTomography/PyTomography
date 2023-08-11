@@ -27,6 +27,10 @@ class SPECTSystemMatrix(SystemMatrix):
     ) -> None:
         super(SPECTSystemMatrix, self).__init__(obj2obj_transforms, im2im_transforms, object_meta, image_meta)
         self.n_parallel = n_parallel
+        
+    def get_ang_idx_parallel(self, i, ang_idx, batch_size):
+        ang_idx_parallel = ang_idx[i:i+self.n_parallel]
+        ang_idx_parallel = torch.repeat_interleave(ang_idx_parallel, batch_size)
 
     def forward(
         self,
@@ -51,7 +55,12 @@ class SPECTSystemMatrix(SystemMatrix):
             object_i = rotate_detector_z(pad_object(object.repeat(len(ang_idx_parallel),1,1,1)), self.image_meta.angles[ang_idx_parallel])
             for transform in self.obj2obj_transforms:
                 object_i = transform.forward(object_i, ang_idx_parallel)
-            image[:,ang_idx_parallel] = object_i.sum(axis=1)
+            if self.n_parallel==1:
+                # Allows for batched inputs
+                image[:,ang_idx_parallel] = object_i.sum(axis=1).unsqueeze(1)
+            else:
+                # Parallel projections
+                image[:,ang_idx_parallel] = object_i.sum(axis=1)
         for transform in self.im2im_transforms:
             image = transform.forward(image)
         return unpad_image(image)
@@ -89,14 +98,22 @@ class SPECTSystemMatrix(SystemMatrix):
         for i in range(0, len(ang_idx), self.n_parallel):
             ang_idx_parallel = ang_idx[i:i+self.n_parallel]
             # Perform back projection
-            object_i = image[0,ang_idx_parallel].unsqueeze(1) * boundary_box_bp
-            norm_constant_i = norm_image[0,ang_idx_parallel].unsqueeze(1) * boundary_box_bp
+            #object_i = image[0,ang_idx_parallel].unsqueeze(1) * boundary_box_bp
+            #norm_constant_i = norm_image[0,ang_idx_parallel].unsqueeze(1) * boundary_box_bp
+            object_i = image[:,ang_idx_parallel].flatten(0,1).unsqueeze(1) * boundary_box_bp
+            norm_constant_i = norm_image[:,ang_idx_parallel].flatten(0,1).unsqueeze(1) * boundary_box_bp
             # Apply object mappings
             for transform in self.obj2obj_transforms[::-1]:
                 object_i, norm_constant_i = transform.backward(object_i, ang_idx_parallel, norm_constant=norm_constant_i)
             # Add to total
-            norm_constant += rotate_detector_z(norm_constant_i, self.image_meta.angles[ang_idx_parallel], negative=True).sum(axis=0).unsqueeze(0)
-            object += rotate_detector_z(object_i, self.image_meta.angles[ang_idx_parallel], negative=True).sum(axis=0).unsqueeze(0)
+            if self.n_parallel==1:
+                # Allows for batched inputs of greater than 1
+                norm_constant += rotate_detector_z(norm_constant_i, self.image_meta.angles[ang_idx_parallel], negative=True)
+                object += rotate_detector_z(object_i, self.image_meta.angles[ang_idx_parallel], negative=True)
+            else:
+                # Must have batch_size = 1
+                norm_constant += rotate_detector_z(norm_constant_i, self.image_meta.angles[ang_idx_parallel], negative=True).sum(axis=0).unsqueeze(0)
+                object += rotate_detector_z(object_i, self.image_meta.angles[ang_idx_parallel], negative=True).sum(axis=0).unsqueeze(0)
         # Unpad
         norm_constant = unpad_object(norm_constant)
         object = unpad_object(object)

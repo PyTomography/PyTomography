@@ -5,7 +5,7 @@
 
 .. autoapi-nested-parse::
 
-   This module contains functionality for data input/output in various data formats.
+   This module contains functionality for data input/output in various data formats. It is organized primarily by imaging modality, and secondarily by data type
 
 
 
@@ -17,5 +17,6 @@ Subpackages
 
    CT/index.rst
    SPECT/index.rst
+   shared/index.rst
 
 

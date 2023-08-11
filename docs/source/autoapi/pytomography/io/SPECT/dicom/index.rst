@@ -64,7 +64,7 @@ Functions
    :type index_peak: int
 
    :returns: Required information for reconstruction in PyTomography.
-   :rtype: (ObjectMeta, ImageMeta, torch.Tensor[1, Ltheta, Lr, Lz])
+   :rtype: (SPECTObjectMeta, SPECTImageMeta, torch.Tensor[1, Ltheta, Lr, Lz])
 
 
 .. py:function:: get_window_width(ds, index)
@@ -122,7 +122,7 @@ Functions
    :type min_sigmas: float
 
    :returns: PSF metadata.
-   :rtype: PSFMeta
+   :rtype: SPECTPSFMeta
 
 
 .. py:function:: CT_to_mumap(CT, files_CT, file_NM, index_peak=0)
@@ -155,7 +155,7 @@ Functions
    :param ds: DICOM dataset of projection data
    :type ds: Dataset
 
-   :returns: Affine matrix.
+   :returns: Affine matrix
    :rtype: np.array
 
 

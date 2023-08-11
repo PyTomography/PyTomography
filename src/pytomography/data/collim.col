@@ -163,10 +163,10 @@
 #
 *SY-LEAP   0.145   0.020   2.405  -3  0 -9.999  -9.999  -9.999  -9.999  -9.999  -9.999  -9.999     Low-Energy All Purpose
 *SY-LEHR   0.111   0.016   2.405  -3  0 -9.999  -9.999  -9.999  -9.999  -9.999  -9.999  -9.999     Low-Energy High Resolution
-*SY-ME     0.294   0.114   4.064  -3  0 -9.999  -9.999  -9.999  -9.999  -9.999  -9.999  -9.999     Medium Energy Parallell
-*SY-HE     0.400   0.200   5.970  -3  0 -9.999  -9.999  -9.999  -9.999  -9.999  -9.999  -9.999       High Energy Parallell
-*SY-HE1    0.400   0.195   5.970  -3  0 -9.999  -9.999  -9.999  -9.999  -9.999  -9.999  -9.999       High Energy Parallell
-*SY-HE2    0.400   0.205   5.970  -3  0 -9.999  -9.999  -9.999  -9.999  -9.999  -9.999  -9.999       High Energy Parallell
+*SY-ME     0.294   0.114   4.064  -3  0 -9.999  -9.999  -9.999  -9.999  -9.999  -9.999  -9.999     Medium Energy Parallel
+*SY-HE     0.400   0.200   5.970  -3  0 -9.999  -9.999  -9.999  -9.999  -9.999  -9.999  -9.999       High Energy Parallel
+*SY-HE1    0.400   0.195   5.970  -3  0 -9.999  -9.999  -9.999  -9.999  -9.999  -9.999  -9.999       High Energy Parallel
+*SY-HE2    0.400   0.205   5.970  -3  0 -9.999  -9.999  -9.999  -9.999  -9.999  -9.999  -9.999       High Energy Parallel
 #
 # Four collimators used by deVries & Moore in the paper, Can be useful for comparison of fractions of
 # geom,pen and scatter in the collimator, 

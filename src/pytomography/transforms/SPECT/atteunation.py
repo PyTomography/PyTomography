@@ -77,7 +77,7 @@ class SPECTAttenuationTransform(Transform):
 			torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.
 		"""
 		attenuation_map = pad_object(self.attenuation_map)
-		norm_factor = get_prob_of_detection_matrix(rotate_detector_z(attenuation_map.repeat(len(ang_idx),1,1,1), self.image_meta.angles[ang_idx]), self.object_meta.dx)
+		norm_factor = get_prob_of_detection_matrix(rotate_detector_z(attenuation_map.repeat(object_i.shape[0],1,1,1), self.image_meta.angles[ang_idx]), self.object_meta.dx)
 		object_i*=norm_factor
 		return object_i
 
@@ -99,7 +99,7 @@ class SPECTAttenuationTransform(Transform):
 			torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.
 		"""
 		attenuation_map = pad_object(self.attenuation_map)
-		norm_factor = get_prob_of_detection_matrix(rotate_detector_z(attenuation_map.repeat(len(ang_idx),1,1,1), self.image_meta.angles[ang_idx]), self.object_meta.dx)
+		norm_factor = get_prob_of_detection_matrix(rotate_detector_z(attenuation_map.repeat(object_i.shape[0],1,1,1), self.image_meta.angles[ang_idx]), self.object_meta.dx)
 		object_i*=norm_factor
 		if norm_constant is not None:
 			norm_constant*=norm_factor

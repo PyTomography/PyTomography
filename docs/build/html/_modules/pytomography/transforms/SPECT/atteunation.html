@@ -354,11 +354,10 @@ document.write(`
 <span class="kn">import</span> <span class="nn">numpy.linalg</span> <span class="k">as</span> <span class="nn">npl</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-<span class="kn">import</span> <span class="nn">pytomography</span>
 <span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">rotate_detector_z</span><span class="p">,</span> <span class="n">rev_cumsum</span><span class="p">,</span> <span class="n">pad_object</span>
 <span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
-<span class="kn">from</span> <span class="nn">pytomography.io.SPECT</span> <span class="kn">import</span> <span class="n">open_CT_file</span><span class="p">,</span> <span class="n">get_affine_matrix</span><span class="p">,</span> <span class="n">CT_to_mumap</span>
-<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ImageMeta</span>
+<span class="kn">from</span> <span class="nn">pytomography.io.SPECT</span> <span class="kn">import</span> <span class="n">open_CT_file</span>
+<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTImageMeta</span>
 <span class="kn">from</span> <span class="nn">pytomography.io.SPECT</span> <span class="kn">import</span> <span class="n">get_attenuation_map_from_CT_slices</span>
 
 <div class="viewcode-block" id="get_prob_of_detection_matrix"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/atteunation/index.html#pytomography.transforms.SPECT.atteunation.get_prob_of_detection_matrix">[docs]</a><span class="k">def</span> <span class="nf">get_prob_of_detection_matrix</span><span class="p">(</span><span class="n">attenuation_map</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">dx</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span> 
@@ -399,14 +398,14 @@ document.write(`
 	 
 <div class="viewcode-block" id="SPECTAttenuationTransform.configure"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/atteunation/index.html#pytomography.transforms.SPECT.atteunation.SPECTAttenuationTransform.configure">[docs]</a>	<span class="k">def</span> <span class="nf">configure</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
-		<span class="n">object_meta</span><span class="p">:</span> <span class="n">ObjectMeta</span><span class="p">,</span>
-		<span class="n">image_meta</span><span class="p">:</span> <span class="n">ImageMeta</span>
+		<span class="n">object_meta</span><span class="p">:</span> <span class="n">SPECTObjectMeta</span><span class="p">,</span>
+		<span class="n">image_meta</span><span class="p">:</span> <span class="n">SPECTImageMeta</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Function used to initalize the transform using corresponding object and image metadata</span>
 
 <span class="sd">		Args:</span>
-<span class="sd">			object_meta (ObjectMeta): Object metadata.</span>
-<span class="sd">			image_meta (ImageMeta): Image metadata.</span>
+<span class="sd">			object_meta (SPECTObjectMeta): Object metadata.</span>
+<span class="sd">			image_meta (SPECTImageMeta): Image metadata.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="nb">super</span><span class="p">(</span><span class="n">SPECTAttenuationTransform</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">)</span>
 		<span class="c1"># Align CT with SPECT and rescale units TODO: If CT extends beyond boundaries</span>

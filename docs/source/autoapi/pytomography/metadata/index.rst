@@ -9,6 +9,15 @@
 
 
 
+Subpackages
+-----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 3
+
+   SPECT/index.rst
+
+
 Submodules
 ----------
 .. toctree::
@@ -28,12 +37,38 @@ Classes
 
    pytomography.metadata.ObjectMeta
    pytomography.metadata.ImageMeta
-   pytomography.metadata.PSFMeta
+   pytomography.metadata.SPECTObjectMeta
+   pytomography.metadata.SPECTImageMeta
+   pytomography.metadata.SPECTPSFMeta
 
 
 
 
-.. py:class:: ObjectMeta(dr, shape)
+.. py:class:: ObjectMeta
+
+   Abstract parent class for all different types of Object Space Metadata. In general, while this is fairly similar for all imaging modalities, required padding features/etc may be different for different modalities.
+
+
+   .. py:method:: __repr__()
+
+      Return repr(self).
+
+
+
+.. py:class:: ImageMeta
+
+   Abstract parent class for all different types of Image Space Metadata. Implementation and required parameters will differ significantly between different imaging modalities.
+
+
+   .. py:method:: __repr__()
+
+      Return repr(self).
+
+
+
+.. py:class:: SPECTObjectMeta(dr, shape)
+
+   Bases: :py:obj:`pytomography.metadata.metadata.ObjectMeta`
 
    Metadata for object space
 
@@ -48,13 +83,10 @@ Classes
 
 
 
-   .. py:method:: __repr__()
 
-      Return repr(self).
+.. py:class:: SPECTImageMeta(projection_shape, angles, radii=None)
 
-
-
-.. py:class:: ImageMeta(object_meta, angles, radii=None)
+   Bases: :py:obj:`pytomography.metadata.metadata.ImageMeta`
 
    Metadata for image space
 
@@ -71,13 +103,8 @@ Classes
 
 
 
-   .. py:method:: __repr__()
 
-      Return repr(self).
-
-
-
-.. py:class:: PSFMeta(sigma_fit_params, sigma_fit = lambda r, a, b: a * r + b, kernel_dimensions = '2D', min_sigmas = 3)
+.. py:class:: SPECTPSFMeta(sigma_fit_params, sigma_fit = lambda r, a, b: a * r + b, kernel_dimensions = '2D', min_sigmas = 3)
 
    Metadata for PSF correction. PSF blurring is implemented using Gaussian blurring with :math:`\sigma(r) = f(r,p)` where :math:`r` is the distance from the detector, :math`\sigma` is the width of the Gaussian blurring at that location, and :math:`f(r,p)` is the `sigma_fit` function which takes in additional parameters :math:`p` called `sigma_fit_params`. (By default, `sigma_fit` is a linear curve). As such, :math:`\frac{1}{\sigma\sqrt{2\pi}}e^{-r^2/(2\sigma(r)^2)}` is the point spread function. Blurring is implemented using convolutions with a specified kernel size.
 
@@ -89,10 +116,5 @@ Classes
    :type kernel_dimensions: str
    :param min_sigmas: This is the number of sigmas to consider in PSF correction. PSF are modelled by Gaussian functions whose extension is infinite, so we need to crop the Gaussian when computing this operation numerically. Note that the blurring width is depth dependent, but the kernel size used for PSF blurring is constant. As such, this parameter is used to fix the kernel size such that all locations have at least ``min_sigmas`` of a kernel size.
    :type min_sigmas: float, optional
-
-   .. py:method:: __repr__()
-
-      Return repr(self).
-
 
 

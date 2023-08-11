@@ -349,7 +349,7 @@ document.write(`
                 <article class="bd-article" role="main">
                   
   <h1>Source code for pytomography.algorithms.osem</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;This module contains classes that implement ordered-subset maximum liklihood iterative reconstruction algorithms. Such algorithms compute :math:`f_i^{n,m+1}` from :math:`f_i^{n,m}` where :math:`n` is the index for an iteration, and :math:`m` is the index for a subiteration (i.e. for a given subset). The notation is defined such that given :math:`M` total subsets of equal size, :math:`f_i^{n+1,0} \equiv f_i^{n,M}` (i.e. after completing a subiteration for each subset, we start the next iteration). Any class that inherits from this class must implement the ``forward`` method. ``__init__`` initializes the reconstruction algorithm with the image data :math:`g_j`, the forward and back projections used (i.e. networks to compute :math:`\sum_i H_{ij} a_i` and :math:`\sum_j H_{ij} b_j`), the initial object guess :math:`f_i^{0,0}`, the estimated scatter contribution :math:`s_j`, and the Bayesian Prior function :math:`V(f)`. Once the class is initialized, the number of iterations and subsets are specified at recon time when the ``forward`` method is called.</span>
+<span></span><span class="sd">&quot;&quot;&quot;This module contains classes that implement ordered-subset maximum liklihood iterative reconstruction algorithms. Such algorithms compute :math:`f^{n,m+1}` from :math:`f^{n,m}` where :math:`n` is the index for an iteration, and :math:`m` is the index for a subiteration (i.e. for a given subset). The notation is defined such that given :math:`M` total subsets of equal size, :math:`f^{n+1,0} \equiv f^{n,M}` (i.e. after completing a subiteration for each subset, we start the next iteration). Any class that inherits from this class must implement the ``forward`` method. ``__init__`` initializes the reconstruction algorithm with the measured image data :math:`g`, the system matrix :math:`H`, the initial object guess :math:`f^{0,0}`, the estimated scatter contribution :math:`s`, and the Bayesian Prior function :math:`V(f)`. Once the class is initialized, the number of iterations and subsets are specified at recon time when the ``forward`` method is called.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -367,11 +367,11 @@ document.write(`
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Abstract class for different algorithms. The difference between subclasses of this class is the method by which they include prior information. If no prior function is used, they are all equivalent.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            image (torch.Tensor): image data :math:`g_j` to be reconstructed</span>
+<span class="sd">            image (torch.Tensor): image data :math:`g` to be reconstructed</span>
 <span class="sd">            system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.</span>
-<span class="sd">            object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space. If None, then initial guess consists of all 1s. Defaults to None.</span>
-<span class="sd">            scatter (torch.Tensor): estimate of scatter contribution :math:`s_j`.Defaults to 0.</span>
-<span class="sd">            prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.</span>
+<span class="sd">            object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f^{0,0}` for the algorithm in object space. If None, then initial guess consists of all 1s. Defaults to None.</span>
+<span class="sd">            scatter (torch.Tensor): estimate of scatter contribution :math:`s`.Defaults to 0.</span>
+<span class="sd">            prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -432,17 +432,16 @@ document.write(`
 <span class="sd">            n_subsets (int): Number of subsets</span>
 <span class="sd">            callbacks (CallBack, optional): CallBacks to be evaluated after each subiteration. Defaults to None.</span>
 <span class="sd">        &quot;&quot;&quot;</span></div></div>
-    
 
 <div class="viewcode-block" id="OSEMOSL"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/osem/index.html#pytomography.algorithms.OSEMOSL">[docs]</a><span class="k">class</span> <span class="nc">OSEMOSL</span><span class="p">(</span><span class="n">OSML</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Implements the ordered subset expectation algorithm using the one-step-late method to include prior information: :math:`f_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j H_{ij} + \beta \frac{\partial V}{\partial f_r}|_{f_i=f_i^{n,m}}} \sum_j H_{ij}\frac{g_j}{\sum_i H_{ij}f_i^{n,m}+s_j}`.</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Implements the ordered subset expectation algorithm using the one-step-late method to include prior information: :math:` \hat{f}^{n,m+1} = \left[\frac{1}{H_m^T 1  + \beta \frac{\partial V}{\partial \hat{f}}|_{\hat{f}=\hat{f}^{n,m}}} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}`.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        image (torch.Tensor): image data :math:`g_j` to be reconstructed</span>
+<span class="sd">        image (torch.Tensor): image data :math:`g` to be reconstructed</span>
 <span class="sd">        system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.</span>
-<span class="sd">        object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space</span>
-<span class="sd">        scatter (torch.Tensor): estimate of scatter contribution :math:`s_j`.</span>
-<span class="sd">        prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.</span>
+<span class="sd">        object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f^{0,0}` for the algorithm in object space</span>
+<span class="sd">        scatter (torch.Tensor): estimate of scatter contribution :math:`s`.</span>
+<span class="sd">        prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 <div class="viewcode-block" id="OSEMOSL._set_recon_params_string"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/osem/index.html#pytomography.algorithms.OSEMOSL._set_recon_params_string">[docs]</a>    <span class="k">def</span> <span class="nf">_set_recon_params_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_iters</span><span class="p">,</span> <span class="n">n_subsets</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the unique identifier for the type of reconstruction performed. Useful for saving to DICOM files</span>
@@ -493,14 +492,14 @@ document.write(`
     
 
 <div class="viewcode-block" id="OSEMBSR"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/osem/index.html#pytomography.algorithms.OSEMBSR">[docs]</a><span class="k">class</span> <span class="nc">OSEMBSR</span><span class="p">(</span><span class="n">OSML</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Implements the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: :math:`\tilde{f}_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j H_{ij}} \sum_j H_{ij}\frac{g_j^m}{\sum_i H_{ij}f_i^{n,m}+s_j}` followed by :math:`f_i^{n,m+1} = \tilde{f}_i^{n,m+1} \left(1-\beta\frac{\alpha_n}{\sum_j H_{ij}}\frac{\partial V}{\partial \tilde{f}_i^{n,m+1}} \right)`.</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Implements the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: :math:`\tilde{\hat{f}}^{n,m+1} = \left[\frac{1}{H_m^T 1} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}` followed by :math:`\hat{f}^{n,m+1} = \tilde{\hat{f}}^{n,m+1} \left(1-\beta\frac{\alpha_n}{H_m^T 1}\frac{\partial V}{\partial \tilde{\hat{f}}^{n,m+1}} \right)`.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        image (torch.Tensor): image data :math:`g_j` to be reconstructed</span>
-<span class="sd">        object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space</span>
+<span class="sd">        image (torch.Tensor): image data :math:`g` to be reconstructed</span>
+<span class="sd">        object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f^{0,0}` for the algorithm in object space</span>
 <span class="sd">        system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.</span>
-<span class="sd">        scatter (torch.Tensor): estimate of scatter contribution :math:`s_j`.</span>
-<span class="sd">        prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.</span>
+<span class="sd">        scatter (torch.Tensor): estimate of scatter contribution :math:`s`.</span>
+<span class="sd">        prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     

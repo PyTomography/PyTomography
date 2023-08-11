@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Reconstructing DICOM Data &#8212; PyTomography 0.9.3 documentation</title>
+    <title>SPECT: Reconstructing DICOM Data &#8212; PyTomography 0.9.3 documentation</title>
   
   
   
@@ -332,7 +332,7 @@ document.write(`
         <i class="fa-solid fa-home"></i>
       </a>
     </li>
-    <li class="breadcrumb-item active" aria-current="page">Reconstructing DICOM Data</li>
+    <li class="breadcrumb-item active" aria-current="page">SPECT: Reconstructing DICOM Data</li>
   </ul>
 </nav>
 </div>
@@ -606,16 +606,14 @@ div.rendered_html tbody tr:hover {
   background: rgba(66, 165, 245, 0.2);
 }
 </style>
-<section id="Reconstructing-DICOM-Data">
-<h1>Reconstructing DICOM Data<a class="headerlink" href="#Reconstructing-DICOM-Data" title="Permalink to this heading">#</a></h1>
+<section id="SPECT:-Reconstructing-DICOM-Data">
+<h1>SPECT: Reconstructing DICOM Data<a class="headerlink" href="#SPECT:-Reconstructing-DICOM-Data" title="Permalink to this heading">#</a></h1>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">pytomography</span>
 <span class="kn">from</span> <span class="nn">pytomography.io.SPECT</span> <span class="kn">import</span> <span class="n">dicom</span>
 <span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">SPECTAttenuationTransform</span><span class="p">,</span> <span class="n">SPECTPSFTransform</span>
 <span class="kn">from</span> <span class="nn">pytomography.algorithms</span> <span class="kn">import</span> <span class="n">OSEMOSL</span>
@@ -688,7 +686,7 @@ torch.Size([1, 180, 128, 128])
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.colorbar.Colorbar at 0x7f4e590fc1f0&gt;
+&lt;matplotlib.colorbar.Colorbar at 0x7ffb109c9700&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -726,7 +724,7 @@ torch.Size([1, 180, 128, 128])
 </pre></div>
 </div>
 </div>
-<p>If we want to view the attenuation map, we need to <em>configure</em> the <code class="docutils literal notranslate"><span class="pre">att_transform</span></code> so that it knows about the SPECT projection data (for alignment) and the photopeak energy (for obtaining cm <span class="math notranslate nohighlight">\(^{-1}\)</span> units)</p>
+<p>If we want to view the attenuation map, we need to <em>configure</em> the <code class="docutils literal notranslate"><span class="pre">att_transform</span></code> so that (i) the CT data can be aligned with SPECT projection data and (ii) the CT data can be converted to attenuation coefficients.</p>
 <ul class="simple">
 <li><p><em>Note</em>: This is not required if you don’t want to view the attenuation map. Later, when the system matrix is built, it automatically configures all the transforms</p></li>
 </ul>
@@ -739,7 +737,7 @@ torch.Size([1, 180, 128, 128])
 </pre></div>
 </div>
 </div>
-<div class="nboutput docutils container">
+<div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
@@ -748,23 +746,12 @@ Cortical Bone Peak: 1419.3499755859375 HU
 Effective CT Energy Determined: 75.89505539164563 keV
 </pre></div></div>
 </div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area stderr docutils container">
-<div class="highlight"><pre>
-/data/home/gpuvmadm/PyTomography/src/pytomography/utils/nist_data.py:25: RuntimeWarning: overflow encountered in exp
-  return c1*np.exp(-d1*np.sqrt(energy)) + c2*np.exp(-d2*np.sqrt(energy))
-</pre></div></div>
-</div>
 <p>Viewing the attenuation map allows for a consistency check to ensure that it’s properly aligned with the projection data</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sample_slice_from_file</span> <span class="o">=</span> <span class="n">attenuation_map</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[</span><span class="mi">0</span><span class="p">][:,</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
-<span class="n">sample_slice_from_CT_slices</span> <span class="o">=</span> <span class="n">attenuation_map</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[</span><span class="mi">0</span><span class="p">][:,</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
-<span class="n">ratio</span> <span class="o">=</span> <span class="p">(</span><span class="n">sample_slice_from_file</span><span class="o">+</span><span class="mf">1e-3</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">sample_slice_from_CT_slices</span><span class="o">+</span><span class="mf">1e-3</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sample_slice</span> <span class="o">=</span> <span class="n">attenuation_map</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[</span><span class="mi">0</span><span class="p">][:,</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
 </pre></div>
 </div>
 </div>
@@ -772,18 +759,16 @@ Effective CT Energy Determined: 75.89505539164563 keV
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">131</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;From File&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">sample_slice_from_file</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;nipy_spectral&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">132</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">121</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Projection Data&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">photopeak</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;nipy_spectral&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;Counts&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">122</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;From CT Slices&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">sample_slice_from_CT_slices</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;nipy_spectral&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">133</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Ratio&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">ratio</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;seismic&#39;</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mf">1.1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">sample_slice</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;Greys_r&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -794,7 +779,7 @@ Effective CT Energy Determined: 75.89505539164563 keV
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.colorbar.Colorbar at 0x7f4e56f14160&gt;
+&lt;matplotlib.colorbar.Colorbar at 0x7ffb0c803820&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -804,7 +789,6 @@ Effective CT Energy Determined: 75.89505539164563 keV
 <img alt="../_images/notebooks_t_dicomdata_21_1.png" src="../_images/notebooks_t_dicomdata_21_1.png" />
 </div>
 </div>
-<p>While the two maps are very similar, they differ by approximately <span class="math notranslate nohighlight">\(\pm 5\%\)</span> in highly attenuating regions.</p>
 </section>
 <section id="PSF-Modeling">
 <h3>PSF Modeling<a class="headerlink" href="#PSF-Modeling" title="Permalink to this heading">#</a></h3>
@@ -834,62 +818,35 @@ Effective CT Energy Determined: 75.89505539164563 keV
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Function:         sigma_fit : function = lambda r, a, b: a*r+b,
-
-Parameters: (0.03161992134409504, 0.12485030464233879)
-Dimensions: 2D
-Maximum sigmas: 3
+&lt;pytomography.metadata.SPECT.spect_metadata.SPECTPSFMeta object at 0x7ffb0e914e20&gt;
 </pre></div></div>
+</div>
+<p>Now we can build our PSF transform required to create the system matrix</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">psf_transform</span> <span class="o">=</span> <span class="n">SPECTPSFTransform</span><span class="p">(</span><span class="n">psf_meta</span><span class="p">)</span>
+</pre></div>
+</div>
 </div>
 </section>
 </section>
-</section>
-<section id="Reconstruct-the-object">
-<h1>Reconstruct the object<a class="headerlink" href="#Reconstruct-the-object" title="Permalink to this heading">#</a></h1>
-<p>We’re now ready to reconstruct the DICOM object. We’ll try using attenuation correction with both the vendors attenuation map and the one created by PyTomography</p>
-<p>So we’ll create a function that performs reconstruction given a particular attenuation map:</p>
-<div class="nbinput nblast docutils container">
+<section id="System-Matrix">
+<h2>System Matrix<a class="headerlink" href="#System-Matrix" title="Permalink to this heading">#</a></h2>
+<p>Now that we have the required transforms, we can begin to build the system matrix. It requires: 1. <code class="docutils literal notranslate"><span class="pre">obj2obj_transforms</span></code>. These map from object space to object space. In the case of SPECT imaging, both the attenuation transform and PSF transform correspond to these types of transforms. 2. <code class="docutils literal notranslate"><span class="pre">im2im_transforms</span></code>: These map from image space to image space. Though we have none here, they would be used to model PSF in PET imaging. 3. <code class="docutils literal notranslate"><span class="pre">object_meta</span></code> and <code class="docutils literal notranslate"><span class="pre">image_meta</span></code>. These are used to initialize
+the transforms. For example, data from <code class="docutils literal notranslate"><span class="pre">object_meta</span></code> is used to align the attenuation map, and radial position from <code class="docutils literal notranslate"><span class="pre">image_meta</span></code> is used to get proper blurring parameters for the PSF transform</p>
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">reconstruct_phantom</span><span class="p">():</span>
-    <span class="c1"># Create transforms required for attenuation and PSF modeling</span>
-    <span class="n">att_transform</span> <span class="o">=</span> <span class="n">SPECTAttenuationTransform</span><span class="p">(</span><span class="n">filepath</span><span class="o">=</span><span class="n">files_CT</span><span class="p">)</span>
-    <span class="n">psf_transform</span> <span class="o">=</span> <span class="n">SPECTPSFTransform</span><span class="p">(</span><span class="n">psf_meta</span><span class="p">)</span>
-    <span class="c1"># Create the SPECT system matrix using transforms and using metadata from the photopeak</span>
-    <span class="n">system_matrix</span> <span class="o">=</span> <span class="n">SPECTSystemMatrix</span><span class="p">(</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">system_matrix</span> <span class="o">=</span> <span class="n">SPECTSystemMatrix</span><span class="p">(</span>
         <span class="n">obj2obj_transforms</span> <span class="o">=</span> <span class="p">[</span><span class="n">att_transform</span><span class="p">,</span><span class="n">psf_transform</span><span class="p">],</span>
         <span class="n">im2im_transforms</span> <span class="o">=</span> <span class="p">[],</span>
         <span class="n">object_meta</span> <span class="o">=</span> <span class="n">object_meta</span><span class="p">,</span>
         <span class="n">image_meta</span> <span class="o">=</span> <span class="n">image_meta</span><span class="p">)</span>
-    <span class="c1"># Initialize reconstruction algorithm</span>
-    <span class="n">reconstruction_algorithm</span> <span class="o">=</span> <span class="n">OSEMOSL</span><span class="p">(</span>
-        <span class="n">image</span> <span class="o">=</span> <span class="n">photopeak</span><span class="p">,</span>
-        <span class="n">system_matrix</span> <span class="o">=</span> <span class="n">system_matrix</span><span class="p">,</span>
-        <span class="n">scatter</span><span class="o">=</span><span class="n">scatter</span><span class="p">)</span>
-    <span class="c1"># Reconstruct object</span>
-    <span class="n">reconstructed_object</span> <span class="o">=</span> <span class="n">reconstruction_algorithm</span><span class="p">(</span><span class="n">n_iters</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">n_subsets</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-    <span class="c1"># Return both the object and a unique string identifying the type of reconstruction performed</span>
-    <span class="k">return</span> <span class="n">reconstructed_object</span><span class="p">,</span> <span class="n">reconstruction_algorithm</span><span class="o">.</span><span class="n">recon_method_string</span>
 </pre></div>
 </div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">recon</span><span class="p">,</span> <span class="n">recon_name</span> <span class="o">=</span> <span class="n">reconstruct_phantom</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area stderr docutils container">
-<div class="highlight"><pre>
-/data/home/gpuvmadm/PyTomography/src/pytomography/utils/nist_data.py:25: RuntimeWarning: overflow encountered in exp
-  return c1*np.exp(-d1*np.sqrt(energy)) + c2*np.exp(-d2*np.sqrt(energy))
-</pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
@@ -900,9 +857,54 @@ Cortical Bone Peak: 1419.3499755859375 HU
 Effective CT Energy Determined: 75.89505539164563 keV
 </pre></div></div>
 </div>
-<p>We’ll compare these reconstructions to one done on the vendors software, which also performed OSEM with 4 iterations, 10 subsets, with attenuation modeling, PSF modeling, and triple energy window scatter correction.</p>
+<p>The system matrix <span class="math notranslate nohighlight">\(H\)</span> represents the imaging system and maps an object <span class="math notranslate nohighlight">\(f\)</span> to a corresponding image <span class="math notranslate nohighlight">\(g\)</span> under the imaging system</p>
+</section>
+</section>
+<section id="Reconstruct-the-object">
+<h1>Reconstruct the object<a class="headerlink" href="#Reconstruct-the-object" title="Permalink to this heading">#</a></h1>
+<p>We’ll reconstruct the object using OSEM. For this, we need to specify the measured image data (<code class="docutils literal notranslate"><span class="pre">photopeak</span></code>/<code class="docutils literal notranslate"><span class="pre">scatter</span></code>) and the <code class="docutils literal notranslate"><span class="pre">system_matrix</span></code></p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reconstruction_algorithm</span> <span class="o">=</span> <span class="n">OSEMOSL</span><span class="p">(</span>
+    <span class="n">image</span> <span class="o">=</span> <span class="n">photopeak</span><span class="p">,</span>
+    <span class="n">system_matrix</span> <span class="o">=</span> <span class="n">system_matrix</span><span class="p">,</span>
+    <span class="n">scatter</span><span class="o">=</span><span class="n">scatter</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>We can reconstruct the object by calling the reconstruction algorithm for a given number of iterations/subsets.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reconstructed_object</span> <span class="o">=</span> <span class="n">reconstruction_algorithm</span><span class="p">(</span><span class="n">n_iters</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">n_subsets</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>We can also get a string corresponding to the type of reconstruction done. This is useful when exporting to DICOM</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">recon_name</span> <span class="o">=</span> <span class="n">reconstruction_algorithm</span><span class="o">.</span><span class="n">recon_method_string</span>
+<span class="n">recon_name</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&#39;OSEM_4it10ss&#39;
+</pre></div></div>
+</div>
+<p>We can compare this reconstruction to one done by the vendor:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ds_recon</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;scanner_recon.dcm&#39;</span><span class="p">))</span>
@@ -911,21 +913,18 @@ Effective CT Energy Determined: 75.89505539164563 keV
 </pre></div>
 </div>
 </div>
-</section>
-<section id="Plotting">
-<h1>Plotting<a class="headerlink" href="#Plotting" title="Permalink to this heading">#</a></h1>
 <p>We can looks at axial slices from all three reconstructions.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">slice_pytomography</span> <span class="o">=</span> <span class="n">recon</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[</span><span class="mi">0</span><span class="p">][:,:,</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">slice_pytomography</span> <span class="o">=</span> <span class="n">reconstructed_object</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[</span><span class="mi">0</span><span class="p">][:,:,</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
 <span class="n">slice_vendor</span> <span class="o">=</span> <span class="n">recon_vendor</span><span class="p">[:,:,</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
 </pre></div>
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
@@ -947,13 +946,12 @@ Effective CT Energy Determined: 75.89505539164563 keV
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_dicomdata_37_0.png" src="../_images/notebooks_t_dicomdata_37_0.png" />
+<img alt="../_images/notebooks_t_dicomdata_44_0.png" src="../_images/notebooks_t_dicomdata_44_0.png" />
 </div>
 </div>
 <p>Careful observation of the top bright lobe shows that the reconstruction obtained by using the vendors attenuation map gives a reconstruction more consistent with the vendor than that using seperate CT slices.</p>
-</section>
 <section id="Saving-Data">
-<h1>Saving Data<a class="headerlink" href="#Saving-Data" title="Permalink to this heading">#</a></h1>
+<h2>Saving Data<a class="headerlink" href="#Saving-Data" title="Permalink to this heading">#</a></h2>
 <p>PyTomography has functionality for saving DICOM data. There are a few things required:</p>
 <ol class="arabic simple">
 <li><p>The folder where you want to save the data. The folder can’t exist already (has to be a new folder); this prevents overwriting potential data.</p></li>
@@ -962,16 +960,17 @@ Effective CT Energy Determined: 75.89505539164563 keV
 <li><p>An optional string that represents the type of reconstruction performed. If left blank, will be an empty string <code class="docutils literal notranslate"><span class="pre">''</span></code></p></li>
 </ol>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Modify the path below to a location on your computer where you want to save the data</span>
 <span class="n">save_path</span> <span class="o">=</span> <span class="s1">&#39;/disk1/pytomography_tutorial_data/dicom_tutorial/output&#39;</span>
-<span class="n">dicom</span><span class="o">.</span><span class="n">save_dcm</span><span class="p">(</span><span class="n">save_path</span><span class="p">,</span> <span class="n">recon</span><span class="p">,</span> <span class="n">file_NM</span><span class="p">,</span> <span class="n">recon_name</span><span class="p">)</span>
+<span class="n">dicom</span><span class="o">.</span><span class="n">save_dcm</span><span class="p">(</span><span class="n">save_path</span><span class="p">,</span> <span class="n">reconstructed_object</span><span class="p">,</span> <span class="n">file_NM</span><span class="p">,</span> <span class="n">recon_name</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <p>The data can now be exported to any DICOM viewer of your choice!</p>
+</section>
 </section>
 
 
@@ -1003,18 +1002,20 @@ Effective CT Energy Determined: 75.89505539164563 keV
   </div>
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
-<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#">Reconstructing DICOM Data</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#">SPECT: Reconstructing DICOM Data</a><ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Part-1:-Opening-Data">Part 1: Opening Data</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Part-2:-Modeling">Part 2: Modeling</a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Attenuation-Transform">Attenuation Transform</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#PSF-Modeling">PSF Modeling</a></li>
 </ul>
 </li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#System-Matrix">System Matrix</a></li>
 </ul>
 </li>
-<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#Reconstruct-the-object">Reconstruct the object</a></li>
-<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#Plotting">Plotting</a></li>
-<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#Saving-Data">Saving Data</a></li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#Reconstruct-the-object">Reconstruct the object</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Saving-Data">Saving Data</a></li>
+</ul>
+</li>
 </ul>
 
   </nav></div>

@@ -54,9 +54,9 @@ Functions
       Function used to initalize the transform using corresponding object and image metadata
 
       :param object_meta: Object metadata.
-      :type object_meta: ObjectMeta
+      :type object_meta: SPECTObjectMeta
       :param image_meta: Image metadata.
-      :type image_meta: ImageMeta
+      :type image_meta: SPECTImageMeta
 
 
    .. py:method:: forward(object_i, ang_idx)

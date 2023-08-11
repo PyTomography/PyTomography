@@ -3,6 +3,11 @@
 
 .. py:module:: pytomography.io.CT.dicom
 
+.. autoapi-nested-parse::
+
+   This module contains functionality for opening CT images.
+
+
 
 Module Contents
 ---------------

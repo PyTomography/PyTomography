@@ -3,6 +3,11 @@
 
 .. py:module:: pytomography.io.SPECT
 
+.. autoapi-nested-parse::
+
+   Input/output functions for the SPECT imaging modality. Currently, the data types supported are SIMIND and DICOM files.
+
+
 
 Submodules
 ----------
@@ -57,7 +62,7 @@ Functions
    :type index_peak: int
 
    :returns: Required information for reconstruction in PyTomography.
-   :rtype: (ObjectMeta, ImageMeta, torch.Tensor[1, Ltheta, Lr, Lz])
+   :rtype: (SPECTObjectMeta, SPECTImageMeta, torch.Tensor[1, Ltheta, Lr, Lz])
 
 
 .. py:function:: get_attenuation_map_from_file(file_AM)
@@ -130,7 +135,7 @@ Functions
    :type min_sigmas: float
 
    :returns: PSF metadata.
-   :rtype: PSFMeta
+   :rtype: SPECTPSFMeta
 
 
 .. py:function:: open_CT_file(files_CT)

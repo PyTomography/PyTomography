@@ -363,12 +363,10 @@ document.write(`
 <span class="kn">from</span> <span class="nn">pydicom.dataset</span> <span class="kn">import</span> <span class="n">Dataset</span>
 <span class="kn">from</span> <span class="nn">pydicom.uid</span> <span class="kn">import</span> <span class="n">generate_uid</span>
 <span class="kn">import</span> <span class="nn">pytomography</span>
-<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ImageMeta</span>
-<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">PSFMeta</span>
-<span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">get_blank_below_above</span>
-<span class="kn">from</span> <span class="nn">..CT.attenuation_map</span> <span class="kn">import</span> <span class="n">get_HU2mu_conversion</span><span class="p">,</span> <span class="n">get_mu_from_spectrum_interp</span>
-<span class="kn">from</span> <span class="nn">..CT.dicom</span> <span class="kn">import</span> <span class="n">open_CT_file</span><span class="p">,</span> <span class="n">compute_max_slice_loc_CT</span>
-<span class="kn">from</span> <span class="nn">..shared.dicom_creation</span> <span class="kn">import</span> <span class="n">create_ds</span>
+<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTImageMeta</span><span class="p">,</span> <span class="n">SPECTPSFMeta</span>
+<span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">get_blank_below_above</span><span class="p">,</span> <span class="n">compute_TEW</span><span class="p">,</span> <span class="n">get_mu_from_spectrum_interp</span>
+<span class="kn">from</span> <span class="nn">..CT</span> <span class="kn">import</span> <span class="n">get_HU2mu_conversion</span><span class="p">,</span> <span class="n">open_CT_file</span><span class="p">,</span> <span class="n">compute_max_slice_loc_CT</span>
+<span class="kn">from</span> <span class="nn">..shared</span> <span class="kn">import</span> <span class="n">create_ds</span>
 
 <div class="viewcode-block" id="get_radii_and_angles"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html#pytomography.io.SPECT.dicom.get_radii_and_angles">[docs]</a><span class="k">def</span> <span class="nf">get_radii_and_angles</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets projections with corresponding radii and angles corresponding to projection data from a DICOM file.</span>
@@ -411,7 +409,7 @@ document.write(`
 <div class="viewcode-block" id="get_metadata"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html#pytomography.io.SPECT.dicom.get_metadata">[docs]</a><span class="k">def</span> <span class="nf">get_metadata</span><span class="p">(</span>
     <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">index_peak</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ImageMeta</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTImageMeta</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets PyTomography metadata from a .dcm file.</span>
 
 <span class="sd">    Args:</span>
@@ -427,8 +425,8 @@ document.write(`
     <span class="n">projections</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">radii</span> <span class="o">=</span> <span class="n">get_radii_and_angles</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
     <span class="n">shape_proj</span><span class="o">=</span> <span class="n">projections</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">shape_obj</span> <span class="o">=</span> <span class="p">(</span><span class="n">shape_proj</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">shape_proj</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">shape_proj</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
-    <span class="n">object_meta</span> <span class="o">=</span> <span class="n">ObjectMeta</span><span class="p">(</span><span class="n">dr</span><span class="p">,</span><span class="n">shape_obj</span><span class="p">)</span>
-    <span class="n">image_meta</span> <span class="o">=</span> <span class="n">ImageMeta</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">radii</span><span class="p">)</span>
+    <span class="n">object_meta</span> <span class="o">=</span> <span class="n">SPECTObjectMeta</span><span class="p">(</span><span class="n">dr</span><span class="p">,</span><span class="n">shape_obj</span><span class="p">)</span>
+    <span class="n">image_meta</span> <span class="o">=</span> <span class="n">SPECTImageMeta</span><span class="p">((</span><span class="n">shape_proj</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">shape_proj</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">angles</span><span class="p">,</span> <span class="n">radii</span><span class="p">)</span>
     <span class="n">object_meta</span><span class="o">.</span><span class="n">affine_matrix</span> <span class="o">=</span> <span class="n">_get_affine_spect</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
     <span class="n">image_meta</span><span class="o">.</span><span class="n">filepath</span> <span class="o">=</span> <span class="n">file</span>
     <span class="n">image_meta</span><span class="o">.</span><span class="n">index_peak</span> <span class="o">=</span> <span class="n">index_peak</span>
@@ -437,14 +435,14 @@ document.write(`
 <div class="viewcode-block" id="get_projections"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/index.html#pytomography.io.SPECT.dicom.get_projections">[docs]</a><span class="k">def</span> <span class="nf">get_projections</span><span class="p">(</span>
     <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">index_peak</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ImageMeta</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTImageMeta</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets projections from a .dcm file.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        file (str): Path to the .dcm file of SPECT projection data.</span>
 <span class="sd">        index_peak (int): If not none, then the returned projections correspond to the index of this energy window. Otherwise returns all energy windows. Defaults to None.</span>
 <span class="sd">    Returns:</span>
-<span class="sd">        (ObjectMeta, ImageMeta, torch.Tensor[1, Ltheta, Lr, Lz]): Required information for reconstruction in PyTomography.</span>
+<span class="sd">        (SPECTObjectMeta, SPECTImageMeta, torch.Tensor[1, Ltheta, Lr, Lz]): Required information for reconstruction in PyTomography.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">projections</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">get_radii_and_angles</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
@@ -489,7 +487,7 @@ document.write(`
     <span class="n">ww_lower</span> <span class="o">=</span> <span class="n">get_window_width</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">index_lower</span><span class="p">)</span>
     <span class="n">ww_upper</span> <span class="o">=</span> <span class="n">get_window_width</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">index_upper</span><span class="p">)</span>
     <span class="n">projections_all</span> <span class="o">=</span> <span class="n">get_projections</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
-    <span class="n">scatter</span> <span class="o">=</span> <span class="p">(</span><span class="n">projections_all</span><span class="p">[</span><span class="n">index_lower</span><span class="p">]</span><span class="o">/</span><span class="n">ww_lower</span> <span class="o">+</span> <span class="n">projections_all</span><span class="p">[</span><span class="n">index_upper</span><span class="p">]</span><span class="o">/</span><span class="n">ww_upper</span><span class="p">)</span><span class="o">*</span> <span class="n">ww_peak</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">scatter</span> <span class="o">=</span> <span class="n">compute_TEW</span><span class="p">(</span><span class="n">projections_all</span><span class="p">[</span><span class="n">index_lower</span><span class="p">],</span><span class="n">projections_all</span><span class="p">[</span><span class="n">index_upper</span><span class="p">],</span> <span class="n">ww_lower</span><span class="p">,</span> <span class="n">ww_upper</span><span class="p">,</span> <span class="n">ww_peak</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">scatter</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="get_attenuation_map_from_file"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/index.html#pytomography.io.SPECT.dicom.get_attenuation_map_from_file">[docs]</a><span class="k">def</span> <span class="nf">get_attenuation_map_from_file</span><span class="p">(</span><span class="n">file_AM</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
@@ -515,7 +513,7 @@ document.write(`
     <span class="n">collimator_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">energy_keV</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">min_sigmas</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">3</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PSFMeta</span><span class="p">:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SPECTPSFMeta</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets PSF metadata from SPECT camera/collimator parameters. Performs linear interpolation to find linear attenuation coefficient for lead collimators for energy values within the range 100keV - 600keV.</span>
 
 <span class="sd">    Args:</span>
@@ -525,7 +523,7 @@ document.write(`
 <span class="sd">        min_sigmas (float): Minimum size of the blurring kernel used. Fixes the convolutional kernel size so that all locations have at least ``min_sigmas`` in dimensions (some will be greater)</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        PSFMeta: PSF metadata.</span>
+<span class="sd">        SPECTPSFMeta: PSF metadata.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">module_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
@@ -547,7 +545,7 @@ document.write(`
     <span class="n">collimator_slope</span> <span class="o">=</span> <span class="n">hole_diameter</span><span class="o">/</span><span class="p">(</span><span class="n">hole_length</span> <span class="o">-</span> <span class="p">(</span><span class="mi">2</span><span class="o">/</span><span class="n">lead_attenuation</span><span class="p">))</span> <span class="o">*</span> <span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">)))</span>
     <span class="n">collimator_intercept</span> <span class="o">=</span> <span class="n">hole_diameter</span> <span class="o">*</span> <span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">)))</span>
     
-    <span class="k">return</span> <span class="n">PSFMeta</span><span class="p">((</span><span class="n">collimator_slope</span><span class="p">,</span> <span class="n">collimator_intercept</span><span class="p">),</span> <span class="n">min_sigmas</span><span class="o">=</span><span class="n">min_sigmas</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">SPECTPSFMeta</span><span class="p">((</span><span class="n">collimator_slope</span><span class="p">,</span> <span class="n">collimator_intercept</span><span class="p">),</span> <span class="n">min_sigmas</span><span class="o">=</span><span class="n">min_sigmas</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="CT_to_mumap"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/index.html#pytomography.io.SPECT.dicom.CT_to_mumap">[docs]</a><span class="k">def</span> <span class="nf">CT_to_mumap</span><span class="p">(</span><span class="n">CT</span><span class="p">,</span> <span class="n">files_CT</span><span class="p">,</span> <span class="n">file_NM</span><span class="p">,</span> <span class="n">index_peak</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
     <span class="n">ds_NM</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file_NM</span><span class="p">)</span>
@@ -616,7 +614,7 @@ document.write(`
 <span class="sd">        ds (Dataset): DICOM dataset of projection data</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        np.array: Affine matrix.</span>
+<span class="sd">        np.array: Affine matrix</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Note: per DICOM convention z actually decreases as the z-index increases (initial z slices start with the head)</span>
     <span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>

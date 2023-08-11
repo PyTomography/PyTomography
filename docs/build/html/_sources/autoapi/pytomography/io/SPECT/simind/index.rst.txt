@@ -61,7 +61,7 @@ Attributes
    :type distance: str, optional
 
    :returns: Required information for reconstruction in PyTomography.
-   :rtype: (ObjectMeta, ImageMeta, torch.Tensor[1, Ltheta, Lr, Lz])
+   :rtype: (SPECTObjectMeta, SPECTImageMeta, torch.Tensor[1, Ltheta, Lr, Lz])
 
 
 .. py:function:: get_projections(headerfile)
@@ -99,7 +99,7 @@ Attributes
    :type weights: Sequence[str]
 
    :returns: Returns necessary object/image metadata along with the projection data
-   :rtype: (ObjectMeta, ImageMeta, torch.Tensor)
+   :rtype: (SPECTObjectMeta, SPECTImageMeta, torch.Tensor)
 
 
 .. py:function:: combine_scatter_data_TEW(headerfiles_peak, headerfiles_lower, headerfiles_upper, weights)
@@ -132,12 +132,12 @@ Attributes
 
 .. py:function:: get_psfmeta_from_header(headerfile)
 
-   Obtains the PSFMeta data corresponding to a SIMIND simulation scan from the headerfile
+   Obtains the SPECTPSFMeta data corresponding to a SIMIND simulation scan from the headerfile
 
    :param headerfile: SIMIND headerfile.
    :type headerfile: str
 
-   :returns: PSF metadata required for PSF modeling in reconstruction.
-   :rtype: PSFMeta
+   :returns: SPECT PSF metadata required for PSF modeling in reconstruction.
+   :rtype: SPECTPSFMeta
 
 

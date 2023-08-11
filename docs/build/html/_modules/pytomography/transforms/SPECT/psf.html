@@ -356,7 +356,7 @@ document.write(`
 <span class="kn">import</span> <span class="nn">pytomography</span>
 <span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">get_distance</span><span class="p">,</span> <span class="n">compute_pad_size</span>
 <span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
-<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ImageMeta</span><span class="p">,</span> <span class="n">PSFMeta</span>
+<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTImageMeta</span><span class="p">,</span> <span class="n">SPECTPSFMeta</span>
     
 <div class="viewcode-block" id="GaussianBlurNet"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html#pytomography.transforms.SPECT.GaussianBlurNet">[docs]</a><span class="k">class</span> <span class="nc">GaussianBlurNet</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer_r</span><span class="p">,</span> <span class="n">layer_z</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -395,14 +395,14 @@ document.write(`
     <span class="k">return</span> <span class="n">layer</span></div>
 
 <div class="viewcode-block" id="SPECTPSFTransform"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/index.html#pytomography.transforms.SPECT.SPECTPSFTransform">[docs]</a><span class="k">class</span> <span class="nc">SPECTPSFTransform</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``PSFMeta`` parameter. </span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``SPECTPSFMeta`` parameter. </span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        psf_meta (PSFMeta): Metadata corresponding to the parameters of PSF blurring</span>
+<span class="sd">        psf_meta (SPECTPSFMeta): Metadata corresponding to the parameters of PSF blurring</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">psf_meta</span><span class="p">:</span> <span class="n">PSFMeta</span><span class="p">,</span> 
+        <span class="n">psf_meta</span><span class="p">:</span> <span class="n">SPECTPSFMeta</span><span class="p">,</span> 
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializer that sets corresponding psf parameters&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">SPECTPSFTransform</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -412,14 +412,14 @@ document.write(`
 
 <div class="viewcode-block" id="SPECTPSFTransform.configure"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html#pytomography.transforms.SPECT.SPECTPSFTransform.configure">[docs]</a>    <span class="k">def</span> <span class="nf">configure</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">object_meta</span><span class="p">:</span> <span class="n">ObjectMeta</span><span class="p">,</span>
-        <span class="n">image_meta</span><span class="p">:</span> <span class="n">ImageMeta</span>
+        <span class="n">object_meta</span><span class="p">:</span> <span class="n">SPECTObjectMeta</span><span class="p">,</span>
+        <span class="n">image_meta</span><span class="p">:</span> <span class="n">SPECTImageMeta</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Function used to initalize the transform using corresponding object and image metadata</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            object_meta (ObjectMeta): Object metadata.</span>
-<span class="sd">            image_meta (ImageMeta): Image metadata.</span>
+<span class="sd">            object_meta (SPECTObjectMeta): Object metadata.</span>
+<span class="sd">            image_meta (SPECTImageMeta): Image metadata.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">SPECTPSFTransform</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="p">{}</span>
@@ -437,7 +437,7 @@ document.write(`
                 <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">radius</span><span class="p">]</span> <span class="o">=</span> <span class="n">GaussianBlurNet</span><span class="p">(</span><span class="n">layer_r</span><span class="p">)</span></div>
         
 <div class="viewcode-block" id="SPECTPSFTransform.compute_kernel_size"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html#pytomography.transforms.SPECT.SPECTPSFTransform.compute_kernel_size">[docs]</a>    <span class="k">def</span> <span class="nf">compute_kernel_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``PSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object. </span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``SPECTPSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object. </span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            int: The corresponding kernel size used for PSF blurring.</span>

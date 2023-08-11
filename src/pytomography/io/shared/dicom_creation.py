@@ -6,7 +6,16 @@ from pydicom.sequence import Sequence
 from pydicom.uid import ImplicitVRLittleEndian
 from pydicom.uid import PYDICOM_IMPLEMENTATION_UID
 
-def get_file_meta(SOP_instance_UID, SOP_class_UID) -> FileMetaDataset:
+def get_file_meta(SOP_instance_UID: str, SOP_class_UID: str) -> FileMetaDataset:
+    """Creates DICOM file metadata given an SOP instance and class UID.
+
+    Args:
+        SOP_instance_UID (str): Identifier unique to each DICOM file
+        SOP_class_UID (str): Identifier specifying imaging modality
+
+    Returns:
+        FileMetaDataset: Metadata for DICOM file
+    """
     file_meta = FileMetaDataset()
     file_meta.FileMetaInformationGroupLength = 202
     file_meta.FileMetaInformationVersion = b"\x00\x01"
@@ -17,14 +26,28 @@ def get_file_meta(SOP_instance_UID, SOP_class_UID) -> FileMetaDataset:
     file_meta.ImplementationClassUID = PYDICOM_IMPLEMENTATION_UID
     return file_meta
 
-def generate_base_dataset(SOP_instance_UID, SOP_class_UID) -> FileDataset:
+def generate_base_dataset(SOP_instance_UID: str, SOP_class_UID: str) -> FileDataset:
+    """Generates a base dataset with the minimal number of required parameters
+
+    Args:
+        SOP_instance_UID (str): Identifier unique to each DICOM file
+        SOP_class_UID (str): Identifier specifying imaging modality
+
+    Returns:
+        FileDataset: DICOM dataset
+    """
     file_name = "pydicom-reconstruction"
     file_meta = get_file_meta(SOP_instance_UID, SOP_class_UID)
     ds = FileDataset(file_name, {}, file_meta=file_meta, preamble=b"\0" * 128)
     add_required_elements_to_ds(ds)
     return ds
 
-def add_required_elements_to_ds(ds: FileDataset):
+def add_required_elements_to_ds(ds: FileDataset) -> None:
+    """Adds elements to dataset including timing and manufacturer details
+
+    Args:
+        ds (FileDataset): DICOM dataset that will be updated
+    """
     dt = datetime.datetime.now()
     # Append data elements required by the DICOM standarad
     ds.SpecificCharacterSet = "ISO_IR 100"
@@ -41,7 +64,13 @@ def add_required_elements_to_ds(ds: FileDataset):
     ds.SOPInstanceUID = ds.file_meta.MediaStorageSOPInstanceUID
     ds.ApprovalStatus = "UNAPPROVED"
     
-def add_study_and_series_information(ds: FileDataset, reference_ds):
+def add_study_and_series_information(ds: FileDataset, reference_ds: FileDataset) -> None:
+    """Adds study and series information to dataset based on reference dataset
+
+    Args:
+        ds (FileDataset): Dataset for which to add headers
+        reference_ds (FileDataset): Dataset from which to copy headers
+    """
     ds.StudyDate = reference_ds.StudyDate
     ds.SeriesDate = getattr(reference_ds, "SeriesDate", "")
     ds.StudyTime = reference_ds.StudyTime
@@ -55,6 +84,12 @@ def add_study_and_series_information(ds: FileDataset, reference_ds):
     ds.FrameOfReferenceUID =  getattr(reference_ds, 'FrameOfReferenceUID', generate_uid())
     
 def add_patient_information(ds: FileDataset, reference_ds):
+    """Adds patient information to dataset based on reference dataset
+
+    Args:
+        ds (FileDataset): Dataset for which to add headers
+        reference_ds (FileDataset): Dataset from which to copy headers
+    """
     ds.PatientName = getattr(reference_ds, "PatientName", "")
     ds.PatientID = getattr(reference_ds, "PatientID", "")
     ds.PatientBirthDate = getattr(reference_ds, "PatientBirthDate", "")
@@ -63,7 +98,18 @@ def add_patient_information(ds: FileDataset, reference_ds):
     ds.PatientSize = getattr(reference_ds, "PatientSize", "")
     ds.PatientWeight = getattr(reference_ds, "PatientWeight", "")
     
-def create_ds(reference_ds, SOP_instance_UID, SOP_class_UID, modality):
+def create_ds(reference_ds: FileDataset, SOP_instance_UID: str, SOP_class_UID: str, modality: str):
+    """Creates a new DICOM dataset based on a reference dataset with all required headers. Because this is potentially used to save images corresponding to different modalities, the UIDs must be input arguments to this function. In addition, since some modalities require saving multiple slices whereby ``SOP_instance_UIDs`` may use some convention to specify slice number, these are also input arguments.
+
+    Args:
+        reference_ds (FileDataset): Dataset from which to copy all important headers such as patient information and study UID. 
+        SOP_instance_UID (str): Unique identifier for the particular instance (this is different for every DICOM file created)
+        SOP_class_UID (str): Unique identifier for the imaging modality
+        modality (str): String specifying imaging modality
+
+    Returns:
+        _type_: _description_
+    """
     ds = generate_base_dataset(SOP_instance_UID, SOP_class_UID)
     add_study_and_series_information(ds, reference_ds)
     add_patient_information(ds, reference_ds)

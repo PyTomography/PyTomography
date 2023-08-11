@@ -94,9 +94,9 @@ Classes
       Function used to initalize the transform using corresponding object and image metadata
 
       :param object_meta: Object metadata.
-      :type object_meta: ObjectMeta
+      :type object_meta: SPECTObjectMeta
       :param image_meta: Image metadata.
-      :type image_meta: ImageMeta
+      :type image_meta: SPECTImageMeta
 
 
    .. py:method:: forward(object_i, ang_idx)
@@ -132,24 +132,24 @@ Classes
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 
-   obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``PSFMeta`` parameter.
+   obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``SPECTPSFMeta`` parameter.
 
    :param psf_meta: Metadata corresponding to the parameters of PSF blurring
-   :type psf_meta: PSFMeta
+   :type psf_meta: SPECTPSFMeta
 
    .. py:method:: configure(object_meta, image_meta)
 
       Function used to initalize the transform using corresponding object and image metadata
 
       :param object_meta: Object metadata.
-      :type object_meta: ObjectMeta
+      :type object_meta: SPECTObjectMeta
       :param image_meta: Image metadata.
-      :type image_meta: ImageMeta
+      :type image_meta: SPECTImageMeta
 
 
    .. py:method:: compute_kernel_size(radius, axis)
 
-      Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``PSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object.
+      Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``SPECTPSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object.
 
       :returns: The corresponding kernel size used for PSF blurring.
       :rtype: int

@@ -357,8 +357,7 @@ document.write(`
 <span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">pytomography</span>
-<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ImageMeta</span>
-<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">PSFMeta</span>
+<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTImageMeta</span><span class="p">,</span> <span class="n">SPECTPSFMeta</span>
 <span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">get_mu_from_spectrum_interp</span><span class="p">,</span> <span class="n">compute_TEW</span>
 
 <div class="viewcode-block" id="relation_dict"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.relation_dict">[docs]</a><span class="n">relation_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;unsignedinteger&#39;</span><span class="p">:</span> <span class="s1">&#39;int&#39;</span><span class="p">,</span>
@@ -396,7 +395,7 @@ document.write(`
 <span class="sd">        distance (str, optional): The units of measurements in the SIMIND file (this is required as input, since SIMIND uses mm/cm but doesn&#39;t specify). Defaults to &#39;cm&#39;.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        (ObjectMeta, ImageMeta, torch.Tensor[1, Ltheta, Lr, Lz]): Required information for reconstruction in PyTomography.</span>
+<span class="sd">        (SPECTObjectMeta, SPECTImageMeta, torch.Tensor[1, Ltheta, Lr, Lz]): Required information for reconstruction in PyTomography.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">distance</span><span class="o">==</span><span class="s1">&#39;mm&#39;</span><span class="p">:</span>
         <span class="n">scale_factor</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">10</span>
@@ -416,8 +415,8 @@ document.write(`
     <span class="n">angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">start_angle</span><span class="p">,</span> <span class="n">extent_of_rotation</span><span class="p">,</span> <span class="n">number_of_projections</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">radius</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;Radius&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span><span class="n">scale_factor</span>
     <span class="n">shape_obj</span> <span class="o">=</span> <span class="p">(</span><span class="n">proj_dim1</span><span class="p">,</span> <span class="n">proj_dim1</span><span class="p">,</span> <span class="n">proj_dim2</span><span class="p">)</span>
-    <span class="n">object_meta</span> <span class="o">=</span> <span class="n">ObjectMeta</span><span class="p">(</span><span class="n">dr</span><span class="p">,</span><span class="n">shape_obj</span><span class="p">)</span>
-    <span class="n">image_meta</span> <span class="o">=</span> <span class="n">ImageMeta</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">angles</span><span class="p">))</span><span class="o">*</span><span class="n">radius</span><span class="p">)</span>
+    <span class="n">object_meta</span> <span class="o">=</span> <span class="n">SPECTObjectMeta</span><span class="p">(</span><span class="n">dr</span><span class="p">,</span><span class="n">shape_obj</span><span class="p">)</span>
+    <span class="n">image_meta</span> <span class="o">=</span> <span class="n">SPECTImageMeta</span><span class="p">((</span><span class="n">proj_dim1</span><span class="p">,</span> <span class="n">proj_dim2</span><span class="p">),</span> <span class="n">angles</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">angles</span><span class="p">))</span><span class="o">*</span><span class="n">radius</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span></div>
 
 <div class="viewcode-block" id="get_projections"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.get_projections">[docs]</a><span class="k">def</span> <span class="nf">get_projections</span><span class="p">(</span><span class="n">headerfile</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
@@ -488,7 +487,7 @@ document.write(`
 <span class="sd">        weights (Sequence[str]): Amount by which to weight each projection relative.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        (ObjectMeta, ImageMeta, torch.Tensor): Returns necessary object/image metadata along with the projection data</span>
+<span class="sd">        (SPECTObjectMeta, SPECTImageMeta, torch.Tensor): Returns necessary object/image metadata along with the projection data</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">projections</span> <span class="o">=</span> <span class="mi">0</span> 
     <span class="k">for</span> <span class="n">headerfile</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
@@ -542,13 +541,13 @@ document.write(`
     <span class="k">return</span> <span class="n">CT</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="get_psfmeta_from_header"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.get_psfmeta_from_header">[docs]</a><span class="k">def</span> <span class="nf">get_psfmeta_from_header</span><span class="p">(</span><span class="n">headerfile</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtains the PSFMeta data corresponding to a SIMIND simulation scan from the headerfile</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtains the SPECTPSFMeta data corresponding to a SIMIND simulation scan from the headerfile</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        headerfile (str): SIMIND headerfile.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        PSFMeta: PSF metadata required for PSF modeling in reconstruction.</span>
+<span class="sd">        SPECTPSFMeta: SPECT PSF metadata required for PSF modeling in reconstruction.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">module_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">headerfile</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
@@ -560,7 +559,7 @@ document.write(`
     <span class="n">lead_attenuation</span> <span class="o">=</span> <span class="n">get_mu_from_spectrum_interp</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">module_path</span><span class="p">,</span> <span class="s1">&#39;../../data/NIST_attenuation_data/lead.csv&#39;</span><span class="p">),</span> <span class="n">energy_keV</span><span class="p">)</span>
     <span class="n">collimator_slope</span> <span class="o">=</span> <span class="n">hole_diameter</span><span class="o">/</span><span class="p">(</span><span class="n">hole_length</span> <span class="o">-</span> <span class="p">(</span><span class="mi">2</span><span class="o">/</span><span class="n">lead_attenuation</span><span class="p">))</span> <span class="o">*</span> <span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">)))</span>
     <span class="n">collimator_intercept</span> <span class="o">=</span> <span class="n">hole_diameter</span> <span class="o">*</span> <span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">)))</span>
-    <span class="k">return</span> <span class="n">PSFMeta</span><span class="p">((</span><span class="n">collimator_slope</span><span class="p">,</span> <span class="n">collimator_intercept</span><span class="p">))</span></div>
+    <span class="k">return</span> <span class="n">SPECTPSFMeta</span><span class="p">((</span><span class="n">collimator_slope</span><span class="p">,</span> <span class="n">collimator_intercept</span><span class="p">))</span></div>
 </pre></div>
 
                 </article>

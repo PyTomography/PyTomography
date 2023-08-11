@@ -37,15 +37,15 @@ Classes
 
    Abstract class for different algorithms. The difference between subclasses of this class is the method by which they include prior information. If no prior function is used, they are all equivalent.
 
-   :param image: image data :math:`g_j` to be reconstructed
+   :param image: image data :math:`g` to be reconstructed
    :type image: torch.Tensor
    :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
    :type system_matrix: SystemMatrix
-   :param object_initial: represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space. If None, then initial guess consists of all 1s. Defaults to None.
+   :param object_initial: represents the initial object guess :math:`f^{0,0}` for the algorithm in object space. If None, then initial guess consists of all 1s. Defaults to None.
    :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
-   :param scatter: estimate of scatter contribution :math:`s_j`.Defaults to 0.
+   :param scatter: estimate of scatter contribution :math:`s`.Defaults to 0.
    :type scatter: torch.Tensor
-   :param prior: the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.
+   :param prior: the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.
    :type prior: Prior, optional
 
    .. py:method:: get_subset_splits(n_subsets, n_angles)
@@ -79,17 +79,17 @@ Classes
 
    Bases: :py:obj:`OSML`
 
-   Implements the ordered subset expectation algorithm using the one-step-late method to include prior information: :math:`f_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j H_{ij} + \beta \frac{\partial V}{\partial f_r}|_{f_i=f_i^{n,m}}} \sum_j H_{ij}\frac{g_j}{\sum_i H_{ij}f_i^{n,m}+s_j}`.
+   Implements the ordered subset expectation algorithm using the one-step-late method to include prior information: :math:` \hat{f}^{n,m+1} = \left[\frac{1}{H_m^T 1  + \beta \frac{\partial V}{\partial \hat{f}}|_{\hat{f}=\hat{f}^{n,m}}} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}`.
 
-   :param image: image data :math:`g_j` to be reconstructed
+   :param image: image data :math:`g` to be reconstructed
    :type image: torch.Tensor
    :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
    :type system_matrix: SystemMatrix
-   :param object_initial: represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
+   :param object_initial: represents the initial object guess :math:`f^{0,0}` for the algorithm in object space
    :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
-   :param scatter: estimate of scatter contribution :math:`s_j`.
+   :param scatter: estimate of scatter contribution :math:`s`.
    :type scatter: torch.Tensor
-   :param prior: the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.
+   :param prior: the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.
    :type prior: Prior, optional
 
    .. py:method:: _set_recon_params_string(n_iters, n_subsets)
@@ -122,17 +122,17 @@ Classes
 
    Bases: :py:obj:`OSML`
 
-   Implements the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: :math:`\tilde{f}_i^{n,m+1} = \frac{f_i^{n,m}}{\sum_j H_{ij}} \sum_j H_{ij}\frac{g_j^m}{\sum_i H_{ij}f_i^{n,m}+s_j}` followed by :math:`f_i^{n,m+1} = \tilde{f}_i^{n,m+1} \left(1-\beta\frac{\alpha_n}{\sum_j H_{ij}}\frac{\partial V}{\partial \tilde{f}_i^{n,m+1}} \right)`.
+   Implements the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: :math:`\tilde{\hat{f}}^{n,m+1} = \left[\frac{1}{H_m^T 1} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}` followed by :math:`\hat{f}^{n,m+1} = \tilde{\hat{f}}^{n,m+1} \left(1-\beta\frac{\alpha_n}{H_m^T 1}\frac{\partial V}{\partial \tilde{\hat{f}}^{n,m+1}} \right)`.
 
-   :param image: image data :math:`g_j` to be reconstructed
+   :param image: image data :math:`g` to be reconstructed
    :type image: torch.Tensor
-   :param object_initial: represents the initial object guess :math:`f_i^{0,0}` for the algorithm in object space
+   :param object_initial: represents the initial object guess :math:`f^{0,0}` for the algorithm in object space
    :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
    :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
    :type system_matrix: SystemMatrix
-   :param scatter: estimate of scatter contribution :math:`s_j`.
+   :param scatter: estimate of scatter contribution :math:`s`.
    :type scatter: torch.Tensor
-   :param prior: the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f_r}`. If ``None``, then this term is 0. Defaults to None.
+   :param prior: the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.
    :type prior: Prior, optional
 
    .. py:method:: _set_recon_params_string(n_iters, n_subsets)

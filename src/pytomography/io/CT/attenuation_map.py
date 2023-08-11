@@ -1,4 +1,4 @@
-"""This module contains helper function for inputting/outputting/interpretting SPECT/CT data in the SIMIND and DICOM file formats. A considerable amount of these functions have to do with creating attenuation maps from CT data files for attenuation correction in SPECT imaging.
+"""This module is used to create attenuation maps from CT images required for SPECT/PET attenuation correction.
 """
 from __future__ import annotations
 from typing import Sequence

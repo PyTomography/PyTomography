@@ -56,8 +56,6 @@ class SPECTPSFTransform(Transform):
         """Initializer that sets corresponding psf parameters"""
         super(SPECTPSFTransform, self).__init__()
         self.psf_meta = psf_meta
-        
-    
 
     def configure(
         self,
@@ -114,10 +112,18 @@ class SPECTPSFTransform(Transform):
     
     def apply_psf(self, object, ang_idx):
         object_return = []
-        for i in range(len(ang_idx)):
-            object_temp = object[i].unsqueeze(0)
-            object_temp = self.layers[self.image_meta.radii[ang_idx[i]]](object_temp) 
-            object_return.append(object_temp)
+        if len(ang_idx)>1:
+            # For reconstructing in parallel; requires batch size of 1
+            for i in range(len(ang_idx)):
+                object_temp = object[i].unsqueeze(0)
+                object_temp = self.layers[self.image_meta.radii[ang_idx[i]]](object_temp) 
+                object_return.append(object_temp)
+        else:
+            # Allows for reconstructing batched inputs when N_parallel=1
+            for i in range(object.shape[0]):
+                object_temp = object[i].unsqueeze(0)
+                object_temp = self.layers[self.image_meta.radii[ang_idx[0]]](object_temp) 
+                object_return.append(object_temp)
         return torch.vstack(object_return)
     
     @torch.no_grad()
