@@ -435,13 +435,13 @@ document.write(`
 <h3>Functions<a class="headerlink" href="#functions" title="Permalink to this heading">#</a></h3>
 <table class="autosummary longtable table autosummary">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_radii_and_angles" title="pytomography.io.SPECT.dicom.get_radii_and_angles"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_radii_and_angles</span></code></a>(ds)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom.parse_projection_dataset" title="pytomography.io.SPECT.dicom.parse_projection_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_projection_dataset</span></code></a>(ds)</p></td>
 <td><p>Gets projections with corresponding radii and angles corresponding to projection data from a DICOM file.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_metadata" title="pytomography.io.SPECT.dicom.get_metadata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_metadata</span></code></a>(file[, index_peak])</p></td>
 <td><p>Gets PyTomography metadata from a .dcm file.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_projections" title="pytomography.io.SPECT.dicom.get_projections"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_projections</span></code></a>(file[, index_peak])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_projections" title="pytomography.io.SPECT.dicom.get_projections"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_projections</span></code></a>(file[, index_peak, index_time, ...])</p></td>
 <td><p>Gets projections from a .dcm file.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_window_width" title="pytomography.io.SPECT.dicom.get_window_width"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_window_width</span></code></a>(ds, index)</p></td>
@@ -465,8 +465,8 @@ document.write(`
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom.get_affine_matrix" title="pytomography.io.SPECT.dicom.get_affine_matrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_affine_matrix</span></code></a>(filename)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom._get_affine_spect" title="pytomography.io.SPECT.dicom._get_affine_spect"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_get_affine_spect</span></code></a>(filename)</p></td>
-<td><p>Computes an affine matrix corresponding the coordinate system of a SPECT DICOM file.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom._get_affine_spect_projections" title="pytomography.io.SPECT.dicom._get_affine_spect_projections"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_get_affine_spect_projections</span></code></a>(filename)</p></td>
+<td><p>Computes an affine matrix corresponding the coordinate system of a SPECT DICOM file of projections.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom._get_affine_CT" title="pytomography.io.SPECT.dicom._get_affine_CT"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_get_affine_CT</span></code></a>(filenames)</p></td>
 <td><p>Computes an affine matrix corresponding the coordinate system of a CT DICOM file. Note that since CT scans consist of many independent DICOM files, ds corresponds to an individual one of these files. This is why the maximum z value is also required (across all seperate independent DICOM files).</p></td>
@@ -474,24 +474,24 @@ document.write(`
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom.stitch_multibed" title="pytomography.io.SPECT.dicom.stitch_multibed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stitch_multibed</span></code></a>(recons, files_NM[, method])</p></td>
 <td><p>Stitches together multiple reconstructed objects corresponding to different bed positions.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom.save_dcm" title="pytomography.io.SPECT.dicom.save_dcm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_dcm</span></code></a>(save_path, object, file_NM[, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.dicom.save_dcm" title="pytomography.io.SPECT.dicom.save_dcm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_dcm</span></code></a>(save_path, object, file_NM[, recon_name, ...])</p></td>
 <td><p>Saves the reconstructed object <cite>object</cite> to a series of DICOM files in the folder given by <cite>save_path</cite>. Requires the filepath of the projection data <cite>file_NM</cite> to get Study information.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py function">
-<dt class="sig sig-object py" id="pytomography.io.SPECT.dicom.get_radii_and_angles">
-<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.dicom.</span></span><span class="sig-name descname"><span class="pre">get_radii_and_angles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/dicom.html#get_radii_and_angles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.dicom.get_radii_and_angles" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="pytomography.io.SPECT.dicom.parse_projection_dataset">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.dicom.</span></span><span class="sig-name descname"><span class="pre">parse_projection_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/dicom.html#parse_projection_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.dicom.parse_projection_dataset" title="Permalink to this definition">#</a></dt>
 <dd><p>Gets projections with corresponding radii and angles corresponding to projection data from a DICOM file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>ds</strong> (<em>Dataset</em>) – pydicom dataset object.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Required image data for reconstruction.</p>
+<dd class="field-even"><p>Returns (i) projection data (ii) angles (iii) radii and (iv) flags for whether or not multiple energy windows/time slots were detected.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>(torch.tensor[1,Ltheta, Lr, Lz], np.array, np.array)</p>
+<dd class="field-odd"><p>(torch.tensor[EWindows, TimeWindows, Ltheta, Lr, Lz], np.array, np.array)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -518,20 +518,22 @@ document.write(`
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.io.SPECT.dicom.get_projections">
-<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.dicom.</span></span><span class="sig-name descname"><span class="pre">get_projections</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_peak</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/dicom.html#get_projections"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.dicom.get_projections" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.dicom.</span></span><span class="sig-name descname"><span class="pre">get_projections</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_peak</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/dicom.html#get_projections"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.dicom.get_projections" title="Permalink to this definition">#</a></dt>
 <dd><p>Gets projections from a .dcm file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>file</strong> (<em>str</em>) – Path to the .dcm file of SPECT projection data.</p></li>
 <li><p><strong>index_peak</strong> (<em>int</em>) – If not none, then the returned projections correspond to the index of this energy window. Otherwise returns all energy windows. Defaults to None.</p></li>
+<li><p><strong>index_time</strong> (<em>int</em>) – If not none, then the returned projections correspond to the index of the time slot in gated SPECT. Otherwise returns all time slots. Defaults to None</p></li>
+<li><p><strong>print_shape</strong> (<em>bool</em>) – If true, then prints the shape of the projections returned. Defaults to true.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Required information for reconstruction in PyTomography.</p>
+<dd class="field-even"><p>(SPECTObjectMeta, SPECTImageMeta, torch.Tensor[…, Ltheta, Lr, Lz]) where … depends on if time slots are considered.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>(<a class="reference internal" href="../../../metadata/SPECT/index.html#pytomography.metadata.SPECT.SPECTObjectMeta" title="pytomography.metadata.SPECT.SPECTObjectMeta">SPECTObjectMeta</a>, <a class="reference internal" href="../../../metadata/SPECT/index.html#pytomography.metadata.SPECT.SPECTImageMeta" title="pytomography.metadata.SPECT.SPECTImageMeta">SPECTImageMeta</a>, torch.Tensor[1, Ltheta, Lr, Lz])</p>
+<dd class="field-odd"><p>Sequence[<a class="reference internal" href="../../../metadata/index.html#pytomography.metadata.SPECTObjectMeta" title="pytomography.metadata.SPECTObjectMeta">pytomography.metadata.SPECTObjectMeta</a>, <a class="reference internal" href="../../../metadata/index.html#pytomography.metadata.SPECTImageMeta" title="pytomography.metadata.SPECTImageMeta">pytomography.metadata.SPECTImageMeta</a>, torch.Tensor]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -659,9 +661,9 @@ document.write(`
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pytomography.io.SPECT.dicom._get_affine_spect">
-<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.dicom.</span></span><span class="sig-name descname"><span class="pre">_get_affine_spect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/dicom.html#_get_affine_spect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.dicom._get_affine_spect" title="Permalink to this definition">#</a></dt>
-<dd><p>Computes an affine matrix corresponding the coordinate system of a SPECT DICOM file.</p>
+<dt class="sig sig-object py" id="pytomography.io.SPECT.dicom._get_affine_spect_projections">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.dicom.</span></span><span class="sig-name descname"><span class="pre">_get_affine_spect_projections</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/dicom.html#_get_affine_spect_projections"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.dicom._get_affine_spect_projections" title="Permalink to this definition">#</a></dt>
+<dd><p>Computes an affine matrix corresponding the coordinate system of a SPECT DICOM file of projections.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -722,7 +724,7 @@ document.write(`
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.io.SPECT.dicom.save_dcm">
-<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.dicom.</span></span><span class="sig-name descname"><span class="pre">save_dcm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">save_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_NM</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recon_method_string</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1024</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/dicom.html#save_dcm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.dicom.save_dcm" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.dicom.</span></span><span class="sig-name descname"><span class="pre">save_dcm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">save_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_NM</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recon_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1024</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/SPECT/dicom.html#save_dcm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.dicom.save_dcm" title="Permalink to this definition">#</a></dt>
 <dd><p>Saves the reconstructed object <cite>object</cite> to a series of DICOM files in the folder given by <cite>save_path</cite>. Requires the filepath of the projection data <cite>file_NM</cite> to get Study information.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -730,9 +732,8 @@ document.write(`
 <li><p><strong>object</strong> (<em>torch.Tensor</em>) – Reconstructed object of shape [1,Lx,Ly,Lz].</p></li>
 <li><p><strong>save_path</strong> (<em>str</em>) – Location of folder where to save the DICOM output files.</p></li>
 <li><p><strong>file_NM</strong> (<em>str</em>) – File path of the projection data corresponding to the reconstruction.</p></li>
-<li><p><strong>recon_method_str</strong> (<em>str</em>) – Type of reconstruction performed. Obtained from the <cite>recon_method_str</cite> attribute of a reconstruction algorithm class.</p></li>
+<li><p><strong>recon_name</strong> (<em>str</em>) – Type of reconstruction performed. Obtained from the <cite>recon_method_str</cite> attribute of a reconstruction algorithm class.</p></li>
 <li><p><strong>scale_factor</strong> (<em>float</em><em>, </em><em>optional</em>) – Amount by which to scale output data so that it can be converted into a 16 bit integer. Defaults to 1024.</p></li>
-<li><p><strong>recon_method_string</strong> (<em>str</em>) – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -776,7 +777,7 @@ document.write(`
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom.get_radii_and_angles"><code class="docutils literal notranslate"><span class="pre">get_radii_and_angles()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom.parse_projection_dataset"><code class="docutils literal notranslate"><span class="pre">parse_projection_dataset()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom.get_metadata"><code class="docutils literal notranslate"><span class="pre">get_metadata()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom.get_projections"><code class="docutils literal notranslate"><span class="pre">get_projections()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom.get_window_width"><code class="docutils literal notranslate"><span class="pre">get_window_width()</span></code></a></li>
@@ -786,11 +787,11 @@ document.write(`
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom.CT_to_mumap"><code class="docutils literal notranslate"><span class="pre">CT_to_mumap()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom.get_attenuation_map_from_CT_slices"><code class="docutils literal notranslate"><span class="pre">get_attenuation_map_from_CT_slices()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom.get_affine_matrix"><code class="docutils literal notranslate"><span class="pre">get_affine_matrix()</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom._get_affine_spect"><code class="docutils literal notranslate"><span class="pre">_get_affine_spect()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom._get_affine_spect_projections"><code class="docutils literal notranslate"><span class="pre">_get_affine_spect_projections()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom._get_affine_CT"><code class="docutils literal notranslate"><span class="pre">_get_affine_CT()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom.stitch_multibed"><code class="docutils literal notranslate"><span class="pre">stitch_multibed()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom.save_dcm"><code class="docutils literal notranslate"><span class="pre">save_dcm()</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom.get_radii_and_angles">get_radii_and_angles</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom.parse_projection_dataset">parse_projection_dataset</a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom.get_metadata">get_metadata</a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom.get_projections">get_projections</a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom.get_window_width">get_window_width</a></li>
@@ -800,7 +801,7 @@ document.write(`
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom.CT_to_mumap">CT_to_mumap</a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom.get_attenuation_map_from_CT_slices">get_attenuation_map_from_CT_slices</a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom.get_affine_matrix">get_affine_matrix</a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom._get_affine_spect">_get_affine_spect</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom._get_affine_spect_projections">_get_affine_spect_projections</a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom._get_affine_CT">_get_affine_CT</a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom.stitch_multibed">stitch_multibed</a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.SPECT.dicom.save_dcm">save_dcm</a></li>

@@ -83,6 +83,13 @@
    "metadata": {},
    "outputs": [
     {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Returned projections have dimensions (1 Ltheta Lr Lz)\n"
+     ]
+    },
+    {
      "data": {
       "text/plain": [
        "torch.Size([1, 180, 128, 128])"
@@ -113,7 +120,7 @@
     {
      "data": {
       "text/plain": [
-       "<matplotlib.colorbar.Colorbar at 0x7ffb109c9700>"
+       "<matplotlib.colorbar.Colorbar at 0x7f861e184ac0>"
       ]
      },
      "execution_count": 5,
@@ -150,7 +157,16 @@
    "cell_type": "code",
    "execution_count": 6,
    "metadata": {},
-   "outputs": [],
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Multiple energy windows found\n",
+      "Returned projections have dimensions (N_energywindows Ltheta Lr Lz)\n"
+     ]
+    }
+   ],
    "source": [
     "scatter = dicom.get_scatter_from_TEW(file_NM, index_peak=3, index_lower=2, index_upper=4)"
    ]
@@ -243,7 +259,7 @@
     {
      "data": {
       "text/plain": [
-       "<matplotlib.colorbar.Colorbar at 0x7ffb0c803820>"
+       "<matplotlib.colorbar.Colorbar at 0x7f8619fc8df0>"
       ]
      },
      "execution_count": 10,
@@ -315,7 +331,7 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "<pytomography.metadata.SPECT.spect_metadata.SPECTPSFMeta object at 0x7ffb0e914e20>\n"
+      "<pytomography.metadata.SPECT.spect_metadata.SPECTPSFMeta object at 0x7f8619f58d00>\n"
      ]
     }
    ],
@@ -455,7 +471,7 @@
     }
    ],
    "source": [
-    "recon_name = reconstruction_algorithm.recon_method_string\n",
+    "recon_name = reconstruction_algorithm.recon_name\n",
     "recon_name"
    ]
   },

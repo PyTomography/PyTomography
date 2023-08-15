@@ -17,24 +17,31 @@ from pytomography.utils import get_blank_below_above, compute_TEW, get_mu_from_s
 from ..CT import get_HU2mu_conversion, open_CT_file, compute_max_slice_loc_CT
 from ..shared import create_ds
 
-def get_radii_and_angles(ds: Dataset) -> Sequence[torch.Tensor, np.array, np.array]:
+def parse_projection_dataset(ds: Dataset) -> Sequence[torch.Tensor, np.array, np.array, dict]:
     """Gets projections with corresponding radii and angles corresponding to projection data from a DICOM file.
 
     Args:
         ds (Dataset): pydicom dataset object.
 
     Returns:
-        (torch.tensor[EWindows, TimeWindows, Ltheta, Lr, Lz], np.array, np.array): Required image data for reconstruction.
+        (torch.tensor[EWindows, TimeWindows, Ltheta, Lr, Lz], np.array, np.array): Returns (i) projection data (ii) angles (iii) radii and (iv) flags for whether or not multiple energy windows/time slots were detected.
     """
+    flags = {'multi_energy_window': False, 'multi_time_slot': False}
     pixel_array = ds.pixel_array
-    
+    # Energy Window Vector
     energy_window_vector = np.array(ds.EnergyWindowVector)
     detector_vector = np.array(ds.DetectorVector)
+    # Time slot vector
     try:
         time_slot_vector = np.array(ds.TimeSlotVector)
     except:
         time_slot_vector = np.ones(len(detector_vector)).astype(int)
-    
+    # Update flags
+    if len(np.unique(energy_window_vector))>1:
+        flags['multi_energy_window'] = True
+    if len(np.unique(time_slot_vector))>1:
+        flags['multi_time_slot'] = True
+    # Get radii and angles
     detectors = np.array(ds.DetectorVector)
     radii = np.array([])
     angles = np.array([])
@@ -70,7 +77,8 @@ def get_radii_and_angles(ds: Dataset) -> Sequence[torch.Tensor, np.array, np.arr
     projections= torch.tensor(projections.copy()).to(pytomography.dtype).to(pytomography.device) 
     return (projections,
              angles[sorted_idxs],
-             radii[sorted_idxs]/10)
+             radii[sorted_idxs]/10,
+             flags)
     
 def get_metadata(
     file: str,
@@ -88,12 +96,12 @@ def get_metadata(
     dx = ds.PixelSpacing[0] / 10
     dz = ds.PixelSpacing[1] / 10
     dr = (dx, dx, dz)
-    projections, angles, radii = get_radii_and_angles(ds)
+    projections, angles, radii, _ = parse_projection_dataset(ds)
     shape_proj= (projections.shape[-3], projections.shape[-2], projections.shape[-1])
     shape_obj = (shape_proj[1], shape_proj[1], shape_proj[2])
     object_meta = SPECTObjectMeta(dr,shape_obj)
     image_meta = SPECTImageMeta((shape_proj[1], shape_proj[2]), angles, radii)
-    object_meta.affine_matrix = _get_affine_spect(file)
+    object_meta.affine_matrix = _get_affine_spect_projections(file)
     image_meta.filepath = file
     image_meta.index_peak = index_peak
     return object_meta, image_meta
@@ -101,23 +109,40 @@ def get_metadata(
 def get_projections(
     file: str,
     index_peak: None | int = None,
-    index_time: None | int = None
+    index_time: None | int = None,
+    print_shape: bool = True
     ) -> Sequence[SPECTObjectMeta, SPECTImageMeta, torch.Tensor]:
     """Gets projections from a .dcm file.
 
     Args:
         file (str): Path to the .dcm file of SPECT projection data.
         index_peak (int): If not none, then the returned projections correspond to the index of this energy window. Otherwise returns all energy windows. Defaults to None.
+        index_time (int): If not none, then the returned projections correspond to the index of the time slot in gated SPECT. Otherwise returns all time slots. Defaults to None
+        print_shape (bool): If true, then prints the shape of the projections returned. Defaults to true.
     Returns:
-        (SPECTObjectMeta, SPECTImageMeta, torch.Tensor[1, Ltheta, Lr, Lz]): Required information for reconstruction in PyTomography.
+        (SPECTObjectMeta, SPECTImageMeta, torch.Tensor[..., Ltheta, Lr, Lz]) where ... depends on if time slots are considered.
     """
     ds = pydicom.read_file(file, force=True)
-    projections, _, _ = get_radii_and_angles(ds)
+    projections, _, _, flags = parse_projection_dataset(ds)
     if index_peak is not None:
         projections = projections[index_peak].unsqueeze(dim=0)
+        flags['multi_energy_window'] = False
     if index_time is not None:
         projections = projections[:,index_time].unsqueeze(dim=1)
-    return projections.squeeze().unsqueeze(dim=0)
+        flags['multi_time_slot'] = False
+    projections = projections.squeeze()
+    dimension_list = ['Ltheta', 'Lr', 'Lz']
+    if flags['multi_time_slot']:
+        dimension_list = ['N_timeslots'] + dimension_list
+        if print_shape: print('Multiple time slots found')
+    if flags['multi_energy_window']:
+        dimension_list = ['N_energywindows'] + dimension_list
+        if print_shape: print('Multiple energy windows found')
+    if len(dimension_list)==3:
+        dimension_list = ['1'] + dimension_list
+        projections = projections.unsqueeze(dim=0)
+    if print_shape: print(f'Returned projections have dimensions ({" ".join(dimension_list)})')
+    return projections
 
 def get_window_width(ds: Dataset, index: int) -> float:
     """Computes the width of an energy window corresponding to a particular index in the DetectorInformationSequence DICOM attribute.
@@ -155,9 +180,9 @@ def get_scatter_from_TEW(
     ww_peak = get_window_width(ds, index_peak)
     ww_lower = get_window_width(ds, index_lower)
     ww_upper = get_window_width(ds, index_upper)
-    projections_all = get_projections(file)[0]
+    projections_all = get_projections(file, print_shape=False)
     scatter = compute_TEW(projections_all[index_lower],projections_all[index_upper], ww_lower, ww_upper, ww_peak)
-    return scatter.unsqueeze(dim=0).to(pytomography.device)
+    return scatter.to(pytomography.device)
 
 def get_attenuation_map_from_file(file_AM: str) -> torch.Tensor:
     """Gets an attenuation map from a DICOM file. This data is usually provided by the manufacturer of the SPECT scanner. 
@@ -274,10 +299,11 @@ def get_affine_matrix(filename: Sequence[str] | str) -> np.array:
     else:
         ds = pydicom.read_file(filename)
         if ds.Modality=='NM':
-            return _get_affine_spect(filename)
+            return _get_affine_spect_projections(filename)
+    
 
-def _get_affine_spect(filename:str) -> np.array:
-    """Computes an affine matrix corresponding the coordinate system of a SPECT DICOM file.
+def _get_affine_spect_projections(filename:str) -> np.array:
+    """Computes an affine matrix corresponding the coordinate system of a SPECT DICOM file of projections.
 
     Args:
         ds (Dataset): DICOM dataset of projection data
@@ -384,8 +410,8 @@ def save_dcm(
     save_path: str,
     object: torch.Tensor,
     file_NM: str,
-    recon_method_string: str = '',
-    scale_factor: float = 1024
+    recon_name: str = '',
+    scale_factor: float = 1024,
     ) -> None:
     """Saves the reconstructed object `object` to a series of DICOM files in the folder given by `save_path`. Requires the filepath of the projection data `file_NM` to get Study information.
 
@@ -393,7 +419,7 @@ def save_dcm(
         object (torch.Tensor): Reconstructed object of shape [1,Lx,Ly,Lz].
         save_path (str): Location of folder where to save the DICOM output files.
         file_NM (str): File path of the projection data corresponding to the reconstruction.
-        recon_method_str (str): Type of reconstruction performed. Obtained from the `recon_method_str` attribute of a reconstruction algorithm class.
+        recon_name (str): Type of reconstruction performed. Obtained from the `recon_method_str` attribute of a reconstruction algorithm class.
         scale_factor (float, optional): Amount by which to scale output data so that it can be converted into a 16 bit integer. Defaults to 1024.
     """
     try:
@@ -431,7 +457,7 @@ def save_dcm(
     ds.SamplesPerPixel = 1
     ds.PhotometricInterpretation = 'MONOCHROME2'
     ds.PixelRepresentation = 0
-    ds.ReconstructionMethod = recon_method_string
+    ds.ReconstructionMethod = recon_name
     # Create all slices
     for i in range(pixel_data.shape[0]):
         # Load existing DICOM file

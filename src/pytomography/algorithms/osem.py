@@ -17,7 +17,7 @@ class OSML():
 
         Args:
             image (torch.Tensor): image data :math:`g` to be reconstructed
-            system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.
+            system_matrix (SystemMatrix): Instance of some system matrix class that models the imaging system. In particular, corresponds to :math:`H` in :math:`g=Hf`.
             object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f^{0,0}` for the algorithm in object space. If None, then initial guess consists of all 1s. Defaults to None.
             scatter (torch.Tensor): estimate of scatter contribution :math:`s`.Defaults to 0.
             prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.
@@ -62,7 +62,7 @@ class OSML():
             list: list of index arrays for each subset
         """
         
-        indices = np.arange(n_angles).astype(int)
+        indices = torch.arange(n_angles).to(torch.long).to(pytomography.device)
         subset_indices_array = []
         for i in range(n_subsets):
             subset_indices_array.append(indices[i::n_subsets])
@@ -92,7 +92,7 @@ class OSEMOSL(OSML):
         scatter (torch.Tensor): estimate of scatter contribution :math:`s`.
         prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.
     """
-    def _set_recon_params_string(self, n_iters, n_subsets):
+    def _set_recon_name(self, n_iters, n_subsets):
         """Set the unique identifier for the type of reconstruction performed. Useful for saving to DICOM files
 
         Args:
@@ -100,9 +100,9 @@ class OSEMOSL(OSML):
             n_subsets (int): Number of subsets
         """
         if self.prior is None:
-            self.recon_method_string = f'OSEM_{n_iters}it{n_subsets}ss'
+            self.recon_name = f'OSEM_{n_iters}it{n_subsets}ss'
         else:
-            self.recon_method_string = f'OSEMOSL_{n_iters}it{n_subsets}ss'
+            self.recon_name = f'OSEMOSL_{n_iters}it{n_subsets}ss'
     
     def __call__(
         self,
@@ -136,7 +136,7 @@ class OSEMOSL(OSML):
                 if callback is not None:
                     callback.run(self.object_prediction, n_iter=j, n_subset=k)
         # Set unique string for identifying the type of reconstruction
-        self._set_recon_params_string(n_iters, n_subsets)
+        self._set_recon_name(n_iters, n_subsets)
         return self.object_prediction
     
 
@@ -152,7 +152,7 @@ class OSEMBSR(OSML):
 
     """
     
-    def _set_recon_params_string(self, n_iters, n_subsets):
+    def _set_recon_name(self, n_iters, n_subsets):
         """Set the unique identifier for the type of reconstruction performed. Useful for saving to DICOM files
 
         Args:
@@ -160,9 +160,9 @@ class OSEMBSR(OSML):
             n_subsets (int): Number of subsets
         """
         if self.prior is None:
-            self.recon_method_string = f'OSEM_{n_iters}it{n_subsets}ss'
+            self.recon_name = f'OSEM_{n_iters}it{n_subsets}ss'
         else:
-            self.recon_method_string = f'BSREM_{n_iters}it{n_subsets}ss'
+            self.recon_name = f'BSREM_{n_iters}it{n_subsets}ss'
     
     def __call__(
         self,
@@ -201,5 +201,5 @@ class OSEMBSR(OSML):
                 if callback:
                     callback.run(self.object_prediction, n_iter=j, n_subset=k)
         # Set unique string for identifying the type of reconstruction
-        self._set_recon_params_string(n_iters, n_subsets)
+        self._set_recon_name(n_iters, n_subsets)
         return self.object_prediction

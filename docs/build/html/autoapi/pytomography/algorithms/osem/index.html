@@ -455,7 +455,7 @@ document.write(`
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>image</strong> (<em>torch.Tensor</em>) – image data <span class="math notranslate nohighlight">\(g\)</span> to be reconstructed</p></li>
-<li><p><strong>system_matrix</strong> (<a class="reference internal" href="../../projections/index.html#pytomography.projections.SystemMatrix" title="pytomography.projections.SystemMatrix"><em>SystemMatrix</em></a>) – System matrix <span class="math notranslate nohighlight">\(H\)</span> used in <span class="math notranslate nohighlight">\(g=Hf\)</span>.</p></li>
+<li><p><strong>system_matrix</strong> (<a class="reference internal" href="../../projections/index.html#pytomography.projections.SystemMatrix" title="pytomography.projections.SystemMatrix"><em>SystemMatrix</em></a>) – Instance of some system matrix class that models the imaging system. In particular, corresponds to <span class="math notranslate nohighlight">\(H\)</span> in <span class="math notranslate nohighlight">\(g=Hf\)</span>.</p></li>
 <li><p><strong>object_initial</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>]</em>) – represents the initial object guess <span class="math notranslate nohighlight">\(f^{0,0}\)</span> for the algorithm in object space. If None, then initial guess consists of all 1s. Defaults to None.</p></li>
 <li><p><strong>scatter</strong> (<em>torch.Tensor</em>) – estimate of scatter contribution <span class="math notranslate nohighlight">\(s\)</span>.Defaults to 0.</p></li>
 <li><p><strong>prior</strong> (<a class="reference internal" href="../../priors/index.html#pytomography.priors.Prior" title="pytomography.priors.Prior"><em>Prior</em></a><em>, </em><em>optional</em>) – the Bayesian prior; computes <span class="math notranslate nohighlight">\(\beta \frac{\partial V}{\partial f}\)</span>. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, then this term is 0. Defaults to None.</p></li>
@@ -519,8 +519,8 @@ document.write(`
 </dd>
 </dl>
 <dl class="py method">
-<dt class="sig sig-object py" id="pytomography.algorithms.osem.OSEMOSL._set_recon_params_string">
-<span class="sig-name descname"><span class="pre">_set_recon_params_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_iters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/osem.html#OSEMOSL._set_recon_params_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.osem.OSEMOSL._set_recon_params_string" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="pytomography.algorithms.osem.OSEMOSL._set_recon_name">
+<span class="sig-name descname"><span class="pre">_set_recon_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_iters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/osem.html#OSEMOSL._set_recon_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.osem.OSEMOSL._set_recon_name" title="Permalink to this definition">#</a></dt>
 <dd><p>Set the unique identifier for the type of reconstruction performed. Useful for saving to DICOM files</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -572,8 +572,8 @@ document.write(`
 </dd>
 </dl>
 <dl class="py method">
-<dt class="sig sig-object py" id="pytomography.algorithms.osem.OSEMBSR._set_recon_params_string">
-<span class="sig-name descname"><span class="pre">_set_recon_params_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_iters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/osem.html#OSEMBSR._set_recon_params_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.osem.OSEMBSR._set_recon_params_string" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="pytomography.algorithms.osem.OSEMBSR._set_recon_name">
+<span class="sig-name descname"><span class="pre">_set_recon_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_iters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/osem.html#OSEMBSR._set_recon_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.osem.OSEMBSR._set_recon_name" title="Permalink to this definition">#</a></dt>
 <dd><p>Set the unique identifier for the type of reconstruction performed. Useful for saving to DICOM files</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -650,12 +650,12 @@ document.write(`
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMOSL"><code class="docutils literal notranslate"><span class="pre">OSEMOSL</span></code></a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMOSL._set_recon_params_string"><code class="docutils literal notranslate"><span class="pre">OSEMOSL._set_recon_params_string()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMOSL._set_recon_name"><code class="docutils literal notranslate"><span class="pre">OSEMOSL._set_recon_name()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMOSL.__call__"><code class="docutils literal notranslate"><span class="pre">OSEMOSL.__call__()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMBSR"><code class="docutils literal notranslate"><span class="pre">OSEMBSR</span></code></a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMBSR._set_recon_params_string"><code class="docutils literal notranslate"><span class="pre">OSEMBSR._set_recon_params_string()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMBSR._set_recon_name"><code class="docutils literal notranslate"><span class="pre">OSEMBSR._set_recon_name()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMBSR.__call__"><code class="docutils literal notranslate"><span class="pre">OSEMBSR.__call__()</span></code></a></li>
 </ul>
 </li>
@@ -665,12 +665,12 @@ document.write(`
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMOSL">OSEMOSL</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMOSL._set_recon_params_string">_set_recon_params_string</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMOSL._set_recon_name">_set_recon_name</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMOSL.__call__">__call__</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMBSR">OSEMBSR</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMBSR._set_recon_params_string">_set_recon_params_string</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMBSR._set_recon_name">_set_recon_name</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMBSR.__call__">__call__</a></li>
 </ul>
 </li>

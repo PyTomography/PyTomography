@@ -407,8 +407,6 @@ document.write(`
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializer that sets corresponding psf parameters&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">SPECTPSFTransform</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">psf_meta</span> <span class="o">=</span> <span class="n">psf_meta</span>
-        
-    
 
 <div class="viewcode-block" id="SPECTPSFTransform.configure"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html#pytomography.transforms.SPECT.SPECTPSFTransform.configure">[docs]</a>    <span class="k">def</span> <span class="nf">configure</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -465,10 +463,18 @@ document.write(`
     
 <div class="viewcode-block" id="SPECTPSFTransform.apply_psf"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html#pytomography.transforms.SPECT.SPECTPSFTransform.apply_psf">[docs]</a>    <span class="k">def</span> <span class="nf">apply_psf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="n">ang_idx</span><span class="p">):</span>
         <span class="n">object_return</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ang_idx</span><span class="p">)):</span>
-            <span class="n">object_temp</span> <span class="o">=</span> <span class="nb">object</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-            <span class="n">object_temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">image_meta</span><span class="o">.</span><span class="n">radii</span><span class="p">[</span><span class="n">ang_idx</span><span class="p">[</span><span class="n">i</span><span class="p">]]](</span><span class="n">object_temp</span><span class="p">)</span> 
-            <span class="n">object_return</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">object_temp</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ang_idx</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># For reconstructing in parallel; requires batch size of 1</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ang_idx</span><span class="p">)):</span>
+                <span class="n">object_temp</span> <span class="o">=</span> <span class="nb">object</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">object_temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">image_meta</span><span class="o">.</span><span class="n">radii</span><span class="p">[</span><span class="n">ang_idx</span><span class="p">[</span><span class="n">i</span><span class="p">]]](</span><span class="n">object_temp</span><span class="p">)</span> 
+                <span class="n">object_return</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">object_temp</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Allows for reconstructing batched inputs when N_parallel=1</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">object</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="n">object_temp</span> <span class="o">=</span> <span class="nb">object</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">object_temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">image_meta</span><span class="o">.</span><span class="n">radii</span><span class="p">[</span><span class="n">ang_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]]](</span><span class="n">object_temp</span><span class="p">)</span> 
+                <span class="n">object_return</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">object_temp</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">object_return</span><span class="p">)</span></div>
     
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>

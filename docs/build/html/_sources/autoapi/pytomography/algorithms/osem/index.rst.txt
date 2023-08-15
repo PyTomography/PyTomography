@@ -30,7 +30,7 @@ Classes
 
    :param image: image data :math:`g` to be reconstructed
    :type image: torch.Tensor
-   :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
+   :param system_matrix: Instance of some system matrix class that models the imaging system. In particular, corresponds to :math:`H` in :math:`g=Hf`.
    :type system_matrix: SystemMatrix
    :param object_initial: represents the initial object guess :math:`f^{0,0}` for the algorithm in object space. If None, then initial guess consists of all 1s. Defaults to None.
    :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
@@ -83,7 +83,7 @@ Classes
    :param prior: the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.
    :type prior: Prior, optional
 
-   .. py:method:: _set_recon_params_string(n_iters, n_subsets)
+   .. py:method:: _set_recon_name(n_iters, n_subsets)
 
       Set the unique identifier for the type of reconstruction performed. Useful for saving to DICOM files
 
@@ -126,7 +126,7 @@ Classes
    :param prior: the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.
    :type prior: Prior, optional
 
-   .. py:method:: _set_recon_params_string(n_iters, n_subsets)
+   .. py:method:: _set_recon_name(n_iters, n_subsets)
 
       Set the unique identifier for the type of reconstruction performed. Useful for saving to DICOM files
 

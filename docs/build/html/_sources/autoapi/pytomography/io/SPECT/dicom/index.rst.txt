@@ -13,7 +13,7 @@ Functions
 
 .. autoapisummary::
 
-   pytomography.io.SPECT.dicom.get_radii_and_angles
+   pytomography.io.SPECT.dicom.parse_projection_dataset
    pytomography.io.SPECT.dicom.get_metadata
    pytomography.io.SPECT.dicom.get_projections
    pytomography.io.SPECT.dicom.get_window_width
@@ -23,22 +23,22 @@ Functions
    pytomography.io.SPECT.dicom.CT_to_mumap
    pytomography.io.SPECT.dicom.get_attenuation_map_from_CT_slices
    pytomography.io.SPECT.dicom.get_affine_matrix
-   pytomography.io.SPECT.dicom._get_affine_spect
+   pytomography.io.SPECT.dicom._get_affine_spect_projections
    pytomography.io.SPECT.dicom._get_affine_CT
    pytomography.io.SPECT.dicom.stitch_multibed
    pytomography.io.SPECT.dicom.save_dcm
 
 
 
-.. py:function:: get_radii_and_angles(ds)
+.. py:function:: parse_projection_dataset(ds)
 
    Gets projections with corresponding radii and angles corresponding to projection data from a DICOM file.
 
    :param ds: pydicom dataset object.
    :type ds: Dataset
 
-   :returns: Required image data for reconstruction.
-   :rtype: (torch.tensor[1,Ltheta, Lr, Lz], np.array, np.array)
+   :returns: Returns (i) projection data (ii) angles (iii) radii and (iv) flags for whether or not multiple energy windows/time slots were detected.
+   :rtype: (torch.tensor[EWindows, TimeWindows, Ltheta, Lr, Lz], np.array, np.array)
 
 
 .. py:function:: get_metadata(file, index_peak = 0)
@@ -54,7 +54,7 @@ Functions
    :rtype: (ObjectMeta, ImageMeta)
 
 
-.. py:function:: get_projections(file, index_peak = None)
+.. py:function:: get_projections(file, index_peak = None, index_time = None, print_shape = True)
 
    Gets projections from a .dcm file.
 
@@ -62,9 +62,12 @@ Functions
    :type file: str
    :param index_peak: If not none, then the returned projections correspond to the index of this energy window. Otherwise returns all energy windows. Defaults to None.
    :type index_peak: int
+   :param index_time: If not none, then the returned projections correspond to the index of the time slot in gated SPECT. Otherwise returns all time slots. Defaults to None
+   :type index_time: int
+   :param print_shape: If true, then prints the shape of the projections returned. Defaults to true.
+   :type print_shape: bool
 
-   :returns: Required information for reconstruction in PyTomography.
-   :rtype: (SPECTObjectMeta, SPECTImageMeta, torch.Tensor[1, Ltheta, Lr, Lz])
+   :returns: (SPECTObjectMeta, SPECTImageMeta, torch.Tensor[..., Ltheta, Lr, Lz]) where ... depends on if time slots are considered.
 
 
 .. py:function:: get_window_width(ds, index)
@@ -148,9 +151,9 @@ Functions
 .. py:function:: get_affine_matrix(filename)
 
 
-.. py:function:: _get_affine_spect(filename)
+.. py:function:: _get_affine_spect_projections(filename)
 
-   Computes an affine matrix corresponding the coordinate system of a SPECT DICOM file.
+   Computes an affine matrix corresponding the coordinate system of a SPECT DICOM file of projections.
 
    :param ds: DICOM dataset of projection data
    :type ds: Dataset
@@ -187,7 +190,7 @@ Functions
    :rtype: torch.Tensor[1, Lx, Ly, Lz']
 
 
-.. py:function:: save_dcm(save_path, object, file_NM, recon_method_string = '', scale_factor = 1024)
+.. py:function:: save_dcm(save_path, object, file_NM, recon_name = '', scale_factor = 1024)
 
    Saves the reconstructed object `object` to a series of DICOM files in the folder given by `save_path`. Requires the filepath of the projection data `file_NM` to get Study information.
 
@@ -197,8 +200,8 @@ Functions
    :type save_path: str
    :param file_NM: File path of the projection data corresponding to the reconstruction.
    :type file_NM: str
-   :param recon_method_str: Type of reconstruction performed. Obtained from the `recon_method_str` attribute of a reconstruction algorithm class.
-   :type recon_method_str: str
+   :param recon_name: Type of reconstruction performed. Obtained from the `recon_method_str` attribute of a reconstruction algorithm class.
+   :type recon_name: str
    :param scale_factor: Amount by which to scale output data so that it can be converted into a 16 bit integer. Defaults to 1024.
    :type scale_factor: float, optional
 

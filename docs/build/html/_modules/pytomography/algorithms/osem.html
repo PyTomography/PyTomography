@@ -368,7 +368,7 @@ document.write(`
 
 <span class="sd">        Args:</span>
 <span class="sd">            image (torch.Tensor): image data :math:`g` to be reconstructed</span>
-<span class="sd">            system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.</span>
+<span class="sd">            system_matrix (SystemMatrix): Instance of some system matrix class that models the imaging system. In particular, corresponds to :math:`H` in :math:`g=Hf`.</span>
 <span class="sd">            object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f^{0,0}` for the algorithm in object space. If None, then initial guess consists of all 1s. Defaults to None.</span>
 <span class="sd">            scatter (torch.Tensor): estimate of scatter contribution :math:`s`.Defaults to 0.</span>
 <span class="sd">            prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.</span>
@@ -413,7 +413,7 @@ document.write(`
 <span class="sd">            list: list of index arrays for each subset</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         
-        <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_angles</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_angles</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="n">subset_indices_array</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_subsets</span><span class="p">):</span>
             <span class="n">subset_indices_array</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">indices</span><span class="p">[</span><span class="n">i</span><span class="p">::</span><span class="n">n_subsets</span><span class="p">])</span>
@@ -443,7 +443,7 @@ document.write(`
 <span class="sd">        scatter (torch.Tensor): estimate of scatter contribution :math:`s`.</span>
 <span class="sd">        prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-<div class="viewcode-block" id="OSEMOSL._set_recon_params_string"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/osem/index.html#pytomography.algorithms.OSEMOSL._set_recon_params_string">[docs]</a>    <span class="k">def</span> <span class="nf">_set_recon_params_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_iters</span><span class="p">,</span> <span class="n">n_subsets</span><span class="p">):</span>
+<div class="viewcode-block" id="OSEMOSL._set_recon_name"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/osem/index.html#pytomography.algorithms.OSEMOSL._set_recon_name">[docs]</a>    <span class="k">def</span> <span class="nf">_set_recon_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_iters</span><span class="p">,</span> <span class="n">n_subsets</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the unique identifier for the type of reconstruction performed. Useful for saving to DICOM files</span>
 
 <span class="sd">        Args:</span>
@@ -451,9 +451,9 @@ document.write(`
 <span class="sd">            n_subsets (int): Number of subsets</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">recon_method_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;OSEM_</span><span class="si">{</span><span class="n">n_iters</span><span class="si">}</span><span class="s1">it</span><span class="si">{</span><span class="n">n_subsets</span><span class="si">}</span><span class="s1">ss&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">recon_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;OSEM_</span><span class="si">{</span><span class="n">n_iters</span><span class="si">}</span><span class="s1">it</span><span class="si">{</span><span class="n">n_subsets</span><span class="si">}</span><span class="s1">ss&#39;</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">recon_method_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;OSEMOSL_</span><span class="si">{</span><span class="n">n_iters</span><span class="si">}</span><span class="s1">it</span><span class="si">{</span><span class="n">n_subsets</span><span class="si">}</span><span class="s1">ss&#39;</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">recon_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;OSEMOSL_</span><span class="si">{</span><span class="n">n_iters</span><span class="si">}</span><span class="s1">it</span><span class="si">{</span><span class="n">n_subsets</span><span class="si">}</span><span class="s1">ss&#39;</span></div>
     
 <div class="viewcode-block" id="OSEMOSL.__call__"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/osem/index.html#pytomography.algorithms.OSEMOSL.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -487,7 +487,7 @@ document.write(`
                 <span class="k">if</span> <span class="n">callback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">callback</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span><span class="p">,</span> <span class="n">n_iter</span><span class="o">=</span><span class="n">j</span><span class="p">,</span> <span class="n">n_subset</span><span class="o">=</span><span class="n">k</span><span class="p">)</span>
         <span class="c1"># Set unique string for identifying the type of reconstruction</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_set_recon_params_string</span><span class="p">(</span><span class="n">n_iters</span><span class="p">,</span> <span class="n">n_subsets</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_recon_name</span><span class="p">(</span><span class="n">n_iters</span><span class="p">,</span> <span class="n">n_subsets</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span></div></div>
     
 
@@ -503,7 +503,7 @@ document.write(`
 
 <span class="sd">    &quot;&quot;&quot;</span>
     
-<div class="viewcode-block" id="OSEMBSR._set_recon_params_string"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/osem/index.html#pytomography.algorithms.OSEMBSR._set_recon_params_string">[docs]</a>    <span class="k">def</span> <span class="nf">_set_recon_params_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_iters</span><span class="p">,</span> <span class="n">n_subsets</span><span class="p">):</span>
+<div class="viewcode-block" id="OSEMBSR._set_recon_name"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/osem/index.html#pytomography.algorithms.OSEMBSR._set_recon_name">[docs]</a>    <span class="k">def</span> <span class="nf">_set_recon_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_iters</span><span class="p">,</span> <span class="n">n_subsets</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the unique identifier for the type of reconstruction performed. Useful for saving to DICOM files</span>
 
 <span class="sd">        Args:</span>
@@ -511,9 +511,9 @@ document.write(`
 <span class="sd">            n_subsets (int): Number of subsets</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">recon_method_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;OSEM_</span><span class="si">{</span><span class="n">n_iters</span><span class="si">}</span><span class="s1">it</span><span class="si">{</span><span class="n">n_subsets</span><span class="si">}</span><span class="s1">ss&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">recon_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;OSEM_</span><span class="si">{</span><span class="n">n_iters</span><span class="si">}</span><span class="s1">it</span><span class="si">{</span><span class="n">n_subsets</span><span class="si">}</span><span class="s1">ss&#39;</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">recon_method_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;BSREM_</span><span class="si">{</span><span class="n">n_iters</span><span class="si">}</span><span class="s1">it</span><span class="si">{</span><span class="n">n_subsets</span><span class="si">}</span><span class="s1">ss&#39;</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">recon_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;BSREM_</span><span class="si">{</span><span class="n">n_iters</span><span class="si">}</span><span class="s1">it</span><span class="si">{</span><span class="n">n_subsets</span><span class="si">}</span><span class="s1">ss&#39;</span></div>
     
 <div class="viewcode-block" id="OSEMBSR.__call__"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/osem/index.html#pytomography.algorithms.OSEMBSR.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -552,7 +552,7 @@ document.write(`
                 <span class="k">if</span> <span class="n">callback</span><span class="p">:</span>
                     <span class="n">callback</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span><span class="p">,</span> <span class="n">n_iter</span><span class="o">=</span><span class="n">j</span><span class="p">,</span> <span class="n">n_subset</span><span class="o">=</span><span class="n">k</span><span class="p">)</span>
         <span class="c1"># Set unique string for identifying the type of reconstruction</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_set_recon_params_string</span><span class="p">(</span><span class="n">n_iters</span><span class="p">,</span> <span class="n">n_subsets</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_recon_name</span><span class="p">(</span><span class="n">n_iters</span><span class="p">,</span> <span class="n">n_subsets</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span></div></div>
 </pre></div>
 

@@ -52,7 +52,7 @@ Functions
    :rtype: torch.Tensor[batch_size, Lx, Ly, Lz]
 
 
-.. py:function:: get_projections(file, index_peak = None)
+.. py:function:: get_projections(file, index_peak = None, index_time = None, print_shape = True)
 
    Gets projections from a .dcm file.
 
@@ -60,9 +60,12 @@ Functions
    :type file: str
    :param index_peak: If not none, then the returned projections correspond to the index of this energy window. Otherwise returns all energy windows. Defaults to None.
    :type index_peak: int
+   :param index_time: If not none, then the returned projections correspond to the index of the time slot in gated SPECT. Otherwise returns all time slots. Defaults to None
+   :type index_time: int
+   :param print_shape: If true, then prints the shape of the projections returned. Defaults to true.
+   :type print_shape: bool
 
-   :returns: Required information for reconstruction in PyTomography.
-   :rtype: (SPECTObjectMeta, SPECTImageMeta, torch.Tensor[1, Ltheta, Lr, Lz])
+   :returns: (SPECTObjectMeta, SPECTImageMeta, torch.Tensor[..., Ltheta, Lr, Lz]) where ... depends on if time slots are considered.
 
 
 .. py:function:: get_attenuation_map_from_file(file_AM)
