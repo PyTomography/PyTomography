@@ -1,0 +1,4 @@
+<map id="inheritance37a1eec33c" name="inheritance37a1eec33c">
+<area shape="rect" id="node1" href="PET/attenuation/index.html#pytomography.transforms.PET.attenuation.PETAttenuationTransform" target="_top" title="im2im mapping used to model the effects of attenuation in PET." alt="" coords="139,5,321,31"/>
+<area shape="rect" id="node2" href="transform/index.html#pytomography.transforms.transform.Transform" target="_top" title="The parent class for all transforms used in reconstruction (obj2obj, im2im, obj2im). Subclasses must implement the ``__call__`` method." alt="" coords="5,5,91,31"/>
+</map>

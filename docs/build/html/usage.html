@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Tutorials &#8212; PyTomography 0.8.0 documentation</title>
+    <title>Tutorials &#8212; PyTomography 1.0.0 documentation</title>
   
   
   
@@ -35,7 +35,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=b425c228"></script>
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=367f7090"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -43,7 +43,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Developer’s Guide" href="developers_guide.html" />
-    <link rel="prev" title="Manual" href="notebooks/conventions.html" />
+    <link rel="prev" title="PyTomography" href="index.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   </head>
@@ -131,13 +131,6 @@
   </p>
   <ul class="bd-navbar-elements navbar-nav">
     
-                    <li class="nav-item">
-                      <a class="nav-link nav-internal" href="notebooks/conventions.html">
-                        Manual
-                      </a>
-                    </li>
-                
-
                     <li class="nav-item current active">
                       <a class="nav-link nav-internal" href="#">
                         Tutorials
@@ -148,6 +141,13 @@
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="developers_guide.html">
                         Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="external_data.html">
+                        External Data
                       </a>
                     </li>
                 
@@ -235,13 +235,6 @@ document.write(`
   </p>
   <ul class="bd-navbar-elements navbar-nav">
     
-                    <li class="nav-item">
-                      <a class="nav-link nav-internal" href="notebooks/conventions.html">
-                        Manual
-                      </a>
-                    </li>
-                
-
                     <li class="nav-item current active">
                       <a class="nav-link nav-internal" href="#">
                         Tutorials
@@ -252,6 +245,13 @@ document.write(`
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="developers_guide.html">
                         Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="external_data.html">
+                        External Data
                       </a>
                     </li>
                 
@@ -338,12 +338,21 @@ document.write(`
   <section id="tutorials">
 <h1>Tutorials<a class="headerlink" href="#tutorials" title="Permalink to this heading">#</a></h1>
 <p>The tutorials use data that can be downloaded <a class="reference external" href="https://drive.google.com/drive/folders/1dUBC1EbUgEH-Cug-oWIS7Yy_tpAqhe4j?usp=sharing">here</a>.</p>
+<section id="spect">
+<h2>SPECT<a class="headerlink" href="#spect" title="Permalink to this heading">#</a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="notebooks/t_siminddata.html"><span class="doc">Reconstructing SIMIND Data</span></a></p></li>
 <li><p><a class="reference internal" href="notebooks/t_dicomdata.html"><span class="doc">Reconstructing DICOM Data</span></a></p></li>
-<li><p><a class="reference internal" href="notebooks/t_fbp.html"><span class="doc">Implementing Filtered Back Projection</span></a></p></li>
 <li><p><a class="reference internal" href="notebooks/t_quantitative.html"><span class="doc">Quantitative Analysis (SIMIND)</span></a></p></li>
+<li><p><a class="reference internal" href="notebooks/t_spectpriors.html"><span class="doc">Bayesian Priors</span></a></p></li>
 </ul>
+</section>
+<section id="misc">
+<h2>Misc<a class="headerlink" href="#misc" title="Permalink to this heading">#</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="notebooks/t_fbp.html"><span class="doc">Filtered Back Projection</span></a></p></li>
+</ul>
+</section>
 </section>
 
 
@@ -358,12 +367,12 @@ document.write(`
     <div class="footer-article-item"><!-- Previous / next buttons -->
 <div class="prev-next-area">
     <a class="left-prev"
-       href="notebooks/conventions.html"
+       href="index.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Manual</p>
+        <p class="prev-next-title">PyTomography</p>
       </div>
     </a>
     <a class="right-next"
@@ -386,6 +395,17 @@ document.write(`
             
               
                 <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#spect">SPECT</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#misc">Misc</a></li>
+</ul>
+  </nav></div>
 
   <div class="sidebar-secondary-item">
   <div class="tocsection sourcelink">

@@ -42,6 +42,7 @@ Attributes
    pytomography.device
    pytomography.dtype
    pytomography.delta
+   pytomography.__version__
 
 
 .. py:data:: device
@@ -54,6 +55,11 @@ Attributes
 
 .. py:data:: delta
    :value: 1e-11
+
+   
+
+.. py:data:: __version__
+   :type: str
 
    
 

@@ -1,0 +1,25 @@
+:py:mod:`pytomography.utils.filters`
+====================================
+
+.. py:module:: pytomography.utils.filters
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.utils.filters.HammingFilter
+
+
+
+
+.. py:class:: HammingFilter(wl, wh)
+
+   .. py:method:: __call__(w)
+
+
+

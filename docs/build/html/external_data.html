@@ -1,0 +1,891 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>External Data &#8212; PyTomography 1.0.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+
+  
+  <link href="_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=e353d410970836974a52" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=362ab14a" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=eafc0fe6" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
+
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=367f7090"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'external_data';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Developer’s Guide" href="developers_guide.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+<div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+    <span class="fa-solid fa-bars"></span>
+  </label>
+  
+  <div class="navbar-header-items__start">
+    
+      <div class="navbar-item">
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="_static/PT1.png" class="logo__image only-light" alt="Logo image"/>
+    <script>document.write(`<img src="_static/PT1.png" class="logo__image only-dark" alt="Logo image"/>`);</script>
+  
+  
+</a></div>
+    
+  </div>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="#">
+                        External Data
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="autoapi/index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+        </div>
+      
+      
+        <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+    </div>
+  
+
+  
+    <label class="sidebar-toggle secondary-toggle" for="__secondary">
+      <span class="fa-solid fa-outdent"></span>
+    </label>
+  
+</div>
+
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="#">
+                        External Data
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="autoapi/index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumbs">
+  <ul class="bd-breadcrumbs" role="navigation" aria-label="Breadcrumb">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">External Data</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section id="external-data">
+<h1>External Data<a class="headerlink" href="#external-data" title="Permalink to this heading">#</a></h1>
+<p>PyTomography requires using a variety of external data sources to obtain parameters required for tasks like PSF modeling in SPECT and converting CT data to attenuation maps.</p>
+<section id="nist">
+<h2>NIST<a class="headerlink" href="#nist" title="Permalink to this heading">#</a></h2>
+<p>PyTomography uses data from NIST (<a class="reference external" href="https://www.nist.gov/pml/x-ray-mass-attenuation-coefficients">link</a>) to get attenuation coefficients for different elemental media and compounds. This is used for (i) obtaining attenuation maps from CT data and (ii) computing a correction factor for collimators that use lead.</p>
+</section>
+<section id="collimator-data">
+<h2>Collimator Data<a class="headerlink" href="#collimator-data" title="Permalink to this heading">#</a></h2>
+<p>Collimator data for SPECT imaging was obtained from the <code class="docutils literal notranslate"><span class="pre">collim.col</span></code> file of the SIMIND Monte Carlo program. The values in the “Code” column are used for the <code class="docutils literal notranslate"><span class="pre">collimator_name</span></code> argument of the<code class="docutils literal notranslate"><span class="pre">get_psfmeta_from_scanner_params</span></code> function from <code class="docutils literal notranslate"><span class="pre">pytomography.io.SPECT</span></code>. The supported collimators/codes are listed below.</p>
+<table class="table">
+<thead>
+<tr class="row-odd"><th class="head text-center"><p>Scanner</p></th>
+<th class="head text-center"><p>Code</p></th>
+<th class="head text-center"><p>Comments</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-center"><p>Millenium VG kameran</p></td>
+<td class="text-center"><p>GV-LEGP</p></td>
+<td class="text-center"><p>LOW ENERGY GENERAL PURPOSE</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>Millenium VG kameran</p></td>
+<td class="text-center"><p>GV-LEHR</p></td>
+<td class="text-center"><p>LOW ENERGY HIGH RESOLUTION</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>Millenium VG kameran</p></td>
+<td class="text-center"><p>GV-EEGP</p></td>
+<td class="text-center"><p>EXTENDED LOW ENERGY GENERAL PURPOSE</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>Millenium VG kameran</p></td>
+<td class="text-center"><p>GV-MEGP</p></td>
+<td class="text-center"><p>MEDIUM ENERGY GENERAL PURPOSE</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>Millenium VG kameran</p></td>
+<td class="text-center"><p>GV-HEGP</p></td>
+<td class="text-center"><p>HIGH ENERGY GENERAL PURPOSE</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>Millenium VG kameran</p></td>
+<td class="text-center"><p>GV-LEUR</p></td>
+<td class="text-center"><p>FAN-BEAM LOW-ENERGY ULTRA-HIGH RESOLUTION</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>Millenium VG kameran</p></td>
+<td class="text-center"><p>GV-UEUH</p></td>
+<td class="text-center"><p>ULTRA-HIGH ENERGY ULTRA-HIGH RESOLUTION</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>MPR kamera</p></td>
+<td class="text-center"><p>GM-LEGP</p></td>
+<td class="text-center"><p>LOW ENERGY GENERAL PURPOSE</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>MPR kamera</p></td>
+<td class="text-center"><p>GM-LEHR</p></td>
+<td class="text-center"><p>LOW ENERGY HIGH RESOLUTION</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>GE Infinia</p></td>
+<td class="text-center"><p>GI-LEHR</p></td>
+<td class="text-center"><p>Infinia High Resolution</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>GE Infinia</p></td>
+<td class="text-center"><p>GI-LEGP</p></td>
+<td class="text-center"><p>Infinia General Purpose</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>GE Infinia</p></td>
+<td class="text-center"><p>GI-MEGP</p></td>
+<td class="text-center"><p>Infinia MEGP</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>GE Infinia</p></td>
+<td class="text-center"><p>GI-HEGP</p></td>
+<td class="text-center"><p>Infinia HEGP</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>GE Infinia</p></td>
+<td class="text-center"><p>GI-ELEG</p></td>
+<td class="text-center"><p>Infinia Extended LEGP</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>GE Infinia</p></td>
+<td class="text-center"><p>GI-LEHX</p></td>
+<td class="text-center"><p>Infinia High Resolution</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>GE 870 DR</p></td>
+<td class="text-center"><p>G8-LHRS</p></td>
+<td class="text-center"><p>GE 870 DR High Resolution S</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>GE 870 DR</p></td>
+<td class="text-center"><p>G8-LEHS</p></td>
+<td class="text-center"><p>GE 870 DR High Sensitivity</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>GE 870 DR</p></td>
+<td class="text-center"><p>G8-LUHR</p></td>
+<td class="text-center"><p>GE 870 DR Ultra High Resolution</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>GE 870 DR</p></td>
+<td class="text-center"><p>G8-LEHR</p></td>
+<td class="text-center"><p>GE 870 DR High Resolution</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>GE 870 DR</p></td>
+<td class="text-center"><p>G8-ELEG</p></td>
+<td class="text-center"><p>GE 870 DR Extended General Purpose</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>GE 870 DR</p></td>
+<td class="text-center"><p>G8-MEGP</p></td>
+<td class="text-center"><p>GE 870 DR Medium Energy</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>GE 870 DR</p></td>
+<td class="text-center"><p>G8-HEGP</p></td>
+<td class="text-center"><p>GE 870 DR High Energy</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>GE Ventri</p></td>
+<td class="text-center"><p>GT-LEHR</p></td>
+<td class="text-center"><p>Ventri High Resolution</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>GE Ventri</p></td>
+<td class="text-center"><p>GT-LEGP</p></td>
+<td class="text-center"><p>Ventri General Purpose</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>GE 640 Optima</p></td>
+<td class="text-center"><p>GO-LEHR</p></td>
+<td class="text-center"><p>Ventri High Resolution</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>GE 640 Optima</p></td>
+<td class="text-center"><p>GO-LEGP</p></td>
+<td class="text-center"><p>Ventri General Purpose</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>GE 630</p></td>
+<td class="text-center"><p>GO-LEHR</p></td>
+<td class="text-center"><p>Ventri High Resolution</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>GE 630</p></td>
+<td class="text-center"><p>GT-LEGP</p></td>
+<td class="text-center"><p>Ventri General Purpose</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>GE 670 CZT</p></td>
+<td class="text-center"><p>GZ-LEHR</p></td>
+<td class="text-center"><p>CZT Low Energy High Resolution</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>CrystalCam CZT</p></td>
+<td class="text-center"><p>HH-LEHR</p></td>
+<td class="text-center"><p>CZT LE High Resolution (rect)</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>CrystalCam CZT</p></td>
+<td class="text-center"><p>HH-LEHS</p></td>
+<td class="text-center"><p>CZT LE High Sensitivity (rect)</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>CrystalCam CZT</p></td>
+<td class="text-center"><p>HH-MEGP</p></td>
+<td class="text-center"><p>CZT ME General Purpose  (circ)</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>BW = Philips Brightview camera</p></td>
+<td class="text-center"><p>PB-LEGP</p></td>
+<td class="text-center"><p>Philips Brightview LEGP</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>BW = Philips Brightview camera</p></td>
+<td class="text-center"><p>PB-LEHR</p></td>
+<td class="text-center"><p>Philips Brightview LEHR</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>BW = Philips Brightview camera</p></td>
+<td class="text-center"><p>PB-CAHR</p></td>
+<td class="text-center"><p>Philips Brightview Cadiac HR</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>BW = Philips Brightview camera</p></td>
+<td class="text-center"><p>PB-MEGP</p></td>
+<td class="text-center"><p>Philips Brightview MEGP</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>BW = Philips Brightview camera</p></td>
+<td class="text-center"><p>PB-HEGP</p></td>
+<td class="text-center"><p>Philips Brightview HEGP</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>VG = VON GAHLEN COLLIMATORS - HOLLAND</p></td>
+<td class="text-center"><p>VG-LEUR</p></td>
+<td class="text-center"><p>LOW-ENERGY ULTRA HIGH RESOLUTION</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>VG = VON GAHLEN COLLIMATORS - HOLLAND</p></td>
+<td class="text-center"><p>VG-LEHR</p></td>
+<td class="text-center"><p>LOW-ENERGY HIGH RESOLUTION</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>VG = VON GAHLEN COLLIMATORS - HOLLAND</p></td>
+<td class="text-center"><p>VG-LEGP</p></td>
+<td class="text-center"><p>LOW-ENERGY GENERAL PURPOSE</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>VG = VON GAHLEN COLLIMATORS - HOLLAND</p></td>
+<td class="text-center"><p>VG-LEHS</p></td>
+<td class="text-center"><p>LOW-ENERGY HIGH SENSITIVITY</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>VG = VON GAHLEN COLLIMATORS - HOLLAND</p></td>
+<td class="text-center"><p>VG-LEES</p></td>
+<td class="text-center"><p>LOW-ENERGY EXTRA HIGH SENSITIVITY</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>VG = VON GAHLEN COLLIMATORS - HOLLAND</p></td>
+<td class="text-center"><p>VG-LESS</p></td>
+<td class="text-center"><p>LOW-ENERGY SUPER HIGH SENSITIVITY</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>VG = VON GAHLEN COLLIMATORS - HOLLAND</p></td>
+<td class="text-center"><p>VG-LEUS</p></td>
+<td class="text-center"><p>LOW-ENERGY ULTRA HIGH SENSITIVITY</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>VG = VON GAHLEN COLLIMATORS - HOLLAND</p></td>
+<td class="text-center"><p>VG-LETY</p></td>
+<td class="text-center"><p>LOW-ENERGY THYROID</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>VG = VON GAHLEN COLLIMATORS - HOLLAND</p></td>
+<td class="text-center"><p>VG-ME23</p></td>
+<td class="text-center"><p>MEDIUM-ENERGY I-123</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>VG = VON GAHLEN COLLIMATORS - HOLLAND</p></td>
+<td class="text-center"><p>VG-ME19</p></td>
+<td class="text-center"><p>MEDIUM-ENERGY 190 keV</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>VG = VON GAHLEN COLLIMATORS - HOLLAND</p></td>
+<td class="text-center"><p>VG-ME26</p></td>
+<td class="text-center"><p>MEDIUM-ENERGY 260 keV</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>VG = VON GAHLEN COLLIMATORS - HOLLAND</p></td>
+<td class="text-center"><p>VG-ME30</p></td>
+<td class="text-center"><p>MEDIUM-ENERGY 300 keV</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>VG = VON GAHLEN COLLIMATORS - HOLLAND</p></td>
+<td class="text-center"><p>VG-ME36</p></td>
+<td class="text-center"><p>MEDIUM-ENERGY 360 keV</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>VG = VON GAHLEN COLLIMATORS - HOLLAND</p></td>
+<td class="text-center"><p>VG-METY</p></td>
+<td class="text-center"><p>MEDIUM-ENERGY THYRO333ID</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>VG = VON GAHLEN COLLIMATORS - HOLLAND</p></td>
+<td class="text-center"><p>VG-HE51</p></td>
+<td class="text-center"><p>HIGH 511 keV</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>ENGINEERING DYNAMICS CORPORATION</p></td>
+<td class="text-center"><p>ED-LEUR</p></td>
+<td class="text-center"><p>LOW-ENERGY ULTRA HIGH RESOLUTION</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>ENGINEERING DYNAMICS CORPORATION</p></td>
+<td class="text-center"><p>ED-LEHR</p></td>
+<td class="text-center"><p>LOW-ENERGY HIGH RESOLUTION</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>ENGINEERING DYNAMICS CORPORATION</p></td>
+<td class="text-center"><p>ED-LEGP</p></td>
+<td class="text-center"><p>LOW-ENERGY GENERAL PURPOSE</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>ENGINEERING DYNAMICS CORPORATION</p></td>
+<td class="text-center"><p>ED-LEMS</p></td>
+<td class="text-center"><p>LOW-ENERGY MEDIUM SENSITIVITY</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>ENGINEERING DYNAMICS CORPORATION</p></td>
+<td class="text-center"><p>ED-LEHS</p></td>
+<td class="text-center"><p>LOW-ENERGY HIGH SENSITIVITY</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>ENGINEERING DYNAMICS CORPORATION</p></td>
+<td class="text-center"><p>ED-LEUS</p></td>
+<td class="text-center"><p>LOW-ENERGY ULTRA HIGH SENSITIVITY</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>ENGINEERING DYNAMICS CORPORATION</p></td>
+<td class="text-center"><p>ED-MEUS</p></td>
+<td class="text-center"><p>MEDIUM-ENERGY ULTRA HIGH SENSITIVITY</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>ENGINEERING DYNAMICS CORPORATION</p></td>
+<td class="text-center"><p>ED-MEHS</p></td>
+<td class="text-center"><p>MEDIUM-ENERGY HIGH SENSITIVITY</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>ENGINEERING DYNAMICS CORPORATION</p></td>
+<td class="text-center"><p>ED-MEHR</p></td>
+<td class="text-center"><p>MEDIUM-ENERGY HIGH RESOLUTION</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>ME = MEDISO Nucline SPIRIT DH-V</p></td>
+<td class="text-center"><p>ME-LEGP</p></td>
+<td class="text-center"><p>Low-Energy General Purpose</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>ME = MEDISO Nucline SPIRIT DH-V</p></td>
+<td class="text-center"><p>ME-LEHR</p></td>
+<td class="text-center"><p>Low-Energy High Resolution</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>ME = MEDISO Nucline SPIRIT DH-V</p></td>
+<td class="text-center"><p>ME-LEUHR</p></td>
+<td class="text-center"><p>Low-Energy Ultra High Resolution</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>ME = MEDISO Nucline SPIRIT DH-V</p></td>
+<td class="text-center"><p>ME-MEGP</p></td>
+<td class="text-center"><p>Medium Energy General Purpose</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>ME = MEDISO Nucline SPIRIT DH-V</p></td>
+<td class="text-center"><p>ME-HEGP</p></td>
+<td class="text-center"><p>High Energy General Purpose</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>MA = MEDISO AnyScan</p></td>
+<td class="text-center"><p>MA-LEHS</p></td>
+<td class="text-center"><p>Low-Energy General Purpose</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>MA = MEDISO AnyScan</p></td>
+<td class="text-center"><p>MA-LEHR</p></td>
+<td class="text-center"><p>Low-Energy High Resolution</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>MA = MEDISO AnyScan</p></td>
+<td class="text-center"><p>MA-LEUHR</p></td>
+<td class="text-center"><p>Low-Energy Ultra High Resolution</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>MA = MEDISO AnyScan</p></td>
+<td class="text-center"><p>MA-LHRHS</p></td>
+<td class="text-center"><p>Low-Energy Ultra High Resolution</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>MA = MEDISO AnyScan</p></td>
+<td class="text-center"><p>MA-LEGP</p></td>
+<td class="text-center"><p>Low-Energy General Purpose</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>MA = MEDISO AnyScan</p></td>
+<td class="text-center"><p>MA-MLEGP</p></td>
+<td class="text-center"><p>Medium Energy General Purpose</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>MA = MEDISO AnyScan</p></td>
+<td class="text-center"><p>MA-MEGP</p></td>
+<td class="text-center"><p>Medium Energy General Purpose</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>MA = MEDISO AnyScan</p></td>
+<td class="text-center"><p>MA-MHEGP</p></td>
+<td class="text-center"><p>Medium Energy General Purpose</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>MA = MEDISO AnyScan</p></td>
+<td class="text-center"><p>MA-HEGP</p></td>
+<td class="text-center"><p>High Energy General Purpose</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>PR = PRISM 2000/3000 SYSTEMS</p></td>
+<td class="text-center"><p>PR-LEAP</p></td>
+<td class="text-center"><p>Low-Energy All Purpose</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>PR = PRISM 2000/3000 SYSTEMS</p></td>
+<td class="text-center"><p>PR-LEHR</p></td>
+<td class="text-center"><p>Low-Energy High Resolution</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>PR = PRISM 2000/3000 SYSTEMS</p></td>
+<td class="text-center"><p>PR-LEUR</p></td>
+<td class="text-center"><p>Low-Energy Ultra-High Res</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>PR = PRISM 2000/3000 SYSTEMS</p></td>
+<td class="text-center"><p>PR-ME</p></td>
+<td class="text-center"><p>Medium Energy</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>PR = PRISM 2000/3000 SYSTEMS</p></td>
+<td class="text-center"><p>PR-HE</p></td>
+<td class="text-center"><p>High Energy</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>PR = PRISM 2000/3000 SYSTEMS</p></td>
+<td class="text-center"><p>PR-APFB</p></td>
+<td class="text-center"><p>All Purpose Fan-Beam</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>PR = PRISM 2000/3000 SYSTEMS</p></td>
+<td class="text-center"><p>PR-HRFB</p></td>
+<td class="text-center"><p>High Resolution Fan-Beam</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>PR = PRISM 2000/3000 SYSTEMS</p></td>
+<td class="text-center"><p>PR-URFB</p></td>
+<td class="text-center"><p>UltraHigh Resol Fan-Beam</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>SI = SIEMENS MEDICAL SYSTEM</p></td>
+<td class="text-center"><p>SI-LEAP</p></td>
+<td class="text-center"><p>Low-Energy All Purpose</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>SI = SIEMENS MEDICAL SYSTEM</p></td>
+<td class="text-center"><p>SI-LEHR</p></td>
+<td class="text-center"><p>Low-Energy High Resolution</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>SI = SIEMENS MEDICAL SYSTEM</p></td>
+<td class="text-center"><p>SI-ME</p></td>
+<td class="text-center"><p>Medium Energy Parallel</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>SI = SIEMENS MEDICAL SYSTEM</p></td>
+<td class="text-center"><p>SI-ME+</p></td>
+<td class="text-center"><p>Medium Energy Parallel E.CAM+</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>SI = SIEMENS MEDICAL SYSTEM</p></td>
+<td class="text-center"><p>SI-HE</p></td>
+<td class="text-center"><p>High Energy Parallel</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>SI = SIEMENS MEDICAL SYSTEM</p></td>
+<td class="text-center"><p>SI-HEGP</p></td>
+<td class="text-center"><p>High Energy Parallel</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>SI = SIEMENS MEDICAL SYSTEM</p></td>
+<td class="text-center"><p>SI-511</p></td>
+<td class="text-center"><p>511 keV Collimator</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>SI = SIEMENS MEDICAL SYSTEM</p></td>
+<td class="text-center"><p>SI-512</p></td>
+<td class="text-center"><p>511 keV Collimator</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>SI = SIEMENS MEDICAL SYSTEM</p></td>
+<td class="text-center"><p>SI-THER</p></td>
+<td class="text-center"><p>Therapy Collimator</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>SI = SIEMENS MEDICAL SYSTEM</p></td>
+<td class="text-center"><p>SI-DELU</p></td>
+<td class="text-center"><p>Test</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>SE = E.CAM SIEMENS MEDICAL SYSTEM</p></td>
+<td class="text-center"><p>SE-LEHS</p></td>
+<td class="text-center"><p>Low-Energy High Sensitivity</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>SE = E.CAM SIEMENS MEDICAL SYSTEM</p></td>
+<td class="text-center"><p>SE-LEAP</p></td>
+<td class="text-center"><p>Low-Energy All Purpose</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>SE = E.CAM SIEMENS MEDICAL SYSTEM</p></td>
+<td class="text-center"><p>SE-LEHR</p></td>
+<td class="text-center"><p>Low-Energy High Resolution</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>SE = E.CAM SIEMENS MEDICAL SYSTEM</p></td>
+<td class="text-center"><p>SE-LEUR</p></td>
+<td class="text-center"><p>Low-Energy Ultra-High Resolution</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>SE = E.CAM SIEMENS MEDICAL SYSTEM</p></td>
+<td class="text-center"><p>SE-LEFB</p></td>
+<td class="text-center"><p>Low-Energy Fan-Beam</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>SE = E.CAM SIEMENS MEDICAL SYSTEM</p></td>
+<td class="text-center"><p>SE-ME</p></td>
+<td class="text-center"><p>Medium Energy</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>SE = E.CAM SIEMENS MEDICAL SYSTEM</p></td>
+<td class="text-center"><p>SE-HE</p></td>
+<td class="text-center"><p>High Energy</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>SE = E.CAM SIEMENS MEDICAL SYSTEM</p></td>
+<td class="text-center"><p>SE-UHE</p></td>
+<td class="text-center"><p>Ultra-High Energy</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>SY = SIEMENS MEDICAL SYSTEM SYMBIA COLLIMATORS</p></td>
+<td class="text-center"><p>SY-LEAP</p></td>
+<td class="text-center"><p>Low-Energy All Purpose</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>SY = SIEMENS MEDICAL SYSTEM SYMBIA COLLIMATORS</p></td>
+<td class="text-center"><p>SY-LEHR</p></td>
+<td class="text-center"><p>Low-Energy High Resolution</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>SY = SIEMENS MEDICAL SYSTEM SYMBIA COLLIMATORS</p></td>
+<td class="text-center"><p>SY-ME</p></td>
+<td class="text-center"><p>Medium Energy Parallel</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>SY = SIEMENS MEDICAL SYSTEM SYMBIA COLLIMATORS</p></td>
+<td class="text-center"><p>SY-HE</p></td>
+<td class="text-center"><p>High Energy Parallel</p></td>
+</tr>
+<tr class="row-odd"><td class="text-center"><p>SY = SIEMENS MEDICAL SYSTEM SYMBIA COLLIMATORS</p></td>
+<td class="text-center"><p>SY-HE1</p></td>
+<td class="text-center"><p>High Energy Parallel</p></td>
+</tr>
+<tr class="row-even"><td class="text-center"><p>SY = SIEMENS MEDICAL SYSTEM SYMBIA COLLIMATORS</p></td>
+<td class="text-center"><p>SY-HE2</p></td>
+<td class="text-center"><p>High Energy Parallel</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+                <footer class="bd-footer-article">
+                  
+<div class="footer-article-items footer-article__inner">
+  
+    <div class="footer-article-item"><!-- Previous / next buttons -->
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="developers_guide.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Developer’s Guide</p>
+      </div>
+    </a>
+</div></div>
+  
+</div>
+
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#nist">NIST</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#collimator-data">Collimator Data</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div class="tocsection sourcelink">
+    <a href="_sources/external_data.md.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=e353d410970836974a52"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+  <p class="copyright">
+    
+      © Copyright 2023, Luke Polson.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item"><p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.13.3.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

@@ -5,6 +5,9 @@ if device == "cpu":
 dtype = torch.float32
 delta = 1e-11
 
+from importlib.metadata import version
+__version__: str = version('pytomography')
+
 def set_dtype(dt):
     global dtype
     global delta
