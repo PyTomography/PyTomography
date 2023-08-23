@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Manual &#8212; PyTomography 0.9.3 documentation</title>
+    <title>Manual &#8212; PyTomography 1.0.0 documentation</title>
   
   
   
@@ -35,7 +35,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=f05b8887"></script>
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=367f7090"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -44,8 +44,6 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'notebooks/conventions';</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Tutorials" href="../usage.html" />
-    <link rel="prev" title="PyTomography" href="../index.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   </head>
@@ -133,13 +131,6 @@
   </p>
   <ul class="bd-navbar-elements navbar-nav">
     
-                    <li class="nav-item current active">
-                      <a class="nav-link nav-internal" href="#">
-                        Manual
-                      </a>
-                    </li>
-                
-
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="../usage.html">
                         Tutorials
@@ -244,13 +235,6 @@ document.write(`
   </p>
   <ul class="bd-navbar-elements navbar-nav">
     
-                    <li class="nav-item current active">
-                      <a class="nav-link nav-internal" href="#">
-                        Manual
-                      </a>
-                    </li>
-                
-
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="../usage.html">
                         Tutorials
@@ -365,7 +349,7 @@ document.write(`
 <li><p><strong>Sinogram</strong>: Specified by <span class="math notranslate nohighlight">\(r\)</span>, <span class="math notranslate nohighlight">\(\beta\)</span>, and <span class="math notranslate nohighlight">\(z\)</span>. Sinogram space is used to represent a series of 2D scans (in the <span class="math notranslate nohighlight">\(r-z\)</span> plane) at different angles <span class="math notranslate nohighlight">\(\beta\)</span>. Any item in this coordinate system are referred to as <strong>Image</strong>.</p></li>
 </ol>
 <p>As a convention, <span class="math notranslate nohighlight">\(r\)</span> is aligned with the <span class="math notranslate nohighlight">\(x\)</span>-axis at <span class="math notranslate nohighlight">\(\beta=0\)</span>. (Note this implies that <span class="math notranslate nohighlight">\(r\)</span> is aligned with the negative <span class="math notranslate nohighlight">\(y\)</span>-axis at <span class="math notranslate nohighlight">\(\beta=90^{\circ}\)</span>. which can be counterintuitive when viewing images)</p>
-<p><img alt="3ac4afcfea164594b21c5cb187a0984d" class="no-scaled-link" src="../_images/coordinate_conventions.png" style="width: 300px;" /></p>
+<p><img alt="fd469e1fce9e4f1b9ff7c335da0ed4a6" class="no-scaled-link" src="../_images/coordinate_conventions.png" style="width: 300px;" /></p>
 </section>
 </section>
 <section id="Datatypes">
@@ -431,7 +415,7 @@ L(\tilde{f},f) &amp;= \prod_i \prod_j \frac{F_{ij}^{\tilde{F}_{ij}}e^{-F_{ij}}}{
 <p>Setting <span class="math notranslate nohighlight">\(\nabla_{f} \ln L(\tilde{f},f) = 0\)</span> simply yields <span class="math notranslate nohighlight">\(f = \tilde{f}\)</span>. In reality, however, we measure <span class="math notranslate nohighlight">\(g\)</span>, not <span class="math notranslate nohighlight">\(\tilde{f}\)</span>, so we need to obtain <span class="math notranslate nohighlight">\(\bar{f}\)</span> as some function of <span class="math notranslate nohighlight">\(f\)</span>. As such, the standard maximum liklihood technique will not work. What we can do, however, is consider the quantity:</p>
 <div class="math notranslate nohighlight">
 \[E_{\tilde{f}}[\ln L(\tilde{f},f) | g, f^{(n)}] = \sum_i \sum_j -H_{ji}f_i + E[H_{ji}\tilde{f}_i|g, f^{(n)}] \ln(H_{ji}f_i) + ...\]</div>
-<p>where <span class="math notranslate nohighlight">\(E_{\tilde{f}}\)</span> represents an operator that yields the expectation value over <span class="math notranslate nohighlight">\(\tilde{f}\)</span>. It’s important that you properly understand the interpretation of this expression. It yields the expected value of the log-liklihood, given the measured projection data <span class="math notranslate nohighlight">\(g\)</span> <strong>and</strong> a “guess” about what the distribution would look like: <span class="math notranslate nohighlight">\(f^{(n)}\)</span>. There’s just one question: what does <span class="math notranslate nohighlight">\(E_f[H_{ji}\tilde{f}_i|g, f^{(n)}]\)</span> (i.e. the expected number of emissions from voxel
+<p>where <span class="math notranslate nohighlight">\(E_{\tilde{f}}\)</span> represents an operator that yields the expectation value over <span class="math notranslate nohighlight">\(\tilde{f}\)</span>. It’s important that you properly understand the interpretation of this expression. It yields the expected value of the log-liklihood, given the measured projection data <span class="math notranslate nohighlight">\(g\)</span> <strong>and</strong> a “guess” about what the distribution would look like: <span class="math notranslate nohighlight">\(f^{(n)}\)</span>. There’s just one question: what does <span class="math notranslate nohighlight">\(E_f[H_{ji}\tilde{f}_i|g, f^{(n)}]\)</span> (i.e. the expected number of emissions from voxel
 <span class="math notranslate nohighlight">\(i\)</span> contributing to image pixel <span class="math notranslate nohighlight">\(j\)</span>) look like? I claim</p>
 <div class="math notranslate nohighlight">
 \[E_f[H_{ji}\tilde{f}_i|g, f^{(n)}] = \frac{g_j}{(Hf^{(n)})_j} H_{ji}f_i^{(n)}\]</div>
@@ -495,24 +479,6 @@ the same notation as the previous section, we can express <span class="math notr
   
     <div class="footer-article-item"><!-- Previous / next buttons -->
 <div class="prev-next-area">
-    <a class="left-prev"
-       href="../index.html"
-       title="previous page">
-      <i class="fa-solid fa-angle-left"></i>
-      <div class="prev-next-info">
-        <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">PyTomography</p>
-      </div>
-    </a>
-    <a class="right-next"
-       href="../usage.html"
-       title="next page">
-      <div class="prev-next-info">
-        <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Tutorials</p>
-      </div>
-      <i class="fa-solid fa-angle-right"></i>
-    </a>
 </div></div>
   
 </div>

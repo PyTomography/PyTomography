@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.transforms.SPECT.psf &#8212; PyTomography 0.9.3 documentation</title>
+    <title>pytomography.transforms.SPECT.psf &#8212; PyTomography 1.0.0 documentation</title>
   
   
   
@@ -34,7 +34,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=f05b8887"></script>
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=367f7090"></script>
     <script src="../../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -128,13 +128,6 @@
   </p>
   <ul class="bd-navbar-elements navbar-nav">
     
-                    <li class="nav-item">
-                      <a class="nav-link nav-internal" href="../../../../notebooks/conventions.html">
-                        Manual
-                      </a>
-                    </li>
-                
-
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="../../../../usage.html">
                         Tutorials
@@ -235,13 +228,6 @@ document.write(`
   </p>
   <ul class="bd-navbar-elements navbar-nav">
     
-                    <li class="nav-item">
-                      <a class="nav-link nav-internal" href="../../../../notebooks/conventions.html">
-                        Manual
-                      </a>
-                    </li>
-                
-
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="../../../../usage.html">
                         Tutorials
@@ -350,6 +336,7 @@ document.write(`
                   
   <h1>Source code for pytomography.transforms.SPECT.psf</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Sequence</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -365,10 +352,11 @@ document.write(`
         <span class="bp">self</span><span class="o">.</span><span class="n">layer_z</span> <span class="o">=</span> <span class="n">layer_z</span>
 
 <div class="viewcode-block" id="GaussianBlurNet.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html#pytomography.transforms.SPECT.GaussianBlurNet.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
-        <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_r</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="mi">0</span><span class="p">],(</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">)))</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_r</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="mi">0</span><span class="p">],(</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">)))</span>
         <span class="c1"># If 2D blurring</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_z</span><span class="p">:</span>
             <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_z</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="n">output</span><span class="p">,(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">)))</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="n">output</span><span class="p">,(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="n">output</span><span class="p">,(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div></div>
 
 <div class="viewcode-block" id="get_1D_PSF_layer"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html#pytomography.transforms.SPECT.get_1D_PSF_layer">[docs]</a><span class="k">def</span> <span class="nf">get_1D_PSF_layer</span><span class="p">(</span>
@@ -382,7 +370,7 @@ document.write(`
 <span class="sd">        kernel_size (int): Size of the kernel used in each layer. Needs to be large enough to cover most of Gaussian</span>
 <span class="sd">        </span>
 <span class="sd">    Returns:</span>
-<span class="sd">        torch.nn.Conv2d: Convolutional neural network layer used to apply blurring to objects of shape [batch_size, Lx, Ly, Lz]</span>
+<span class="sd">        torch.nn.Conv2d: Convolutional neural network layer used to apply blurring to objects of shape [Lx, L1, L2] where Lx is treated as a batch size, L1 as the channel (or group index) and L2 is the axis being blurred over </span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sigmas</span><span class="p">)</span>
     <span class="n">layer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="n">N</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s1">&#39;same&#39;</span><span class="p">,</span>
@@ -422,11 +410,11 @@ document.write(`
         <span class="nb">super</span><span class="p">(</span><span class="n">SPECTPSFTransform</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">radius</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">image_meta</span><span class="o">.</span><span class="n">radii</span><span class="p">):</span>
-            <span class="n">kernel_size_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_kernel_size</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-            <span class="n">kernel_size_z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_kernel_size</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">kernel_size_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_kernel_size</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">kernel_size_z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_kernel_size</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
             <span class="c1"># Compute sigmas and normalize to pixel units</span>
-            <span class="n">sigma_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sigma</span><span class="p">(</span><span class="n">radius</span><span class="p">)</span><span class="o">/</span><span class="n">object_meta</span><span class="o">.</span><span class="n">dx</span>
-            <span class="n">sigma_z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sigma</span><span class="p">(</span><span class="n">radius</span><span class="p">)</span><span class="o">/</span><span class="n">object_meta</span><span class="o">.</span><span class="n">dz</span>
+            <span class="n">sigma_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_sigma</span><span class="p">(</span><span class="n">radius</span><span class="p">)</span><span class="o">/</span><span class="n">object_meta</span><span class="o">.</span><span class="n">dx</span>
+            <span class="n">sigma_z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_sigma</span><span class="p">(</span><span class="n">radius</span><span class="p">)</span><span class="o">/</span><span class="n">object_meta</span><span class="o">.</span><span class="n">dz</span>
             <span class="n">layer_r</span> <span class="o">=</span> <span class="n">get_1D_PSF_layer</span><span class="p">(</span><span class="n">sigma_r</span><span class="p">,</span> <span class="n">kernel_size_r</span><span class="p">)</span>
             <span class="n">layer_z</span> <span class="o">=</span> <span class="n">get_1D_PSF_layer</span><span class="p">(</span><span class="n">sigma_z</span><span class="p">,</span> <span class="n">kernel_size_z</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">psf_meta</span><span class="o">.</span><span class="n">kernel_dimensions</span><span class="o">==</span><span class="s1">&#39;2D&#39;</span><span class="p">:</span>
@@ -434,17 +422,17 @@ document.write(`
             <span class="k">else</span><span class="p">:</span> <span class="c1"># 1D blurring</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">radius</span><span class="p">]</span> <span class="o">=</span> <span class="n">GaussianBlurNet</span><span class="p">(</span><span class="n">layer_r</span><span class="p">)</span></div>
         
-<div class="viewcode-block" id="SPECTPSFTransform.compute_kernel_size"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html#pytomography.transforms.SPECT.SPECTPSFTransform.compute_kernel_size">[docs]</a>    <span class="k">def</span> <span class="nf">compute_kernel_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<div class="viewcode-block" id="SPECTPSFTransform._compute_kernel_size"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html#pytomography.transforms.SPECT.SPECTPSFTransform._compute_kernel_size">[docs]</a>    <span class="k">def</span> <span class="nf">_compute_kernel_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``SPECTPSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object. </span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            int: The corresponding kernel size used for PSF blurring.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">sigma_max</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_sigma</span><span class="p">(</span><span class="n">radius</span><span class="p">))</span>
+        <span class="n">sigma_max</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_sigma</span><span class="p">(</span><span class="n">radius</span><span class="p">))</span>
         <span class="n">sigma_max</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_meta</span><span class="o">.</span><span class="n">dr</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">sigma_max</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">psf_meta</span><span class="o">.</span><span class="n">min_sigmas</span><span class="p">)</span><span class="o">*</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span></div>
     
-<div class="viewcode-block" id="SPECTPSFTransform.get_sigma"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html#pytomography.transforms.SPECT.SPECTPSFTransform.get_sigma">[docs]</a>    <span class="k">def</span> <span class="nf">get_sigma</span><span class="p">(</span>
+<div class="viewcode-block" id="SPECTPSFTransform._get_sigma"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html#pytomography.transforms.SPECT.SPECTPSFTransform._get_sigma">[docs]</a>    <span class="k">def</span> <span class="nf">_get_sigma</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">radius</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
@@ -461,27 +449,32 @@ document.write(`
         <span class="n">sigma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psf_meta</span><span class="o">.</span><span class="n">sigma_fit</span><span class="p">(</span><span class="n">distances</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">psf_meta</span><span class="o">.</span><span class="n">sigma_fit_params</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">sigma</span></div>
     
-<div class="viewcode-block" id="SPECTPSFTransform.apply_psf"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html#pytomography.transforms.SPECT.SPECTPSFTransform.apply_psf">[docs]</a>    <span class="k">def</span> <span class="nf">apply_psf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="n">ang_idx</span><span class="p">):</span>
+<div class="viewcode-block" id="SPECTPSFTransform._apply_psf"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html#pytomography.transforms.SPECT.SPECTPSFTransform._apply_psf">[docs]</a>    <span class="k">def</span> <span class="nf">_apply_psf</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="nb">object</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span>
+        <span class="n">ang_idx</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Applies PSF modeling to an object with corresponding angle indices</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            object (torch.tensor): Tensor of shape ``[batch_size, Lx, Ly, Lz]`` corresponding to object rotated at different angles</span>
+<span class="sd">            ang_idx (Sequence[int]): List of length ``batch_size`` corresponding to angle of each object in the batch</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.tensor: Object with PSF modeling applied</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">object_return</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ang_idx</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span>
-            <span class="c1"># For reconstructing in parallel; requires batch size of 1</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ang_idx</span><span class="p">)):</span>
-                <span class="n">object_temp</span> <span class="o">=</span> <span class="nb">object</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-                <span class="n">object_temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">image_meta</span><span class="o">.</span><span class="n">radii</span><span class="p">[</span><span class="n">ang_idx</span><span class="p">[</span><span class="n">i</span><span class="p">]]](</span><span class="n">object_temp</span><span class="p">)</span> 
-                <span class="n">object_return</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">object_temp</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># Allows for reconstructing batched inputs when N_parallel=1</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">object</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
-                <span class="n">object_temp</span> <span class="o">=</span> <span class="nb">object</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-                <span class="n">object_temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">image_meta</span><span class="o">.</span><span class="n">radii</span><span class="p">[</span><span class="n">ang_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]]](</span><span class="n">object_temp</span><span class="p">)</span> 
-                <span class="n">object_return</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">object_temp</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ang_idx</span><span class="p">)):</span>
+            <span class="n">object_temp</span> <span class="o">=</span> <span class="nb">object</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">object_temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">image_meta</span><span class="o">.</span><span class="n">radii</span><span class="p">[</span><span class="n">ang_idx</span><span class="p">[</span><span class="n">i</span><span class="p">]]](</span><span class="n">object_temp</span><span class="p">)</span> 
+            <span class="n">object_return</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">object_temp</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">object_return</span><span class="p">)</span></div>
     
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
 <div class="viewcode-block" id="SPECTPSFTransform.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html#pytomography.transforms.SPECT.SPECTPSFTransform.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">object_i</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-		<span class="n">ang_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> 
+		<span class="n">ang_idx</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> 
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Applies the PSF transform :math:`A:\mathbb{U} \to \mathbb{U}` for the situation where an object is being detector by a detector at the :math:`+x` axis.</span>
 
@@ -492,7 +485,7 @@ document.write(`
 <span class="sd">        Returns:</span>
 <span class="sd">            torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_psf</span><span class="p">(</span><span class="n">object_i</span><span class="p">,</span> <span class="n">ang_idx</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_psf</span><span class="p">(</span><span class="n">object_i</span><span class="p">,</span> <span class="n">ang_idx</span><span class="p">)</span></div>
         
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
 <div class="viewcode-block" id="SPECTPSFTransform.backward"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html#pytomography.transforms.SPECT.SPECTPSFTransform.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span>
@@ -512,11 +505,11 @@ document.write(`
 <span class="sd">            torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">norm_constant</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">object_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_psf</span><span class="p">(</span><span class="n">object_i</span><span class="p">,</span> <span class="n">ang_idx</span><span class="p">)</span>
-            <span class="n">norm_constant</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_psf</span><span class="p">(</span><span class="n">norm_constant</span><span class="p">,</span> <span class="n">ang_idx</span><span class="p">)</span>
+            <span class="n">object_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_psf</span><span class="p">(</span><span class="n">object_i</span><span class="p">,</span> <span class="n">ang_idx</span><span class="p">)</span>
+            <span class="n">norm_constant</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_psf</span><span class="p">(</span><span class="n">norm_constant</span><span class="p">,</span> <span class="n">ang_idx</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">object_i</span><span class="p">,</span> <span class="n">norm_constant</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_psf</span><span class="p">(</span><span class="n">object_i</span><span class="p">,</span> <span class="n">ang_idx</span><span class="p">)</span></div></div>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_psf</span><span class="p">(</span><span class="n">object_i</span><span class="p">,</span> <span class="n">ang_idx</span><span class="p">)</span></div></div>
 </pre></div>
 
                 </article>

@@ -5,7 +5,7 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "# SPECT: Reconstructing DICOM Data"
+    "# Reconstructing DICOM Data"
    ]
   },
   {
@@ -18,7 +18,7 @@
     "import numpy as np\n",
     "from pytomography.io.SPECT import dicom\n",
     "from pytomography.transforms import SPECTAttenuationTransform, SPECTPSFTransform\n",
-    "from pytomography.algorithms import OSEMOSL\n",
+    "from pytomography.algorithms import OSEM\n",
     "from pytomography.projections import SPECTSystemMatrix\n",
     "from pytomography.utils import print_collimator_parameters\n",
     "import matplotlib.pyplot as plt\n",
@@ -120,7 +120,7 @@
     {
      "data": {
       "text/plain": [
-       "<matplotlib.colorbar.Colorbar at 0x7f861e184ac0>"
+       "<matplotlib.colorbar.Colorbar at 0x7f8c88817f10>"
       ]
      },
      "execution_count": 5,
@@ -157,16 +157,7 @@
    "cell_type": "code",
    "execution_count": 6,
    "metadata": {},
-   "outputs": [
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "Multiple energy windows found\n",
-      "Returned projections have dimensions (N_energywindows Ltheta Lr Lz)\n"
-     ]
-    }
-   ],
+   "outputs": [],
    "source": [
     "scatter = dicom.get_scatter_from_TEW(file_NM, index_peak=3, index_lower=2, index_upper=4)"
    ]
@@ -259,7 +250,7 @@
     {
      "data": {
       "text/plain": [
-       "<matplotlib.colorbar.Colorbar at 0x7f8619fc8df0>"
+       "<matplotlib.colorbar.Colorbar at 0x7f8c8465c670>"
       ]
      },
      "execution_count": 10,
@@ -331,7 +322,7 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "<pytomography.metadata.SPECT.spect_metadata.SPECTPSFMeta object at 0x7f8619f58d00>\n"
+      "<pytomography.metadata.SPECT.spect_metadata.SPECTPSFMeta object at 0x7f8c845d7130>\n"
      ]
     }
    ],
@@ -425,7 +416,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "reconstruction_algorithm = OSEMOSL(\n",
+    "reconstruction_algorithm = OSEM(\n",
     "    image = photopeak,\n",
     "    system_matrix = system_matrix,\n",
     "    scatter=scatter)"
@@ -541,14 +532,6 @@
     "plt.axis('off')\n",
     "plt.colorbar()\n",
     "plt.show()"
-   ]
-  },
-  {
-   "attachments": {},
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "Careful observation of the top bright lobe shows that the reconstruction obtained by using the vendors attenuation map gives a reconstruction more consistent with the vendor than that using seperate CT slices."
    ]
   },
   {

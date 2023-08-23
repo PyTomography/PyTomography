@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>pytomography.transforms &#8212; PyTomography 0.9.3 documentation</title>
+    <title>pytomography.transforms &#8212; PyTomography 1.0.0 documentation</title>
   
   
   
@@ -35,7 +35,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js?v=f05b8887"></script>
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js?v=367f7090"></script>
     <script src="../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -131,13 +131,6 @@
   </p>
   <ul class="bd-navbar-elements navbar-nav">
     
-                    <li class="nav-item">
-                      <a class="nav-link nav-internal" href="../../../notebooks/conventions.html">
-                        Manual
-                      </a>
-                    </li>
-                
-
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="../../../usage.html">
                         Tutorials
@@ -243,13 +236,6 @@ document.write(`
   <ul class="bd-navbar-elements navbar-nav">
     
                     <li class="nav-item">
-                      <a class="nav-link nav-internal" href="../../../notebooks/conventions.html">
-                        Manual
-                      </a>
-                    </li>
-                
-
-                    <li class="nav-item">
                       <a class="nav-link nav-internal" href="../../../usage.html">
                         Tutorials
                       </a>
@@ -306,6 +292,7 @@ document.write(`
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../algorithms/fbp/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.fbp</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../algorithms/osem/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.osem</span></code></a></li>
 </ul>
 </li>
@@ -358,7 +345,7 @@ document.write(`
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-14"><i class="fa-solid fa-chevron-down"></i></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="SPECT/atteunation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.atteunation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="SPECT/attenuation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.attenuation</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="SPECT/cutoff/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.cutoff</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="SPECT/psf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.psf</span></code></a></li>
 </ul>
@@ -367,6 +354,7 @@ document.write(`
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-15"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../utils/fourier_filters/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.fourier_filters</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../utils/misc/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.misc</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../utils/nist_data/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.nist_data</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../utils/scatter/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.scatter</span></code></a></li>
@@ -429,7 +417,7 @@ document.write(`
                   
   <section id="module-pytomography.transforms">
 <span id="pytomography-transforms"></span><h1><a class="reference internal" href="#module-pytomography.transforms" title="pytomography.transforms"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms</span></code></a><a class="headerlink" href="#module-pytomography.transforms" title="Permalink to this heading">#</a></h1>
-<p>This module contains transforms; operators that map within the same vector space; such operators are used to build the system matrix. For example, the <code class="docutils literal notranslate"><span class="pre">SPECTAttenuationTransform</span></code> is an operator <span class="math notranslate nohighlight">\(A:\mathbb{U} \to \mathbb{U}\)</span> which adjusts each voxel in an image based on the probability of it being attenuated before it reaches a detector at the <span class="math notranslate nohighlight">\(+x\)</span> axis. As another example, the <code class="docutils literal notranslate"><span class="pre">CutOffTransform</span></code> is an operator <span class="math notranslate nohighlight">\(B:\mathbb{V} \to \mathbb{V}\)</span> which sets all pixels in image space equal to zero which exist beyond the detector boundaries. Since operators are often used in reconstruction algorithms, their transpose also must be implemented</p>
+<p>This module contains transform operations used to build the system matrix. Currently, the PET transforms only support 2D PET.</p>
 <section id="subpackages">
 <h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this heading">#</a></h2>
 <div class="toctree-wrapper compound">
@@ -440,7 +428,7 @@ document.write(`
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT</span></code></a><ul>
-<li class="toctree-l2"><a class="reference internal" href="SPECT/atteunation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.atteunation</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="SPECT/attenuation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.attenuation</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="SPECT/cutoff/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.cutoff</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="SPECT/psf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.psf</span></code></a></li>
 </ul>
@@ -466,7 +454,7 @@ document.write(`
 <td><p>The parent class for all transforms used in reconstruction (obj2obj, im2im, obj2im). Subclasses must implement the <code class="docutils literal notranslate"><span class="pre">__call__</span></code> method.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.transforms.SPECTAttenuationTransform" title="pytomography.transforms.SPECTAttenuationTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SPECTAttenuationTransform</span></code></a></p></td>
-<td><p>obj2obj transform used to model the effects of attenuation in SPECT.</p></td>
+<td><p>obj2obj transform used to model the effects of attenuation in SPECT. This transform accepts either an <code class="docutils literal notranslate"><span class="pre">attenuation_map</span></code> (which must be aligned with the SPECT projection data) or a <code class="docutils literal notranslate"><span class="pre">filepath</span></code> consisting of folder containing CT DICOM files all pertaining to the same scan</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.transforms.SPECTPSFTransform" title="pytomography.transforms.SPECTPSFTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SPECTPSFTransform</span></code></a></p></td>
 <td><p>obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width <span class="math notranslate nohighlight">\(\sigma\)</span> dependent on the distance of the point to the detector; that information is specified in the <code class="docutils literal notranslate"><span class="pre">SPECTPSFMeta</span></code> parameter.</p></td>
@@ -534,14 +522,14 @@ document.write(`
 
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomography.transforms.SPECTAttenuationTransform">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.transforms.</span></span><span class="sig-name descname"><span class="pre">SPECTAttenuationTransform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attenuation_map</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filepath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/transforms/SPECT/atteunation.html#SPECTAttenuationTransform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECTAttenuationTransform" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.transforms.</span></span><span class="sig-name descname"><span class="pre">SPECTAttenuationTransform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attenuation_map</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filepath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/transforms/SPECT/attenuation.html#SPECTAttenuationTransform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECTAttenuationTransform" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pytomography.transforms.Transform" title="pytomography.transforms.Transform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pytomography.transforms.Transform</span></code></a></p>
-<p>obj2obj transform used to model the effects of attenuation in SPECT.</p>
+<p>obj2obj transform used to model the effects of attenuation in SPECT. This transform accepts either an <code class="docutils literal notranslate"><span class="pre">attenuation_map</span></code> (which must be aligned with the SPECT projection data) or a <code class="docutils literal notranslate"><span class="pre">filepath</span></code> consisting of folder containing CT DICOM files all pertaining to the same scan</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>attenuation_map</strong> (<em>torch.tensor</em>) – Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in <span class="math notranslate nohighlight">\({\text{cm}^{-1}}\)</span> at the photon energy corresponding to the particular scan</p></li>
-<li><p><strong>filepath</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>) – FILL IN</p></li>
+<li><p><strong>filepath</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>) – Folder location of CT scan; all .dcm files must correspond to different slices of the same scan.</p></li>
 </ul>
 </dd>
 </dl>
@@ -633,8 +621,8 @@ document.write(`
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pytomography.transforms.SPECTPSFTransform.compute_kernel_size">
-<span class="sig-name descname"><span class="pre">compute_kernel_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">radius</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.SPECTPSFTransform.compute_kernel_size" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="pytomography.transforms.SPECTPSFTransform._compute_kernel_size">
+<span class="sig-name descname"><span class="pre">_compute_kernel_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">radius</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.SPECTPSFTransform._compute_kernel_size" title="Permalink to this definition">#</a></dt>
 <dd><p>Function used to compute the kernel size used for PSF blurring. In particular, uses the <code class="docutils literal notranslate"><span class="pre">min_sigmas</span></code> attribute of <code class="docutils literal notranslate"><span class="pre">SPECTPSFMeta</span></code> to determine what the kernel size should be such that the kernel encompasses at least <code class="docutils literal notranslate"><span class="pre">min_sigmas</span></code> at all points in the object.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -647,8 +635,8 @@ document.write(`
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pytomography.transforms.SPECTPSFTransform.get_sigma">
-<span class="sig-name descname"><span class="pre">get_sigma</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">radius</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.SPECTPSFTransform.get_sigma" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="pytomography.transforms.SPECTPSFTransform._get_sigma">
+<span class="sig-name descname"><span class="pre">_get_sigma</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">radius</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.SPECTPSFTransform._get_sigma" title="Permalink to this definition">#</a></dt>
 <dd><p>Uses PSF Meta data information to get blurring <span class="math notranslate nohighlight">\(\sigma\)</span> as a function of distance from detector.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -664,9 +652,24 @@ document.write(`
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pytomography.transforms.SPECTPSFTransform.apply_psf">
-<span class="sig-name descname"><span class="pre">apply_psf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ang_idx</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.SPECTPSFTransform.apply_psf" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dt class="sig sig-object py" id="pytomography.transforms.SPECTPSFTransform._apply_psf">
+<span class="sig-name descname"><span class="pre">_apply_psf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ang_idx</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.SPECTPSFTransform._apply_psf" title="Permalink to this definition">#</a></dt>
+<dd><p>Applies PSF modeling to an object with corresponding angle indices</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>object</strong> (<em>torch.tensor</em>) – Tensor of shape <code class="docutils literal notranslate"><span class="pre">[batch_size,</span> <span class="pre">Lx,</span> <span class="pre">Ly,</span> <span class="pre">Lz]</span></code> corresponding to object rotated at different angles</p></li>
+<li><p><strong>ang_idx</strong> (<em>Sequence</em><em>[</em><em>int</em><em>]</em>) – List of length <code class="docutils literal notranslate"><span class="pre">batch_size</span></code> corresponding to angle of each object in the batch</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Object with PSF modeling applied</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.tensor</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.transforms.SPECTPSFTransform.forward">
@@ -953,9 +956,9 @@ norm_constant (torch.tensor, optional): A tensor used to normalize the output du
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECTPSFTransform"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECTPSFTransform.configure"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.configure()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECTPSFTransform.compute_kernel_size"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.compute_kernel_size()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECTPSFTransform.get_sigma"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.get_sigma()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECTPSFTransform.apply_psf"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.apply_psf()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECTPSFTransform._compute_kernel_size"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform._compute_kernel_size()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECTPSFTransform._get_sigma"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform._get_sigma()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECTPSFTransform._apply_psf"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform._apply_psf()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECTPSFTransform.forward"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.forward()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECTPSFTransform.backward"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.backward()</span></code></a></li>
 </ul>
@@ -992,9 +995,9 @@ norm_constant (torch.tensor, optional): A tensor used to normalize the output du
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECTPSFTransform">SPECTPSFTransform</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECTPSFTransform.configure">configure</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECTPSFTransform.compute_kernel_size">compute_kernel_size</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECTPSFTransform.get_sigma">get_sigma</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECTPSFTransform.apply_psf">apply_psf</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECTPSFTransform._compute_kernel_size">_compute_kernel_size</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECTPSFTransform._get_sigma">_get_sigma</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECTPSFTransform._apply_psf">_apply_psf</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECTPSFTransform.forward">forward</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECTPSFTransform.backward">backward</a></li>
 </ul>

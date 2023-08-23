@@ -167,7 +167,7 @@ def combine_scatter_data_TEW(
         scatter+= weight * scatter_i
     return scatter   
 
-def get_atteuation_map(headerfile: str):
+def get_attenuation_map(headerfile: str):
     """Opens attenuation data from SIMIND output
 
     Args:

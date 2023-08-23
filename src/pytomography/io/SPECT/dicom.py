@@ -208,11 +208,10 @@ def get_psfmeta_from_scanner_params(
     energy_keV: float,
     min_sigmas: float = 3
     ) -> SPECTPSFMeta:
-    """Gets PSF metadata from SPECT camera/collimator parameters. Performs linear interpolation to find linear attenuation coefficient for lead collimators for energy values within the range 100keV - 600keV.
+    """Obtains SPECT PSF metadata given a unique collimator code and photopeak energy of radionuclide. For more information on collimator codes, see the "external data" section of the readthedocs page.
 
     Args:
-        camera_model (str): Name of SPECT camera. 
-        collimator_name (str): Name of collimator used.
+        collimator_name (str): Code for the collimator used.
         energy_keV (float): Energy of the photopeak
         min_sigmas (float): Minimum size of the blurring kernel used. Fixes the convolutional kernel size so that all locations have at least ``min_sigmas`` in dimensions (some will be greater)
 
@@ -241,7 +240,23 @@ def get_psfmeta_from_scanner_params(
     
     return SPECTPSFMeta((collimator_slope, collimator_intercept), min_sigmas=min_sigmas)
 
-def CT_to_mumap(CT, files_CT, file_NM, index_peak=0):
+def CT_to_mumap(
+    CT: torch.tensor,
+    files_CT: Sequence[str],
+    file_NM: str,
+    index_peak=0
+    ) -> torch.tensor:
+    """Converts a CT image to a mu-map given SPECT projection data. The CT data must be aligned with the projection data already; this is a helper function for ``get_attenuation_map_from_CT_slices``.
+
+    Args:
+        CT (torch.tensor): CT object in units of HU
+        files_CT (Sequence[str]): Filepaths of all CT slices
+        file_NM (str): Filepath of SPECT projectio ndata
+        index_peak (int, optional): Index of EnergyInformationSequence corresponding to the photopeak. Defaults to 0.
+
+    Returns:
+        torch.tensor: Attenuation map in units of 1/cm
+    """
     ds_NM = pydicom.read_file(file_NM)
     window_upper = ds_NM.EnergyWindowInformationSequence[index_peak].EnergyWindowRangeSequence[0].EnergyWindowUpperLimit
     window_lower = ds_NM.EnergyWindowInformationSequence[index_peak].EnergyWindowRangeSequence[0].EnergyWindowLowerLimit
@@ -277,8 +292,8 @@ def get_attenuation_map_from_CT_slices(
     
     ds_NM = pydicom.read_file(file_NM)
     # Align with SPECT:
-    M_CT = get_affine_matrix(files_CT)
-    M_NM = get_affine_matrix(file_NM)
+    M_CT = _get_affine_CT(files_CT)
+    M_NM = _get_affine_spect_projections(file_NM)
     # Resample CT and convert to mu at 208keV and save
     M = npl.inv(M_CT) @ M_NM
     # When doing affine transform, fill outside with point below -1000HU so it automatically gets converted to mu=0 after bilinear transform
@@ -290,17 +305,6 @@ def get_attenuation_map_from_CT_slices(
         CT= CT_to_mumap(CT_HU, files_CT, file_NM, index_peak)
     CT = torch.tensor(CT[:,:,::-1].copy()).unsqueeze(dim=0).to(pytomography.dtype).to(pytomography.device)
     return CT
-
-def get_affine_matrix(filename: Sequence[str] | str) -> np.array:
-    if type(filename) is list:
-         ds_test = pydicom.read_file(filename[0])
-         if ds_test.Modality=='CT':
-             return _get_affine_CT(filename)
-    else:
-        ds = pydicom.read_file(filename)
-        if ds.Modality=='NM':
-            return _get_affine_spect_projections(filename)
-    
 
 def _get_affine_spect_projections(filename:str) -> np.array:
     """Computes an affine matrix corresponding the coordinate system of a SPECT DICOM file of projections.

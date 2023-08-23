@@ -23,7 +23,7 @@ Classes
 
    Bases: :py:obj:`pytomography.metadata.metadata.ObjectMeta`
 
-   Metadata for object space
+   Metadata for object space in SPECT imaging
 
    :param dr: List of 3 elements specifying voxel dimensions in cm.
    :type dr: list[float]
@@ -41,14 +41,14 @@ Classes
 
    Bases: :py:obj:`pytomography.metadata.metadata.ImageMeta`
 
-   Metadata for image space
+   Metadata for image space in SPECT imaging
 
-   :param object_meta: Corresponding object space metadata
-   :type object_meta: ObjectMeta
+   :param projection_shape: 2D shape of the projections
+   :type projection_shape: Sequence
    :param angles: Specifies the detector angles for all projections in image space
-   :type angles: list
+   :type angles: Sequence
    :param radii: Specifies the radial distance of the detector corresponding to each angle in `angles`; only required in certain cases (i.e. PSF correction). Defaults to None.
-   :type radii: list, optional
+   :type radii: Sequence, optional
 
    .. py:method:: compute_padded_shape()
 
@@ -59,7 +59,7 @@ Classes
 
 .. py:class:: SPECTPSFMeta(sigma_fit_params, sigma_fit = lambda r, a, b: a * r + b, kernel_dimensions = '2D', min_sigmas = 3)
 
-   Metadata for PSF correction. PSF blurring is implemented using Gaussian blurring with :math:`\sigma(r) = f(r,p)` where :math:`r` is the distance from the detector, :math`\sigma` is the width of the Gaussian blurring at that location, and :math:`f(r,p)` is the `sigma_fit` function which takes in additional parameters :math:`p` called `sigma_fit_params`. (By default, `sigma_fit` is a linear curve). As such, :math:`\frac{1}{\sigma\sqrt{2\pi}}e^{-r^2/(2\sigma(r)^2)}` is the point spread function. Blurring is implemented using convolutions with a specified kernel size.
+   Metadata for PSF correction. PSF blurring is implemented using Gaussian blurring with :math:`\sigma(r) = f(r,p)` where :math:`r` is the distance from the detector, :math:`\sigma` is the width of the Gaussian blurring at that location, and :math:`f(r,p)` is the ``sigma_fit`` function which takes in additional parameters :math:`p` called ``sigma_fit_params``. (By default, ``sigma_fit`` is a linear curve). As such, :math:`\frac{1}{\sigma\sqrt{2\pi}}e^{-r^2/(2\sigma(r)^2)}` is the point spread function. Blurring is implemented using convolutions with a specified kernel size.
 
    :param sigma_fit_params: Parameters to the sigma fit function
    :type sigma_fit_params: float

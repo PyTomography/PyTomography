@@ -11,7 +11,7 @@ def open_CT_file(
     """Given a list of seperate DICOM files, opens them up and stacks them together into a single CT image. 
 
     Args:
-        files_CT (Sequence[str]): List of DICOM files corresponding to a particular scan
+        files_CT (Sequence[str]): List of CT DICOM filepaths corresponding to different z slices of the same scan.
 
     Returns:
         np.array: CT scan in units of Hounsfield Units at the effective CT energy.
@@ -27,6 +27,14 @@ def open_CT_file(
     return CT
 
 def compute_max_slice_loc_CT(files_CT: Sequence[str]) -> float:
+    """Obtains the maximum z-location from a list of CT DICOM files
+
+    Args:
+        files_CT (Sequence[str]): List of CT DICOM filepaths corresponding to different z slices of the same scan.
+
+    Returns:
+        float: Maximum z location
+    """
     slice_locs = []
     for file in files_CT:
         ds = pydicom.read_file(file)

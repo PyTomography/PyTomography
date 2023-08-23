@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.io.SPECT.dicom &#8212; PyTomography 0.9.3 documentation</title>
+    <title>pytomography.io.SPECT.dicom &#8212; PyTomography 1.0.0 documentation</title>
   
   
   
@@ -34,7 +34,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=f05b8887"></script>
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=367f7090"></script>
     <script src="../../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -128,13 +128,6 @@
   </p>
   <ul class="bd-navbar-elements navbar-nav">
     
-                    <li class="nav-item">
-                      <a class="nav-link nav-internal" href="../../../../notebooks/conventions.html">
-                        Manual
-                      </a>
-                    </li>
-                
-
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="../../../../usage.html">
                         Tutorials
@@ -235,13 +228,6 @@ document.write(`
   </p>
   <ul class="bd-navbar-elements navbar-nav">
     
-                    <li class="nav-item">
-                      <a class="nav-link nav-internal" href="../../../../notebooks/conventions.html">
-                        Manual
-                      </a>
-                    </li>
-                
-
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="../../../../usage.html">
                         Tutorials
@@ -559,11 +545,10 @@ document.write(`
     <span class="n">energy_keV</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">min_sigmas</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">3</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SPECTPSFMeta</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets PSF metadata from SPECT camera/collimator parameters. Performs linear interpolation to find linear attenuation coefficient for lead collimators for energy values within the range 100keV - 600keV.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtains SPECT PSF metadata given a unique collimator code and photopeak energy of radionuclide. For more information on collimator codes, see the &quot;external data&quot; section of the readthedocs page.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        camera_model (str): Name of SPECT camera. </span>
-<span class="sd">        collimator_name (str): Name of collimator used.</span>
+<span class="sd">        collimator_name (str): Code for the collimator used.</span>
 <span class="sd">        energy_keV (float): Energy of the photopeak</span>
 <span class="sd">        min_sigmas (float): Minimum size of the blurring kernel used. Fixes the convolutional kernel size so that all locations have at least ``min_sigmas`` in dimensions (some will be greater)</span>
 
@@ -592,7 +577,23 @@ document.write(`
     
     <span class="k">return</span> <span class="n">SPECTPSFMeta</span><span class="p">((</span><span class="n">collimator_slope</span><span class="p">,</span> <span class="n">collimator_intercept</span><span class="p">),</span> <span class="n">min_sigmas</span><span class="o">=</span><span class="n">min_sigmas</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="CT_to_mumap"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/index.html#pytomography.io.SPECT.dicom.CT_to_mumap">[docs]</a><span class="k">def</span> <span class="nf">CT_to_mumap</span><span class="p">(</span><span class="n">CT</span><span class="p">,</span> <span class="n">files_CT</span><span class="p">,</span> <span class="n">file_NM</span><span class="p">,</span> <span class="n">index_peak</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="CT_to_mumap"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/index.html#pytomography.io.SPECT.dicom.CT_to_mumap">[docs]</a><span class="k">def</span> <span class="nf">CT_to_mumap</span><span class="p">(</span>
+    <span class="n">CT</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span>
+    <span class="n">files_CT</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">file_NM</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">index_peak</span><span class="o">=</span><span class="mi">0</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts a CT image to a mu-map given SPECT projection data. The CT data must be aligned with the projection data already; this is a helper function for ``get_attenuation_map_from_CT_slices``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        CT (torch.tensor): CT object in units of HU</span>
+<span class="sd">        files_CT (Sequence[str]): Filepaths of all CT slices</span>
+<span class="sd">        file_NM (str): Filepath of SPECT projectio ndata</span>
+<span class="sd">        index_peak (int, optional): Index of EnergyInformationSequence corresponding to the photopeak. Defaults to 0.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.tensor: Attenuation map in units of 1/cm</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ds_NM</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file_NM</span><span class="p">)</span>
     <span class="n">window_upper</span> <span class="o">=</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">EnergyWindowInformationSequence</span><span class="p">[</span><span class="n">index_peak</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowRangeSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowUpperLimit</span>
     <span class="n">window_lower</span> <span class="o">=</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">EnergyWindowInformationSequence</span><span class="p">[</span><span class="n">index_peak</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowRangeSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowLowerLimit</span>
@@ -628,8 +629,8 @@ document.write(`
     
     <span class="n">ds_NM</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file_NM</span><span class="p">)</span>
     <span class="c1"># Align with SPECT:</span>
-    <span class="n">M_CT</span> <span class="o">=</span> <span class="n">get_affine_matrix</span><span class="p">(</span><span class="n">files_CT</span><span class="p">)</span>
-    <span class="n">M_NM</span> <span class="o">=</span> <span class="n">get_affine_matrix</span><span class="p">(</span><span class="n">file_NM</span><span class="p">)</span>
+    <span class="n">M_CT</span> <span class="o">=</span> <span class="n">_get_affine_CT</span><span class="p">(</span><span class="n">files_CT</span><span class="p">)</span>
+    <span class="n">M_NM</span> <span class="o">=</span> <span class="n">_get_affine_spect_projections</span><span class="p">(</span><span class="n">file_NM</span><span class="p">)</span>
     <span class="c1"># Resample CT and convert to mu at 208keV and save</span>
     <span class="n">M</span> <span class="o">=</span> <span class="n">npl</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">M_CT</span><span class="p">)</span> <span class="o">@</span> <span class="n">M_NM</span>
     <span class="c1"># When doing affine transform, fill outside with point below -1000HU so it automatically gets converted to mu=0 after bilinear transform</span>
@@ -641,17 +642,6 @@ document.write(`
         <span class="n">CT</span><span class="o">=</span> <span class="n">CT_to_mumap</span><span class="p">(</span><span class="n">CT_HU</span><span class="p">,</span> <span class="n">files_CT</span><span class="p">,</span> <span class="n">file_NM</span><span class="p">,</span> <span class="n">index_peak</span><span class="p">)</span>
     <span class="n">CT</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">CT</span><span class="p">[:,:,::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">CT</span></div>
-
-<div class="viewcode-block" id="get_affine_matrix"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/index.html#pytomography.io.SPECT.dicom.get_affine_matrix">[docs]</a><span class="k">def</span> <span class="nf">get_affine_matrix</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
-    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
-         <span class="n">ds_test</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">filename</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-         <span class="k">if</span> <span class="n">ds_test</span><span class="o">.</span><span class="n">Modality</span><span class="o">==</span><span class="s1">&#39;CT&#39;</span><span class="p">:</span>
-             <span class="k">return</span> <span class="n">_get_affine_CT</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">ds</span><span class="o">.</span><span class="n">Modality</span><span class="o">==</span><span class="s1">&#39;NM&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">_get_affine_spect_projections</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span></div>
-    
 
 <div class="viewcode-block" id="_get_affine_spect_projections"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html#pytomography.io.SPECT.dicom._get_affine_spect_projections">[docs]</a><span class="k">def</span> <span class="nf">_get_affine_spect_projections</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span><span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes an affine matrix corresponding the coordinate system of a SPECT DICOM file of projections.</span>

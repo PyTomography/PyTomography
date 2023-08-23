@@ -1,0 +1,4 @@
+<map id="inheritancea415c9f5c7" name="inheritancea415c9f5c7">
+<area shape="rect" id="node1" href="../../metadata/index.html#pytomography.metadata.metadata.ImageMeta" target="_top" title="Abstract parent class for all different types of Image Space Metadata. Implementation and required parameters will differ significantly between different imaging modalities." alt="" coords="5,5,100,31"/>
+<area shape="rect" id="node2" href="#pytomography.metadata.SPECT.spect_metadata.SPECTImageMeta" target="_top" title="Metadata for image space" alt="" coords="148,5,283,31"/>
+</map>

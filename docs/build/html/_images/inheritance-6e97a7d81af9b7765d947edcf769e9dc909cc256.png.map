@@ -1,0 +1,4 @@
+<map id="inheritance80921daf70" name="inheritance80921daf70">
+<area shape="rect" id="node1" href="#pytomography.priors.nearest_neighbour.NeighbourWeight" target="_top" title="Abstract class for assigning weight :math:`w_{r,s}` in nearest neighbour priors." alt="" coords="5,5,136,31"/>
+<area shape="rect" id="node2" href="#pytomography.priors.nearest_neighbour.TopNAnatomyNeighbourWeight" target="_top" title="Implementation of ``NeighbourWeight`` where inverse Euclidean distance and anatomical similarity is used. In this case, only the top N most similar neighbours are used as weight" alt="" coords="184,5,403,31"/>
+</map>

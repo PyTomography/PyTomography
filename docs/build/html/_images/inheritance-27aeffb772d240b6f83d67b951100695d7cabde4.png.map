@@ -1,0 +1,4 @@
+<map id="inheritanced35662c1d6" name="inheritanced35662c1d6">
+<area shape="rect" id="node1" href="PET/psf/index.html#pytomography.transforms.PET.psf.PETPSFTransform" target="_top" title="im2im transform used to model the effects of PSF blurring in PET. The smoothing kernel is assumed to be independent of :math:`\theta` and :math:`z`, but is dependent on :math:`r`. " alt="" coords="139,5,271,31"/>
+<area shape="rect" id="node2" href="transform/index.html#pytomography.transforms.transform.Transform" target="_top" title="The parent class for all transforms used in reconstruction (obj2obj, im2im, obj2im). Subclasses must implement the ``__call__`` method." alt="" coords="5,5,91,31"/>
+</map>

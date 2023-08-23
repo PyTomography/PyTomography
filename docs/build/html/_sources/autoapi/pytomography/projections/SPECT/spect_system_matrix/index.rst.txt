@@ -68,7 +68,7 @@ Classes
 
    Bases: :py:obj:`SPECTSystemMatrix`
 
-   Update this
+   SPECT system matrix where the object space is a vector of length :math:`N` consisting of the mean activities for each masks in ``masks``. This system matrix can be used in reconstruction algorithms to obtain maximum liklihood estimations for the average value of :math:`f` inside each of the masks.
 
    :param obj2obj_transforms: Sequence of object mappings that occur before forward projection.
    :type obj2obj_transforms: Sequence[Transform]

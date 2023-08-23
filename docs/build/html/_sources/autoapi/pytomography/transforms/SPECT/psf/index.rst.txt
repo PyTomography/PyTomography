@@ -74,7 +74,7 @@ Functions
    :param kernel_size: Size of the kernel used in each layer. Needs to be large enough to cover most of Gaussian
    :type kernel_size: int
 
-   :returns: Convolutional neural network layer used to apply blurring to objects of shape [batch_size, Lx, Ly, Lz]
+   :returns: Convolutional neural network layer used to apply blurring to objects of shape [Lx, L1, L2] where Lx is treated as a batch size, L1 as the channel (or group index) and L2 is the axis being blurred over
    :rtype: torch.nn.Conv2d
 
 
@@ -97,7 +97,7 @@ Functions
       :type image_meta: SPECTImageMeta
 
 
-   .. py:method:: compute_kernel_size(radius, axis)
+   .. py:method:: _compute_kernel_size(radius, axis)
 
       Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``SPECTPSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object.
 
@@ -105,7 +105,7 @@ Functions
       :rtype: int
 
 
-   .. py:method:: get_sigma(radius)
+   .. py:method:: _get_sigma(radius)
 
       Uses PSF Meta data information to get blurring :math:`\sigma` as a function of distance from detector.
 
@@ -116,7 +116,17 @@ Functions
       :rtype: array
 
 
-   .. py:method:: apply_psf(object, ang_idx)
+   .. py:method:: _apply_psf(object, ang_idx)
+
+      Applies PSF modeling to an object with corresponding angle indices
+
+      :param object: Tensor of shape ``[batch_size, Lx, Ly, Lz]`` corresponding to object rotated at different angles
+      :type object: torch.tensor
+      :param ang_idx: List of length ``batch_size`` corresponding to angle of each object in the batch
+      :type ang_idx: Sequence[int]
+
+      :returns: Object with PSF modeling applied
+      :rtype: torch.tensor
 
 
    .. py:method:: forward(object_i, ang_idx)

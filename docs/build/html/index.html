@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>PyTomography &#8212; PyTomography 0.9.3 documentation</title>
+    <title>PyTomography &#8212; PyTomography 1.0.0 documentation</title>
   
   
   
@@ -35,14 +35,14 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=f05b8887"></script>
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=367f7090"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'index';</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Manual" href="notebooks/conventions.html" />
+    <link rel="next" title="Tutorials" href="usage.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   </head>
@@ -130,13 +130,6 @@
   </p>
   <ul class="bd-navbar-elements navbar-nav">
     
-                    <li class="nav-item">
-                      <a class="nav-link nav-internal" href="notebooks/conventions.html">
-                        Manual
-                      </a>
-                    </li>
-                
-
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="usage.html">
                         Tutorials
@@ -242,13 +235,6 @@ document.write(`
   <ul class="bd-navbar-elements navbar-nav">
     
                     <li class="nav-item">
-                      <a class="nav-link nav-internal" href="notebooks/conventions.html">
-                        Manual
-                      </a>
-                    </li>
-                
-
-                    <li class="nav-item">
                       <a class="nav-link nav-internal" href="usage.html">
                         Tutorials
                       </a>
@@ -348,6 +334,11 @@ PyTomography is a python library for medical image reconstruction. It uses the f
 <section id="reconstruction-algorithms">
 <h2>Reconstruction Algorithms<a class="headerlink" href="#reconstruction-algorithms" title="Permalink to this heading">#</a></h2>
 <ul class="simple">
+<li><p>Filtered Back Projection (FBP)</p>
+<ul>
+<li><p>Different filtering options available</p></li>
+</ul>
+</li>
 <li><p>Maximum Liklihood Expectation Maxmimum (MLEM) and Ordered Subset Expectation Maximum (OSEM)</p>
 <ul>
 <li><p>One-Step-Late and Block-Sequential-Regularization techniques to encorporate Bayesian priors</p></li>
@@ -382,13 +373,12 @@ PyTomography is a python library for medical image reconstruction. It uses the f
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">pytomography</span>
 </pre></div>
 </div>
-<p>Be sure to check out <a class="reference internal" href="notebooks/conventions.html"><span class="doc">Manual</span></a> and  <a class="reference internal" href="usage.html"><span class="doc">Tutorials</span></a> for some simple examples. If you wish to make a contribution, please read the <a class="reference internal" href="developers_guide.html"><span class="doc">Developer’s Guide</span></a>.</p>
+<p>Be sure to check out  <a class="reference internal" href="usage.html"><span class="doc">Tutorials</span></a> for some simple examples. If you wish to make a contribution, please read the <a class="reference internal" href="developers_guide.html"><span class="doc">Developer’s Guide</span></a>.</p>
 </section>
 <section id="contents">
 <h2>Contents<a class="headerlink" href="#contents" title="Permalink to this heading">#</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="notebooks/conventions.html">Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Tutorials</a></li>
 <li class="toctree-l1"><a class="reference internal" href="developers_guide.html">Developer’s Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="external_data.html">External Data</a></li>
@@ -410,11 +400,11 @@ PyTomography is a python library for medical image reconstruction. It uses the f
     <div class="footer-article-item"><!-- Previous / next buttons -->
 <div class="prev-next-area">
     <a class="right-next"
-       href="notebooks/conventions.html"
+       href="usage.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Manual</p>
+        <p class="prev-next-title">Tutorials</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>

@@ -124,7 +124,7 @@ class SPECTSystemMatrix(SystemMatrix):
         
         
 class SPECTSystemMatrixMaskedSegments(SPECTSystemMatrix):
-    r"""Update this
+    r"""SPECT system matrix where the object space is a vector of length :math:`N` consisting of the mean activities for each masks in ``masks``. This system matrix can be used in reconstruction algorithms to obtain maximum liklihood estimations for the average value of :math:`f` inside each of the masks.
     
     Args:
             obj2obj_transforms (Sequence[Transform]): Sequence of object mappings that occur before forward projection.

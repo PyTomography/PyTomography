@@ -1,0 +1,4 @@
+<map id="inheritance47b5a2f9ea" name="inheritance47b5a2f9ea">
+<area shape="rect" id="node1" href="SPECT/atteunation/index.html#pytomography.transforms.SPECT.atteunation.SPECTAttenuationTransform" target="_top" title="obj2obj transform used to model the effects of attenuation in SPECT." alt="" coords="139,5,339,31"/>
+<area shape="rect" id="node2" href="transform/index.html#pytomography.transforms.transform.Transform" target="_top" title="The parent class for all transforms used in reconstruction (obj2obj, im2im, obj2im). Subclasses must implement the ``__call__`` method." alt="" coords="5,5,91,31"/>
+</map>

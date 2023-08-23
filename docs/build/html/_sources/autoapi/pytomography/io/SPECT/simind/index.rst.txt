@@ -19,7 +19,7 @@ Functions
    pytomography.io.SPECT.simind.get_scatter_from_TEW
    pytomography.io.SPECT.simind.combine_projection_data
    pytomography.io.SPECT.simind.combine_scatter_data_TEW
-   pytomography.io.SPECT.simind.get_atteuation_map
+   pytomography.io.SPECT.simind.get_attenuation_map
    pytomography.io.SPECT.simind.get_psfmeta_from_header
 
 
@@ -119,7 +119,7 @@ Attributes
    :rtype: _type_
 
 
-.. py:function:: get_atteuation_map(headerfile)
+.. py:function:: get_attenuation_map(headerfile)
 
    Opens attenuation data from SIMIND output
 

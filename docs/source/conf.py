@@ -43,7 +43,7 @@ extensions = [
 ]
 
 # Where to autogen API
-autoapi_dirs = ['../../src']
+autoapi_dirs = ['../../src/pytomography']
 autoapi_options = [ 'members', 'undoc-members', 'private-members', 'show-inheritance', 'show-module-summary', 'special-members', 'imported-members', 'recursive']
 autoapi_template_dir = "_templates/autoapi"
 

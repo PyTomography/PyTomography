@@ -6,7 +6,7 @@ import torch
 from..metadata import ObjectMeta, ImageMeta
 
 class SPECTObjectMeta(ObjectMeta):
-    """Metadata for object space
+    """Metadata for object space in SPECT imaging
 
     Args:
         dr (list[float]): List of 3 elements specifying voxel dimensions in cm.
@@ -33,16 +33,16 @@ class SPECTObjectMeta(ObjectMeta):
 
 
 class SPECTImageMeta(ImageMeta):
-    """Metadata for image space
+    """Metadata for image space in SPECT imaging
 
     Args:
-        object_meta (ObjectMeta): Corresponding object space metadata
-        angles (list): Specifies the detector angles for all projections in image space
-        radii (list, optional): Specifies the radial distance of the detector corresponding to each angle in `angles`; only required in certain cases (i.e. PSF correction). Defaults to None.
+        projection_shape (Sequence): 2D shape of the projections
+        angles (Sequence): Specifies the detector angles for all projections in image space
+        radii (Sequence, optional): Specifies the radial distance of the detector corresponding to each angle in `angles`; only required in certain cases (i.e. PSF correction). Defaults to None.
     """
     def __init__(
         self,
-        projection_shape,
+        projection_shape: Sequence,
         angles: Sequence,
         radii=None
     ) -> None:
@@ -63,7 +63,7 @@ class SPECTImageMeta(ImageMeta):
 
 
 class SPECTPSFMeta():
-    r"""Metadata for PSF correction. PSF blurring is implemented using Gaussian blurring with :math:`\sigma(r) = f(r,p)` where :math:`r` is the distance from the detector, :math`\sigma` is the width of the Gaussian blurring at that location, and :math:`f(r,p)` is the `sigma_fit` function which takes in additional parameters :math:`p` called `sigma_fit_params`. (By default, `sigma_fit` is a linear curve). As such, :math:`\frac{1}{\sigma\sqrt{2\pi}}e^{-r^2/(2\sigma(r)^2)}` is the point spread function. Blurring is implemented using convolutions with a specified kernel size. 
+    r"""Metadata for PSF correction. PSF blurring is implemented using Gaussian blurring with :math:`\sigma(r) = f(r,p)` where :math:`r` is the distance from the detector, :math:`\sigma` is the width of the Gaussian blurring at that location, and :math:`f(r,p)` is the ``sigma_fit`` function which takes in additional parameters :math:`p` called ``sigma_fit_params``. (By default, ``sigma_fit`` is a linear curve). As such, :math:`\frac{1}{\sigma\sqrt{2\pi}}e^{-r^2/(2\sigma(r)^2)}` is the point spread function. Blurring is implemented using convolutions with a specified kernel size. 
 
      Args:
         sigma_fit_params (float): Parameters to the sigma fit function

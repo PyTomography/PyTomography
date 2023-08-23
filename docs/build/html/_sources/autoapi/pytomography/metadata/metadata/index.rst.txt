@@ -18,9 +18,9 @@ Classes
 
 
 
-.. py:class:: ObjectMeta
+.. py:class:: ObjectMeta(dr, shape)
 
-   Abstract parent class for all different types of Object Space Metadata. In general, while this is fairly similar for all imaging modalities, required padding features/etc may be different for different modalities.
+   Parent class for all different types of Object Space Metadata. In general, while this is fairly similar for all imaging modalities, required padding features/etc may be different for different modalities.
 
 
    .. py:method:: __repr__()
@@ -29,9 +29,9 @@ Classes
 
 
 
-.. py:class:: ImageMeta
+.. py:class:: ImageMeta(angles)
 
-   Abstract parent class for all different types of Image Space Metadata. Implementation and required parameters will differ significantly between different imaging modalities.
+   Parent class for all different types of Image Space Metadata. Implementation and required parameters will differ significantly between different imaging modalities.
 
 
    .. py:method:: __repr__()

@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.io.CT.dicom &#8212; PyTomography 0.9.3 documentation</title>
+    <title>pytomography.io.CT.dicom &#8212; PyTomography 1.0.0 documentation</title>
   
   
   
@@ -34,7 +34,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=f05b8887"></script>
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=367f7090"></script>
     <script src="../../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -128,13 +128,6 @@
   </p>
   <ul class="bd-navbar-elements navbar-nav">
     
-                    <li class="nav-item">
-                      <a class="nav-link nav-internal" href="../../../../notebooks/conventions.html">
-                        Manual
-                      </a>
-                    </li>
-                
-
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="../../../../usage.html">
                         Tutorials
@@ -235,13 +228,6 @@ document.write(`
   </p>
   <ul class="bd-navbar-elements navbar-nav">
     
-                    <li class="nav-item">
-                      <a class="nav-link nav-internal" href="../../../../notebooks/conventions.html">
-                        Manual
-                      </a>
-                    </li>
-                
-
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="../../../../usage.html">
                         Tutorials
@@ -362,7 +348,7 @@ document.write(`
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Given a list of seperate DICOM files, opens them up and stacks them together into a single CT image. </span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        files_CT (Sequence[str]): List of DICOM files corresponding to a particular scan</span>
+<span class="sd">        files_CT (Sequence[str]): List of CT DICOM filepaths corresponding to different z slices of the same scan.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        np.array: CT scan in units of Hounsfield Units at the effective CT energy.</span>
@@ -378,6 +364,14 @@ document.write(`
     <span class="k">return</span> <span class="n">CT</span></div>
 
 <div class="viewcode-block" id="compute_max_slice_loc_CT"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/CT/index.html#pytomography.io.CT.dicom.compute_max_slice_loc_CT">[docs]</a><span class="k">def</span> <span class="nf">compute_max_slice_loc_CT</span><span class="p">(</span><span class="n">files_CT</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtains the maximum z-location from a list of CT DICOM files</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        files_CT (Sequence[str]): List of CT DICOM filepaths corresponding to different z slices of the same scan.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: Maximum z location</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">slice_locs</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files_CT</span><span class="p">:</span>
         <span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>

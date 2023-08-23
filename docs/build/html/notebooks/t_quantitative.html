@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>SPECT: Quantitative Analysis (SIMIND) &#8212; PyTomography 0.9.3 documentation</title>
+    <title>Quantitative Analysis (SIMIND) &#8212; PyTomography 1.0.0 documentation</title>
   
   
   
@@ -35,7 +35,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=f05b8887"></script>
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=367f7090"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -131,13 +131,6 @@
   </p>
   <ul class="bd-navbar-elements navbar-nav">
     
-                    <li class="nav-item">
-                      <a class="nav-link nav-internal" href="conventions.html">
-                        Manual
-                      </a>
-                    </li>
-                
-
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="../usage.html">
                         Tutorials
@@ -243,13 +236,6 @@ document.write(`
   <ul class="bd-navbar-elements navbar-nav">
     
                     <li class="nav-item">
-                      <a class="nav-link nav-internal" href="conventions.html">
-                        Manual
-                      </a>
-                    </li>
-                
-
-                    <li class="nav-item">
                       <a class="nav-link nav-internal" href="../usage.html">
                         Tutorials
                       </a>
@@ -332,7 +318,7 @@ document.write(`
         <i class="fa-solid fa-home"></i>
       </a>
     </li>
-    <li class="breadcrumb-item active" aria-current="page">SPECT: Quantitative Analysis (SIMIND)</li>
+    <li class="breadcrumb-item active" aria-current="page">Quantitative Analysis (SIMIND)</li>
   </ul>
 </nav>
 </div>
@@ -606,9 +592,9 @@ div.rendered_html tbody tr:hover {
   background: rgba(66, 165, 245, 0.2);
 }
 </style>
-<section id="SPECT:-Quantitative-Analysis-(SIMIND)">
-<h1>SPECT: Quantitative Analysis (SIMIND)<a class="headerlink" href="#SPECT:-Quantitative-Analysis-(SIMIND)" title="Permalink to this heading">#</a></h1>
-<p>In this tutorial, we’ll make use of a ground truth phantom and corresponding projection data obtained using SIMIND. We’ll use attenuation correction, PSF correction, scatter correction, and priors to compare the reconstruction of SIMIND SPECT simulation data to the corresponding ground truth phantom.</p>
+<section id="Quantitative-Analysis-(SIMIND)">
+<h1>Quantitative Analysis (SIMIND)<a class="headerlink" href="#Quantitative-Analysis-(SIMIND)" title="Permalink to this heading">#</a></h1>
+<p>In this tutorial, we’ll reconstruct SIMIND simulation data using OSEM, and use noise-bias curves to evaluate its performance as a function of iteration.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
@@ -619,22 +605,20 @@ div.rendered_html tbody tr:hover {
 <span class="kn">from</span> <span class="nn">skimage.transform</span> <span class="kn">import</span> <span class="n">resize</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">pytomography</span>
-<span class="kn">from</span> <span class="nn">pytomography.algorithms</span> <span class="kn">import</span> <span class="n">OSEMBSR</span>
+<span class="kn">from</span> <span class="nn">pytomography.algorithms</span> <span class="kn">import</span> <span class="n">OSEM</span>
 <span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">SPECTAttenuationTransform</span><span class="p">,</span> <span class="n">SPECTPSFTransform</span>
 <span class="kn">from</span> <span class="nn">pytomography.projections</span> <span class="kn">import</span> <span class="n">SPECTSystemMatrix</span>
 <span class="kn">from</span> <span class="nn">pytomography.callbacks</span> <span class="kn">import</span> <span class="n">CallBack</span>
 <span class="kn">from</span> <span class="nn">pytomography.io.SPECT</span> <span class="kn">import</span> <span class="n">simind</span>
-<span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<p>Set the device used in pytomography, and the path where you saved the files (you will need to modify path)</p>
+<p>Modify the path below to where you saved the files:</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
-<span class="n">path</span> <span class="o">=</span> <span class="s1">&#39;/disk1/pytomography_tutorial_data/simind_tutorial/&#39;</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">path</span> <span class="o">=</span> <span class="s1">&#39;/disk1/pytomography_tutorial_data/simind_tutorial/&#39;</span>
 </pre></div>
 </div>
 </div>
@@ -643,7 +627,7 @@ div.rendered_html tbody tr:hover {
 <h1>Part 1: Open Projection Data<a class="headerlink" href="#Part-1:-Open-Projection-Data" title="Permalink to this heading">#</a></h1>
 <p>Like in the first SIMIND tutorial, we’ll start by opening our projection data</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">organs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;bkg&#39;</span><span class="p">,</span> <span class="s1">&#39;liver&#39;</span><span class="p">,</span> <span class="s1">&#39;l_lung&#39;</span><span class="p">,</span> <span class="s1">&#39;r_lung&#39;</span><span class="p">,</span> <span class="s1">&#39;l_kidney&#39;</span><span class="p">,</span> <span class="s1">&#39;r_kidney&#39;</span><span class="p">,</span><span class="s1">&#39;salivary&#39;</span><span class="p">,</span> <span class="s1">&#39;bladder&#39;</span><span class="p">]</span>
@@ -660,7 +644,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <p>Now lets make them representative of a real scan where each projection is taken for 15 s, like we did in the first SIMIND tutorial</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dT</span> <span class="o">=</span> <span class="mi">15</span> <span class="c1">#s</span>
@@ -673,7 +657,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <p>And plot</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
@@ -689,12 +673,12 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.colorbar.Colorbar at 0x7fa4b1486310&gt;
+&lt;matplotlib.colorbar.Colorbar at 0x7f8cb07cbbb0&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -716,7 +700,7 @@ div.rendered_html tbody tr:hover {
 <li><p><code class="docutils literal notranslate"><span class="pre">mask_vol_dict</span></code>: A dictionary which has organs/regions as keys and the corresponding volume of the organ mask in mL. Note that this is different from <code class="docutils literal notranslate"><span class="pre">organ_vol_dict</span></code> since the <code class="docutils literal notranslate"><span class="pre">mask</span></code> only includes voxels that are completely inside the organ (see plot below)</p></li>
 </ol>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">GTfiles</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;phantom_organs&#39;</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">organ</span><span class="si">}</span><span class="s1">_act_av.bin&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">organ</span> <span class="ow">in</span> <span class="n">organs</span><span class="p">]</span>
@@ -751,7 +735,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">mask</span></code> can be viewed below. Note that the masks only include voxels that don’t overlap boundaries</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
@@ -760,12 +744,12 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.collections.QuadMesh at 0x7fa4b032a7c0&gt;
+&lt;matplotlib.collections.QuadMesh at 0x7f8cb06bff70&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -780,10 +764,10 @@ div.rendered_html tbody tr:hover {
 <h2>Part 3: Reconstructing SPECT Data<a class="headerlink" href="#Part-3:-Reconstructing-SPECT-Data" title="Permalink to this heading">#</a></h2>
 <p>Now we will reconstruct our SPECT data, and compare it to the original phantom. In particular, since we’re using an iterative algorithm, we’ll want to see how the improvements as a function of iterations. We’ll get to that later.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">attenuation_map</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_atteuation_map</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="s1">&#39;mu208.hct&#39;</span><span class="p">))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">attenuation_map</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_attenuation_map</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="s1">&#39;mu208.hct&#39;</span><span class="p">))</span>
 <span class="n">att_transform</span> <span class="o">=</span> <span class="n">SPECTAttenuationTransform</span><span class="p">(</span><span class="n">attenuation_map</span><span class="p">)</span>
 <span class="n">psf_meta</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_psfmeta_from_header</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 <span class="n">psf_transform</span> <span class="o">=</span> <span class="n">SPECTPSFTransform</span><span class="p">(</span><span class="n">psf_meta</span><span class="p">)</span>
@@ -797,7 +781,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <p>Next we’ll create a subclass of the <code class="docutils literal notranslate"><span class="pre">CallBack</span></code> class to compute statistics during the reconstruction after each iteraton.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">CompareToGroundTruth</span><span class="p">(</span><span class="n">CallBack</span><span class="p">):</span>
@@ -826,11 +810,11 @@ div.rendered_html tbody tr:hover {
 <li><p>Note, we are running for 80 iterations; this may take a few minutes depending on your graphics card</p></li>
 </ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">callback</span> <span class="o">=</span> <span class="n">CompareToGroundTruth</span><span class="p">(</span><span class="n">organs</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">mask_idx_dict</span><span class="p">,</span> <span class="n">mask_vol_dict</span><span class="p">)</span>
-<span class="n">reconstruction_algorithm</span> <span class="o">=</span> <span class="n">OSEMBSR</span><span class="p">(</span><span class="n">projections</span><span class="p">,</span> <span class="n">system_matrix</span><span class="p">,</span> <span class="n">scatter</span><span class="o">=</span><span class="n">scatter</span><span class="p">)</span>
+<span class="n">reconstruction_algorithm</span> <span class="o">=</span> <span class="n">OSEM</span><span class="p">(</span><span class="n">projections</span><span class="p">,</span> <span class="n">system_matrix</span><span class="p">,</span> <span class="n">scatter</span><span class="o">=</span><span class="n">scatter</span><span class="p">)</span>
 <span class="n">reconstructed_object</span> <span class="o">=</span> <span class="n">reconstruction_algorithm</span><span class="p">(</span><span class="n">n_iters</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span> <span class="n">n_subsets</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">callback</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -840,7 +824,7 @@ div.rendered_html tbody tr:hover {
 <li><p>In clinical practice, this normalization factor can be obtained by scanning a point source of known activity (in MBq) and then dividing the total number of counts detected by the known activity</p></li>
 </ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">counts_to_MBq</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">activities</span><span class="p">)</span> <span class="o">/</span> <span class="n">reconstructed_object</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
@@ -852,7 +836,7 @@ div.rendered_html tbody tr:hover {
 <li><p>We’ll convert to units of MBq/mL by multiple the array of counts by the <code class="docutils literal notranslate"><span class="pre">counts_to_MBq</span></code> conversion factor, and then dividing by the voxel volume</p></li>
 </ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">o1</span> <span class="o">=</span> <span class="n">reconstructed_object</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span><span class="mi">64</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">counts_to_MBq</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">object_meta</span><span class="o">.</span><span class="n">dr</span><span class="p">)</span>
@@ -860,7 +844,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
@@ -871,12 +855,12 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.colorbar.Colorbar at 0x7fa4b0253c70&gt;
+&lt;matplotlib.colorbar.Colorbar at 0x7f8cb05e7cd0&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -888,27 +872,25 @@ div.rendered_html tbody tr:hover {
 </div>
 <p>Finally, here’s some code written to plot/compare noise-bias curves for each reconstruction algorithm.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">plot_bvc</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="n">organ</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">label</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">plot_bvc</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="n">organ</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">color</span><span class="p">):</span>
     <span class="n">activity_MBQ_per_mL</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">callback</span><span class="o">.</span><span class="n">avg_counts_per_mL</span><span class="p">[</span><span class="n">organ</span><span class="p">])</span> <span class="o">*</span> <span class="n">counts_to_MBq</span>
     <span class="n">activity_noise_MBQ_per_mL</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">callback</span><span class="o">.</span><span class="n">std_counts_per_mL</span><span class="p">[</span><span class="n">organ</span><span class="p">])</span> <span class="o">*</span> <span class="n">counts_to_MBq</span>
     <span class="n">true_activity_MBQ_per_mL</span> <span class="o">=</span> <span class="n">activity_dict</span><span class="p">[</span><span class="n">organ</span><span class="p">]</span> <span class="o">/</span> <span class="n">organ_vol_dict</span><span class="p">[</span><span class="n">organ</span><span class="p">]</span>
     <span class="n">activity_bias_pct</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">activity_MBQ_per_mL</span> <span class="o">/</span> <span class="n">true_activity_MBQ_per_mL</span> <span class="o">-</span> <span class="mi">100</span>
     <span class="n">activity_noise_pct</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">activity_noise_MBQ_per_mL</span> <span class="o">/</span> <span class="n">true_activity_MBQ_per_mL</span>
-
-    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">activity_bias_pct</span><span class="p">,</span> <span class="n">activity_noise_pct</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">activity_bias_pct</span><span class="p">,</span> <span class="n">activity_noise_pct</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
 
 <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">13</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>
 <span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">organ</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axes</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">organs</span><span class="p">):</span>
-    <span class="n">plot_bvc</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="n">organ</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="s1">&#39;Generic&#39;</span><span class="p">)</span>
+    <span class="n">plot_bvc</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="n">organ</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="s1">&#39;blue&#39;</span><span class="p">)</span>
     <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span>
     <span class="n">ax</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s1">&#39;major&#39;</span><span class="p">,</span> <span class="n">labelsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
     <span class="n">ax</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s1">&#39;major&#39;</span><span class="p">,</span> <span class="n">labelsize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
     <span class="n">ax</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s1">&#39;minor&#39;</span><span class="p">,</span> <span class="n">labelsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
     <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">organ</span><span class="p">)</span>
-<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">,</span> <span class="n">framealpha</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">frameon</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">)</span>
 <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">,</span> <span class="n">frameon</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">labelcolor</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span> <span class="n">top</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bottom</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">left</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Bias [%]&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
@@ -957,7 +939,7 @@ div.rendered_html tbody tr:hover {
   </div>
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
-<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#">SPECT: Quantitative Analysis (SIMIND)</a></li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#">Quantitative Analysis (SIMIND)</a></li>
 <li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#Part-1:-Open-Projection-Data">Part 1: Open Projection Data</a><ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#2.-Obtain-Organ-Masks">2. Obtain Organ Masks</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Part-3:-Reconstructing-SPECT-Data">Part 3: Reconstructing SPECT Data</a></li>

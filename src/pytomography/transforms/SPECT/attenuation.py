@@ -1,8 +1,6 @@
 from __future__ import annotations
 from typing import Sequence
-import numpy.linalg as npl
 import torch
-import torch.nn as nn
 from pytomography.utils import rotate_detector_z, rev_cumsum, pad_object
 from pytomography.transforms import Transform
 from pytomography.io.SPECT import open_CT_file
@@ -22,11 +20,11 @@ def get_prob_of_detection_matrix(attenuation_map: torch.Tensor, dx: float) -> to
 	return torch.exp(-rev_cumsum(attenuation_map * dx))
 
 class SPECTAttenuationTransform(Transform):
-	r"""obj2obj transform used to model the effects of attenuation in SPECT.
+	r"""obj2obj transform used to model the effects of attenuation in SPECT. This transform accepts either an ``attenuation_map`` (which must be aligned with the SPECT projection data) or a ``filepath`` consisting of folder containing CT DICOM files all pertaining to the same scan
 
 	Args:
 		attenuation_map (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{cm}^{-1}}` at the photon energy corresponding to the particular scan
-		filepath (Sequence[str]): FILL IN
+		filepath (Sequence[str]): Folder location of CT scan; all .dcm files must correspond to different slices of the same scan.
 	"""
 	def __init__(
 		self,

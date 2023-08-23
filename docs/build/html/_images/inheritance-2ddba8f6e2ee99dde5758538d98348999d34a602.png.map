@@ -1,0 +1,4 @@
+<map id="inheritancea41c45e03e" name="inheritancea41c45e03e">
+<area shape="rect" id="node1" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform" target="_top" title="obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``SPECTPSFMeta`` parameter. " alt="" coords="139,5,289,31"/>
+<area shape="rect" id="node2" href="../../transform/index.html#pytomography.transforms.transform.Transform" target="_top" title="The parent class for all transforms used in reconstruction (obj2obj, im2im, obj2im). Subclasses must implement the ``__call__`` method." alt="" coords="5,5,91,31"/>
+</map>

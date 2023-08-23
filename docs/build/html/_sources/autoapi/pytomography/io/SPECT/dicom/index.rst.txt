@@ -22,7 +22,6 @@ Functions
    pytomography.io.SPECT.dicom.get_psfmeta_from_scanner_params
    pytomography.io.SPECT.dicom.CT_to_mumap
    pytomography.io.SPECT.dicom.get_attenuation_map_from_CT_slices
-   pytomography.io.SPECT.dicom.get_affine_matrix
    pytomography.io.SPECT.dicom._get_affine_spect_projections
    pytomography.io.SPECT.dicom._get_affine_CT
    pytomography.io.SPECT.dicom.stitch_multibed
@@ -113,11 +112,9 @@ Functions
 
 .. py:function:: get_psfmeta_from_scanner_params(collimator_name, energy_keV, min_sigmas = 3)
 
-   Gets PSF metadata from SPECT camera/collimator parameters. Performs linear interpolation to find linear attenuation coefficient for lead collimators for energy values within the range 100keV - 600keV.
+   Obtains SPECT PSF metadata given a unique collimator code and photopeak energy of radionuclide. For more information on collimator codes, see the "external data" section of the readthedocs page.
 
-   :param camera_model: Name of SPECT camera.
-   :type camera_model: str
-   :param collimator_name: Name of collimator used.
+   :param collimator_name: Code for the collimator used.
    :type collimator_name: str
    :param energy_keV: Energy of the photopeak
    :type energy_keV: float
@@ -129,6 +126,20 @@ Functions
 
 
 .. py:function:: CT_to_mumap(CT, files_CT, file_NM, index_peak=0)
+
+   Converts a CT image to a mu-map given SPECT projection data. The CT data must be aligned with the projection data already; this is a helper function for ``get_attenuation_map_from_CT_slices``.
+
+   :param CT: CT object in units of HU
+   :type CT: torch.tensor
+   :param files_CT: Filepaths of all CT slices
+   :type files_CT: Sequence[str]
+   :param file_NM: Filepath of SPECT projectio ndata
+   :type file_NM: str
+   :param index_peak: Index of EnergyInformationSequence corresponding to the photopeak. Defaults to 0.
+   :type index_peak: int, optional
+
+   :returns: Attenuation map in units of 1/cm
+   :rtype: torch.tensor
 
 
 .. py:function:: get_attenuation_map_from_CT_slices(files_CT, file_NM = None, index_peak = 0, keep_as_HU = False, mode = 'nearest')
@@ -146,9 +157,6 @@ Functions
 
    :returns: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.
    :rtype: torch.Tensor
-
-
-.. py:function:: get_affine_matrix(filename)
 
 
 .. py:function:: _get_affine_spect_projections(filename)

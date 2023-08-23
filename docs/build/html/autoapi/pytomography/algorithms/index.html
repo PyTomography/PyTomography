@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>pytomography.algorithms &#8212; PyTomography 0.9.3 documentation</title>
+    <title>pytomography.algorithms &#8212; PyTomography 1.0.0 documentation</title>
   
   
   
@@ -35,7 +35,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js?v=f05b8887"></script>
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js?v=367f7090"></script>
     <script src="../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -131,13 +131,6 @@
   </p>
   <ul class="bd-navbar-elements navbar-nav">
     
-                    <li class="nav-item">
-                      <a class="nav-link nav-internal" href="../../../notebooks/conventions.html">
-                        Manual
-                      </a>
-                    </li>
-                
-
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="../../../usage.html">
                         Tutorials
@@ -243,13 +236,6 @@ document.write(`
   <ul class="bd-navbar-elements navbar-nav">
     
                     <li class="nav-item">
-                      <a class="nav-link nav-internal" href="../../../notebooks/conventions.html">
-                        Manual
-                      </a>
-                    </li>
-                
-
-                    <li class="nav-item">
                       <a class="nav-link nav-internal" href="../../../usage.html">
                         Tutorials
                       </a>
@@ -306,6 +292,7 @@ document.write(`
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
 <li class="toctree-l1 current active has-children"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="fbp/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.fbp</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="osem/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.osem</span></code></a></li>
 </ul>
 </li>
@@ -358,7 +345,7 @@ document.write(`
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../transforms/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-14"><i class="fa-solid fa-chevron-down"></i></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="../transforms/SPECT/atteunation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.atteunation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../transforms/SPECT/attenuation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.attenuation</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../transforms/SPECT/cutoff/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.cutoff</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../transforms/SPECT/psf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.psf</span></code></a></li>
 </ul>
@@ -367,6 +354,7 @@ document.write(`
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-15"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../utils/fourier_filters/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.fourier_filters</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../utils/misc/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.misc</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../utils/nist_data/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.nist_data</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../utils/scatter/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.scatter</span></code></a></li>
@@ -434,6 +422,7 @@ document.write(`
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading">#</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="fbp/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.fbp</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="osem/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.osem</span></code></a></li>
 </ul>
 </div>
@@ -445,41 +434,44 @@ document.write(`
 <table class="autosummary longtable table autosummary">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.algorithms.OSML" title="pytomography.algorithms.OSML"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OSML</span></code></a></p></td>
-<td><p>Abstract class for different algorithms. The difference between subclasses of this class is the method by which they include prior information. If no prior function is used, they are all equivalent.</p></td>
+<td><p>Parent class for all variants of ordered subset maximum liklihood algorithms. All child classes must implement the <code class="docutils literal notranslate"><span class="pre">__call__</span></code> method to perform reconstruction.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.algorithms.OSEMOSL" title="pytomography.algorithms.OSEMOSL"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OSEMOSL</span></code></a></p></td>
-<td><p>Implements the ordered subset expectation algorithm using the one-step-late method to include prior information: :math:` hat{f}^{n,m+1} = left[frac{1}{H_m^T 1  + beta frac{partial V}{partial hat{f}}|_{hat{f}=hat{f}^{n,m}}} H_m^T left(frac{g_m}{H_mhat{f}^{n,m}+s}right)right] hat{f}^{n,m}`.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.algorithms.OSEM" title="pytomography.algorithms.OSEM"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OSEM</span></code></a></p></td>
+<td><p>Implementation of the ordered subset expectation maximum algorithm <span class="math notranslate nohighlight">\(\hat{f}^{n,m+1} = \left[\frac{1}{H_m^T 1} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}\)</span>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.algorithms.OSEMBSR" title="pytomography.algorithms.OSEMBSR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OSEMBSR</span></code></a></p></td>
-<td><p>Implements the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: <span class="math notranslate nohighlight">\(\tilde{\hat{f}}^{n,m+1} = \left[\frac{1}{H_m^T 1} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}\)</span> followed by <span class="math notranslate nohighlight">\(\hat{f}^{n,m+1} = \tilde{\hat{f}}^{n,m+1} \left(1-\beta\frac{\alpha_n}{H_m^T 1}\frac{\partial V}{\partial \tilde{\hat{f}}^{n,m+1}} \right)\)</span>.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.algorithms.OSEMOSL" title="pytomography.algorithms.OSEMOSL"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OSEMOSL</span></code></a></p></td>
+<td><p>Implementation of the ordered subset expectation algorithm using the one-step-late method to include prior information: <span class="math notranslate nohighlight">\(\hat{f}^{n,m+1} = \left[\frac{1}{H_m^T 1  + \beta \frac{\partial V}{\partial \hat{f}}|_{\hat{f}=\hat{f}^{n,m}}} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.algorithms.OSEMBSR" title="pytomography.algorithms.OSEMBSR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OSEMBSR</span></code></a></p></td>
+<td><p>Implementation of the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: <span class="math notranslate nohighlight">\(\tilde{\hat{f}}^{n,m+1} = \left[\frac{1}{H_m^T 1} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}\)</span> followed by <span class="math notranslate nohighlight">\(\hat{f}^{n,m+1} = \tilde{\hat{f}}^{n,m+1} \left(1-\beta\frac{\alpha_n}{H_m^T 1}\frac{\partial V}{\partial \tilde{\hat{f}}^{n,m+1}} \right)\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.algorithms.FilteredBackProjection" title="pytomography.algorithms.FilteredBackProjection"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FilteredBackProjection</span></code></a></p></td>
+<td><p>Implementation of filtered back projection reconstruction <span class="math notranslate nohighlight">\(\hat{f} = \frac{\pi}{N_{\text{proj}}} \mathcal{R}^{-1}\mathcal{F}^{-1}\Pi\mathcal{F} g\)</span> where <span class="math notranslate nohighlight">\(N_{\text{proj}}\)</span> is the number of projections, <span class="math notranslate nohighlight">\(\mathcal{R}\)</span> is the 3D radon transform, <span class="math notranslate nohighlight">\(\mathcal{F}\)</span> is the 2D Fourier transform (applied to each projection seperately), and <span class="math notranslate nohighlight">\(\Pi\)</span> is the filter applied in Fourier space, which is by default the ramp filter.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomography.algorithms.OSML">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.algorithms.</span></span><span class="sig-name descname"><span class="pre">OSML</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_initial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prior</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/algorithms/osem.html#OSML"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.OSML" title="Permalink to this definition">#</a></dt>
-<dd><p>Abstract class for different algorithms. The difference between subclasses of this class is the method by which they include prior information. If no prior function is used, they are all equivalent.</p>
+<dd><p>Parent class for all variants of ordered subset maximum liklihood algorithms. All child classes must implement the <code class="docutils literal notranslate"><span class="pre">__call__</span></code> method to perform reconstruction.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>image</strong> (<em>torch.Tensor</em>) – image data <span class="math notranslate nohighlight">\(g\)</span> to be reconstructed</p></li>
-<li><p><strong>system_matrix</strong> (<a class="reference internal" href="../projections/index.html#pytomography.projections.SystemMatrix" title="pytomography.projections.SystemMatrix"><em>SystemMatrix</em></a>) – Instance of some system matrix class that models the imaging system. In particular, corresponds to <span class="math notranslate nohighlight">\(H\)</span> in <span class="math notranslate nohighlight">\(g=Hf\)</span>.</p></li>
-<li><p><strong>object_initial</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>]</em>) – represents the initial object guess <span class="math notranslate nohighlight">\(f^{0,0}\)</span> for the algorithm in object space. If None, then initial guess consists of all 1s. Defaults to None.</p></li>
-<li><p><strong>scatter</strong> (<em>torch.Tensor</em>) – estimate of scatter contribution <span class="math notranslate nohighlight">\(s\)</span>.Defaults to 0.</p></li>
-<li><p><strong>prior</strong> (<a class="reference internal" href="../priors/index.html#pytomography.priors.Prior" title="pytomography.priors.Prior"><em>Prior</em></a><em>, </em><em>optional</em>) – the Bayesian prior; computes <span class="math notranslate nohighlight">\(\beta \frac{\partial V}{\partial f}\)</span>. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, then this term is 0. Defaults to None.</p></li>
+<li><p><strong>system_matrix</strong> (<a class="reference internal" href="../projections/index.html#pytomography.projections.SystemMatrix" title="pytomography.projections.SystemMatrix"><em>SystemMatrix</em></a>) – system matrix that models the imaging system. In particular, corresponds to <span class="math notranslate nohighlight">\(H\)</span> in <span class="math notranslate nohighlight">\(g=Hf\)</span>.</p></li>
+<li><p><strong>object_initial</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>]</em>) – the initial object guess <span class="math notranslate nohighlight">\(f^{0,0}\)</span>. If None, then initial guess consists of all 1s. Defaults to None.</p></li>
+<li><p><strong>scatter</strong> (<em>torch.Tensor</em>) – estimate of scatter contribution <span class="math notranslate nohighlight">\(s\)</span>. Defaults to 0.</p></li>
+<li><p><strong>prior</strong> (<a class="reference internal" href="../priors/index.html#pytomography.priors.Prior" title="pytomography.priors.Prior"><em>Prior</em></a><em>, </em><em>optional</em>) – the Bayesian prior; used to compute <span class="math notranslate nohighlight">\(\beta \frac{\partial V}{\partial f}\)</span>. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, then this term is 0. Defaults to None.</p></li>
 </ul>
 </dd>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.algorithms.OSML.get_subset_splits">
-<span class="sig-name descname"><span class="pre">get_subset_splits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_angles</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.algorithms.OSML.get_subset_splits" title="Permalink to this definition">#</a></dt>
-<dd><p>Returns a list of arrays; each array contains indices, corresponding to projection numbers, that are used in ordered-subsets. For example, <code class="docutils literal notranslate"><span class="pre">get_subsets_splits(2,</span> <span class="pre">6)</span></code> would return <code class="docutils literal notranslate"><span class="pre">[[0,2,4],[1,3,5]]</span></code>.</p>
+<span class="sig-name descname"><span class="pre">get_subset_splits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.algorithms.OSML.get_subset_splits" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns a list of subsets (where each subset contains indicies corresponding to projections). For example, if the image consisted of 6 total projections, then <code class="docutils literal notranslate"><span class="pre">get_subsets_splits(2)</span></code> would return <code class="docutils literal notranslate"><span class="pre">[[0,2,4],[1,3,5]]</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>n_subsets</strong> (<em>int</em>) – number of subsets used in OSEM</p></li>
-<li><p><strong>n_angles</strong> (<em>int</em>) – total number of projections</p></li>
-</ul>
+<dd class="field-odd"><p><strong>n_subsets</strong> (<em>int</em>) – number of subsets used in OSEM</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>list of index arrays for each subset</p>
@@ -511,10 +503,27 @@ document.write(`
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="pytomography.algorithms.OSEM">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.algorithms.</span></span><span class="sig-name descname"><span class="pre">OSEM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_initial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/algorithms/osem.html#OSEM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.OSEM" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pytomography.algorithms.OSEMOSL" title="pytomography.algorithms.OSEMOSL"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OSEMOSL</span></code></a></p>
+<p>Implementation of the ordered subset expectation maximum algorithm <span class="math notranslate nohighlight">\(\hat{f}^{n,m+1} = \left[\frac{1}{H_m^T 1} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image</strong> (<em>torch.Tensor</em>) – image data <span class="math notranslate nohighlight">\(g\)</span> to be reconstructed</p></li>
+<li><p><strong>object_initial</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>]</em>) – represents the initial object guess <span class="math notranslate nohighlight">\(f^{0,0}\)</span> for the algorithm in object space</p></li>
+<li><p><strong>system_matrix</strong> (<a class="reference internal" href="../projections/index.html#pytomography.projections.SystemMatrix" title="pytomography.projections.SystemMatrix"><em>SystemMatrix</em></a>) – System matrix <span class="math notranslate nohighlight">\(H\)</span> used in <span class="math notranslate nohighlight">\(g=Hf\)</span>.</p></li>
+<li><p><strong>scatter</strong> (<em>torch.Tensor</em>) – estimate of scatter contribution <span class="math notranslate nohighlight">\(s\)</span>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="pytomography.algorithms.OSEMOSL">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.algorithms.</span></span><span class="sig-name descname"><span class="pre">OSEMOSL</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_initial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prior</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/algorithms/osem.html#OSEMOSL"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.OSEMOSL" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pytomography.algorithms.OSML" title="pytomography.algorithms.OSML"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OSML</span></code></a></p>
-<p>Implements the ordered subset expectation algorithm using the one-step-late method to include prior information: :math:` hat{f}^{n,m+1} = left[frac{1}{H_m^T 1  + beta frac{partial V}{partial hat{f}}|_{hat{f}=hat{f}^{n,m}}} H_m^T left(frac{g_m}{H_mhat{f}^{n,m}+s}right)right] hat{f}^{n,m}`.</p>
+<p>Implementation of the ordered subset expectation algorithm using the one-step-late method to include prior information: <span class="math notranslate nohighlight">\(\hat{f}^{n,m+1} = \left[\frac{1}{H_m^T 1  + \beta \frac{\partial V}{\partial \hat{f}}|_{\hat{f}=\hat{f}^{n,m}}} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}\)</span>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -529,7 +538,7 @@ document.write(`
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.algorithms.OSEMOSL._set_recon_name">
 <span class="sig-name descname"><span class="pre">_set_recon_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_iters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.algorithms.OSEMOSL._set_recon_name" title="Permalink to this definition">#</a></dt>
-<dd><p>Set the unique identifier for the type of reconstruction performed. Useful for saving to DICOM files</p>
+<dd><p>Set the unique identifier for the type of reconstruction performed. Useful when saving reconstructions to DICOM files</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -543,7 +552,7 @@ document.write(`
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.algorithms.OSEMOSL.__call__">
 <span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_iters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.algorithms.OSEMOSL.__call__" title="Permalink to this definition">#</a></dt>
-<dd><p>Performs the reconstruction using <cite>n_iters</cite> iterations and <cite>n_subsets</cite> subsets.</p>
+<dd><p>Performs the reconstruction using <code class="docutils literal notranslate"><span class="pre">n_iters</span></code> iterations and <code class="docutils literal notranslate"><span class="pre">n_subsets</span></code> subsets.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -567,7 +576,7 @@ document.write(`
 <dt class="sig sig-object py" id="pytomography.algorithms.OSEMBSR">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.algorithms.</span></span><span class="sig-name descname"><span class="pre">OSEMBSR</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_initial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prior</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/algorithms/osem.html#OSEMBSR"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.OSEMBSR" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pytomography.algorithms.OSML" title="pytomography.algorithms.OSML"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OSML</span></code></a></p>
-<p>Implements the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: <span class="math notranslate nohighlight">\(\tilde{\hat{f}}^{n,m+1} = \left[\frac{1}{H_m^T 1} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}\)</span> followed by <span class="math notranslate nohighlight">\(\hat{f}^{n,m+1} = \tilde{\hat{f}}^{n,m+1} \left(1-\beta\frac{\alpha_n}{H_m^T 1}\frac{\partial V}{\partial \tilde{\hat{f}}^{n,m+1}} \right)\)</span>.</p>
+<p>Implementation of the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: <span class="math notranslate nohighlight">\(\tilde{\hat{f}}^{n,m+1} = \left[\frac{1}{H_m^T 1} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}\)</span> followed by <span class="math notranslate nohighlight">\(\hat{f}^{n,m+1} = \tilde{\hat{f}}^{n,m+1} \left(1-\beta\frac{\alpha_n}{H_m^T 1}\frac{\partial V}{\partial \tilde{\hat{f}}^{n,m+1}} \right)\)</span>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -596,7 +605,7 @@ document.write(`
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.algorithms.OSEMBSR.__call__">
 <span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_iters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relaxation_function</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">lambda</span> <span class="pre">x:</span> <span class="pre">...</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.algorithms.OSEMBSR.__call__" title="Permalink to this definition">#</a></dt>
-<dd><p>Performs the reconstruction using <cite>n_iters</cite> iterations and <cite>n_subsets</cite> subsets.</p>
+<dd><p>Performs the reconstruction using <code class="docutils literal notranslate"><span class="pre">n_iters</span></code> iterations and <code class="docutils literal notranslate"><span class="pre">n_subsets</span></code> subsets.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -611,6 +620,35 @@ document.write(`
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>torch.tensor[batch_size, Lx, Ly, Lz]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomography.algorithms.FilteredBackProjection">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.algorithms.</span></span><span class="sig-name descname"><span class="pre">FilteredBackProjection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/algorithms/fbp.html#FilteredBackProjection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.FilteredBackProjection" title="Permalink to this definition">#</a></dt>
+<dd><p>Implementation of filtered back projection reconstruction <span class="math notranslate nohighlight">\(\hat{f} = \frac{\pi}{N_{\text{proj}}} \mathcal{R}^{-1}\mathcal{F}^{-1}\Pi\mathcal{F} g\)</span> where <span class="math notranslate nohighlight">\(N_{\text{proj}}\)</span> is the number of projections, <span class="math notranslate nohighlight">\(\mathcal{R}\)</span> is the 3D radon transform, <span class="math notranslate nohighlight">\(\mathcal{F}\)</span> is the 2D Fourier transform (applied to each projection seperately), and <span class="math notranslate nohighlight">\(\Pi\)</span> is the filter applied in Fourier space, which is by default the ramp filter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image</strong> (<em>torch.Tensor</em>) – image data <span class="math notranslate nohighlight">\(g\)</span> to be reconstructed</p></li>
+<li><p><strong>angles</strong> (<em>Sequence</em>) – Angles corresponding to each projection in the image/</p></li>
+<li><p><strong>filter</strong> (<em>Callable</em><em>, </em><em>optional</em>) – Additional Fourier space filter (applied after Ramp Filter) used during reconstruction.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.algorithms.FilteredBackProjection.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.algorithms.FilteredBackProjection.__call__" title="Permalink to this definition">#</a></dt>
+<dd><p>Applies reconstruction</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Reconstructed object prediction</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>torch.tensor</p>
 </dd>
 </dl>
 </dd></dl>
@@ -658,6 +696,7 @@ document.write(`
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.OSML.__call__"><code class="docutils literal notranslate"><span class="pre">OSML.__call__()</span></code></a></li>
 </ul>
 </li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.OSEM"><code class="docutils literal notranslate"><span class="pre">OSEM</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.OSEMOSL"><code class="docutils literal notranslate"><span class="pre">OSEMOSL</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.OSEMOSL._set_recon_name"><code class="docutils literal notranslate"><span class="pre">OSEMOSL._set_recon_name()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.OSEMOSL.__call__"><code class="docutils literal notranslate"><span class="pre">OSEMOSL.__call__()</span></code></a></li>
@@ -668,11 +707,16 @@ document.write(`
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.OSEMBSR.__call__"><code class="docutils literal notranslate"><span class="pre">OSEMBSR.__call__()</span></code></a></li>
 </ul>
 </li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.FilteredBackProjection"><code class="docutils literal notranslate"><span class="pre">FilteredBackProjection</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.FilteredBackProjection.__call__"><code class="docutils literal notranslate"><span class="pre">FilteredBackProjection.__call__()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.OSML">OSML</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.OSML.get_subset_splits">get_subset_splits</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.OSML.__call__">__call__</a></li>
 </ul>
 </li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.OSEM">OSEM</a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.OSEMOSL">OSEMOSL</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.OSEMOSL._set_recon_name">_set_recon_name</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.OSEMOSL.__call__">__call__</a></li>
@@ -681,6 +725,10 @@ document.write(`
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.OSEMBSR">OSEMBSR</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.OSEMBSR._set_recon_name">_set_recon_name</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.OSEMBSR.__call__">__call__</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.FilteredBackProjection">FilteredBackProjection</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.FilteredBackProjection.__call__">__call__</a></li>
 </ul>
 </li>
 </ul>

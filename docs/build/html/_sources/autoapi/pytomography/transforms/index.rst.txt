@@ -5,7 +5,7 @@
 
 .. autoapi-nested-parse::
 
-   This module contains transforms; operators that map within the same vector space; such operators are used to build the system matrix. For example, the ``SPECTAttenuationTransform`` is an operator :math:`A:\mathbb{U} \to \mathbb{U}` which adjusts each voxel in an image based on the probability of it being attenuated before it reaches a detector at the :math:`+x` axis. As another example, the ``CutOffTransform`` is an operator :math:`B:\mathbb{V} \to \mathbb{V}` which sets all pixels in image space equal to zero which exist beyond the detector boundaries. Since operators are often used in reconstruction algorithms, their transpose also must be implemented
+   This module contains transform operations used to build the system matrix. Currently, the PET transforms only support 2D PET.
 
 
 
@@ -82,11 +82,11 @@ Classes
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 
-   obj2obj transform used to model the effects of attenuation in SPECT.
+   obj2obj transform used to model the effects of attenuation in SPECT. This transform accepts either an ``attenuation_map`` (which must be aligned with the SPECT projection data) or a ``filepath`` consisting of folder containing CT DICOM files all pertaining to the same scan
 
    :param attenuation_map: Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{cm}^{-1}}` at the photon energy corresponding to the particular scan
    :type attenuation_map: torch.tensor
-   :param filepath: FILL IN
+   :param filepath: Folder location of CT scan; all .dcm files must correspond to different slices of the same scan.
    :type filepath: Sequence[str]
 
    .. py:method:: configure(object_meta, image_meta)
@@ -147,7 +147,7 @@ Classes
       :type image_meta: SPECTImageMeta
 
 
-   .. py:method:: compute_kernel_size(radius, axis)
+   .. py:method:: _compute_kernel_size(radius, axis)
 
       Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``SPECTPSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object.
 
@@ -155,7 +155,7 @@ Classes
       :rtype: int
 
 
-   .. py:method:: get_sigma(radius)
+   .. py:method:: _get_sigma(radius)
 
       Uses PSF Meta data information to get blurring :math:`\sigma` as a function of distance from detector.
 
@@ -166,7 +166,17 @@ Classes
       :rtype: array
 
 
-   .. py:method:: apply_psf(object, ang_idx)
+   .. py:method:: _apply_psf(object, ang_idx)
+
+      Applies PSF modeling to an object with corresponding angle indices
+
+      :param object: Tensor of shape ``[batch_size, Lx, Ly, Lz]`` corresponding to object rotated at different angles
+      :type object: torch.tensor
+      :param ang_idx: List of length ``batch_size`` corresponding to angle of each object in the batch
+      :type ang_idx: Sequence[int]
+
+      :returns: Object with PSF modeling applied
+      :rtype: torch.tensor
 
 
    .. py:method:: forward(object_i, ang_idx)
