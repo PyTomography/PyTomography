@@ -1,0 +1,605 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pytomography.projections.SPECT.spect_system_matrix &#8212; PyTomography 1.0.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../../../../_static/styles/bootstrap.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+
+  
+  <link href="../../../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=e353d410970836974a52" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=362ab14a" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=eafc0fe6" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
+
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=367f7090"></script>
+    <script src="../../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pytomography/projections/SPECT/spect_system_matrix';</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+<div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+    <span class="fa-solid fa-bars"></span>
+  </label>
+  
+  <div class="navbar-header-items__start">
+    
+      <div class="navbar-item">
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../../_static/PT1.png" class="logo__image only-light" alt="Logo image"/>
+    <script>document.write(`<img src="../../../../_static/PT1.png" class="logo__image only-dark" alt="Logo image"/>`);</script>
+  
+  
+</a></div>
+    
+  </div>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../external_data.html">
+                        External Data
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../autoapi/index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+        </div>
+      
+      
+        <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+    </div>
+  
+
+  
+</div>
+
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../external_data.html">
+                        External Data
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../autoapi/index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumbs">
+  <ul class="bd-breadcrumbs" role="navigation" aria-label="Breadcrumb">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../../pytomography.html" class="nav-link">pytomography</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page">pytomography.projections.SPECT.spect_system_matrix</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <h1>Source code for pytomography.projections.SPECT.spect_system_matrix</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">pytomography</span>
+<span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
+<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTImageMeta</span>
+<span class="kn">from</span> <span class="nn">pytomography.priors</span> <span class="kn">import</span> <span class="n">Prior</span>
+<span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">rotate_detector_z</span><span class="p">,</span> <span class="n">pad_object</span><span class="p">,</span> <span class="n">unpad_object</span><span class="p">,</span> <span class="n">pad_image</span><span class="p">,</span> <span class="n">unpad_image</span>
+<span class="kn">from</span> <span class="nn">..system_matrix</span> <span class="kn">import</span> <span class="n">SystemMatrix</span>
+
+<div class="viewcode-block" id="SPECTSystemMatrix"><a class="viewcode-back" href="../../../../autoapi/pytomography/projections/SPECT/spect_system_matrix/index.html#pytomography.projections.SPECT.SPECTSystemMatrix">[docs]</a><span class="k">class</span> <span class="nc">SPECTSystemMatrix</span><span class="p">(</span><span class="n">SystemMatrix</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;System matrix for SPECT imaging. By default, this applies to parallel hole collimators, but appropriate use of `im2im_transforms` can allow this system matrix to also model converging/diverging collimator configurations as well.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">            obj2obj_transforms (Sequence[Transform]): Sequence of object mappings that occur before forward projection.</span>
+<span class="sd">            im2im_transforms (Sequence[Transform]): Sequence of image mappings that occur after forward projection.</span>
+<span class="sd">            object_meta (SPECTObjectMeta): SPECT Object metadata.</span>
+<span class="sd">            image_meta (SPECTImageMeta): SPECT Image metadata.</span>
+<span class="sd">            n_parallel (int): Number of projections to use in parallel when applying transforms. More parallel events may speed up reconstruction time, but also increases GPU usage. Defaults to 1.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">obj2obj_transforms</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Transform</span><span class="p">],</span>
+        <span class="n">im2im_transforms</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Transform</span><span class="p">],</span>
+        <span class="n">object_meta</span><span class="p">:</span> <span class="n">SPECTObjectMeta</span><span class="p">,</span>
+        <span class="n">image_meta</span><span class="p">:</span> <span class="n">SPECTImageMeta</span><span class="p">,</span>
+        <span class="n">n_parallel</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SPECTSystemMatrix</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">obj2obj_transforms</span><span class="p">,</span> <span class="n">im2im_transforms</span><span class="p">,</span> <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_parallel</span> <span class="o">=</span> <span class="n">n_parallel</span>
+
+<div class="viewcode-block" id="SPECTSystemMatrix.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projections/SPECT/spect_system_matrix/index.html#pytomography.projections.SPECT.SPECTSystemMatrix.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="nb">object</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span>
+        <span class="n">angle_subset</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Applies forward projection to ``object`` for a SPECT imaging system.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            object (torch.tensor[batch_size, Lx, Ly, Lz]): The object to be forward projected</span>
+<span class="sd">            angle_subset (list, optional): Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.tensor[batch_size, Ltheta, Lx, Lz]: Forward projected image where Ltheta is specified by `self.image_meta` and `angle_subset`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">N_angles</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_meta</span><span class="o">.</span><span class="n">num_projections</span>
+        <span class="nb">object</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">object</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">image_meta</span><span class="o">.</span><span class="n">padded_shape</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">angle_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">N_angles</span><span class="p">)</span> <span class="k">if</span> <span class="n">angle_subset</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">angle_subset</span>
+        <span class="c1"># Loop through all angles (or groups of angles in parallel)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">angle_indices</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_parallel</span><span class="p">):</span>
+            <span class="c1"># Get angle indices</span>
+            <span class="n">angle_indices_single_batch_i</span> <span class="o">=</span> <span class="n">angle_indices</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">n_parallel</span><span class="p">]</span>
+            <span class="n">angle_indices_i</span> <span class="o">=</span> <span class="n">angle_indices_single_batch_i</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="nb">object</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="c1"># Format Object</span>
+            <span class="n">object_i</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">angle_indices_single_batch_i</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">object_i</span> <span class="o">=</span> <span class="n">pad_object</span><span class="p">(</span><span class="n">object_i</span><span class="p">)</span>
+            <span class="n">object_i</span> <span class="o">=</span> <span class="n">rotate_detector_z</span><span class="p">(</span><span class="n">object_i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_meta</span><span class="o">.</span><span class="n">angles</span><span class="p">[</span><span class="n">angle_indices_i</span><span class="p">])</span>
+            <span class="c1"># Apply object 2 object transforms</span>
+            <span class="k">for</span> <span class="n">transform</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj2obj_transforms</span><span class="p">:</span>
+                <span class="n">object_i</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">object_i</span><span class="p">,</span> <span class="n">angle_indices_i</span><span class="p">)</span>
+            <span class="c1"># Reshape to 5D tensor of shape [batch_size, N_parallel, Lx, Ly, Lz]</span>
+            <span class="n">object_i</span> <span class="o">=</span> <span class="n">object_i</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="nb">object</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">object_meta</span><span class="o">.</span><span class="n">padded_shape</span><span class="p">))</span>
+            <span class="n">image</span><span class="p">[:,</span><span class="n">angle_indices_single_batch_i</span><span class="p">]</span> <span class="o">=</span> <span class="n">object_i</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">transform</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">im2im_transforms</span><span class="p">:</span>
+            <span class="n">image</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">unpad_image</span><span class="p">(</span><span class="n">image</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SPECTSystemMatrix.backward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projections/SPECT/spect_system_matrix/index.html#pytomography.projections.SPECT.SPECTSystemMatrix.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">image</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span>
+        <span class="n">angle_subset</span><span class="p">:</span> <span class="nb">list</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">return_norm_constant</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Applies back projection to ``image`` for a SPECT imaging system.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            image (torch.tensor[batch_size, Ltheta, Lr, Lz]): image which is to be back projected</span>
+<span class="sd">            angle_subset (list, optional): Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.</span>
+<span class="sd">            return_norm_constant (bool): Whether or not to return :math:`1/\sum_j H_{ij}` along with back projection. Defaults to &#39;False&#39;.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.tensor[batch_size, Lr, Lr, Lz]: the object obtained from back projection.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Box used to perform back projection</span>
+        <span class="n">boundary_box_bp</span> <span class="o">=</span> <span class="n">pad_object</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">object_meta</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;back_project&#39;</span><span class="p">)</span>
+        <span class="c1"># Pad image and norm_image (norm_image used to compute sum_j H_ij)</span>
+        <span class="n">norm_image</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">pad_image</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+        <span class="n">norm_image</span> <span class="o">=</span> <span class="n">pad_image</span><span class="p">(</span><span class="n">norm_image</span><span class="p">)</span>
+        <span class="c1"># First apply image transforms before back projecting</span>
+        <span class="k">for</span> <span class="n">transform</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">im2im_transforms</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">image</span><span class="p">,</span> <span class="n">norm_image</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">norm_image</span><span class="p">)</span>
+        <span class="c1"># Setup for back projection</span>
+        <span class="n">N_angles</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_meta</span><span class="o">.</span><span class="n">num_projections</span>
+        <span class="nb">object</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">object_meta</span><span class="o">.</span><span class="n">padded_shape</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">norm_constant</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">object_meta</span><span class="o">.</span><span class="n">padded_shape</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">angle_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">N_angles</span><span class="p">)</span> <span class="k">if</span> <span class="n">angle_subset</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">angle_subset</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">angle_indices</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_parallel</span><span class="p">):</span>
+            <span class="n">angle_indices_single_batch_i</span> <span class="o">=</span> <span class="n">angle_indices</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">n_parallel</span><span class="p">]</span>
+            <span class="n">angle_indices_i</span> <span class="o">=</span> <span class="n">angle_indices_single_batch_i</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="nb">object</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="c1"># Perform back projection</span>
+            <span class="n">object_i</span> <span class="o">=</span> <span class="n">image</span><span class="p">[:,</span><span class="n">angle_indices_single_batch_i</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">boundary_box_bp</span>
+            <span class="n">norm_constant_i</span> <span class="o">=</span> <span class="n">norm_image</span><span class="p">[:,</span><span class="n">angle_indices_single_batch_i</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">boundary_box_bp</span>
+            <span class="c1"># Apply object mappings</span>
+            <span class="k">for</span> <span class="n">transform</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj2obj_transforms</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">object_i</span><span class="p">,</span> <span class="n">norm_constant_i</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">object_i</span><span class="p">,</span> <span class="n">angle_indices_i</span><span class="p">,</span> <span class="n">norm_constant</span><span class="o">=</span><span class="n">norm_constant_i</span><span class="p">)</span>
+            <span class="c1"># Rotate all objects by by their respective angle</span>
+            <span class="n">object_i</span> <span class="o">=</span> <span class="n">rotate_detector_z</span><span class="p">(</span><span class="n">object_i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_meta</span><span class="o">.</span><span class="n">angles</span><span class="p">[</span><span class="n">angle_indices_i</span><span class="p">],</span> <span class="n">negative</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">norm_constant_i</span> <span class="o">=</span> <span class="n">rotate_detector_z</span><span class="p">(</span><span class="n">norm_constant_i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_meta</span><span class="o">.</span><span class="n">angles</span><span class="p">[</span><span class="n">angle_indices_i</span><span class="p">],</span> <span class="n">negative</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="c1"># Reshape to 5D tensor of shape [batch_size, N_parallel, Lx, Ly, Lz]</span>
+            <span class="n">object_i</span> <span class="o">=</span> <span class="n">object_i</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="nb">object</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">object_meta</span><span class="o">.</span><span class="n">padded_shape</span><span class="p">))</span>
+            <span class="n">norm_constant_i</span> <span class="o">=</span> <span class="n">norm_constant_i</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="nb">object</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">object_meta</span><span class="o">.</span><span class="n">padded_shape</span><span class="p">))</span>
+            <span class="c1"># Add to total by summing over the N_parallel dimension (sum over all angles)</span>
+            <span class="nb">object</span> <span class="o">+=</span> <span class="n">object_i</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">norm_constant</span> <span class="o">+=</span> <span class="n">norm_constant_i</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># Unpad</span>
+        <span class="n">norm_constant</span> <span class="o">=</span> <span class="n">unpad_object</span><span class="p">(</span><span class="n">norm_constant</span><span class="p">)</span>
+        <span class="nb">object</span> <span class="o">=</span> <span class="n">unpad_object</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span>
+        <span class="c1"># Return</span>
+        <span class="k">if</span> <span class="n">return_norm_constant</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">object</span><span class="p">,</span> <span class="n">norm_constant</span><span class="o">+</span><span class="n">pytomography</span><span class="o">.</span><span class="n">delta</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">object</span></div></div>
+        
+        
+<div class="viewcode-block" id="SPECTSystemMatrixMaskedSegments"><a class="viewcode-back" href="../../../../autoapi/pytomography/projections/SPECT/spect_system_matrix/index.html#pytomography.projections.SPECT.SPECTSystemMatrixMaskedSegments">[docs]</a><span class="k">class</span> <span class="nc">SPECTSystemMatrixMaskedSegments</span><span class="p">(</span><span class="n">SPECTSystemMatrix</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;SPECT system matrix where the object space is a vector of length :math:`N` consisting of the mean activities for each masks in ``masks``. This system matrix can be used in reconstruction algorithms to obtain maximum liklihood estimations for the average value of :math:`f` inside each of the masks.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">            obj2obj_transforms (Sequence[Transform]): Sequence of object mappings that occur before forward projection.</span>
+<span class="sd">            im2im_transforms (Sequence[Transform]): Sequence of image mappings that occur after forward projection.</span>
+<span class="sd">            object_meta (SPECTObjectMeta): SPECT Object metadata.</span>
+<span class="sd">            image_meta (SPECTImageMeta): SPECT Image metadata.</span>
+<span class="sd">            masks (torch.Tensor): Masks corresponding to each segmented region.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">obj2obj_transforms</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Transform</span><span class="p">],</span>
+        <span class="n">im2im_transforms</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Transform</span><span class="p">],</span>
+        <span class="n">object_meta</span><span class="p">:</span> <span class="n">SPECTObjectMeta</span><span class="p">,</span>
+        <span class="n">image_meta</span><span class="p">:</span> <span class="n">SPECTImageMeta</span><span class="p">,</span>
+        <span class="n">masks</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+        
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SPECTSystemMatrixMaskedSegments</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">obj2obj_transforms</span><span class="p">,</span> <span class="n">im2im_transforms</span><span class="p">,</span> <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">masks</span> <span class="o">=</span> <span class="n">masks</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SPECTSystemMatrixMaskedSegments.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projections/SPECT/spect_system_matrix/index.html#pytomography.projections.SPECT.SPECTSystemMatrixMaskedSegments.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">activities</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">angle_subset</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Implements forward projection :math:`HUa` on a vector of activities :math:`a` corresponding to `self.masks`.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            activities (torch.tensor[batch_size, n_masks]): Activities in each mask region.</span>
+<span class="sd">            angle_subset (list, optional): Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.tensor[batch_size, Ltheta, Lx, Lz]: Forward projected image where Ltheta is specified by `self.image_meta` and `angle_subset`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">object</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">activities</span> <span class="o">=</span> <span class="n">activities</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">*</span><span class="n">activities</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="nb">object</span> <span class="o">=</span> <span class="p">(</span><span class="n">activities</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">SPECTSystemMatrixMaskedSegments</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="n">angle_subset</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SPECTSystemMatrixMaskedSegments.backward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projections/SPECT/spect_system_matrix/index.html#pytomography.projections.SPECT.SPECTSystemMatrixMaskedSegments.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">image</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">angle_subset</span><span class="p">:</span> <span class="nb">list</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">prior</span><span class="p">:</span> <span class="n">Prior</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">normalize</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">return_norm_constant</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Implements back projection :math:`U^T H^T g` on an image :math:`g`, returning a vector of activities for each mask region.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            image (torch.tensor[batch_size, Ltheta, Lr, Lz]): image which is to be back projected</span>
+<span class="sd">            angle_subset (list, optional): Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.</span>
+<span class="sd">            prior (Prior, optional): If included, modifes normalizing factor to :math:`\frac{1}{\sum_j H_{ij} + P_i}` where :math:`P_i` is given by the prior. Used, for example, during in MAP OSEM. Defaults to None.</span>
+<span class="sd">            normalize (bool): Whether or not to divide result by :math:`\sum_j H_{ij}`</span>
+<span class="sd">            return_norm_constant (bool): Whether or not to return :math:`1/\sum_j H_{ij}` along with back projection. Defaults to &#39;False&#39;.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.tensor[batch_size, n_masks]: the activities in each mask region.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">object</span><span class="p">,</span> <span class="n">norm_constant</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">SPECTSystemMatrixMaskedSegments</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">angle_subset</span><span class="p">,</span> <span class="n">prior</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">return_norm_constant</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">delta</span> <span class="o">=</span> <span class="n">pytomography</span><span class="o">.</span><span class="n">delta</span><span class="p">)</span>
+        <span class="n">activities</span> <span class="o">=</span> <span class="p">(</span><span class="nb">object</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span><span class="o">-</span><span class="mi">3</span><span class="p">))</span>
+        <span class="n">norm_constant</span> <span class="o">=</span> <span class="p">(</span><span class="n">norm_constant</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span><span class="o">-</span><span class="mi">3</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+            <span class="n">activities</span> <span class="o">=</span> <span class="p">(</span><span class="n">activities</span><span class="o">+</span><span class="n">pytomography</span><span class="o">.</span><span class="n">delta</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">norm_constant</span> <span class="o">+</span> <span class="n">pytomography</span><span class="o">.</span><span class="n">delta</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">return_norm_constant</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">activities</span><span class="p">,</span> <span class="n">norm_constant</span><span class="o">+</span><span class="n">pytomography</span><span class="o">.</span><span class="n">delta</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">activities</span></div></div>
+</pre></div>
+
+                </article>
+              
+              
+              
+                <footer class="bd-footer-article">
+                  
+<div class="footer-article-items footer-article__inner">
+  
+    <div class="footer-article-item"><!-- Previous / next buttons -->
+<div class="prev-next-area">
+</div></div>
+  
+</div>
+
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52"></script>
+<script src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+  <p class="copyright">
+    
+      © Copyright 2023, Luke Polson.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item"><p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.13.3.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

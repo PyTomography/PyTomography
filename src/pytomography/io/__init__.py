@@ -1,1 +1,1 @@
-"""This module contains functionality for data input/output in various data formats."""
+"""This module contains functionality for data input/output in various data formats. It is organized primarily by imaging modality, and secondarily by data type"""

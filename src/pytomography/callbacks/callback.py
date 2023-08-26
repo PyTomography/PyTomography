@@ -11,13 +11,12 @@ class CallBack():
         """
         ...
     @abc.abstractmethod
-    def run(self, obj: torch.tensor, n_iter: int, n_subset: int):
+    def run(self, obj: torch.tensor, n_iter: int):
         """Abstract method for ``run``.
 
         Args:
             obj (torch.tensor[batch_size, Lx, Ly, Lz]): An object which one can compute various statistics from.
             n_iter (int): The iteration number
-            n_subset (int): The subiteration number
         """
         ...
         

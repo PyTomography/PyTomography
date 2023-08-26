@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.io.SPECT.dicom &#8212; PyTomography 0.8.0 documentation</title>
+    <title>pytomography.io.SPECT.dicom &#8212; PyTomography 1.0.0 documentation</title>
   
   
   
@@ -34,7 +34,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=b425c228"></script>
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=367f7090"></script>
     <script src="../../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -129,13 +129,6 @@
   <ul class="bd-navbar-elements navbar-nav">
     
                     <li class="nav-item">
-                      <a class="nav-link nav-internal" href="../../../../notebooks/conventions.html">
-                        Manual
-                      </a>
-                    </li>
-                
-
-                    <li class="nav-item">
                       <a class="nav-link nav-internal" href="../../../../usage.html">
                         Tutorials
                       </a>
@@ -145,6 +138,13 @@
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="../../../../developers_guide.html">
                         Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../external_data.html">
+                        External Data
                       </a>
                     </li>
                 
@@ -229,13 +229,6 @@ document.write(`
   <ul class="bd-navbar-elements navbar-nav">
     
                     <li class="nav-item">
-                      <a class="nav-link nav-internal" href="../../../../notebooks/conventions.html">
-                        Manual
-                      </a>
-                    </li>
-                
-
-                    <li class="nav-item">
                       <a class="nav-link nav-internal" href="../../../../usage.html">
                         Tutorials
                       </a>
@@ -245,6 +238,13 @@ document.write(`
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="../../../../developers_guide.html">
                         Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../external_data.html">
+                        External Data
                       </a>
                     </li>
                 
@@ -339,34 +339,46 @@ document.write(`
 <span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">collections.abc</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Sequence</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Sequence</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">numpy.linalg</span> <span class="k">as</span> <span class="nn">npl</span>
 <span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="kn">import</span> <span class="n">affine_transform</span>
-<span class="kn">import</span> <span class="nn">scipy.interpolate</span>
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
 <span class="kn">import</span> <span class="nn">pydicom</span>
 <span class="kn">from</span> <span class="nn">pydicom.dataset</span> <span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span> <span class="nn">pydicom.uid</span> <span class="kn">import</span> <span class="n">generate_uid</span>
 <span class="kn">import</span> <span class="nn">pytomography</span>
-<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ImageMeta</span>
-<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ImageMeta</span>
-<span class="kn">from</span> <span class="nn">pytomography.projections</span> <span class="kn">import</span> <span class="n">SystemMatrix</span>
-<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">PSFMeta</span>
-<span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">get_blank_below_above</span><span class="p">,</span> <span class="n">bilinear_transform</span>
-<span class="kn">from</span> <span class="nn">..io_utils</span> <span class="kn">import</span> <span class="n">open_CT_file</span><span class="p">,</span> <span class="n">get_HU2mu_conversion</span><span class="p">,</span> <span class="n">get_mu_from_spectrum_interp</span>
+<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTImageMeta</span><span class="p">,</span> <span class="n">SPECTPSFMeta</span>
+<span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">get_blank_below_above</span><span class="p">,</span> <span class="n">compute_TEW</span><span class="p">,</span> <span class="n">get_mu_from_spectrum_interp</span>
+<span class="kn">from</span> <span class="nn">..CT</span> <span class="kn">import</span> <span class="n">get_HU2mu_conversion</span><span class="p">,</span> <span class="n">open_CT_file</span><span class="p">,</span> <span class="n">compute_max_slice_loc_CT</span>
+<span class="kn">from</span> <span class="nn">..shared</span> <span class="kn">import</span> <span class="n">create_ds</span>
 
-<div class="viewcode-block" id="get_radii_and_angles"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html#pytomography.io.SPECT.dicom.get_radii_and_angles">[docs]</a><span class="k">def</span> <span class="nf">get_radii_and_angles</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">]:</span>
+<div class="viewcode-block" id="parse_projection_dataset"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html#pytomography.io.SPECT.dicom.parse_projection_dataset">[docs]</a><span class="k">def</span> <span class="nf">parse_projection_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets projections with corresponding radii and angles corresponding to projection data from a DICOM file.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        ds (Dataset): pydicom dataset object.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        (torch.tensor[1,Ltheta, Lr, Lz], np.array, np.array): Required image data for reconstruction.</span>
+<span class="sd">        (torch.tensor[EWindows, TimeWindows, Ltheta, Lr, Lz], np.array, np.array): Returns (i) projection data (ii) angles (iii) radii and (iv) flags for whether or not multiple energy windows/time slots were detected.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">pixel_array</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">pixel_array</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">ds</span><span class="o">.</span><span class="n">NumberOfEnergyWindows</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">ds</span><span class="o">.</span><span class="n">Rows</span><span class="p">,</span> <span class="n">ds</span><span class="o">.</span><span class="n">Columns</span><span class="p">))</span>
+    <span class="n">flags</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;multi_energy_window&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;multi_time_slot&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+    <span class="n">pixel_array</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">pixel_array</span>
+    <span class="c1"># Energy Window Vector</span>
+    <span class="n">energy_window_vector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">EnergyWindowVector</span><span class="p">)</span>
+    <span class="n">detector_vector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">DetectorVector</span><span class="p">)</span>
+    <span class="c1"># Time slot vector</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">time_slot_vector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">TimeSlotVector</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">time_slot_vector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">detector_vector</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="c1"># Update flags</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">energy_window_vector</span><span class="p">))</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">flags</span><span class="p">[</span><span class="s1">&#39;multi_energy_window&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">time_slot_vector</span><span class="p">))</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">flags</span><span class="p">[</span><span class="s1">&#39;multi_time_slot&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="c1"># Get radii and angles</span>
     <span class="n">detectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">DetectorVector</span><span class="p">)</span>
     <span class="n">radii</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
     <span class="n">angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
@@ -386,39 +398,88 @@ document.write(`
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">radial_positions_detector</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Sequence</span><span class="p">):</span>
             <span class="n">radial_positions_detector</span> <span class="o">=</span> <span class="n">n_angles</span> <span class="o">*</span> <span class="p">[</span><span class="n">radial_positions_detector</span><span class="p">]</span>
         <span class="n">radii</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">radii</span><span class="p">,</span> <span class="n">radial_positions_detector</span><span class="p">])</span>
-        
+    
+    <span class="n">projections</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">energy_window</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">energy_window_vector</span><span class="p">):</span>
+        <span class="n">t_slot_projections</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">time_slot</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">time_slot_vector</span><span class="p">):</span>
+            <span class="n">pixel_array_i</span> <span class="o">=</span> <span class="n">pixel_array</span><span class="p">[(</span><span class="n">time_slot_vector</span><span class="o">==</span><span class="n">time_slot</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">energy_window_vector</span><span class="o">==</span><span class="n">energy_window</span><span class="p">)]</span>
+            <span class="n">t_slot_projections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pixel_array_i</span><span class="p">)</span>
+        <span class="n">projections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t_slot_projections</span><span class="p">)</span>
+    <span class="n">projections</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">projections</span><span class="p">)</span>
+    
     <span class="n">angles</span> <span class="o">=</span> <span class="p">(</span><span class="n">angles</span> <span class="o">+</span> <span class="mi">180</span><span class="p">)</span><span class="o">%</span><span class="mi">360</span> <span class="c1"># to detector angle convention</span>
     <span class="n">sorted_idxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">angles</span><span class="p">)</span>
-    <span class="n">projections</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">pixel_array</span><span class="p">[:,</span><span class="n">sorted_idxs</span><span class="p">][:,:,::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">projections</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">projections</span><span class="p">[:,:,</span><span class="n">sorted_idxs</span><span class="p">,::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">projections</span><span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">projections</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> 
     <span class="k">return</span> <span class="p">(</span><span class="n">projections</span><span class="p">,</span>
              <span class="n">angles</span><span class="p">[</span><span class="n">sorted_idxs</span><span class="p">],</span>
-             <span class="n">radii</span><span class="p">[</span><span class="n">sorted_idxs</span><span class="p">]</span><span class="o">/</span><span class="mi">10</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="get_projections"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/index.html#pytomography.io.SPECT.dicom.get_projections">[docs]</a><span class="k">def</span> <span class="nf">get_projections</span><span class="p">(</span>
+             <span class="n">radii</span><span class="p">[</span><span class="n">sorted_idxs</span><span class="p">]</span><span class="o">/</span><span class="mi">10</span><span class="p">,</span>
+             <span class="n">flags</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="get_metadata"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html#pytomography.io.SPECT.dicom.get_metadata">[docs]</a><span class="k">def</span> <span class="nf">get_metadata</span><span class="p">(</span>
     <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">index_peak</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ImageMeta</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets ObjectMeta, ImageMeta, and projections from a .dcm file.</span>
+    <span class="n">index_peak</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTImageMeta</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets PyTomography metadata from a .dcm file.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        file (str): Path to the .dcm file</span>
-<span class="sd">        index_peak (int): If not none, then the returned projections correspond to the index of this energy window. Otherwise returns all energy windows. Defaults to None.</span>
+<span class="sd">        file (str): Path to the .dcm file of SPECT projection data.</span>
+<span class="sd">        index_peak (int): EnergyWindowInformationSequence index corresponding to the photopeak. Defaults to 0.</span>
 <span class="sd">    Returns:</span>
-<span class="sd">        (ObjectMeta, ImageMeta, torch.Tensor[1, Ltheta, Lr, Lz]): Required information for reconstruction in PyTomography.</span>
+<span class="sd">        (ObjectMeta, ImageMeta): Required metadata information for reconstruction in PyTomography.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">dx</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mi">10</span>
     <span class="n">dz</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="mi">10</span>
     <span class="n">dr</span> <span class="o">=</span> <span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dz</span><span class="p">)</span>
-    <span class="n">projections</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">radii</span> <span class="o">=</span> <span class="n">get_radii_and_angles</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
-    <span class="n">shape_proj</span><span class="o">=</span> <span class="n">projections</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">projections</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">radii</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">parse_projection_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+    <span class="n">shape_proj</span><span class="o">=</span> <span class="p">(</span><span class="n">projections</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">],</span> <span class="n">projections</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="n">projections</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
     <span class="n">shape_obj</span> <span class="o">=</span> <span class="p">(</span><span class="n">shape_proj</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">shape_proj</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">shape_proj</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
-    <span class="n">object_meta</span> <span class="o">=</span> <span class="n">ObjectMeta</span><span class="p">(</span><span class="n">dr</span><span class="p">,</span><span class="n">shape_obj</span><span class="p">)</span>
-    <span class="n">image_meta</span> <span class="o">=</span> <span class="n">ImageMeta</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">radii</span><span class="p">)</span>
+    <span class="n">object_meta</span> <span class="o">=</span> <span class="n">SPECTObjectMeta</span><span class="p">(</span><span class="n">dr</span><span class="p">,</span><span class="n">shape_obj</span><span class="p">)</span>
+    <span class="n">image_meta</span> <span class="o">=</span> <span class="n">SPECTImageMeta</span><span class="p">((</span><span class="n">shape_proj</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">shape_proj</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">angles</span><span class="p">,</span> <span class="n">radii</span><span class="p">)</span>
+    <span class="n">object_meta</span><span class="o">.</span><span class="n">affine_matrix</span> <span class="o">=</span> <span class="n">_get_affine_spect_projections</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+    <span class="n">image_meta</span><span class="o">.</span><span class="n">filepath</span> <span class="o">=</span> <span class="n">file</span>
+    <span class="n">image_meta</span><span class="o">.</span><span class="n">index_peak</span> <span class="o">=</span> <span class="n">index_peak</span>
+    <span class="k">return</span> <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span></div>
+
+<div class="viewcode-block" id="get_projections"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/index.html#pytomography.io.SPECT.dicom.get_projections">[docs]</a><span class="k">def</span> <span class="nf">get_projections</span><span class="p">(</span>
+    <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">index_peak</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">index_time</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">print_shape</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTImageMeta</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets projections from a .dcm file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        file (str): Path to the .dcm file of SPECT projection data.</span>
+<span class="sd">        index_peak (int): If not none, then the returned projections correspond to the index of this energy window. Otherwise returns all energy windows. Defaults to None.</span>
+<span class="sd">        index_time (int): If not none, then the returned projections correspond to the index of the time slot in gated SPECT. Otherwise returns all time slots. Defaults to None</span>
+<span class="sd">        print_shape (bool): If true, then prints the shape of the projections returned. Defaults to true.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        (SPECTObjectMeta, SPECTImageMeta, torch.Tensor[..., Ltheta, Lr, Lz]) where ... depends on if time slots are considered.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">projections</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">flags</span> <span class="o">=</span> <span class="n">parse_projection_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">index_peak</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">projections</span> <span class="o">=</span> <span class="n">projections</span><span class="p">[</span><span class="n">index_peak</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">,</span> <span class="n">projections</span></div>
+        <span class="n">flags</span><span class="p">[</span><span class="s1">&#39;multi_energy_window&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">index_time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">projections</span> <span class="o">=</span> <span class="n">projections</span><span class="p">[:,</span><span class="n">index_time</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">flags</span><span class="p">[</span><span class="s1">&#39;multi_time_slot&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">projections</span> <span class="o">=</span> <span class="n">projections</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
+    <span class="n">dimension_list</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Ltheta&#39;</span><span class="p">,</span> <span class="s1">&#39;Lr&#39;</span><span class="p">,</span> <span class="s1">&#39;Lz&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">flags</span><span class="p">[</span><span class="s1">&#39;multi_time_slot&#39;</span><span class="p">]:</span>
+        <span class="n">dimension_list</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;N_timeslots&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">dimension_list</span>
+        <span class="k">if</span> <span class="n">print_shape</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Multiple time slots found&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">flags</span><span class="p">[</span><span class="s1">&#39;multi_energy_window&#39;</span><span class="p">]:</span>
+        <span class="n">dimension_list</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;N_energywindows&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">dimension_list</span>
+        <span class="k">if</span> <span class="n">print_shape</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Multiple energy windows found&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dimension_list</span><span class="p">)</span><span class="o">==</span><span class="mi">3</span><span class="p">:</span>
+        <span class="n">dimension_list</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">dimension_list</span>
+        <span class="n">projections</span> <span class="o">=</span> <span class="n">projections</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">print_shape</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Returned projections have dimensions (</span><span class="si">{</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dimension_list</span><span class="p">)</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">projections</span></div>
 
 <div class="viewcode-block" id="get_window_width"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html#pytomography.io.SPECT.dicom.get_window_width">[docs]</a><span class="k">def</span> <span class="nf">get_window_width</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the width of an energy window corresponding to a particular index in the DetectorInformationSequence DICOM attribute.</span>
@@ -456,9 +517,9 @@ document.write(`
     <span class="n">ww_peak</span> <span class="o">=</span> <span class="n">get_window_width</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">index_peak</span><span class="p">)</span>
     <span class="n">ww_lower</span> <span class="o">=</span> <span class="n">get_window_width</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">index_lower</span><span class="p">)</span>
     <span class="n">ww_upper</span> <span class="o">=</span> <span class="n">get_window_width</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">index_upper</span><span class="p">)</span>
-    <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">projections_all</span> <span class="o">=</span> <span class="n">get_projections</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
-    <span class="n">scatter</span> <span class="o">=</span> <span class="p">(</span><span class="n">projections_all</span><span class="p">[</span><span class="n">index_lower</span><span class="p">]</span><span class="o">/</span><span class="n">ww_lower</span> <span class="o">+</span> <span class="n">projections_all</span><span class="p">[</span><span class="n">index_upper</span><span class="p">]</span><span class="o">/</span><span class="n">ww_upper</span><span class="p">)</span><span class="o">*</span> <span class="n">ww_peak</span> <span class="o">/</span> <span class="mi">2</span>
-    <span class="k">return</span> <span class="n">scatter</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
+    <span class="n">projections_all</span> <span class="o">=</span> <span class="n">get_projections</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">print_shape</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">scatter</span> <span class="o">=</span> <span class="n">compute_TEW</span><span class="p">(</span><span class="n">projections_all</span><span class="p">[</span><span class="n">index_lower</span><span class="p">],</span><span class="n">projections_all</span><span class="p">[</span><span class="n">index_upper</span><span class="p">],</span> <span class="n">ww_lower</span><span class="p">,</span> <span class="n">ww_upper</span><span class="p">,</span> <span class="n">ww_peak</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">scatter</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="get_attenuation_map_from_file"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/index.html#pytomography.io.SPECT.dicom.get_attenuation_map_from_file">[docs]</a><span class="k">def</span> <span class="nf">get_attenuation_map_from_file</span><span class="p">(</span><span class="n">file_AM</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets an attenuation map from a DICOM file. This data is usually provided by the manufacturer of the SPECT scanner. </span>
@@ -480,38 +541,67 @@ document.write(`
     <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">attenuation_map</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">)))</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="get_psfmeta_from_scanner_params"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/index.html#pytomography.io.SPECT.dicom.get_psfmeta_from_scanner_params">[docs]</a><span class="k">def</span> <span class="nf">get_psfmeta_from_scanner_params</span><span class="p">(</span>
-    <span class="n">camera_model</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">collimator_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">energy_keV</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">min_sigmas</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">3</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PSFMeta</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets PSF metadata from SPECT camera/collimator parameters. Performs linear interpolation to find linear attenuation coefficient for lead collimators for energy values within the range 100keV - 600keV.</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SPECTPSFMeta</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtains SPECT PSF metadata given a unique collimator code and photopeak energy of radionuclide. For more information on collimator codes, see the &quot;external data&quot; section of the readthedocs page.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        camera_model (str): Name of SPECT camera. </span>
-<span class="sd">        collimator_name (str): Name of collimator used.</span>
+<span class="sd">        collimator_name (str): Code for the collimator used.</span>
 <span class="sd">        energy_keV (float): Energy of the photopeak</span>
 <span class="sd">        min_sigmas (float): Minimum size of the blurring kernel used. Fixes the convolutional kernel size so that all locations have at least ``min_sigmas`` in dimensions (some will be greater)</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        PSFMeta: PSF metadata.</span>
+<span class="sd">        SPECTPSFMeta: PSF metadata.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">module_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+    <span class="n">collimator_filepath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">module_path</span><span class="p">,</span> <span class="s1">&#39;../../data/collim.col&#39;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">collimator_filepath</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">collimator_data</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="n">collimator_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">collimator_data</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">collimator_data</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">collimator_data</span><span class="p">,</span> <span class="n">collimator_name</span><span class="p">)</span><span class="o">&gt;=</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Cannot find data for collimator name </span><span class="si">{</span><span class="n">collimator_name</span><span class="si">}</span><span class="s1">. For a list of available collimator names, run `from pytomography.utils import print_collimator_parameters` and then `print_collimator_parameters()`.&#39;</span><span class="p">)</span>
     
-    <span class="n">scanner_datasheet</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">module_path</span><span class="p">,</span> <span class="s1">&#39;../../data/SPECT_collimator_parameters.csv&#39;</span><span class="p">),</span> <span class="n">skip_header</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;U50,U50,float,float&#39;</span><span class="p">],</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">scanner_datasheet</span><span class="p">)):</span>
-        <span class="k">if</span> <span class="n">camera_model</span> <span class="o">==</span> <span class="n">scanner_datasheet</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">collimator_name</span> <span class="o">==</span> <span class="n">scanner_datasheet</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]:</span>
-            <span class="n">hole_diameter</span> <span class="o">=</span> <span class="n">scanner_datasheet</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
-            <span class="n">hole_length</span> <span class="o">=</span> <span class="n">scanner_datasheet</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span>
+    <span class="c1"># TODO: Support for other collimator types. Right now just parallel hole</span>
+    <span class="n">hole_length</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">3</span><span class="p">])</span>
+    <span class="n">hole_diameter</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">1</span><span class="p">])</span>
 
     <span class="n">lead_attenuation</span> <span class="o">=</span> <span class="n">get_mu_from_spectrum_interp</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">module_path</span><span class="p">,</span> <span class="s1">&#39;../../data/NIST_attenuation_data/lead.csv&#39;</span><span class="p">),</span> <span class="n">energy_keV</span><span class="p">)</span>
     
     <span class="n">collimator_slope</span> <span class="o">=</span> <span class="n">hole_diameter</span><span class="o">/</span><span class="p">(</span><span class="n">hole_length</span> <span class="o">-</span> <span class="p">(</span><span class="mi">2</span><span class="o">/</span><span class="n">lead_attenuation</span><span class="p">))</span> <span class="o">*</span> <span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">)))</span>
     <span class="n">collimator_intercept</span> <span class="o">=</span> <span class="n">hole_diameter</span> <span class="o">*</span> <span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">)))</span>
     
-    <span class="k">return</span> <span class="n">PSFMeta</span><span class="p">((</span><span class="n">collimator_slope</span><span class="p">,</span> <span class="n">collimator_intercept</span><span class="p">),</span> <span class="n">min_sigmas</span><span class="o">=</span><span class="n">min_sigmas</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">SPECTPSFMeta</span><span class="p">((</span><span class="n">collimator_slope</span><span class="p">,</span> <span class="n">collimator_intercept</span><span class="p">),</span> <span class="n">min_sigmas</span><span class="o">=</span><span class="n">min_sigmas</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CT_to_mumap"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/index.html#pytomography.io.SPECT.dicom.CT_to_mumap">[docs]</a><span class="k">def</span> <span class="nf">CT_to_mumap</span><span class="p">(</span>
+    <span class="n">CT</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span>
+    <span class="n">files_CT</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">file_NM</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">index_peak</span><span class="o">=</span><span class="mi">0</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts a CT image to a mu-map given SPECT projection data. The CT data must be aligned with the projection data already; this is a helper function for ``get_attenuation_map_from_CT_slices``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        CT (torch.tensor): CT object in units of HU</span>
+<span class="sd">        files_CT (Sequence[str]): Filepaths of all CT slices</span>
+<span class="sd">        file_NM (str): Filepath of SPECT projectio ndata</span>
+<span class="sd">        index_peak (int, optional): Index of EnergyInformationSequence corresponding to the photopeak. Defaults to 0.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.tensor: Attenuation map in units of 1/cm</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ds_NM</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file_NM</span><span class="p">)</span>
+    <span class="n">window_upper</span> <span class="o">=</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">EnergyWindowInformationSequence</span><span class="p">[</span><span class="n">index_peak</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowRangeSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowUpperLimit</span>
+    <span class="n">window_lower</span> <span class="o">=</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">EnergyWindowInformationSequence</span><span class="p">[</span><span class="n">index_peak</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowRangeSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowLowerLimit</span>
+    <span class="n">E_SPECT</span> <span class="o">=</span> <span class="p">(</span><span class="n">window_lower</span> <span class="o">+</span> <span class="n">window_upper</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span>
+    <span class="n">KVP</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">files_CT</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">KVP</span>
+    <span class="n">HU2mu_conversion</span> <span class="o">=</span> <span class="n">get_HU2mu_conversion</span><span class="p">(</span><span class="n">files_CT</span><span class="p">,</span> <span class="n">KVP</span><span class="p">,</span> <span class="n">E_SPECT</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">HU2mu_conversion</span><span class="p">(</span><span class="n">CT</span><span class="p">)</span></div>
+    
 
 <div class="viewcode-block" id="get_attenuation_map_from_CT_slices"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/index.html#pytomography.io.SPECT.dicom.get_attenuation_map_from_CT_slices">[docs]</a><span class="k">def</span> <span class="nf">get_attenuation_map_from_CT_slices</span><span class="p">(</span>
     <span class="n">files_CT</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -520,7 +610,7 @@ document.write(`
     <span class="n">keep_as_HU</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;nearest&#39;</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography. Note that it is recommended by https://jnm.snmjournals.org/content/57/1/151.long to use the vendors attenuation map as opposed to creating your own. As such, the ``get_attenuation_map_from_file`` should be used preferentially over this function, if you have access to an attenuation map from the vendor.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        files_CT (Sequence[str]): List of all files corresponding to an individual CT scan</span>
@@ -532,59 +622,52 @@ document.write(`
 <span class="sd">        torch.Tensor: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     
-    <span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">files_CT</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-    <span class="n">CT_HU</span><span class="p">,</span> <span class="n">max_slice_loc</span> <span class="o">=</span> <span class="n">open_CT_file</span><span class="p">(</span><span class="n">files_CT</span><span class="p">,</span> <span class="n">return_max_slice_loc</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">CT_HU</span> <span class="o">=</span> <span class="n">open_CT_file</span><span class="p">(</span><span class="n">files_CT</span><span class="p">)</span>
     
     <span class="k">if</span> <span class="n">file_NM</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">CT_HU</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">,::</span><span class="o">-</span><span class="mi">1</span><span class="p">,::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">CT_HU</span><span class="p">[:,:,::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     
     <span class="n">ds_NM</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file_NM</span><span class="p">)</span>
-    <span class="c1"># 1. Align with SPECT</span>
-    <span class="c1"># Affine matrix</span>
-    <span class="n">M_CT</span> <span class="o">=</span> <span class="n">get_affine_CT</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">max_slice_loc</span><span class="p">)</span>
-    <span class="n">M_NM</span> <span class="o">=</span> <span class="n">get_affine_spect</span><span class="p">(</span><span class="n">ds_NM</span><span class="p">)</span>
+    <span class="c1"># Align with SPECT:</span>
+    <span class="n">M_CT</span> <span class="o">=</span> <span class="n">_get_affine_CT</span><span class="p">(</span><span class="n">files_CT</span><span class="p">)</span>
+    <span class="n">M_NM</span> <span class="o">=</span> <span class="n">_get_affine_spect_projections</span><span class="p">(</span><span class="n">file_NM</span><span class="p">)</span>
     <span class="c1"># Resample CT and convert to mu at 208keV and save</span>
     <span class="n">M</span> <span class="o">=</span> <span class="n">npl</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">M_CT</span><span class="p">)</span> <span class="o">@</span> <span class="n">M_NM</span>
     <span class="c1"># When doing affine transform, fill outside with point below -1000HU so it automatically gets converted to mu=0 after bilinear transform</span>
     <span class="n">CT_HU</span> <span class="o">=</span> <span class="n">affine_transform</span><span class="p">(</span><span class="n">CT_HU</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">output_shape</span><span class="o">=</span><span class="p">(</span><span class="n">ds_NM</span><span class="o">.</span><span class="n">Rows</span><span class="p">,</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">Rows</span><span class="p">,</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">Columns</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">cval</span><span class="o">=-</span><span class="mi">1500</span><span class="p">)</span>
     
-    <span class="c1">#2. Scale to linear attenuation coefficient</span>
-    <span class="n">window_upper</span> <span class="o">=</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">EnergyWindowInformationSequence</span><span class="p">[</span><span class="n">index_peak</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowRangeSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowUpperLimit</span>
-    <span class="n">window_lower</span> <span class="o">=</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">EnergyWindowInformationSequence</span><span class="p">[</span><span class="n">index_peak</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowRangeSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">EnergyWindowLowerLimit</span>
-    <span class="n">E_SPECT</span> <span class="o">=</span> <span class="p">(</span><span class="n">window_lower</span> <span class="o">+</span> <span class="n">window_upper</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span>
-    <span class="n">KVP</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">files_CT</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">KVP</span>
-    <span class="n">HU2mu_conversion</span> <span class="o">=</span> <span class="n">get_HU2mu_conversion</span><span class="p">(</span><span class="n">files_CT</span><span class="p">,</span> <span class="n">KVP</span><span class="p">,</span> <span class="n">E_SPECT</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">keep_as_HU</span><span class="p">:</span>
         <span class="n">CT</span> <span class="o">=</span> <span class="n">CT_HU</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">CT</span><span class="o">=</span> <span class="n">HU2mu_conversion</span><span class="p">(</span><span class="n">CT_HU</span><span class="p">)</span>
-    <span class="n">CT</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">CT</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">,::</span><span class="o">-</span><span class="mi">1</span><span class="p">,::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">CT</span><span class="o">=</span> <span class="n">CT_to_mumap</span><span class="p">(</span><span class="n">CT_HU</span><span class="p">,</span> <span class="n">files_CT</span><span class="p">,</span> <span class="n">file_NM</span><span class="p">,</span> <span class="n">index_peak</span><span class="p">)</span>
+    <span class="n">CT</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">CT</span><span class="p">[:,:,::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">CT</span></div>
 
-
-<div class="viewcode-block" id="get_affine_spect"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html#pytomography.io.SPECT.dicom.get_affine_spect">[docs]</a><span class="k">def</span> <span class="nf">get_affine_spect</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes an affine matrix corresponding the coordinate system of a SPECT DICOM file.</span>
+<div class="viewcode-block" id="_get_affine_spect_projections"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html#pytomography.io.SPECT.dicom._get_affine_spect_projections">[docs]</a><span class="k">def</span> <span class="nf">_get_affine_spect_projections</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span><span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes an affine matrix corresponding the coordinate system of a SPECT DICOM file of projections.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        ds (Dataset): DICOM dataset of projection data</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        np.array: Affine matrix.</span>
+<span class="sd">        np.array: Affine matrix</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Note: per DICOM convention z actually decreases as the z-index increases (initial z slices start with the head)</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
     <span class="n">Sx</span><span class="p">,</span> <span class="n">Sy</span><span class="p">,</span> <span class="n">Sz</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">DetectorInformationSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ImagePositionPatient</span>
     <span class="n">dx</span> <span class="o">=</span> <span class="n">dy</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">dz</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-    <span class="n">Sx</span> <span class="o">+=</span> <span class="n">ds</span><span class="o">.</span><span class="n">Rows</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">dx</span>
-    <span class="n">Sy</span> <span class="o">+=</span> <span class="n">ds</span><span class="o">.</span><span class="n">Rows</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">dy</span>
+    <span class="n">Sx</span> <span class="o">-=</span> <span class="n">ds</span><span class="o">.</span><span class="n">Rows</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">dx</span>
+    <span class="n">Sy</span> <span class="o">-=</span> <span class="n">ds</span><span class="o">.</span><span class="n">Rows</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">dy</span>
+    <span class="n">Sy</span> <span class="o">-=</span> <span class="n">ds</span><span class="o">.</span><span class="n">RotationInformationSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">TableHeight</span>
     <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
-    <span class="c1"># x and y negative b/c opposite of CT. z is negative in both</span>
-    <span class="n">M</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="n">dx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
-    <span class="n">M</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="n">dy</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
-    <span class="n">M</span><span class="p">[:,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="n">dz</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
-    <span class="n">M</span><span class="p">[:,</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">Sx</span><span class="p">,</span> <span class="n">Sy</span><span class="p">,</span> <span class="n">Sz</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">M</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">dx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">Sx</span><span class="p">])</span>
+    <span class="n">M</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">Sy</span><span class="p">])</span>
+    <span class="n">M</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="n">dz</span><span class="p">,</span> <span class="n">Sz</span><span class="p">])</span>
+    <span class="n">M</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">M</span></div>
 
-<div class="viewcode-block" id="get_affine_CT"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html#pytomography.io.SPECT.dicom.get_affine_CT">[docs]</a><span class="k">def</span> <span class="nf">get_affine_CT</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">max_z</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<div class="viewcode-block" id="_get_affine_CT"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html#pytomography.io.SPECT.dicom._get_affine_CT">[docs]</a><span class="k">def</span> <span class="nf">_get_affine_CT</span><span class="p">(</span><span class="n">filenames</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes an affine matrix corresponding the coordinate system of a CT DICOM file. Note that since CT scans consist of many independent DICOM files, ds corresponds to an individual one of these files. This is why the maximum z value is also required (across all seperate independent DICOM files).</span>
 
 <span class="sd">    Args:</span>
@@ -594,11 +677,14 @@ document.write(`
 <span class="sd">    Returns:</span>
 <span class="sd">        np.array: Affine matrix corresponding to CT scan.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Note: per DICOM convention z actually decreases as the z-index increases (initial z slices start with the head)</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">max_z</span> <span class="o">=</span> <span class="n">compute_max_slice_loc_CT</span><span class="p">(</span><span class="n">filenames</span><span class="p">)</span>
     <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
     <span class="n">M</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">ImageOrientationPatient</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">])</span><span class="o">*</span><span class="n">ds</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">M</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">ImageOrientationPatient</span><span class="p">[</span><span class="mi">3</span><span class="p">:])</span><span class="o">*</span><span class="n">ds</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-    <span class="n">M</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">ds</span><span class="o">.</span><span class="n">SliceThickness</span> 
-    <span class="n">M</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">ImagePositionPatient</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> 
+    <span class="n">M</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">ds</span><span class="o">.</span><span class="n">SliceThickness</span> 
+    <span class="n">M</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">ImagePositionPatient</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span> 
     <span class="n">M</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_z</span>
     <span class="n">M</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">return</span> <span class="n">M</span></div>
@@ -661,64 +747,71 @@ document.write(`
                 <span class="n">recon_aligned</span><span class="p">[:,:,:,</span><span class="n">zmin</span><span class="p">:</span><span class="n">zmax</span><span class="p">][</span><span class="o">~</span><span class="n">expanded_mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span> <span class="o">=</span> <span class="n">r2</span><span class="p">[</span><span class="o">~</span><span class="n">expanded_mask</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">recon_aligned</span></div>
 
-
-<span class="c1"># TODO: Update this function so that it includes photopeak energy window index, and psf should be computed using data tables corresponding to manufactorer data sheets.</span>
-<span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">def get_SPECT_recon_algorithm_dicom(</span>
-<span class="sd">    projections_file: str,</span>
-<span class="sd">    atteunation_files: Sequence[str] = None,</span>
-<span class="sd">    use_psf: bool = False,</span>
-<span class="sd">    scatter_type: str|None = None,</span>
-<span class="sd">    prior: Prior = None,</span>
-<span class="sd">    recon_algorithm_class: OSML = OSEMOSL,</span>
-<span class="sd">    object_initial: torch.Tensor | None = None,</span>
-<span class="sd">) -&gt; OSML:</span>
-<span class="sd">    &quot;&quot;&quot;Helper function to quickly create reconstruction algorithm given SPECT DICOM files and CT dicom files.</span>
+<div class="viewcode-block" id="save_dcm"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html#pytomography.io.SPECT.dicom.save_dcm">[docs]</a><span class="k">def</span> <span class="nf">save_dcm</span><span class="p">(</span>
+    <span class="n">save_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="nb">object</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">file_NM</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">recon_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+    <span class="n">scale_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Saves the reconstructed object `object` to a series of DICOM files in the folder given by `save_path`. Requires the filepath of the projection data `file_NM` to get Study information.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        projections_file (str): DICOM filepath corresponding to SPECT data.</span>
-<span class="sd">        atteunation_files (Sequence[str], optional): DICOM filepaths corresponding to CT data. If None, then atteunation correction is not used. Defaults to None.</span>
-<span class="sd">        use_psf (bool, optional): Whether or not to use PSF modeling. Defaults to False.</span>
-<span class="sd">        scatter_type (str | None, optional): Type of scatter correction used in reconstruction. Defaults to None.</span>
-<span class="sd">        prior (Prior, optional): Bayesian Prior used in reconstruction algorithm. Defaults to None.</span>
-<span class="sd">        recon_algorithm_class (nn.Module, optional): Type of reconstruction algorithm used. Defaults to OSEMOSL.</span>
-<span class="sd">        object_initial (torch.Tensor | None, optional): Initial object used in reconstruction. If None, defaults to all ones. Defaults to None.</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">        Exception: If not able to compute relevant PSF parameters from DICOM data and corresponding data tables.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        OSML: Reconstruction algorithm used.</span>
+<span class="sd">        object (torch.Tensor): Reconstructed object of shape [1,Lx,Ly,Lz].</span>
+<span class="sd">        save_path (str): Location of folder where to save the DICOM output files.</span>
+<span class="sd">        file_NM (str): File path of the projection data corresponding to the reconstruction.</span>
+<span class="sd">        recon_name (str): Type of reconstruction performed. Obtained from the `recon_method_str` attribute of a reconstruction algorithm class.</span>
+<span class="sd">        scale_factor (float, optional): Amount by which to scale output data so that it can be converted into a 16 bit integer. Defaults to 1024.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-<span class="sd">    # Get projections/scatter estimate</span>
-<span class="sd">    if scatter_type==None:</span>
-<span class="sd">        object_meta, image_meta, projections = get_projections(projections_file)</span>
-<span class="sd">        projections_scatter = 0 # equivalent to 0 estimated scatter everywhere</span>
-<span class="sd">    else:</span>
-<span class="sd">        object_meta, image_meta, projections, projections_scatter = dicom_MEW_to_data(projections_file, type=scatter_type)</span>
-<span class="sd">    # obj2obj and im2im nets.</span>
-<span class="sd">    object_correction_nets = []</span>
-<span class="sd">    image_correction_nets = []</span>
-<span class="sd">    # Load attenuation data</span>
-<span class="sd">    if atteunation_files is not None:</span>
-<span class="sd">        CT = dicom_CT_to_data(atteunation_files, projections_file)</span>
-<span class="sd">        CT_net = SPECTAttenuationTransform(CT.unsqueeze(dim=0))</span>
-<span class="sd">        object_correction_nets.append(CT_net)</span>
-<span class="sd">    # Load PSF parameters</span>
-<span class="sd">    if use_psf:</span>
-<span class="sd">        ds = pydicom.read_file(projections_file, force=True)</span>
-<span class="sd">        if ds.Manufacturer ==&#39;SIEMENS NM&#39;:</span>
-<span class="sd">            # Find a more consistent way to do this</span>
-<span class="sd">            angular_FWHM = ds[0x0055, 0x107f][0]</span>
-<span class="sd">            psf_meta = PSFMeta(collimator_slope = angular_FWHM/(2*np.sqrt(2*np.log(2))), collimator_intercept = 0.0)</span>
-<span class="sd">            psf_net = SPECTPSFTransform(psf_meta)</span>
-<span class="sd">        else:</span>
-<span class="sd">            raise Exception(&#39;Unable to compute PSF metadata from this DICOM file&#39;)</span>
-<span class="sd">        object_correction_nets.append(psf_net)</span>
-<span class="sd">    system_matrix = SystemMatrix(object_correction_nets, image_correction_nets, object_meta, image_meta)</span>
-<span class="sd">    recon_algorithm = recon_algorithm_class(projections, system_matrix, object_initial, projections_scatter, prior)</span>
-<span class="sd">    return recon_algorithm</span>
-<span class="sd">&#39;&#39;&#39;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">Path</span><span class="p">(</span><span class="n">save_path</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Folder </span><span class="si">{</span><span class="n">save_path</span><span class="si">}</span><span class="s1"> already exists; new folder name is required.&#39;</span><span class="p">)</span>
+    <span class="c1"># Convert tensor image to numpy array</span>
+    <span class="n">pixel_data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="nb">object</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span> <span class="o">*</span> <span class="n">scale_factor</span>
+    <span class="n">pixel_data</span> <span class="o">=</span> <span class="n">pixel_data</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">)</span>
+    <span class="c1"># Get affine information</span>
+    <span class="n">ds_NM</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">dcmread</span><span class="p">(</span><span class="n">file_NM</span><span class="p">)</span>
+    <span class="n">Sx</span><span class="p">,</span> <span class="n">Sy</span><span class="p">,</span> <span class="n">Sz</span> <span class="o">=</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">DetectorInformationSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ImagePositionPatient</span>
+    <span class="n">dx</span> <span class="o">=</span> <span class="n">dy</span> <span class="o">=</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">dz</span> <span class="o">=</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">Sx</span> <span class="o">-=</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">Rows</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">dx</span>
+    <span class="n">Sy</span> <span class="o">-=</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">Rows</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">dy</span>
+    <span class="c1"># Y-Origin point at tableheight=0</span>
+    <span class="n">Sy</span> <span class="o">-=</span> <span class="n">ds_NM</span><span class="o">.</span><span class="n">RotationInformationSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">TableHeight</span>
+    <span class="c1"># Sz now refers to location of lowest slice</span>
+    <span class="n">Sz</span> <span class="o">-=</span> <span class="p">(</span><span class="n">pixel_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">dz</span>
+    <span class="n">SOP_instance_UID</span> <span class="o">=</span> <span class="n">generate_uid</span><span class="p">()</span>
+    <span class="n">SOP_class_UID</span> <span class="o">=</span> <span class="s1">&#39;1.2.840.10008.5.1.4.1.1.128&#39;</span> <span class="c1">#SPECT storage</span>
+    <span class="n">modality</span> <span class="o">=</span> <span class="s1">&#39;PT&#39;</span> <span class="c1"># SPECT storage</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">create_ds</span><span class="p">(</span><span class="n">ds_NM</span><span class="p">,</span> <span class="n">SOP_instance_UID</span><span class="p">,</span> <span class="n">SOP_class_UID</span><span class="p">,</span> <span class="n">modality</span><span class="p">)</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">Rows</span><span class="p">,</span> <span class="n">ds</span><span class="o">.</span><span class="n">Columns</span> <span class="o">=</span> <span class="n">pixel_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">SeriesNumber</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">NumberOfSlices</span> <span class="o">=</span> <span class="n">pixel_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">PixelSpacing</span> <span class="o">=</span> <span class="p">[</span><span class="n">dx</span><span class="p">,</span><span class="n">dy</span><span class="p">]</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">SliceThickness</span> <span class="o">=</span> <span class="n">dz</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">ImageOrientationPatient</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">RescaleSlope</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="n">scale_factor</span>
+    <span class="c1"># Set other things</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">BitsAllocated</span> <span class="o">=</span> <span class="mi">16</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">BitsStored</span> <span class="o">=</span> <span class="mi">16</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">SamplesPerPixel</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">PhotometricInterpretation</span> <span class="o">=</span> <span class="s1">&#39;MONOCHROME2&#39;</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">PixelRepresentation</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">ReconstructionMethod</span> <span class="o">=</span> <span class="n">recon_name</span>
+    <span class="c1"># Create all slices</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pixel_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="c1"># Load existing DICOM file</span>
+        <span class="n">ds_i</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">ds_i</span><span class="o">.</span><span class="n">InstanceNumber</span> <span class="o">=</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span>
+        <span class="n">ds_i</span><span class="o">.</span><span class="n">ImagePositionPatient</span> <span class="o">=</span> <span class="p">[</span><span class="n">Sx</span><span class="p">,</span><span class="n">Sy</span><span class="p">,</span><span class="n">Sz</span><span class="o">+</span><span class="n">i</span><span class="o">*</span><span class="n">dz</span><span class="p">]</span>
+        <span class="c1"># Create SOP Instance UID unique to slice</span>
+        <span class="n">SOP_instance_UID_slice</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">ds_i</span><span class="o">.</span><span class="n">SOPInstanceUID</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span><span class="si">}{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">:</span><span class="s1">03d</span><span class="si">}</span><span class="s1">&#39;</span>
+        <span class="n">ds_i</span><span class="o">.</span><span class="n">SOPInstanceUID</span> <span class="o">=</span> <span class="n">SOP_instance_UID_slice</span> 
+        <span class="n">ds_i</span><span class="o">.</span><span class="n">file_meta</span><span class="o">.</span><span class="n">MediaStorageSOPInstanceUID</span> <span class="o">=</span> <span class="p">(</span><span class="n">SOP_instance_UID_slice</span><span class="p">)</span>
+        <span class="c1"># Set the pixel data</span>
+        <span class="n">ds_i</span><span class="o">.</span><span class="n">PixelData</span> <span class="o">=</span> <span class="n">pixel_data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">tobytes</span><span class="p">()</span>
+        <span class="n">ds_i</span><span class="o">.</span><span class="n">save_as</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">save_path</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">ds</span><span class="o">.</span><span class="n">SOPInstanceUID</span><span class="si">}</span><span class="s1">.dcm&#39;</span><span class="p">))</span></div>
 </pre></div>
 
                 </article>

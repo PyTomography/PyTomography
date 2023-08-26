@@ -4,10 +4,9 @@ import torch
 import torch.nn as nn
 import numpy as np
 import pytomography
-from pytomography.utils import get_distance, compute_pad_size, pad_object, pad_object_z, unpad_object_z, rotate_detector_z, unpad_object
+from pytomography.utils import get_distance, compute_pad_size
 from pytomography.transforms import Transform
-from pytomography.metadata import ObjectMeta, ImageMeta, PSFMeta
-import time
+from pytomography.metadata import SPECTObjectMeta, SPECTImageMeta, SPECTPSFMeta
     
 class GaussianBlurNet(nn.Module):
     def __init__(self, layer_r, layer_z=None):
@@ -16,10 +15,11 @@ class GaussianBlurNet(nn.Module):
         self.layer_z = layer_z
 
     def forward(self, input):
-        output = self.layer_r(torch.permute(input[0],(1,0,2)))
+        output = self.layer_r(torch.permute(input[0],(2,0,1)))
         # If 2D blurring
         if self.layer_z:
             output = self.layer_z(torch.permute(output,(2,1,0)))
+            output = torch.permute(output,(2,1,0))
         return torch.permute(output,(1,2,0)).unsqueeze(0)
 
 def get_1D_PSF_layer(
@@ -33,7 +33,7 @@ def get_1D_PSF_layer(
         kernel_size (int): Size of the kernel used in each layer. Needs to be large enough to cover most of Gaussian
         
     Returns:
-        torch.nn.Conv2d: Convolutional neural network layer used to apply blurring to objects of shape [batch_size, Lx, Ly, Lz]
+        torch.nn.Conv2d: Convolutional neural network layer used to apply blurring to objects of shape [Lx, L1, L2] where Lx is treated as a batch size, L1 as the channel (or group index) and L2 is the axis being blurred over 
     """
     N = len(sigmas)
     layer = nn.Conv1d(N, N, kernel_size, groups=N, padding='same',
@@ -46,14 +46,14 @@ def get_1D_PSF_layer(
     return layer
 
 class SPECTPSFTransform(Transform):
-    """obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``PSFMeta`` parameter. 
+    """obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``SPECTPSFMeta`` parameter. 
 
     Args:
-        psf_meta (PSFMeta): Metadata corresponding to the parameters of PSF blurring
+        psf_meta (SPECTPSFMeta): Metadata corresponding to the parameters of PSF blurring
     """
     def __init__(
         self,
-        psf_meta: PSFMeta, 
+        psf_meta: SPECTPSFMeta, 
     ) -> None:
         """Initializer that sets corresponding psf parameters"""
         super(SPECTPSFTransform, self).__init__()
@@ -61,23 +61,23 @@ class SPECTPSFTransform(Transform):
 
     def configure(
         self,
-        object_meta: ObjectMeta,
-        image_meta: ImageMeta
+        object_meta: SPECTObjectMeta,
+        image_meta: SPECTImageMeta
     ) -> None:
         """Function used to initalize the transform using corresponding object and image metadata
 
         Args:
-            object_meta (ObjectMeta): Object metadata.
-            image_meta (ImageMeta): Image metadata.
+            object_meta (SPECTObjectMeta): Object metadata.
+            image_meta (SPECTImageMeta): Image metadata.
         """
         super(SPECTPSFTransform, self).configure(object_meta, image_meta)
         self.layers = {}
         for radius in np.unique(image_meta.radii):
-            kernel_size_r = self.compute_kernel_size(radius, axis=0)
-            kernel_size_z = self.compute_kernel_size(radius, axis=2)
+            kernel_size_r = self._compute_kernel_size(radius, axis=0)
+            kernel_size_z = self._compute_kernel_size(radius, axis=2)
             # Compute sigmas and normalize to pixel units
-            sigma_r = self.get_sigma(radius)/object_meta.dx
-            sigma_z = self.get_sigma(radius)/object_meta.dz
+            sigma_r = self._get_sigma(radius)/object_meta.dx
+            sigma_z = self._get_sigma(radius)/object_meta.dz
             layer_r = get_1D_PSF_layer(sigma_r, kernel_size_r)
             layer_z = get_1D_PSF_layer(sigma_z, kernel_size_z)
             if self.psf_meta.kernel_dimensions=='2D':
@@ -85,17 +85,17 @@ class SPECTPSFTransform(Transform):
             else: # 1D blurring
                 self.layers[radius] = GaussianBlurNet(layer_r)
         
-    def compute_kernel_size(self, radius, axis) -> int:
-        """Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``PSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object. 
+    def _compute_kernel_size(self, radius, axis) -> int:
+        """Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``SPECTPSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object. 
 
         Returns:
             int: The corresponding kernel size used for PSF blurring.
         """
-        sigma_max = max(self.get_sigma(radius))
+        sigma_max = max(self._get_sigma(radius))
         sigma_max /= self.object_meta.dr[axis]
         return (np.ceil(sigma_max * self.psf_meta.min_sigmas)*2 + 1).astype(int)
     
-    def get_sigma(
+    def _get_sigma(
         self,
         radius: float,
     ) -> np.array:
@@ -112,7 +112,20 @@ class SPECTPSFTransform(Transform):
         sigma = self.psf_meta.sigma_fit(distances, *self.psf_meta.sigma_fit_params)
         return sigma
     
-    def apply_psf(self, object, ang_idx):
+    def _apply_psf(
+        self,
+        object: torch.tensor,
+        ang_idx: Sequence[int]
+        ) -> torch.tensor:
+        """Applies PSF modeling to an object with corresponding angle indices
+
+        Args:
+            object (torch.tensor): Tensor of shape ``[batch_size, Lx, Ly, Lz]`` corresponding to object rotated at different angles
+            ang_idx (Sequence[int]): List of length ``batch_size`` corresponding to angle of each object in the batch
+
+        Returns:
+            torch.tensor: Object with PSF modeling applied
+        """
         object_return = []
         for i in range(len(ang_idx)):
             object_temp = object[i].unsqueeze(0)
@@ -124,7 +137,7 @@ class SPECTPSFTransform(Transform):
     def forward(
 		self,
 		object_i: torch.Tensor,
-		ang_idx: int, 
+		ang_idx: Sequence[int], 
 	) -> torch.tensor:
         r"""Applies the PSF transform :math:`A:\mathbb{U} \to \mathbb{U}` for the situation where an object is being detector by a detector at the :math:`+x` axis.
 
@@ -135,7 +148,7 @@ class SPECTPSFTransform(Transform):
         Returns:
             torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.
         """
-        return self.apply_psf(object_i, ang_idx)
+        return self._apply_psf(object_i, ang_idx)
         
     @torch.no_grad()
     def backward(
@@ -155,8 +168,8 @@ class SPECTPSFTransform(Transform):
             torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.
         """
         if norm_constant is not None:
-            object_i = self.apply_psf(object_i, ang_idx)
-            norm_constant = self.apply_psf(norm_constant, ang_idx)
+            object_i = self._apply_psf(object_i, ang_idx)
+            norm_constant = self._apply_psf(norm_constant, ang_idx)
             return object_i, norm_constant
         else:
-            return self.apply_psf(object_i, ang_idx)
+            return self._apply_psf(object_i, ang_idx)

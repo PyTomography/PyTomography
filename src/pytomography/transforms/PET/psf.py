@@ -1,9 +1,8 @@
 from __future__ import annotations
 import numpy as np
 import torch
-import pytomography
 from pytomography.transforms import Transform
-from pytomography.metadata import ObjectMeta, ImageMeta, PSFMeta
+from pytomography.metadata import ObjectMeta, ImageMeta
 
 class PETPSFTransform(Transform):
     r"""im2im transform used to model the effects of PSF blurring in PET. The smoothing kernel is assumed to be independent of :math:`\theta` and :math:`z`, but is dependent on :math:`r`. 

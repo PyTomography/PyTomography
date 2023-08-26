@@ -1,0 +1,73 @@
+:py:mod:`pytomography.io.CT`
+============================
+
+.. py:module:: pytomography.io.CT
+
+.. autoapi-nested-parse::
+
+   Input/output functions for the CT imaging modality. Currently, the data types supported are DICOM files.
+
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   attenuation_map/index.rst
+   dicom/index.rst
+
+
+Package Contents
+----------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.io.CT.open_CT_file
+   pytomography.io.CT.compute_max_slice_loc_CT
+   pytomography.io.CT.get_HU2mu_conversion
+
+
+
+.. py:function:: open_CT_file(files_CT)
+
+   Given a list of seperate DICOM files, opens them up and stacks them together into a single CT image.
+
+   :param files_CT: List of CT DICOM filepaths corresponding to different z slices of the same scan.
+   :type files_CT: Sequence[str]
+
+   :returns: CT scan in units of Hounsfield Units at the effective CT energy.
+   :rtype: np.array
+
+
+.. py:function:: compute_max_slice_loc_CT(files_CT)
+
+   Obtains the maximum z-location from a list of CT DICOM files
+
+   :param files_CT: List of CT DICOM filepaths corresponding to different z slices of the same scan.
+   :type files_CT: Sequence[str]
+
+   :returns: Maximum z location
+   :rtype: float
+
+
+.. py:function:: get_HU2mu_conversion(files_CT, CT_kvp, E_SPECT)
+
+   Obtains the HU to mu conversion function that converts CT data to the required linear attenuation value in units of 1/cm required for attenuation correction in SPECT/PET imaging.
+
+   :param files_CT: CT data files
+   :type files_CT: Sequence[str]
+   :param CT_kvp: kVp value for CT scan
+   :type CT_kvp: float
+   :param E_SPECT: Energy of photopeak in SPECT scan
+   :type E_SPECT: float
+
+   :returns: Conversion function from HU to mu.
+   :rtype: function
+
+

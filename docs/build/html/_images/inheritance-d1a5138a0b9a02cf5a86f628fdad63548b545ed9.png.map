@@ -1,0 +1,4 @@
+<map id="inheritance545773c6d2" name="inheritance545773c6d2">
+<area shape="rect" id="node1" href="cutoff/index.html#pytomography.transforms.SPECT.cutoff.CutOffTransform" target="_top" title="im2im transformation used to set pixel values equal to zero at the first and last few z slices. This is often required when reconstructing DICOM data due to the finite field of view of the projection data, where additional axial slices are included on the top and bottom, with zero measured detection events. This transform is included in the system matrix, to model the sharp cutoff at the finite FOV." alt="" coords="139,5,264,31"/>
+<area shape="rect" id="node2" href="../transform/index.html#pytomography.transforms.transform.Transform" target="_top" title="The parent class for all transforms used in reconstruction (obj2obj, im2im, obj2im). Subclasses must implement the ``__call__`` method." alt="" coords="5,5,91,31"/>
+</map>

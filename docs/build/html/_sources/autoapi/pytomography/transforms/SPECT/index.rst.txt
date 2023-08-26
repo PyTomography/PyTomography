@@ -10,7 +10,7 @@ Submodules
    :titlesonly:
    :maxdepth: 1
 
-   atteunation/index.rst
+   attenuation/index.rst
    cutoff/index.rst
    psf/index.rst
 
@@ -30,18 +30,30 @@ Classes
 
 
 
-.. py:class:: SPECTAttenuationTransform(CT)
+.. py:class:: SPECTAttenuationTransform(attenuation_map = None, filepath = None)
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 
-   obj2obj transform used to model the effects of attenuation in SPECT.
+   obj2obj transform used to model the effects of attenuation in SPECT. This transform accepts either an ``attenuation_map`` (which must be aligned with the SPECT projection data) or a ``filepath`` consisting of folder containing CT DICOM files all pertaining to the same scan
 
-   :param CT: Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{cm}^{-1}}` at the photon energy corresponding to the particular scan
-   :type CT: torch.tensor
+   :param attenuation_map: Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{cm}^{-1}}` at the photon energy corresponding to the particular scan
+   :type attenuation_map: torch.tensor
+   :param filepath: Folder location of CT scan; all .dcm files must correspond to different slices of the same scan.
+   :type filepath: Sequence[str]
+
+   .. py:method:: configure(object_meta, image_meta)
+
+      Function used to initalize the transform using corresponding object and image metadata
+
+      :param object_meta: Object metadata.
+      :type object_meta: SPECTObjectMeta
+      :param image_meta: Image metadata.
+      :type image_meta: SPECTImageMeta
+
 
    .. py:method:: forward(object_i, ang_idx)
 
-      Forward projection :math:`A:\mathbb{U} \to \mathbb{U}` of attenuation correction
+      Forward projection :math:`A:\mathbb{U} \to \mathbb{U}` of attenuation correction.
 
       :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along ``axis=1``.
       :type object_i: torch.tensor
@@ -72,30 +84,30 @@ Classes
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 
-   obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``PSFMeta`` parameter.
+   obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``SPECTPSFMeta`` parameter.
 
    :param psf_meta: Metadata corresponding to the parameters of PSF blurring
-   :type psf_meta: PSFMeta
+   :type psf_meta: SPECTPSFMeta
 
    .. py:method:: configure(object_meta, image_meta)
 
       Function used to initalize the transform using corresponding object and image metadata
 
       :param object_meta: Object metadata.
-      :type object_meta: ObjectMeta
+      :type object_meta: SPECTObjectMeta
       :param image_meta: Image metadata.
-      :type image_meta: ImageMeta
+      :type image_meta: SPECTImageMeta
 
 
-   .. py:method:: compute_kernel_size(radius, axis)
+   .. py:method:: _compute_kernel_size(radius, axis)
 
-      Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``PSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object.
+      Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``SPECTPSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object.
 
       :returns: The corresponding kernel size used for PSF blurring.
       :rtype: int
 
 
-   .. py:method:: get_sigma(radius)
+   .. py:method:: _get_sigma(radius)
 
       Uses PSF Meta data information to get blurring :math:`\sigma` as a function of distance from detector.
 
@@ -106,7 +118,17 @@ Classes
       :rtype: array
 
 
-   .. py:method:: apply_psf(object, ang_idx)
+   .. py:method:: _apply_psf(object, ang_idx)
+
+      Applies PSF modeling to an object with corresponding angle indices
+
+      :param object: Tensor of shape ``[batch_size, Lx, Ly, Lz]`` corresponding to object rotated at different angles
+      :type object: torch.tensor
+      :param ang_idx: List of length ``batch_size`` corresponding to angle of each object in the batch
+      :type ang_idx: Sequence[int]
+
+      :returns: Object with PSF modeling applied
+      :rtype: torch.tensor
 
 
    .. py:method:: forward(object_i, ang_idx)

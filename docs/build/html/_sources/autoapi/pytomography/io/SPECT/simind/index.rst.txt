@@ -14,13 +14,13 @@ Functions
 .. autoapisummary::
 
    pytomography.io.SPECT.simind.find_first_entry_containing_header
+   pytomography.io.SPECT.simind.get_metadata
    pytomography.io.SPECT.simind.get_projections
    pytomography.io.SPECT.simind.get_scatter_from_TEW
    pytomography.io.SPECT.simind.combine_projection_data
    pytomography.io.SPECT.simind.combine_scatter_data_TEW
-   pytomography.io.SPECT.simind.get_atteuation_map
+   pytomography.io.SPECT.simind.get_attenuation_map
    pytomography.io.SPECT.simind.get_psfmeta_from_header
-   pytomography.io.SPECT.simind.get_SPECT_recon_algorithm_simind
 
 
 
@@ -51,9 +51,9 @@ Attributes
    :rtype: float|str|int
 
 
-.. py:function:: get_projections(headerfile, distance = 'cm')
+.. py:function:: get_metadata(headerfile, distance = 'cm')
 
-   Obtains ObjectMeta, ImageMeta, and projections from a SIMIND header file.
+   Obtains required metadata from a SIMIND header file.
 
    :param headerfile: Path to the header file
    :type headerfile: str
@@ -61,18 +61,29 @@ Attributes
    :type distance: str, optional
 
    :returns: Required information for reconstruction in PyTomography.
-   :rtype: (ObjectMeta, ImageMeta, torch.Tensor[1, Ltheta, Lr, Lz])
+   :rtype: (SPECTObjectMeta, SPECTImageMeta, torch.Tensor[1, Ltheta, Lr, Lz])
 
 
-.. py:function:: get_scatter_from_TEW(headerfile_peak, headerfile_lower, headerfile_upper, distance = 'cm')
+.. py:function:: get_projections(headerfile)
+
+   Gets projection data from a SIMIND header file.
+
+   :param headerfile: Path to the header file
+   :type headerfile: str
+   :param distance: The units of measurements in the SIMIND file (this is required as input, since SIMIND uses mm/cm but doesn't specify). Defaults to 'cm'.
+   :type distance: str, optional
+
+   :returns: Simulated SPECT projection data.
+   :rtype: (torch.Tensor[1, Ltheta, Lr, Lz])
+
+
+.. py:function:: get_scatter_from_TEW(headerfile_peak, headerfile_lower, headerfile_upper)
 
    Obtains a triple energy window scatter estimate from corresponding photopeak, lower, and upper energy windows.
 
    :param headerfile_peak: Headerfile corresponding to the photopeak
    :param headerfile_lower: Headerfile corresponding to the lower energy window
    :param headerfile_upper: Headerfile corresponding to the upper energy window
-   :param distance: The units of measurements in the SIMIND file (this is required as input, since SIMIND uses mm/cm but doesn't specify). Defaults to 'cm'.
-   :type distance: str, optional
 
    :returns: Estimated scatter from the triple energy window.
    :rtype: torch.Tensor[1, Ltheta, Lr, Lz]
@@ -88,7 +99,7 @@ Attributes
    :type weights: Sequence[str]
 
    :returns: Returns necessary object/image metadata along with the projection data
-   :rtype: (ObjectMeta, ImageMeta, torch.Tensor)
+   :rtype: (SPECTObjectMeta, SPECTImageMeta, torch.Tensor)
 
 
 .. py:function:: combine_scatter_data_TEW(headerfiles_peak, headerfiles_lower, headerfiles_upper, weights)
@@ -108,7 +119,7 @@ Attributes
    :rtype: _type_
 
 
-.. py:function:: get_atteuation_map(headerfile)
+.. py:function:: get_attenuation_map(headerfile)
 
    Opens attenuation data from SIMIND output
 
@@ -121,15 +132,12 @@ Attributes
 
 .. py:function:: get_psfmeta_from_header(headerfile)
 
-   Obtains the PSFMeta data corresponding to a SIMIND simulation scan from the headerfile
+   Obtains the SPECTPSFMeta data corresponding to a SIMIND simulation scan from the headerfile
 
    :param headerfile: SIMIND headerfile.
    :type headerfile: str
 
-   :returns: PSF metadata required for PSF modeling in reconstruction.
-   :rtype: PSFMeta
-
-
-.. py:function:: get_SPECT_recon_algorithm_simind(projections_header, scatter_headers = None, CT_header = None, psf_meta = None, prior = None, object_initial = None, recon_algorithm_class = OSEMOSL)
+   :returns: SPECT PSF metadata required for PSF modeling in reconstruction.
+   :rtype: SPECTPSFMeta
 
 

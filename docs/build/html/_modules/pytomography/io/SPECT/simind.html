@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.io.SPECT.simind &#8212; PyTomography 0.8.0 documentation</title>
+    <title>pytomography.io.SPECT.simind &#8212; PyTomography 1.0.0 documentation</title>
   
   
   
@@ -34,7 +34,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=b425c228"></script>
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=367f7090"></script>
     <script src="../../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -129,13 +129,6 @@
   <ul class="bd-navbar-elements navbar-nav">
     
                     <li class="nav-item">
-                      <a class="nav-link nav-internal" href="../../../../notebooks/conventions.html">
-                        Manual
-                      </a>
-                    </li>
-                
-
-                    <li class="nav-item">
                       <a class="nav-link nav-internal" href="../../../../usage.html">
                         Tutorials
                       </a>
@@ -145,6 +138,13 @@
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="../../../../developers_guide.html">
                         Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../external_data.html">
+                        External Data
                       </a>
                     </li>
                 
@@ -229,13 +229,6 @@ document.write(`
   <ul class="bd-navbar-elements navbar-nav">
     
                     <li class="nav-item">
-                      <a class="nav-link nav-internal" href="../../../../notebooks/conventions.html">
-                        Manual
-                      </a>
-                    </li>
-                
-
-                    <li class="nav-item">
                       <a class="nav-link nav-internal" href="../../../../usage.html">
                         Tutorials
                       </a>
@@ -245,6 +238,13 @@ document.write(`
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="../../../../developers_guide.html">
                         Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../external_data.html">
+                        External Data
                       </a>
                     </li>
                 
@@ -343,13 +343,8 @@ document.write(`
 <span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">pytomography</span>
-<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ImageMeta</span>
-<span class="kn">from</span> <span class="nn">pytomography.projections</span> <span class="kn">import</span> <span class="n">SystemMatrix</span>
-<span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">SPECTAttenuationTransform</span><span class="p">,</span> <span class="n">SPECTPSFTransform</span>
-<span class="kn">from</span> <span class="nn">pytomography.priors</span> <span class="kn">import</span> <span class="n">Prior</span>
-<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">PSFMeta</span>
-<span class="kn">from</span> <span class="nn">pytomography.algorithms</span> <span class="kn">import</span> <span class="n">OSEMOSL</span>
-<span class="kn">from</span> <span class="nn">..io_utils</span> <span class="kn">import</span> <span class="n">get_mu_from_spectrum_interp</span><span class="p">,</span> <span class="n">compute_TEW</span>
+<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTImageMeta</span><span class="p">,</span> <span class="n">SPECTPSFMeta</span>
+<span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">get_mu_from_spectrum_interp</span><span class="p">,</span> <span class="n">compute_TEW</span>
 
 <div class="viewcode-block" id="relation_dict"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.relation_dict">[docs]</a><span class="n">relation_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;unsignedinteger&#39;</span><span class="p">:</span> <span class="s1">&#39;int&#39;</span><span class="p">,</span>
                  <span class="s1">&#39;shortfloat&#39;</span><span class="p">:</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span>
@@ -377,16 +372,16 @@ document.write(`
         <span class="k">return</span> <span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:=&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
     <span class="k">elif</span> <span class="n">dtype</span> <span class="o">==</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:=&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span></div>
-
-<div class="viewcode-block" id="get_projections"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.get_projections">[docs]</a><span class="k">def</span> <span class="nf">get_projections</span><span class="p">(</span><span class="n">headerfile</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">distance</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;cm&#39;</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtains ObjectMeta, ImageMeta, and projections from a SIMIND header file.</span>
+    
+<div class="viewcode-block" id="get_metadata"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.get_metadata">[docs]</a><span class="k">def</span> <span class="nf">get_metadata</span><span class="p">(</span><span class="n">headerfile</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">distance</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;cm&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtains required metadata from a SIMIND header file.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        headerfile (str): Path to the header file</span>
 <span class="sd">        distance (str, optional): The units of measurements in the SIMIND file (this is required as input, since SIMIND uses mm/cm but doesn&#39;t specify). Defaults to &#39;cm&#39;.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        (ObjectMeta, ImageMeta, torch.Tensor[1, Ltheta, Lr, Lz]): Required information for reconstruction in PyTomography.</span>
+<span class="sd">        (SPECTObjectMeta, SPECTImageMeta, torch.Tensor[1, Ltheta, Lr, Lz]): Required information for reconstruction in PyTomography.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">distance</span><span class="o">==</span><span class="s1">&#39;mm&#39;</span><span class="p">:</span>
         <span class="n">scale_factor</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">10</span>
@@ -395,36 +390,51 @@ document.write(`
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">headerfile</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="n">headerdata</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
     <span class="n">headerdata</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">headerdata</span><span class="p">)</span>
-    <span class="n">num_proj</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;total number of images&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
     <span class="n">proj_dim1</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;matrix size [1]&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
     <span class="n">proj_dim2</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;matrix size [2]&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
     <span class="n">dx</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;scaling factor (mm/pixel) [1]&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span> <span class="c1"># to mm</span>
     <span class="n">dz</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;scaling factor (mm/pixel) [2]&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span> <span class="c1"># to mm</span>
     <span class="n">dr</span> <span class="o">=</span> <span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dz</span><span class="p">)</span>
-    <span class="n">number_format</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;number format&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
-    <span class="n">number_format</span><span class="o">=</span> <span class="n">relation_dict</span><span class="p">[</span><span class="n">number_format</span><span class="p">]</span>
-    <span class="n">num_bytes_per_pixel</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;number of bytes per pixel&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
     <span class="n">extent_of_rotation</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;extent of rotation&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">number_of_projections</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;number of projections&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
     <span class="n">start_angle</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;start angle&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">start_angle</span><span class="p">,</span> <span class="n">extent_of_rotation</span><span class="p">,</span> <span class="n">number_of_projections</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">radius</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;Radius&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span><span class="n">scale_factor</span>
-    <span class="n">imagefile</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;name of data file&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
-    <span class="n">shape_proj</span><span class="o">=</span> <span class="p">(</span><span class="n">num_proj</span><span class="p">,</span> <span class="n">proj_dim1</span><span class="p">,</span> <span class="n">proj_dim2</span><span class="p">)</span>
     <span class="n">shape_obj</span> <span class="o">=</span> <span class="p">(</span><span class="n">proj_dim1</span><span class="p">,</span> <span class="n">proj_dim1</span><span class="p">,</span> <span class="n">proj_dim2</span><span class="p">)</span>
-    <span class="n">object_meta</span> <span class="o">=</span> <span class="n">ObjectMeta</span><span class="p">(</span><span class="n">dr</span><span class="p">,</span><span class="n">shape_obj</span><span class="p">)</span>
-    <span class="n">image_meta</span> <span class="o">=</span> <span class="n">ImageMeta</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">angles</span><span class="p">))</span><span class="o">*</span><span class="n">radius</span><span class="p">)</span>
+    <span class="n">object_meta</span> <span class="o">=</span> <span class="n">SPECTObjectMeta</span><span class="p">(</span><span class="n">dr</span><span class="p">,</span><span class="n">shape_obj</span><span class="p">)</span>
+    <span class="n">image_meta</span> <span class="o">=</span> <span class="n">SPECTImageMeta</span><span class="p">((</span><span class="n">proj_dim1</span><span class="p">,</span> <span class="n">proj_dim2</span><span class="p">),</span> <span class="n">angles</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">angles</span><span class="p">))</span><span class="o">*</span><span class="n">radius</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span></div>
+
+<div class="viewcode-block" id="get_projections"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.get_projections">[docs]</a><span class="k">def</span> <span class="nf">get_projections</span><span class="p">(</span><span class="n">headerfile</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets projection data from a SIMIND header file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        headerfile (str): Path to the header file</span>
+<span class="sd">        distance (str, optional): The units of measurements in the SIMIND file (this is required as input, since SIMIND uses mm/cm but doesn&#39;t specify). Defaults to &#39;cm&#39;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (torch.Tensor[1, Ltheta, Lr, Lz]): Simulated SPECT projection data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">headerfile</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">headerdata</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="n">headerdata</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">headerdata</span><span class="p">)</span>
+    <span class="n">num_proj</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;total number of images&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">proj_dim1</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;matrix size [1]&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">proj_dim2</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;matrix size [2]&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">number_format</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;number format&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+    <span class="n">number_format</span><span class="o">=</span> <span class="n">relation_dict</span><span class="p">[</span><span class="n">number_format</span><span class="p">]</span>
+    <span class="n">num_bytes_per_pixel</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;number of bytes per pixel&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">imagefile</span> <span class="o">=</span> <span class="n">find_first_entry_containing_header</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;name of data file&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
     <span class="n">dtype</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;np.</span><span class="si">{</span><span class="n">number_format</span><span class="si">}{</span><span class="n">num_bytes_per_pixel</span><span class="o">*</span><span class="mi">8</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
     <span class="n">projections</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">headerfile</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="p">),</span> <span class="n">imagefile</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
     <span class="n">projections</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">projections</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">num_proj</span><span class="p">,</span><span class="n">proj_dim2</span><span class="p">,</span><span class="n">proj_dim1</span><span class="p">))[:,::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
     <span class="n">projections</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">projections</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">,</span> <span class="n">projections</span></div>
+    <span class="k">return</span> <span class="n">projections</span></div>
 
 <div class="viewcode-block" id="get_scatter_from_TEW"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.get_scatter_from_TEW">[docs]</a><span class="k">def</span> <span class="nf">get_scatter_from_TEW</span><span class="p">(</span>
     <span class="n">headerfile_peak</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">headerfile_lower</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">headerfile_upper</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">distance</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;cm&#39;</span>
     <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtains a triple energy window scatter estimate from corresponding photopeak, lower, and upper energy windows.</span>
 
@@ -432,7 +442,6 @@ document.write(`
 <span class="sd">        headerfile_peak: Headerfile corresponding to the photopeak</span>
 <span class="sd">        headerfile_lower: Headerfile corresponding to the lower energy window</span>
 <span class="sd">        headerfile_upper: Headerfile corresponding to the upper energy window</span>
-<span class="sd">        distance (str, optional): The units of measurements in the SIMIND file (this is required as input, since SIMIND uses mm/cm but doesn&#39;t specify). Defaults to &#39;cm&#39;.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        torch.Tensor[1, Ltheta, Lr, Lz]: Estimated scatter from the triple energy window.</span>
@@ -442,7 +451,7 @@ document.write(`
     <span class="n">projectionss</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">window_widths</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">headerfile</span> <span class="ow">in</span> <span class="p">[</span><span class="n">headerfile_peak</span><span class="p">,</span> <span class="n">headerfile_lower</span><span class="p">,</span> <span class="n">headerfile_upper</span><span class="p">]:</span>
-        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">projections</span> <span class="o">=</span> <span class="n">get_projections</span><span class="p">(</span><span class="n">headerfile</span><span class="p">,</span> <span class="n">distance</span><span class="p">)</span>
+        <span class="n">projections</span> <span class="o">=</span> <span class="n">get_projections</span><span class="p">(</span><span class="n">headerfile</span><span class="p">)</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">headerfile</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">headerdata</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
         <span class="n">headerdata</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">headerdata</span><span class="p">)</span>
@@ -464,13 +473,13 @@ document.write(`
 <span class="sd">        weights (Sequence[str]): Amount by which to weight each projection relative.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        (ObjectMeta, ImageMeta, torch.Tensor): Returns necessary object/image metadata along with the projection data</span>
+<span class="sd">        (SPECTObjectMeta, SPECTImageMeta, torch.Tensor): Returns necessary object/image metadata along with the projection data</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">projections</span> <span class="o">=</span> <span class="mi">0</span> 
     <span class="k">for</span> <span class="n">headerfile</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
-        <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">,</span> <span class="n">projections_i</span> <span class="o">=</span> <span class="n">get_projections</span><span class="p">(</span><span class="n">headerfile</span><span class="p">)</span>
+        <span class="n">projections_i</span> <span class="o">=</span> <span class="n">get_projections</span><span class="p">(</span><span class="n">headerfile</span><span class="p">)</span>
         <span class="n">projections</span> <span class="o">+=</span> <span class="n">projections_i</span> <span class="o">*</span> <span class="n">weight</span>
-    <span class="k">return</span> <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">,</span> <span class="n">projections</span></div>
+    <span class="k">return</span> <span class="n">projections</span></div>
 
 <div class="viewcode-block" id="combine_scatter_data_TEW"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.combine_scatter_data_TEW">[docs]</a><span class="k">def</span> <span class="nf">combine_scatter_data_TEW</span><span class="p">(</span>
     <span class="n">headerfiles_peak</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -491,10 +500,11 @@ document.write(`
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">scatter</span> <span class="o">=</span> <span class="mi">0</span> 
     <span class="k">for</span> <span class="n">headerfile_peak</span><span class="p">,</span> <span class="n">headerfile_lower</span><span class="p">,</span> <span class="n">headerfile_upper</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">headerfiles_peak</span><span class="p">,</span> <span class="n">headerfiles_lower</span><span class="p">,</span> <span class="n">headerfiles_upper</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
-        <span class="n">scatter</span><span class="o">+=</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">get_scatter_from_TEW</span><span class="p">(</span><span class="n">headerfile_peak</span><span class="p">,</span> <span class="n">headerfile_lower</span><span class="p">,</span> <span class="n">headerfile_upper</span><span class="p">)</span>
+        <span class="n">scatter_i</span> <span class="o">=</span> <span class="n">get_scatter_from_TEW</span><span class="p">(</span><span class="n">headerfile_peak</span><span class="p">,</span> <span class="n">headerfile_lower</span><span class="p">,</span> <span class="n">headerfile_upper</span><span class="p">)</span>
+        <span class="n">scatter</span><span class="o">+=</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">scatter_i</span>
     <span class="k">return</span> <span class="n">scatter</span>   </div>
 
-<div class="viewcode-block" id="get_atteuation_map"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.get_atteuation_map">[docs]</a><span class="k">def</span> <span class="nf">get_atteuation_map</span><span class="p">(</span><span class="n">headerfile</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<div class="viewcode-block" id="get_attenuation_map"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.get_attenuation_map">[docs]</a><span class="k">def</span> <span class="nf">get_attenuation_map</span><span class="p">(</span><span class="n">headerfile</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Opens attenuation data from SIMIND output</span>
 
 <span class="sd">    Args:</span>
@@ -517,13 +527,13 @@ document.write(`
     <span class="k">return</span> <span class="n">CT</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="get_psfmeta_from_header"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.get_psfmeta_from_header">[docs]</a><span class="k">def</span> <span class="nf">get_psfmeta_from_header</span><span class="p">(</span><span class="n">headerfile</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtains the PSFMeta data corresponding to a SIMIND simulation scan from the headerfile</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtains the SPECTPSFMeta data corresponding to a SIMIND simulation scan from the headerfile</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        headerfile (str): SIMIND headerfile.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        PSFMeta: PSF metadata required for PSF modeling in reconstruction.</span>
+<span class="sd">        SPECTPSFMeta: SPECT PSF metadata required for PSF modeling in reconstruction.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">module_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">headerfile</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
@@ -535,35 +545,7 @@ document.write(`
     <span class="n">lead_attenuation</span> <span class="o">=</span> <span class="n">get_mu_from_spectrum_interp</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">module_path</span><span class="p">,</span> <span class="s1">&#39;../../data/NIST_attenuation_data/lead.csv&#39;</span><span class="p">),</span> <span class="n">energy_keV</span><span class="p">)</span>
     <span class="n">collimator_slope</span> <span class="o">=</span> <span class="n">hole_diameter</span><span class="o">/</span><span class="p">(</span><span class="n">hole_length</span> <span class="o">-</span> <span class="p">(</span><span class="mi">2</span><span class="o">/</span><span class="n">lead_attenuation</span><span class="p">))</span> <span class="o">*</span> <span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">)))</span>
     <span class="n">collimator_intercept</span> <span class="o">=</span> <span class="n">hole_diameter</span> <span class="o">*</span> <span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">)))</span>
-    <span class="k">return</span> <span class="n">PSFMeta</span><span class="p">((</span><span class="n">collimator_slope</span><span class="p">,</span> <span class="n">collimator_intercept</span><span class="p">))</span></div>
-
-<div class="viewcode-block" id="get_SPECT_recon_algorithm_simind"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.get_SPECT_recon_algorithm_simind">[docs]</a><span class="k">def</span> <span class="nf">get_SPECT_recon_algorithm_simind</span><span class="p">(</span>
-    <span class="n">projections_header</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">scatter_headers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">CT_header</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">psf_meta</span><span class="p">:</span> <span class="n">PSFMeta</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">prior</span><span class="p">:</span> <span class="n">Prior</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">object_initial</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">recon_algorithm_class</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="n">OSEMOSL</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
-    <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">,</span> <span class="n">projections</span> <span class="o">=</span> <span class="n">get_projections</span><span class="p">(</span><span class="n">projections_header</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">scatter_headers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">projections_scatter</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># equivalent to 0 estimated scatter everywhere</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">projections_scatter</span> <span class="o">=</span> <span class="n">get_scatter_from_TEW</span><span class="p">(</span><span class="n">projections_header</span><span class="p">,</span> <span class="o">*</span><span class="n">scatter_headers</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">CT_header</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">CT</span> <span class="o">=</span> <span class="n">get_atteuation_map</span><span class="p">(</span><span class="n">CT_header</span><span class="p">)</span>
-    <span class="n">object_correction_nets</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">image_correction_nets</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">if</span> <span class="n">CT_header</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">CT_net</span> <span class="o">=</span> <span class="n">SPECTAttenuationTransform</span><span class="p">(</span><span class="n">CT</span><span class="p">)</span>
-        <span class="n">object_correction_nets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">CT_net</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">psf_meta</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">psf_net</span> <span class="o">=</span> <span class="n">SPECTPSFTransform</span><span class="p">(</span><span class="n">psf_meta</span><span class="p">)</span>
-        <span class="n">object_correction_nets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">psf_net</span><span class="p">)</span>
-    <span class="n">system_matrix</span> <span class="o">=</span> <span class="n">SystemMatrix</span><span class="p">(</span><span class="n">object_correction_nets</span><span class="p">,</span> <span class="n">image_correction_nets</span><span class="p">,</span> <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">)</span>
-    <span class="n">recon_algorithm</span> <span class="o">=</span> <span class="n">recon_algorithm_class</span><span class="p">(</span><span class="n">projections</span><span class="p">,</span> <span class="n">system_matrix</span><span class="p">,</span> <span class="n">object_initial</span><span class="p">,</span> <span class="n">projections_scatter</span><span class="p">,</span> <span class="n">prior</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">recon_algorithm</span></div>
+    <span class="k">return</span> <span class="n">SPECTPSFMeta</span><span class="p">((</span><span class="n">collimator_slope</span><span class="p">,</span> <span class="n">collimator_intercept</span><span class="p">))</span></div>
 </pre></div>
 
                 </article>
