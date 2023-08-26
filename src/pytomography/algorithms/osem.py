@@ -131,7 +131,7 @@ class OSEMOSL(OSML):
                     norm_BP += self.prior.compute_gradient()
                 self.object_prediction = self.object_prediction * ratio_BP /norm_BP
             if callback is not None:
-                callback.run(self.object_prediction, n_iter=j, n_subset=k)
+                callback.run(self.object_prediction, n_iter=j)
         # Set unique string for identifying the type of reconstruction
         self._set_recon_name(n_iters, n_subsets)
         return self.object_prediction
@@ -196,7 +196,7 @@ class OSEMBSR(OSML):
                     self.object_prediction[self.object_prediction<=0] = 0
                 # Run any callbacks
             if callback:
-                callback.run(self.object_prediction, n_iter=j, n_subset=k)
+                callback.run(self.object_prediction, n_iter=j)
         # Set unique string for identifying the type of reconstruction
         self._set_recon_name(n_iters, n_subsets)
         return self.object_prediction
