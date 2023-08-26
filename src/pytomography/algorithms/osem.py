@@ -130,8 +130,8 @@ class OSEMOSL(OSML):
                 if self.prior:
                     norm_BP += self.prior.compute_gradient()
                 self.object_prediction = self.object_prediction * ratio_BP /norm_BP
-                if callback is not None:
-                    callback.run(self.object_prediction, n_iter=j, n_subset=k)
+            if callback is not None:
+                callback.run(self.object_prediction, n_iter=j)
         # Set unique string for identifying the type of reconstruction
         self._set_recon_name(n_iters, n_subsets)
         return self.object_prediction
@@ -195,8 +195,8 @@ class OSEMBSR(OSML):
                     self.object_prediction = self.object_prediction * (1 - (relaxation_function(j)*(gradient +torch.sign(gradient)*pytomography.delta)) / (norm_BP+torch.sign(norm_BP)*pytomography.delta))
                     self.object_prediction[self.object_prediction<=0] = 0
                 # Run any callbacks
-                if callback:
-                    callback.run(self.object_prediction, n_iter=j, n_subset=k)
+            if callback:
+                callback.run(self.object_prediction, n_iter=j)
         # Set unique string for identifying the type of reconstruction
         self._set_recon_name(n_iters, n_subsets)
         return self.object_prediction
