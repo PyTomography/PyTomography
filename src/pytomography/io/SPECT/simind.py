@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import os
 import pytomography
-from pytomography.metadata import SPECTObjectMeta, SPECTImageMeta, SPECTPSFMeta
+from pytomography.metadata import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
 from pytomography.utils import get_mu_from_spectrum_interp, compute_TEW
 
 relation_dict = {'unsignedinteger': 'int',
@@ -44,7 +44,7 @@ def get_metadata(headerfile: str, distance: str = 'cm'):
         distance (str, optional): The units of measurements in the SIMIND file (this is required as input, since SIMIND uses mm/cm but doesn't specify). Defaults to 'cm'.
 
     Returns:
-        (SPECTObjectMeta, SPECTImageMeta, torch.Tensor[1, Ltheta, Lr, Lz]): Required information for reconstruction in PyTomography.
+        (SPECTObjectMeta, SPECTProjMeta, torch.Tensor[1, Ltheta, Lr, Lz]): Required information for reconstruction in PyTomography.
     """
     if distance=='mm':
         scale_factor = 1/10
@@ -65,8 +65,8 @@ def get_metadata(headerfile: str, distance: str = 'cm'):
     radius = find_first_entry_containing_header(headerdata, 'Radius', np.float32) *scale_factor
     shape_obj = (proj_dim1, proj_dim1, proj_dim2)
     object_meta = SPECTObjectMeta(dr,shape_obj)
-    image_meta = SPECTImageMeta((proj_dim1, proj_dim2), angles, np.ones(len(angles))*radius)
-    return object_meta, image_meta
+    proj_meta = SPECTProjMeta((proj_dim1, proj_dim2), angles, np.ones(len(angles))*radius)
+    return object_meta, proj_meta
 
 def get_projections(headerfile: str):
     """Gets projection data from a SIMIND header file.
@@ -136,7 +136,7 @@ def combine_projection_data(
         weights (Sequence[str]): Amount by which to weight each projection relative.
 
     Returns:
-        (SPECTObjectMeta, SPECTImageMeta, torch.Tensor): Returns necessary object/image metadata along with the projection data
+        (SPECTObjectMeta, SPECTProjMeta, torch.Tensor): Returns necessary object/projections metadata along with the projection data
     """
     projections = 0 
     for headerfile, weight in zip(headerfiles, weights):

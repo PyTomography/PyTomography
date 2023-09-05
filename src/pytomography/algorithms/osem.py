@@ -4,7 +4,7 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 import numpy as np
-from pytomography.projections import SystemMatrix
+from pytomography.projectors import SystemMatrix
 import abc
 import pytomography
 from pytomography.priors import Prior
@@ -15,7 +15,7 @@ class OSML():
     r"""Parent class for all variants of ordered subset maximum liklihood algorithms. All child classes must implement the ``__call__`` method to perform reconstruction.
 
         Args:
-            image (torch.Tensor): image data :math:`g` to be reconstructed
+            projections (torch.Tensor): photopeak window projection data :math:`g` to be reconstructed
             system_matrix (SystemMatrix): system matrix that models the imaging system. In particular, corresponds to :math:`H` in :math:`g=Hf`.
             object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): the initial object guess :math:`f^{0,0}`. If None, then initial guess consists of all 1s. Defaults to None.
             scatter (torch.Tensor): estimate of scatter contribution :math:`s`. Defaults to 0.
@@ -24,7 +24,7 @@ class OSML():
 
     def __init__(
         self,
-        image: torch.tensor,
+        projections: torch.tensor,
         system_matrix: SystemMatrix,
         object_initial: torch.tensor | None = None,
         scatter: torch.tensor | float = 0,
@@ -32,11 +32,11 @@ class OSML():
     ) -> None:
         self.system_matrix = system_matrix
         if object_initial is None:
-            self.object_prediction = torch.ones((image.shape[0], *self.system_matrix.object_meta.shape)).to(pytomography.device).to(pytomography.dtype)
+            self.object_prediction = torch.ones((projections.shape[0], *self.system_matrix.object_meta.shape)).to(pytomography.device).to(pytomography.dtype)
         else:
             self.object_prediction = object_initial.to(pytomography.device).to(pytomography.dtype)
         self.prior = prior
-        self.image = image.to(pytomography.device).to(pytomography.dtype)
+        self.proj = projections.to(pytomography.device).to(pytomography.dtype)
         if type(scatter) is torch.Tensor:
             self.scatter = scatter.to(pytomography.device).to(pytomography.dtype)
         else:
@@ -50,7 +50,7 @@ class OSML():
         self,
         n_subsets: int
     ) -> list:
-        """Returns a list of subsets (where each subset contains indicies corresponding to projections). For example, if the image consisted of 6 total projections, then ``get_subsets_splits(2)`` would return ``[[0,2,4],[1,3,5]]``.
+        """Returns a list of subsets (where each subset contains indicies corresponding to different angles). For example, if the projections consisted of 6 total angles, then ``get_subsets_splits(2)`` would return ``[[0,2,4],[1,3,5]]``.
         
         Args:
             n_subsets (int): number of subsets used in OSEM 
@@ -59,7 +59,7 @@ class OSML():
             list: list of index arrays for each subset
         """
         
-        indices = torch.arange(self.image.shape[1]).to(torch.long).to(pytomography.device)
+        indices = torch.arange(self.proj.shape[1]).to(torch.long).to(pytomography.device)
         subset_indices_array = []
         for i in range(n_subsets):
             subset_indices_array.append(indices[i::n_subsets])
@@ -83,7 +83,7 @@ class OSEMOSL(OSML):
     r"""Implementation of the ordered subset expectation algorithm using the one-step-late method to include prior information: :math:`\hat{f}^{n,m+1} = \left[\frac{1}{H_m^T 1  + \beta \frac{\partial V}{\partial \hat{f}}|_{\hat{f}=\hat{f}^{n,m}}} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}`.
 
     Args:
-        image (torch.Tensor): image data :math:`g` to be reconstructed
+        proj (torch.Tensor): projection data :math:`g` to be reconstructed
         system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.
         object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f^{0,0}` for the algorithm in object space
         scatter (torch.Tensor): estimate of scatter contribution :math:`s`.
@@ -125,7 +125,7 @@ class OSEMOSL(OSML):
                 # Set OSL Prior to have object from previous prediction
                 if self.prior:
                     self.prior.set_object(torch.clone(self.object_prediction))
-                ratio = (self.image+pytomography.delta) / (self.system_matrix.forward(self.object_prediction, angle_subset=subset_indices) + self.scatter + pytomography.delta)
+                ratio = (self.proj+pytomography.delta) / (self.system_matrix.forward(self.object_prediction, angle_subset=subset_indices) + self.scatter + pytomography.delta)
                 ratio_BP, norm_BP = self.system_matrix.backward(ratio, angle_subset=subset_indices, return_norm_constant=True)
                 if self.prior:
                     norm_BP += self.prior.compute_gradient()
@@ -141,7 +141,7 @@ class OSEMBSR(OSML):
     r"""Implementation of the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: :math:`\tilde{\hat{f}}^{n,m+1} = \left[\frac{1}{H_m^T 1} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}` followed by :math:`\hat{f}^{n,m+1} = \tilde{\hat{f}}^{n,m+1} \left(1-\beta\frac{\alpha_n}{H_m^T 1}\frac{\partial V}{\partial \tilde{\hat{f}}^{n,m+1}} \right)`.
 
     Args:
-        image (torch.Tensor): image data :math:`g` to be reconstructed
+        proj (torch.Tensor): projection data :math:`g` to be reconstructed
         object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f^{0,0}` for the algorithm in object space
         system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.
         scatter (torch.Tensor): estimate of scatter contribution :math:`s`.
@@ -185,7 +185,7 @@ class OSEMBSR(OSML):
             self.prior.set_beta_scale(1/n_subsets)
         for j in range(n_iters):
             for k, subset_indices in enumerate(subset_indices_array):
-                ratio = (self.image+pytomography.delta) / (self.system_matrix.forward(self.object_prediction, angle_subset=subset_indices) + self.scatter + pytomography.delta)
+                ratio = (self.proj+pytomography.delta) / (self.system_matrix.forward(self.object_prediction, angle_subset=subset_indices) + self.scatter + pytomography.delta)
                 ratio_BP, norm_BP = self.system_matrix.backward(ratio, angle_subset=subset_indices, return_norm_constant=True)
                 self.object_prediction = self.object_prediction * ratio_BP / norm_BP
                 # Apply BSREM after all subsets in this iteration has been ran
@@ -205,16 +205,16 @@ class OSEM(OSEMOSL):
     r"""Implementation of the ordered subset expectation maximum algorithm :math:`\hat{f}^{n,m+1} = \left[\frac{1}{H_m^T 1} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}`.
 
     Args:
-        image (torch.Tensor): image data :math:`g` to be reconstructed
+        proj (torch.Tensor): projection data :math:`g` to be reconstructed
         object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f^{0,0}` for the algorithm in object space
         system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.
         scatter (torch.Tensor): estimate of scatter contribution :math:`s`.
     """
     def __init__(
         self,
-        image: torch.tensor,
+        projections: torch.tensor,
         system_matrix: SystemMatrix,
         object_initial: torch.tensor | None = None,
         scatter: torch.tensor | float = 0,
     ) -> None:
-        super(OSEM, self).__init__(image, system_matrix, object_initial, scatter)
+        super(OSEM, self).__init__(projections, system_matrix, object_initial, scatter)

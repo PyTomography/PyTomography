@@ -4,7 +4,7 @@ import torch.nn as nn
 import numpy as np
 import abc
 import pytomography
-from pytomography.metadata import ObjectMeta, ImageMeta
+from pytomography.metadata import ObjectMeta
 
 class Prior():
     r"""Abstract class for implementation of prior :math:`V(f)` where :math:`V` is from the log-posterior probability :math:`\ln L(\tilde{f}, f) - \beta V(f)`. Any function inheriting from this class should implement a ``foward`` method that computes the tensor :math:`\frac{\partial V}{\partial f_r}` where :math:`f` is an object tensor.
