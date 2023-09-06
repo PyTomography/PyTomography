@@ -328,12 +328,12 @@ document.write(`
 <li class="toctree-l2"><a class="reference internal" href="../../priors/prior/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.prior</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../projections/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-10"><i class="fa-solid fa-chevron-down"></i></label><ul>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../projections/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-11"><i class="fa-solid fa-chevron-down"></i></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../projections/SPECT/spect_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections.SPECT.spect_system_matrix</span></code></a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../projectors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-10"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../projectors/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-11"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../projectors/SPECT/spect_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT.spect_system_matrix</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../projections/system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections.system_matrix</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../projectors/system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.system_matrix</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../transforms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-12"><i class="fa-solid fa-chevron-down"></i></label><ul>
@@ -430,7 +430,7 @@ document.write(`
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.utils.misc.get_object_nearest_neighbour" title="pytomography.utils.misc.get_object_nearest_neighbour"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_object_nearest_neighbour</span></code></a>(object, shifts)</p></td>
 <td><p>Given an object tensor, finds the nearest neighbour (corresponding to <code class="docutils literal notranslate"><span class="pre">shifts</span></code>) for each voxel (done by shifting object by i,j,k)</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.utils.misc.get_blank_below_above" title="pytomography.utils.misc.get_blank_below_above"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_blank_below_above</span></code></a>(image)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.utils.misc.get_blank_below_above" title="pytomography.utils.misc.get_blank_below_above"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_blank_below_above</span></code></a>(proj)</p></td>
 <td><p>Obtains the number of blank z-slices at the sup (<code class="docutils literal notranslate"><span class="pre">blank_above</span></code>) and inf (<code class="docutils literal notranslate"><span class="pre">blank_below</span></code>) of the projection data. This method is entirely empircal, and looks for z slices where there are zero detected counts.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.utils.misc.print_collimator_parameters" title="pytomography.utils.misc.print_collimator_parameters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">print_collimator_parameters</span></code></a>()</p></td>
@@ -499,11 +499,11 @@ since this is used with SPECT attenuation correction, the initial voxel only con
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.utils.misc.get_blank_below_above">
-<span class="sig-prename descclassname"><span class="pre">pytomography.utils.misc.</span></span><span class="sig-name descname"><span class="pre">get_blank_below_above</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/utils/misc.html#get_blank_below_above"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.utils.misc.get_blank_below_above" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pytomography.utils.misc.</span></span><span class="sig-name descname"><span class="pre">get_blank_below_above</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proj</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/utils/misc.html#get_blank_below_above"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.utils.misc.get_blank_below_above" title="Permalink to this definition">#</a></dt>
 <dd><p>Obtains the number of blank z-slices at the sup (<code class="docutils literal notranslate"><span class="pre">blank_above</span></code>) and inf (<code class="docutils literal notranslate"><span class="pre">blank_below</span></code>) of the projection data. This method is entirely empircal, and looks for z slices where there are zero detected counts.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>image</strong> (<em>torch.tensor</em>) – Image data from a scanner</p>
+<dd class="field-odd"><p><strong>proj</strong> (<em>torch.tensor</em>) – Projection data from a scanner</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>A tuple of two elements corresponding to the number of blank slices at the inf, and the number of blank slices at the sup.</p>

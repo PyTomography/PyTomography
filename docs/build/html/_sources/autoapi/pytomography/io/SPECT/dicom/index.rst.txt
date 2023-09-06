@@ -50,7 +50,7 @@ Functions
    :type index_peak: int
 
    :returns: Required metadata information for reconstruction in PyTomography.
-   :rtype: (ObjectMeta, ImageMeta)
+   :rtype: (ObjectMeta, ProjMeta)
 
 
 .. py:function:: get_projections(file, index_peak = None, index_time = None, print_shape = True)
@@ -66,7 +66,7 @@ Functions
    :param print_shape: If true, then prints the shape of the projections returned. Defaults to true.
    :type print_shape: bool
 
-   :returns: (SPECTObjectMeta, SPECTImageMeta, torch.Tensor[..., Ltheta, Lr, Lz]) where ... depends on if time slots are considered.
+   :returns: (SPECTObjectMeta, SPECTProjMeta, torch.Tensor[..., Ltheta, Lr, Lz]) where ... depends on if time slots are considered.
 
 
 .. py:function:: get_window_width(ds, index)

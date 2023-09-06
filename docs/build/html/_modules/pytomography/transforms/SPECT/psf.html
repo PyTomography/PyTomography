@@ -343,7 +343,7 @@ document.write(`
 <span class="kn">import</span> <span class="nn">pytomography</span>
 <span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">get_distance</span><span class="p">,</span> <span class="n">compute_pad_size</span>
 <span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
-<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTImageMeta</span><span class="p">,</span> <span class="n">SPECTPSFMeta</span>
+<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTProjMeta</span><span class="p">,</span> <span class="n">SPECTPSFMeta</span>
     
 <div class="viewcode-block" id="GaussianBlurNet"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html#pytomography.transforms.SPECT.GaussianBlurNet">[docs]</a><span class="k">class</span> <span class="nc">GaussianBlurNet</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer_r</span><span class="p">,</span> <span class="n">layer_z</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -399,17 +399,17 @@ document.write(`
 <div class="viewcode-block" id="SPECTPSFTransform.configure"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/psf/index.html#pytomography.transforms.SPECT.SPECTPSFTransform.configure">[docs]</a>    <span class="k">def</span> <span class="nf">configure</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">object_meta</span><span class="p">:</span> <span class="n">SPECTObjectMeta</span><span class="p">,</span>
-        <span class="n">image_meta</span><span class="p">:</span> <span class="n">SPECTImageMeta</span>
+        <span class="n">proj_meta</span><span class="p">:</span> <span class="n">SPECTProjMeta</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Function used to initalize the transform using corresponding object and image metadata</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Function used to initalize the transform using corresponding object and projection metadata</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            object_meta (SPECTObjectMeta): Object metadata.</span>
-<span class="sd">            image_meta (SPECTImageMeta): Image metadata.</span>
+<span class="sd">            proj_meta (SPECTProjMeta): Projections metadata.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">SPECTPSFTransform</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SPECTPSFTransform</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">proj_meta</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">radius</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">image_meta</span><span class="o">.</span><span class="n">radii</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">radius</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">proj_meta</span><span class="o">.</span><span class="n">radii</span><span class="p">):</span>
             <span class="n">kernel_size_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_kernel_size</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
             <span class="n">kernel_size_z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_kernel_size</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
             <span class="c1"># Compute sigmas and normalize to pixel units</span>
@@ -466,7 +466,7 @@ document.write(`
         <span class="n">object_return</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ang_idx</span><span class="p">)):</span>
             <span class="n">object_temp</span> <span class="o">=</span> <span class="nb">object</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-            <span class="n">object_temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">image_meta</span><span class="o">.</span><span class="n">radii</span><span class="p">[</span><span class="n">ang_idx</span><span class="p">[</span><span class="n">i</span><span class="p">]]](</span><span class="n">object_temp</span><span class="p">)</span> 
+            <span class="n">object_temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">proj_meta</span><span class="o">.</span><span class="n">radii</span><span class="p">[</span><span class="n">ang_idx</span><span class="p">[</span><span class="n">i</span><span class="p">]]](</span><span class="n">object_temp</span><span class="p">)</span> 
             <span class="n">object_return</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">object_temp</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">object_return</span><span class="p">)</span></div>
     
@@ -480,7 +480,7 @@ document.write(`
 
 <span class="sd">        Args:</span>
 <span class="sd">            object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis</span>
-<span class="sd">            ang_idx (int): The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.</span>
+<span class="sd">            ang_idx (int): The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.</span>
@@ -498,7 +498,7 @@ document.write(`
 
 <span class="sd">        Args:</span>
 <span class="sd">            object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis</span>
-<span class="sd">            ang_idx (int): The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.</span>
+<span class="sd">            ang_idx (int): The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.</span>
 <span class="sd">            norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.</span>
 
 <span class="sd">        Returns:</span>

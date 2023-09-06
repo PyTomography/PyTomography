@@ -31,19 +31,19 @@ Functions
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 
-   im2im transform used to model the effects of PSF blurring in PET. The smoothing kernel is assumed to be independent of :math:`\theta` and :math:`z`, but is dependent on :math:`r`.
+   proj2proj transform used to model the effects of PSF blurring in PET. The smoothing kernel is assumed to be independent of :math:`\theta` and :math:`z`, but is dependent on :math:`r`.
 
-   :param kerns: A sequence of PSF kernels applied to the Lr dimension of the image with shape [batch_size, Lr, Ltheta, Lz]
+   :param kerns: A sequence of PSF kernels applied to the Lr dimension of the projections with shape [batch_size, Lr, Ltheta, Lz]
    :type kerns: Sequence[callable]
 
-   .. py:method:: configure(object_meta, image_meta)
+   .. py:method:: configure(object_meta, proj_meta)
 
-      Function used to initalize the transform using corresponding object and image metadata
+      Function used to initalize the transform using corresponding object and proj metadata
 
       :param object_meta: Object metadata.
       :type object_meta: ObjectMeta
-      :param image_meta: Image metadata.
-      :type image_meta: ImageMeta
+      :param proj_meta: Projection metadata.
+      :type proj_meta: ProjMeta
 
 
    .. py:method:: construct_matrix()
@@ -52,26 +52,26 @@ Functions
 
 
 
-   .. py:method:: forward(image)
+   .. py:method:: forward(proj)
 
-      Applies the forward projection of PSF modeling :math:`B:\mathbb{V} \to \mathbb{V}` to a PET image.
+      Applies the forward projection of PSF modeling :math:`B:\mathbb{V} \to \mathbb{V}` to a PET proj.
 
-      :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the image
-      :type image: torch.tensor]
+      :param proj: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the projections
+      :type proj: torch.tensor]
 
-      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the PSF corrected image.
+      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the PSF corrected projections.
       :rtype: torch.tensor
 
 
-   .. py:method:: backward(image, norm_constant = None)
+   .. py:method:: backward(proj, norm_constant = None)
 
-      Applies the back projection of PSF modeling :math:`B^T:\mathbb{V} \to \mathbb{V}` to a PET image.
+      Applies the back projection of PSF modeling :math:`B^T:\mathbb{V} \to \mathbb{V}` to PET projections .
 
-      :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the image
-                    norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
-      :type image: torch.tensor]
+      :param proj: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the projections
+                   norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
+      :type proj: torch.tensor]
 
-      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the PSF corrected image.
+      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the PSF corrected projections.
       :rtype: torch.tensor
 
 

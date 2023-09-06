@@ -19,7 +19,7 @@
     "from pytomography.io.SPECT import dicom\n",
     "from pytomography.transforms import SPECTAttenuationTransform, SPECTPSFTransform\n",
     "from pytomography.algorithms import OSEM\n",
-    "from pytomography.projections import SPECTSystemMatrix\n",
+    "from pytomography.projectors import SPECTSystemMatrix\n",
     "from pytomography.utils import print_collimator_parameters\n",
     "import matplotlib.pyplot as plt\n",
     "import pydicom"
@@ -57,7 +57,9 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "The metadata for object space and image space can be obtained from the projection data file using `dicom.get_metadata`"
+    "The metadata for object space and projection space can be obtained from the projection data file using `dicom.get_metadata`\n",
+    "\n",
+    "* This contains informaiton such as the voxel size, number of angles, scanner radius, etc."
    ]
   },
   {
@@ -66,7 +68,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "object_meta, image_meta = dicom.get_metadata(file_NM, index_peak=3)"
+    "object_meta, proj_meta = dicom.get_metadata(file_NM, index_peak=3)"
    ]
   },
   {
@@ -120,7 +122,7 @@
     {
      "data": {
       "text/plain": [
-       "<matplotlib.colorbar.Colorbar at 0x7f8c88817f10>"
+       "<matplotlib.colorbar.Colorbar at 0x7f455c8fcf70>"
       ]
      },
      "execution_count": 5,
@@ -221,7 +223,7 @@
     }
    ],
    "source": [
-    "att_transform.configure(object_meta, image_meta)\n",
+    "att_transform.configure(object_meta, proj_meta)\n",
     "attenuation_map = att_transform.attenuation_map"
    ]
   },
@@ -250,7 +252,7 @@
     {
      "data": {
       "text/plain": [
-       "<matplotlib.colorbar.Colorbar at 0x7f8c8465c670>"
+       "<matplotlib.colorbar.Colorbar at 0x7f455873fe80>"
       ]
      },
      "execution_count": 10,
@@ -322,7 +324,7 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "<pytomography.metadata.SPECT.spect_metadata.SPECTPSFMeta object at 0x7f8c845d7130>\n"
+      "<pytomography.metadata.SPECT.spect_metadata.SPECTPSFMeta object at 0x7f45587bd520>\n"
      ]
     }
    ],
@@ -362,8 +364,8 @@
    "source": [
     "Now that we have the required transforms, we can begin to build the system matrix. It requires:\n",
     "1. `obj2obj_transforms`. These map from object space to object space. In the case of SPECT imaging, both the attenuation transform and PSF transform correspond to these types of transforms.\n",
-    "2. `im2im_transforms`: These map from image space to image space. Though we have none here, they would be used to model PSF in PET imaging.\n",
-    "3. `object_meta` and `image_meta`. These are used to initialize the transforms. For example, data from `object_meta` is used to align the attenuation map, and radial position from `image_meta` is used to get proper blurring parameters for the PSF transform"
+    "2. `proj2proj_transforms`: These map from projection to projection space. Though we have none here, they would be used to model PSF in PET imaging.\n",
+    "3. `object_meta` and `proj_meta`. These are used to initialize the transforms. For example, data from `object_meta` is used to align the attenuation map, and radial position from `proj_meta` is used to get proper blurring parameters for the PSF transform"
    ]
   },
   {
@@ -383,9 +385,9 @@
    "source": [
     "system_matrix = SPECTSystemMatrix(\n",
     "        obj2obj_transforms = [att_transform,psf_transform],\n",
-    "        im2im_transforms = [],\n",
+    "        proj2proj_transforms = [],\n",
     "        object_meta = object_meta,\n",
-    "        image_meta = image_meta)"
+    "        proj_meta = proj_meta)"
    ]
   },
   {
@@ -407,7 +409,7 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "We'll reconstruct the object using OSEM. For this, we need to specify the measured image data (`photopeak`/`scatter`) and the `system_matrix`"
+    "We'll reconstruct the object using OSEM. For this, we need to specify the measured projection data (`photopeak`/`scatter`) and the `system_matrix`"
    ]
   },
   {
@@ -417,7 +419,7 @@
    "outputs": [],
    "source": [
     "reconstruction_algorithm = OSEM(\n",
-    "    image = photopeak,\n",
+    "    projections = photopeak,\n",
     "    system_matrix = system_matrix,\n",
     "    scatter=scatter)"
    ]

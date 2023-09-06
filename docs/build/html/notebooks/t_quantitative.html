@@ -607,7 +607,7 @@ div.rendered_html tbody tr:hover {
 <span class="kn">import</span> <span class="nn">pytomography</span>
 <span class="kn">from</span> <span class="nn">pytomography.algorithms</span> <span class="kn">import</span> <span class="n">OSEM</span>
 <span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">SPECTAttenuationTransform</span><span class="p">,</span> <span class="n">SPECTPSFTransform</span>
-<span class="kn">from</span> <span class="nn">pytomography.projections</span> <span class="kn">import</span> <span class="n">SPECTSystemMatrix</span>
+<span class="kn">from</span> <span class="nn">pytomography.projectors</span> <span class="kn">import</span> <span class="n">SPECTSystemMatrix</span>
 <span class="kn">from</span> <span class="nn">pytomography.callbacks</span> <span class="kn">import</span> <span class="n">CallBack</span>
 <span class="kn">from</span> <span class="nn">pytomography.io.SPECT</span> <span class="kn">import</span> <span class="n">simind</span>
 </pre></div>
@@ -636,7 +636,7 @@ div.rendered_html tbody tr:hover {
 <span class="n">headerfiles</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="n">organ</span><span class="p">,</span> <span class="s1">&#39;photopeak.h00&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">organ</span> <span class="ow">in</span> <span class="n">organs</span><span class="p">]</span>
 <span class="n">headerfiles_lower</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="n">organ</span><span class="p">,</span> <span class="s1">&#39;lowerscatter.h00&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">organ</span> <span class="ow">in</span> <span class="n">organs</span><span class="p">]</span>
 <span class="n">headerfiles_upper</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="n">organ</span><span class="p">,</span> <span class="s1">&#39;upperscatter.h00&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">organ</span> <span class="ow">in</span> <span class="n">organs</span><span class="p">]</span>
-<span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_metadata</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">object_meta</span><span class="p">,</span> <span class="n">proj_meta</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_metadata</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 <span class="n">projections</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">combine_projection_data</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">,</span> <span class="n">activities</span><span class="p">)</span>
 <span class="n">scatter</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">combine_scatter_data_TEW</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">,</span> <span class="n">headerfiles_lower</span><span class="p">,</span> <span class="n">headerfiles_upper</span><span class="p">,</span> <span class="n">activities</span><span class="p">)</span>
 </pre></div>
@@ -678,7 +678,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.colorbar.Colorbar at 0x7f8cb07cbbb0&gt;
+&lt;matplotlib.colorbar.Colorbar at 0x7f35f03aac10&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -749,7 +749,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.collections.QuadMesh at 0x7f8cb06bff70&gt;
+&lt;matplotlib.collections.QuadMesh at 0x7f35f1d6dca0&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -773,9 +773,9 @@ div.rendered_html tbody tr:hover {
 <span class="n">psf_transform</span> <span class="o">=</span> <span class="n">SPECTPSFTransform</span><span class="p">(</span><span class="n">psf_meta</span><span class="p">)</span>
 <span class="n">system_matrix</span> <span class="o">=</span> <span class="n">SPECTSystemMatrix</span><span class="p">(</span>
     <span class="n">obj2obj_transforms</span> <span class="o">=</span> <span class="p">[</span><span class="n">att_transform</span><span class="p">,</span><span class="n">psf_transform</span><span class="p">],</span>
-    <span class="n">im2im_transforms</span> <span class="o">=</span> <span class="p">[],</span>
+    <span class="n">proj2proj_transforms</span> <span class="o">=</span> <span class="p">[],</span>
     <span class="n">object_meta</span> <span class="o">=</span> <span class="n">object_meta</span><span class="p">,</span>
-    <span class="n">image_meta</span> <span class="o">=</span> <span class="n">image_meta</span><span class="p">)</span>
+    <span class="n">proj_meta</span> <span class="o">=</span> <span class="n">proj_meta</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -792,7 +792,8 @@ div.rendered_html tbody tr:hover {
         <span class="bp">self</span><span class="o">.</span><span class="n">mask_vol_dict</span> <span class="o">=</span> <span class="n">mask_vol_dict</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">avg_counts_per_mL</span> <span class="o">=</span> <span class="p">{</span><span class="n">organ</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">organ</span> <span class="ow">in</span> <span class="n">organs</span><span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">std_counts_per_mL</span> <span class="o">=</span> <span class="p">{</span><span class="n">organ</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">organ</span> <span class="ow">in</span> <span class="n">organs</span><span class="p">}</span>
-    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">n_iter</span><span class="p">,</span> <span class="n">n_subset</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">n_iter</span><span class="p">):</span>
+        <span class="c1"># In this case n_iter isnt used since the callback is called every iteration</span>
         <span class="k">for</span> <span class="n">organ</span> <span class="ow">in</span> <span class="n">organs</span><span class="p">:</span>
             <span class="c1"># Compute the counts/mL for each voxel in the organ</span>
             <span class="n">counts_per_mL</span> <span class="o">=</span> <span class="n">obj</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="o">==</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_idx_dict</span><span class="p">[</span><span class="n">organ</span><span class="p">]]</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">object_meta</span><span class="o">.</span><span class="n">dr</span><span class="p">)</span>
@@ -860,7 +861,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.colorbar.Colorbar at 0x7f8cb05e7cd0&gt;
+&lt;matplotlib.colorbar.Colorbar at 0x7f35f01fdf70&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">

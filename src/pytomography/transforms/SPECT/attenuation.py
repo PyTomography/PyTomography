@@ -4,7 +4,7 @@ import torch
 from pytomography.utils import rotate_detector_z, rev_cumsum, pad_object
 from pytomography.transforms import Transform
 from pytomography.io.SPECT import open_CT_file
-from pytomography.metadata import SPECTObjectMeta, SPECTImageMeta
+from pytomography.metadata import SPECTObjectMeta, SPECTProjMeta
 from pytomography.io.SPECT import get_attenuation_map_from_CT_slices
 
 def get_prob_of_detection_matrix(attenuation_map: torch.Tensor, dx: float) -> torch.tensor: 
@@ -46,18 +46,18 @@ class SPECTAttenuationTransform(Transform):
 	def configure(
 		self,
 		object_meta: SPECTObjectMeta,
-		image_meta: SPECTImageMeta
+		proj_meta: SPECTProjMeta
 	) -> None:
-		"""Function used to initalize the transform using corresponding object and image metadata
+		"""Function used to initalize the transform using corresponding object and projection metadata
 
 		Args:
 			object_meta (SPECTObjectMeta): Object metadata.
-			image_meta (SPECTImageMeta): Image metadata.
+			proj_meta (SPECTProjMeta): Projection metadata.
 		"""
-		super(SPECTAttenuationTransform, self).configure(object_meta, image_meta)
+		super(SPECTAttenuationTransform, self).configure(object_meta, proj_meta)
 		# Align CT with SPECT and rescale units TODO: If CT extends beyond boundaries
 		if self.filepath is not None:
-			self.attenuation_map = get_attenuation_map_from_CT_slices(self.filepath, image_meta.filepath, image_meta.index_peak)
+			self.attenuation_map = get_attenuation_map_from_CT_slices(self.filepath, proj_meta.filepath, proj_meta.index_peak)
 				
 	@torch.no_grad()
 	def forward(
@@ -69,13 +69,13 @@ class SPECTAttenuationTransform(Transform):
 
 		Args:
 			object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along ``axis=1``.
-			ang_idx (torch.Tensor): The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+			ang_idx (torch.Tensor): The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.
 
 		Returns:
 			torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.
 		"""
 		attenuation_map = pad_object(self.attenuation_map)
-		norm_factor = get_prob_of_detection_matrix(rotate_detector_z(attenuation_map.repeat(object_i.shape[0],1,1,1), self.image_meta.angles[ang_idx]), self.object_meta.dx)
+		norm_factor = get_prob_of_detection_matrix(rotate_detector_z(attenuation_map.repeat(object_i.shape[0],1,1,1), self.proj_meta.angles[ang_idx]), self.object_meta.dx)
 		object_i*=norm_factor
 		return object_i
 
@@ -90,14 +90,14 @@ class SPECTAttenuationTransform(Transform):
 
 		Args:
 			object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along ``axis=1``.
-			ang_idx (torch.Tensor): The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+			ang_idx (torch.Tensor): The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.
 			norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
 
 		Returns:
 			torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.
 		"""
 		attenuation_map = pad_object(self.attenuation_map)
-		norm_factor = get_prob_of_detection_matrix(rotate_detector_z(attenuation_map.repeat(object_i.shape[0],1,1,1), self.image_meta.angles[ang_idx]), self.object_meta.dx)
+		norm_factor = get_prob_of_detection_matrix(rotate_detector_z(attenuation_map.repeat(object_i.shape[0],1,1,1), self.proj_meta.angles[ang_idx]), self.object_meta.dx)
 		object_i*=norm_factor
 		if norm_constant is not None:
 			norm_constant*=norm_factor

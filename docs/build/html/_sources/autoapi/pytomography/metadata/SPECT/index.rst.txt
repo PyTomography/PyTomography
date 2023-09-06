@@ -22,7 +22,7 @@ Classes
 .. autoapisummary::
 
    pytomography.metadata.SPECT.SPECTObjectMeta
-   pytomography.metadata.SPECT.SPECTImageMeta
+   pytomography.metadata.SPECT.SPECTProjMeta
    pytomography.metadata.SPECT.SPECTPSFMeta
 
 
@@ -46,15 +46,15 @@ Classes
 
 
 
-.. py:class:: SPECTImageMeta(projection_shape, angles, radii=None)
+.. py:class:: SPECTProjMeta(projection_shape, angles, radii=None)
 
-   Bases: :py:obj:`pytomography.metadata.metadata.ImageMeta`
+   Bases: :py:obj:`pytomography.metadata.metadata.ProjMeta`
 
-   Metadata for image space in SPECT imaging
+   Metadata for projection space in SPECT imaging
 
-   :param projection_shape: 2D shape of the projections
+   :param projection_shape: 2D shape of each projection
    :type projection_shape: Sequence
-   :param angles: Specifies the detector angles for all projections in image space
+   :param angles: The angles for each 2D projection
    :type angles: Sequence
    :param radii: Specifies the radial distance of the detector corresponding to each angle in `angles`; only required in certain cases (i.e. PSF correction). Defaults to None.
    :type radii: Sequence, optional

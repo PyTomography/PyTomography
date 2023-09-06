@@ -63,7 +63,7 @@ Functions
    :param print_shape: If true, then prints the shape of the projections returned. Defaults to true.
    :type print_shape: bool
 
-   :returns: (SPECTObjectMeta, SPECTImageMeta, torch.Tensor[..., Ltheta, Lr, Lz]) where ... depends on if time slots are considered.
+   :returns: (SPECTObjectMeta, SPECTProjMeta, torch.Tensor[..., Ltheta, Lr, Lz]) where ... depends on if time slots are considered.
 
 
 .. py:function:: get_attenuation_map_from_file(file_AM)

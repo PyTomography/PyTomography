@@ -3,7 +3,7 @@ from typing import Sequence
 import pytomography
 from pytomography.utils import compute_pad_size
 import torch
-from..metadata import ObjectMeta, ImageMeta
+from..metadata import ObjectMeta, ProjMeta
 
 class SPECTObjectMeta(ObjectMeta):
     """Metadata for object space in SPECT imaging
@@ -32,12 +32,12 @@ class SPECTObjectMeta(ObjectMeta):
         self.padded_shape = (int(x_padded), int(y_padded), int(z_padded)) 
 
 
-class SPECTImageMeta(ImageMeta):
-    """Metadata for image space in SPECT imaging
+class SPECTProjMeta(ProjMeta):
+    """Metadata for projection space in SPECT imaging
 
     Args:
-        projection_shape (Sequence): 2D shape of the projections
-        angles (Sequence): Specifies the detector angles for all projections in image space
+        projection_shape (Sequence): 2D shape of each projection
+        angles (Sequence): The angles for each 2D projection
         radii (Sequence, optional): Specifies the radial distance of the detector corresponding to each angle in `angles`; only required in certain cases (i.e. PSF correction). Defaults to None.
     """
     def __init__(

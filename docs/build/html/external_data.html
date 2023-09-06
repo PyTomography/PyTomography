@@ -341,8 +341,8 @@ document.write(`
 <h2>NIST<a class="headerlink" href="#nist" title="Permalink to this heading">#</a></h2>
 <p>PyTomography uses data from NIST (<a class="reference external" href="https://www.nist.gov/pml/x-ray-mass-attenuation-coefficients">link</a>) to get attenuation coefficients for different elemental media and compounds. This is used for (i) obtaining attenuation maps from CT data and (ii) computing a correction factor for collimators that use lead.</p>
 </section>
-<section id="collimator-data">
-<h2>Collimator Data<a class="headerlink" href="#collimator-data" title="Permalink to this heading">#</a></h2>
+<section id="spect-collimator-data">
+<h2>SPECT Collimator Data<a class="headerlink" href="#spect-collimator-data" title="Permalink to this heading">#</a></h2>
 <p>Collimator data for SPECT imaging was obtained from the <code class="docutils literal notranslate"><span class="pre">collim.col</span></code> file of the SIMIND Monte Carlo program. The values in the “Code” column are used for the <code class="docutils literal notranslate"><span class="pre">collimator_name</span></code> argument of the<code class="docutils literal notranslate"><span class="pre">get_psfmeta_from_scanner_params</span></code> function from <code class="docutils literal notranslate"><span class="pre">pytomography.io.SPECT</span></code>. The supported collimators/codes are listed below.</p>
 <table class="table">
 <thead>
@@ -824,7 +824,7 @@ document.write(`
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#nist">NIST</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#collimator-data">Collimator Data</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#spect-collimator-data">SPECT Collimator Data</a></li>
 </ul>
   </nav></div>
 

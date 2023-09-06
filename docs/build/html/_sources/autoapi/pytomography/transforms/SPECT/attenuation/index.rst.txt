@@ -49,14 +49,14 @@ Functions
    :param filepath: Folder location of CT scan; all .dcm files must correspond to different slices of the same scan.
    :type filepath: Sequence[str]
 
-   .. py:method:: configure(object_meta, image_meta)
+   .. py:method:: configure(object_meta, proj_meta)
 
-      Function used to initalize the transform using corresponding object and image metadata
+      Function used to initalize the transform using corresponding object and projection metadata
 
       :param object_meta: Object metadata.
       :type object_meta: SPECTObjectMeta
-      :param image_meta: Image metadata.
-      :type image_meta: SPECTImageMeta
+      :param proj_meta: Projection metadata.
+      :type proj_meta: SPECTProjMeta
 
 
    .. py:method:: forward(object_i, ang_idx)
@@ -65,7 +65,7 @@ Functions
 
       :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along ``axis=1``.
       :type object_i: torch.tensor
-      :param ang_idx: The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+      :param ang_idx: The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.
       :type ang_idx: torch.Tensor
 
       :returns: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.
@@ -78,7 +78,7 @@ Functions
 
       :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along ``axis=1``.
       :type object_i: torch.tensor
-      :param ang_idx: The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+      :param ang_idx: The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.
       :type ang_idx: torch.Tensor
       :param norm_constant: A tensor used to normalize the output during back projection. Defaults to None.
       :type norm_constant: torch.tensor, optional
