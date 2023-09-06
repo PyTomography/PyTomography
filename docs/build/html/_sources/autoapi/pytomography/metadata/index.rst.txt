@@ -36,9 +36,9 @@ Classes
 .. autoapisummary::
 
    pytomography.metadata.ObjectMeta
-   pytomography.metadata.ImageMeta
+   pytomography.metadata.ProjMeta
    pytomography.metadata.SPECTObjectMeta
-   pytomography.metadata.SPECTImageMeta
+   pytomography.metadata.SPECTProjMeta
    pytomography.metadata.SPECTPSFMeta
 
 
@@ -55,9 +55,9 @@ Classes
 
 
 
-.. py:class:: ImageMeta(angles)
+.. py:class:: ProjMeta(angles)
 
-   Parent class for all different types of Image Space Metadata. Implementation and required parameters will differ significantly between different imaging modalities.
+   Parent class for all different types of Projection Space Metadata. Implementation and required parameters will differ significantly between different imaging modalities.
 
 
    .. py:method:: __repr__()
@@ -84,15 +84,15 @@ Classes
 
 
 
-.. py:class:: SPECTImageMeta(projection_shape, angles, radii=None)
+.. py:class:: SPECTProjMeta(projection_shape, angles, radii=None)
 
-   Bases: :py:obj:`pytomography.metadata.metadata.ImageMeta`
+   Bases: :py:obj:`pytomography.metadata.metadata.ProjMeta`
 
-   Metadata for image space in SPECT imaging
+   Metadata for projection space in SPECT imaging
 
-   :param projection_shape: 2D shape of the projections
+   :param projection_shape: 2D shape of each projection
    :type projection_shape: Sequence
-   :param angles: Specifies the detector angles for all projections in image space
+   :param angles: The angles for each 2D projection
    :type angles: Sequence
    :param radii: Specifies the radial distance of the detector corresponding to each angle in `angles`; only required in certain cases (i.e. PSF correction). Defaults to None.
    :type radii: Sequence, optional

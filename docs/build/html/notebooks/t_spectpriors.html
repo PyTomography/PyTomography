@@ -601,7 +601,7 @@ div.rendered_html tbody tr:hover {
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">pytomography.io.SPECT</span> <span class="kn">import</span> <span class="n">simind</span>
 <span class="kn">from</span> <span class="nn">pytomography.priors</span> <span class="kn">import</span> <span class="n">RelativeDifferencePrior</span>
-<span class="kn">from</span> <span class="nn">pytomography.projections</span> <span class="kn">import</span> <span class="n">SPECTSystemMatrix</span>
+<span class="kn">from</span> <span class="nn">pytomography.projectors</span> <span class="kn">import</span> <span class="n">SPECTSystemMatrix</span>
 <span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">SPECTAttenuationTransform</span><span class="p">,</span> <span class="n">SPECTPSFTransform</span>
 <span class="kn">from</span> <span class="nn">pytomography.algorithms</span> <span class="kn">import</span> <span class="n">OSEMBSR</span>
 <span class="kn">from</span> <span class="nn">pytomography.priors</span> <span class="kn">import</span> <span class="n">QuadraticPrior</span><span class="p">,</span> <span class="n">RelativeDifferencePrior</span>
@@ -630,7 +630,7 @@ div.rendered_html tbody tr:hover {
 <span class="n">headerfiles</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="n">organ</span><span class="p">,</span> <span class="s1">&#39;photopeak.h00&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">organ</span> <span class="ow">in</span> <span class="n">organs</span><span class="p">]</span>
 <span class="n">headerfiles_lower</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="n">organ</span><span class="p">,</span> <span class="s1">&#39;lowerscatter.h00&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">organ</span> <span class="ow">in</span> <span class="n">organs</span><span class="p">]</span>
 <span class="n">headerfiles_upper</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="n">organ</span><span class="p">,</span> <span class="s1">&#39;upperscatter.h00&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">organ</span> <span class="ow">in</span> <span class="n">organs</span><span class="p">]</span>
-<span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_metadata</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="c1">#assumes the same for all</span>
+<span class="n">object_meta</span><span class="p">,</span> <span class="n">proj_meta</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_metadata</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="c1">#assumes the same for all</span>
 <span class="n">photopeak</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">combine_projection_data</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">,</span> <span class="n">activities</span><span class="p">)</span>
 <span class="n">scatter</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">combine_scatter_data_TEW</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">,</span> <span class="n">headerfiles_lower</span><span class="p">,</span> <span class="n">headerfiles_upper</span><span class="p">,</span> <span class="n">activities</span><span class="p">)</span>
 <span class="c1"># Convert from CPS to counts</span>
@@ -646,9 +646,9 @@ div.rendered_html tbody tr:hover {
 <span class="n">psf_transform</span> <span class="o">=</span> <span class="n">SPECTPSFTransform</span><span class="p">(</span><span class="n">psf_meta</span><span class="p">)</span>
 <span class="n">system_matrix</span> <span class="o">=</span> <span class="n">SPECTSystemMatrix</span><span class="p">(</span>
     <span class="n">obj2obj_transforms</span> <span class="o">=</span> <span class="p">[</span><span class="n">att_transform</span><span class="p">,</span><span class="n">psf_transform</span><span class="p">],</span>
-    <span class="n">im2im_transforms</span> <span class="o">=</span> <span class="p">[],</span>
+    <span class="n">proj2proj_transforms</span> <span class="o">=</span> <span class="p">[],</span>
     <span class="n">object_meta</span> <span class="o">=</span> <span class="n">object_meta</span><span class="p">,</span>
-    <span class="n">image_meta</span> <span class="o">=</span> <span class="n">image_meta</span><span class="p">,</span>
+    <span class="n">proj_meta</span> <span class="o">=</span> <span class="n">proj_meta</span><span class="p">,</span>
     <span class="n">n_parallel</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -690,7 +690,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">reconstruct</span><span class="p">(</span><span class="n">prior</span><span class="p">):</span>
     <span class="n">reconstruction_algorithm</span> <span class="o">=</span> <span class="n">OSEMBSR</span><span class="p">(</span>
-    <span class="n">image</span> <span class="o">=</span> <span class="n">photopeak_poisson</span><span class="p">,</span>
+    <span class="n">projections</span> <span class="o">=</span> <span class="n">photopeak_poisson</span><span class="p">,</span>
     <span class="n">system_matrix</span> <span class="o">=</span> <span class="n">system_matrix</span><span class="p">,</span>
     <span class="n">scatter</span> <span class="o">=</span> <span class="n">scatter_poisson</span><span class="p">,</span>
     <span class="n">prior</span><span class="o">=</span><span class="n">prior</span><span class="p">)</span>

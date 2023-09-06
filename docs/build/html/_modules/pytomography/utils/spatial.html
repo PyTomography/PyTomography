@@ -352,7 +352,7 @@ document.write(`
 <span class="sd">        x (torch.tensor[batch_size, Lx, Ly, Lz]): Tensor aligned with cartesian coordinate system specified</span>
 <span class="sd">        by the manual. </span>
 <span class="sd">        angles (torch.Tensor): The angles :math:`\beta` where the scanner is located for each element in the batch x.</span>
-<span class="sd">        mode (str, optional): Method of interpolation used to get rotated image. Defaults to bilinear.</span>
+<span class="sd">        mode (str, optional): Method of interpolation used to get rotated object. Defaults to bilinear.</span>
 <span class="sd">        negative (bool, optional): If True, applies an inverse rotation. In this case, the tensor</span>
 <span class="sd">        x is an object in a coordinate system aligned with :math:`\beta`, and the function rotates the</span>
 <span class="sd">        x back to the original cartesian coordinate system specified by the users manual. In particular, if one</span>
@@ -370,7 +370,7 @@ document.write(`
     <span class="k">return</span> <span class="n">x</span></div>
 
 <div class="viewcode-block" id="compute_pad_size"><a class="viewcode-back" href="../../../autoapi/pytomography/utils/spatial/index.html#pytomography.utils.compute_pad_size">[docs]</a><span class="k">def</span> <span class="nf">compute_pad_size</span><span class="p">(</span><span class="n">width</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the pad width required such that subsequent rotation retains the entire image</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the pad width required such that subsequent rotation retains the entire object</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        width (int): width of the corresponding axis (i.e. number of elements in the dimension)</span>
@@ -428,31 +428,31 @@ document.write(`
     <span class="n">pad_size</span> <span class="o">=</span> <span class="n">compute_pad_size_padded</span><span class="p">(</span><span class="nb">object</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
     <span class="k">return</span> <span class="nb">object</span><span class="p">[:,</span><span class="n">pad_size</span><span class="p">:</span><span class="o">-</span><span class="n">pad_size</span><span class="p">,</span><span class="n">pad_size</span><span class="p">:</span><span class="o">-</span><span class="n">pad_size</span><span class="p">,:]</span></div>
 
-<div class="viewcode-block" id="pad_image"><a class="viewcode-back" href="../../../autoapi/pytomography/utils/spatial/index.html#pytomography.utils.pad_image">[docs]</a><span class="k">def</span> <span class="nf">pad_image</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;constant&#39;</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Pads an image along the Lr axis</span>
+<div class="viewcode-block" id="pad_proj"><a class="viewcode-back" href="../../../autoapi/pytomography/utils/spatial/index.html#pytomography.utils.pad_proj">[docs]</a><span class="k">def</span> <span class="nf">pad_proj</span><span class="p">(</span><span class="n">proj</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;constant&#39;</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Pads projections along the Lr axis</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        image (torch.Tensor[batch_size, Ltheta, Lr, Lz]): Image tensor.</span>
+<span class="sd">        proj (torch.Tensor[batch_size, Ltheta, Lr, Lz]): Projections tensor.</span>
 <span class="sd">        mode (str, optional): Padding mode to use. Defaults to &#39;constant&#39;.</span>
 <span class="sd">        value (float, optional): If padding mode is constant, fill with this value. Defaults to 0.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        torch.Tensor[batch_size, Ltheta, Lr&#39;, Lz]: Padded image tensor.</span>
+<span class="sd">        torch.Tensor[batch_size, Ltheta, Lr&#39;, Lz]: Padded projections tensor.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">pad_size</span> <span class="o">=</span> <span class="n">compute_pad_size</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>  
-    <span class="k">return</span> <span class="n">pad</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">pad_size</span><span class="p">,</span><span class="n">pad_size</span><span class="p">],</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">)</span></div>
+    <span class="n">pad_size</span> <span class="o">=</span> <span class="n">compute_pad_size</span><span class="p">(</span><span class="n">proj</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>  
+    <span class="k">return</span> <span class="n">pad</span><span class="p">(</span><span class="n">proj</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">pad_size</span><span class="p">,</span><span class="n">pad_size</span><span class="p">],</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="unpad_image"><a class="viewcode-back" href="../../../autoapi/pytomography/utils/spatial/index.html#pytomography.utils.unpad_image">[docs]</a><span class="k">def</span> <span class="nf">unpad_image</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Unpads the image back to original Lr dimensions</span>
+<div class="viewcode-block" id="unpad_proj"><a class="viewcode-back" href="../../../autoapi/pytomography/utils/spatial/index.html#pytomography.utils.unpad_proj">[docs]</a><span class="k">def</span> <span class="nf">unpad_proj</span><span class="p">(</span><span class="n">proj</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Unpads the projections back to original Lr dimensions</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        image (torch.Tensor[batch_size, Ltheta, Lr&#39;, Lz]): Padded image tensor</span>
+<span class="sd">        proj (torch.Tensor[batch_size, Ltheta, Lr&#39;, Lz]): Padded projections tensor</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        torch.Tensor[batch_size, Ltheta, Lr, Lz]: Unpadded image tensor</span>
+<span class="sd">        torch.Tensor[batch_size, Ltheta, Lr, Lz]: Unpadded projections tensor</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">pad_size</span> <span class="o">=</span> <span class="n">compute_pad_size_padded</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">image</span><span class="p">[:,:,</span><span class="n">pad_size</span><span class="p">:</span><span class="o">-</span><span class="n">pad_size</span><span class="p">,:]</span></div>
+    <span class="n">pad_size</span> <span class="o">=</span> <span class="n">compute_pad_size_padded</span><span class="p">(</span><span class="n">proj</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">proj</span><span class="p">[:,:,</span><span class="n">pad_size</span><span class="p">:</span><span class="o">-</span><span class="n">pad_size</span><span class="p">,:]</span></div>
 
 <div class="viewcode-block" id="pad_object_z"><a class="viewcode-back" href="../../../autoapi/pytomography/utils/spatial/index.html#pytomography.utils.pad_object_z">[docs]</a><span class="k">def</span> <span class="nf">pad_object_z</span><span class="p">(</span><span class="nb">object</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">pad_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;constant&#39;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Pads an object tensor along z. Useful for PSF modeling </span>

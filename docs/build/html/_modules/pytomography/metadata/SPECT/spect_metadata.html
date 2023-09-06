@@ -340,7 +340,7 @@ document.write(`
 <span class="kn">import</span> <span class="nn">pytomography</span>
 <span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">compute_pad_size</span>
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="n">from</span><span class="o">..</span><span class="n">metadata</span> <span class="kn">import</span> <span class="nn">ObjectMeta</span><span class="o">,</span> <span class="nn">ImageMeta</span>
+<span class="n">from</span><span class="o">..</span><span class="n">metadata</span> <span class="kn">import</span> <span class="nn">ObjectMeta</span><span class="o">,</span> <span class="nn">ProjMeta</span>
 
 <div class="viewcode-block" id="SPECTObjectMeta"><a class="viewcode-back" href="../../../../autoapi/pytomography/metadata/SPECT/spect_metadata/index.html#pytomography.metadata.SPECT.SPECTObjectMeta">[docs]</a><span class="k">class</span> <span class="nc">SPECTObjectMeta</span><span class="p">(</span><span class="n">ObjectMeta</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Metadata for object space in SPECT imaging</span>
@@ -369,12 +369,12 @@ document.write(`
         <span class="bp">self</span><span class="o">.</span><span class="n">padded_shape</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">x_padded</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">y_padded</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">z_padded</span><span class="p">))</span> </div></div>
 
 
-<div class="viewcode-block" id="SPECTImageMeta"><a class="viewcode-back" href="../../../../autoapi/pytomography/metadata/SPECT/spect_metadata/index.html#pytomography.metadata.SPECT.SPECTImageMeta">[docs]</a><span class="k">class</span> <span class="nc">SPECTImageMeta</span><span class="p">(</span><span class="n">ImageMeta</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Metadata for image space in SPECT imaging</span>
+<div class="viewcode-block" id="SPECTProjMeta"><a class="viewcode-back" href="../../../../autoapi/pytomography/metadata/SPECT/spect_metadata/index.html#pytomography.metadata.SPECT.SPECTProjMeta">[docs]</a><span class="k">class</span> <span class="nc">SPECTProjMeta</span><span class="p">(</span><span class="n">ProjMeta</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Metadata for projection space in SPECT imaging</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        projection_shape (Sequence): 2D shape of the projections</span>
-<span class="sd">        angles (Sequence): Specifies the detector angles for all projections in image space</span>
+<span class="sd">        projection_shape (Sequence): 2D shape of each projection</span>
+<span class="sd">        angles (Sequence): The angles for each 2D projection</span>
 <span class="sd">        radii (Sequence, optional): Specifies the radial distance of the detector corresponding to each angle in `angles`; only required in certain cases (i.e. PSF correction). Defaults to None.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -389,7 +389,7 @@ document.write(`
         <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_projections</span><span class="p">,</span> <span class="n">projection_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">projection_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">compute_padded_shape</span><span class="p">()</span>
         
-<div class="viewcode-block" id="SPECTImageMeta.compute_padded_shape"><a class="viewcode-back" href="../../../../autoapi/pytomography/metadata/SPECT/spect_metadata/index.html#pytomography.metadata.SPECT.SPECTImageMeta.compute_padded_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_padded_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<div class="viewcode-block" id="SPECTProjMeta.compute_padded_shape"><a class="viewcode-back" href="../../../../autoapi/pytomography/metadata/SPECT/spect_metadata/index.html#pytomography.metadata.SPECT.SPECTProjMeta.compute_padded_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_padded_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Computes the padded shape of an object required when rotating the object (to avoid anything getting cut off).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pad_size</span> <span class="o">=</span> <span class="n">compute_pad_size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>

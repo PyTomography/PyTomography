@@ -341,55 +341,55 @@ document.write(`
 <span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">get_blank_below_above</span>
 
 <div class="viewcode-block" id="CutOffTransform"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/index.html#pytomography.transforms.SPECT.cutoff.CutOffTransform">[docs]</a><span class="k">class</span> <span class="nc">CutOffTransform</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;im2im transformation used to set pixel values equal to zero at the first and last few z slices. This is often required when reconstructing DICOM data due to the finite field of view of the projection data, where additional axial slices are included on the top and bottom, with zero measured detection events. This transform is included in the system matrix, to model the sharp cutoff at the finite FOV.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;proj2proj transformation used to set pixel values equal to zero at the first and last few z slices. This is often required when reconstructing DICOM data due to the finite field of view of the projection data, where additional axial slices are included on the top and bottom, with zero measured detection events. This transform is included in the system matrix, to model the sharp cutoff at the finite FOV.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            image (torch.tensor): Measured image data.</span>
+<span class="sd">            proj (torch.tensor): Measured projection data.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proj</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">CutOffTransform</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">blank_below</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">blank_above</span> <span class="o">=</span> <span class="n">get_blank_below_above</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blank_below</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">blank_above</span> <span class="o">=</span> <span class="n">get_blank_below_above</span><span class="p">(</span><span class="n">proj</span><span class="p">)</span>
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
 <div class="viewcode-block" id="CutOffTransform.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/cutoff/index.html#pytomography.transforms.SPECT.cutoff.CutOffTransform.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
-		<span class="n">image</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+		<span class="n">proj</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Forward projection :math:`B:\mathbb{V} \to \mathbb{V}` of the cutoff transform.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            image (torch.Tensor): Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to</span>
+<span class="sd">            proj (torch.Tensor): Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            torch.tensor: Original image, but with certain z-slices equal to zero.</span>
+<span class="sd">            torch.tensor: Original projections, but with certain z-slices equal to zero.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Diagonal matrix so FP and BP is the same</span>
-        <span class="n">image</span><span class="p">[:,:,:,:</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_below</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">image</span><span class="p">[:,:,:,</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_above</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">return</span> <span class="n">image</span></div>
+        <span class="n">proj</span><span class="p">[:,:,:,:</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_below</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">proj</span><span class="p">[:,:,:,</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_above</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="n">proj</span></div>
         
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
 <div class="viewcode-block" id="CutOffTransform.backward"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/cutoff/index.html#pytomography.transforms.SPECT.cutoff.CutOffTransform.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
-		<span class="n">image</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+		<span class="n">proj</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
 		<span class="n">norm_constant</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Back projection :math:`B^T:\mathbb{V} \to \mathbb{V}` of the cutoff transform. Since this is a diagonal matrix, the implementation is the same as forward projection, but with the optional `norm_constant` argument.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            image (torch.Tensor): Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to</span>
+<span class="sd">            proj (torch.Tensor): Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to</span>
 <span class="sd">            norm_constant (torch.Tensor | None, optional): A tensor used to normalize the output during back projection. Defaults to None.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            torch.tensor: Original image, but with certain z-slices equal to zero.</span>
+<span class="sd">            torch.tensor: Original projections, but with certain z-slices equal to zero.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">image</span><span class="p">[:,:,:,:</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_below</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">image</span><span class="p">[:,:,:,</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_above</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">proj</span><span class="p">[:,:,:,:</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_below</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">proj</span><span class="p">[:,:,:,</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_above</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">if</span> <span class="n">norm_constant</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">norm_constant</span><span class="p">[:,:,:,:</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_below</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="n">norm_constant</span><span class="p">[:,:,:,</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_above</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="k">return</span> <span class="n">image</span><span class="p">,</span> <span class="n">norm_constant</span>
+            <span class="k">return</span> <span class="n">proj</span><span class="p">,</span> <span class="n">norm_constant</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">image</span></div></div>
+            <span class="k">return</span> <span class="n">proj</span></div></div>
 </pre></div>
 
                 </article>

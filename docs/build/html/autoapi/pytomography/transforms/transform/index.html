@@ -328,12 +328,12 @@ document.write(`
 <li class="toctree-l2"><a class="reference internal" href="../../priors/prior/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.prior</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../projections/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-10"><i class="fa-solid fa-chevron-down"></i></label><ul>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../projections/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-11"><i class="fa-solid fa-chevron-down"></i></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../projections/SPECT/spect_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections.SPECT.spect_system_matrix</span></code></a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../projectors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-10"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../projectors/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-11"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../projectors/SPECT/spect_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT.spect_system_matrix</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../projections/system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections.system_matrix</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../projectors/system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.system_matrix</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1 current active has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-12"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
@@ -437,13 +437,13 @@ document.write(`
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.transforms.transform.Transform.configure">
-<span class="sig-name descname"><span class="pre">configure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_meta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/transforms/transform.html#Transform.configure"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.transform.Transform.configure" title="Permalink to this definition">#</a></dt>
-<dd><p>Configures the transform to the object/image metadata. This is done after creating the network so that it can be adjusted to the system matrix.</p>
+<span class="sig-name descname"><span class="pre">configure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proj_meta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/transforms/transform.html#Transform.configure"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.transform.Transform.configure" title="Permalink to this definition">#</a></dt>
+<dd><p>Configures the transform to the object/proj metadata. This is done after creating the network so that it can be adjusted to the system matrix.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>object_meta</strong> (<a class="reference internal" href="../../metadata/index.html#pytomography.metadata.ObjectMeta" title="pytomography.metadata.ObjectMeta"><em>ObjectMeta</em></a>) – Object metadata.</p></li>
-<li><p><strong>image_meta</strong> (<a class="reference internal" href="../../metadata/index.html#pytomography.metadata.ImageMeta" title="pytomography.metadata.ImageMeta"><em>ImageMeta</em></a>) – Image metadata.</p></li>
+<li><p><strong>proj_meta</strong> (<a class="reference internal" href="../../metadata/index.html#pytomography.metadata.ProjMeta" title="pytomography.metadata.ProjMeta"><em>ProjMeta</em></a>) – Projections metadata.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -455,7 +455,7 @@ document.write(`
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.transforms.transform.Transform.forward">
 <em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/transforms/transform.html#Transform.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.transform.Transform.forward" title="Permalink to this definition">#</a></dt>
-<dd><p>Abstract method; must be implemented in subclasses to apply a correction to an object/image and return it</p>
+<dd><p>Abstract method; must be implemented in subclasses to apply a correction to an object/proj and return it</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>x</strong> (<em>torch.tensor</em>) – </p>
@@ -466,7 +466,7 @@ document.write(`
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.transforms.transform.Transform.backward">
 <em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/transforms/transform.html#Transform.backward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.transform.Transform.backward" title="Permalink to this definition">#</a></dt>
-<dd><p>Abstract method; must be implemented in subclasses to apply a correction to an object/image and return it</p>
+<dd><p>Abstract method; must be implemented in subclasses to apply a correction to an object/proj and return it</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>x</strong> (<em>torch.tensor</em>) – </p>

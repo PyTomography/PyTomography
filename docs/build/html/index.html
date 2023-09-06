@@ -310,14 +310,10 @@ document.write(`
                   
   <section id="pytomography">
 <h1>PyTomography<a class="headerlink" href="#pytomography" title="Permalink to this heading">#</a></h1>
-<p style='text-align: justify;'>
-PyTomography is a python library for medical image reconstruction. It uses the functionality of PyTorch to (i) enable fast GPU-accelerated reconstruction and (ii) permit easy integration of deep-learning models in traditional reconstruction algorithms.
-<p><img alt="" src="_images/deepblue.png" /></p>
-<ul class="simple">
-<li><p><em>SPECT/CT Images of patient receiving targeted radionuclide therapy with Lu177 DOTATATE for neuroendocrine tumours (4 cycles of 7.4 GBq/cycle administered every 8 weeks). Columns correspond to images taken X days after injection. Top row corresponds to reconstruction using OSEM (5 iterations, 8 subsets) while bottom row corresponds to use of BSREM (30 iterations, 8 subsets) using the relative difference prior using anatomical information to include only similar neighbours.</em></p></li>
-</ul>
-<section id="supported-modalities">
-<h2>Supported Modalities<a class="headerlink" href="#supported-modalities" title="Permalink to this heading">#</a></h2>
+<p>PyTomography is a python library for medical image reconstruction. It uses the functionality of PyTorch to (i) enable fast GPU-accelerated reconstruction and (ii) permit easy integration of deep-learning models in traditional reconstruction algorithms. <strong>If you use PyTomography in your own research, please cite the following:</strong> <a class="reference external" href="https://arxiv.org/abs/2309.01977">https://arxiv.org/abs/2309.01977</a></p>
+<section id="features">
+<h2>Features<a class="headerlink" href="#features" title="Permalink to this heading">#</a></h2>
+<p><strong>Supported Modalities</strong></p>
 <ul class="simple">
 <li><p>Single Photon Computed Emission Tomography (SPECT)</p>
 <ul>
@@ -330,9 +326,7 @@ PyTomography is a python library for medical image reconstruction. It uses the f
 </ul>
 </li>
 </ul>
-</section>
-<section id="reconstruction-algorithms">
-<h2>Reconstruction Algorithms<a class="headerlink" href="#reconstruction-algorithms" title="Permalink to this heading">#</a></h2>
+<p><strong>Reconstruction Algorithms</strong></p>
 <ul class="simple">
 <li><p>Filtered Back Projection (FBP)</p>
 <ul>
@@ -346,9 +340,7 @@ PyTomography is a python library for medical image reconstruction. It uses the f
 </ul>
 </li>
 </ul>
-</section>
-<section id="supported-datatypes">
-<h2>Supported Datatypes<a class="headerlink" href="#supported-datatypes" title="Permalink to this heading">#</a></h2>
+<p><strong>Supported Datatypes</strong></p>
 <ul class="simple">
 <li><p>DICOM</p>
 <ul>
@@ -374,6 +366,13 @@ PyTomography is a python library for medical image reconstruction. It uses the f
 </pre></div>
 </div>
 <p>Be sure to check out  <a class="reference internal" href="usage.html"><span class="doc">Tutorials</span></a> for some simple examples. If you wish to make a contribution, please read the <a class="reference internal" href="developers_guide.html"><span class="doc">Developer’s Guide</span></a>.</p>
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this heading">#</a></h2>
+<p><strong>Example 1</strong>: <em>SPECT/CT Images of patient receiving targeted radionuclide therapy with Lu177 DOTATATE for neuroendocrine tumours (4 cycles of 7.4 GBq/cycle administered every 8 weeks). Row 1: OSEM (5 iterations, 8 subsets); row 2: BSREM (30 iterations, 8 subsets) using the RDP prior; row 3: BSREM (30 iterations, 8 subsets) using the RDP prior with anatomical weighting.</em></p>
+<p><img alt="" src="_images/deep_blue.jpg" /></p>
+<p><strong>Example 2</strong>: <em>Reconstructed SIMIND maximum intensity projections corresponding to activity distribution of typical patient treated with with Lu177 DOTATATE. Ground truth was generated using the XCAT phantom software. Shown are reconstructions with OSEM (8 iterations and 120 iteratons), BSREM with the RDP prior (120 iterations), and BSREM with the RDP prior and anatomical weighting (120 iterations). SPECT projections are overlaid with MIPs of the attenuation coefficient (hence the visible skeleton, even though it had no sigificant uptake).</em></p>
+<img src="https://drive.google.com/uc?export=view&id=1rTFjWTvTvxsBs34yo9Nc2urD-M4T4x_l">
 </section>
 <section id="contents">
 <h2>Contents<a class="headerlink" href="#contents" title="Permalink to this heading">#</a></h2>
@@ -426,10 +425,9 @@ PyTomography is a python library for medical image reconstruction. It uses the f
   </div>
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#supported-modalities">Supported Modalities</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reconstruction-algorithms">Reconstruction Algorithms</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#supported-datatypes">Supported Datatypes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#features">Features</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installation">Installation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#examples">Examples</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#contents">Contents</a></li>
 </ul>
   </nav></div>

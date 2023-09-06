@@ -61,7 +61,7 @@ Attributes
    :type distance: str, optional
 
    :returns: Required information for reconstruction in PyTomography.
-   :rtype: (SPECTObjectMeta, SPECTImageMeta, torch.Tensor[1, Ltheta, Lr, Lz])
+   :rtype: (SPECTObjectMeta, SPECTProjMeta, torch.Tensor[1, Ltheta, Lr, Lz])
 
 
 .. py:function:: get_projections(headerfile)
@@ -98,8 +98,8 @@ Attributes
    :param weights: Amount by which to weight each projection relative.
    :type weights: Sequence[str]
 
-   :returns: Returns necessary object/image metadata along with the projection data
-   :rtype: (SPECTObjectMeta, SPECTImageMeta, torch.Tensor)
+   :returns: Returns necessary object/projections metadata along with the projection data
+   :rtype: (SPECTObjectMeta, SPECTProjMeta, torch.Tensor)
 
 
 .. py:function:: combine_scatter_data_TEW(headerfiles_peak, headerfiles_lower, headerfiles_upper, weights)

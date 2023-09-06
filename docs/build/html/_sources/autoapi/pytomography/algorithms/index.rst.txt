@@ -36,12 +36,12 @@ Classes
 
 
 
-.. py:class:: OSML(image, system_matrix, object_initial = None, scatter = 0, prior = None)
+.. py:class:: OSML(projections, system_matrix, object_initial = None, scatter = 0, prior = None)
 
    Parent class for all variants of ordered subset maximum liklihood algorithms. All child classes must implement the ``__call__`` method to perform reconstruction.
 
-   :param image: image data :math:`g` to be reconstructed
-   :type image: torch.Tensor
+   :param projections: photopeak window projection data :math:`g` to be reconstructed
+   :type projections: torch.Tensor
    :param system_matrix: system matrix that models the imaging system. In particular, corresponds to :math:`H` in :math:`g=Hf`.
    :type system_matrix: SystemMatrix
    :param object_initial: the initial object guess :math:`f^{0,0}`. If None, then initial guess consists of all 1s. Defaults to None.
@@ -53,7 +53,7 @@ Classes
 
    .. py:method:: get_subset_splits(n_subsets)
 
-      Returns a list of subsets (where each subset contains indicies corresponding to projections). For example, if the image consisted of 6 total projections, then ``get_subsets_splits(2)`` would return ``[[0,2,4],[1,3,5]]``.
+      Returns a list of subsets (where each subset contains indicies corresponding to different angles). For example, if the projections consisted of 6 total angles, then ``get_subsets_splits(2)`` would return ``[[0,2,4],[1,3,5]]``.
 
       :param n_subsets: number of subsets used in OSEM
       :type n_subsets: int
@@ -76,14 +76,14 @@ Classes
 
 
 
-.. py:class:: OSEM(image, system_matrix, object_initial = None, scatter = 0)
+.. py:class:: OSEM(projections, system_matrix, object_initial = None, scatter = 0)
 
    Bases: :py:obj:`OSEMOSL`
 
    Implementation of the ordered subset expectation maximum algorithm :math:`\hat{f}^{n,m+1} = \left[\frac{1}{H_m^T 1} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}`.
 
-   :param image: image data :math:`g` to be reconstructed
-   :type image: torch.Tensor
+   :param proj: projection data :math:`g` to be reconstructed
+   :type proj: torch.Tensor
    :param object_initial: represents the initial object guess :math:`f^{0,0}` for the algorithm in object space
    :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
    :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
@@ -92,14 +92,14 @@ Classes
    :type scatter: torch.Tensor
 
 
-.. py:class:: OSEMOSL(image, system_matrix, object_initial = None, scatter = 0, prior = None)
+.. py:class:: OSEMOSL(projections, system_matrix, object_initial = None, scatter = 0, prior = None)
 
    Bases: :py:obj:`OSML`
 
    Implementation of the ordered subset expectation algorithm using the one-step-late method to include prior information: :math:`\hat{f}^{n,m+1} = \left[\frac{1}{H_m^T 1  + \beta \frac{\partial V}{\partial \hat{f}}|_{\hat{f}=\hat{f}^{n,m}}} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}`.
 
-   :param image: image data :math:`g` to be reconstructed
-   :type image: torch.Tensor
+   :param proj: projection data :math:`g` to be reconstructed
+   :type proj: torch.Tensor
    :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
    :type system_matrix: SystemMatrix
    :param object_initial: represents the initial object guess :math:`f^{0,0}` for the algorithm in object space
@@ -135,14 +135,14 @@ Classes
 
 
 
-.. py:class:: OSEMBSR(image, system_matrix, object_initial = None, scatter = 0, prior = None)
+.. py:class:: OSEMBSR(projections, system_matrix, object_initial = None, scatter = 0, prior = None)
 
    Bases: :py:obj:`OSML`
 
    Implementation of the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: :math:`\tilde{\hat{f}}^{n,m+1} = \left[\frac{1}{H_m^T 1} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}` followed by :math:`\hat{f}^{n,m+1} = \tilde{\hat{f}}^{n,m+1} \left(1-\beta\frac{\alpha_n}{H_m^T 1}\frac{\partial V}{\partial \tilde{\hat{f}}^{n,m+1}} \right)`.
 
-   :param image: image data :math:`g` to be reconstructed
-   :type image: torch.Tensor
+   :param proj: projection data :math:`g` to be reconstructed
+   :type proj: torch.Tensor
    :param object_initial: represents the initial object guess :math:`f^{0,0}` for the algorithm in object space
    :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
    :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
@@ -180,13 +180,13 @@ Classes
 
 
 
-.. py:class:: FilteredBackProjection(image, angles, filter=None)
+.. py:class:: FilteredBackProjection(proj, angles, filter=None)
 
    Implementation of filtered back projection reconstruction :math:`\hat{f} = \frac{\pi}{N_{\text{proj}}} \mathcal{R}^{-1}\mathcal{F}^{-1}\Pi\mathcal{F} g` where :math:`N_{\text{proj}}` is the number of projections, :math:`\mathcal{R}` is the 3D radon transform, :math:`\mathcal{F}` is the 2D Fourier transform (applied to each projection seperately), and :math:`\Pi` is the filter applied in Fourier space, which is by default the ramp filter.
 
-   :param image: image data :math:`g` to be reconstructed
-   :type image: torch.Tensor
-   :param angles: Angles corresponding to each projection in the image/
+   :param proj: projection data :math:`g` to be reconstructed
+   :type proj: torch.Tensor
+   :param angles: Angles corresponding to each projection
    :type angles: Sequence
    :param filter: Additional Fourier space filter (applied after Ramp Filter) used during reconstruction.
    :type filter: Callable, optional
