@@ -330,12 +330,12 @@ document.write(`
 <li class="toctree-l2"><a class="reference internal" href="../../priors/prior/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.prior</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../projections/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-10"><i class="fa-solid fa-chevron-down"></i></label><ul>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../projections/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-11"><i class="fa-solid fa-chevron-down"></i></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../projections/SPECT/spect_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections.SPECT.spect_system_matrix</span></code></a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../projectors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-10"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../projectors/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-11"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../projectors/SPECT/spect_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT.spect_system_matrix</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../projections/system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections.system_matrix</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../projectors/system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.system_matrix</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1 current active has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-12"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
@@ -433,10 +433,10 @@ document.write(`
 <table class="autosummary longtable table autosummary">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.transforms.PET.PETAttenuationTransform" title="pytomography.transforms.PET.PETAttenuationTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PETAttenuationTransform</span></code></a></p></td>
-<td><p>im2im mapping used to model the effects of attenuation in PET.</p></td>
+<td><p>proj2proj mapping used to model the effects of attenuation in PET.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.transforms.PET.PETPSFTransform" title="pytomography.transforms.PET.PETPSFTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PETPSFTransform</span></code></a></p></td>
-<td><p>im2im transform used to model the effects of PSF blurring in PET. The smoothing kernel is assumed to be independent of <span class="math notranslate nohighlight">\(\theta\)</span> and <span class="math notranslate nohighlight">\(z\)</span>, but is dependent on <span class="math notranslate nohighlight">\(r\)</span>.</p></td>
+<td><p>proj2proj transform used to model the effects of PSF blurring in PET. The smoothing kernel is assumed to be independent of <span class="math notranslate nohighlight">\(\theta\)</span> and <span class="math notranslate nohighlight">\(z\)</span>, but is dependent on <span class="math notranslate nohighlight">\(r\)</span>.</p></td>
 </tr>
 </tbody>
 </table>
@@ -444,7 +444,7 @@ document.write(`
 <dt class="sig sig-object py" id="pytomography.transforms.PET.PETAttenuationTransform">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.transforms.PET.</span></span><span class="sig-name descname"><span class="pre">PETAttenuationTransform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">CT</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/transforms/PET/attenuation.html#PETAttenuationTransform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.PET.PETAttenuationTransform" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="../index.html#pytomography.transforms.Transform" title="pytomography.transforms.Transform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pytomography.transforms.Transform</span></code></a></p>
-<p>im2im mapping used to model the effects of attenuation in PET.</p>
+<p>proj2proj mapping used to model the effects of attenuation in PET.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -455,13 +455,13 @@ document.write(`
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.transforms.PET.PETAttenuationTransform.configure">
-<span class="sig-name descname"><span class="pre">configure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_meta</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.PET.PETAttenuationTransform.configure" title="Permalink to this definition">#</a></dt>
-<dd><p>Function used to initalize the transform using corresponding object and image metadata</p>
+<span class="sig-name descname"><span class="pre">configure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proj_meta</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.PET.PETAttenuationTransform.configure" title="Permalink to this definition">#</a></dt>
+<dd><p>Function used to initalize the transform using corresponding object and projection metadata</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>object_meta</strong> (<a class="reference internal" href="../../metadata/index.html#pytomography.metadata.ObjectMeta" title="pytomography.metadata.ObjectMeta"><em>ObjectMeta</em></a>) – Object metadata.</p></li>
-<li><p><strong>image_meta</strong> (<a class="reference internal" href="../../metadata/index.html#pytomography.metadata.ImageMeta" title="pytomography.metadata.ImageMeta"><em>ImageMeta</em></a>) – Image metadata.</p></li>
+<li><p><strong>proj_meta</strong> (<a class="reference internal" href="../../metadata/index.html#pytomography.metadata.ProjMeta" title="pytomography.metadata.ProjMeta"><em>ProjMeta</em></a>) – Projection metadata.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -472,14 +472,14 @@ document.write(`
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.transforms.PET.PETAttenuationTransform.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.PET.PETAttenuationTransform.forward" title="Permalink to this definition">#</a></dt>
-<dd><p>Applies forward projection of attenuation modeling <span class="math notranslate nohighlight">\(B:\mathbb{V} \to \mathbb{V}\)</span> to a 2D PET image.</p>
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proj</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.PET.PETAttenuationTransform.forward" title="Permalink to this definition">#</a></dt>
+<dd><p>Applies forward projection of attenuation modeling <span class="math notranslate nohighlight">\(B:\mathbb{V} \to \mathbb{V}\)</span> to 2D PET projections.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>image</strong> (<em>torch.Tensor</em>) – Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to</p>
+<dd class="field-odd"><p><strong>proj</strong> (<em>torch.Tensor</em>) – Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected image.</p>
+<dd class="field-even"><p>Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected projections.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>torch.Tensor</p>
@@ -489,17 +489,17 @@ document.write(`
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.transforms.PET.PETAttenuationTransform.backward">
-<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.PET.PETAttenuationTransform.backward" title="Permalink to this definition">#</a></dt>
-<dd><p>Applies back projection of attenuation modeling <span class="math notranslate nohighlight">\(B^T:\mathbb{V} \to \mathbb{V}\)</span> to a 2D PET image. Since the matrix is diagonal, its the <code class="docutils literal notranslate"><span class="pre">backward</span></code> implementation is identical to the <code class="docutils literal notranslate"><span class="pre">forward</span></code> implementation; the only difference is the optional <code class="docutils literal notranslate"><span class="pre">norm_constant</span></code> which is needed if one wants to normalize the back projection.</p>
+<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.PET.PETAttenuationTransform.backward" title="Permalink to this definition">#</a></dt>
+<dd><p>Applies back projection of attenuation modeling <span class="math notranslate nohighlight">\(B^T:\mathbb{V} \to \mathbb{V}\)</span> to 2D PET projections. Since the matrix is diagonal, its the <code class="docutils literal notranslate"><span class="pre">backward</span></code> implementation is identical to the <code class="docutils literal notranslate"><span class="pre">forward</span></code> implementation; the only difference is the optional <code class="docutils literal notranslate"><span class="pre">norm_constant</span></code> which is needed if one wants to normalize the back projection.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>image</strong> (<em>torch.Tensor</em>) – Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to</p></li>
+<li><p><strong>proj</strong> (<em>torch.Tensor</em>) – Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to</p></li>
 <li><p><strong>norm_constant</strong> (<em>torch.Tensor</em><em> | </em><em>None</em><em>, </em><em>optional</em>) – A tensor used to normalize the output during back projection. Defaults to None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected image.</p>
+<dd class="field-even"><p>Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected projections.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>torch.tensor</p>
@@ -513,21 +513,21 @@ document.write(`
 <dt class="sig sig-object py" id="pytomography.transforms.PET.PETPSFTransform">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.transforms.PET.</span></span><span class="sig-name descname"><span class="pre">PETPSFTransform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kerns</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/transforms/PET/psf.html#PETPSFTransform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.PET.PETPSFTransform" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="../index.html#pytomography.transforms.Transform" title="pytomography.transforms.Transform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pytomography.transforms.Transform</span></code></a></p>
-<p>im2im transform used to model the effects of PSF blurring in PET. The smoothing kernel is assumed to be independent of <span class="math notranslate nohighlight">\(\theta\)</span> and <span class="math notranslate nohighlight">\(z\)</span>, but is dependent on <span class="math notranslate nohighlight">\(r\)</span>.</p>
+<p>proj2proj transform used to model the effects of PSF blurring in PET. The smoothing kernel is assumed to be independent of <span class="math notranslate nohighlight">\(\theta\)</span> and <span class="math notranslate nohighlight">\(z\)</span>, but is dependent on <span class="math notranslate nohighlight">\(r\)</span>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>kerns</strong> (<em>Sequence</em><em>[</em><em>callable</em><em>]</em>) – A sequence of PSF kernels applied to the Lr dimension of the image with shape [batch_size, Lr, Ltheta, Lz]</p>
+<dd class="field-odd"><p><strong>kerns</strong> (<em>Sequence</em><em>[</em><em>callable</em><em>]</em>) – A sequence of PSF kernels applied to the Lr dimension of the projections with shape [batch_size, Lr, Ltheta, Lz]</p>
 </dd>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.transforms.PET.PETPSFTransform.configure">
-<span class="sig-name descname"><span class="pre">configure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_meta</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.PET.PETPSFTransform.configure" title="Permalink to this definition">#</a></dt>
-<dd><p>Function used to initalize the transform using corresponding object and image metadata</p>
+<span class="sig-name descname"><span class="pre">configure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proj_meta</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.PET.PETPSFTransform.configure" title="Permalink to this definition">#</a></dt>
+<dd><p>Function used to initalize the transform using corresponding object and proj metadata</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>object_meta</strong> (<a class="reference internal" href="../../metadata/index.html#pytomography.metadata.ObjectMeta" title="pytomography.metadata.ObjectMeta"><em>ObjectMeta</em></a>) – Object metadata.</p></li>
-<li><p><strong>image_meta</strong> (<a class="reference internal" href="../../metadata/index.html#pytomography.metadata.ImageMeta" title="pytomography.metadata.ImageMeta"><em>ImageMeta</em></a>) – Image metadata.</p></li>
+<li><p><strong>proj_meta</strong> (<a class="reference internal" href="../../metadata/index.html#pytomography.metadata.ProjMeta" title="pytomography.metadata.ProjMeta"><em>ProjMeta</em></a>) – Projection metadata.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -544,14 +544,14 @@ document.write(`
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.transforms.PET.PETPSFTransform.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.PET.PETPSFTransform.forward" title="Permalink to this definition">#</a></dt>
-<dd><p>Applies the forward projection of PSF modeling <span class="math notranslate nohighlight">\(B:\mathbb{V} \to \mathbb{V}\)</span> to a PET image.</p>
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proj</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.PET.PETPSFTransform.forward" title="Permalink to this definition">#</a></dt>
+<dd><p>Applies the forward projection of PSF modeling <span class="math notranslate nohighlight">\(B:\mathbb{V} \to \mathbb{V}\)</span> to a PET proj.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>image</strong> (<em>torch.tensor</em><em>]</em>) – Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the image</p>
+<dd class="field-odd"><p><strong>proj</strong> (<em>torch.tensor</em><em>]</em>) – Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the projections</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the PSF corrected image.</p>
+<dd class="field-even"><p>Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the PSF corrected projections.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>torch.tensor</p>
@@ -561,18 +561,18 @@ document.write(`
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.transforms.PET.PETPSFTransform.backward">
-<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.PET.PETPSFTransform.backward" title="Permalink to this definition">#</a></dt>
-<dd><p>Applies the back projection of PSF modeling <span class="math notranslate nohighlight">\(B^T:\mathbb{V} \to \mathbb{V}\)</span> to a PET image.</p>
+<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.transforms.PET.PETPSFTransform.backward" title="Permalink to this definition">#</a></dt>
+<dd><p>Applies the back projection of PSF modeling <span class="math notranslate nohighlight">\(B^T:\mathbb{V} \to \mathbb{V}\)</span> to PET projections .</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>image</strong> (<em>torch.tensor</em><em>]</em>) – Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the image
+<li><p><strong>proj</strong> (<em>torch.tensor</em><em>]</em>) – Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the projections
 norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.</p></li>
 <li><p><strong>norm_constant</strong> (<em>torch.Tensor</em><em> | </em><em>None</em>) – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the PSF corrected image.</p>
+<dd class="field-even"><p>Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the PSF corrected projections.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>torch.tensor</p>

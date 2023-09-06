@@ -15,7 +15,7 @@ Subpackages
    io/index.rst
    metadata/index.rst
    priors/index.rst
-   projections/index.rst
+   projectors/index.rst
    transforms/index.rst
    utils/index.rst
 
@@ -39,11 +39,16 @@ Attributes
 
 .. autoapisummary::
 
+   pytomography.__version__
    pytomography.device
    pytomography.dtype
    pytomography.delta
-   pytomography.__version__
 
+
+.. py:data:: __version__
+   :type: str
+
+   
 
 .. py:data:: device
 
@@ -55,11 +60,6 @@ Attributes
 
 .. py:data:: delta
    :value: 1e-11
-
-   
-
-.. py:data:: __version__
-   :type: str
 
    
 

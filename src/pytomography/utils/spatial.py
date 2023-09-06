@@ -15,7 +15,7 @@ def rotate_detector_z(
         x (torch.tensor[batch_size, Lx, Ly, Lz]): Tensor aligned with cartesian coordinate system specified
         by the manual. 
         angles (torch.Tensor): The angles :math:`\beta` where the scanner is located for each element in the batch x.
-        mode (str, optional): Method of interpolation used to get rotated image. Defaults to bilinear.
+        mode (str, optional): Method of interpolation used to get rotated object. Defaults to bilinear.
         negative (bool, optional): If True, applies an inverse rotation. In this case, the tensor
         x is an object in a coordinate system aligned with :math:`\beta`, and the function rotates the
         x back to the original cartesian coordinate system specified by the users manual. In particular, if one
@@ -33,7 +33,7 @@ def rotate_detector_z(
     return x
 
 def compute_pad_size(width: int):
-    """Computes the pad width required such that subsequent rotation retains the entire image
+    """Computes the pad width required such that subsequent rotation retains the entire object
 
     Args:
         width (int): width of the corresponding axis (i.e. number of elements in the dimension)
@@ -91,31 +91,31 @@ def unpad_object(object: torch.Tensor):
     pad_size = compute_pad_size_padded(object.shape[-2])
     return object[:,pad_size:-pad_size,pad_size:-pad_size,:]
 
-def pad_image(image: torch.Tensor, mode: str = 'constant', value: float = 0):
-    """Pads an image along the Lr axis
+def pad_proj(proj: torch.Tensor, mode: str = 'constant', value: float = 0):
+    """Pads projections along the Lr axis
 
     Args:
-        image (torch.Tensor[batch_size, Ltheta, Lr, Lz]): Image tensor.
+        proj (torch.Tensor[batch_size, Ltheta, Lr, Lz]): Projections tensor.
         mode (str, optional): Padding mode to use. Defaults to 'constant'.
         value (float, optional): If padding mode is constant, fill with this value. Defaults to 0.
 
     Returns:
-        torch.Tensor[batch_size, Ltheta, Lr', Lz]: Padded image tensor.
+        torch.Tensor[batch_size, Ltheta, Lr', Lz]: Padded projections tensor.
     """
-    pad_size = compute_pad_size(image.shape[-2])  
-    return pad(image, [0,0,pad_size,pad_size], mode=mode, value=value)
+    pad_size = compute_pad_size(proj.shape[-2])  
+    return pad(proj, [0,0,pad_size,pad_size], mode=mode, value=value)
 
-def unpad_image(image: torch.Tensor):
-    """Unpads the image back to original Lr dimensions
+def unpad_proj(proj: torch.Tensor):
+    """Unpads the projections back to original Lr dimensions
 
     Args:
-        image (torch.Tensor[batch_size, Ltheta, Lr', Lz]): Padded image tensor
+        proj (torch.Tensor[batch_size, Ltheta, Lr', Lz]): Padded projections tensor
 
     Returns:
-        torch.Tensor[batch_size, Ltheta, Lr, Lz]: Unpadded image tensor
+        torch.Tensor[batch_size, Ltheta, Lr, Lz]: Unpadded projections tensor
     """
-    pad_size = compute_pad_size_padded(image.shape[-2])
-    return image[:,:,pad_size:-pad_size,:]
+    pad_size = compute_pad_size_padded(proj.shape[-2])
+    return proj[:,:,pad_size:-pad_size,:]
 
 def pad_object_z(object: torch.Tensor, pad_size: int, mode='constant'):
     """Pads an object tensor along z. Useful for PSF modeling 

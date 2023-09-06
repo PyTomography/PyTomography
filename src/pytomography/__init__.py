@@ -1,12 +1,13 @@
 import torch
+from importlib.metadata import version
+
+__version__: str = version('pytomography')
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 if device == "cpu":
     print("PyTomography did not find a GPU available on this machine. If this is not expected, please check your CUDA installation.")
 dtype = torch.float32
 delta = 1e-11
-
-from importlib.metadata import version
-__version__: str = version('pytomography')
 
 def set_dtype(dt):
     global dtype

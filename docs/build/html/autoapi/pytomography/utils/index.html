@@ -330,12 +330,12 @@ document.write(`
 <li class="toctree-l2"><a class="reference internal" href="../priors/prior/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.prior</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../projections/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-10"><i class="fa-solid fa-chevron-down"></i></label><ul>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../projections/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-11"><i class="fa-solid fa-chevron-down"></i></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="../projections/SPECT/spect_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections.SPECT.spect_system_matrix</span></code></a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../projectors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-10"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../projectors/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-11"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../projectors/SPECT/spect_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT.spect_system_matrix</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../projections/system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections.system_matrix</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../projectors/system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.system_matrix</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../transforms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-12"><i class="fa-solid fa-chevron-down"></i></label><ul>
@@ -458,7 +458,7 @@ document.write(`
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.utils.get_object_nearest_neighbour" title="pytomography.utils.get_object_nearest_neighbour"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_object_nearest_neighbour</span></code></a>(object, shifts)</p></td>
 <td><p>Given an object tensor, finds the nearest neighbour (corresponding to <code class="docutils literal notranslate"><span class="pre">shifts</span></code>) for each voxel (done by shifting object by i,j,k)</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.utils.get_blank_below_above" title="pytomography.utils.get_blank_below_above"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_blank_below_above</span></code></a>(image)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.utils.get_blank_below_above" title="pytomography.utils.get_blank_below_above"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_blank_below_above</span></code></a>(proj)</p></td>
 <td><p>Obtains the number of blank z-slices at the sup (<code class="docutils literal notranslate"><span class="pre">blank_above</span></code>) and inf (<code class="docutils literal notranslate"><span class="pre">blank_below</span></code>) of the projection data. This method is entirely empircal, and looks for z slices where there are zero detected counts.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.utils.print_collimator_parameters" title="pytomography.utils.print_collimator_parameters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">print_collimator_parameters</span></code></a>()</p></td>
@@ -468,16 +468,16 @@ document.write(`
 <td><p>Returns an object tensor in a rotated reference frame such that the scanner is located at the +x axis. Note that the scanner angle <span class="math notranslate nohighlight">\(\beta\)</span> is related to <span class="math notranslate nohighlight">\(\phi\)</span> (azimuthal angle) by <span class="math notranslate nohighlight">\(\phi = 3\pi/2 - \beta\)</span>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.utils.compute_pad_size" title="pytomography.utils.compute_pad_size"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_pad_size</span></code></a>(width)</p></td>
-<td><p>Computes the pad width required such that subsequent rotation retains the entire image</p></td>
+<td><p>Computes the pad width required such that subsequent rotation retains the entire object</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.utils.pad_image" title="pytomography.utils.pad_image"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pad_image</span></code></a>(image[, mode, value])</p></td>
-<td><p>Pads an image along the Lr axis</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.utils.pad_proj" title="pytomography.utils.pad_proj"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pad_proj</span></code></a>(proj[, mode, value])</p></td>
+<td><p>Pads projections along the Lr axis</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.utils.pad_object" title="pytomography.utils.pad_object"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pad_object</span></code></a>(object[, mode])</p></td>
 <td><p>Pads object tensors by enough pixels in the xy plane so that subsequent rotations don't crop out any of the object</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.utils.unpad_image" title="pytomography.utils.unpad_image"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unpad_image</span></code></a>(image)</p></td>
-<td><p>Unpads the image back to original Lr dimensions</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.utils.unpad_proj" title="pytomography.utils.unpad_proj"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unpad_proj</span></code></a>(proj)</p></td>
+<td><p>Unpads the projections back to original Lr dimensions</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.utils.unpad_object" title="pytomography.utils.unpad_object"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unpad_object</span></code></a>(object)</p></td>
 <td><p>Unpads a padded object tensor in the xy plane back to its original dimensions</p></td>
@@ -563,11 +563,11 @@ since this is used with SPECT attenuation correction, the initial voxel only con
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.utils.get_blank_below_above">
-<span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">get_blank_below_above</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/utils/misc.html#get_blank_below_above"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.utils.get_blank_below_above" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">get_blank_below_above</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proj</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/utils/misc.html#get_blank_below_above"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.utils.get_blank_below_above" title="Permalink to this definition">#</a></dt>
 <dd><p>Obtains the number of blank z-slices at the sup (<code class="docutils literal notranslate"><span class="pre">blank_above</span></code>) and inf (<code class="docutils literal notranslate"><span class="pre">blank_below</span></code>) of the projection data. This method is entirely empircal, and looks for z slices where there are zero detected counts.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>image</strong> (<em>torch.tensor</em>) – Image data from a scanner</p>
+<dd class="field-odd"><p><strong>proj</strong> (<em>torch.tensor</em>) – Projection data from a scanner</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>A tuple of two elements corresponding to the number of blank slices at the inf, and the number of blank slices at the sup.</p>
@@ -594,7 +594,7 @@ since this is used with SPECT attenuation correction, the initial voxel only con
 <li><p><strong>x</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>]</em>) – Tensor aligned with cartesian coordinate system specified</p></li>
 <li><p><strong>manual.</strong> (<em>by the</em>) – </p></li>
 <li><p><strong>angles</strong> (<em>torch.Tensor</em>) – The angles <span class="math notranslate nohighlight">\(\beta\)</span> where the scanner is located for each element in the batch x.</p></li>
-<li><p><strong>mode</strong> (<em>str</em><em>, </em><em>optional</em>) – Method of interpolation used to get rotated image. Defaults to bilinear.</p></li>
+<li><p><strong>mode</strong> (<em>str</em><em>, </em><em>optional</em>) – Method of interpolation used to get rotated object. Defaults to bilinear.</p></li>
 <li><p><strong>negative</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, applies an inverse rotation. In this case, the tensor</p></li>
 </ul>
 </dd>
@@ -628,7 +628,7 @@ since this is used with SPECT attenuation correction, the initial voxel only con
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.utils.compute_pad_size">
 <span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">compute_pad_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">width</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/utils/spatial.html#compute_pad_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.utils.compute_pad_size" title="Permalink to this definition">#</a></dt>
-<dd><p>Computes the pad width required such that subsequent rotation retains the entire image</p>
+<dd><p>Computes the pad width required such that subsequent rotation retains the entire object</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>width</strong> (<em>int</em>) – width of the corresponding axis (i.e. number of elements in the dimension)</p>
@@ -643,19 +643,19 @@ since this is used with SPECT attenuation correction, the initial voxel only con
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pytomography.utils.pad_image">
-<span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">pad_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'constant'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/utils/spatial.html#pad_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.utils.pad_image" title="Permalink to this definition">#</a></dt>
-<dd><p>Pads an image along the Lr axis</p>
+<dt class="sig sig-object py" id="pytomography.utils.pad_proj">
+<span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">pad_proj</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'constant'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/utils/spatial.html#pad_proj"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.utils.pad_proj" title="Permalink to this definition">#</a></dt>
+<dd><p>Pads projections along the Lr axis</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>image</strong> (<em>torch.Tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Ltheta</em><em>, </em><em>Lr</em><em>, </em><em>Lz</em><em>]</em>) – Image tensor.</p></li>
+<li><p><strong>proj</strong> (<em>torch.Tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Ltheta</em><em>, </em><em>Lr</em><em>, </em><em>Lz</em><em>]</em>) – Projections tensor.</p></li>
 <li><p><strong>mode</strong> (<em>str</em><em>, </em><em>optional</em>) – Padding mode to use. Defaults to ‘constant’.</p></li>
 <li><p><strong>value</strong> (<em>float</em><em>, </em><em>optional</em>) – If padding mode is constant, fill with this value. Defaults to 0.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Padded image tensor.</p>
+<dd class="field-even"><p>Padded projections tensor.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>torch.Tensor[batch_size, Ltheta, Lr’, Lz]</p>
@@ -684,15 +684,15 @@ since this is used with SPECT attenuation correction, the initial voxel only con
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pytomography.utils.unpad_image">
-<span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">unpad_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/utils/spatial.html#unpad_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.utils.unpad_image" title="Permalink to this definition">#</a></dt>
-<dd><p>Unpads the image back to original Lr dimensions</p>
+<dt class="sig sig-object py" id="pytomography.utils.unpad_proj">
+<span class="sig-prename descclassname"><span class="pre">pytomography.utils.</span></span><span class="sig-name descname"><span class="pre">unpad_proj</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proj</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/utils/spatial.html#unpad_proj"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.utils.unpad_proj" title="Permalink to this definition">#</a></dt>
+<dd><p>Unpads the projections back to original Lr dimensions</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>image</strong> (<em>torch.Tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Ltheta</em><em>, </em><em>Lr'</em><em>, </em><em>Lz</em><em>]</em>) – Padded image tensor</p>
+<dd class="field-odd"><p><strong>proj</strong> (<em>torch.Tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Ltheta</em><em>, </em><em>Lr'</em><em>, </em><em>Lz</em><em>]</em>) – Padded projections tensor</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Unpadded image tensor</p>
+<dd class="field-even"><p>Unpadded projections tensor</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>torch.Tensor[batch_size, Ltheta, Lr, Lz]</p>
@@ -889,9 +889,9 @@ since this is used with SPECT attenuation correction, the initial voxel only con
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.print_collimator_parameters"><code class="docutils literal notranslate"><span class="pre">print_collimator_parameters()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.rotate_detector_z"><code class="docutils literal notranslate"><span class="pre">rotate_detector_z()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.compute_pad_size"><code class="docutils literal notranslate"><span class="pre">compute_pad_size()</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.pad_image"><code class="docutils literal notranslate"><span class="pre">pad_image()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.pad_proj"><code class="docutils literal notranslate"><span class="pre">pad_proj()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.pad_object"><code class="docutils literal notranslate"><span class="pre">pad_object()</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.unpad_image"><code class="docutils literal notranslate"><span class="pre">unpad_image()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.unpad_proj"><code class="docutils literal notranslate"><span class="pre">unpad_proj()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.unpad_object"><code class="docutils literal notranslate"><span class="pre">unpad_object()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.pad_object_z"><code class="docutils literal notranslate"><span class="pre">pad_object_z()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.unpad_object_z"><code class="docutils literal notranslate"><span class="pre">unpad_object_z()</span></code></a></li>
@@ -914,9 +914,9 @@ since this is used with SPECT attenuation correction, the initial voxel only con
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.print_collimator_parameters">print_collimator_parameters</a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.rotate_detector_z">rotate_detector_z</a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.compute_pad_size">compute_pad_size</a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.pad_image">pad_image</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.pad_proj">pad_proj</a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.pad_object">pad_object</a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.unpad_image">unpad_image</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.unpad_proj">unpad_proj</a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.unpad_object">unpad_object</a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.pad_object_z">pad_object_z</a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.utils.unpad_object_z">unpad_object_z</a></li>

@@ -41,14 +41,14 @@ Classes
    :param filepath: Folder location of CT scan; all .dcm files must correspond to different slices of the same scan.
    :type filepath: Sequence[str]
 
-   .. py:method:: configure(object_meta, image_meta)
+   .. py:method:: configure(object_meta, proj_meta)
 
-      Function used to initalize the transform using corresponding object and image metadata
+      Function used to initalize the transform using corresponding object and projection metadata
 
       :param object_meta: Object metadata.
       :type object_meta: SPECTObjectMeta
-      :param image_meta: Image metadata.
-      :type image_meta: SPECTImageMeta
+      :param proj_meta: Projection metadata.
+      :type proj_meta: SPECTProjMeta
 
 
    .. py:method:: forward(object_i, ang_idx)
@@ -57,7 +57,7 @@ Classes
 
       :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along ``axis=1``.
       :type object_i: torch.tensor
-      :param ang_idx: The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+      :param ang_idx: The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.
       :type ang_idx: torch.Tensor
 
       :returns: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.
@@ -70,7 +70,7 @@ Classes
 
       :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along ``axis=1``.
       :type object_i: torch.tensor
-      :param ang_idx: The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+      :param ang_idx: The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.
       :type ang_idx: torch.Tensor
       :param norm_constant: A tensor used to normalize the output during back projection. Defaults to None.
       :type norm_constant: torch.tensor, optional
@@ -89,14 +89,14 @@ Classes
    :param psf_meta: Metadata corresponding to the parameters of PSF blurring
    :type psf_meta: SPECTPSFMeta
 
-   .. py:method:: configure(object_meta, image_meta)
+   .. py:method:: configure(object_meta, proj_meta)
 
-      Function used to initalize the transform using corresponding object and image metadata
+      Function used to initalize the transform using corresponding object and projection metadata
 
       :param object_meta: Object metadata.
       :type object_meta: SPECTObjectMeta
-      :param image_meta: Image metadata.
-      :type image_meta: SPECTImageMeta
+      :param proj_meta: Projections metadata.
+      :type proj_meta: SPECTProjMeta
 
 
    .. py:method:: _compute_kernel_size(radius, axis)
@@ -137,7 +137,7 @@ Classes
 
       :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
       :type object_i: torch.tensor
-      :param ang_idx: The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+      :param ang_idx: The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.
       :type ang_idx: int
 
       :returns: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.
@@ -150,7 +150,7 @@ Classes
 
       :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
       :type object_i: torch.tensor
-      :param ang_idx: The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+      :param ang_idx: The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.
       :type ang_idx: int
       :param norm_constant: A tensor used to normalize the output during back projection. Defaults to None.
       :type norm_constant: torch.tensor, optional
@@ -160,36 +160,36 @@ Classes
 
 
 
-.. py:class:: CutOffTransform(image)
+.. py:class:: CutOffTransform(proj)
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 
-   im2im transformation used to set pixel values equal to zero at the first and last few z slices. This is often required when reconstructing DICOM data due to the finite field of view of the projection data, where additional axial slices are included on the top and bottom, with zero measured detection events. This transform is included in the system matrix, to model the sharp cutoff at the finite FOV.
+   proj2proj transformation used to set pixel values equal to zero at the first and last few z slices. This is often required when reconstructing DICOM data due to the finite field of view of the projection data, where additional axial slices are included on the top and bottom, with zero measured detection events. This transform is included in the system matrix, to model the sharp cutoff at the finite FOV.
 
-   :param image: Measured image data.
-   :type image: torch.tensor
+   :param proj: Measured projection data.
+   :type proj: torch.tensor
 
-   .. py:method:: forward(image)
+   .. py:method:: forward(proj)
 
       Forward projection :math:`B:\mathbb{V} \to \mathbb{V}` of the cutoff transform.
 
-      :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
-      :type image: torch.Tensor
+      :param proj: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
+      :type proj: torch.Tensor
 
-      :returns: Original image, but with certain z-slices equal to zero.
+      :returns: Original projections, but with certain z-slices equal to zero.
       :rtype: torch.tensor
 
 
-   .. py:method:: backward(image, norm_constant = None)
+   .. py:method:: backward(proj, norm_constant = None)
 
       Back projection :math:`B^T:\mathbb{V} \to \mathbb{V}` of the cutoff transform. Since this is a diagonal matrix, the implementation is the same as forward projection, but with the optional `norm_constant` argument.
 
-      :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
-      :type image: torch.Tensor
+      :param proj: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
+      :type proj: torch.Tensor
       :param norm_constant: A tensor used to normalize the output during back projection. Defaults to None.
       :type norm_constant: torch.Tensor | None, optional
 
-      :returns: Original image, but with certain z-slices equal to zero.
+      :returns: Original projections, but with certain z-slices equal to zero.
       :rtype: torch.tensor
 
 

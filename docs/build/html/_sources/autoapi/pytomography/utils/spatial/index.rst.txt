@@ -18,8 +18,8 @@ Functions
    pytomography.utils.spatial.compute_pad_size_padded
    pytomography.utils.spatial.pad_object
    pytomography.utils.spatial.unpad_object
-   pytomography.utils.spatial.pad_image
-   pytomography.utils.spatial.unpad_image
+   pytomography.utils.spatial.pad_proj
+   pytomography.utils.spatial.unpad_proj
    pytomography.utils.spatial.pad_object_z
    pytomography.utils.spatial.unpad_object_z
 
@@ -34,7 +34,7 @@ Functions
    :param by the manual.:
    :param angles: The angles :math:`\beta` where the scanner is located for each element in the batch x.
    :type angles: torch.Tensor
-   :param mode: Method of interpolation used to get rotated image. Defaults to bilinear.
+   :param mode: Method of interpolation used to get rotated object. Defaults to bilinear.
    :type mode: str, optional
    :param negative: If True, applies an inverse rotation. In this case, the tensor
    :type negative: bool, optional
@@ -53,7 +53,7 @@ Functions
 
 .. py:function:: compute_pad_size(width)
 
-   Computes the pad width required such that subsequent rotation retains the entire image
+   Computes the pad width required such that subsequent rotation retains the entire object
 
    :param width: width of the corresponding axis (i.e. number of elements in the dimension)
    :type width: int
@@ -97,29 +97,29 @@ Functions
    :rtype: torch.Tensor[batch_size, Lx, Ly, Lz]
 
 
-.. py:function:: pad_image(image, mode = 'constant', value = 0)
+.. py:function:: pad_proj(proj, mode = 'constant', value = 0)
 
-   Pads an image along the Lr axis
+   Pads projections along the Lr axis
 
-   :param image: Image tensor.
-   :type image: torch.Tensor[batch_size, Ltheta, Lr, Lz]
+   :param proj: Projections tensor.
+   :type proj: torch.Tensor[batch_size, Ltheta, Lr, Lz]
    :param mode: Padding mode to use. Defaults to 'constant'.
    :type mode: str, optional
    :param value: If padding mode is constant, fill with this value. Defaults to 0.
    :type value: float, optional
 
-   :returns: Padded image tensor.
+   :returns: Padded projections tensor.
    :rtype: torch.Tensor[batch_size, Ltheta, Lr', Lz]
 
 
-.. py:function:: unpad_image(image)
+.. py:function:: unpad_proj(proj)
 
-   Unpads the image back to original Lr dimensions
+   Unpads the projections back to original Lr dimensions
 
-   :param image: Padded image tensor
-   :type image: torch.Tensor[batch_size, Ltheta, Lr', Lz]
+   :param proj: Padded projections tensor
+   :type proj: torch.Tensor[batch_size, Ltheta, Lr', Lz]
 
-   :returns: Unpadded image tensor
+   :returns: Unpadded projections tensor
    :rtype: torch.Tensor[batch_size, Ltheta, Lr, Lz]
 
 

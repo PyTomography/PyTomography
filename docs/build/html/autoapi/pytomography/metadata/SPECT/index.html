@@ -330,12 +330,12 @@ document.write(`
 <li class="toctree-l2"><a class="reference internal" href="../../priors/prior/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.prior</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../projections/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-10"><i class="fa-solid fa-chevron-down"></i></label><ul>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../projections/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-11"><i class="fa-solid fa-chevron-down"></i></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../projections/SPECT/spect_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections.SPECT.spect_system_matrix</span></code></a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../projectors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-10"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../projectors/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-11"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../projectors/SPECT/spect_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT.spect_system_matrix</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../projections/system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projections.system_matrix</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../projectors/system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.system_matrix</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../transforms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-12"><i class="fa-solid fa-chevron-down"></i></label><ul>
@@ -434,8 +434,8 @@ document.write(`
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.metadata.SPECT.SPECTObjectMeta" title="pytomography.metadata.SPECT.SPECTObjectMeta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SPECTObjectMeta</span></code></a></p></td>
 <td><p>Metadata for object space in SPECT imaging</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.metadata.SPECT.SPECTImageMeta" title="pytomography.metadata.SPECT.SPECTImageMeta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SPECTImageMeta</span></code></a></p></td>
-<td><p>Metadata for image space in SPECT imaging</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.metadata.SPECT.SPECTProjMeta" title="pytomography.metadata.SPECT.SPECTProjMeta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SPECTProjMeta</span></code></a></p></td>
+<td><p>Metadata for projection space in SPECT imaging</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.metadata.SPECT.SPECTPSFMeta" title="pytomography.metadata.SPECT.SPECTPSFMeta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SPECTPSFMeta</span></code></a></p></td>
 <td><p>Metadata for PSF correction. PSF blurring is implemented using Gaussian blurring with <span class="math notranslate nohighlight">\(\sigma(r) = f(r,p)\)</span> where <span class="math notranslate nohighlight">\(r\)</span> is the distance from the detector, <span class="math notranslate nohighlight">\(\sigma\)</span> is the width of the Gaussian blurring at that location, and <span class="math notranslate nohighlight">\(f(r,p)\)</span> is the <code class="docutils literal notranslate"><span class="pre">sigma_fit</span></code> function which takes in additional parameters <span class="math notranslate nohighlight">\(p\)</span> called <code class="docutils literal notranslate"><span class="pre">sigma_fit_params</span></code>. (By default, <code class="docutils literal notranslate"><span class="pre">sigma_fit</span></code> is a linear curve). As such, <span class="math notranslate nohighlight">\(\frac{1}{\sigma\sqrt{2\pi}}e^{-r^2/(2\sigma(r)^2)}\)</span> is the point spread function. Blurring is implemented using convolutions with a specified kernel size.</p></td>
@@ -469,22 +469,22 @@ document.write(`
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="pytomography.metadata.SPECT.SPECTImageMeta">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.metadata.SPECT.</span></span><span class="sig-name descname"><span class="pre">SPECTImageMeta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">projection_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radii</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/metadata/SPECT/spect_metadata.html#SPECTImageMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.metadata.SPECT.SPECTImageMeta" title="Permalink to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference internal" href="../metadata/index.html#pytomography.metadata.metadata.ImageMeta" title="pytomography.metadata.metadata.ImageMeta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pytomography.metadata.metadata.ImageMeta</span></code></a></p>
-<p>Metadata for image space in SPECT imaging</p>
+<dt class="sig sig-object py" id="pytomography.metadata.SPECT.SPECTProjMeta">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.metadata.SPECT.</span></span><span class="sig-name descname"><span class="pre">SPECTProjMeta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">projection_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radii</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/metadata/SPECT/spect_metadata.html#SPECTProjMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.metadata.SPECT.SPECTProjMeta" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../metadata/index.html#pytomography.metadata.metadata.ProjMeta" title="pytomography.metadata.metadata.ProjMeta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pytomography.metadata.metadata.ProjMeta</span></code></a></p>
+<p>Metadata for projection space in SPECT imaging</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>projection_shape</strong> (<em>Sequence</em>) – 2D shape of the projections</p></li>
-<li><p><strong>angles</strong> (<em>Sequence</em>) – Specifies the detector angles for all projections in image space</p></li>
+<li><p><strong>projection_shape</strong> (<em>Sequence</em>) – 2D shape of each projection</p></li>
+<li><p><strong>angles</strong> (<em>Sequence</em>) – The angles for each 2D projection</p></li>
 <li><p><strong>radii</strong> (<em>Sequence</em><em>, </em><em>optional</em>) – Specifies the radial distance of the detector corresponding to each angle in <cite>angles</cite>; only required in certain cases (i.e. PSF correction). Defaults to None.</p></li>
 </ul>
 </dd>
 </dl>
 <dl class="py method">
-<dt class="sig sig-object py" id="pytomography.metadata.SPECT.SPECTImageMeta.compute_padded_shape">
-<span class="sig-name descname"><span class="pre">compute_padded_shape</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.metadata.SPECT.SPECTImageMeta.compute_padded_shape" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="pytomography.metadata.SPECT.SPECTProjMeta.compute_padded_shape">
+<span class="sig-name descname"><span class="pre">compute_padded_shape</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pytomography.metadata.SPECT.SPECTProjMeta.compute_padded_shape" title="Permalink to this definition">#</a></dt>
 <dd><p>Computes the padded shape of an object required when rotating the object (to avoid anything getting cut off).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -551,8 +551,8 @@ document.write(`
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.metadata.SPECT.SPECTObjectMeta.compute_padded_shape"><code class="docutils literal notranslate"><span class="pre">SPECTObjectMeta.compute_padded_shape()</span></code></a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.metadata.SPECT.SPECTImageMeta"><code class="docutils literal notranslate"><span class="pre">SPECTImageMeta</span></code></a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.metadata.SPECT.SPECTImageMeta.compute_padded_shape"><code class="docutils literal notranslate"><span class="pre">SPECTImageMeta.compute_padded_shape()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.metadata.SPECT.SPECTProjMeta"><code class="docutils literal notranslate"><span class="pre">SPECTProjMeta</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.metadata.SPECT.SPECTProjMeta.compute_padded_shape"><code class="docutils literal notranslate"><span class="pre">SPECTProjMeta.compute_padded_shape()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.metadata.SPECT.SPECTPSFMeta"><code class="docutils literal notranslate"><span class="pre">SPECTPSFMeta</span></code></a></li>
@@ -560,8 +560,8 @@ document.write(`
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.metadata.SPECT.SPECTObjectMeta.compute_padded_shape">compute_padded_shape</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.metadata.SPECT.SPECTImageMeta">SPECTImageMeta</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.metadata.SPECT.SPECTImageMeta.compute_padded_shape">compute_padded_shape</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.metadata.SPECT.SPECTProjMeta">SPECTProjMeta</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.metadata.SPECT.SPECTProjMeta.compute_padded_shape">compute_padded_shape</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.metadata.SPECT.SPECTPSFMeta">SPECTPSFMeta</a></li>

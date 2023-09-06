@@ -333,14 +333,15 @@ document.write(`
                   
   <h1>Source code for pytomography</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">importlib.metadata</span> <span class="kn">import</span> <span class="n">version</span>
+
+<div class="viewcode-block" id="__version__"><a class="viewcode-back" href="../autoapi/pytomography/index.html#pytomography.__version__">[docs]</a><span class="n">__version__</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">version</span><span class="p">(</span><span class="s1">&#39;pytomography&#39;</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="device"><a class="viewcode-back" href="../autoapi/pytomography/index.html#pytomography.device">[docs]</a><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span></div>
 <span class="k">if</span> <span class="n">device</span> <span class="o">==</span> <span class="s2">&quot;cpu&quot;</span><span class="p">:</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;PyTomography did not find a GPU available on this machine. If this is not expected, please check your CUDA installation.&quot;</span><span class="p">)</span>
 <div class="viewcode-block" id="dtype"><a class="viewcode-back" href="../autoapi/pytomography/index.html#pytomography.dtype">[docs]</a><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span></div>
 <div class="viewcode-block" id="delta"><a class="viewcode-back" href="../autoapi/pytomography/index.html#pytomography.delta">[docs]</a><span class="n">delta</span> <span class="o">=</span> <span class="mf">1e-11</span></div>
-
-<span class="kn">from</span> <span class="nn">importlib.metadata</span> <span class="kn">import</span> <span class="n">version</span>
-<div class="viewcode-block" id="__version__"><a class="viewcode-back" href="../autoapi/pytomography/index.html#pytomography.__version__">[docs]</a><span class="n">__version__</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">version</span><span class="p">(</span><span class="s1">&#39;pytomography&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="set_dtype"><a class="viewcode-back" href="../autoapi/pytomography/index.html#pytomography.set_dtype">[docs]</a><span class="k">def</span> <span class="nf">set_dtype</span><span class="p">(</span><span class="n">dt</span><span class="p">):</span>
     <span class="k">global</span> <span class="n">dtype</span>

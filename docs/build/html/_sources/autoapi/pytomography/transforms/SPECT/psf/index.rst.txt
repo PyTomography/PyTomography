@@ -87,14 +87,14 @@ Functions
    :param psf_meta: Metadata corresponding to the parameters of PSF blurring
    :type psf_meta: SPECTPSFMeta
 
-   .. py:method:: configure(object_meta, image_meta)
+   .. py:method:: configure(object_meta, proj_meta)
 
-      Function used to initalize the transform using corresponding object and image metadata
+      Function used to initalize the transform using corresponding object and projection metadata
 
       :param object_meta: Object metadata.
       :type object_meta: SPECTObjectMeta
-      :param image_meta: Image metadata.
-      :type image_meta: SPECTImageMeta
+      :param proj_meta: Projections metadata.
+      :type proj_meta: SPECTProjMeta
 
 
    .. py:method:: _compute_kernel_size(radius, axis)
@@ -135,7 +135,7 @@ Functions
 
       :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
       :type object_i: torch.tensor
-      :param ang_idx: The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+      :param ang_idx: The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.
       :type ang_idx: int
 
       :returns: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.
@@ -148,7 +148,7 @@ Functions
 
       :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
       :type object_i: torch.tensor
-      :param ang_idx: The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+      :param ang_idx: The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.
       :type ang_idx: int
       :param norm_constant: A tensor used to normalize the output during back projection. Defaults to None.
       :type norm_constant: torch.tensor, optional

@@ -12,7 +12,7 @@ import pydicom
 from pydicom.dataset import Dataset
 from pydicom.uid import generate_uid
 import pytomography
-from pytomography.metadata import SPECTObjectMeta, SPECTImageMeta, SPECTPSFMeta
+from pytomography.metadata import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
 from pytomography.utils import get_blank_below_above, compute_TEW, get_mu_from_spectrum_interp
 from ..CT import get_HU2mu_conversion, open_CT_file, compute_max_slice_loc_CT
 from ..shared import create_ds
@@ -83,14 +83,14 @@ def parse_projection_dataset(ds: Dataset) -> Sequence[torch.Tensor, np.array, np
 def get_metadata(
     file: str,
     index_peak: int = 0,
-) -> Sequence[SPECTObjectMeta, SPECTImageMeta]:
+) -> Sequence[SPECTObjectMeta, SPECTProjMeta]:
     """Gets PyTomography metadata from a .dcm file.
 
     Args:
         file (str): Path to the .dcm file of SPECT projection data.
         index_peak (int): EnergyWindowInformationSequence index corresponding to the photopeak. Defaults to 0.
     Returns:
-        (ObjectMeta, ImageMeta): Required metadata information for reconstruction in PyTomography.
+        (ObjectMeta, ProjMeta): Required metadata information for reconstruction in PyTomography.
     """
     ds = pydicom.read_file(file, force=True)
     dx = ds.PixelSpacing[0] / 10
@@ -100,18 +100,18 @@ def get_metadata(
     shape_proj= (projections.shape[-3], projections.shape[-2], projections.shape[-1])
     shape_obj = (shape_proj[1], shape_proj[1], shape_proj[2])
     object_meta = SPECTObjectMeta(dr,shape_obj)
-    image_meta = SPECTImageMeta((shape_proj[1], shape_proj[2]), angles, radii)
+    proj_meta = SPECTProjMeta((shape_proj[1], shape_proj[2]), angles, radii)
     object_meta.affine_matrix = _get_affine_spect_projections(file)
-    image_meta.filepath = file
-    image_meta.index_peak = index_peak
-    return object_meta, image_meta
+    proj_meta.filepath = file
+    proj_meta.index_peak = index_peak
+    return object_meta, proj_meta
 
 def get_projections(
     file: str,
     index_peak: None | int = None,
     index_time: None | int = None,
     print_shape: bool = True
-    ) -> Sequence[SPECTObjectMeta, SPECTImageMeta, torch.Tensor]:
+    ) -> Sequence[SPECTObjectMeta, SPECTProjMeta, torch.Tensor]:
     """Gets projections from a .dcm file.
 
     Args:
@@ -120,7 +120,7 @@ def get_projections(
         index_time (int): If not none, then the returned projections correspond to the index of the time slot in gated SPECT. Otherwise returns all time slots. Defaults to None
         print_shape (bool): If true, then prints the shape of the projections returned. Defaults to true.
     Returns:
-        (SPECTObjectMeta, SPECTImageMeta, torch.Tensor[..., Ltheta, Lr, Lz]) where ... depends on if time slots are considered.
+        (SPECTObjectMeta, SPECTProjMeta, torch.Tensor[..., Ltheta, Lr, Lz]) where ... depends on if time slots are considered.
     """
     ds = pydicom.read_file(file, force=True)
     projections, _, _, flags = parse_projection_dataset(ds)

@@ -42,44 +42,44 @@ Functions
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 
-   im2im mapping used to model the effects of attenuation in PET.
+   proj2proj mapping used to model the effects of attenuation in PET.
 
    :param CT: Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{cm}^{-1}}` at a photon energy of 511keV.
    :type CT: torch.tensor
    :param device: Pytorch device used for computation. If None, uses the default device `pytomography.device` Defaults to None.
    :type device: str, optional
 
-   .. py:method:: configure(object_meta, image_meta)
+   .. py:method:: configure(object_meta, proj_meta)
 
-      Function used to initalize the transform using corresponding object and image metadata
+      Function used to initalize the transform using corresponding object and projection metadata
 
       :param object_meta: Object metadata.
       :type object_meta: ObjectMeta
-      :param image_meta: Image metadata.
-      :type image_meta: ImageMeta
+      :param proj_meta: Projection metadata.
+      :type proj_meta: ProjMeta
 
 
-   .. py:method:: forward(image)
+   .. py:method:: forward(proj)
 
-      Applies forward projection of attenuation modeling :math:`B:\mathbb{V} \to \mathbb{V}` to a 2D PET image.
+      Applies forward projection of attenuation modeling :math:`B:\mathbb{V} \to \mathbb{V}` to 2D PET projections.
 
-      :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
-      :type image: torch.Tensor
+      :param proj: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
+      :type proj: torch.Tensor
 
-      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected image.
+      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected projections.
       :rtype: torch.Tensor
 
 
-   .. py:method:: backward(image, norm_constant = None)
+   .. py:method:: backward(proj, norm_constant = None)
 
-      Applies back projection of attenuation modeling :math:`B^T:\mathbb{V} \to \mathbb{V}` to a 2D PET image. Since the matrix is diagonal, its the ``backward`` implementation is identical to the ``forward`` implementation; the only difference is the optional ``norm_constant`` which is needed if one wants to normalize the back projection.
+      Applies back projection of attenuation modeling :math:`B^T:\mathbb{V} \to \mathbb{V}` to 2D PET projections. Since the matrix is diagonal, its the ``backward`` implementation is identical to the ``forward`` implementation; the only difference is the optional ``norm_constant`` which is needed if one wants to normalize the back projection.
 
-      :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
-      :type image: torch.Tensor
+      :param proj: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
+      :type proj: torch.Tensor
       :param norm_constant: A tensor used to normalize the output during back projection. Defaults to None.
       :type norm_constant: torch.Tensor | None, optional
 
-      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected image.
+      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected projections.
       :rtype: torch.tensor
 
 

@@ -13,7 +13,7 @@ Classes
 .. autoapisummary::
 
    pytomography.metadata.metadata.ObjectMeta
-   pytomography.metadata.metadata.ImageMeta
+   pytomography.metadata.metadata.ProjMeta
 
 
 
@@ -29,9 +29,9 @@ Classes
 
 
 
-.. py:class:: ImageMeta(angles)
+.. py:class:: ProjMeta(angles)
 
-   Parent class for all different types of Image Space Metadata. Implementation and required parameters will differ significantly between different imaging modalities.
+   Parent class for all different types of Projection Space Metadata. Implementation and required parameters will differ significantly between different imaging modalities.
 
 
    .. py:method:: __repr__()

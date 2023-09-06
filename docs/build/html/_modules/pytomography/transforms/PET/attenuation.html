@@ -338,9 +338,9 @@ document.write(`
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">pytomography</span>
-<span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">rotate_detector_z</span><span class="p">,</span> <span class="n">pad_image</span>
+<span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">rotate_detector_z</span><span class="p">,</span> <span class="n">pad_proj</span>
 <span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
-<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ImageMeta</span>
+<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ProjMeta</span>
 
 <div class="viewcode-block" id="get_prob_of_detection_matrix"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/PET/attenuation/index.html#pytomography.transforms.PET.attenuation.get_prob_of_detection_matrix">[docs]</a><span class="k">def</span> <span class="nf">get_prob_of_detection_matrix</span><span class="p">(</span><span class="n">CT</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">dx</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span> 
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Converts an attenuation map of :math:`\text{cm}^{-1}` to a probability of photon detection projection (detector pair oriented along x axis). Note that this requires the attenuation map to be at the energy of photons being emitted (511keV).</span>
@@ -355,7 +355,7 @@ document.write(`
     <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">CT</span> <span class="o">*</span> <span class="n">dx</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="PETAttenuationTransform"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/index.html#pytomography.transforms.PET.attenuation.PETAttenuationTransform">[docs]</a><span class="k">class</span> <span class="nc">PETAttenuationTransform</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;im2im mapping used to model the effects of attenuation in PET.</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;proj2proj mapping used to model the effects of attenuation in PET.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        CT (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{cm}^{-1}}` at a photon energy of 511keV.</span>
@@ -365,55 +365,55 @@ document.write(`
         <span class="nb">super</span><span class="p">(</span><span class="n">PETAttenuationTransform</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CT</span> <span class="o">=</span> <span class="n">CT</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         
-<div class="viewcode-block" id="PETAttenuationTransform.configure"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/PET/attenuation/index.html#pytomography.transforms.PET.attenuation.PETAttenuationTransform.configure">[docs]</a>    <span class="k">def</span> <span class="nf">configure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_meta</span><span class="p">:</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">:</span> <span class="n">ImageMeta</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Function used to initalize the transform using corresponding object and image metadata</span>
+<div class="viewcode-block" id="PETAttenuationTransform.configure"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/PET/attenuation/index.html#pytomography.transforms.PET.attenuation.PETAttenuationTransform.configure">[docs]</a>    <span class="k">def</span> <span class="nf">configure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_meta</span><span class="p">:</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">proj_meta</span><span class="p">:</span> <span class="n">ProjMeta</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Function used to initalize the transform using corresponding object and projection metadata</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            object_meta (ObjectMeta): Object metadata.</span>
-<span class="sd">            image_meta (ImageMeta): Image metadata.</span>
+<span class="sd">            proj_meta (ProjMeta): Projection metadata.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">PETAttenuationTransform</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">norm_image</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_meta</span><span class="o">.</span><span class="n">padded_shape</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="n">CT</span> <span class="o">=</span> <span class="n">pad_image</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">CT</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">angle</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_meta</span><span class="o">.</span><span class="n">angles</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">norm_image</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_prob_of_detection_matrix</span><span class="p">(</span><span class="n">rotate_detector_z</span><span class="p">(</span><span class="n">CT</span><span class="p">,</span> <span class="n">angle</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_meta</span><span class="o">.</span><span class="n">dx</span><span class="p">)</span></div>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PETAttenuationTransform</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">proj_meta</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm_proj</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proj_meta</span><span class="o">.</span><span class="n">padded_shape</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">CT</span> <span class="o">=</span> <span class="n">pad_proj</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">CT</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">angle</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proj_meta</span><span class="o">.</span><span class="n">angles</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">norm_proj</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_prob_of_detection_matrix</span><span class="p">(</span><span class="n">rotate_detector_z</span><span class="p">(</span><span class="n">CT</span><span class="p">,</span> <span class="n">angle</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_meta</span><span class="o">.</span><span class="n">dx</span><span class="p">)</span></div>
     
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
 <div class="viewcode-block" id="PETAttenuationTransform.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/PET/attenuation/index.html#pytomography.transforms.PET.attenuation.PETAttenuationTransform.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
-		<span class="n">image</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+		<span class="n">proj</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Applies forward projection of attenuation modeling :math:`B:\mathbb{V} \to \mathbb{V}` to a 2D PET image.</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Applies forward projection of attenuation modeling :math:`B:\mathbb{V} \to \mathbb{V}` to 2D PET projections.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            image (torch.Tensor): Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to</span>
+<span class="sd">            proj (torch.Tensor): Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            torch.Tensor: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected image.</span>
+<span class="sd">            torch.Tensor: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected projections.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">image</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">norm_image</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">proj</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">norm_proj</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
     
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
 <div class="viewcode-block" id="PETAttenuationTransform.backward"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/PET/attenuation/index.html#pytomography.transforms.PET.attenuation.PETAttenuationTransform.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
-		<span class="n">image</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+		<span class="n">proj</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
 		<span class="n">norm_constant</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Applies back projection of attenuation modeling :math:`B^T:\mathbb{V} \to \mathbb{V}` to a 2D PET image. Since the matrix is diagonal, its the ``backward`` implementation is identical to the ``forward`` implementation; the only difference is the optional ``norm_constant`` which is needed if one wants to normalize the back projection.</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Applies back projection of attenuation modeling :math:`B^T:\mathbb{V} \to \mathbb{V}` to 2D PET projections. Since the matrix is diagonal, its the ``backward`` implementation is identical to the ``forward`` implementation; the only difference is the optional ``norm_constant`` which is needed if one wants to normalize the back projection.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            image (torch.Tensor): Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to</span>
+<span class="sd">            proj (torch.Tensor): Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to</span>
 <span class="sd">            norm_constant (torch.Tensor | None, optional): A tensor used to normalize the output during back projection. Defaults to None.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            torch.tensor: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected image.</span>
+<span class="sd">            torch.tensor: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected projections.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">image</span> <span class="o">=</span> <span class="n">image</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">norm_image</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">proj</span> <span class="o">=</span> <span class="n">proj</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">norm_proj</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">norm_constant</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">norm_constant</span> <span class="o">=</span> <span class="n">norm_constant</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">norm_image</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">image</span><span class="p">,</span> <span class="n">norm_constant</span>
+            <span class="n">norm_constant</span> <span class="o">=</span> <span class="n">norm_constant</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">norm_proj</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">proj</span><span class="p">,</span> <span class="n">norm_constant</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">image</span></div></div>
+            <span class="k">return</span> <span class="n">proj</span></div></div>
     
 </pre></div>
 

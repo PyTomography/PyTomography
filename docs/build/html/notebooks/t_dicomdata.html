@@ -603,7 +603,7 @@ div.rendered_html tbody tr:hover {
 <span class="kn">from</span> <span class="nn">pytomography.io.SPECT</span> <span class="kn">import</span> <span class="n">dicom</span>
 <span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">SPECTAttenuationTransform</span><span class="p">,</span> <span class="n">SPECTPSFTransform</span>
 <span class="kn">from</span> <span class="nn">pytomography.algorithms</span> <span class="kn">import</span> <span class="n">OSEM</span>
-<span class="kn">from</span> <span class="nn">pytomography.projections</span> <span class="kn">import</span> <span class="n">SPECTSystemMatrix</span>
+<span class="kn">from</span> <span class="nn">pytomography.projectors</span> <span class="kn">import</span> <span class="n">SPECTSystemMatrix</span>
 <span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">print_collimator_parameters</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">pydicom</span>
@@ -625,12 +625,15 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-<p>The metadata for object space and image space can be obtained from the projection data file using <code class="docutils literal notranslate"><span class="pre">dicom.get_metadata</span></code></p>
+<p>The metadata for object space and projection space can be obtained from the projection data file using <code class="docutils literal notranslate"><span class="pre">dicom.get_metadata</span></code></p>
+<ul class="simple">
+<li><p>This contains informaiton such as the voxel size, number of angles, scanner radius, etc.</p></li>
+</ul>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span> <span class="o">=</span> <span class="n">dicom</span><span class="o">.</span><span class="n">get_metadata</span><span class="p">(</span><span class="n">file_NM</span><span class="p">,</span> <span class="n">index_peak</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">object_meta</span><span class="p">,</span> <span class="n">proj_meta</span> <span class="o">=</span> <span class="n">dicom</span><span class="o">.</span><span class="n">get_metadata</span><span class="p">(</span><span class="n">file_NM</span><span class="p">,</span> <span class="n">index_peak</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -680,7 +683,7 @@ torch.Size([1, 180, 128, 128])
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.colorbar.Colorbar at 0x7f8c88817f10&gt;
+&lt;matplotlib.colorbar.Colorbar at 0x7f455c8fcf70&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -726,7 +729,7 @@ torch.Size([1, 180, 128, 128])
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">att_transform</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">att_transform</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">proj_meta</span><span class="p">)</span>
 <span class="n">attenuation_map</span> <span class="o">=</span> <span class="n">att_transform</span><span class="o">.</span><span class="n">attenuation_map</span>
 </pre></div>
 </div>
@@ -773,7 +776,7 @@ Effective CT Energy Determined: 75.89505539164563 keV
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.colorbar.Colorbar at 0x7f8c8465c670&gt;
+&lt;matplotlib.colorbar.Colorbar at 0x7f455873fe80&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -812,7 +815,7 @@ Effective CT Energy Determined: 75.89505539164563 keV
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;pytomography.metadata.SPECT.spect_metadata.SPECTPSFMeta object at 0x7f8c845d7130&gt;
+&lt;pytomography.metadata.SPECT.spect_metadata.SPECTPSFMeta object at 0x7f45587bd520&gt;
 </pre></div></div>
 </div>
 <p>Now we can build our PSF transform required to create the system matrix</p>
@@ -828,17 +831,17 @@ Effective CT Energy Determined: 75.89505539164563 keV
 </section>
 <section id="System-Matrix">
 <h2>System Matrix<a class="headerlink" href="#System-Matrix" title="Permalink to this heading">#</a></h2>
-<p>Now that we have the required transforms, we can begin to build the system matrix. It requires: 1. <code class="docutils literal notranslate"><span class="pre">obj2obj_transforms</span></code>. These map from object space to object space. In the case of SPECT imaging, both the attenuation transform and PSF transform correspond to these types of transforms. 2. <code class="docutils literal notranslate"><span class="pre">im2im_transforms</span></code>: These map from image space to image space. Though we have none here, they would be used to model PSF in PET imaging. 3. <code class="docutils literal notranslate"><span class="pre">object_meta</span></code> and <code class="docutils literal notranslate"><span class="pre">image_meta</span></code>. These are used to initialize
-the transforms. For example, data from <code class="docutils literal notranslate"><span class="pre">object_meta</span></code> is used to align the attenuation map, and radial position from <code class="docutils literal notranslate"><span class="pre">image_meta</span></code> is used to get proper blurring parameters for the PSF transform</p>
+<p>Now that we have the required transforms, we can begin to build the system matrix. It requires: 1. <code class="docutils literal notranslate"><span class="pre">obj2obj_transforms</span></code>. These map from object space to object space. In the case of SPECT imaging, both the attenuation transform and PSF transform correspond to these types of transforms. 2. <code class="docutils literal notranslate"><span class="pre">proj2proj_transforms</span></code>: These map from projection to projection space. Though we have none here, they would be used to model PSF in PET imaging. 3. <code class="docutils literal notranslate"><span class="pre">object_meta</span></code> and <code class="docutils literal notranslate"><span class="pre">proj_meta</span></code>. These are used to
+initialize the transforms. For example, data from <code class="docutils literal notranslate"><span class="pre">object_meta</span></code> is used to align the attenuation map, and radial position from <code class="docutils literal notranslate"><span class="pre">proj_meta</span></code> is used to get proper blurring parameters for the PSF transform</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">system_matrix</span> <span class="o">=</span> <span class="n">SPECTSystemMatrix</span><span class="p">(</span>
         <span class="n">obj2obj_transforms</span> <span class="o">=</span> <span class="p">[</span><span class="n">att_transform</span><span class="p">,</span><span class="n">psf_transform</span><span class="p">],</span>
-        <span class="n">im2im_transforms</span> <span class="o">=</span> <span class="p">[],</span>
+        <span class="n">proj2proj_transforms</span> <span class="o">=</span> <span class="p">[],</span>
         <span class="n">object_meta</span> <span class="o">=</span> <span class="n">object_meta</span><span class="p">,</span>
-        <span class="n">image_meta</span> <span class="o">=</span> <span class="n">image_meta</span><span class="p">)</span>
+        <span class="n">proj_meta</span> <span class="o">=</span> <span class="n">proj_meta</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -856,13 +859,13 @@ Effective CT Energy Determined: 75.89505539164563 keV
 </section>
 <section id="Reconstruct-the-object">
 <h1>Reconstruct the object<a class="headerlink" href="#Reconstruct-the-object" title="Permalink to this heading">#</a></h1>
-<p>We’ll reconstruct the object using OSEM. For this, we need to specify the measured image data (<code class="docutils literal notranslate"><span class="pre">photopeak</span></code>/<code class="docutils literal notranslate"><span class="pre">scatter</span></code>) and the <code class="docutils literal notranslate"><span class="pre">system_matrix</span></code></p>
+<p>We’ll reconstruct the object using OSEM. For this, we need to specify the measured projection data (<code class="docutils literal notranslate"><span class="pre">photopeak</span></code>/<code class="docutils literal notranslate"><span class="pre">scatter</span></code>) and the <code class="docutils literal notranslate"><span class="pre">system_matrix</span></code></p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reconstruction_algorithm</span> <span class="o">=</span> <span class="n">OSEM</span><span class="p">(</span>
-    <span class="n">image</span> <span class="o">=</span> <span class="n">photopeak</span><span class="p">,</span>
+    <span class="n">projections</span> <span class="o">=</span> <span class="n">photopeak</span><span class="p">,</span>
     <span class="n">system_matrix</span> <span class="o">=</span> <span class="n">system_matrix</span><span class="p">,</span>
     <span class="n">scatter</span><span class="o">=</span><span class="n">scatter</span><span class="p">)</span>
 </pre></div>

@@ -21,8 +21,8 @@ class ObjectMeta():
         return ''.join(attributes)
 
 
-class ImageMeta():
-    """Parent class for all different types of Image Space Metadata. Implementation and required parameters will differ significantly between different imaging modalities.
+class ProjMeta():
+    """Parent class for all different types of Projection Space Metadata. Implementation and required parameters will differ significantly between different imaging modalities.
     """
     def __init__(self, angles) -> None:
         self.angles = angles

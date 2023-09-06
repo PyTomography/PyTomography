@@ -61,12 +61,12 @@ Functions
    :rtype: torch.Tensor
 
 
-.. py:function:: get_blank_below_above(image)
+.. py:function:: get_blank_below_above(proj)
 
    Obtains the number of blank z-slices at the sup (``blank_above``) and inf (``blank_below``) of the projection data. This method is entirely empircal, and looks for z slices where there are zero detected counts.
 
-   :param image: Image data from a scanner
-   :type image: torch.tensor
+   :param proj: Projection data from a scanner
+   :type proj: torch.tensor
 
    :returns: A tuple of two elements corresponding to the number of blank slices at the inf, and the number of blank slices at the sup.
    :rtype: Sequence[int]

@@ -349,7 +349,7 @@ document.write(`
 <span class="kn">from</span> <span class="nn">pydicom.dataset</span> <span class="kn">import</span> <span class="n">Dataset</span>
 <span class="kn">from</span> <span class="nn">pydicom.uid</span> <span class="kn">import</span> <span class="n">generate_uid</span>
 <span class="kn">import</span> <span class="nn">pytomography</span>
-<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTImageMeta</span><span class="p">,</span> <span class="n">SPECTPSFMeta</span>
+<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTProjMeta</span><span class="p">,</span> <span class="n">SPECTPSFMeta</span>
 <span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">get_blank_below_above</span><span class="p">,</span> <span class="n">compute_TEW</span><span class="p">,</span> <span class="n">get_mu_from_spectrum_interp</span>
 <span class="kn">from</span> <span class="nn">..CT</span> <span class="kn">import</span> <span class="n">get_HU2mu_conversion</span><span class="p">,</span> <span class="n">open_CT_file</span><span class="p">,</span> <span class="n">compute_max_slice_loc_CT</span>
 <span class="kn">from</span> <span class="nn">..shared</span> <span class="kn">import</span> <span class="n">create_ds</span>
@@ -420,14 +420,14 @@ document.write(`
 <div class="viewcode-block" id="get_metadata"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html#pytomography.io.SPECT.dicom.get_metadata">[docs]</a><span class="k">def</span> <span class="nf">get_metadata</span><span class="p">(</span>
     <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">index_peak</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTImageMeta</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTProjMeta</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets PyTomography metadata from a .dcm file.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        file (str): Path to the .dcm file of SPECT projection data.</span>
 <span class="sd">        index_peak (int): EnergyWindowInformationSequence index corresponding to the photopeak. Defaults to 0.</span>
 <span class="sd">    Returns:</span>
-<span class="sd">        (ObjectMeta, ImageMeta): Required metadata information for reconstruction in PyTomography.</span>
+<span class="sd">        (ObjectMeta, ProjMeta): Required metadata information for reconstruction in PyTomography.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">dx</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mi">10</span>
@@ -437,18 +437,18 @@ document.write(`
     <span class="n">shape_proj</span><span class="o">=</span> <span class="p">(</span><span class="n">projections</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">],</span> <span class="n">projections</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="n">projections</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
     <span class="n">shape_obj</span> <span class="o">=</span> <span class="p">(</span><span class="n">shape_proj</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">shape_proj</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">shape_proj</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
     <span class="n">object_meta</span> <span class="o">=</span> <span class="n">SPECTObjectMeta</span><span class="p">(</span><span class="n">dr</span><span class="p">,</span><span class="n">shape_obj</span><span class="p">)</span>
-    <span class="n">image_meta</span> <span class="o">=</span> <span class="n">SPECTImageMeta</span><span class="p">((</span><span class="n">shape_proj</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">shape_proj</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">angles</span><span class="p">,</span> <span class="n">radii</span><span class="p">)</span>
+    <span class="n">proj_meta</span> <span class="o">=</span> <span class="n">SPECTProjMeta</span><span class="p">((</span><span class="n">shape_proj</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">shape_proj</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">angles</span><span class="p">,</span> <span class="n">radii</span><span class="p">)</span>
     <span class="n">object_meta</span><span class="o">.</span><span class="n">affine_matrix</span> <span class="o">=</span> <span class="n">_get_affine_spect_projections</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
-    <span class="n">image_meta</span><span class="o">.</span><span class="n">filepath</span> <span class="o">=</span> <span class="n">file</span>
-    <span class="n">image_meta</span><span class="o">.</span><span class="n">index_peak</span> <span class="o">=</span> <span class="n">index_peak</span>
-    <span class="k">return</span> <span class="n">object_meta</span><span class="p">,</span> <span class="n">image_meta</span></div>
+    <span class="n">proj_meta</span><span class="o">.</span><span class="n">filepath</span> <span class="o">=</span> <span class="n">file</span>
+    <span class="n">proj_meta</span><span class="o">.</span><span class="n">index_peak</span> <span class="o">=</span> <span class="n">index_peak</span>
+    <span class="k">return</span> <span class="n">object_meta</span><span class="p">,</span> <span class="n">proj_meta</span></div>
 
 <div class="viewcode-block" id="get_projections"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/index.html#pytomography.io.SPECT.dicom.get_projections">[docs]</a><span class="k">def</span> <span class="nf">get_projections</span><span class="p">(</span>
     <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">index_peak</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">index_time</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">print_shape</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTImageMeta</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTProjMeta</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets projections from a .dcm file.</span>
 
 <span class="sd">    Args:</span>
@@ -457,7 +457,7 @@ document.write(`
 <span class="sd">        index_time (int): If not none, then the returned projections correspond to the index of the time slot in gated SPECT. Otherwise returns all time slots. Defaults to None</span>
 <span class="sd">        print_shape (bool): If true, then prints the shape of the projections returned. Defaults to true.</span>
 <span class="sd">    Returns:</span>
-<span class="sd">        (SPECTObjectMeta, SPECTImageMeta, torch.Tensor[..., Ltheta, Lr, Lz]) where ... depends on if time slots are considered.</span>
+<span class="sd">        (SPECTObjectMeta, SPECTProjMeta, torch.Tensor[..., Ltheta, Lr, Lz]) where ... depends on if time slots are considered.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">projections</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">flags</span> <span class="o">=</span> <span class="n">parse_projection_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>

@@ -53,27 +53,27 @@ Classes
    :param device: Pytorch device used for computation
    :type device: str
 
-   .. py:method:: configure(object_meta, image_meta)
+   .. py:method:: configure(object_meta, proj_meta)
 
-      Configures the transform to the object/image metadata. This is done after creating the network so that it can be adjusted to the system matrix.
+      Configures the transform to the object/proj metadata. This is done after creating the network so that it can be adjusted to the system matrix.
 
       :param object_meta: Object metadata.
       :type object_meta: ObjectMeta
-      :param image_meta: Image metadata.
-      :type image_meta: ImageMeta
+      :param proj_meta: Projections metadata.
+      :type proj_meta: ProjMeta
 
 
    .. py:method:: forward(x)
       :abstractmethod:
 
-      Abstract method; must be implemented in subclasses to apply a correction to an object/image and return it
+      Abstract method; must be implemented in subclasses to apply a correction to an object/proj and return it
 
 
 
    .. py:method:: backward(x)
       :abstractmethod:
 
-      Abstract method; must be implemented in subclasses to apply a correction to an object/image and return it
+      Abstract method; must be implemented in subclasses to apply a correction to an object/proj and return it
 
 
 
@@ -89,14 +89,14 @@ Classes
    :param filepath: Folder location of CT scan; all .dcm files must correspond to different slices of the same scan.
    :type filepath: Sequence[str]
 
-   .. py:method:: configure(object_meta, image_meta)
+   .. py:method:: configure(object_meta, proj_meta)
 
-      Function used to initalize the transform using corresponding object and image metadata
+      Function used to initalize the transform using corresponding object and projection metadata
 
       :param object_meta: Object metadata.
       :type object_meta: SPECTObjectMeta
-      :param image_meta: Image metadata.
-      :type image_meta: SPECTImageMeta
+      :param proj_meta: Projection metadata.
+      :type proj_meta: SPECTProjMeta
 
 
    .. py:method:: forward(object_i, ang_idx)
@@ -105,7 +105,7 @@ Classes
 
       :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along ``axis=1``.
       :type object_i: torch.tensor
-      :param ang_idx: The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+      :param ang_idx: The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.
       :type ang_idx: torch.Tensor
 
       :returns: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.
@@ -118,7 +118,7 @@ Classes
 
       :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along ``axis=1``.
       :type object_i: torch.tensor
-      :param ang_idx: The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+      :param ang_idx: The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.
       :type ang_idx: torch.Tensor
       :param norm_constant: A tensor used to normalize the output during back projection. Defaults to None.
       :type norm_constant: torch.tensor, optional
@@ -137,14 +137,14 @@ Classes
    :param psf_meta: Metadata corresponding to the parameters of PSF blurring
    :type psf_meta: SPECTPSFMeta
 
-   .. py:method:: configure(object_meta, image_meta)
+   .. py:method:: configure(object_meta, proj_meta)
 
-      Function used to initalize the transform using corresponding object and image metadata
+      Function used to initalize the transform using corresponding object and projection metadata
 
       :param object_meta: Object metadata.
       :type object_meta: SPECTObjectMeta
-      :param image_meta: Image metadata.
-      :type image_meta: SPECTImageMeta
+      :param proj_meta: Projections metadata.
+      :type proj_meta: SPECTProjMeta
 
 
    .. py:method:: _compute_kernel_size(radius, axis)
@@ -185,7 +185,7 @@ Classes
 
       :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
       :type object_i: torch.tensor
-      :param ang_idx: The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+      :param ang_idx: The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.
       :type ang_idx: int
 
       :returns: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.
@@ -198,7 +198,7 @@ Classes
 
       :param object_i: Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
       :type object_i: torch.tensor
-      :param ang_idx: The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+      :param ang_idx: The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.
       :type ang_idx: int
       :param norm_constant: A tensor used to normalize the output during back projection. Defaults to None.
       :type norm_constant: torch.tensor, optional
@@ -208,36 +208,36 @@ Classes
 
 
 
-.. py:class:: CutOffTransform(image)
+.. py:class:: CutOffTransform(proj)
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 
-   im2im transformation used to set pixel values equal to zero at the first and last few z slices. This is often required when reconstructing DICOM data due to the finite field of view of the projection data, where additional axial slices are included on the top and bottom, with zero measured detection events. This transform is included in the system matrix, to model the sharp cutoff at the finite FOV.
+   proj2proj transformation used to set pixel values equal to zero at the first and last few z slices. This is often required when reconstructing DICOM data due to the finite field of view of the projection data, where additional axial slices are included on the top and bottom, with zero measured detection events. This transform is included in the system matrix, to model the sharp cutoff at the finite FOV.
 
-   :param image: Measured image data.
-   :type image: torch.tensor
+   :param proj: Measured projection data.
+   :type proj: torch.tensor
 
-   .. py:method:: forward(image)
+   .. py:method:: forward(proj)
 
       Forward projection :math:`B:\mathbb{V} \to \mathbb{V}` of the cutoff transform.
 
-      :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
-      :type image: torch.Tensor
+      :param proj: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
+      :type proj: torch.Tensor
 
-      :returns: Original image, but with certain z-slices equal to zero.
+      :returns: Original projections, but with certain z-slices equal to zero.
       :rtype: torch.tensor
 
 
-   .. py:method:: backward(image, norm_constant = None)
+   .. py:method:: backward(proj, norm_constant = None)
 
       Back projection :math:`B^T:\mathbb{V} \to \mathbb{V}` of the cutoff transform. Since this is a diagonal matrix, the implementation is the same as forward projection, but with the optional `norm_constant` argument.
 
-      :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
-      :type image: torch.Tensor
+      :param proj: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
+      :type proj: torch.Tensor
       :param norm_constant: A tensor used to normalize the output during back projection. Defaults to None.
       :type norm_constant: torch.Tensor | None, optional
 
-      :returns: Original image, but with certain z-slices equal to zero.
+      :returns: Original projections, but with certain z-slices equal to zero.
       :rtype: torch.tensor
 
 
@@ -246,44 +246,44 @@ Classes
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 
-   im2im mapping used to model the effects of attenuation in PET.
+   proj2proj mapping used to model the effects of attenuation in PET.
 
    :param CT: Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{cm}^{-1}}` at a photon energy of 511keV.
    :type CT: torch.tensor
    :param device: Pytorch device used for computation. If None, uses the default device `pytomography.device` Defaults to None.
    :type device: str, optional
 
-   .. py:method:: configure(object_meta, image_meta)
+   .. py:method:: configure(object_meta, proj_meta)
 
-      Function used to initalize the transform using corresponding object and image metadata
+      Function used to initalize the transform using corresponding object and projection metadata
 
       :param object_meta: Object metadata.
       :type object_meta: ObjectMeta
-      :param image_meta: Image metadata.
-      :type image_meta: ImageMeta
+      :param proj_meta: Projection metadata.
+      :type proj_meta: ProjMeta
 
 
-   .. py:method:: forward(image)
+   .. py:method:: forward(proj)
 
-      Applies forward projection of attenuation modeling :math:`B:\mathbb{V} \to \mathbb{V}` to a 2D PET image.
+      Applies forward projection of attenuation modeling :math:`B:\mathbb{V} \to \mathbb{V}` to 2D PET projections.
 
-      :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
-      :type image: torch.Tensor
+      :param proj: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
+      :type proj: torch.Tensor
 
-      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected image.
+      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected projections.
       :rtype: torch.Tensor
 
 
-   .. py:method:: backward(image, norm_constant = None)
+   .. py:method:: backward(proj, norm_constant = None)
 
-      Applies back projection of attenuation modeling :math:`B^T:\mathbb{V} \to \mathbb{V}` to a 2D PET image. Since the matrix is diagonal, its the ``backward`` implementation is identical to the ``forward`` implementation; the only difference is the optional ``norm_constant`` which is needed if one wants to normalize the back projection.
+      Applies back projection of attenuation modeling :math:`B^T:\mathbb{V} \to \mathbb{V}` to 2D PET projections. Since the matrix is diagonal, its the ``backward`` implementation is identical to the ``forward`` implementation; the only difference is the optional ``norm_constant`` which is needed if one wants to normalize the back projection.
 
-      :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
-      :type image: torch.Tensor
+      :param proj: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
+      :type proj: torch.Tensor
       :param norm_constant: A tensor used to normalize the output during back projection. Defaults to None.
       :type norm_constant: torch.Tensor | None, optional
 
-      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected image.
+      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected projections.
       :rtype: torch.tensor
 
 
@@ -292,19 +292,19 @@ Classes
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 
-   im2im transform used to model the effects of PSF blurring in PET. The smoothing kernel is assumed to be independent of :math:`\theta` and :math:`z`, but is dependent on :math:`r`.
+   proj2proj transform used to model the effects of PSF blurring in PET. The smoothing kernel is assumed to be independent of :math:`\theta` and :math:`z`, but is dependent on :math:`r`.
 
-   :param kerns: A sequence of PSF kernels applied to the Lr dimension of the image with shape [batch_size, Lr, Ltheta, Lz]
+   :param kerns: A sequence of PSF kernels applied to the Lr dimension of the projections with shape [batch_size, Lr, Ltheta, Lz]
    :type kerns: Sequence[callable]
 
-   .. py:method:: configure(object_meta, image_meta)
+   .. py:method:: configure(object_meta, proj_meta)
 
-      Function used to initalize the transform using corresponding object and image metadata
+      Function used to initalize the transform using corresponding object and proj metadata
 
       :param object_meta: Object metadata.
       :type object_meta: ObjectMeta
-      :param image_meta: Image metadata.
-      :type image_meta: ImageMeta
+      :param proj_meta: Projection metadata.
+      :type proj_meta: ProjMeta
 
 
    .. py:method:: construct_matrix()
@@ -313,26 +313,26 @@ Classes
 
 
 
-   .. py:method:: forward(image)
+   .. py:method:: forward(proj)
 
-      Applies the forward projection of PSF modeling :math:`B:\mathbb{V} \to \mathbb{V}` to a PET image.
+      Applies the forward projection of PSF modeling :math:`B:\mathbb{V} \to \mathbb{V}` to a PET proj.
 
-      :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the image
-      :type image: torch.tensor]
+      :param proj: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the projections
+      :type proj: torch.tensor]
 
-      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the PSF corrected image.
+      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the PSF corrected projections.
       :rtype: torch.tensor
 
 
-   .. py:method:: backward(image, norm_constant = None)
+   .. py:method:: backward(proj, norm_constant = None)
 
-      Applies the back projection of PSF modeling :math:`B^T:\mathbb{V} \to \mathbb{V}` to a PET image.
+      Applies the back projection of PSF modeling :math:`B^T:\mathbb{V} \to \mathbb{V}` to PET projections .
 
-      :param image: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the image
-                    norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
-      :type image: torch.tensor]
+      :param proj: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the projections
+                   norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
+      :type proj: torch.tensor]
 
-      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the PSF corrected image.
+      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the PSF corrected projections.
       :rtype: torch.tensor
 
 

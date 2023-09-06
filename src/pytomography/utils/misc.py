@@ -51,18 +51,18 @@ def get_object_nearest_neighbour(object: torch.Tensor, shifts: list[int]):
     neighbour = torch.roll(neighbour, shifts=shifts, dims=(1,2,3))
     return neighbour[:,1:-1,1:-1,1:-1]
 
-def get_blank_below_above(image: torch.tensor):
+def get_blank_below_above(proj: torch.tensor):
     """Obtains the number of blank z-slices at the sup (``blank_above``) and inf (``blank_below``) of the projection data. This method is entirely empircal, and looks for z slices where there are zero detected counts.
 
     Args:
-        image (torch.tensor): Image data from a scanner
+        proj (torch.tensor): Projection data from a scanner
 
     Returns:
         Sequence[int]: A tuple of two elements corresponding to the number of blank slices at the inf, and the number of blank slices at the sup.
     """
-    greater_than_zero = (image[0].cpu().numpy() > 0).sum(axis=(0,1))>0
+    greater_than_zero = (proj[0].cpu().numpy() > 0).sum(axis=(0,1))>0
     blank_below = np.argmax(greater_than_zero)
-    blank_above = image[0].cpu().numpy().shape[-1] - np.argmax(greater_than_zero[::-1])
+    blank_above = proj[0].cpu().numpy().shape[-1] - np.argmax(greater_than_zero[::-1])
     return blank_below, blank_above
 
 def print_collimator_parameters():

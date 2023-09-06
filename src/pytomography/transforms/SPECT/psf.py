@@ -6,7 +6,7 @@ import numpy as np
 import pytomography
 from pytomography.utils import get_distance, compute_pad_size
 from pytomography.transforms import Transform
-from pytomography.metadata import SPECTObjectMeta, SPECTImageMeta, SPECTPSFMeta
+from pytomography.metadata import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
     
 class GaussianBlurNet(nn.Module):
     def __init__(self, layer_r, layer_z=None):
@@ -62,17 +62,17 @@ class SPECTPSFTransform(Transform):
     def configure(
         self,
         object_meta: SPECTObjectMeta,
-        image_meta: SPECTImageMeta
+        proj_meta: SPECTProjMeta
     ) -> None:
-        """Function used to initalize the transform using corresponding object and image metadata
+        """Function used to initalize the transform using corresponding object and projection metadata
 
         Args:
             object_meta (SPECTObjectMeta): Object metadata.
-            image_meta (SPECTImageMeta): Image metadata.
+            proj_meta (SPECTProjMeta): Projections metadata.
         """
-        super(SPECTPSFTransform, self).configure(object_meta, image_meta)
+        super(SPECTPSFTransform, self).configure(object_meta, proj_meta)
         self.layers = {}
-        for radius in np.unique(image_meta.radii):
+        for radius in np.unique(proj_meta.radii):
             kernel_size_r = self._compute_kernel_size(radius, axis=0)
             kernel_size_z = self._compute_kernel_size(radius, axis=2)
             # Compute sigmas and normalize to pixel units
@@ -129,7 +129,7 @@ class SPECTPSFTransform(Transform):
         object_return = []
         for i in range(len(ang_idx)):
             object_temp = object[i].unsqueeze(0)
-            object_temp = self.layers[self.image_meta.radii[ang_idx[i]]](object_temp) 
+            object_temp = self.layers[self.proj_meta.radii[ang_idx[i]]](object_temp) 
             object_return.append(object_temp)
         return torch.vstack(object_return)
     
@@ -143,7 +143,7 @@ class SPECTPSFTransform(Transform):
 
         Args:
             object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
-            ang_idx (int): The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+            ang_idx (int): The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.
 
         Returns:
             torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.
@@ -161,7 +161,7 @@ class SPECTPSFTransform(Transform):
 
         Args:
             object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
-            ang_idx (int): The projection indices: used to find the corresponding angle in image space corresponding to each projection angle in ``object_i``.
+            ang_idx (int): The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.
             norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
 
         Returns:
