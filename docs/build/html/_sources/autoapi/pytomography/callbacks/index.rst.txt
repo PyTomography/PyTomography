@@ -16,6 +16,7 @@ Submodules
    :maxdepth: 1
 
    callback/index.rst
+   liklihood/index.rst
 
 
 Package Contents
@@ -26,12 +27,13 @@ Classes
 
 .. autoapisummary::
 
-   pytomography.callbacks.CallBack
+   pytomography.callbacks.Callback
+   pytomography.callbacks.LogLiklihoodCallback
 
 
 
 
-.. py:class:: CallBack
+.. py:class:: Callback
 
    Abstract class used for callbacks. Subclasses must redefine the ``__init__`` and ``run`` methods. If a callback is used as an argument in an iterative reconstruction algorihtm, the ``__run__`` method is called after each subiteration.
 
@@ -44,6 +46,30 @@ Classes
       :param obj: An object which one can compute various statistics from.
       :type obj: torch.tensor[batch_size, Lx, Ly, Lz]
       :param n_iter: The iteration number
+      :type n_iter: int
+
+
+
+.. py:class:: LogLiklihoodCallback(projections, system_matrix, prior = None)
+
+   Bases: :py:obj:`pytomography.callbacks.callback.Callback`
+
+   Computes the log-liklihood :math:`\sum \left(g\log(Hf) - Hf - \beta V(f) \right)` after a given iteration.
+
+   :param projections: Data corresponding to measured projections
+   :type projections: torch.tensor
+   :param system_matrix: System matrix of imaging system.
+   :type system_matrix: SystemMatrix
+   :param prior: Prior used in Bayesian algorithm. Defaults to None.
+   :type prior: Prior, optional
+
+   .. py:method:: run(object, n_iter)
+
+      Method used to compute the log liklihood
+
+      :param object: Object on which the liklihood is computed
+      :type object: torch.tensor
+      :param n_iter: Iteration number
       :type n_iter: int
 
 

@@ -5,7 +5,7 @@
 
 .. autoapi-nested-parse::
 
-   This module contains classes that implement ordered-subset maximum liklihood iterative reconstruction algorithms. Note that Bayesian algorithm are equivalent to OSEM when no prior is used.
+   This module contains classes that implement ordered-subset maximum liklihood iterative reconstruction algorithms.
 
 
 
@@ -19,8 +19,9 @@ Classes
 
    pytomography.algorithms.osem.OSML
    pytomography.algorithms.osem.OSEMOSL
-   pytomography.algorithms.osem.OSEMBSR
+   pytomography.algorithms.osem.BSREM
    pytomography.algorithms.osem.OSEM
+   pytomography.algorithms.osem.KEM
 
 
 
@@ -108,11 +109,11 @@ Classes
 
 
 
-.. py:class:: OSEMBSR(projections, system_matrix, object_initial = None, scatter = 0, prior = None)
+.. py:class:: BSREM(projections, system_matrix, object_initial = None, scatter = 0, prior = None, relaxation_function = lambda x: 1 / (x + 1), scaling_matrix_type = 'subind_norm')
 
    Bases: :py:obj:`OSML`
 
-   Implementation of the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: :math:`\tilde{\hat{f}}^{n,m+1} = \left[\frac{1}{H_m^T 1} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}` followed by :math:`\hat{f}^{n,m+1} = \tilde{\hat{f}}^{n,m+1} \left(1-\beta\frac{\alpha_n}{H_m^T 1}\frac{\partial V}{\partial \tilde{\hat{f}}^{n,m+1}} \right)`.
+   Implementation of the block-sequential-regularized (BSREM) reconstruction algorithm: :math:`\hat{f}^{n,m+1} = \hat{f}^{n,m} + \alpha_n D \left[H_m^T \left(\frac{g_m}{H_m \hat{f}^{n,m} + s} -1 \right) - \beta \nabla_{f^{n,m}} V \right]`. The implementation of this algorithm corresponds to Modified BSREM-II with :math:`U=\infty`, :math:`t=0`, and :math:`\epsilon=0` (see https://ieeexplore.ieee.org/document/1207396). There is one difference in this implementation: rather than using FBP to get an initial estimate (as is done in the paper), a single iteration of OSEM is used; this initialization is required here due to the requirement for global scaling (see discussion on page 620 of paper).
 
    :param proj: projection data :math:`g` to be reconstructed
    :type proj: torch.Tensor
@@ -124,6 +125,10 @@ Classes
    :type scatter: torch.Tensor
    :param prior: the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.
    :type prior: Prior, optional
+   :param relaxation_function: Sequence :math:`\alpha_n` used for relaxation. Defaults to :math:`\alpha_n=1/(n+1)`.
+   :type relaxation_function: Callable, optional
+   :param scaling_matrix_type: The form of the scaling matrix :math:`D` used. If ``subind_norm`` (sub-iteration independent + normalized), then :math:`D=\left(S_m/M \cdot H^T 1 \right)^{-1}`. If ``subdep_norm`` (sub-iteration dependent + normalized) then :math:`D = \left(H_m^T 1\right)^{-1}`. See section III.D in the paper above for a discussion on this.
+   :type scaling_matrix_type: str, optional
 
    .. py:method:: _set_recon_name(n_iters, n_subsets)
 
@@ -135,7 +140,7 @@ Classes
       :type n_subsets: int
 
 
-   .. py:method:: __call__(n_iters, n_subsets, relaxation_function = lambda x: 1, callback = None)
+   .. py:method:: __call__(n_iters, n_subsets, callback = None)
 
       Performs the reconstruction using ``n_iters`` iterations and ``n_subsets`` subsets.
 
@@ -143,8 +148,6 @@ Classes
       :type n_iters: int
       :param n_subsets: Number of subsets
       :type n_subsets: int
-      :param relaxation_function: Specifies relaxation sequence :math:`\alpha_n` where :math:`n` is the iteration number. Defaults to :math:`\alpha_n=1` for all :math:`n`.
-      :type relaxation_function: function
       :param callback: Callback function to be called after each subiteration. Defaults to None.
       :type callback: CallBack, optional
 
@@ -167,5 +170,38 @@ Classes
    :type system_matrix: SystemMatrix
    :param scatter: estimate of scatter contribution :math:`s`.
    :type scatter: torch.Tensor
+
+
+.. py:class:: KEM(projections, system_matrix, kem_transform, object_initial = None, scatter = 0)
+
+   Bases: :py:obj:`OSEM`
+
+   Implementation of the KEM reconstruction algorithm given by :math:`\hat{\alpha}^{n,m+1} = \left[\frac{1}{K^T H_m^T 1} K^T H_m^T \left(\frac{g_m}{H_m K \hat{\alpha}^{n,m}+s}\right)\right] \hat{\alpha}^{n,m}` and where the final predicted object is :math:`\hat{f}^{n,m} = K \hat{\alpha}^{n,m}`.
+
+   :param proj: projection data :math:`g` to be reconstructed
+   :type proj: torch.Tensor
+   :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
+   :type system_matrix: SystemMatrix
+   :param kem_transform: The transform corresponding to the matrix :math:`K`.
+   :type kem_transform: KEMTransform
+   :param object_initial: represents the initial object guess :math:`f^{0,0}` for the algorithm in object space
+   :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
+   :param scatter: estimate of scatter contribution :math:`s`.
+   :type scatter: torch.Tensor
+
+   .. py:method:: __call__(n_iters, n_subsets, callback = None)
+
+      Performs the reconstruction using ``n_iters`` iterations and ``n_subsets`` subsets.
+
+      :param n_iters: Number of iterations
+      :type n_iters: int
+      :param n_subsets: Number of subsets
+      :type n_subsets: int
+      :param callback: Callback function to be called after each subiteration. Defaults to None.
+      :type callback: CallBack, optional
+
+      :returns: reconstructed object
+      :rtype: torch.tensor[batch_size, Lx, Ly, Lz]
+
 
 

@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>pytomography.algorithms.osem &#8212; PyTomography 1.0.0 documentation</title>
+    <title>pytomography.algorithms.osem &#8212; PyTomography 1.1.0 documentation</title>
   
   
   
@@ -35,7 +35,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=367f7090"></script>
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=52b0a0d4"></script>
     <script src="../../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -298,6 +298,7 @@ document.write(`
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../callbacks/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../callbacks/callback/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.callback</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../callbacks/liklihood/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.liklihood</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../io/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-3"><i class="fa-solid fa-chevron-down"></i></label><ul>
@@ -335,25 +336,33 @@ document.write(`
 <li class="toctree-l3"><a class="reference internal" href="../../projectors/SPECT/spect_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT.spect_system_matrix</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../projectors/shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-12"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../projectors/shared/kem_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.shared.kem_system_matrix</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../projectors/system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.system_matrix</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../transforms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-12"><i class="fa-solid fa-chevron-down"></i></label><ul>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../transforms/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-13"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../transforms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-13"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../transforms/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-14"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../transforms/PET/attenuation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.PET.attenuation</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../transforms/PET/psf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.PET.psf</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../transforms/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-14"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../transforms/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-15"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../transforms/SPECT/attenuation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.attenuation</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../transforms/SPECT/cutoff/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.cutoff</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../transforms/SPECT/psf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.psf</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../transforms/shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-16"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../transforms/shared/kem/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.kem</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../transforms/transform/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.transform</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-15"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-17"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../utils/fourier_filters/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.fourier_filters</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../utils/misc/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.misc</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../utils/nist_data/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.nist_data</span></code></a></li>
@@ -417,7 +426,7 @@ document.write(`
                   
   <section id="module-pytomography.algorithms.osem">
 <span id="pytomography-algorithms-osem"></span><h1><a class="reference internal" href="#module-pytomography.algorithms.osem" title="pytomography.algorithms.osem"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.osem</span></code></a><a class="headerlink" href="#module-pytomography.algorithms.osem" title="Permalink to this heading">#</a></h1>
-<p>This module contains classes that implement ordered-subset maximum liklihood iterative reconstruction algorithms. Note that Bayesian algorithm are equivalent to OSEM when no prior is used.</p>
+<p>This module contains classes that implement ordered-subset maximum liklihood iterative reconstruction algorithms.</p>
 <section id="module-contents">
 <h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this heading">#</a></h2>
 <section id="classes">
@@ -430,11 +439,14 @@ document.write(`
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.algorithms.osem.OSEMOSL" title="pytomography.algorithms.osem.OSEMOSL"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OSEMOSL</span></code></a></p></td>
 <td><p>Implementation of the ordered subset expectation algorithm using the one-step-late method to include prior information: <span class="math notranslate nohighlight">\(\hat{f}^{n,m+1} = \left[\frac{1}{H_m^T 1  + \beta \frac{\partial V}{\partial \hat{f}}|_{\hat{f}=\hat{f}^{n,m}}} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}\)</span>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.algorithms.osem.OSEMBSR" title="pytomography.algorithms.osem.OSEMBSR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OSEMBSR</span></code></a></p></td>
-<td><p>Implementation of the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: <span class="math notranslate nohighlight">\(\tilde{\hat{f}}^{n,m+1} = \left[\frac{1}{H_m^T 1} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}\)</span> followed by <span class="math notranslate nohighlight">\(\hat{f}^{n,m+1} = \tilde{\hat{f}}^{n,m+1} \left(1-\beta\frac{\alpha_n}{H_m^T 1}\frac{\partial V}{\partial \tilde{\hat{f}}^{n,m+1}} \right)\)</span>.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.algorithms.osem.BSREM" title="pytomography.algorithms.osem.BSREM"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BSREM</span></code></a></p></td>
+<td><p>Implementation of the block-sequential-regularized (BSREM) reconstruction algorithm: <span class="math notranslate nohighlight">\(\hat{f}^{n,m+1} = \hat{f}^{n,m} + \alpha_n D \left[H_m^T \left(\frac{g_m}{H_m \hat{f}^{n,m} + s} -1 \right) - \beta \nabla_{f^{n,m}} V \right]\)</span>. The implementation of this algorithm corresponds to Modified BSREM-II with <span class="math notranslate nohighlight">\(U=\infty\)</span>, <span class="math notranslate nohighlight">\(t=0\)</span>, and <span class="math notranslate nohighlight">\(\epsilon=0\)</span> (see <a class="reference external" href="https://ieeexplore.ieee.org/document/1207396">https://ieeexplore.ieee.org/document/1207396</a>). There is one difference in this implementation: rather than using FBP to get an initial estimate (as is done in the paper), a single iteration of OSEM is used; this initialization is required here due to the requirement for global scaling (see discussion on page 620 of paper).</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.algorithms.osem.OSEM" title="pytomography.algorithms.osem.OSEM"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OSEM</span></code></a></p></td>
 <td><p>Implementation of the ordered subset expectation maximum algorithm <span class="math notranslate nohighlight">\(\hat{f}^{n,m+1} = \left[\frac{1}{H_m^T 1} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.algorithms.osem.KEM" title="pytomography.algorithms.osem.KEM"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KEM</span></code></a></p></td>
+<td><p>Implementation of the KEM reconstruction algorithm given by <span class="math notranslate nohighlight">\(\hat{\alpha}^{n,m+1} = \left[\frac{1}{K^T H_m^T 1} K^T H_m^T \left(\frac{g_m}{H_m K \hat{\alpha}^{n,m}+s}\right)\right] \hat{\alpha}^{n,m}\)</span> and where the final predicted object is <span class="math notranslate nohighlight">\(\hat{f}^{n,m} = K \hat{\alpha}^{n,m}\)</span>.</p></td>
 </tr>
 </tbody>
 </table>
@@ -479,7 +491,7 @@ document.write(`
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>n_iters</strong> (<em>int</em>) – Number of iterations</p></li>
 <li><p><strong>n_subsets</strong> (<em>int</em>) – Number of subsets</p></li>
-<li><p><strong>callbacks</strong> (<a class="reference internal" href="../../callbacks/callback/index.html#pytomography.callbacks.callback.CallBack" title="pytomography.callbacks.callback.CallBack"><em>CallBack</em></a><em>, </em><em>optional</em>) – CallBacks to be evaluated after each subiteration. Defaults to None.</p></li>
+<li><p><strong>callbacks</strong> (<em>CallBack</em><em>, </em><em>optional</em>) – CallBacks to be evaluated after each subiteration. Defaults to None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -530,7 +542,7 @@ document.write(`
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>n_iters</strong> (<em>int</em>) – Number of iterations</p></li>
 <li><p><strong>n_subsets</strong> (<em>int</em>) – Number of subsets</p></li>
-<li><p><strong>callback</strong> (<a class="reference internal" href="../../callbacks/callback/index.html#pytomography.callbacks.callback.CallBack" title="pytomography.callbacks.callback.CallBack"><em>CallBack</em></a><em>, </em><em>optional</em>) – Callback function to be evaluated after each subiteration. Defaults to None.</p></li>
+<li><p><strong>callback</strong> (<em>CallBack</em><em>, </em><em>optional</em>) – Callback function to be evaluated after each subiteration. Defaults to None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -545,10 +557,10 @@ document.write(`
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="pytomography.algorithms.osem.OSEMBSR">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.algorithms.osem.</span></span><span class="sig-name descname"><span class="pre">OSEMBSR</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">projections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_initial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prior</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/osem.html#OSEMBSR"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.osem.OSEMBSR" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="pytomography.algorithms.osem.BSREM">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.algorithms.osem.</span></span><span class="sig-name descname"><span class="pre">BSREM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">projections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_initial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prior</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relaxation_function</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">lambda</span> <span class="pre">x:</span> <span class="pre">...</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scaling_matrix_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'subind_norm'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/osem.html#BSREM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.osem.BSREM" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pytomography.algorithms.osem.OSML" title="pytomography.algorithms.osem.OSML"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OSML</span></code></a></p>
-<p>Implementation of the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: <span class="math notranslate nohighlight">\(\tilde{\hat{f}}^{n,m+1} = \left[\frac{1}{H_m^T 1} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}\)</span> followed by <span class="math notranslate nohighlight">\(\hat{f}^{n,m+1} = \tilde{\hat{f}}^{n,m+1} \left(1-\beta\frac{\alpha_n}{H_m^T 1}\frac{\partial V}{\partial \tilde{\hat{f}}^{n,m+1}} \right)\)</span>.</p>
+<p>Implementation of the block-sequential-regularized (BSREM) reconstruction algorithm: <span class="math notranslate nohighlight">\(\hat{f}^{n,m+1} = \hat{f}^{n,m} + \alpha_n D \left[H_m^T \left(\frac{g_m}{H_m \hat{f}^{n,m} + s} -1 \right) - \beta \nabla_{f^{n,m}} V \right]\)</span>. The implementation of this algorithm corresponds to Modified BSREM-II with <span class="math notranslate nohighlight">\(U=\infty\)</span>, <span class="math notranslate nohighlight">\(t=0\)</span>, and <span class="math notranslate nohighlight">\(\epsilon=0\)</span> (see <a class="reference external" href="https://ieeexplore.ieee.org/document/1207396">https://ieeexplore.ieee.org/document/1207396</a>). There is one difference in this implementation: rather than using FBP to get an initial estimate (as is done in the paper), a single iteration of OSEM is used; this initialization is required here due to the requirement for global scaling (see discussion on page 620 of paper).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -557,13 +569,15 @@ document.write(`
 <li><p><strong>system_matrix</strong> (<a class="reference internal" href="../../projectors/index.html#pytomography.projectors.SystemMatrix" title="pytomography.projectors.SystemMatrix"><em>SystemMatrix</em></a>) – System matrix <span class="math notranslate nohighlight">\(H\)</span> used in <span class="math notranslate nohighlight">\(g=Hf\)</span>.</p></li>
 <li><p><strong>scatter</strong> (<em>torch.Tensor</em>) – estimate of scatter contribution <span class="math notranslate nohighlight">\(s\)</span>.</p></li>
 <li><p><strong>prior</strong> (<a class="reference internal" href="../../priors/index.html#pytomography.priors.Prior" title="pytomography.priors.Prior"><em>Prior</em></a><em>, </em><em>optional</em>) – the Bayesian prior; computes <span class="math notranslate nohighlight">\(\beta \frac{\partial V}{\partial f}\)</span>. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, then this term is 0. Defaults to None.</p></li>
+<li><p><strong>relaxation_function</strong> (<em>Callable</em><em>, </em><em>optional</em>) – Sequence <span class="math notranslate nohighlight">\(\alpha_n\)</span> used for relaxation. Defaults to <span class="math notranslate nohighlight">\(\alpha_n=1/(n+1)\)</span>.</p></li>
+<li><p><strong>scaling_matrix_type</strong> (<em>str</em><em>, </em><em>optional</em>) – The form of the scaling matrix <span class="math notranslate nohighlight">\(D\)</span> used. If <code class="docutils literal notranslate"><span class="pre">subind_norm</span></code> (sub-iteration independent + normalized), then <span class="math notranslate nohighlight">\(D=\left(S_m/M \cdot H^T 1 \right)^{-1}\)</span>. If <code class="docutils literal notranslate"><span class="pre">subdep_norm</span></code> (sub-iteration dependent + normalized) then <span class="math notranslate nohighlight">\(D = \left(H_m^T 1\right)^{-1}\)</span>. See section III.D in the paper above for a discussion on this.</p></li>
 <li><p><strong>projections</strong> (<em>torch.tensor</em>) – </p></li>
 </ul>
 </dd>
 </dl>
 <dl class="py method">
-<dt class="sig sig-object py" id="pytomography.algorithms.osem.OSEMBSR._set_recon_name">
-<span class="sig-name descname"><span class="pre">_set_recon_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_iters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/osem.html#OSEMBSR._set_recon_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.osem.OSEMBSR._set_recon_name" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="pytomography.algorithms.osem.BSREM._set_recon_name">
+<span class="sig-name descname"><span class="pre">_set_recon_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_iters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/osem.html#BSREM._set_recon_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.osem.BSREM._set_recon_name" title="Permalink to this definition">#</a></dt>
 <dd><p>Set the unique identifier for the type of reconstruction performed. Useful for saving to DICOM files</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -576,16 +590,15 @@ document.write(`
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pytomography.algorithms.osem.OSEMBSR.__call__">
-<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_iters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relaxation_function</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">lambda</span> <span class="pre">x:</span> <span class="pre">...</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/osem.html#OSEMBSR.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.osem.OSEMBSR.__call__" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="pytomography.algorithms.osem.BSREM.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_iters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/osem.html#BSREM.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.osem.BSREM.__call__" title="Permalink to this definition">#</a></dt>
 <dd><p>Performs the reconstruction using <code class="docutils literal notranslate"><span class="pre">n_iters</span></code> iterations and <code class="docutils literal notranslate"><span class="pre">n_subsets</span></code> subsets.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>n_iters</strong> (<em>int</em>) – Number of iterations</p></li>
 <li><p><strong>n_subsets</strong> (<em>int</em>) – Number of subsets</p></li>
-<li><p><strong>relaxation_function</strong> (<em>function</em>) – Specifies relaxation sequence <span class="math notranslate nohighlight">\(\alpha_n\)</span> where <span class="math notranslate nohighlight">\(n\)</span> is the iteration number. Defaults to <span class="math notranslate nohighlight">\(\alpha_n=1\)</span> for all <span class="math notranslate nohighlight">\(n\)</span>.</p></li>
-<li><p><strong>callback</strong> (<a class="reference internal" href="../../callbacks/callback/index.html#pytomography.callbacks.callback.CallBack" title="pytomography.callbacks.callback.CallBack"><em>CallBack</em></a><em>, </em><em>optional</em>) – Callback function to be called after each subiteration. Defaults to None.</p></li>
+<li><p><strong>callback</strong> (<em>CallBack</em><em>, </em><em>optional</em>) – Callback function to be called after each subiteration. Defaults to None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -615,6 +628,46 @@ document.write(`
 </ul>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomography.algorithms.osem.KEM">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.algorithms.osem.</span></span><span class="sig-name descname"><span class="pre">KEM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">projections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kem_transform</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_initial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/osem.html#KEM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.osem.KEM" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pytomography.algorithms.osem.OSEM" title="pytomography.algorithms.osem.OSEM"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OSEM</span></code></a></p>
+<p>Implementation of the KEM reconstruction algorithm given by <span class="math notranslate nohighlight">\(\hat{\alpha}^{n,m+1} = \left[\frac{1}{K^T H_m^T 1} K^T H_m^T \left(\frac{g_m}{H_m K \hat{\alpha}^{n,m}+s}\right)\right] \hat{\alpha}^{n,m}\)</span> and where the final predicted object is <span class="math notranslate nohighlight">\(\hat{f}^{n,m} = K \hat{\alpha}^{n,m}\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>proj</strong> (<em>torch.Tensor</em>) – projection data <span class="math notranslate nohighlight">\(g\)</span> to be reconstructed</p></li>
+<li><p><strong>system_matrix</strong> (<a class="reference internal" href="../../projectors/index.html#pytomography.projectors.SystemMatrix" title="pytomography.projectors.SystemMatrix"><em>SystemMatrix</em></a>) – System matrix <span class="math notranslate nohighlight">\(H\)</span> used in <span class="math notranslate nohighlight">\(g=Hf\)</span>.</p></li>
+<li><p><strong>kem_transform</strong> (<a class="reference internal" href="../../transforms/index.html#pytomography.transforms.KEMTransform" title="pytomography.transforms.KEMTransform"><em>KEMTransform</em></a>) – The transform corresponding to the matrix <span class="math notranslate nohighlight">\(K\)</span>.</p></li>
+<li><p><strong>object_initial</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>]</em>) – represents the initial object guess <span class="math notranslate nohighlight">\(f^{0,0}\)</span> for the algorithm in object space</p></li>
+<li><p><strong>scatter</strong> (<em>torch.Tensor</em>) – estimate of scatter contribution <span class="math notranslate nohighlight">\(s\)</span>.</p></li>
+<li><p><strong>projections</strong> (<em>torch.tensor</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.algorithms.osem.KEM.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_iters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/osem.html#KEM.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.osem.KEM.__call__" title="Permalink to this definition">#</a></dt>
+<dd><p>Performs the reconstruction using <code class="docutils literal notranslate"><span class="pre">n_iters</span></code> iterations and <code class="docutils literal notranslate"><span class="pre">n_subsets</span></code> subsets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_iters</strong> (<em>int</em>) – Number of iterations</p></li>
+<li><p><strong>n_subsets</strong> (<em>int</em>) – Number of subsets</p></li>
+<li><p><strong>callback</strong> (<em>CallBack</em><em>, </em><em>optional</em>) – Callback function to be called after each subiteration. Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>reconstructed object</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.tensor[batch_size, Lx, Ly, Lz]</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -662,12 +715,16 @@ document.write(`
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMOSL.__call__"><code class="docutils literal notranslate"><span class="pre">OSEMOSL.__call__()</span></code></a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMBSR"><code class="docutils literal notranslate"><span class="pre">OSEMBSR</span></code></a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMBSR._set_recon_name"><code class="docutils literal notranslate"><span class="pre">OSEMBSR._set_recon_name()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMBSR.__call__"><code class="docutils literal notranslate"><span class="pre">OSEMBSR.__call__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.BSREM"><code class="docutils literal notranslate"><span class="pre">BSREM</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.BSREM._set_recon_name"><code class="docutils literal notranslate"><span class="pre">BSREM._set_recon_name()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.BSREM.__call__"><code class="docutils literal notranslate"><span class="pre">BSREM.__call__()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEM"><code class="docutils literal notranslate"><span class="pre">OSEM</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.KEM"><code class="docutils literal notranslate"><span class="pre">KEM</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.KEM.__call__"><code class="docutils literal notranslate"><span class="pre">KEM.__call__()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSML">OSML</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSML.get_subset_splits">get_subset_splits</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSML.__call__">__call__</a></li>
@@ -678,12 +735,16 @@ document.write(`
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMOSL.__call__">__call__</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMBSR">OSEMBSR</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMBSR._set_recon_name">_set_recon_name</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEMBSR.__call__">__call__</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.BSREM">BSREM</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.BSREM._set_recon_name">_set_recon_name</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.BSREM.__call__">__call__</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.OSEM">OSEM</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.KEM">KEM</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.osem.KEM.__call__">__call__</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

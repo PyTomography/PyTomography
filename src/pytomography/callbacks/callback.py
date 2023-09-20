@@ -2,7 +2,7 @@ from __future__ import annotations
 import abc
 import torch
 
-class CallBack():
+class Callback():
     """Abstract class used for callbacks. Subclasses must redefine the ``__init__`` and ``run`` methods. If a callback is used as an argument in an iterative reconstruction algorihtm, the ``__run__`` method is called after each subiteration.
     """
     @abc.abstractmethod

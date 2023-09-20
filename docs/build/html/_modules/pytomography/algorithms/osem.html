@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.algorithms.osem &#8212; PyTomography 1.0.0 documentation</title>
+    <title>pytomography.algorithms.osem &#8212; PyTomography 1.1.0 documentation</title>
   
   
   
@@ -34,7 +34,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js?v=367f7090"></script>
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js?v=52b0a0d4"></script>
     <script src="../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -335,7 +335,7 @@ document.write(`
                 <article class="bd-article" role="main">
                   
   <h1>Source code for pytomography.algorithms.osem</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;This module contains classes that implement ordered-subset maximum liklihood iterative reconstruction algorithms. Note that Bayesian algorithm are equivalent to OSEM when no prior is used.</span>
+<span></span><span class="sd">&quot;&quot;&quot;This module contains classes that implement ordered-subset maximum liklihood iterative reconstruction algorithms.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -345,7 +345,9 @@ document.write(`
 <span class="kn">import</span> <span class="nn">abc</span>
 <span class="kn">import</span> <span class="nn">pytomography</span>
 <span class="kn">from</span> <span class="nn">pytomography.priors</span> <span class="kn">import</span> <span class="n">Prior</span>
-<span class="kn">from</span> <span class="nn">pytomography.callbacks</span> <span class="kn">import</span> <span class="n">CallBack</span>
+<span class="kn">from</span> <span class="nn">pytomography.callbacks</span> <span class="kn">import</span> <span class="n">Callback</span>
+<span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">KEMTransform</span>
+<span class="kn">from</span> <span class="nn">pytomography.projectors</span> <span class="kn">import</span> <span class="n">KEMSystemMatrix</span>
 <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Callable</span>
 
 <div class="viewcode-block" id="OSML"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/osem/index.html#pytomography.algorithms.OSML">[docs]</a><span class="k">class</span> <span class="nc">OSML</span><span class="p">():</span>
@@ -454,9 +456,6 @@ document.write(`
 <span class="sd">            torch.tensor[batch_size, Lx, Ly, Lz]: reconstructed object</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">subset_indices_array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_subset_splits</span><span class="p">(</span><span class="n">n_subsets</span><span class="p">)</span>
-        <span class="c1"># Scale beta by number of subsets</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">prior</span><span class="o">.</span><span class="n">set_beta_scale</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">n_subsets</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_iters</span><span class="p">):</span>
             <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">subset_indices</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">subset_indices_array</span><span class="p">):</span>
                 <span class="c1"># Set OSL Prior to have object from previous prediction</span>
@@ -465,8 +464,9 @@ document.write(`
                 <span class="n">ratio</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proj</span><span class="o">+</span><span class="n">pytomography</span><span class="o">.</span><span class="n">delta</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span><span class="p">,</span> <span class="n">angle_subset</span><span class="o">=</span><span class="n">subset_indices</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">scatter</span> <span class="o">+</span> <span class="n">pytomography</span><span class="o">.</span><span class="n">delta</span><span class="p">)</span>
                 <span class="n">ratio_BP</span><span class="p">,</span> <span class="n">norm_BP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">ratio</span><span class="p">,</span> <span class="n">angle_subset</span><span class="o">=</span><span class="n">subset_indices</span><span class="p">,</span> <span class="n">return_norm_constant</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">prior</span><span class="o">.</span><span class="n">set_beta_scale</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">subset_indices</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
                     <span class="n">norm_BP</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior</span><span class="o">.</span><span class="n">compute_gradient</span><span class="p">()</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span> <span class="o">*</span> <span class="n">ratio_BP</span> <span class="o">/</span><span class="n">norm_BP</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span> <span class="o">*</span> <span class="n">ratio_BP</span> <span class="o">/</span> <span class="p">(</span><span class="n">norm_BP</span> <span class="o">+</span> <span class="n">pytomography</span><span class="o">.</span><span class="n">delta</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">callback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">callback</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span><span class="p">,</span> <span class="n">n_iter</span><span class="o">=</span><span class="n">j</span><span class="p">)</span>
         <span class="c1"># Set unique string for identifying the type of reconstruction</span>
@@ -474,8 +474,8 @@ document.write(`
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span></div></div>
     
 
-<div class="viewcode-block" id="OSEMBSR"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/osem/index.html#pytomography.algorithms.OSEMBSR">[docs]</a><span class="k">class</span> <span class="nc">OSEMBSR</span><span class="p">(</span><span class="n">OSML</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Implementation of the ordered subset expectation algorithm using the block-sequential-regularized (BSREM) method to include prior information. In particular, each iteration consists of two steps: :math:`\tilde{\hat{f}}^{n,m+1} = \left[\frac{1}{H_m^T 1} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}` followed by :math:`\hat{f}^{n,m+1} = \tilde{\hat{f}}^{n,m+1} \left(1-\beta\frac{\alpha_n}{H_m^T 1}\frac{\partial V}{\partial \tilde{\hat{f}}^{n,m+1}} \right)`.</span>
+<div class="viewcode-block" id="BSREM"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/osem/index.html#pytomography.algorithms.BSREM">[docs]</a><span class="k">class</span> <span class="nc">BSREM</span><span class="p">(</span><span class="n">OSML</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Implementation of the block-sequential-regularized (BSREM) reconstruction algorithm: :math:`\hat{f}^{n,m+1} = \hat{f}^{n,m} + \alpha_n D \left[H_m^T \left(\frac{g_m}{H_m \hat{f}^{n,m} + s} -1 \right) - \beta \nabla_{f^{n,m}} V \right]`. The implementation of this algorithm corresponds to Modified BSREM-II with :math:`U=\infty`, :math:`t=0`, and :math:`\epsilon=0` (see https://ieeexplore.ieee.org/document/1207396). There is one difference in this implementation: rather than using FBP to get an initial estimate (as is done in the paper), a single iteration of OSEM is used; this initialization is required here due to the requirement for global scaling (see discussion on page 620 of paper).</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        proj (torch.Tensor): projection data :math:`g` to be reconstructed</span>
@@ -483,26 +483,41 @@ document.write(`
 <span class="sd">        system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.</span>
 <span class="sd">        scatter (torch.Tensor): estimate of scatter contribution :math:`s`.</span>
 <span class="sd">        prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.</span>
+<span class="sd">        relaxation_function (Callable, optional): Sequence :math:`\alpha_n` used for relaxation. Defaults to :math:`\alpha_n=1/(n+1)`.</span>
+<span class="sd">        scaling_matrix_type (str, optional): The form of the scaling matrix :math:`D` used. If ``subind_norm`` (sub-iteration independent + normalized), then :math:`D=\left(S_m/M \cdot H^T 1 \right)^{-1}`. If ``subdep_norm`` (sub-iteration dependent + normalized) then :math:`D = \left(H_m^T 1\right)^{-1}`. See section III.D in the paper above for a discussion on this.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     
-<div class="viewcode-block" id="OSEMBSR._set_recon_name"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/osem/index.html#pytomography.algorithms.OSEMBSR._set_recon_name">[docs]</a>    <span class="k">def</span> <span class="nf">_set_recon_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_iters</span><span class="p">,</span> <span class="n">n_subsets</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">projections</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span>
+        <span class="n">system_matrix</span><span class="p">:</span> <span class="n">SystemMatrix</span><span class="p">,</span>
+        <span class="n">object_initial</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">scatter</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">prior</span><span class="p">:</span> <span class="n">Prior</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">relaxation_function</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">scaling_matrix_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;subind_norm&#39;</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Initial estimate given by OSEM</span>
+        <span class="k">if</span> <span class="n">object_initial</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">object_initial</span> <span class="o">=</span> <span class="n">OSEM</span><span class="p">(</span><span class="n">projections</span><span class="p">,</span> <span class="n">system_matrix</span><span class="p">,</span> <span class="n">object_initial</span><span class="p">,</span> <span class="n">scatter</span><span class="p">)(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BSREM</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">projections</span><span class="p">,</span> <span class="n">system_matrix</span><span class="p">,</span> <span class="n">object_initial</span><span class="p">,</span> <span class="n">scatter</span><span class="p">,</span> <span class="n">prior</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">relaxation_function</span> <span class="o">=</span> <span class="n">relaxation_function</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scaling_matrix_type</span> <span class="o">=</span> <span class="n">scaling_matrix_type</span>
+    
+<div class="viewcode-block" id="BSREM._set_recon_name"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/osem/index.html#pytomography.algorithms.BSREM._set_recon_name">[docs]</a>    <span class="k">def</span> <span class="nf">_set_recon_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_iters</span><span class="p">,</span> <span class="n">n_subsets</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the unique identifier for the type of reconstruction performed. Useful for saving to DICOM files</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            n_iters (int): Number of iterations</span>
 <span class="sd">            n_subsets (int): Number of subsets</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">recon_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;OSEM_</span><span class="si">{</span><span class="n">n_iters</span><span class="si">}</span><span class="s1">it</span><span class="si">{</span><span class="n">n_subsets</span><span class="si">}</span><span class="s1">ss&#39;</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">recon_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;BSREM_</span><span class="si">{</span><span class="n">n_iters</span><span class="si">}</span><span class="s1">it</span><span class="si">{</span><span class="n">n_subsets</span><span class="si">}</span><span class="s1">ss&#39;</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recon_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;BSREM_</span><span class="si">{</span><span class="n">n_iters</span><span class="si">}</span><span class="s1">it</span><span class="si">{</span><span class="n">n_subsets</span><span class="si">}</span><span class="s1">ss&#39;</span></div>
     
-<div class="viewcode-block" id="OSEMBSR.__call__"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/osem/index.html#pytomography.algorithms.OSEMBSR.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+<div class="viewcode-block" id="BSREM.__call__"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/osem/index.html#pytomography.algorithms.BSREM.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">n_iters</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">n_subsets</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">relaxation_function</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">callback</span><span class="p">:</span> <span class="n">CallBack</span><span class="o">|</span><span class="kc">None</span> <span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Performs the reconstruction using ``n_iters`` iterations and ``n_subsets`` subsets.</span>
@@ -510,28 +525,35 @@ document.write(`
 <span class="sd">        Args:</span>
 <span class="sd">            n_iters (int): Number of iterations</span>
 <span class="sd">            n_subsets (int): Number of subsets</span>
-<span class="sd">            relaxation_function (function): Specifies relaxation sequence :math:`\alpha_n` where :math:`n` is the iteration number. Defaults to :math:`\alpha_n=1` for all :math:`n`.</span>
 <span class="sd">            callback (CallBack, optional): Callback function to be called after each subiteration. Defaults to None.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            torch.tensor[batch_size, Lx, Ly, Lz]: reconstructed object</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">subset_indices_array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_subset_splits</span><span class="p">(</span><span class="n">n_subsets</span><span class="p">)</span>
-        <span class="c1"># Scale beta by number of subsets</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">prior</span><span class="o">.</span><span class="n">set_beta_scale</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">n_subsets</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaling_matrix_type</span><span class="o">==</span><span class="s1">&#39;subind_norm&#39;</span><span class="p">:</span>
+            <span class="c1"># Normalization factor does not depend on subset index</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">norm_BP_allsubsets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proj</span><span class="p">,</span> <span class="n">return_norm_constant</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_iters</span><span class="p">):</span>
             <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">subset_indices</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">subset_indices_array</span><span class="p">):</span>
                 <span class="n">ratio</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proj</span><span class="o">+</span><span class="n">pytomography</span><span class="o">.</span><span class="n">delta</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span><span class="p">,</span> <span class="n">angle_subset</span><span class="o">=</span><span class="n">subset_indices</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">scatter</span> <span class="o">+</span> <span class="n">pytomography</span><span class="o">.</span><span class="n">delta</span><span class="p">)</span>
-                <span class="n">ratio_BP</span><span class="p">,</span> <span class="n">norm_BP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">ratio</span><span class="p">,</span> <span class="n">angle_subset</span><span class="o">=</span><span class="n">subset_indices</span><span class="p">,</span> <span class="n">return_norm_constant</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span> <span class="o">*</span> <span class="n">ratio_BP</span> <span class="o">/</span> <span class="n">norm_BP</span>
-                <span class="c1"># Apply BSREM after all subsets in this iteration has been ran</span>
+                <span class="c1"># Obtain the scaling matrix D and the ratio to be back projected</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaling_matrix_type</span><span class="o">==</span><span class="s1">&#39;subdep_norm&#39;</span><span class="p">:</span>
+                    <span class="n">quantity_BP</span><span class="p">,</span> <span class="n">norm_BP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">ratio</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">angle_subset</span><span class="o">=</span><span class="n">subset_indices</span><span class="p">,</span> <span class="n">return_norm_constant</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="n">scaling_matrix</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">norm_BP</span><span class="o">+</span><span class="n">pytomography</span><span class="o">.</span><span class="n">delta</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaling_matrix_type</span><span class="o">==</span><span class="s1">&#39;subind_norm&#39;</span><span class="p">:</span>
+                    <span class="n">quantity_BP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">ratio</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">angle_subset</span><span class="o">=</span><span class="n">subset_indices</span><span class="p">)</span>
+                    <span class="n">norm_BP</span> <span class="o">=</span> <span class="n">norm_BP_allsubsets</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">subset_indices</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">scaling_matrix</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">norm_BP</span><span class="o">+</span><span class="n">pytomography</span><span class="o">.</span><span class="n">delta</span><span class="p">)</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">prior</span><span class="o">.</span><span class="n">set_beta_scale</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">subset_indices</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">prior</span><span class="o">.</span><span class="n">set_object</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span><span class="p">))</span>
                     <span class="n">gradient</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior</span><span class="o">.</span><span class="n">compute_gradient</span><span class="p">()</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">relaxation_function</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">gradient</span> <span class="o">+</span><span class="n">torch</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">gradient</span><span class="p">)</span><span class="o">*</span><span class="n">pytomography</span><span class="o">.</span><span class="n">delta</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">norm_BP</span><span class="o">+</span><span class="n">torch</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">norm_BP</span><span class="p">)</span><span class="o">*</span><span class="n">pytomography</span><span class="o">.</span><span class="n">delta</span><span class="p">))</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span><span class="o">&lt;=</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-                <span class="c1"># Run any callbacks</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">gradient</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">scaling_matrix</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">relaxation_function</span><span class="p">(</span><span class="n">j</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">quantity_BP</span> <span class="o">-</span> <span class="n">gradient</span><span class="p">))</span>
+                <span class="c1"># Get rid of small negative values</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="k">if</span> <span class="n">callback</span><span class="p">:</span>
                 <span class="n">callback</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span><span class="p">,</span> <span class="n">n_iter</span><span class="o">=</span><span class="n">j</span><span class="p">)</span>
         <span class="c1"># Set unique string for identifying the type of reconstruction</span>
@@ -555,6 +577,48 @@ document.write(`
         <span class="n">scatter</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">OSEM</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">projections</span><span class="p">,</span> <span class="n">system_matrix</span><span class="p">,</span> <span class="n">object_initial</span><span class="p">,</span> <span class="n">scatter</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="KEM"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/osem/index.html#pytomography.algorithms.KEM">[docs]</a><span class="k">class</span> <span class="nc">KEM</span><span class="p">(</span><span class="n">OSEM</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Implementation of the KEM reconstruction algorithm given by :math:`\hat{\alpha}^{n,m+1} = \left[\frac{1}{K^T H_m^T 1} K^T H_m^T \left(\frac{g_m}{H_m K \hat{\alpha}^{n,m}+s}\right)\right] \hat{\alpha}^{n,m}` and where the final predicted object is :math:`\hat{f}^{n,m} = K \hat{\alpha}^{n,m}`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        proj (torch.Tensor): projection data :math:`g` to be reconstructed</span>
+<span class="sd">        system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.</span>
+<span class="sd">        kem_transform (KEMTransform): The transform corresponding to the matrix :math:`K`.</span>
+<span class="sd">        object_initial (torch.tensor[batch_size, Lx, Ly, Lz]): represents the initial object guess :math:`f^{0,0}` for the algorithm in object space</span>
+<span class="sd">        scatter (torch.Tensor): estimate of scatter contribution :math:`s`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">projections</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span>
+        <span class="n">system_matrix</span><span class="p">:</span> <span class="n">SystemMatrix</span><span class="p">,</span>
+        <span class="n">kem_transform</span><span class="p">:</span> <span class="n">KEMTransform</span><span class="p">,</span>
+        <span class="n">object_initial</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">scatter</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">kem_transform</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">system_matrix</span><span class="o">.</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">system_matrix</span><span class="o">.</span><span class="n">proj_meta</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kem_transform</span> <span class="o">=</span> <span class="n">kem_transform</span>
+        <span class="n">system_matrix_kem</span> <span class="o">=</span> <span class="n">KEMSystemMatrix</span><span class="p">(</span><span class="n">system_matrix</span><span class="p">,</span> <span class="n">kem_transform</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">KEM</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">projections</span><span class="p">,</span> <span class="n">system_matrix_kem</span><span class="p">,</span> <span class="n">object_initial</span><span class="p">,</span> <span class="n">scatter</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="KEM.__call__"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/osem/index.html#pytomography.algorithms.KEM.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">n_iters</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">n_subsets</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">callback</span><span class="p">:</span> <span class="n">CallBack</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Performs the reconstruction using ``n_iters`` iterations and ``n_subsets`` subsets.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            n_iters (int): Number of iterations</span>
+<span class="sd">            n_subsets (int): Number of subsets</span>
+<span class="sd">            callback (CallBack, optional): Callback function to be called after each subiteration. Defaults to None.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.tensor[batch_size, Lx, Ly, Lz]: reconstructed object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">object_prediction</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">KEM</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="n">n_iters</span><span class="p">,</span> <span class="n">n_subsets</span><span class="p">,</span> <span class="n">callback</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">kem_transform</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">object_prediction</span><span class="p">)</span></div></div>
 </pre></div>
 
                 </article>

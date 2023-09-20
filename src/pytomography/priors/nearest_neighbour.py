@@ -16,7 +16,7 @@ class NearestNeighbourPrior(Prior):
     
     Args:
             beta (float): Used to scale the weight of the prior
-            phi (function): Function :math:`\phi` used in formula above. Input arguments should be :math:`f_r`, :math:`f_s`, and any `kwargs` passed to this initialization function.
+            phi (Callable): Function :math:`\phi` used in formula above. Input arguments should be :math:`f_r`, :math:`f_s`, and any `kwargs` passed to this initialization function.
             weight (NeighbourWeight, optional). Weighting scheme to use for nearest neighbours. If ``None``, then uses EuclideanNeighbourWeight. Defaults to None.
     """
     def __init__(
@@ -24,6 +24,7 @@ class NearestNeighbourPrior(Prior):
         beta: float,
         phi: Callable,
         weight: NeighbourWeight | None = None,
+        Vr: Callable | None = None,
         **kwargs
     ) -> None:
         super(NearestNeighbourPrior, self).__init__(beta)
@@ -32,6 +33,7 @@ class NearestNeighbourPrior(Prior):
         else:
             self.weight = weight
         self.phi = phi
+        self.Vr = Vr
         self.kwargs = kwargs
         
     def set_object_meta(self, object_meta: ObjectMeta) -> None:
@@ -51,7 +53,6 @@ class NearestNeighbourPrior(Prior):
         Returns:
             torch.tensor: Tensor of shape [batch_size, Lx, Ly, Lz] representing :math:`\frac{\partial V}{\partial f_r}`
         """
-        dx, dy, dz = self.object_meta.dr
         object_return = torch.zeros(self.object.shape).to(self.device)
         for i in [-1,0,1]:
             for j in [-1,0,1]:
@@ -61,6 +62,30 @@ class NearestNeighbourPrior(Prior):
                     neighbour = get_object_nearest_neighbour(self.object, (i,j,k))
                     object_return += self.phi(self.object, neighbour, **self.kwargs) * self.weight((i,j,k))
         return self.beta*self.beta_scale_factor * object_return
+    
+    @torch.no_grad()
+    def compute_prior(self, beta_scale=False) -> float:
+        r"""Computes the value of the prior for ``self.object``
+        
+        Args:
+            beta_scale (bool): Whether or not to use the beta scale factor pertaining to the current subset index. Defaults to False.
+
+        Returns:
+            float: Value of the prior `V(f)`
+        """
+        net_prior = torch.zeros(self.object.shape).to(self.device)
+        for i in [-1,0,1]:
+            for j in [-1,0,1]:
+                for k in [-1,0,1]:
+                    if (i==0)*(j==0)*(k==0):
+                        continue
+                    neighbour = get_object_nearest_neighbour(self.object, (i,j,k))
+                    net_prior += self.Vr(self.object, neighbour, **self.kwargs) * self.weight((i,j,k))
+        if beta_scale:
+            scale_factor = self.beta_scale_factor
+        else:
+            scale_factor = 1
+        return self.beta * scale_factor * net_prior.sum().item()
     
 
 class QuadraticPrior(NearestNeighbourPrior):
@@ -78,7 +103,8 @@ class QuadraticPrior(NearestNeighbourPrior):
         weight: NeighbourWeight | None = None,
     ) -> None:
         gradient = lambda object, nearest, delta: (object-nearest) / delta
-        super(QuadraticPrior, self).__init__(beta, gradient, weight=weight, delta=delta)
+        Vr = lambda object, nearest, delta: 1/4 * ((object-nearest)/delta)**2
+        super(QuadraticPrior, self).__init__(beta, gradient, Vr=Vr, weight=weight, delta=delta)
 
 class LogCoshPrior(NearestNeighbourPrior):
     r"""Subclass of ``NearestNeighbourPrior`` where :math:`\phi(f_r,f_s)=\tanh((f_r-f_s)/\delta)` corresponds to the logcosh prior :math:`V(f)=\sum_{r,s} w_{r,s} \log\cosh\left(\frac{f_r-f_s}{\delta}\right)`
@@ -95,7 +121,8 @@ class LogCoshPrior(NearestNeighbourPrior):
         weight: NeighbourWeight | None = None,
     ) -> None:
         gradient = lambda object, nearest, delta: torch.tanh((object-nearest) / delta)
-        super(LogCoshPrior, self).__init__(beta, gradient, weight=weight, delta=delta)
+        Vr = lambda object, nearest, delta: torch.log(torch.cosh((object-nearest) / delta))
+        super(LogCoshPrior, self).__init__(beta, gradient, Vr=Vr, weight=weight, delta=delta)
 
 class RelativeDifferencePrior(NearestNeighbourPrior):
     r"""Subclass of ``NearestNeighbourPrior`` where :math:`\phi(f_r,f_s)=\frac{2(f_r-f_s)(\gamma|f_r-f_s|+3f_s + f_r)}{(\gamma|f_r-f_s|+f_r+f_s)^2}` corresponds to the relative difference prior :math:`V(f)=\sum_{r,s} w_{r,s} \frac{(f_r-f_s)^2}{f_r+f_s+\gamma|f_r-f_s|}`
@@ -112,7 +139,8 @@ class RelativeDifferencePrior(NearestNeighbourPrior):
         weight: NeighbourWeight | None = None,
     ) -> None:
         gradient = lambda object, nearest, gamma: 2*(object-nearest)*(gamma*torch.abs(object-nearest)+3*nearest+object + pytomography.delta) / ((object + nearest + gamma*torch.abs(object-nearest))**2 + pytomography.delta)
-        super(RelativeDifferencePrior, self).__init__(beta, gradient, gamma=gamma, weight=weight)
+        Vr = lambda object, nearest, gamma: (object-nearest)**2 / (object + nearest + gamma*torch.abs(object-nearest) + pytomography.delta)
+        super(RelativeDifferencePrior, self).__init__(beta, gradient, Vr=Vr, gamma=gamma, weight=weight)
         
 class NeighbourWeight():
     r"""Abstract class for assigning weight :math:`w_{r,s}` in nearest neighbour priors. 
