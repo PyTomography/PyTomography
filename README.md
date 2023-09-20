@@ -6,7 +6,6 @@
 ![Forks](https://img.shields.io/github/forks/qurit/PyTomography)
 ![Stars](https://img.shields.io/github/stars/qurit/PyTomography)
 ![Issues](https://img.shields.io/github/issues/qurit/PyTomography)
-[![CC BY-NC-SA 4.0][cc-by-nc-sa-shield]][cc-by-nc-sa]
 
 ## How to get started?
 We have prepared a very detailed documentation guide available at [readthedocs](https://pytomography.readthedocs.io/en/latest/).
