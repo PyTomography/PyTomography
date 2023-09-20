@@ -4,7 +4,7 @@ import torch
 from pytomography.projectors import SystemMatrix
 from pytomography.priors import Prior
 
-class LogLiklihoodCallback(Callback):
+class LogLikelihoodCallback(Callback):
     r"""Computes the log-liklihood :math:`\sum \left(g\log(Hf) - Hf - \beta V(f) \right)` after a given iteration.
 
         Args:
