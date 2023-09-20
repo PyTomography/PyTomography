@@ -158,7 +158,7 @@ class BSREM(StatisticalIterative):
         object_initial: torch.tensor | None = None,
         scatter: torch.tensor | float = 0,
         prior: Prior = None,
-        relaxation_function: Callable = lambda x: 1/(x+1),
+        relaxation_function: Callable = lambda x: 1,
         scaling_matrix_type: str = 'subind_norm',
     ) -> None:
         # Initial estimate given by OSEM
