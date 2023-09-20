@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>PyTomography &#8212; PyTomography 1.0.0 documentation</title>
+    <title>PyTomography &#8212; PyTomography 1.1.0 documentation</title>
   
   
   
@@ -35,7 +35,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=367f7090"></script>
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=52b0a0d4"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -328,18 +328,17 @@ document.write(`
 </ul>
 <p><strong>Reconstruction Algorithms</strong></p>
 <ul class="simple">
-<li><p>Filtered Back Projection (FBP)</p>
+<li><p>Filtered Back Projection (FBP)</p></li>
+<li><p>Statistical Iterative Algorithms</p>
 <ul>
-<li><p>Different filtering options available</p></li>
-</ul>
-</li>
-<li><p>Maximum Liklihood Expectation Maxmimum (MLEM) and Ordered Subset Expectation Maximum (OSEM)</p>
-<ul>
-<li><p>One-Step-Late and Block-Sequential-Regularization techniques to encorporate Bayesian priors</p></li>
-<li><p>Option to include anatomical information (such as MRI/CT) in Bayesian priors</p></li>
+<li><p>OSEM / MLEM</p></li>
+<li><p>OSEMOSL (see <a class="reference external" href="https://ieeexplore.ieee.org/document/52985">here</a>)</p></li>
+<li><p>BSREM (see <a class="reference external" href="https://ieeexplore.ieee.org/document/1207396">here</a>)</p></li>
+<li><p>KEM (see <a class="reference external" href="https://ieeexplore.ieee.org/abstract/document/6868314">here</a>)</p></li>
 </ul>
 </li>
 </ul>
+<p>Options exist to include anatomical information (such as MRI/CT) when using priors/regularization.</p>
 <p><strong>Supported Datatypes</strong></p>
 <ul class="simple">
 <li><p>DICOM</p>

@@ -46,10 +46,14 @@ def get_object_nearest_neighbour(object: torch.Tensor, shifts: list[int]):
     Returns:
         torch.Tensor: Shifted object whereby each voxel corresponding to neighbour [i,j,k] of the ``object``.
     """
-    shifts = [-shift for shift in shifts]
-    neighbour = pad(object, [1,1,1,1,1,1])
-    neighbour = torch.roll(neighbour, shifts=shifts, dims=(1,2,3))
-    return neighbour[:,1:-1,1:-1,1:-1]
+    shift_max = max(np.abs(shifts))
+    if shift_max==0: # no shift
+        return object
+    else:
+        shifts = [-shift for shift in shifts]
+        neighbour = pad(object, 6*[shift_max])
+        neighbour = torch.roll(neighbour, shifts=shifts, dims=(1,2,3)) 
+        return neighbour[:,shift_max:-shift_max,shift_max:-shift_max,shift_max:-shift_max]
 
 def get_blank_below_above(proj: torch.tensor):
     """Obtains the number of blank z-slices at the sup (``blank_above``) and inf (``blank_below``) of the projection data. This method is entirely empircal, and looks for z slices where there are zero detected counts.

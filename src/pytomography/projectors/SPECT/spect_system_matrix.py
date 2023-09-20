@@ -118,7 +118,7 @@ class SPECTSystemMatrix(SystemMatrix):
         object = unpad_object(object)
         # Return
         if return_norm_constant:
-            return object, norm_constant+pytomography.delta
+            return object, norm_constant
         else:
             return object
         
