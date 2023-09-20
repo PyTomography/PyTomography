@@ -603,11 +603,14 @@ div.rendered_html tbody tr:hover {
 <span class="kn">from</span> <span class="nn">pytomography.priors</span> <span class="kn">import</span> <span class="n">RelativeDifferencePrior</span>
 <span class="kn">from</span> <span class="nn">pytomography.projectors</span> <span class="kn">import</span> <span class="n">SPECTSystemMatrix</span>
 <span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">SPECTAttenuationTransform</span><span class="p">,</span> <span class="n">SPECTPSFTransform</span>
-<span class="kn">from</span> <span class="nn">pytomography.algorithms</span> <span class="kn">import</span> <span class="n">OSEMBSR</span>
+<span class="kn">from</span> <span class="nn">pytomography.algorithms</span> <span class="kn">import</span> <span class="n">BSREM</span><span class="p">,</span> <span class="n">OSEM</span>
 <span class="kn">from</span> <span class="nn">pytomography.priors</span> <span class="kn">import</span> <span class="n">QuadraticPrior</span><span class="p">,</span> <span class="n">RelativeDifferencePrior</span>
 <span class="kn">from</span> <span class="nn">pytomography.priors</span> <span class="kn">import</span> <span class="n">TopNAnatomyNeighbourWeight</span>
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">poisson</span>
+<span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">pytomography.callbacks</span> <span class="kn">import</span> <span class="n">CallBack</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 </pre></div>
 </div>
 </div>
@@ -688,19 +691,111 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">reconstruct</span><span class="p">(</span><span class="n">prior</span><span class="p">):</span>
-    <span class="n">reconstruction_algorithm</span> <span class="o">=</span> <span class="n">OSEMBSR</span><span class="p">(</span>
-    <span class="n">projections</span> <span class="o">=</span> <span class="n">photopeak_poisson</span><span class="p">,</span>
-    <span class="n">system_matrix</span> <span class="o">=</span> <span class="n">system_matrix</span><span class="p">,</span>
-    <span class="n">scatter</span> <span class="o">=</span> <span class="n">scatter_poisson</span><span class="p">,</span>
-    <span class="n">prior</span><span class="o">=</span><span class="n">prior</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">reconstruction_algorithm</span><span class="p">(</span><span class="n">n_iters</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">n_subsets</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">ComputeLogLiklihood</span><span class="p">(</span><span class="n">CallBack</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">projections</span><span class="p">,</span> <span class="n">system_matrix</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">projections</span> <span class="o">=</span> <span class="n">projections</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span> <span class="o">=</span> <span class="n">system_matrix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">liklihoods</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="n">n_iter</span><span class="p">):</span>
+        <span class="n">projection_estimate</span> <span class="o">=</span> <span class="n">system_matrix</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span>
+        <span class="n">liklihood</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">projections</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">projection_estimate</span><span class="p">)</span> <span class="o">-</span> <span class="n">projection_estimate</span>
+        <span class="n">liklihood</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">projections</span><span class="o">&lt;=</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">projection_estimate</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">projections</span><span class="o">&lt;=</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">liklihoods</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">liklihood</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
 </pre></div>
 </div>
 </div>
-<p>Note: The following cell may take a while to run depending on your system/graphics card.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">reconstruct</span><span class="p">(</span>
+    <span class="n">prior</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">n_iters</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">n_subsets</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+    <span class="n">relaxation_function</span><span class="o">=</span><span class="k">lambda</span> <span class="n">n</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">scaling_matrix_type</span><span class="o">=</span><span class="s1">&#39;subind_norm&#39;</span>
+    <span class="p">):</span>
+    <span class="n">cb</span> <span class="o">=</span> <span class="n">ComputeLogLiklihood</span><span class="p">(</span><span class="n">photopeak_poisson</span><span class="p">,</span> <span class="n">system_matrix</span><span class="p">)</span>
+    <span class="n">reconstruction_algorithm</span> <span class="o">=</span> <span class="n">BSREM</span><span class="p">(</span>
+    <span class="n">projections</span> <span class="o">=</span> <span class="n">photopeak_poisson</span><span class="p">,</span>
+    <span class="n">system_matrix</span> <span class="o">=</span> <span class="n">system_matrix</span><span class="p">,</span>
+    <span class="n">scatter</span> <span class="o">=</span> <span class="n">scatter_poisson</span><span class="p">,</span>
+    <span class="n">prior</span><span class="o">=</span><span class="n">prior</span><span class="p">,</span>
+    <span class="n">relaxation_function</span><span class="o">=</span><span class="n">relaxation_function</span><span class="p">,</span>
+    <span class="n">scaling_matrix_type</span><span class="o">=</span><span class="n">scaling_matrix_type</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">reconstruction_algorithm</span><span class="p">(</span><span class="n">n_iters</span><span class="p">,</span> <span class="n">n_subsets</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">cb</span><span class="p">),</span> <span class="n">cb</span>
+</pre></div>
+</div>
+</div>
+<p>First we can reconstructed using a relaxation sequence that corresponds to “unrelaxed” (<span class="math notranslate nohighlight">\(\alpha_n=1\)</span>) and “relaxed” (<span class="math notranslate nohighlight">\(\alpha_n=1/(n/15+1)\)</span>)</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">recon_unrelaxed</span><span class="p">,</span> <span class="n">cb_unrelaxed</span> <span class="o">=</span> <span class="n">reconstruct</span><span class="p">(</span><span class="n">relaxation_function</span><span class="o">=</span><span class="k">lambda</span> <span class="n">n</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_subsets</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">prior</span><span class="o">=</span><span class="n">prior_rdp</span><span class="p">)</span>
+<span class="n">recon_relaxed</span><span class="p">,</span> <span class="n">cb_relaxed</span> <span class="o">=</span> <span class="n">reconstruct</span><span class="p">(</span><span class="n">relaxation_function</span><span class="o">=</span><span class="k">lambda</span> <span class="n">n</span><span class="p">:</span> <span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="n">n</span><span class="o">/</span><span class="mi">50</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span> <span class="n">n_subsets</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">prior</span><span class="o">=</span><span class="n">prior_rdp</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">121</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">recon_unrelaxed</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[:,</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;nipy_spectral&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Unrelaxed&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">122</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">recon_relaxed</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[:,</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;nipy_spectral&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Relaxed&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0.5, 1.0, &#39;Relaxed&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_t_spectpriors_17_1.png" src="../_images/notebooks_t_spectpriors_17_1.png" />
+</div>
+</div>
+<p>We can also plot the log-liklihoods:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">cb_unrelaxed</span><span class="o">.</span><span class="n">liklihoods</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Unrelaxed&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">cb_relaxed</span><span class="o">.</span><span class="n">liklihoods</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Relaxed&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="n">bottom</span><span class="o">=</span><span class="mf">0.9995</span><span class="o">*</span><span class="nb">max</span><span class="p">(</span><span class="n">cb_unrelaxed</span><span class="o">.</span><span class="n">liklihoods</span><span class="p">),</span> <span class="n">top</span><span class="o">=</span><span class="mf">1.00001</span><span class="o">*</span><span class="nb">max</span><span class="p">(</span><span class="n">cb_unrelaxed</span><span class="o">.</span><span class="n">liklihoods</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Iteration&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;$\log L$&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_t_spectpriors_19_0.png" src="../_images/notebooks_t_spectpriors_19_0.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">recon_noprior</span> <span class="o">=</span> <span class="n">reconstruct</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
@@ -712,7 +807,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>
@@ -745,11 +840,119 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/tmp/ipykernel_14436/447662742.py:3: UserWarning: The use of `x.T` on tensors of dimension other than 2 to reverse their shape is deprecated and it will throw an error in a future release. Consider `x.mT` to transpose batches of matricesor `x.permute(*torch.arange(x.ndim - 1, -1, -1))` to reverse the dimensions of a tensor. (Triggered internally at  ../aten/src/ATen/native/TensorShape.cpp:2981.)
+  plt.pcolormesh(recon_noprior[0].cpu()[:,70].T, cmap=&#39;nipy_spectral&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">ValueError</span>                                Traceback (most recent call last)
+<span class="ansi-green-intense-fg ansi-bold">/home/gpuvmadm/PyTomography/docs/source/notebooks/t_spectpriors.ipynb Cell 22</span> line <span class="ansi-cyan-fg">&lt;cell line: 3&gt;</span><span class="ansi-blue-fg">()</span>
+<span class="ansi-green-intense-fg ansi-bold">      &lt;a href=&#39;vscode-notebook-cell://ssh-remote%2Bgpuvm00004jhubvm01.canadacentral.cloudapp.azure.com/home/gpuvmadm/PyTomography/docs/source/notebooks/t_spectpriors.ipynb#Y114sdnNjb2RlLXJlbW90ZQ%3D%3D?line=0&#39;&gt;1&lt;/a&gt;</span> plt.subplots(1,5,figsize=(12,5))
+<span class="ansi-green-intense-fg ansi-bold">      &lt;a href=&#39;vscode-notebook-cell://ssh-remote%2Bgpuvm00004jhubvm01.canadacentral.cloudapp.azure.com/home/gpuvmadm/PyTomography/docs/source/notebooks/t_spectpriors.ipynb#Y114sdnNjb2RlLXJlbW90ZQ%3D%3D?line=1&#39;&gt;2&lt;/a&gt;</span> plt.subplot(151)
+<span class="ansi-green-fg">----&gt; &lt;a href=&#39;vscode-notebook-cell://ssh-remote%2Bgpuvm00004jhubvm01.canadacentral.cloudapp.azure.com/home/gpuvmadm/PyTomography/docs/source/notebooks/t_spectpriors.ipynb#Y114sdnNjb2RlLXJlbW90ZQ%3D%3D?line=2&#39;&gt;3&lt;/a&gt;</span> plt.pcolormesh(recon_noprior[0].cpu()[:,70].T, cmap=&#39;nipy_spectral&#39;)
+<span class="ansi-green-intense-fg ansi-bold">      &lt;a href=&#39;vscode-notebook-cell://ssh-remote%2Bgpuvm00004jhubvm01.canadacentral.cloudapp.azure.com/home/gpuvmadm/PyTomography/docs/source/notebooks/t_spectpriors.ipynb#Y114sdnNjb2RlLXJlbW90ZQ%3D%3D?line=3&#39;&gt;4&lt;/a&gt;</span> plt.colorbar()
+<span class="ansi-green-intense-fg ansi-bold">      &lt;a href=&#39;vscode-notebook-cell://ssh-remote%2Bgpuvm00004jhubvm01.canadacentral.cloudapp.azure.com/home/gpuvmadm/PyTomography/docs/source/notebooks/t_spectpriors.ipynb#Y114sdnNjb2RlLXJlbW90ZQ%3D%3D?line=4&#39;&gt;5&lt;/a&gt;</span> plt.axis(&#39;off&#39;)
+
+File <span class="ansi-green-fg">/data/anaconda/envs/pytomographytest/lib/python3.9/site-packages/matplotlib/pyplot.py:2773</span>, in <span class="ansi-cyan-fg">pcolormesh</span><span class="ansi-blue-fg">(alpha, norm, cmap, vmin, vmax, shading, antialiased, data, *args, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">   2768</span> @_copy_docstring_and_deprecators(Axes.pcolormesh)
+<span class="ansi-green-intense-fg ansi-bold">   2769</span> def pcolormesh(
+<span class="ansi-green-intense-fg ansi-bold">   2770</span>         *args, alpha=None, norm=None, cmap=None, vmin=None,
+<span class="ansi-green-intense-fg ansi-bold">   2771</span>         vmax=None, shading=None, antialiased=False, data=None,
+<span class="ansi-green-intense-fg ansi-bold">   2772</span>         **kwargs):
+<span class="ansi-green-fg">-&gt; 2773</span>     __ret = gca().pcolormesh(
+<span class="ansi-green-intense-fg ansi-bold">   2774</span>         *args, alpha=alpha, norm=norm, cmap=cmap, vmin=vmin,
+<span class="ansi-green-intense-fg ansi-bold">   2775</span>         vmax=vmax, shading=shading, antialiased=antialiased,
+<span class="ansi-green-intense-fg ansi-bold">   2776</span>         **({&#34;data&#34;: data} if data is not None else {}), **kwargs)
+<span class="ansi-green-intense-fg ansi-bold">   2777</span>     sci(__ret)
+<span class="ansi-green-intense-fg ansi-bold">   2778</span>     return __ret
+
+File <span class="ansi-green-fg">/data/anaconda/envs/pytomographytest/lib/python3.9/site-packages/matplotlib/__init__.py:1442</span>, in <span class="ansi-cyan-fg">_preprocess_data.&lt;locals&gt;.inner</span><span class="ansi-blue-fg">(ax, data, *args, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1439</span> @functools.wraps(func)
+<span class="ansi-green-intense-fg ansi-bold">   1440</span> def inner(ax, *args, data=None, **kwargs):
+<span class="ansi-green-intense-fg ansi-bold">   1441</span>     if data is None:
+<span class="ansi-green-fg">-&gt; 1442</span>         return func(ax, *map(sanitize_sequence, args), **kwargs)
+<span class="ansi-green-intense-fg ansi-bold">   1444</span>     bound = new_sig.bind(ax, *args, **kwargs)
+<span class="ansi-green-intense-fg ansi-bold">   1445</span>     auto_label = (bound.arguments.get(label_namer)
+<span class="ansi-green-intense-fg ansi-bold">   1446</span>                   or bound.kwargs.get(label_namer))
+
+File <span class="ansi-green-fg">/data/anaconda/envs/pytomographytest/lib/python3.9/site-packages/matplotlib/axes/_axes.py:6229</span>, in <span class="ansi-cyan-fg">Axes.pcolormesh</span><span class="ansi-blue-fg">(self, alpha, norm, cmap, vmin, vmax, shading, antialiased, *args, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">   6225</span>     C = C.ravel()
+<span class="ansi-green-intense-fg ansi-bold">   6227</span> kwargs.setdefault(&#39;snap&#39;, mpl.rcParams[&#39;pcolormesh.snap&#39;])
+<span class="ansi-green-fg">-&gt; 6229</span> collection = mcoll.QuadMesh(
+<span class="ansi-green-intense-fg ansi-bold">   6230</span>     coords, antialiased=antialiased, shading=shading,
+<span class="ansi-green-intense-fg ansi-bold">   6231</span>     array=C, cmap=cmap, norm=norm, alpha=alpha, **kwargs)
+<span class="ansi-green-intense-fg ansi-bold">   6232</span> collection._scale_norm(norm, vmin, vmax)
+<span class="ansi-green-intense-fg ansi-bold">   6234</span> coords = coords.reshape(-1, 2)  # flatten the grid structure; keep x, y
+
+File <span class="ansi-green-fg">/data/anaconda/envs/pytomographytest/lib/python3.9/site-packages/matplotlib/collections.py:1939</span>, in <span class="ansi-cyan-fg">QuadMesh.__init__</span><span class="ansi-blue-fg">(self, coordinates, antialiased, shading, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1936</span> self._bbox.update_from_data_xy(self._coordinates.reshape(-1, 2))
+<span class="ansi-green-intense-fg ansi-bold">   1937</span> # super init delayed after own init because array kwarg requires
+<span class="ansi-green-intense-fg ansi-bold">   1938</span> # self._coordinates and self._shading
+<span class="ansi-green-fg">-&gt; 1939</span> super().__init__(**kwargs)
+<span class="ansi-green-intense-fg ansi-bold">   1940</span> self.set_mouseover(False)
+
+File <span class="ansi-green-fg">/data/anaconda/envs/pytomographytest/lib/python3.9/site-packages/matplotlib/_api/deprecation.py:454</span>, in <span class="ansi-cyan-fg">make_keyword_only.&lt;locals&gt;.wrapper</span><span class="ansi-blue-fg">(*args, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">    448</span> if len(args) &gt; name_idx:
+<span class="ansi-green-intense-fg ansi-bold">    449</span>     warn_deprecated(
+<span class="ansi-green-intense-fg ansi-bold">    450</span>         since, message=&#34;Passing the %(name)s %(obj_type)s &#34;
+<span class="ansi-green-intense-fg ansi-bold">    451</span>         &#34;positionally is deprecated since Matplotlib %(since)s; the &#34;
+<span class="ansi-green-intense-fg ansi-bold">    452</span>         &#34;parameter will become keyword-only %(removal)s.&#34;,
+<span class="ansi-green-intense-fg ansi-bold">    453</span>         name=name, obj_type=f&#34;parameter of {func.__name__}()&#34;)
+<span class="ansi-green-fg">--&gt; 454</span> return func(*args, **kwargs)
+
+File <span class="ansi-green-fg">/data/anaconda/envs/pytomographytest/lib/python3.9/site-packages/matplotlib/collections.py:201</span>, in <span class="ansi-cyan-fg">Collection.__init__</span><span class="ansi-blue-fg">(self, edgecolors, facecolors, linewidths, linestyles, capstyle, joinstyle, antialiaseds, offsets, offset_transform, norm, cmap, pickradius, hatch, urls, zorder, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">    198</span> self._offset_transform = offset_transform
+<span class="ansi-green-intense-fg ansi-bold">    200</span> self._path_effects = None
+<span class="ansi-green-fg">--&gt; 201</span> self._internal_update(kwargs)
+<span class="ansi-green-intense-fg ansi-bold">    202</span> self._paths = None
+
+File <span class="ansi-green-fg">/data/anaconda/envs/pytomographytest/lib/python3.9/site-packages/matplotlib/artist.py:1223</span>, in <span class="ansi-cyan-fg">Artist._internal_update</span><span class="ansi-blue-fg">(self, kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1216</span> def _internal_update(self, kwargs):
+<span class="ansi-green-intense-fg ansi-bold">   1217</span>     &#34;&#34;&#34;
+<span class="ansi-green-intense-fg ansi-bold">   1218</span>     Update artist properties without prenormalizing them, but generating
+<span class="ansi-green-intense-fg ansi-bold">   1219</span>     errors as if calling `set`.
+<span class="ansi-green-intense-fg ansi-bold">   1220</span>
+<span class="ansi-green-intense-fg ansi-bold">   1221</span>     The lack of prenormalization is to maintain backcompatibility.
+<span class="ansi-green-intense-fg ansi-bold">   1222</span>     &#34;&#34;&#34;
+<span class="ansi-green-fg">-&gt; 1223</span>     return self._update_props(
+<span class="ansi-green-intense-fg ansi-bold">   1224</span>         kwargs, &#34;{cls.__name__}.set() got an unexpected keyword argument &#34;
+<span class="ansi-green-intense-fg ansi-bold">   1225</span>         &#34;{prop_name!r}&#34;)
+
+File <span class="ansi-green-fg">/data/anaconda/envs/pytomographytest/lib/python3.9/site-packages/matplotlib/artist.py:1199</span>, in <span class="ansi-cyan-fg">Artist._update_props</span><span class="ansi-blue-fg">(self, props, errfmt)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1196</span>             if not callable(func):
+<span class="ansi-green-intense-fg ansi-bold">   1197</span>                 raise AttributeError(
+<span class="ansi-green-intense-fg ansi-bold">   1198</span>                     errfmt.format(cls=type(self), prop_name=k))
+<span class="ansi-green-fg">-&gt; 1199</span>             ret.append(func(v))
+<span class="ansi-green-intense-fg ansi-bold">   1200</span> if ret:
+<span class="ansi-green-intense-fg ansi-bold">   1201</span>     self.pchanged()
+
+File <span class="ansi-green-fg">/data/anaconda/envs/pytomographytest/lib/python3.9/site-packages/matplotlib/collections.py:1982</span>, in <span class="ansi-cyan-fg">QuadMesh.set_array</span><span class="ansi-blue-fg">(self, A)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1980</span>     shape = np.shape(A)
+<span class="ansi-green-intense-fg ansi-bold">   1981</span>     if shape not in ok_shapes:
+<span class="ansi-green-fg">-&gt; 1982</span>         raise ValueError(
+<span class="ansi-green-intense-fg ansi-bold">   1983</span>             f&#34;For X ({width}) and Y ({height}) with {self._shading} &#34;
+<span class="ansi-green-intense-fg ansi-bold">   1984</span>             f&#34;shading, A should have shape &#34;
+<span class="ansi-green-intense-fg ansi-bold">   1985</span>             f&#34;{&#39; or &#39;.join(map(str, ok_shapes))}, not {A.shape}&#34;)
+<span class="ansi-green-intense-fg ansi-bold">   1986</span> return super().set_array(A)
+
+<span class="ansi-red-fg">ValueError</span>: For X (129) and Y (385) with flat shading, A should have shape (384, 128, 3) or (384, 128, 4) or (384, 128) or (49152,), not (384, 128, 1)
+</pre></div></div>
+</div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_spectpriors_16_0.png" src="../_images/notebooks_t_spectpriors_16_0.png" />
+<img alt="../_images/notebooks_t_spectpriors_21_2.png" src="../_images/notebooks_t_spectpriors_21_2.png" />
 </div>
 </div>
 </section>

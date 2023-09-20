@@ -16,10 +16,13 @@ PyTomography is a python library for medical image reconstruction. It uses the f
 
 **Reconstruction Algorithms**
 * Filtered Back Projection (FBP)
-    - Different filtering options available
-* Maximum Liklihood Expectation Maxmimum (MLEM) and Ordered Subset Expectation Maximum (OSEM)
-    - One-Step-Late and Block-Sequential-Regularization techniques to encorporate Bayesian priors
-    - Option to include anatomical information (such as MRI/CT) in Bayesian priors
+* Statistical Iterative Algorithms
+    - OSEM / MLEM
+    - OSEMOSL (see [here](https://ieeexplore.ieee.org/document/52985))
+    - BSREM (see [here](https://ieeexplore.ieee.org/document/1207396))
+    - KEM (see [here](https://ieeexplore.ieee.org/abstract/document/6868314))
+    
+Options exist to include anatomical information (such as MRI/CT) when using priors/regularization.
 
 **Supported Datatypes**
 * DICOM

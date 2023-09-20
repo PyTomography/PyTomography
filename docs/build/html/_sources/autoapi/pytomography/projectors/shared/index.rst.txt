@@ -1,0 +1,68 @@
+:py:mod:`pytomography.projectors.shared`
+========================================
+
+.. py:module:: pytomography.projectors.shared
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   kem_system_matrix/index.rst
+
+
+Package Contents
+----------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.projectors.shared.KEMSystemMatrix
+
+
+
+
+.. py:class:: KEMSystemMatrix(system_matrix, kem_transform)
+
+   Bases: :py:obj:`pytomography.projectors.system_matrix.SystemMatrix`
+
+   Given a KEM transform :math:`K` and a system matrix :math:`H`, implements the transform :math:`HK` (and backward transform :math:`K^T H^T`)
+
+   :param system_matrix: System matrix corresponding to a particular imaging system
+   :type system_matrix: SystemMatrix
+   :param kem_transform: Transform used to go from coefficient image to real image of predicted counts.
+   :type kem_transform: KEMTransform
+
+   .. py:method:: forward(object, angle_subset=None)
+
+      Forward transform :math:`HK`
+
+      :param object: Object to be forward projected
+      :type object: torch.tensor
+      :param angle_subset: Angles to forward projected; if none, project to all angles. Defaults to None.
+      :type angle_subset: Sequence, optional
+
+      :returns: Corresponding projections generated from forward projection
+      :rtype: torch.tensor
+
+
+   .. py:method:: backward(proj, angle_subset=None, return_norm_constant=False)
+
+      Backward transform :math:`K^T H^T`
+
+      :param proj: Projection data to be back projected
+      :type proj: torch.tensor
+      :param angle_subset: Angles corresponding to projections; if none, then all projections from ``self.proj_meta`` are contained. Defaults to None.
+      :type angle_subset: Sequence, optional
+      :param return_norm_constant: Additionally returns :math:`K^T H^T 1` if true; defaults to False.
+      :type return_norm_constant: bool, optional
+
+      :returns: Corresponding object generated from back projection.
+      :rtype: torch.tensor
+
+
+

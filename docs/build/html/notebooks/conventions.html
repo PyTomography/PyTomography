@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Manual &#8212; PyTomography 1.0.0 documentation</title>
+    <title>Manual &#8212; PyTomography 1.1.0 documentation</title>
   
   
   
@@ -35,7 +35,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=367f7090"></script>
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=52b0a0d4"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -340,8 +340,8 @@ document.write(`
 <section id="Coordinates">
 <h2>Coordinates<a class="headerlink" href="#Coordinates" title="Permalink to this heading">#</a></h2>
 <p>Our choice of cartesian coordinate system is the same as the DICOM standard, where <span class="math notranslate nohighlight">\(x\)</span> points from patient right to patient left, <span class="math notranslate nohighlight">\(y\)</span> points from anterior to posterior, and <span class="math notranslate nohighlight">\(z\)</span> points from inferior to superior.</p>
-<section id="SPECT-Imaging">
-<h3>SPECT Imaging<a class="headerlink" href="#SPECT-Imaging" title="Permalink to this heading">#</a></h3>
+<section id="SPECT-Planar-Head-Imaging">
+<h3>SPECT Planar Head Imaging<a class="headerlink" href="#SPECT-Planar-Head-Imaging" title="Permalink to this heading">#</a></h3>
 <p>A positive scanner angle <span class="math notranslate nohighlight">\(\beta\)</span> in the DICOM standard is defines as a counterclockwise rotation of angle <span class="math notranslate nohighlight">\(\beta\)</span> from 12 o’clock when looking into the scanner. When compared to the standard azimuthal angle our defined cartesian coordinate system, it follows that <span class="math notranslate nohighlight">\(\phi = 3 \pi / 2 - \beta\)</span>. Since <span class="math notranslate nohighlight">\(\beta\)</span> is defined in the range <span class="math notranslate nohighlight">\([0, 2\pi]\)</span> it follows that <span class="math notranslate nohighlight">\(\phi\)</span> is defined in the range <span class="math notranslate nohighlight">\([-\pi/2, 3\pi/2]\)</span>.</p>
 <p>There are two primary coordinate systems considered here</p>
 <ol class="arabic simple">
@@ -349,27 +349,27 @@ document.write(`
 <li><p><strong>Sinogram</strong>: Specified by <span class="math notranslate nohighlight">\(r\)</span>, <span class="math notranslate nohighlight">\(\beta\)</span>, and <span class="math notranslate nohighlight">\(z\)</span>. Sinogram space is used to represent a series of 2D scans (in the <span class="math notranslate nohighlight">\(r-z\)</span> plane) at different angles <span class="math notranslate nohighlight">\(\beta\)</span>. Any item in this coordinate system are referred to as <strong>Image</strong>.</p></li>
 </ol>
 <p>As a convention, <span class="math notranslate nohighlight">\(r\)</span> is aligned with the <span class="math notranslate nohighlight">\(x\)</span>-axis at <span class="math notranslate nohighlight">\(\beta=0\)</span>. (Note this implies that <span class="math notranslate nohighlight">\(r\)</span> is aligned with the negative <span class="math notranslate nohighlight">\(y\)</span>-axis at <span class="math notranslate nohighlight">\(\beta=90^{\circ}\)</span>. which can be counterintuitive when viewing images)</p>
-<p><img alt="02b24ace1b904eb0b9666fb6366f3d06" class="no-scaled-link" src="../_images/coordinate_conventions.png" style="width: 300px;" /></p>
+<p><img alt="bf50f461fb05462f93a5bb53fd79bf61" class="no-scaled-link" src="../_images/coordinate_conventions.png" style="width: 300px;" /></p>
 </section>
 </section>
 <section id="Datatypes">
 <h2>Datatypes<a class="headerlink" href="#Datatypes" title="Permalink to this heading">#</a></h2>
-<section id="Objects/Images">
-<h3>Objects/Images<a class="headerlink" href="#Objects/Images" title="Permalink to this heading">#</a></h3>
-<p>Objects and images are stored using pytorch’s <code class="docutils literal notranslate"><span class="pre">torch.Tensor</span></code> class. The dimensions of objects are <span class="math notranslate nohighlight">\([1, L_x, L_y, L_z]\)</span> and the dimensions of images are <span class="math notranslate nohighlight">\([1,...]\)</span> where … depends on the imaging modality.</p>
+<section id="Objects/Projections">
+<h3>Objects/Projections<a class="headerlink" href="#Objects/Projections" title="Permalink to this heading">#</a></h3>
+<p>Objects and projections are stored using pytorch’s <code class="docutils literal notranslate"><span class="pre">torch.Tensor</span></code> class. The dimensions of objects are <span class="math notranslate nohighlight">\([B, L_x, L_y, L_z]\)</span> and the dimensions of images are <span class="math notranslate nohighlight">\([B,...]\)</span> where … depends on the imaging modality. <span class="math notranslate nohighlight">\(B\)</span> represents the batch dimension, and may correspond to different energy windows, time gates, or bed positions.</p>
 <ul class="simple">
-<li><p><strong>SPECT</strong>: Image has dimensions <span class="math notranslate nohighlight">\([1,L_{\theta}, L_r, L_z]\)</span> where <span class="math notranslate nohighlight">\(L_{\theta}\)</span> is the number of projections and <span class="math notranslate nohighlight">\(L_r\)</span> and <span class="math notranslate nohighlight">\(L_z\)</span> give the dimensions of the scanner.</p></li>
-<li><p><strong>2D PET</strong>: Image has dimensions <span class="math notranslate nohighlight">\([1,L_{\theta}, L_r, L_z]\)</span> where <span class="math notranslate nohighlight">\(L_{\theta}\)</span> is the number of discrete angles considered and <span class="math notranslate nohighlight">\(L_r\)</span> and <span class="math notranslate nohighlight">\(L_z\)</span> give number of radial and transaxial bins.</p></li>
+<li><p><strong>SPECT</strong>: Image has dimensions <span class="math notranslate nohighlight">\([B,L_{\theta}, L_r, L_z]\)</span> where <span class="math notranslate nohighlight">\(L_{\theta}\)</span> is the number of projections and <span class="math notranslate nohighlight">\(L_r\)</span> and <span class="math notranslate nohighlight">\(L_z\)</span> give the dimensions of the scanner.</p></li>
+<li><p><strong>2D PET</strong>: Image has dimensions <span class="math notranslate nohighlight">\([B,L_{\theta}, L_r, L_z]\)</span> where <span class="math notranslate nohighlight">\(L_{\theta}\)</span> is the number of discrete angles considered and <span class="math notranslate nohighlight">\(L_r\)</span> and <span class="math notranslate nohighlight">\(L_z\)</span> give number of radial and transaxial bins.</p></li>
 </ul>
 <p>Indices are arranged such that smaller indices correspond to smaller coordinate values. For example, <code class="docutils literal notranslate"><span class="pre">object_tensor[0,-1,0,0]</span></code> gives the voxel at the largest value of <span class="math notranslate nohighlight">\(x\)</span>, and the smallest values of <span class="math notranslate nohighlight">\(y\)</span> and <span class="math notranslate nohighlight">\(z\)</span>. As another example, <code class="docutils literal notranslate"><span class="pre">image_tensor[0,10,0,-1]</span></code> for SPECT imaging returns the number of counts detected by the pixel at the 10th detector angle corresponding to the smallest value of <span class="math notranslate nohighlight">\(r\)</span> and the largest value of <span class="math notranslate nohighlight">\(z\)</span>.</p>
 </section>
 </section>
-<section id="Mathematical-Foundations">
-<h2>Mathematical Foundations<a class="headerlink" href="#Mathematical-Foundations" title="Permalink to this heading">#</a></h2>
+<section id="Mathematical-Notation">
+<h2>Mathematical Notation<a class="headerlink" href="#Mathematical-Notation" title="Permalink to this heading">#</a></h2>
 <p>Throughout tutorials and documentation, mathematical notation is often used to represent different operations. Unless otherwise spcified, the symbols refer to the following:</p>
 <ul class="simple">
 <li><p><span class="math notranslate nohighlight">\(f\)</span> refers to an object, and <span class="math notranslate nohighlight">\(f_j\)</span> refers to the value of the object at voxel <span class="math notranslate nohighlight">\(j\)</span></p></li>
-<li><p><span class="math notranslate nohighlight">\(g\)</span> refers to an object, and <span class="math notranslate nohighlight">\(g_i\)</span> refers to the value of the image at detector element <span class="math notranslate nohighlight">\(i\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(g\)</span> refers to a set of projections, and <span class="math notranslate nohighlight">\(g_i\)</span> refers to the value of the projections at detector element <span class="math notranslate nohighlight">\(i\)</span></p></li>
 <li><p><span class="math notranslate nohighlight">\(H\)</span> refers to the system matrix with components <span class="math notranslate nohighlight">\(H_{ij}\)</span>: the contribution voxel <span class="math notranslate nohighlight">\(j\)</span> in object space makes to detector element <span class="math notranslate nohighlight">\(j\)</span> in image space</p></li>
 </ul>
 <p>This section establishes a mathematical paradigm for tomography in medical imaging, and is thus mostly intended for those who wish to use PyTomography to implement novel reconstruction algorithms. It is still useful, however, for everyone to know.</p>
@@ -381,6 +381,7 @@ document.write(`
 <li><p><strong>Back Projection</strong>: Takes an image <span class="math notranslate nohighlight">\(b\)</span> (in vector space <span class="math notranslate nohighlight">\(\mathbb{V}\)</span>) and maps to to an image <span class="math notranslate nohighlight">\(\hat{a}\)</span> (in vector space <span class="math notranslate nohighlight">\(\mathbb{U}\)</span>) using the system matrix: <span class="math notranslate nohighlight">\(\hat{a}_i = \sum_{i} H_{ij} b_i\)</span> (or <span class="math notranslate nohighlight">\(\hat{a}=H^T b\)</span>). This operation is implemented by the <code class="docutils literal notranslate"><span class="pre">backward</span></code> method of a <code class="docutils literal notranslate"><span class="pre">SystemMatrix</span></code> class.</p></li>
 </ul>
 <p>Note that projections map between distinct vector space <span class="math notranslate nohighlight">\(H:\mathbb{U} \to \mathbb{V}\)</span>. This makes them distinct from <strong>transforms</strong>, which are discussed next.</p>
+<p>In ordered subset algorithms, it is useful</p>
 </section>
 <section id="Transforms">
 <h3>Transforms<a class="headerlink" href="#Transforms" title="Permalink to this heading">#</a></h3>
@@ -498,14 +499,14 @@ the same notation as the previous section, we can express <span class="math notr
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Coordinates">Coordinates</a><ul class="nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#SPECT-Imaging">SPECT Imaging</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#SPECT-Planar-Head-Imaging">SPECT Planar Head Imaging</a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Datatypes">Datatypes</a><ul class="nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Objects/Images">Objects/Images</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Objects/Projections">Objects/Projections</a></li>
 </ul>
 </li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Mathematical-Foundations">Mathematical Foundations</a><ul class="nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Mathematical-Notation">Mathematical Notation</a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Projections">Projections</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Transforms">Transforms</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Reconstruction-Algorithms">Reconstruction Algorithms</a><ul class="nav section-nav flex-column">

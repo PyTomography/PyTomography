@@ -12,12 +12,12 @@ Classes
 
 .. autoapisummary::
 
-   pytomography.callbacks.callback.CallBack
+   pytomography.callbacks.callback.Callback
 
 
 
 
-.. py:class:: CallBack
+.. py:class:: Callback
 
    Abstract class used for callbacks. Subclasses must redefine the ``__init__`` and ``run`` methods. If a callback is used as an argument in an iterative reconstruction algorihtm, the ``__run__`` method is called after each subiteration.
 
