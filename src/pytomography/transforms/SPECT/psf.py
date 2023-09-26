@@ -53,7 +53,7 @@ class SPECTPSFTransform(Transform):
     """
     def __init__(
         self,
-        psf_meta: SPECTPSFMeta, 
+        psf_meta: SPECTPSFMeta
     ) -> None:
         """Initializer that sets corresponding psf parameters"""
         super(SPECTPSFTransform, self).__init__()

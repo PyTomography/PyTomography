@@ -110,7 +110,6 @@ def get_projections(
     file: str,
     index_peak: None | int = None,
     index_time: None | int = None,
-    print_shape: bool = True
     ) -> Sequence[SPECTObjectMeta, SPECTProjMeta, torch.Tensor]:
     """Gets projections from a .dcm file.
 
@@ -118,7 +117,6 @@ def get_projections(
         file (str): Path to the .dcm file of SPECT projection data.
         index_peak (int): If not none, then the returned projections correspond to the index of this energy window. Otherwise returns all energy windows. Defaults to None.
         index_time (int): If not none, then the returned projections correspond to the index of the time slot in gated SPECT. Otherwise returns all time slots. Defaults to None
-        print_shape (bool): If true, then prints the shape of the projections returned. Defaults to true.
     Returns:
         (SPECTObjectMeta, SPECTProjMeta, torch.Tensor[..., Ltheta, Lr, Lz]) where ... depends on if time slots are considered.
     """
@@ -134,14 +132,14 @@ def get_projections(
     dimension_list = ['Ltheta', 'Lr', 'Lz']
     if flags['multi_time_slot']:
         dimension_list = ['N_timeslots'] + dimension_list
-        if print_shape: print('Multiple time slots found')
+        if pytomography.verbose: print('Multiple time slots found')
     if flags['multi_energy_window']:
         dimension_list = ['N_energywindows'] + dimension_list
-        if print_shape: print('Multiple energy windows found')
+        if pytomography.verbose: print('Multiple energy windows found')
     if len(dimension_list)==3:
         dimension_list = ['1'] + dimension_list
         projections = projections.unsqueeze(dim=0)
-    if print_shape: print(f'Returned projections have dimensions ({" ".join(dimension_list)})')
+    if pytomography.verbose: print(f'Returned projections have dimensions ({" ".join(dimension_list)})')
     return projections
 
 def get_window_width(ds: Dataset, index: int) -> float:
@@ -180,7 +178,7 @@ def get_scatter_from_TEW(
     ww_peak = get_window_width(ds, index_peak)
     ww_lower = get_window_width(ds, index_lower)
     ww_upper = get_window_width(ds, index_upper)
-    projections_all = get_projections(file, print_shape=False)
+    projections_all = get_projections(file)
     scatter = compute_TEW(projections_all[index_lower],projections_all[index_upper], ww_lower, ww_upper, ww_peak)
     return scatter.to(pytomography.device)
 
@@ -362,7 +360,7 @@ def stitch_multibed(
     Args:
         recons (torch.Tensor[n_beds, Lx, Ly, Lz]): Reconstructed objects. The first index of the tensor corresponds to different bed positions
         files_NM (list): List of length ``n_beds`` corresponding to the DICOM file of each reconstruction
-        method (str, optional): Method to perform stitching (see https://doi.org/10.1117/12.2254096 for all methods described). Available methods include ``'midslice'``, ``'average'``, ``'crossfade'``, and ``'TEM;`` (transition error minimization).
+        method (str, optional): Method to perform stitching (see https://doi.org/10.1117/12.2254096 for all methods described). Available methods include ``'midslice'``, ``'average'``, ``'crossfade'``, and ``'TEM'`` (transition error minimization).
 
     Returns:
         torch.Tensor[1, Lx, Ly, Lz']: Stitched together DICOM file. Note the new z-dimension size :math:`L_z'`.
@@ -378,7 +376,7 @@ def stitch_multibed(
     zs = np.round((zs - zs[0])/dss[0].PixelSpacing[1]).astype(int) 
     new_z_height = zs[-1] + recons.shape[-1]
     recon_aligned = torch.zeros((1, dss[0].Rows, dss[0].Rows, new_z_height)).to(pytomography.device)
-    blank_below, blank_above = get_blank_below_above(get_projections(files_NM[0])[2])
+    blank_below, blank_above = get_blank_below_above(get_projections(files_NM[0]))
     for i in range(len(zs)):
         recon_aligned[:,:,:,zs[i]+blank_below:zs[i]+blank_above] = recons[i,:,:,blank_below:blank_above]
     # Apply stitching method
