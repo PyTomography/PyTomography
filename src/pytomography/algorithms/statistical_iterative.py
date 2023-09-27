@@ -196,7 +196,7 @@ class BSREM(StatisticalIterative):
         subset_indices_array = self.get_subset_splits(n_subsets)
         if self.scaling_matrix_type=='subind_norm':
             # Normalization factor does not depend on subset index
-            _, norm_BP_allsubsets = self.system_matrix.backward(self.proj, return_norm_constant=True)
+            norm_BP_allsubsets = self.system_matrix.backward(torch.ones(self.proj.shape).to(pytomography.device))
         for j in range(n_iters):
             for k, subset_indices in enumerate(subset_indices_array):
                 ratio = (self.proj+pytomography.delta) / (self.system_matrix.forward(self.object_prediction, angle_subset=subset_indices) + self.scatter + pytomography.delta)

@@ -59,16 +59,6 @@ class KEMTransform(Transform):
         self.top_N = top_N
         self.kernel_on_gpu = kernel_on_gpu
         
-    def configure(self, object_meta: ObjectMeta, proj_meta: ProjMeta) -> None:
-        """Configures the transform to the object/proj metadata. This is done after creating the network so that it can be adjusted to the system matrix.
-
-        Args:
-            object_meta (ObjectMeta): Object metadata.
-            proj_meta (ProjMeta): Projections metadata.
-        """
-        self.object_meta = object_meta
-        self.proj_meta = proj_meta
-        self.compute_kernel()
     
     def compute_kernel(self):
         shape = self.support_objects[0].shape[1:]

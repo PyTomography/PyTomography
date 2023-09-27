@@ -1,8 +1,11 @@
 from __future__ import annotations
+from collections.abc import Callable
 from typing import Sequence
 import torch
 import torch.nn as nn
 import numpy as np
+from fft_conv_pytorch import FFTConv2d
+from torch.nn import Conv2d
 import pytomography
 from pytomography.utils import get_distance, compute_pad_size
 from pytomography.transforms import Transform
@@ -21,6 +24,23 @@ class GaussianBlurNet(nn.Module):
             output = self.layer_z(torch.permute(output,(2,1,0)))
             output = torch.permute(output,(2,1,0))
         return torch.permute(output,(1,2,0)).unsqueeze(0)
+    
+class ArbitraryPSFNet(nn.Module):
+    def __init__(self, kernel_f, distances, kernel_size, dr):
+        super(ArbitraryPSFNet, self).__init__()
+        self.kernel_f = kernel_f
+        self.kernel_size = kernel_size
+        self.distances = distances
+        self.x_eval = np.arange(-(kernel_size-1)/2, (kernel_size+1)/2, 1) * dr[0]
+        self.y_eval = np.arange(-(kernel_size-1)/2, (kernel_size+1)/2, 1) * dr[1]
+
+    @torch.no_grad()
+    def forward(self, input):
+        groups = input.shape[1]
+        kernel = torch.tensor(np.array([self.kernel_f(self.x_eval, self.y_eval, d) for d in self.distances])).unsqueeze(1).to(pytomography.device).to(pytomography.dtype)
+        net = FFTConv2d(groups, groups, self.kernel_size, padding=int((self.kernel_size-1)/2), groups=groups, bias=False).to(pytomography.device)
+        net.weight = torch.nn.Parameter(kernel)
+        return net(input)
 
 def get_1D_PSF_layer(
     sigmas: np.array,
@@ -46,19 +66,48 @@ def get_1D_PSF_layer(
     return layer
 
 class SPECTPSFTransform(Transform):
-    """obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``SPECTPSFMeta`` parameter. 
+    r"""obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``SPECTPSFMeta`` parameter. 
 
     Args:
         psf_meta (SPECTPSFMeta): Metadata corresponding to the parameters of PSF blurring
+        kernel_f (Callable): Function :math:`PSF(x,y,d)` that gives PSF at every source-detector distance :math:`d`.
     """
     def __init__(
         self,
-        psf_meta: SPECTPSFMeta
+        psf_meta: SPECTPSFMeta | None = None,
+        kernel_f: Callable | None = None
     ) -> None:
         """Initializer that sets corresponding psf parameters"""
         super(SPECTPSFTransform, self).__init__()
+        if (kernel_f is None)*(psf_meta is None):
+            Exception(f'Must give at least one of (i) PSF metadata to obtain parameters for Gaussian fit or (ii) kernel function')
         self.psf_meta = psf_meta
-
+        self.kernel_f = kernel_f
+        
+    def _configure_gaussian_model(self):
+        self.layers = {}
+        for radius in np.unique(self.proj_meta.radii):
+            kernel_size_r = self._compute_kernel_size(radius, axis=0)
+            kernel_size_z = self._compute_kernel_size(radius, axis=2)
+            # Compute sigmas and normalize to pixel units
+            sigma_r = self._get_sigma(radius)/self.object_meta.dx
+            sigma_z = self._get_sigma(radius)/self.object_meta.dz
+            layer_r = get_1D_PSF_layer(sigma_r, kernel_size_r)
+            layer_z = get_1D_PSF_layer(sigma_z, kernel_size_z)
+            if self.psf_meta.kernel_dimensions=='2D':
+                self.layers[radius] = GaussianBlurNet(layer_r, layer_z)
+            else: # 1D blurring
+                self.layers[radius] = GaussianBlurNet(layer_r)
+                
+    def _configure_kernel_model(self):
+        self.layers = {}
+        kernel_size = self.object_meta.shape[0] - 1
+        #kernel_size = int(self.object_meta.shape[0]/2) - 1
+        for radius in np.unique(self.proj_meta.radii):
+            dim = self.object_meta.shape[0] + 2*compute_pad_size(self.object_meta.shape[0])
+            distances = get_distance(dim, radius, self.object_meta.dx)
+            self.layers[radius] = ArbitraryPSFNet(self.kernel_f, distances, kernel_size, (self.object_meta.dx, self.object_meta.dz))
+        
     def configure(
         self,
         object_meta: SPECTObjectMeta,
@@ -71,19 +120,10 @@ class SPECTPSFTransform(Transform):
             proj_meta (SPECTProjMeta): Projections metadata.
         """
         super(SPECTPSFTransform, self).configure(object_meta, proj_meta)
-        self.layers = {}
-        for radius in np.unique(proj_meta.radii):
-            kernel_size_r = self._compute_kernel_size(radius, axis=0)
-            kernel_size_z = self._compute_kernel_size(radius, axis=2)
-            # Compute sigmas and normalize to pixel units
-            sigma_r = self._get_sigma(radius)/object_meta.dx
-            sigma_z = self._get_sigma(radius)/object_meta.dz
-            layer_r = get_1D_PSF_layer(sigma_r, kernel_size_r)
-            layer_z = get_1D_PSF_layer(sigma_z, kernel_size_z)
-            if self.psf_meta.kernel_dimensions=='2D':
-                self.layers[radius] = GaussianBlurNet(layer_r, layer_z)
-            else: # 1D blurring
-                self.layers[radius] = GaussianBlurNet(layer_r)
+        if self.kernel_f is not None:
+            self._configure_kernel_model()
+        else:
+            self._configure_gaussian_model()
         
     def _compute_kernel_size(self, radius, axis) -> int:
         """Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``SPECTPSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object. 
