@@ -138,7 +138,7 @@ class RelativeDifferencePrior(NearestNeighbourPrior):
         gamma: float = 1, 
         weight: NeighbourWeight | None = None,
     ) -> None:
-        gradient = lambda object, nearest, gamma: 2*(object-nearest)*(gamma*torch.abs(object-nearest)+3*nearest+object + pytomography.delta) / ((object + nearest + gamma*torch.abs(object-nearest))**2 + pytomography.delta)
+        gradient = lambda object, nearest, gamma: (2*(object-nearest)*(gamma*torch.abs(object-nearest)+3*nearest+object) + pytomography.delta) / ((object + nearest + gamma*torch.abs(object-nearest))**2 + pytomography.delta)
         Vr = lambda object, nearest, gamma: (object-nearest)**2 / (object + nearest + gamma*torch.abs(object-nearest) + pytomography.delta)
         super(RelativeDifferencePrior, self).__init__(beta, gradient, Vr=Vr, gamma=gamma, weight=weight)
         

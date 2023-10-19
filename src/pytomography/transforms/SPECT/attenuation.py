@@ -25,14 +25,17 @@ class SPECTAttenuationTransform(Transform):
 	Args:
 		attenuation_map (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{cm}^{-1}}` at the photon energy corresponding to the particular scan
 		filepath (Sequence[str]): Folder location of CT scan; all .dcm files must correspond to different slices of the same scan.
+		mode (str): Mode used for extrapolation of CT beyond edges when aligning DICOM SPECT/CT data. Defaults to `'constant'`, which means the image is padded with zeros.
 	"""
 	def __init__(
 		self,
 		attenuation_map: torch.Tensor | None = None,
-		filepath: Sequence[str] | None = None
+		filepath: Sequence[str] | None = None,
+		mode: str = 'constant',
 		)-> None:
 		super(SPECTAttenuationTransform, self).__init__()
 		self.filepath = filepath
+		self.mode = mode
 		if attenuation_map is None and filepath is None:
 			raise Exception("Please supply only one of `attenuation_map` or `filepath` as arguments")
 		elif filepath is None:
@@ -57,7 +60,7 @@ class SPECTAttenuationTransform(Transform):
 		super(SPECTAttenuationTransform, self).configure(object_meta, proj_meta)
 		# Align CT with SPECT and rescale units TODO: If CT extends beyond boundaries
 		if self.filepath is not None:
-			self.attenuation_map = get_attenuation_map_from_CT_slices(self.filepath, proj_meta.filepath, proj_meta.index_peak)
+			self.attenuation_map = get_attenuation_map_from_CT_slices(self.filepath, proj_meta.filepath, proj_meta.index_peak, mode=self.mode)
 				
 	@torch.no_grad()
 	def forward(

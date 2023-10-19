@@ -82,3 +82,7 @@ class SPECTPSFMeta():
         self.sigma_fit = sigma_fit
         self.kernel_dimensions = kernel_dimensions
         self.min_sigmas = min_sigmas
+        
+    def __repr__(self):
+        attributes = [f"{attr} = {getattr(self, attr)}\n" for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]
+        return ''.join(attributes)
