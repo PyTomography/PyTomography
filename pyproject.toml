@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pytomography"
-version = "1.2.1"
+version = "1.2.2"
 
 authors = [
   { name="Luke Polson", email="lukepolson@outlook.com" },
@@ -34,11 +34,11 @@ dependencies = [
 [project.optional-dependencies]
 doc = [
   "toml",
-  "sphinx~=4.2.0",
+  "sphinx~=6.2.1",
   "myst-parser",
   "furo",
   "nbsphinx",
-  "sphinx-autoapi",
+  "sphinx-autoapi~=3.0.0",
   "ipykernel",
   "pydata-sphinx-theme"
 ]
