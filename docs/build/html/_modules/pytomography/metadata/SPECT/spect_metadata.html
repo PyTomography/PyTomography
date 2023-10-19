@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 
 
@@ -7,7 +8,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.metadata.SPECT.spect_metadata &#8212; PyTomography 1.2.0 documentation</title>
+    <title>pytomography.metadata.SPECT.spect_metadata &#8212; PyTomography 1.2.1 documentation</title>
   
   
   
@@ -27,16 +28,16 @@
 <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
 <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
 
-    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=362ab14a" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=eafc0fe6" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
   
   <!-- Pre-loaded scripts that we'll load fully later -->
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=ffe0d018"></script>
-    <script src="../../../../_static/doctools.js?v=888ff710"></script>
-    <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/sphinx_highlight.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pytomography/metadata/SPECT/spect_metadata';</script>
     <link rel="index" title="Index" href="../../../../genindex.html" />
@@ -342,7 +343,7 @@ document.write(`
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="n">from</span><span class="o">..</span><span class="n">metadata</span> <span class="kn">import</span> <span class="nn">ObjectMeta</span><span class="o">,</span> <span class="nn">ProjMeta</span>
 
-<div class="viewcode-block" id="SPECTObjectMeta"><a class="viewcode-back" href="../../../../autoapi/pytomography/metadata/SPECT/spect_metadata/index.html#pytomography.metadata.SPECT.SPECTObjectMeta">[docs]</a><span class="k">class</span> <span class="nc">SPECTObjectMeta</span><span class="p">(</span><span class="n">ObjectMeta</span><span class="p">):</span>
+<div class="viewcode-block" id="SPECTObjectMeta"><a class="viewcode-back" href="../../../../autoapi/pytomography/metadata/index.html#pytomography.metadata.SPECT.SPECTObjectMeta">[docs]</a><span class="k">class</span> <span class="nc">SPECTObjectMeta</span><span class="p">(</span><span class="n">ObjectMeta</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Metadata for object space in SPECT imaging</span>
 
 <span class="sd">    Args:</span>
@@ -359,7 +360,7 @@ document.write(`
         <span class="bp">self</span><span class="o">.</span><span class="n">recon_method</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="s1">&#39;counts&#39;</span>
 
-<div class="viewcode-block" id="SPECTObjectMeta.compute_padded_shape"><a class="viewcode-back" href="../../../../autoapi/pytomography/metadata/SPECT/spect_metadata/index.html#pytomography.metadata.SPECT.SPECTObjectMeta.compute_padded_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_padded_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<div class="viewcode-block" id="SPECTObjectMeta.compute_padded_shape"><a class="viewcode-back" href="../../../../autoapi/pytomography/metadata/index.html#pytomography.metadata.SPECT.SPECTObjectMeta.compute_padded_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_padded_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Computes the padded shape of an object required when rotating the object (to avoid anything getting cut off).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pad_size</span> <span class="o">=</span> <span class="n">compute_pad_size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -369,7 +370,7 @@ document.write(`
         <span class="bp">self</span><span class="o">.</span><span class="n">padded_shape</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">x_padded</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">y_padded</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">z_padded</span><span class="p">))</span> </div></div>
 
 
-<div class="viewcode-block" id="SPECTProjMeta"><a class="viewcode-back" href="../../../../autoapi/pytomography/metadata/SPECT/spect_metadata/index.html#pytomography.metadata.SPECT.SPECTProjMeta">[docs]</a><span class="k">class</span> <span class="nc">SPECTProjMeta</span><span class="p">(</span><span class="n">ProjMeta</span><span class="p">):</span>
+<div class="viewcode-block" id="SPECTProjMeta"><a class="viewcode-back" href="../../../../autoapi/pytomography/metadata/index.html#pytomography.metadata.SPECT.SPECTProjMeta">[docs]</a><span class="k">class</span> <span class="nc">SPECTProjMeta</span><span class="p">(</span><span class="n">ProjMeta</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Metadata for projection space in SPECT imaging</span>
 
 <span class="sd">    Args:</span>
@@ -389,7 +390,7 @@ document.write(`
         <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_projections</span><span class="p">,</span> <span class="n">projection_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">projection_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">compute_padded_shape</span><span class="p">()</span>
         
-<div class="viewcode-block" id="SPECTProjMeta.compute_padded_shape"><a class="viewcode-back" href="../../../../autoapi/pytomography/metadata/SPECT/spect_metadata/index.html#pytomography.metadata.SPECT.SPECTProjMeta.compute_padded_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_padded_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<div class="viewcode-block" id="SPECTProjMeta.compute_padded_shape"><a class="viewcode-back" href="../../../../autoapi/pytomography/metadata/index.html#pytomography.metadata.SPECT.SPECTProjMeta.compute_padded_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_padded_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Computes the padded shape of an object required when rotating the object (to avoid anything getting cut off).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pad_size</span> <span class="o">=</span> <span class="n">compute_pad_size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
@@ -399,7 +400,7 @@ document.write(`
         <span class="bp">self</span><span class="o">.</span><span class="n">padded_shape</span> <span class="o">=</span>  <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">theta_padded</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">r_padded</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">z_padded</span><span class="p">))</span> </div></div>
 
 
-<div class="viewcode-block" id="SPECTPSFMeta"><a class="viewcode-back" href="../../../../autoapi/pytomography/metadata/SPECT/spect_metadata/index.html#pytomography.metadata.SPECT.SPECTPSFMeta">[docs]</a><span class="k">class</span> <span class="nc">SPECTPSFMeta</span><span class="p">():</span>
+<div class="viewcode-block" id="SPECTPSFMeta"><a class="viewcode-back" href="../../../../autoapi/pytomography/metadata/index.html#pytomography.metadata.SPECT.SPECTPSFMeta">[docs]</a><span class="k">class</span> <span class="nc">SPECTPSFMeta</span><span class="p">():</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Metadata for PSF correction. PSF blurring is implemented using Gaussian blurring with :math:`\sigma(r) = f(r,p)` where :math:`r` is the distance from the detector, :math:`\sigma` is the width of the Gaussian blurring at that location, and :math:`f(r,p)` is the ``sigma_fit`` function which takes in additional parameters :math:`p` called ``sigma_fit_params``. (By default, ``sigma_fit`` is a linear curve). As such, :math:`\frac{1}{\sigma\sqrt{2\pi}}e^{-r^2/(2\sigma(r)^2)}` is the point spread function. Blurring is implemented using convolutions with a specified kernel size. </span>
 
 <span class="sd">     Args:</span>
@@ -420,7 +421,7 @@ document.write(`
         <span class="bp">self</span><span class="o">.</span><span class="n">kernel_dimensions</span> <span class="o">=</span> <span class="n">kernel_dimensions</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">min_sigmas</span> <span class="o">=</span> <span class="n">min_sigmas</span>
         
-<div class="viewcode-block" id="SPECTPSFMeta.__repr__"><a class="viewcode-back" href="../../../../autoapi/pytomography/metadata/SPECT/spect_metadata/index.html#pytomography.metadata.SPECT.SPECTPSFMeta.__repr__">[docs]</a>    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="SPECTPSFMeta.__repr__"><a class="viewcode-back" href="../../../../autoapi/pytomography/metadata/index.html#pytomography.metadata.SPECT.SPECTPSFMeta.__repr__">[docs]</a>    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">attributes</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">attr</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">attr</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">attr</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;__&quot;</span><span class="p">)]</span>
         <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">attributes</span><span class="p">)</span></div></div>
 </pre></div>
@@ -475,7 +476,7 @@ document.write(`
       
         <div class="footer-item">
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 6.2.1.
     <br/>
   </p>
 </div>
