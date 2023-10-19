@@ -33,15 +33,16 @@ Options exist to include anatomical information (such as MRI/CT) when using prio
 
 ## Installation
 
-This library requires a local installation of PyTorch. As such, it is recommended to first create a virtual environment using anaconda:
+Firstly, it is important that all your graphics card drivers are up to date. To ensure this, go to [this link](https://www.nvidia.com/Download/index.aspx), enter your graphics card information, and download/install the newest possible driver. It is also recommended that you download anaconda using [this link](https://www.anaconda.com/download) to manage your python environments. 
 
+Firstly, create a pytomography virtual environment using anaconda:
 ```
-conda create --name pytomography
+conda create --name pytomography_env
 ```
 
-and then install the version of PyTorch you need inside that environment [here](https://pytorch.org/get-started/locally/). Finally, install pytomography using the following command:
-
+Then you can activate your environment, and install PyTomography:
 ```
+conda activate pytomography_env
 pip install pytomography
 ```
 

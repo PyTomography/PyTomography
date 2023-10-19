@@ -50,7 +50,7 @@ Functions
    :rtype: torch.Tensor[batch_size, Lx, Ly, Lz]
 
 
-.. py:function:: get_projections(file, index_peak = None, index_time = None, print_shape = True)
+.. py:function:: get_projections(file, index_peak = None, index_time = None)
 
    Gets projections from a .dcm file.
 
@@ -60,8 +60,6 @@ Functions
    :type index_peak: int
    :param index_time: If not none, then the returned projections correspond to the index of the time slot in gated SPECT. Otherwise returns all time slots. Defaults to None
    :type index_time: int
-   :param print_shape: If true, then prints the shape of the projections returned. Defaults to true.
-   :type print_shape: bool
 
    :returns: (SPECTObjectMeta, SPECTProjMeta, torch.Tensor[..., Ltheta, Lr, Lz]) where ... depends on if time slots are considered.
 
@@ -77,7 +75,7 @@ Functions
    :rtype: torch.Tensor
 
 
-.. py:function:: get_attenuation_map_from_CT_slices(files_CT, file_NM = None, index_peak = 0, keep_as_HU = False, mode = 'nearest')
+.. py:function:: get_attenuation_map_from_CT_slices(files_CT, file_NM = None, index_peak = 0, keep_as_HU = False, mode = 'constant')
 
    Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography.
 

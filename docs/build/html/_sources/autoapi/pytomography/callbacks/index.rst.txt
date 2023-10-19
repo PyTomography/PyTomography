@@ -16,7 +16,7 @@ Submodules
    :maxdepth: 1
 
    callback/index.rst
-   liklihood/index.rst
+   likelihood/index.rst
 
 
 Package Contents
@@ -28,7 +28,7 @@ Classes
 .. autoapisummary::
 
    pytomography.callbacks.Callback
-   pytomography.callbacks.LogLiklihoodCallback
+   pytomography.callbacks.LogLikelihoodCallback
 
 
 
@@ -50,7 +50,7 @@ Classes
 
 
 
-.. py:class:: LogLiklihoodCallback(projections, system_matrix, prior = None)
+.. py:class:: LogLikelihoodCallback(projections, system_matrix, prior = None)
 
    Bases: :py:obj:`pytomography.callbacks.callback.Callback`
 

@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Reconstructing DICOM Data &#8212; PyTomography 1.1.0 documentation</title>
+    <title>Reconstructing DICOM Data &#8212; PyTomography 1.2.0 documentation</title>
   
   
   
@@ -35,7 +35,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=52b0a0d4"></script>
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=ffe0d018"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -648,14 +648,6 @@ and looking at the <code class="docutils literal notranslate"><span class="pre">
 </pre></div>
 </div>
 </div>
-<div class="nboutput docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-Returned projections have dimensions (1 Ltheta Lr Lz)
-</pre></div></div>
-</div>
 <div class="nboutput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
@@ -683,7 +675,7 @@ torch.Size([1, 180, 128, 128])
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.colorbar.Colorbar at 0x7f455c8fcf70&gt;
+&lt;matplotlib.colorbar.Colorbar at 0x7f19c4d56450&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -725,7 +717,7 @@ torch.Size([1, 180, 128, 128])
 <ul class="simple">
 <li><p><em>Note</em>: This is not required if you don’t want to view the attenuation map. Later, when the system matrix is built, it automatically configures all the transforms</p></li>
 </ul>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
@@ -733,15 +725,6 @@ torch.Size([1, 180, 128, 128])
 <span class="n">attenuation_map</span> <span class="o">=</span> <span class="n">att_transform</span><span class="o">.</span><span class="n">attenuation_map</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-Cortical Bone Peak: 1419.3499755859375 HU
-Effective CT Energy Determined: 75.89505539164563 keV
-</pre></div></div>
 </div>
 <p>Viewing the attenuation map allows for a consistency check to ensure that it’s properly aligned with the projection data</p>
 <div class="nbinput nblast docutils container">
@@ -776,7 +759,7 @@ Effective CT Energy Determined: 75.89505539164563 keV
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.colorbar.Colorbar at 0x7f455873fe80&gt;
+&lt;matplotlib.colorbar.Colorbar at 0x7f19c2c6f3d0&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -815,7 +798,10 @@ Effective CT Energy Determined: 75.89505539164563 keV
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;pytomography.metadata.SPECT.spect_metadata.SPECTPSFMeta object at 0x7f45587bd520&gt;
+kernel_dimensions = 2D
+min_sigmas = 3
+sigma_fit_params = (0.03161992134409504, 0.12485030464233879)
+
 </pre></div></div>
 </div>
 <p>Now we can build our PSF transform required to create the system matrix</p>
@@ -833,7 +819,7 @@ Effective CT Energy Determined: 75.89505539164563 keV
 <h2>System Matrix<a class="headerlink" href="#System-Matrix" title="Permalink to this heading">#</a></h2>
 <p>Now that we have the required transforms, we can begin to build the system matrix. It requires: 1. <code class="docutils literal notranslate"><span class="pre">obj2obj_transforms</span></code>. These map from object space to object space. In the case of SPECT imaging, both the attenuation transform and PSF transform correspond to these types of transforms. 2. <code class="docutils literal notranslate"><span class="pre">proj2proj_transforms</span></code>: These map from projection to projection space. Though we have none here, they would be used to model PSF in PET imaging. 3. <code class="docutils literal notranslate"><span class="pre">object_meta</span></code> and <code class="docutils literal notranslate"><span class="pre">proj_meta</span></code>. These are used to
 initialize the transforms. For example, data from <code class="docutils literal notranslate"><span class="pre">object_meta</span></code> is used to align the attenuation map, and radial position from <code class="docutils literal notranslate"><span class="pre">proj_meta</span></code> is used to get proper blurring parameters for the PSF transform</p>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
@@ -844,15 +830,6 @@ initialize the transforms. For example, data from <code class="docutils literal 
         <span class="n">proj_meta</span> <span class="o">=</span> <span class="n">proj_meta</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-Cortical Bone Peak: 1419.3499755859375 HU
-Effective CT Energy Determined: 75.89505539164563 keV
-</pre></div></div>
 </div>
 <p>The system matrix <span class="math notranslate nohighlight">\(H\)</span> represents the imaging system and maps an object <span class="math notranslate nohighlight">\(f\)</span> to a corresponding image <span class="math notranslate nohighlight">\(g\)</span> under the imaging system</p>
 </section>
@@ -927,12 +904,12 @@ Effective CT Energy Determined: 75.89505539164563 keV
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">121</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;PyTomography&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">slice_pytomography</span> <span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;nipy_spectral&#39;</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">110</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">slice_pytomography</span> <span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">110</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">122</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Vendor&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">slice_vendor</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;nipy_spectral&#39;</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">110</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">slice_vendor</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">110</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>

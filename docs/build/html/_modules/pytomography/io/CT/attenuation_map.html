@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.io.CT.attenuation_map &#8212; PyTomography 1.1.0 documentation</title>
+    <title>pytomography.io.CT.attenuation_map &#8212; PyTomography 1.2.0 documentation</title>
   
   
   
@@ -34,7 +34,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=52b0a0d4"></script>
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=ffe0d018"></script>
     <script src="../../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -345,6 +345,7 @@ document.write(`
 <span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">curve_fit</span><span class="p">,</span> <span class="n">minimize</span>
 <span class="kn">from</span> <span class="nn">scipy.signal</span> <span class="kn">import</span> <span class="n">find_peaks</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">import</span> <span class="nn">pytomography</span>
 <span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">dual_sqrt_exponential</span><span class="p">,</span> <span class="n">get_E_mu_data_from_datasheet</span><span class="p">,</span> <span class="n">get_mu_from_spectrum_interp</span>
 <span class="kn">from</span> <span class="nn">.dicom</span> <span class="kn">import</span> <span class="n">open_CT_file</span>
 
@@ -421,8 +422,8 @@ document.write(`
     <span class="k">if</span> <span class="n">HU_cortical_bone</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># compute effective CT energy from CBone HU</span>
         <span class="n">E_CT</span> <span class="o">=</span> <span class="n">get_ECT_from_corticalbone_HU</span><span class="p">(</span><span class="n">HU_cortical_bone</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Cortical Bone Peak: </span><span class="si">{</span><span class="n">HU_cortical_bone</span><span class="si">}</span><span class="s1"> HU&#39;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Effective CT Energy Determined: </span><span class="si">{</span><span class="n">E_CT</span><span class="si">}</span><span class="s1"> keV&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pytomography</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Cortical Bone Peak: </span><span class="si">{</span><span class="n">HU_cortical_bone</span><span class="si">}</span><span class="s1"> HU&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pytomography</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Effective CT Energy Determined: </span><span class="si">{</span><span class="n">E_CT</span><span class="si">}</span><span class="s1"> keV&#39;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># If can&#39;t get cortical bone peak, default to 75% KVP value</span>
         <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Could not find cortical bone peak: defaulting to 75% kVp value&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">Warning</span><span class="p">)</span>

@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>pytomography.transforms.SPECT.attenuation &#8212; PyTomography 1.1.0 documentation</title>
+    <title>pytomography.transforms.SPECT.attenuation &#8212; PyTomography 1.2.0 documentation</title>
   
   
   
@@ -35,7 +35,7 @@
   <link rel="preload" as="script" href="../../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js?v=52b0a0d4"></script>
+    <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js?v=ffe0d018"></script>
     <script src="../../../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -298,7 +298,7 @@ document.write(`
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../callbacks/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../callbacks/callback/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.callback</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../callbacks/liklihood/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.liklihood</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../callbacks/likelihood/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.likelihood</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../io/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-3"><i class="fa-solid fa-chevron-down"></i></label><ul>
@@ -356,6 +356,7 @@ document.write(`
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-16"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../shared/filters/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.filters</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../shared/kem/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.kem</span></code></a></li>
 </ul>
 </li>
@@ -469,7 +470,7 @@ document.write(`
 
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomography.transforms.SPECT.attenuation.SPECTAttenuationTransform">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.transforms.SPECT.attenuation.</span></span><span class="sig-name descname"><span class="pre">SPECTAttenuationTransform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attenuation_map</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filepath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/attenuation.html#SPECTAttenuationTransform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.attenuation.SPECTAttenuationTransform" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.transforms.SPECT.attenuation.</span></span><span class="sig-name descname"><span class="pre">SPECTAttenuationTransform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attenuation_map</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filepath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'constant'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/attenuation.html#SPECTAttenuationTransform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.attenuation.SPECTAttenuationTransform" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="../../index.html#pytomography.transforms.Transform" title="pytomography.transforms.Transform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pytomography.transforms.Transform</span></code></a></p>
 <p>obj2obj transform used to model the effects of attenuation in SPECT. This transform accepts either an <code class="docutils literal notranslate"><span class="pre">attenuation_map</span></code> (which must be aligned with the SPECT projection data) or a <code class="docutils literal notranslate"><span class="pre">filepath</span></code> consisting of folder containing CT DICOM files all pertaining to the same scan</p>
 <dl class="field-list simple">
@@ -477,6 +478,7 @@ document.write(`
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>attenuation_map</strong> (<em>torch.tensor</em>) – Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in <span class="math notranslate nohighlight">\({\text{cm}^{-1}}\)</span> at the photon energy corresponding to the particular scan</p></li>
 <li><p><strong>filepath</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>) – Folder location of CT scan; all .dcm files must correspond to different slices of the same scan.</p></li>
+<li><p><strong>mode</strong> (<em>str</em>) – Mode used for extrapolation of CT beyond edges when aligning DICOM SPECT/CT data. Defaults to <cite>‘constant’</cite>, which means the image is padded with zeros.</p></li>
 </ul>
 </dd>
 </dl>

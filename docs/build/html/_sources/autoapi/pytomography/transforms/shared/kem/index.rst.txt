@@ -17,7 +17,7 @@ Classes
 
 
 
-.. py:class:: KEMTransform(support_objects, support_kernels=None, support_kernels_params=None, distance_kernel=None, distance_kernel_params=None, size = 5)
+.. py:class:: KEMTransform(support_objects, support_kernels=None, support_kernels_params=None, distance_kernel=None, distance_kernel_params=None, size = 5, top_N = None, kernel_on_gpu = False)
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 
@@ -35,6 +35,19 @@ Classes
    :type distance_kernel_params: _type_, optional
    :param size: The size of each kernel. Defaults to 5.
    :type size: int, optional
+
+   .. py:method:: compute_kernel()
+
+
+   .. py:method:: configure(object_meta, proj_meta)
+
+      Function used to initalize the transform using corresponding object and projection metadata
+
+      :param object_meta: Object metadata.
+      :type object_meta: SPECTObjectMeta
+      :param proj_meta: Projections metadata.
+      :type proj_meta: SPECTProjMeta
+
 
    .. py:method:: forward(object)
 
