@@ -1,0 +1,43 @@
+:py:mod:`pytomography.callbacks.likelihood`
+===========================================
+
+.. py:module:: pytomography.callbacks.likelihood
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.callbacks.likelihood.LogLikelihoodCallback
+
+
+
+
+.. py:class:: LogLikelihoodCallback(projections, system_matrix, prior = None)
+
+   Bases: :py:obj:`pytomography.callbacks.callback.Callback`
+
+   Computes the log-liklihood :math:`\sum \left(g\log(Hf) - Hf - \beta V(f) \right)` after a given iteration.
+
+   :param projections: Data corresponding to measured projections
+   :type projections: torch.tensor
+   :param system_matrix: System matrix of imaging system.
+   :type system_matrix: SystemMatrix
+   :param prior: Prior used in Bayesian algorithm. Defaults to None.
+   :type prior: Prior, optional
+
+   .. py:method:: run(object, n_iter)
+
+      Method used to compute the log liklihood
+
+      :param object: Object on which the liklihood is computed
+      :type object: torch.tensor
+      :param n_iter: Iteration number
+      :type n_iter: int
+
+
+

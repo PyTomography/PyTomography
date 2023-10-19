@@ -17,7 +17,7 @@ Classes
 
 
 
-.. py:class:: CutOffTransform(proj)
+.. py:class:: CutOffTransform(proj = None, file_NM = None)
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 

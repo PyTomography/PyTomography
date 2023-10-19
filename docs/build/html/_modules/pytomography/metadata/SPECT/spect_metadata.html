@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.metadata.SPECT.spect_metadata &#8212; PyTomography 1.1.0 documentation</title>
+    <title>pytomography.metadata.SPECT.spect_metadata &#8212; PyTomography 1.2.0 documentation</title>
   
   
   
@@ -34,7 +34,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=52b0a0d4"></script>
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=ffe0d018"></script>
     <script src="../../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -418,7 +418,11 @@ document.write(`
         <span class="bp">self</span><span class="o">.</span><span class="n">sigma_fit_params</span> <span class="o">=</span> <span class="n">sigma_fit_params</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sigma_fit</span> <span class="o">=</span> <span class="n">sigma_fit</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">kernel_dimensions</span> <span class="o">=</span> <span class="n">kernel_dimensions</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">min_sigmas</span> <span class="o">=</span> <span class="n">min_sigmas</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_sigmas</span> <span class="o">=</span> <span class="n">min_sigmas</span>
+        
+<div class="viewcode-block" id="SPECTPSFMeta.__repr__"><a class="viewcode-back" href="../../../../autoapi/pytomography/metadata/SPECT/spect_metadata/index.html#pytomography.metadata.SPECT.SPECTPSFMeta.__repr__">[docs]</a>    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">attributes</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">attr</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">attr</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">attr</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;__&quot;</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">attributes</span><span class="p">)</span></div></div>
 </pre></div>
 
                 </article>

@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.transforms.SPECT.attenuation &#8212; PyTomography 1.1.0 documentation</title>
+    <title>pytomography.transforms.SPECT.attenuation &#8212; PyTomography 1.2.0 documentation</title>
   
   
   
@@ -34,7 +34,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=52b0a0d4"></script>
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=ffe0d018"></script>
     <script src="../../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -362,14 +362,17 @@ document.write(`
 <span class="sd">	Args:</span>
 <span class="sd">		attenuation_map (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{cm}^{-1}}` at the photon energy corresponding to the particular scan</span>
 <span class="sd">		filepath (Sequence[str]): Folder location of CT scan; all .dcm files must correspond to different slices of the same scan.</span>
+<span class="sd">		mode (str): Mode used for extrapolation of CT beyond edges when aligning DICOM SPECT/CT data. Defaults to `&#39;constant&#39;`, which means the image is padded with zeros.</span>
 <span class="sd">	&quot;&quot;&quot;</span>
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">attenuation_map</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-		<span class="n">filepath</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+		<span class="n">filepath</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+		<span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;constant&#39;</span><span class="p">,</span>
 		<span class="p">)</span><span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="nb">super</span><span class="p">(</span><span class="n">SPECTAttenuationTransform</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">filepath</span> <span class="o">=</span> <span class="n">filepath</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
 		<span class="k">if</span> <span class="n">attenuation_map</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">filepath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Please supply only one of `attenuation_map` or `filepath` as arguments&quot;</span><span class="p">)</span>
 		<span class="k">elif</span> <span class="n">filepath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -394,7 +397,7 @@ document.write(`
 		<span class="nb">super</span><span class="p">(</span><span class="n">SPECTAttenuationTransform</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span> <span class="n">proj_meta</span><span class="p">)</span>
 		<span class="c1"># Align CT with SPECT and rescale units TODO: If CT extends beyond boundaries</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filepath</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">attenuation_map</span> <span class="o">=</span> <span class="n">get_attenuation_map_from_CT_slices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filepath</span><span class="p">,</span> <span class="n">proj_meta</span><span class="o">.</span><span class="n">filepath</span><span class="p">,</span> <span class="n">proj_meta</span><span class="o">.</span><span class="n">index_peak</span><span class="p">)</span></div>
+			<span class="bp">self</span><span class="o">.</span><span class="n">attenuation_map</span> <span class="o">=</span> <span class="n">get_attenuation_map_from_CT_slices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filepath</span><span class="p">,</span> <span class="n">proj_meta</span><span class="o">.</span><span class="n">filepath</span><span class="p">,</span> <span class="n">proj_meta</span><span class="o">.</span><span class="n">index_peak</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">)</span></div>
 				
 	<span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
 <div class="viewcode-block" id="SPECTAttenuationTransform.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/attenuation/index.html#pytomography.transforms.SPECT.attenuation.SPECTAttenuationTransform.forward">[docs]</a>	<span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>

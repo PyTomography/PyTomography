@@ -26,7 +26,7 @@ Classes
 
 
 
-.. py:class:: StatisticalIterative(projections, system_matrix, object_initial = None, scatter = 0, prior = None)
+.. py:class:: StatisticalIterative(projections, system_matrix, object_initial = None, scatter = 0, prior = None, precompute_normalization_factors = True)
 
    Parent class for all statistical iterative algorithms. All child classes must implement the ``__call__`` method to perform reconstruction.
 
@@ -40,6 +40,8 @@ Classes
    :type scatter: torch.Tensor
    :param prior: the Bayesian prior; used to compute :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.
    :type prior: Prior, optional
+   :param precompute_normalization_factors:
+   :type precompute_normalization_factors: bool
 
    .. py:method:: get_subset_splits(n_subsets)
 
@@ -52,7 +54,7 @@ Classes
       :rtype: list
 
 
-   .. py:method:: __call__(n_iters, n_subsets, callbacks = None)
+   .. py:method:: __call__(n_iters, n_subsets, callback = None)
       :abstractmethod:
 
       Abstract method for performing reconstruction: must be implemented by subclasses.
@@ -66,22 +68,24 @@ Classes
 
 
 
-.. py:class:: OSEMOSL(projections, system_matrix, object_initial = None, scatter = 0, prior = None)
+.. py:class:: OSEMOSL(projections, system_matrix, object_initial = None, scatter = 0, prior = None, precompute_normalization_factors = True)
 
    Bases: :py:obj:`StatisticalIterative`
 
    Implementation of the ordered subset expectation algorithm using the one-step-late method to include prior information: :math:`\hat{f}^{n,m+1} = \left[\frac{1}{H_m^T 1  + \beta \frac{\partial V}{\partial \hat{f}}|_{\hat{f}=\hat{f}^{n,m}}} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}`.
 
-   :param proj: projection data :math:`g` to be reconstructed
-   :type proj: torch.Tensor
-   :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
+   :param projections: photopeak window projection data :math:`g` to be reconstructed
+   :type projections: torch.Tensor
+   :param system_matrix: system matrix that models the imaging system. In particular, corresponds to :math:`H` in :math:`g=Hf`.
    :type system_matrix: SystemMatrix
-   :param object_initial: represents the initial object guess :math:`f^{0,0}` for the algorithm in object space
+   :param object_initial: the initial object guess :math:`f^{0,0}`. If None, then initial guess consists of all 1s. Defaults to None.
    :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
-   :param scatter: estimate of scatter contribution :math:`s`.
+   :param scatter: estimate of scatter contribution :math:`s`. Defaults to 0.
    :type scatter: torch.Tensor
-   :param prior: the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.
+   :param prior: the Bayesian prior; used to compute :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.
    :type prior: Prior, optional
+   :param precompute_normalization_factors:
+   :type precompute_normalization_factors: bool
 
    .. py:method:: _set_recon_name(n_iters, n_subsets)
 
@@ -109,18 +113,18 @@ Classes
 
 
 
-.. py:class:: BSREM(projections, system_matrix, object_initial = None, scatter = 0, prior = None, relaxation_function = lambda x: 1 / (x + 1), scaling_matrix_type = 'subind_norm')
+.. py:class:: BSREM(projections, system_matrix, object_initial = None, scatter = 0, prior = None, relaxation_function = lambda x: 1, scaling_matrix_type = 'subind_norm')
 
    Bases: :py:obj:`StatisticalIterative`
 
    Implementation of the block-sequential-regularized (BSREM) reconstruction algorithm: :math:`\hat{f}^{n,m+1} = \hat{f}^{n,m} + \alpha_n D \left[H_m^T \left(\frac{g_m}{H_m \hat{f}^{n,m} + s} -1 \right) - \beta \nabla_{f^{n,m}} V \right]`. The implementation of this algorithm corresponds to Modified BSREM-II with :math:`U=\infty`, :math:`t=0`, and :math:`\epsilon=0` (see https://ieeexplore.ieee.org/document/1207396). There is one difference in this implementation: rather than using FBP to get an initial estimate (as is done in the paper), a single iteration of OSEM is used; this initialization is required here due to the requirement for global scaling (see discussion on page 620 of paper).
 
-   :param proj: projection data :math:`g` to be reconstructed
-   :type proj: torch.Tensor
-   :param object_initial: represents the initial object guess :math:`f^{0,0}` for the algorithm in object space
-   :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
+   :param projections: projection data :math:`g` to be reconstructed.
+   :type projections: torch.Tensor
    :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
    :type system_matrix: SystemMatrix
+   :param object_initial: represents the initial object guess :math:`f^{0,0}` for the algorithm in object space
+   :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
    :param scatter: estimate of scatter contribution :math:`s`.
    :type scatter: torch.Tensor
    :param prior: the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.
@@ -140,6 +144,17 @@ Classes
       :type n_subsets: int
 
 
+   .. py:method:: _scale_prior_gradient(gradient)
+
+      Used to scale gradient to avoid divisional errors in null regions when using CutOffTransform
+
+      :param gradient: Gradient returned by prior function
+      :type gradient: torch.tensor
+
+      :returns: New gradient tensor where values are set to 0 outside the cutoff region.
+      :rtype: torch.tensor
+
+
    .. py:method:: __call__(n_iters, n_subsets, callback = None)
 
       Performs the reconstruction using ``n_iters`` iterations and ``n_subsets`` subsets.
@@ -156,20 +171,22 @@ Classes
 
 
 
-.. py:class:: OSEM(projections, system_matrix, object_initial = None, scatter = 0)
+.. py:class:: OSEM(projections, system_matrix, object_initial = None, scatter = 0, precompute_normalization_factor = True)
 
    Bases: :py:obj:`OSEMOSL`
 
    Implementation of the ordered subset expectation maximum algorithm :math:`\hat{f}^{n,m+1} = \left[\frac{1}{H_m^T 1} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}`.
 
-   :param proj: projection data :math:`g` to be reconstructed
-   :type proj: torch.Tensor
-   :param object_initial: represents the initial object guess :math:`f^{0,0}` for the algorithm in object space
-   :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
-   :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
+   :param projections: photopeak window projection data :math:`g` to be reconstructed
+   :type projections: torch.Tensor
+   :param system_matrix: system matrix that models the imaging system. In particular, corresponds to :math:`H` in :math:`g=Hf`.
    :type system_matrix: SystemMatrix
-   :param scatter: estimate of scatter contribution :math:`s`.
+   :param object_initial: the initial object guess :math:`f^{0,0}`. If None, then initial guess consists of all 1s. Defaults to None.
+   :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
+   :param scatter: estimate of scatter contribution :math:`s`. Defaults to 0.
    :type scatter: torch.Tensor
+   :param precompute_normalization_factors:
+   :type precompute_normalization_factors: bool
 
 
 .. py:class:: KEM(projections, system_matrix, kem_transform, object_initial = None, scatter = 0)
@@ -178,8 +195,8 @@ Classes
 
    Implementation of the KEM reconstruction algorithm given by :math:`\hat{\alpha}^{n,m+1} = \left[\frac{1}{K^T H_m^T 1} K^T H_m^T \left(\frac{g_m}{H_m K \hat{\alpha}^{n,m}+s}\right)\right] \hat{\alpha}^{n,m}` and where the final predicted object is :math:`\hat{f}^{n,m} = K \hat{\alpha}^{n,m}`.
 
-   :param proj: projection data :math:`g` to be reconstructed
-   :type proj: torch.Tensor
+   :param projections: projection data :math:`g` to be reconstructed
+   :type projections: torch.Tensor
    :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
    :type system_matrix: SystemMatrix
    :param kem_transform: The transform corresponding to the matrix :math:`K`.

@@ -31,6 +31,7 @@ Functions
 
    pytomography.set_dtype
    pytomography.set_device
+   pytomography.set_verbose
 
 
 
@@ -43,6 +44,7 @@ Attributes
    pytomography.device
    pytomography.dtype
    pytomography.delta
+   pytomography.verbose
 
 
 .. py:data:: __version__
@@ -63,9 +65,17 @@ Attributes
 
    
 
+.. py:data:: verbose
+   :value: False
+
+   
+
 .. py:function:: set_dtype(dt)
 
 
 .. py:function:: set_device(d)
+
+
+.. py:function:: set_verbose(b)
 
 

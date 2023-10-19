@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>BSREM &#8212; PyTomography 1.1.0 documentation</title>
+    <title>BSREM &#8212; PyTomography 1.2.0 documentation</title>
   
   
   
@@ -35,7 +35,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=52b0a0d4"></script>
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=ffe0d018"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -612,7 +612,7 @@ div.rendered_html tbody tr:hover {
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">poisson</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="kn">from</span> <span class="nn">pytomography.callbacks</span> <span class="kn">import</span> <span class="n">LogLiklihoodCallback</span>
+<span class="kn">from</span> <span class="nn">pytomography.callbacks</span> <span class="kn">import</span> <span class="n">LogLikelihoodCallback</span>
 </pre></div>
 </div>
 </div>
@@ -631,7 +631,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;torch._C.Generator at 0x7f7220198a50&gt;
+&lt;torch._C.Generator at 0x7f785743ea70&gt;
 </pre></div></div>
 </div>
 <p>Modify the following path to the directory where you saved the tutorial data:</p>
@@ -716,7 +716,7 @@ div.rendered_html tbody tr:hover {
     <span class="n">scaling_matrix_type</span><span class="o">=</span><span class="s1">&#39;subind_norm&#39;</span>
 <span class="p">):</span>
     <span class="c1"># Use a logliklihood callback to track liklihood after each iteration</span>
-    <span class="n">cb</span> <span class="o">=</span> <span class="n">LogLiklihoodCallback</span><span class="p">(</span><span class="n">photopeak_poisson</span><span class="p">,</span> <span class="n">system_matrix</span><span class="p">,</span> <span class="n">prior</span><span class="o">=</span><span class="n">prior</span><span class="p">)</span>
+    <span class="n">cb</span> <span class="o">=</span> <span class="n">LogLikelihoodCallback</span><span class="p">(</span><span class="n">photopeak_poisson</span><span class="p">,</span> <span class="n">system_matrix</span><span class="p">,</span> <span class="n">prior</span><span class="o">=</span><span class="n">prior</span><span class="p">)</span>
     <span class="c1"># Reconstruct</span>
     <span class="n">reconstruction_algorithm</span> <span class="o">=</span> <span class="n">BSREM</span><span class="p">(</span>
     <span class="n">projections</span> <span class="o">=</span> <span class="n">photopeak_poisson</span><span class="p">,</span>
