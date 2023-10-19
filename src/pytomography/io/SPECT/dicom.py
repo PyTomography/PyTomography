@@ -180,7 +180,7 @@ def get_scatter_from_TEW(
     ww_upper = get_window_width(ds, index_upper)
     projections_all = get_projections(file)
     scatter = compute_TEW(projections_all[index_lower],projections_all[index_upper], ww_lower, ww_upper, ww_peak)
-    return scatter.to(pytomography.device)
+    return scatter.to(pytomography.device).unsqueeze(0)
 
 def get_attenuation_map_from_file(file_AM: str) -> torch.Tensor:
     """Gets an attenuation map from a DICOM file. This data is usually provided by the manufacturer of the SPECT scanner. 
@@ -269,7 +269,7 @@ def get_attenuation_map_from_CT_slices(
     file_NM: str | None = None,
     index_peak: int = 0,
     keep_as_HU: bool = False,
-    mode: str = 'nearest'
+    mode: str = 'constant'
     ) -> torch.Tensor:
     """Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography.
 
@@ -353,7 +353,7 @@ def _get_affine_CT(filenames: Sequence[str]):
 def stitch_multibed(
     recons: torch.Tensor,
     files_NM: Sequence[str],
-    method: str ='midslice'
+    method: str ='midslice',
     ) -> torch.Tensor:
     """Stitches together multiple reconstructed objects corresponding to different bed positions.
 

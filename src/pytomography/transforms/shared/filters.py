@@ -49,12 +49,12 @@ class GaussianFilter(Transform):
         Returns:
             torch.tensor: Smoothed object
         """
-        shape = object.shape
         for i in [1,2,3]:
             object = object.swapaxes(i,3)
-            object = object.reshape(-1,1,128)
+            new_shape = object.shape
+            object = object.reshape(-1,1,object.shape[i])
             object = conv1d(object, self.kernels[i-1], padding='same')
-            object = object.reshape(shape)
+            object = object.reshape(new_shape)
             object= object.swapaxes(i,3)
         return object
             

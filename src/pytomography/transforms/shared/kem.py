@@ -85,6 +85,20 @@ class KEMTransform(Transform):
         # Put on GPU (defaults to false since very large)
         if self.kernel_on_gpu:
             self.kernel = self.kernel.to(pytomography.device)
+            
+    def configure(
+        self,
+        object_meta: ObjectMeta,
+        proj_meta: ProjMeta
+    ) -> None:
+        """Function used to initalize the transform using corresponding object and projection metadata
+
+        Args:
+            object_meta (SPECTObjectMeta): Object metadata.
+            proj_meta (SPECTProjMeta): Projections metadata.
+        """
+        super(KEMTransform, self).configure(object_meta, proj_meta)
+        self.compute_kernel()
     
     @torch.no_grad()
     def forward(

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pytomography"
-version = "1.1.1"
+version = "1.2.0"
 
 authors = [
   { name="Luke Polson", email="lukepolson@outlook.com" },
@@ -22,6 +22,9 @@ dependencies = [
   "scipy>=1.10.1",
   "pydicom>=2.0.0",
   "kornia>=0.6.12",
+  "torch>=1.10.2",
+  "fft-conv-pytorch>=1.2.0",
+  "matplotlib>=3.8.0"
 ]
 
 [project.urls]
