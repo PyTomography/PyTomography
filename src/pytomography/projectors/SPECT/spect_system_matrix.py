@@ -89,7 +89,10 @@ class SPECTSystemMatrix(SystemMatrix):
         norm_proj = pad_proj(norm_proj)
         # First apply proj transforms before back projecting
         for transform in self.proj2proj_transforms[::-1]:
-            proj, norm_proj = transform.backward(proj, norm_proj)
+            if return_norm_constant:
+                proj, norm_proj = transform.backward(proj, norm_proj)
+            else:
+                proj = transform.backward(proj)
         # Setup for back projection
         N_angles = self.proj_meta.num_projections
         object = torch.zeros([proj.shape[0], *self.object_meta.padded_shape]).to(pytomography.device)
@@ -103,7 +106,10 @@ class SPECTSystemMatrix(SystemMatrix):
             norm_constant_i = norm_proj[:,angle_indices_single_batch_i].flatten(0,1).unsqueeze(1) * boundary_box_bp
             # Apply object mappings
             for transform in self.obj2obj_transforms[::-1]:
-                object_i, norm_constant_i = transform.backward(object_i, angle_indices_i, norm_constant=norm_constant_i)
+                if return_norm_constant:
+                    object_i, norm_constant_i = transform.backward(object_i, angle_indices_i, norm_constant=norm_constant_i)
+                else:
+                    object_i  = transform.backward(object_i, angle_indices_i)
             # Rotate all objects by by their respective angle
             object_i = rotate_detector_z(object_i, self.proj_meta.angles[angle_indices_i], negative=True)
             norm_constant_i = rotate_detector_z(norm_constant_i, self.proj_meta.angles[angle_indices_i], negative=True)

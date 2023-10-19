@@ -33,6 +33,7 @@ class Prior():
             factor (float): Value by which to scale :math:`\beta` 
         """
         self.beta_scale_factor = factor
+                
 
     def set_object(self, object: torch.Tensor) -> None:
         r"""Sets the object :math:`f_r` used to compute :math:`\frac{\partial V}{\partial f_r}` 

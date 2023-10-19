@@ -2,7 +2,9 @@ from __future__ import annotations
 import numpy as np
 from pytomography.utils import get_object_nearest_neighbour
 import torch
+import pytomography
 from pytomography.transforms import Transform
+from pytomography.metadata import ObjectMeta, ProjMeta
 
 
 class KEMTransform(Transform):
@@ -24,7 +26,9 @@ class KEMTransform(Transform):
         support_kernels_params = None,
         distance_kernel = None,
         distance_kernel_params = None,
-        size: int = 5
+        size: int = 5,
+        top_N: int | None = None,
+        kernel_on_gpu: bool = False
     ) -> None:
         
         super(KEMTransform, self).__init__()
@@ -49,9 +53,53 @@ class KEMTransform(Transform):
             self.distance_kernel_params = [1]
         else:
             self.distance_kernel_params = distance_kernel_params
-        idx_max = int((size - 1) / 2)
-        self.idxs = np.arange(-idx_max, idx_max+1)
-        print(self.distance_kernel_params)
+        self.size = size
+        self.idx_max = int((size - 1) / 2)
+        self.idxs = torch.arange(-self.idx_max, self.idx_max+1)
+        self.top_N = top_N
+        self.kernel_on_gpu = kernel_on_gpu
+        
+    
+    def compute_kernel(self):
+        shape = self.support_objects[0].shape[1:]
+        # Keep kernel on CPU until its used (its too big for GPU)
+        self.kernel = torch.ones((self.size, self.size, self.size, *shape)).to(pytomography.dtype)
+        for i in self.idxs:
+            for j in self.idxs:
+                for k in self.idxs:
+                    kernel_component = 1
+                    # All support objects:
+                    for l in range(len(self.support_objects)):
+                        neighbour_support_object = get_object_nearest_neighbour(self.support_objects[l].cpu(), (i,j,k))
+                        kernel_component *= self.support_kernels[l](self.support_objects[l].cpu(), neighbour_support_object, *self.support_kernel_params[l])
+                    self.kernel[i+self.idx_max,j+self.idx_max,k+self.idx_max] = kernel_component
+        # Get only top N entries (based on anatomical support)
+        if self.top_N is not None:
+            self.kernel *= (torch.argsort(torch.argsort(self.kernel.reshape((self.size**3,*shape)), dim=0), dim=0)>=self.size**3 - self.top_N).reshape((self.size, self.size, self.size,*shape))
+        # Scale by distance
+        xv, yv, zv = torch.meshgrid([self.object_meta.dx*self.idxs, self.object_meta.dy*self.idxs, self.object_meta.dz*self.idxs])
+        d = torch.sqrt(xv**2+yv**2+zv**2)
+        self.kernel *= self.distance_kernel(d, *self.distance_kernel_params).unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
+        # Normalize
+        self.kernel /= self.kernel.sum(dim=(0,1,2))
+        # Put on GPU (defaults to false since very large)
+        if self.kernel_on_gpu:
+            self.kernel = self.kernel.to(pytomography.device)
+            
+    def configure(
+        self,
+        object_meta: ObjectMeta,
+        proj_meta: ProjMeta
+    ) -> None:
+        """Function used to initalize the transform using corresponding object and projection metadata
+
+        Args:
+            object_meta (SPECTObjectMeta): Object metadata.
+            proj_meta (SPECTProjMeta): Projections metadata.
+        """
+        super(KEMTransform, self).configure(object_meta, proj_meta)
+        self.compute_kernel()
+    
     @torch.no_grad()
     def forward(
 		self,
@@ -66,22 +114,11 @@ class KEMTransform(Transform):
             torch.tensor: Image :math:`K\alpha`
         """
         object_return = torch.zeros(object.shape).to(self.device)
-        total = 0
         for i in self.idxs:
             for j in self.idxs:
                 for k in self.idxs:
-                    kernel_component = 1
-                    # Distance Component
-                    d = np.sqrt((self.object_meta.dx*i)**2 + (self.object_meta.dy*j)**2 + (self.object_meta.dz*k)**2)
-                    kernel_component*=self.distance_kernel(d, *self.distance_kernel_params)
-                    # All support objects:
-                    for l in range(len(self.support_objects)):
-                        neighbour_support_object = get_object_nearest_neighbour(self.support_objects[l], (i,j,k))
-                        kernel_component *= self.support_kernels[l](self.support_objects[l], neighbour_support_object, *self.support_kernel_params[l])
                     neighbour = get_object_nearest_neighbour(object, (i,j,k))
-                    object_return += kernel_component * neighbour
-                    total += kernel_component # for normalization
-        object_return /= total
+                    object_return += self.kernel[i+self.idx_max,j+self.idx_max,k+self.idx_max].to(pytomography.device) * neighbour
         return object_return
         
     @torch.no_grad()

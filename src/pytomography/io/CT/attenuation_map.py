@@ -8,6 +8,7 @@ import os
 from scipy.optimize import curve_fit, minimize
 from scipy.signal import find_peaks
 from functools import partial
+import pytomography
 from pytomography.utils import dual_sqrt_exponential, get_E_mu_data_from_datasheet, get_mu_from_spectrum_interp
 from .dicom import open_CT_file
 
@@ -84,8 +85,8 @@ def get_HU_mu_curve(
     if HU_cortical_bone is not None:
         # compute effective CT energy from CBone HU
         E_CT = get_ECT_from_corticalbone_HU(HU_cortical_bone)
-        print(f'Cortical Bone Peak: {HU_cortical_bone} HU')
-        print(f'Effective CT Energy Determined: {E_CT} keV')
+        if pytomography.verbose: print(f'Cortical Bone Peak: {HU_cortical_bone} HU')
+        if pytomography.verbose: print(f'Effective CT Energy Determined: {E_CT} keV')
     else:
         # If can't get cortical bone peak, default to 75% KVP value
         warnings.warn("Could not find cortical bone peak: defaulting to 75% kVp value", category=Warning)
