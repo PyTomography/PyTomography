@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>pytomography.transforms.shared.kem &#8212; PyTomography 1.1.0 documentation</title>
+    <title>pytomography.transforms.shared.kem &#8212; PyTomography 1.2.0 documentation</title>
   
   
   
@@ -35,7 +35,7 @@
   <link rel="preload" as="script" href="../../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js?v=52b0a0d4"></script>
+    <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js?v=ffe0d018"></script>
     <script src="../../../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -298,7 +298,7 @@ document.write(`
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../callbacks/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../callbacks/callback/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.callback</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../callbacks/liklihood/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.liklihood</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../callbacks/likelihood/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.likelihood</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../io/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-3"><i class="fa-solid fa-chevron-down"></i></label><ul>
@@ -356,6 +356,7 @@ document.write(`
 </ul>
 </li>
 <li class="toctree-l2 current active has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-16"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../filters/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.filters</span></code></a></li>
 <li class="toctree-l3 current active"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.kem</span></code></a></li>
 </ul>
 </li>
@@ -439,7 +440,7 @@ document.write(`
 </table>
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomography.transforms.shared.kem.KEMTransform">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.transforms.shared.kem.</span></span><span class="sig-name descname"><span class="pre">KEMTransform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">support_objects</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">support_kernels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">support_kernels_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distance_kernel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distance_kernel_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/shared/kem.html#KEMTransform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.shared.kem.KEMTransform" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.transforms.shared.kem.</span></span><span class="sig-name descname"><span class="pre">KEMTransform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">support_objects</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">support_kernels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">support_kernels_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distance_kernel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distance_kernel_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top_N</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_on_gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/shared/kem.html#KEMTransform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.shared.kem.KEMTransform" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="../../index.html#pytomography.transforms.Transform" title="pytomography.transforms.Transform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pytomography.transforms.Transform</span></code></a></p>
 <p>Object to object transform used to take in a coefficient image <span class="math notranslate nohighlight">\(\alpha\)</span> and return an image estimate <span class="math notranslate nohighlight">\(f = K\alpha\)</span>. This transform implements the matrix <span class="math notranslate nohighlight">\(K\)</span>.</p>
 <dl class="field-list simple">
@@ -451,9 +452,33 @@ document.write(`
 <li><p><strong>distance_kernel</strong> (<em>Callable</em><em>, </em><em>optional</em>) – Kernel used to weight based on voxel-voxel distance. If none, defaults to :math:<a href="#id1"><span class="problematic" id="id2">`</span></a>k(x_i, x_j; sigma) = expleft(-frac{(x_i-x_j)^2}{2sigma^2} right) Defaults to None.</p></li>
 <li><p><strong>distance_kernel_params</strong> (<em>_type_</em><em>, </em><em>optional</em>) – A list of parameters corresponding to additional parameters for the <code class="docutils literal notranslate"><span class="pre">distance_kernel</span></code> (i.e. the parameters that follow the semi-colon in the expression above). If none, then defaults to <span class="math notranslate nohighlight">\(\sigma=1\)</span>. Defaults to None.</p></li>
 <li><p><strong>size</strong> (<em>int</em><em>, </em><em>optional</em>) – The size of each kernel. Defaults to 5.</p></li>
+<li><p><strong>top_N</strong> (<em>int</em><em> | </em><em>None</em>) – </p></li>
+<li><p><strong>kernel_on_gpu</strong> (<em>bool</em>) – </p></li>
 </ul>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.transforms.shared.kem.KEMTransform.compute_kernel">
+<span class="sig-name descname"><span class="pre">compute_kernel</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/shared/kem.html#KEMTransform.compute_kernel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.shared.kem.KEMTransform.compute_kernel" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.transforms.shared.kem.KEMTransform.configure">
+<span class="sig-name descname"><span class="pre">configure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proj_meta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/shared/kem.html#KEMTransform.configure"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.shared.kem.KEMTransform.configure" title="Permalink to this definition">#</a></dt>
+<dd><p>Function used to initalize the transform using corresponding object and projection metadata</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>object_meta</strong> (<a class="reference internal" href="../../../metadata/SPECT/index.html#pytomography.metadata.SPECT.SPECTObjectMeta" title="pytomography.metadata.SPECT.SPECTObjectMeta"><em>SPECTObjectMeta</em></a>) – Object metadata.</p></li>
+<li><p><strong>proj_meta</strong> (<a class="reference internal" href="../../../metadata/SPECT/index.html#pytomography.metadata.SPECT.SPECTProjMeta" title="pytomography.metadata.SPECT.SPECTProjMeta"><em>SPECTProjMeta</em></a>) – Projections metadata.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.transforms.shared.kem.KEMTransform.forward">
 <span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/shared/kem.html#KEMTransform.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.shared.kem.KEMTransform.forward" title="Permalink to this definition">#</a></dt>
@@ -529,11 +554,15 @@ document.write(`
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.shared.kem.KEMTransform"><code class="docutils literal notranslate"><span class="pre">KEMTransform</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.shared.kem.KEMTransform.compute_kernel"><code class="docutils literal notranslate"><span class="pre">KEMTransform.compute_kernel()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.shared.kem.KEMTransform.configure"><code class="docutils literal notranslate"><span class="pre">KEMTransform.configure()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.shared.kem.KEMTransform.forward"><code class="docutils literal notranslate"><span class="pre">KEMTransform.forward()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.shared.kem.KEMTransform.backward"><code class="docutils literal notranslate"><span class="pre">KEMTransform.backward()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.shared.kem.KEMTransform">KEMTransform</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.shared.kem.KEMTransform.compute_kernel">compute_kernel</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.shared.kem.KEMTransform.configure">configure</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.shared.kem.KEMTransform.forward">forward</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.shared.kem.KEMTransform.backward">backward</a></li>
 </ul>

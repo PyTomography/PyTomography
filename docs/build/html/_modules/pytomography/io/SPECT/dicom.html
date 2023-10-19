@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.io.SPECT.dicom &#8212; PyTomography 1.1.0 documentation</title>
+    <title>pytomography.io.SPECT.dicom &#8212; PyTomography 1.2.0 documentation</title>
   
   
   
@@ -34,7 +34,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=52b0a0d4"></script>
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=ffe0d018"></script>
     <script src="../../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -447,7 +447,6 @@ document.write(`
     <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">index_peak</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">index_time</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">print_shape</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTProjMeta</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets projections from a .dcm file.</span>
 
@@ -455,7 +454,6 @@ document.write(`
 <span class="sd">        file (str): Path to the .dcm file of SPECT projection data.</span>
 <span class="sd">        index_peak (int): If not none, then the returned projections correspond to the index of this energy window. Otherwise returns all energy windows. Defaults to None.</span>
 <span class="sd">        index_time (int): If not none, then the returned projections correspond to the index of the time slot in gated SPECT. Otherwise returns all time slots. Defaults to None</span>
-<span class="sd">        print_shape (bool): If true, then prints the shape of the projections returned. Defaults to true.</span>
 <span class="sd">    Returns:</span>
 <span class="sd">        (SPECTObjectMeta, SPECTProjMeta, torch.Tensor[..., Ltheta, Lr, Lz]) where ... depends on if time slots are considered.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -471,14 +469,14 @@ document.write(`
     <span class="n">dimension_list</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Ltheta&#39;</span><span class="p">,</span> <span class="s1">&#39;Lr&#39;</span><span class="p">,</span> <span class="s1">&#39;Lz&#39;</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">flags</span><span class="p">[</span><span class="s1">&#39;multi_time_slot&#39;</span><span class="p">]:</span>
         <span class="n">dimension_list</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;N_timeslots&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">dimension_list</span>
-        <span class="k">if</span> <span class="n">print_shape</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Multiple time slots found&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pytomography</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Multiple time slots found&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">flags</span><span class="p">[</span><span class="s1">&#39;multi_energy_window&#39;</span><span class="p">]:</span>
         <span class="n">dimension_list</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;N_energywindows&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">dimension_list</span>
-        <span class="k">if</span> <span class="n">print_shape</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Multiple energy windows found&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pytomography</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Multiple energy windows found&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dimension_list</span><span class="p">)</span><span class="o">==</span><span class="mi">3</span><span class="p">:</span>
         <span class="n">dimension_list</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">dimension_list</span>
         <span class="n">projections</span> <span class="o">=</span> <span class="n">projections</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">print_shape</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Returned projections have dimensions (</span><span class="si">{</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dimension_list</span><span class="p">)</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">pytomography</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Returned projections have dimensions (</span><span class="si">{</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dimension_list</span><span class="p">)</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">projections</span></div>
 
 <div class="viewcode-block" id="get_window_width"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html#pytomography.io.SPECT.dicom.get_window_width">[docs]</a><span class="k">def</span> <span class="nf">get_window_width</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
@@ -517,9 +515,9 @@ document.write(`
     <span class="n">ww_peak</span> <span class="o">=</span> <span class="n">get_window_width</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">index_peak</span><span class="p">)</span>
     <span class="n">ww_lower</span> <span class="o">=</span> <span class="n">get_window_width</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">index_lower</span><span class="p">)</span>
     <span class="n">ww_upper</span> <span class="o">=</span> <span class="n">get_window_width</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">index_upper</span><span class="p">)</span>
-    <span class="n">projections_all</span> <span class="o">=</span> <span class="n">get_projections</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">print_shape</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">projections_all</span> <span class="o">=</span> <span class="n">get_projections</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
     <span class="n">scatter</span> <span class="o">=</span> <span class="n">compute_TEW</span><span class="p">(</span><span class="n">projections_all</span><span class="p">[</span><span class="n">index_lower</span><span class="p">],</span><span class="n">projections_all</span><span class="p">[</span><span class="n">index_upper</span><span class="p">],</span> <span class="n">ww_lower</span><span class="p">,</span> <span class="n">ww_upper</span><span class="p">,</span> <span class="n">ww_peak</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">scatter</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">scatter</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="get_attenuation_map_from_file"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/index.html#pytomography.io.SPECT.dicom.get_attenuation_map_from_file">[docs]</a><span class="k">def</span> <span class="nf">get_attenuation_map_from_file</span><span class="p">(</span><span class="n">file_AM</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets an attenuation map from a DICOM file. This data is usually provided by the manufacturer of the SPECT scanner. </span>
@@ -608,7 +606,7 @@ document.write(`
     <span class="n">file_NM</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">index_peak</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">keep_as_HU</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;nearest&#39;</span>
+    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;constant&#39;</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography.</span>
 
@@ -692,14 +690,14 @@ document.write(`
 <div class="viewcode-block" id="stitch_multibed"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/dicom/index.html#pytomography.io.SPECT.dicom.stitch_multibed">[docs]</a><span class="k">def</span> <span class="nf">stitch_multibed</span><span class="p">(</span>
     <span class="n">recons</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">files_NM</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span><span class="s1">&#39;midslice&#39;</span>
+    <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span><span class="s1">&#39;midslice&#39;</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Stitches together multiple reconstructed objects corresponding to different bed positions.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        recons (torch.Tensor[n_beds, Lx, Ly, Lz]): Reconstructed objects. The first index of the tensor corresponds to different bed positions</span>
 <span class="sd">        files_NM (list): List of length ``n_beds`` corresponding to the DICOM file of each reconstruction</span>
-<span class="sd">        method (str, optional): Method to perform stitching (see https://doi.org/10.1117/12.2254096 for all methods described). Available methods include ``&#39;midslice&#39;``, ``&#39;average&#39;``, ``&#39;crossfade&#39;``, and ``&#39;TEM;`` (transition error minimization).</span>
+<span class="sd">        method (str, optional): Method to perform stitching (see https://doi.org/10.1117/12.2254096 for all methods described). Available methods include ``&#39;midslice&#39;``, ``&#39;average&#39;``, ``&#39;crossfade&#39;``, and ``&#39;TEM&#39;`` (transition error minimization).</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        torch.Tensor[1, Lx, Ly, Lz&#39;]: Stitched together DICOM file. Note the new z-dimension size :math:`L_z&#39;`.</span>
@@ -715,7 +713,7 @@ document.write(`
     <span class="n">zs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">((</span><span class="n">zs</span> <span class="o">-</span> <span class="n">zs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="n">dss</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span> 
     <span class="n">new_z_height</span> <span class="o">=</span> <span class="n">zs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">recons</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">recon_aligned</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">dss</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">Rows</span><span class="p">,</span> <span class="n">dss</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">Rows</span><span class="p">,</span> <span class="n">new_z_height</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-    <span class="n">blank_below</span><span class="p">,</span> <span class="n">blank_above</span> <span class="o">=</span> <span class="n">get_blank_below_above</span><span class="p">(</span><span class="n">get_projections</span><span class="p">(</span><span class="n">files_NM</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">blank_below</span><span class="p">,</span> <span class="n">blank_above</span> <span class="o">=</span> <span class="n">get_blank_below_above</span><span class="p">(</span><span class="n">get_projections</span><span class="p">(</span><span class="n">files_NM</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">zs</span><span class="p">)):</span>
         <span class="n">recon_aligned</span><span class="p">[:,:,:,</span><span class="n">zs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="n">blank_below</span><span class="p">:</span><span class="n">zs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="n">blank_above</span><span class="p">]</span> <span class="o">=</span> <span class="n">recons</span><span class="p">[</span><span class="n">i</span><span class="p">,:,:,</span><span class="n">blank_below</span><span class="p">:</span><span class="n">blank_above</span><span class="p">]</span>
     <span class="c1"># Apply stitching method</span>

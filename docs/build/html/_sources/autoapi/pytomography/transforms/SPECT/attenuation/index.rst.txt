@@ -38,7 +38,7 @@ Functions
    :rtype: torch.tensor
 
 
-.. py:class:: SPECTAttenuationTransform(attenuation_map = None, filepath = None)
+.. py:class:: SPECTAttenuationTransform(attenuation_map = None, filepath = None, mode = 'constant')
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 
@@ -48,6 +48,8 @@ Functions
    :type attenuation_map: torch.tensor
    :param filepath: Folder location of CT scan; all .dcm files must correspond to different slices of the same scan.
    :type filepath: Sequence[str]
+   :param mode: Mode used for extrapolation of CT beyond edges when aligning DICOM SPECT/CT data. Defaults to `'constant'`, which means the image is padded with zeros.
+   :type mode: str
 
    .. py:method:: configure(object_meta, proj_meta)
 

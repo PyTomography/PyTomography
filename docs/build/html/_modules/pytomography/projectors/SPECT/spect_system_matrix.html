@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.projectors.SPECT.spect_system_matrix &#8212; PyTomography 1.1.0 documentation</title>
+    <title>pytomography.projectors.SPECT.spect_system_matrix &#8212; PyTomography 1.2.0 documentation</title>
   
   
   
@@ -34,7 +34,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=52b0a0d4"></script>
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=ffe0d018"></script>
     <script src="../../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -426,7 +426,10 @@ document.write(`
         <span class="n">norm_proj</span> <span class="o">=</span> <span class="n">pad_proj</span><span class="p">(</span><span class="n">norm_proj</span><span class="p">)</span>
         <span class="c1"># First apply proj transforms before back projecting</span>
         <span class="k">for</span> <span class="n">transform</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj2proj_transforms</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
-            <span class="n">proj</span><span class="p">,</span> <span class="n">norm_proj</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">proj</span><span class="p">,</span> <span class="n">norm_proj</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">return_norm_constant</span><span class="p">:</span>
+                <span class="n">proj</span><span class="p">,</span> <span class="n">norm_proj</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">proj</span><span class="p">,</span> <span class="n">norm_proj</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">proj</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">proj</span><span class="p">)</span>
         <span class="c1"># Setup for back projection</span>
         <span class="n">N_angles</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj_meta</span><span class="o">.</span><span class="n">num_projections</span>
         <span class="nb">object</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">proj</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">object_meta</span><span class="o">.</span><span class="n">padded_shape</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
@@ -440,7 +443,10 @@ document.write(`
             <span class="n">norm_constant_i</span> <span class="o">=</span> <span class="n">norm_proj</span><span class="p">[:,</span><span class="n">angle_indices_single_batch_i</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">boundary_box_bp</span>
             <span class="c1"># Apply object mappings</span>
             <span class="k">for</span> <span class="n">transform</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj2obj_transforms</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
-                <span class="n">object_i</span><span class="p">,</span> <span class="n">norm_constant_i</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">object_i</span><span class="p">,</span> <span class="n">angle_indices_i</span><span class="p">,</span> <span class="n">norm_constant</span><span class="o">=</span><span class="n">norm_constant_i</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">return_norm_constant</span><span class="p">:</span>
+                    <span class="n">object_i</span><span class="p">,</span> <span class="n">norm_constant_i</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">object_i</span><span class="p">,</span> <span class="n">angle_indices_i</span><span class="p">,</span> <span class="n">norm_constant</span><span class="o">=</span><span class="n">norm_constant_i</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">object_i</span>  <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">object_i</span><span class="p">,</span> <span class="n">angle_indices_i</span><span class="p">)</span>
             <span class="c1"># Rotate all objects by by their respective angle</span>
             <span class="n">object_i</span> <span class="o">=</span> <span class="n">rotate_detector_z</span><span class="p">(</span><span class="n">object_i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj_meta</span><span class="o">.</span><span class="n">angles</span><span class="p">[</span><span class="n">angle_indices_i</span><span class="p">],</span> <span class="n">negative</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">norm_constant_i</span> <span class="o">=</span> <span class="n">rotate_detector_z</span><span class="p">(</span><span class="n">norm_constant_i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj_meta</span><span class="o">.</span><span class="n">angles</span><span class="p">[</span><span class="n">angle_indices_i</span><span class="p">],</span> <span class="n">negative</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>

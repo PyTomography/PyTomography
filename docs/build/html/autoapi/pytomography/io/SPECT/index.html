@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>pytomography.io.SPECT &#8212; PyTomography 1.1.0 documentation</title>
+    <title>pytomography.io.SPECT &#8212; PyTomography 1.2.0 documentation</title>
   
   
   
@@ -35,7 +35,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=52b0a0d4"></script>
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=ffe0d018"></script>
     <script src="../../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -296,7 +296,7 @@ document.write(`
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../callbacks/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../callbacks/callback/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.callback</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../callbacks/liklihood/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.liklihood</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../callbacks/likelihood/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.likelihood</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1 current active has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-3"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
@@ -354,6 +354,7 @@ document.write(`
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../transforms/shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-16"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../transforms/shared/filters/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.filters</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../transforms/shared/kem/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.kem</span></code></a></li>
 </ul>
 </li>
@@ -443,7 +444,7 @@ document.write(`
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.get_attenuation_map" title="pytomography.io.SPECT.get_attenuation_map"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_attenuation_map</span></code></a>(headerfile)</p></td>
 <td><p>Opens attenuation data from SIMIND output</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.get_projections" title="pytomography.io.SPECT.get_projections"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_projections</span></code></a>(file[, index_peak, index_time, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.SPECT.get_projections" title="pytomography.io.SPECT.get_projections"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_projections</span></code></a>(file[, index_peak, index_time])</p></td>
 <td><p>Gets projections from a .dcm file.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.SPECT.get_attenuation_map_from_file" title="pytomography.io.SPECT.get_attenuation_map_from_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_attenuation_map_from_file</span></code></a>(file_AM)</p></td>
@@ -485,7 +486,7 @@ document.write(`
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.io.SPECT.get_projections">
-<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.</span></span><span class="sig-name descname"><span class="pre">get_projections</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_peak</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/io/SPECT/dicom.html#get_projections"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.get_projections" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.</span></span><span class="sig-name descname"><span class="pre">get_projections</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_peak</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/io/SPECT/dicom.html#get_projections"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.get_projections" title="Permalink to this definition">#</a></dt>
 <dd><p>Gets projections from a .dcm file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -493,7 +494,6 @@ document.write(`
 <li><p><strong>file</strong> (<em>str</em>) – Path to the .dcm file of SPECT projection data.</p></li>
 <li><p><strong>index_peak</strong> (<em>int</em>) – If not none, then the returned projections correspond to the index of this energy window. Otherwise returns all energy windows. Defaults to None.</p></li>
 <li><p><strong>index_time</strong> (<em>int</em>) – If not none, then the returned projections correspond to the index of the time slot in gated SPECT. Otherwise returns all time slots. Defaults to None</p></li>
-<li><p><strong>print_shape</strong> (<em>bool</em>) – If true, then prints the shape of the projections returned. Defaults to true.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -524,7 +524,7 @@ document.write(`
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pytomography.io.SPECT.get_attenuation_map_from_CT_slices">
-<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.</span></span><span class="sig-name descname"><span class="pre">get_attenuation_map_from_CT_slices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files_CT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_NM</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_peak</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_as_HU</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'nearest'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/io/SPECT/dicom.html#get_attenuation_map_from_CT_slices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.get_attenuation_map_from_CT_slices" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.SPECT.</span></span><span class="sig-name descname"><span class="pre">get_attenuation_map_from_CT_slices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files_CT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_NM</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_peak</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_as_HU</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'constant'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/io/SPECT/dicom.html#get_attenuation_map_from_CT_slices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.SPECT.get_attenuation_map_from_CT_slices" title="Permalink to this definition">#</a></dt>
 <dd><p>Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>

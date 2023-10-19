@@ -53,7 +53,7 @@ Functions
    :rtype: (ObjectMeta, ProjMeta)
 
 
-.. py:function:: get_projections(file, index_peak = None, index_time = None, print_shape = True)
+.. py:function:: get_projections(file, index_peak = None, index_time = None)
 
    Gets projections from a .dcm file.
 
@@ -63,8 +63,6 @@ Functions
    :type index_peak: int
    :param index_time: If not none, then the returned projections correspond to the index of the time slot in gated SPECT. Otherwise returns all time slots. Defaults to None
    :type index_time: int
-   :param print_shape: If true, then prints the shape of the projections returned. Defaults to true.
-   :type print_shape: bool
 
    :returns: (SPECTObjectMeta, SPECTProjMeta, torch.Tensor[..., Ltheta, Lr, Lz]) where ... depends on if time slots are considered.
 
@@ -142,7 +140,7 @@ Functions
    :rtype: torch.tensor
 
 
-.. py:function:: get_attenuation_map_from_CT_slices(files_CT, file_NM = None, index_peak = 0, keep_as_HU = False, mode = 'nearest')
+.. py:function:: get_attenuation_map_from_CT_slices(files_CT, file_NM = None, index_peak = 0, keep_as_HU = False, mode = 'constant')
 
    Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography.
 
@@ -191,7 +189,7 @@ Functions
    :type recons: torch.Tensor[n_beds, Lx, Ly, Lz]
    :param files_NM: List of length ``n_beds`` corresponding to the DICOM file of each reconstruction
    :type files_NM: list
-   :param method: Method to perform stitching (see https://doi.org/10.1117/12.2254096 for all methods described). Available methods include ``'midslice'``, ``'average'``, ``'crossfade'``, and ``'TEM;`` (transition error minimization).
+   :param method: Method to perform stitching (see https://doi.org/10.1117/12.2254096 for all methods described). Available methods include ``'midslice'``, ``'average'``, ``'crossfade'``, and ``'TEM'`` (transition error minimization).
    :type method: str, optional
 
    :returns: Stitched together DICOM file. Note the new z-dimension size :math:`L_z'`.

@@ -10,6 +10,7 @@ Submodules
    :titlesonly:
    :maxdepth: 1
 
+   filters/index.rst
    kem/index.rst
 
 
@@ -22,11 +23,12 @@ Classes
 .. autoapisummary::
 
    pytomography.transforms.shared.KEMTransform
+   pytomography.transforms.shared.GaussianFilter
 
 
 
 
-.. py:class:: KEMTransform(support_objects, support_kernels=None, support_kernels_params=None, distance_kernel=None, distance_kernel_params=None, size = 5)
+.. py:class:: KEMTransform(support_objects, support_kernels=None, support_kernels_params=None, distance_kernel=None, distance_kernel_params=None, size = 5, top_N = None, kernel_on_gpu = False)
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 
@@ -44,6 +46,19 @@ Classes
    :type distance_kernel_params: _type_, optional
    :param size: The size of each kernel. Defaults to 5.
    :type size: int, optional
+
+   .. py:method:: compute_kernel()
+
+
+   .. py:method:: configure(object_meta, proj_meta)
+
+      Function used to initalize the transform using corresponding object and projection metadata
+
+      :param object_meta: Object metadata.
+      :type object_meta: SPECTObjectMeta
+      :param proj_meta: Projections metadata.
+      :type proj_meta: SPECTProjMeta
+
 
    .. py:method:: forward(object)
 
@@ -64,6 +79,61 @@ Classes
       :type object: torch.Tensor
 
       :returns: Image :math:`K^T\alpha`
+      :rtype: torch.tensor
+
+
+
+.. py:class:: GaussianFilter(FWHM)
+
+   Bases: :py:obj:`pytomography.transforms.Transform`
+
+   Applies a Gaussian smoothing filter to the reconstructed object with the specified full-width-half-max (FWHM)
+
+   :param FWHM: Specifies the width of the gaussian
+   :type FWHM: float
+
+   .. py:method:: configure(object_meta, proj_meta)
+
+      Configures the transform to the object/proj metadata. This is done after creating the network so that it can be adjusted to the system matrix.
+
+      :param object_meta: Object metadata.
+      :type object_meta: ObjectMeta
+      :param proj_meta: Projections metadata.
+      :type proj_meta: ProjMeta
+
+
+   .. py:method:: _get_kernels()
+
+      Obtains required kernels for smoothing
+
+
+
+   .. py:method:: __call__(object)
+
+      Alternative way to call
+
+
+   .. py:method:: forward(object)
+
+      Applies the Gaussian smoothing
+
+      :param object: Object to smooth
+      :type object: torch.tensor
+
+      :returns: Smoothed object
+      :rtype: torch.tensor
+
+
+   .. py:method:: backward(object, norm_constant=None)
+
+      Applies Gaussian smoothing in back projection. Because the operation is symmetric, it is the same as the forward projection.
+
+      :param object: Object to smooth
+      :type object: torch.tensor
+      :param norm_constant: Normalization constant used in iterative algorithms. Defaults to None.
+      :type norm_constant: torch.tensor, optional
+
+      :returns: Smoothed object
       :rtype: torch.tensor
 
 

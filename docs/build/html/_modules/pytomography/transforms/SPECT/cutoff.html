@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.transforms.SPECT.cutoff &#8212; PyTomography 1.1.0 documentation</title>
+    <title>pytomography.transforms.SPECT.cutoff &#8212; PyTomography 1.2.0 documentation</title>
   
   
   
@@ -34,7 +34,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=52b0a0d4"></script>
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=ffe0d018"></script>
     <script src="../../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -338,6 +338,7 @@ document.write(`
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
+<span class="kn">import</span> <span class="nn">pydicom</span>
 <span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">get_blank_below_above</span>
 
 <div class="viewcode-block" id="CutOffTransform"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/index.html#pytomography.transforms.SPECT.cutoff.CutOffTransform">[docs]</a><span class="k">class</span> <span class="nc">CutOffTransform</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
@@ -346,9 +347,18 @@ document.write(`
 <span class="sd">        Args:</span>
 <span class="sd">            proj (torch.tensor): Measured projection data.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proj</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proj</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">file_NM</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">CutOffTransform</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">blank_below</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">blank_above</span> <span class="o">=</span> <span class="n">get_blank_below_above</span><span class="p">(</span><span class="n">proj</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">file_NM</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file_NM</span><span class="p">)</span>
+            <span class="n">dZ</span> <span class="o">=</span> <span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">DetectorInformationSequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">FieldOfViewDimensions</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">ds</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">central</span> <span class="o">=</span> <span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">Rows</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span>
+            <span class="n">lower</span> <span class="o">=</span> <span class="n">central</span> <span class="o">-</span> <span class="n">dZ</span>
+            <span class="n">upper</span> <span class="o">=</span> <span class="n">central</span> <span class="o">+</span> <span class="n">dZ</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">blank_above</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">upper</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">blank_below</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">lower</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">blank_below</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">blank_above</span> <span class="o">=</span> <span class="n">get_blank_below_above</span><span class="p">(</span><span class="n">proj</span><span class="p">)</span>
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
 <div class="viewcode-block" id="CutOffTransform.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/SPECT/cutoff/index.html#pytomography.transforms.SPECT.cutoff.CutOffTransform.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
@@ -363,7 +373,7 @@ document.write(`
 <span class="sd">            torch.tensor: Original projections, but with certain z-slices equal to zero.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Diagonal matrix so FP and BP is the same</span>
-        <span class="n">proj</span><span class="p">[:,:,:,:</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_below</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">proj</span><span class="p">[:,:,:,:</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_below</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">proj</span><span class="p">[:,:,:,</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_above</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">return</span> <span class="n">proj</span></div>
         
@@ -382,10 +392,10 @@ document.write(`
 <span class="sd">        Returns:</span>
 <span class="sd">            torch.tensor: Original projections, but with certain z-slices equal to zero.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">proj</span><span class="p">[:,:,:,:</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_below</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">proj</span><span class="p">[:,:,:,:</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_below</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">proj</span><span class="p">[:,:,:,</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_above</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">if</span> <span class="n">norm_constant</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">norm_constant</span><span class="p">[:,:,:,:</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_below</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">norm_constant</span><span class="p">[:,:,:,:</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_below</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="n">norm_constant</span><span class="p">[:,:,:,</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_above</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="k">return</span> <span class="n">proj</span><span class="p">,</span> <span class="n">norm_constant</span>
         <span class="k">else</span><span class="p">:</span>

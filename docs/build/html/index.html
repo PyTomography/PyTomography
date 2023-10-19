@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>PyTomography &#8212; PyTomography 1.1.0 documentation</title>
+    <title>PyTomography &#8212; PyTomography 1.2.0 documentation</title>
   
   
   
@@ -35,7 +35,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=52b0a0d4"></script>
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=ffe0d018"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -356,12 +356,14 @@ document.write(`
 </section>
 <section id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">#</a></h2>
-<p>This library requires a local installation of PyTorch. As such, it is recommended to first create a virtual environment using anaconda:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">--</span><span class="n">name</span> <span class="n">pytomography</span>
+<p>Firstly, it is important that all your graphics card drivers are up to date. To ensure this, go to <a class="reference external" href="https://www.nvidia.com/Download/index.aspx">this link</a>, enter your graphics card information, and download/install the newest possible driver. It is also recommended that you download anaconda using <a class="reference external" href="https://www.anaconda.com/download">this link</a> to manage your python environments.</p>
+<p>Firstly, create a pytomography virtual environment using anaconda:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">--</span><span class="n">name</span> <span class="n">pytomography_env</span>
 </pre></div>
 </div>
-<p>and then install the version of PyTorch you need inside that environment <a class="reference external" href="https://pytorch.org/get-started/locally/">here</a>. Finally, install pytomography using the following command:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">pytomography</span>
+<p>Then you can activate your environment, and install PyTomography:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">activate</span> <span class="n">pytomography_env</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="n">pytomography</span>
 </pre></div>
 </div>
 <p>Be sure to check out  <a class="reference internal" href="usage.html"><span class="doc">Tutorials</span></a> for some simple examples. If you wish to make a contribution, please read the <a class="reference internal" href="developers_guide.html"><span class="doc">Developer’s Guide</span></a>.</p>

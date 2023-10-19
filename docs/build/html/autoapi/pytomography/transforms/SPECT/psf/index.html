@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>pytomography.transforms.SPECT.psf &#8212; PyTomography 1.1.0 documentation</title>
+    <title>pytomography.transforms.SPECT.psf &#8212; PyTomography 1.2.0 documentation</title>
   
   
   
@@ -35,7 +35,7 @@
   <link rel="preload" as="script" href="../../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js?v=52b0a0d4"></script>
+    <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js?v=ffe0d018"></script>
     <script src="../../../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -298,7 +298,7 @@ document.write(`
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../callbacks/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../callbacks/callback/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.callback</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../callbacks/liklihood/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.liklihood</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../callbacks/likelihood/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.likelihood</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../io/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-3"><i class="fa-solid fa-chevron-down"></i></label><ul>
@@ -356,6 +356,7 @@ document.write(`
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-16"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../shared/filters/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.filters</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../shared/kem/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.kem</span></code></a></li>
 </ul>
 </li>
@@ -433,10 +434,13 @@ document.write(`
 <table class="autosummary longtable table autosummary">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.transforms.SPECT.psf.GaussianBlurNet" title="pytomography.transforms.SPECT.psf.GaussianBlurNet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GaussianBlurNet</span></code></a></p></td>
-<td><p>Base class for all neural network modules.</p></td>
+<td><p>Network used to apply Gaussian blurring to each plane parallel to the detector head. The typical network used for low/medium energy SPECT PSF modeling.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform" title="pytomography.transforms.SPECT.psf.SPECTPSFTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SPECTPSFTransform</span></code></a></p></td>
-<td><p>obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width <span class="math notranslate nohighlight">\(\sigma\)</span> dependent on the distance of the point to the detector; that information is specified in the <code class="docutils literal notranslate"><span class="pre">SPECTPSFMeta</span></code> parameter.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.transforms.SPECT.psf.ArbitraryPSFNet" title="pytomography.transforms.SPECT.psf.ArbitraryPSFNet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ArbitraryPSFNet</span></code></a></p></td>
+<td><p>Network used to apply an arbitrary PSF based on the <cite>kernel_f</cite> function, which should be a function of parallel directions <span class="math notranslate nohighlight">\(x\)</span> and <span class="math notranslate nohighlight">\(y\)</span> and perpendicular direction <span class="math notranslate nohighlight">\(d\)</span> to the detector head</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform" title="pytomography.transforms.SPECT.psf.SPECTPSFTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SPECTPSFTransform</span></code></a></p></td>
+<td><p>obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width <span class="math notranslate nohighlight">\(\sigma\)</span> dependent on the distance of the point to the detector; that information is specified in the <code class="docutils literal notranslate"><span class="pre">SPECTPSFMeta</span></code> parameter. There are a few potential arguments to initialize this transform (i) <cite>psf_meta</cite>, which contains relevant collimator information to obtain a Gaussian PSF model that works for low/medium energy SPECT (ii) <cite>kernel_f</cite>, an callable function that gives the kernel at any source-detector distance <span class="math notranslate nohighlight">\(d\)</span>, or (iii) <cite>psf_net</cite>, a network configured to automatically apply full PSF modeling to a given object <span class="math notranslate nohighlight">\(f\)</span> at all source-detector distances. Only one of the arguments should be given.</p></td>
 </tr>
 </tbody>
 </table>
@@ -454,41 +458,65 @@ document.write(`
 <dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.GaussianBlurNet">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.transforms.SPECT.psf.</span></span><span class="sig-name descname"><span class="pre">GaussianBlurNet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer_r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_z</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#GaussianBlurNet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.GaussianBlurNet" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
-<p>Base class for all neural network modules.</p>
-<p>Your models should also subclass this class.</p>
-<p>Modules can also contain other Modules, allowing to nest them in
-a tree structure. You can assign the submodules as regular attributes:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-
-<span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">conv2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv2</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
-</pre></div>
-</div>
-<p>Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call <code class="xref py py-meth docutils literal notranslate"><span class="pre">to()</span></code>, etc.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>As per the example above, an <code class="docutils literal notranslate"><span class="pre">__init__()</span></code> call to the parent class
-must be made before assignment on the child.</p>
-</div>
+<p>Network used to apply Gaussian blurring to each plane parallel to the detector head. The typical network used for low/medium energy SPECT PSF modeling.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Variables<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>training</strong> (<em>bool</em>) – Boolean represents whether this module is in training or
-evaluation mode.</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>layer_r</strong> (<em>nn.Conv1d</em>) – Kernel used for blurring in radial direction</p></li>
+<li><p><strong>layer_z</strong> (<em>nn.Conv1d</em><em> | </em><em>None</em>) – Kernel used for blurring in sup/inf direction.</p></li>
+</ul>
 </dd>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.GaussianBlurNet.forward">
 <span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#GaussianBlurNet.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.GaussianBlurNet.forward" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Applies PSF blurring to <cite>input</cite>. Each X-plane gets a different blurring kernel applied, depending on detector distance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>input</strong> (<em>torch.tensor</em>) – Object to apply Gaussian blurring to</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Blurred object, adjusted such that subsequent summation along the x-axis models the CDR</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.ArbitraryPSFNet">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.transforms.SPECT.psf.</span></span><span class="sig-name descname"><span class="pre">ArbitraryPSFNet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distances</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#ArbitraryPSFNet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.ArbitraryPSFNet" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
+<p>Network used to apply an arbitrary PSF based on the <cite>kernel_f</cite> function, which should be a function of parallel directions <span class="math notranslate nohighlight">\(x\)</span> and <span class="math notranslate nohighlight">\(y\)</span> and perpendicular direction <span class="math notranslate nohighlight">\(d\)</span> to the detector head</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kernel_f</strong> (<em>Callable</em>) – PSF kernel</p></li>
+<li><p><strong>distances</strong> (<em>Sequence</em><em>[</em><em>float</em><em>]</em>) – Distances corresponding to each plane parallel to the detector</p></li>
+<li><p><strong>kernel_size</strong> (<em>int</em>) – Size of kernel used for blurring. Should be large enough to encapsulate the entire PSF at all distances</p></li>
+<li><p><strong>dr</strong> (<em>Sequence</em><em>[</em><em>float</em><em>]</em>) – The <span class="math notranslate nohighlight">\(x\)</span> and <span class="math notranslate nohighlight">\(y\)</span> voxel spacing in the object</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.ArbitraryPSFNet.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#ArbitraryPSFNet.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.ArbitraryPSFNet.forward" title="Permalink to this definition">#</a></dt>
+<dd><p>Applies PSF blurring to <cite>input</cite>. Each X-plane gets a different blurring kernel applied, depending on detector distance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>input</strong> (<em>torch.tensor</em>) – Object to apply blurring to</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Blurred object, adjusted such that subsequent summation along the x-axis models the CDR</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.tensor</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -514,14 +542,36 @@ evaluation mode.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.SPECTPSFTransform">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.transforms.SPECT.psf.</span></span><span class="sig-name descname"><span class="pre">SPECTPSFTransform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">psf_meta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#SPECTPSFTransform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.transforms.SPECT.psf.</span></span><span class="sig-name descname"><span class="pre">SPECTPSFTransform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">psf_meta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_f</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf_net</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#SPECTPSFTransform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="../../index.html#pytomography.transforms.Transform" title="pytomography.transforms.Transform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pytomography.transforms.Transform</span></code></a></p>
-<p>obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width <span class="math notranslate nohighlight">\(\sigma\)</span> dependent on the distance of the point to the detector; that information is specified in the <code class="docutils literal notranslate"><span class="pre">SPECTPSFMeta</span></code> parameter.</p>
+<p>obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width <span class="math notranslate nohighlight">\(\sigma\)</span> dependent on the distance of the point to the detector; that information is specified in the <code class="docutils literal notranslate"><span class="pre">SPECTPSFMeta</span></code> parameter. There are a few potential arguments to initialize this transform (i) <cite>psf_meta</cite>, which contains relevant collimator information to obtain a Gaussian PSF model that works for low/medium energy SPECT (ii) <cite>kernel_f</cite>, an callable function that gives the kernel at any source-detector distance <span class="math notranslate nohighlight">\(d\)</span>, or (iii) <cite>psf_net</cite>, a network configured to automatically apply full PSF modeling to a given object <span class="math notranslate nohighlight">\(f\)</span> at all source-detector distances. Only one of the arguments should be given.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>psf_meta</strong> (<a class="reference internal" href="../../../metadata/SPECT/index.html#pytomography.metadata.SPECT.SPECTPSFMeta" title="pytomography.metadata.SPECT.SPECTPSFMeta"><em>SPECTPSFMeta</em></a>) – Metadata corresponding to the parameters of PSF blurring</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>psf_meta</strong> (<a class="reference internal" href="../../../metadata/SPECT/index.html#pytomography.metadata.SPECT.SPECTPSFMeta" title="pytomography.metadata.SPECT.SPECTPSFMeta"><em>SPECTPSFMeta</em></a>) – Metadata corresponding to the parameters of PSF blurring. In most cases (low/medium energy SPECT), this should be the only given argument.</p></li>
+<li><p><strong>kernel_f</strong> (<em>Callable</em>) – Function <span class="math notranslate nohighlight">\(PSF(x,y,d)\)</span> that gives PSF at every source-detector distance <span class="math notranslate nohighlight">\(d\)</span>. It should be able to take in 1D numpy arrays as its first two arguments, and a single argument for the final argument <span class="math notranslate nohighlight">\(d\)</span>. The function should return a corresponding 2D PSF kernel.</p></li>
+<li><p><strong>psf_net</strong> (<em>Callable</em>) – Network that takes in an object <span class="math notranslate nohighlight">\(f\)</span> and applies all necessary PSF correction to return a new object <span class="math notranslate nohighlight">\(\tilde{f}\)</span> that is PSF corrected, such that subsequent summation along the x-axis accurately models the collimator detector response.</p></li>
+</ul>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.SPECTPSFTransform._configure_gaussian_model">
+<span class="sig-name descname"><span class="pre">_configure_gaussian_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#SPECTPSFTransform._configure_gaussian_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform._configure_gaussian_model" title="Permalink to this definition">#</a></dt>
+<dd><p>Internal function to configure Gaussian modeling. This is called when <cite>psf_meta</cite> is given in initialization</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.SPECTPSFTransform._configure_kernel_model">
+<span class="sig-name descname"><span class="pre">_configure_kernel_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#SPECTPSFTransform._configure_kernel_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform._configure_kernel_model" title="Permalink to this definition">#</a></dt>
+<dd><p>Internal function to configure arbitrary kernel modeling. This is called when <cite>kernel_f</cite> is given in initialization</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.SPECTPSFTransform._configure_manual_net">
+<span class="sig-name descname"><span class="pre">_configure_manual_net</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#SPECTPSFTransform._configure_manual_net"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform._configure_manual_net" title="Permalink to this definition">#</a></dt>
+<dd><p>Internal function to configure the PSF net. This is called when <cite>psf_net</cite> is given in initialization</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.transforms.SPECT.psf.SPECTPSFTransform.configure">
 <span class="sig-name descname"><span class="pre">configure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proj_meta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/transforms/SPECT/psf.html#SPECTPSFTransform.configure"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.configure" title="Permalink to this definition">#</a></dt>
@@ -673,8 +723,15 @@ evaluation mode.</p>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.GaussianBlurNet.forward"><code class="docutils literal notranslate"><span class="pre">GaussianBlurNet.forward()</span></code></a></li>
 </ul>
 </li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.ArbitraryPSFNet"><code class="docutils literal notranslate"><span class="pre">ArbitraryPSFNet</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.ArbitraryPSFNet.forward"><code class="docutils literal notranslate"><span class="pre">ArbitraryPSFNet.forward()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.get_1D_PSF_layer"><code class="docutils literal notranslate"><span class="pre">get_1D_PSF_layer()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform._configure_gaussian_model"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform._configure_gaussian_model()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform._configure_kernel_model"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform._configure_kernel_model()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform._configure_manual_net"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform._configure_manual_net()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.configure"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform.configure()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform._compute_kernel_size"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform._compute_kernel_size()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform._get_sigma"><code class="docutils literal notranslate"><span class="pre">SPECTPSFTransform._get_sigma()</span></code></a></li>
@@ -687,8 +744,15 @@ evaluation mode.</p>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.GaussianBlurNet.forward">forward</a></li>
 </ul>
 </li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.ArbitraryPSFNet">ArbitraryPSFNet</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.ArbitraryPSFNet.forward">forward</a></li>
+</ul>
+</li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.get_1D_PSF_layer">get_1D_PSF_layer</a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform">SPECTPSFTransform</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform._configure_gaussian_model">_configure_gaussian_model</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform._configure_kernel_model">_configure_kernel_model</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform._configure_manual_net">_configure_manual_net</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform.configure">configure</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform._compute_kernel_size">_compute_kernel_size</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.transforms.SPECT.psf.SPECTPSFTransform._get_sigma">_get_sigma</a></li>

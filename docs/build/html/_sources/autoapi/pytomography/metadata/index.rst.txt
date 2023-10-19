@@ -117,4 +117,9 @@ Classes
    :param min_sigmas: This is the number of sigmas to consider in PSF correction. PSF are modelled by Gaussian functions whose extension is infinite, so we need to crop the Gaussian when computing this operation numerically. Note that the blurring width is depth dependent, but the kernel size used for PSF blurring is constant. As such, this parameter is used to fix the kernel size such that all locations have at least ``min_sigmas`` of a kernel size.
    :type min_sigmas: float, optional
 
+   .. py:method:: __repr__()
+
+      Return repr(self).
+
+
 
