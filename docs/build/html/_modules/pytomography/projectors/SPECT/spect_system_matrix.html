@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 
 
@@ -7,7 +8,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.projectors.SPECT.spect_system_matrix &#8212; PyTomography 1.2.0 documentation</title>
+    <title>pytomography.projectors.SPECT.spect_system_matrix &#8212; PyTomography 1.2.1 documentation</title>
   
   
   
@@ -27,16 +28,16 @@
 <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
 <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
 
-    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=362ab14a" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=eafc0fe6" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
   
   <!-- Pre-loaded scripts that we'll load fully later -->
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
 
-    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=ffe0d018"></script>
-    <script src="../../../../_static/doctools.js?v=888ff710"></script>
-    <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/sphinx_highlight.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pytomography/projectors/SPECT/spect_system_matrix';</script>
     <link rel="index" title="Index" href="../../../../genindex.html" />
@@ -344,7 +345,7 @@ document.write(`
 <span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">rotate_detector_z</span><span class="p">,</span> <span class="n">pad_object</span><span class="p">,</span> <span class="n">unpad_object</span><span class="p">,</span> <span class="n">pad_proj</span><span class="p">,</span> <span class="n">unpad_proj</span>
 <span class="kn">from</span> <span class="nn">..system_matrix</span> <span class="kn">import</span> <span class="n">SystemMatrix</span>
 
-<div class="viewcode-block" id="SPECTSystemMatrix"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/SPECT/spect_system_matrix/index.html#pytomography.projectors.SPECT.SPECTSystemMatrix">[docs]</a><span class="k">class</span> <span class="nc">SPECTSystemMatrix</span><span class="p">(</span><span class="n">SystemMatrix</span><span class="p">):</span>
+<div class="viewcode-block" id="SPECTSystemMatrix"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/index.html#pytomography.projectors.SPECT.SPECTSystemMatrix">[docs]</a><span class="k">class</span> <span class="nc">SPECTSystemMatrix</span><span class="p">(</span><span class="n">SystemMatrix</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;System matrix for SPECT imaging. By default, this applies to parallel hole collimators, but appropriate use of `proj2proj_transforms` can allow this system matrix to also model converging/diverging collimator configurations as well.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
@@ -365,7 +366,7 @@ document.write(`
         <span class="nb">super</span><span class="p">(</span><span class="n">SPECTSystemMatrix</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">obj2obj_transforms</span><span class="p">,</span> <span class="n">proj2proj_transforms</span><span class="p">,</span> <span class="n">object_meta</span><span class="p">,</span> <span class="n">proj_meta</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_parallel</span> <span class="o">=</span> <span class="n">n_parallel</span>
 
-<div class="viewcode-block" id="SPECTSystemMatrix.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/SPECT/spect_system_matrix/index.html#pytomography.projectors.SPECT.SPECTSystemMatrix.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+<div class="viewcode-block" id="SPECTSystemMatrix.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/index.html#pytomography.projectors.SPECT.SPECTSystemMatrix.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="nb">object</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span>
         <span class="n">angle_subset</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -402,7 +403,7 @@ document.write(`
             <span class="n">proj</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">proj</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">unpad_proj</span><span class="p">(</span><span class="n">proj</span><span class="p">)</span></div>
     
-<div class="viewcode-block" id="SPECTSystemMatrix.backward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/SPECT/spect_system_matrix/index.html#pytomography.projectors.SPECT.SPECTSystemMatrix.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span>
+<div class="viewcode-block" id="SPECTSystemMatrix.backward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/index.html#pytomography.projectors.SPECT.SPECTSystemMatrix.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">proj</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span>
         <span class="n">angle_subset</span><span class="p">:</span> <span class="nb">list</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -466,7 +467,7 @@ document.write(`
             <span class="k">return</span> <span class="nb">object</span></div></div>
         
         
-<div class="viewcode-block" id="SPECTSystemMatrixMaskedSegments"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/SPECT/spect_system_matrix/index.html#pytomography.projectors.SPECT.SPECTSystemMatrixMaskedSegments">[docs]</a><span class="k">class</span> <span class="nc">SPECTSystemMatrixMaskedSegments</span><span class="p">(</span><span class="n">SPECTSystemMatrix</span><span class="p">):</span>
+<div class="viewcode-block" id="SPECTSystemMatrixMaskedSegments"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/index.html#pytomography.projectors.SPECT.SPECTSystemMatrixMaskedSegments">[docs]</a><span class="k">class</span> <span class="nc">SPECTSystemMatrixMaskedSegments</span><span class="p">(</span><span class="n">SPECTSystemMatrix</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;SPECT system matrix where the object space is a vector of length :math:`N` consisting of the mean activities for each masks in ``masks``. This system matrix can be used in reconstruction algorithms to obtain maximum liklihood estimations for the average value of :math:`f` inside each of the masks.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
@@ -488,7 +489,7 @@ document.write(`
         <span class="nb">super</span><span class="p">(</span><span class="n">SPECTSystemMatrixMaskedSegments</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">obj2obj_transforms</span><span class="p">,</span> <span class="n">proj2proj_transforms</span><span class="p">,</span> <span class="n">object_meta</span><span class="p">,</span> <span class="n">proj_meta</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">masks</span> <span class="o">=</span> <span class="n">masks</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
-<div class="viewcode-block" id="SPECTSystemMatrixMaskedSegments.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/SPECT/spect_system_matrix/index.html#pytomography.projectors.SPECT.SPECTSystemMatrixMaskedSegments.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+<div class="viewcode-block" id="SPECTSystemMatrixMaskedSegments.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/index.html#pytomography.projectors.SPECT.SPECTSystemMatrixMaskedSegments.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">activities</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">angle_subset</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -507,7 +508,7 @@ document.write(`
         <span class="nb">object</span> <span class="o">=</span> <span class="p">(</span><span class="n">activities</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">SPECTSystemMatrixMaskedSegments</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="n">angle_subset</span><span class="p">)</span></div>
     
-<div class="viewcode-block" id="SPECTSystemMatrixMaskedSegments.backward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/SPECT/spect_system_matrix/index.html#pytomography.projectors.SPECT.SPECTSystemMatrixMaskedSegments.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span>
+<div class="viewcode-block" id="SPECTSystemMatrixMaskedSegments.backward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/index.html#pytomography.projectors.SPECT.SPECTSystemMatrixMaskedSegments.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">proj</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">angle_subset</span><span class="p">:</span> <span class="nb">list</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -588,7 +589,7 @@ document.write(`
       
         <div class="footer-item">
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 6.2.1.
     <br/>
   </p>
 </div>
