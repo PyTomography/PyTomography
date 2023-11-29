@@ -8,5 +8,7 @@ The tutorials use data that can be downloaded [here](https://drive.google.com/dr
 * {doc}`notebooks/t_OSL`
 * {doc}`notebooks/t_BSREM`
 * {doc}`notebooks/t_KEM`
+## PET (Listmode)
+* {doc}`notebooks/t_PETSIRD`
 ## Misc
 * {doc}`notebooks/t_fbp`

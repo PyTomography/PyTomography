@@ -64,4 +64,18 @@ class SystemMatrix():
             torch.tensor[batch_size, Lr, Lr, Lz]: the object obtained from back projection.
         """
         ...
+    @abc.abstractmethod
+    def get_subset_splits(
+        self,
+        n_subsets: int
+    ) -> list:
+        """Returns a list of subsets corresponding to a partition of the projection data used in a reconstruction algorithm.
+        
+        Args:
+            n_subsets (int): number of subsets used in OSEM 
+
+        Returns:
+            list: list of index arrays for each subset
+        """
+        ...
 

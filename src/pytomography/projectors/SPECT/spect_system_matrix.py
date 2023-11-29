@@ -27,6 +27,33 @@ class SPECTSystemMatrix(SystemMatrix):
     ) -> None:
         super(SPECTSystemMatrix, self).__init__(obj2obj_transforms, proj2proj_transforms, object_meta, proj_meta)
         self.n_parallel = n_parallel
+        
+    def compute_normalization_factor(self, angle_subset: list[int] = None):
+        """Function called by reconstruction algorithms to get :math:`H^T 1`.
+
+        Returns:
+           torch.Tensor: Normalization factor :math:`H^T 1`.
+        """
+        norm_proj = torch.ones((1, *self.proj_meta.shape)).to(pytomography.device)
+        return self.backward(norm_proj, angle_subset)
+        
+    def get_subset_splits(
+        self,
+        n_subsets: int
+    ) -> list:
+        """Returns a list of subsets (where each subset contains indicies corresponding to different angles). For example, if the projections consisted of 6 total angles, then ``get_subsets_splits(2)`` would return ``[[0,2,4],[1,3,5]]``.
+        
+        Args:
+            n_subsets (int): number of subsets used in OSEM 
+
+        Returns:
+            list: list of index arrays for each subset
+        """
+        indices = torch.arange(self.proj_meta.shape[0]).to(torch.long).to(pytomography.device)
+        subset_indices_array = []
+        for i in range(n_subsets):
+            subset_indices_array.append(indices[i::n_subsets])
+        return subset_indices_array
 
     def forward(
         self,

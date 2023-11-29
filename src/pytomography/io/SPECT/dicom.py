@@ -2,6 +2,7 @@ from __future__ import annotations
 import warnings
 import os
 import collections.abc
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Sequence
 import numpy as np
@@ -14,7 +15,7 @@ from pydicom.uid import generate_uid
 import pytomography
 from pytomography.metadata import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
 from pytomography.utils import get_blank_below_above, compute_TEW, get_mu_from_spectrum_interp
-from ..CT import get_HU2mu_conversion, open_CT_file, compute_max_slice_loc_CT
+from ..CT import get_HU2mu_conversion, open_CT_file, compute_max_slice_loc_CT, compute_slice_thickness_CT
 from ..shared import create_ds
 
 def parse_projection_dataset(ds: Dataset) -> Sequence[torch.Tensor, np.array, np.array, dict]:
@@ -269,7 +270,9 @@ def get_attenuation_map_from_CT_slices(
     file_NM: str | None = None,
     index_peak: int = 0,
     keep_as_HU: bool = False,
-    mode: str = 'constant'
+    mode: str = 'constant',
+    CT_output_shape: Sequence[int] | None = None,
+    apply_affine: bool = True,
     ) -> torch.Tensor:
     """Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography.
 
@@ -278,6 +281,8 @@ def get_attenuation_map_from_CT_slices(
         file_NM (str): File corresponding to raw PET/SPECT data (required to align CT with projections). If None, then no alignment is done. Defaults to None.
         index_peak (int, optional): Index corresponding to photopeak in projection data. Defaults to 0.
         keep_as_HU (bool): If True, then don't convert to linear attenuation coefficient and keep as Hounsfield units. Defaults to False
+        CT_output_shape (Sequence, optional): If not None, then the CT is returned with the desired dimensions. Otherwise, it defaults to the shape in the file_NM data.
+        apply_affine (bool): Whether or not to align CT with NM.
 
     Returns:
         torch.Tensor: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.
@@ -287,16 +292,17 @@ def get_attenuation_map_from_CT_slices(
     
     if file_NM is None:
         return torch.tensor(CT_HU[:,:,::-1].copy()).unsqueeze(dim=0).to(pytomography.dtype).to(pytomography.device)
-    
     ds_NM = pydicom.read_file(file_NM)
-    # Align with SPECT:
-    M_CT = _get_affine_CT(files_CT)
-    M_NM = _get_affine_spect_projections(file_NM)
-    # Resample CT and convert to mu at 208keV and save
-    M = npl.inv(M_CT) @ M_NM
     # When doing affine transform, fill outside with point below -1000HU so it automatically gets converted to mu=0 after bilinear transform
-    CT_HU = affine_transform(CT_HU, M, output_shape=(ds_NM.Rows, ds_NM.Rows, ds_NM.Columns), mode=mode, cval=-1500)
-    
+    if CT_output_shape is None:
+        CT_output_shape = (ds_NM.Rows, ds_NM.Rows, ds_NM.Columns)
+    if apply_affine:
+        # Align with SPECT:
+        M_CT = _get_affine_CT(files_CT)
+        M_NM = _get_affine_spect_projections(file_NM)
+        # Resample CT and convert to mu at 208keV and save
+        M = npl.inv(M_CT) @ M_NM
+        CT_HU = affine_transform(CT_HU, M, output_shape=CT_output_shape, mode=mode, cval=-1500)
     if keep_as_HU:
         CT = CT_HU
     else:
@@ -340,11 +346,12 @@ def _get_affine_CT(filenames: Sequence[str]):
     """
     # Note: per DICOM convention z actually decreases as the z-index increases (initial z slices start with the head)
     ds = pydicom.read_file(filenames[0])
+    dz = compute_slice_thickness_CT(filenames)
     max_z = compute_max_slice_loc_CT(filenames)
     M = np.zeros((4,4))
     M[0:3, 0] = np.array(ds.ImageOrientationPatient[0:3])*ds.PixelSpacing[0]
     M[0:3, 1] = np.array(ds.ImageOrientationPatient[3:])*ds.PixelSpacing[1]
-    M[0:3, 2] = - np.array([0,0,1]) * ds.SliceThickness 
+    M[0:3, 2] = - np.array([0,0,1]) * dz 
     M[0:2, 3] = np.array(ds.ImagePositionPatient)[0:2] 
     M[2, 3] = max_z
     M[3, 3] = 1

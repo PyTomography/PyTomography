@@ -40,3 +40,19 @@ def compute_max_slice_loc_CT(files_CT: Sequence[str]) -> float:
         ds = pydicom.read_file(file)
         slice_locs.append(float(ds.ImagePositionPatient[2]))
     return np.max(slice_locs)
+
+def compute_slice_thickness_CT(files_CT: Sequence[str]) -> float:
+    """Compute the slice thickness for files that make up a CT scan. Though this information is often contained in the DICOM file, it is sometimes inconsistent with the ImagePositionPatient attribute, which gives the true location of the slices.
+
+    Args:
+        files_CT (Sequence[str]): List of CT DICOM filepaths corresponding to different z slices of the same scan.
+
+    Returns:
+        float: Slice thickness of CT scan
+    """
+    slice_locs = []
+    for file in files_CT:
+        ds = pydicom.read_file(file)
+        slice_locs.append(float(ds.ImagePositionPatient[2]))
+    slice_locs = np.array(slice_locs)[np.argsort(slice_locs)]
+    return slice_locs[1] - slice_locs[0]
