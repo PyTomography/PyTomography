@@ -2,4 +2,4 @@ r"""This module contains classes/functionality for operators that map between di
 from .system_matrix import SystemMatrix
 from .SPECT import SPECTSystemMatrix, SPECTSystemMatrixMaskedSegments
 from .PET import PETLMSystemMatrix
-from .shared import KEMSystemMatrix
+from .shared import KEMSystemMatrix, MotionSystemMatrix

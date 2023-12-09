@@ -1,10 +1,10 @@
 from __future__ import annotations
 import torch
 import pytomography
-from pytomography.transforms import Transform
+from pytomography.transforms import Transform, RotationTransform
 from pytomography.metadata import SPECTObjectMeta, SPECTProjMeta
 from pytomography.priors import Prior
-from pytomography.utils import rotate_detector_z, pad_object, unpad_object, pad_proj, unpad_proj
+from pytomography.utils import pad_object, unpad_object, pad_proj, unpad_proj
 from ..system_matrix import SystemMatrix
 
 class SPECTSystemMatrix(SystemMatrix):
@@ -27,6 +27,7 @@ class SPECTSystemMatrix(SystemMatrix):
     ) -> None:
         super(SPECTSystemMatrix, self).__init__(obj2obj_transforms, proj2proj_transforms, object_meta, proj_meta)
         self.n_parallel = n_parallel
+        self.rotation_transform = RotationTransform()
         
     def compute_normalization_factor(self, angle_subset: list[int] = None):
         """Function called by reconstruction algorithms to get :math:`H^T 1`.
@@ -81,7 +82,8 @@ class SPECTSystemMatrix(SystemMatrix):
             # Format Object
             object_i = torch.repeat_interleave(object, len(angle_indices_single_batch_i), 0)
             object_i = pad_object(object_i)
-            object_i = rotate_detector_z(object_i, self.proj_meta.angles[angle_indices_i])
+            # beta = 270 - phi, and backward transform called because projection should be at +beta (requires inverse rotation of object)
+            object_i = self.rotation_transform.backward(object_i, 270-self.proj_meta.angles[angle_indices_i])
             # Apply object 2 object transforms
             for transform in self.obj2obj_transforms:
                 object_i = transform.forward(object_i, angle_indices_i)
@@ -138,8 +140,8 @@ class SPECTSystemMatrix(SystemMatrix):
                 else:
                     object_i  = transform.backward(object_i, angle_indices_i)
             # Rotate all objects by by their respective angle
-            object_i = rotate_detector_z(object_i, self.proj_meta.angles[angle_indices_i], negative=True)
-            norm_constant_i = rotate_detector_z(norm_constant_i, self.proj_meta.angles[angle_indices_i], negative=True)
+            object_i = self.rotation_transform.forward(object_i, 270-self.proj_meta.angles[angle_indices_i])
+            norm_constant_i = self.rotation_transform.forward(norm_constant_i, 270-self.proj_meta.angles[angle_indices_i])
             # Reshape to 5D tensor of shape [batch_size, N_parallel, Lx, Ly, Lz]
             object_i = object_i.reshape((object.shape[0], -1, *self.object_meta.padded_shape))
             norm_constant_i = norm_constant_i.reshape((object.shape[0], -1, *self.object_meta.padded_shape))

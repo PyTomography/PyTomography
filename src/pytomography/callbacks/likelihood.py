@@ -31,7 +31,7 @@ class LogLikelihoodCallback(Callback):
             n_iter (int): Iteration number
         """
         projection_estimate = self.system_matrix.forward(object)
-        liklihood = self.projections*torch.log(projection_estimate) - projection_estimate
+        liklihood = (self.projections*torch.log(projection_estimate)) - projection_estimate
         liklihood[self.projections<=0] = -projection_estimate[self.projections<=0]
         # Sum components of each voxel
         liklihood = liklihood.sum().item()
@@ -40,5 +40,5 @@ class LogLikelihoodCallback(Callback):
             self.prior.set_object(object)
             prior_component = -self.prior.compute_prior()
             self.liklihoods_prior_component.append(prior_component)
-            liklihood -= self.prior.compute_prior()
+            liklihood -= prior_component
         self.liklihoods.append(liklihood)

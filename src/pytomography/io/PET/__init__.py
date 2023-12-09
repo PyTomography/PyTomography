@@ -2,4 +2,4 @@
 
 from . import prd
 from .petsird import read_petsird
-from .gate import get_aligned_attenuation_map_GATE
+from .gate import get_aligned_attenuation_map_GATE, get_scanner_LUT

@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 import pytomography
 from pytomography.io.PET import prd
@@ -5,7 +6,8 @@ from pytomography.io.PET import prd
 class PETLMProjMeta():
     def __init__(
         self,
-        header: prd.Header,
+        scanner_LUT: torch.Tensor | None = None,
+        header: prd.Header | None = None,
         tof: bool = False,
         n_sigmas_tof: float = 3.,
     ):
@@ -16,11 +18,14 @@ class PETLMProjMeta():
             tof (bool, optional): Whether or not to store time of flight information. Defaults to False.
             n_sigmas_tof (float, optional): Number of sigmas to consider during time of flight projections. Defaults to 3..
         """
-        self.scanner_lut = torch.tensor(
-            [[det.x, det.y, det.z] for det in header.scanner.detectors],
-            dtype=torch.float32,
-            device=pytomography.device,
-        )
+        if scanner_LUT is not None:
+            self.scanner_lut = scanner_LUT.to(pytomography.device)
+        else:
+            self.scanner_lut = torch.tensor(
+                [[det.x, det.y, det.z] for det in header.scanner.detectors],
+                dtype=torch.float32,
+                device=pytomography.device,
+            )
         self.tof = tof
         if tof:
             self.num_tof_bins = header.scanner.tof_bin_edges.shape[0] - 1

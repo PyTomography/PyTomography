@@ -23,6 +23,7 @@ class StatisticalIterative():
             scatter (torch.Tensor): estimate of scatter contribution :math:`s`. Defaults to 0.
             prior (Prior, optional): the Bayesian prior; used to compute :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.
             precompute_normalization_factors (bool). Whether or not to precompute the normalization factors :math:`H_m^T 1` for each subset :math:`m` before reconstruction. This saves computational time during each iteration, but requires more GPU memory. Defaults to True.
+            device (str): The device correpsonding to the tensors output by the system matrix. In some cases, although the system matrix implementation uses ``pytomography.device`` in its internal computation, it will output tensors on the CPU due to their size (such as in listmode PET). Defaults to ``pytomography.device``. 
     """
 
     def __init__(
@@ -32,17 +33,19 @@ class StatisticalIterative():
         object_initial: torch.tensor | None = None,
         scatter: torch.tensor | float = 0,
         prior: Prior = None,
-        precompute_normalization_factors: bool = True
+        precompute_normalization_factors: bool = True,
+        device: str = pytomography.device
     ) -> None:
+        self.device = device
         self.system_matrix = system_matrix
         if object_initial is None:
-            self.object_prediction = torch.ones((projections.shape[0], *self.system_matrix.object_meta.shape)).to(pytomography.device).to(pytomography.dtype)
+            self.object_prediction = torch.ones((projections.shape[0], *self.system_matrix.object_meta.shape)).to(self.device).to(pytomography.dtype)
         else:
-            self.object_prediction = object_initial.to(pytomography.device).to(pytomography.dtype)
+            self.object_prediction = object_initial.to(self.device).to(pytomography.dtype)
         self.prior = prior
-        self.proj = projections.to(pytomography.device).to(pytomography.dtype)
+        self.proj = projections.to(self.device).to(pytomography.dtype)
         if type(scatter) is torch.Tensor:
-            self.scatter = scatter.to(pytomography.device).to(pytomography.dtype)
+            self.scatter = scatter.to(self.device).to(pytomography.dtype)
         else:
             self.scatter = scatter
         if self.prior is not None:
@@ -54,6 +57,7 @@ class StatisticalIterative():
         self.n_subsets_previous = -1 
         # Get total number of projections (n_subset=1 as argument)
         self.total_projections = self.system_matrix.get_subset_splits(1)[0].shape[0]
+            
 
     @abc.abstractmethod
     def __call__(self,
@@ -81,6 +85,7 @@ class OSEMOSL(StatisticalIterative):
         scatter (torch.Tensor): estimate of scatter contribution :math:`s`. Defaults to 0.
         prior (Prior, optional): the Bayesian prior; used to compute :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.
         precompute_normalization_factors (bool). Whether or not to precompute the normalization factors :math:`H_m^T 1` for each subset :math:`m` before reconstruction. This saves computational time during each iteration, but requires more GPU memory. Defaults to True.
+        device (str): The device correpsonding to the tensors output by the system matrix. In some cases, although the system matrix implementation uses ``pytomography.device`` in its internal computation, it will output tensors on the CPU due to their size (such as in listmode PET). Defaults to ``pytomography.device``. 
     """
     def _set_recon_name(self, n_iters: int, n_subsets: int):
         """Set the unique identifier for the type of reconstruction performed. Useful when saving reconstructions to DICOM files
@@ -123,8 +128,7 @@ class OSEMOSL(StatisticalIterative):
         self.n_subsets = n_subsets
         self.callback = callback
         self.subset_indices_array = self.system_matrix.get_subset_splits(n_subsets)
-        if self.precompute_normalization_factors:
-            self._compute_normalization_factors()
+        self._compute_normalization_factors()
         for j in range(n_iters):
             for k, subset_indices in enumerate(self.subset_indices_array):
                 if n_subset_specific is not None:
@@ -133,16 +137,13 @@ class OSEMOSL(StatisticalIterative):
                         continue
                 # Set OSL Prior to have object from previous prediction
                 if self.prior:
-                    self.prior.set_object(torch.clone(self.object_prediction))
+                    self.prior.set_object(torch.clone(self.object_prediction).to(self.system_matrix.device))
                 ratio = (self.proj+pytomography.delta) / (self.system_matrix.forward(self.object_prediction, angle_subset=subset_indices) + self.scatter + pytomography.delta)
-                if self.precompute_normalization_factors:
-                    ratio_BP = self.system_matrix.backward(ratio, angle_subset=subset_indices)
-                    norm_BP = self.norm_BPs[k]
-                else:
-                    ratio_BP, norm_BP = self.system_matrix.backward(ratio, angle_subset=subset_indices, return_norm_constant=True)
+                ratio_BP = self.system_matrix.backward(ratio, angle_subset=subset_indices)
+                norm_BP = self.norm_BPs[k].to(self.device)
                 if self.prior:
                     self.prior.set_beta_scale(len(subset_indices) / self.total_projections)
-                    prior = self.prior.compute_gradient()
+                    prior = self.prior.compute_gradient().to(self.device)
                     prior[-prior>=norm_BP] = 0 # prevents negative updates
                 else:
                     prior = 0
@@ -167,6 +168,7 @@ class BSREM(StatisticalIterative):
         prior (Prior, optional): the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.
         relaxation_function (Callable, optional): Sequence :math:`\alpha_n` used for relaxation. Defaults to :math:`\alpha_n=1/(n+1)`.
         scaling_matrix_type (str, optional): The form of the scaling matrix :math:`D` used. If ``subind_norm`` (sub-iteration independent + normalized), then :math:`D=\left(S_m/M \cdot H^T 1 \right)^{-1}`. If ``subdep_norm`` (sub-iteration dependent + normalized) then :math:`D = \left(H_m^T 1\right)^{-1}`. See section III.D in the paper above for a discussion on this.
+        device (str): The device correpsonding to the tensors output by the system matrix. In some cases, although the system matrix implementation uses ``pytomography.device`` in its internal computation, it will output tensors on the CPU due to their size (such as in listmode PET). Defaults to ``pytomography.device``. 
     """
     
     def __init__(
@@ -178,14 +180,25 @@ class BSREM(StatisticalIterative):
         prior: Prior = None,
         relaxation_function: Callable = lambda x: 1,
         scaling_matrix_type: str = 'subind_norm',
-        precompute_normalization_factors: bool = True
+        precompute_normalization_factors: bool = True,
+        device: str = pytomography.device
     ) -> None:
+        self.device = device
         # Initial estimate given by OSEM
         if object_initial is None:
-            object_initial = OSEM(projections, system_matrix, object_initial, scatter, precompute_normalization_factors)(1,1)
-        super(BSREM, self).__init__(projections, system_matrix, object_initial, scatter, prior, precompute_normalization_factors)
+            object_initial = OSEM(projections, system_matrix, object_initial, scatter, precompute_normalization_factors, device)(1,1)
+        super(BSREM, self).__init__(projections, system_matrix, object_initial, scatter, prior, precompute_normalization_factors, device)
         self.relaxation_function = relaxation_function
         self.scaling_matrix_type = scaling_matrix_type
+        
+    def _compute_normalization_factors(self):
+        """Computes normalization factors :math:`H_m^T 1` for all subsets :math:`m`.
+        """
+        # Looks for change in n_subsets during successive calls to __call__. First call this is always true, since n_subsets_previous is initially set to -1
+        if self.n_subsets_previous!=self.n_subsets:
+            self.norm_BPs = []
+            for subset_indices in self.subset_indices_array:
+                self.norm_BPs.append(self.system_matrix.compute_normalization_factor(subset_indices))
     
     def _set_recon_name(self, n_iters: int, n_subsets: int):
         """Set the unique identifier for the type of reconstruction performed. Useful for saving to DICOM files
@@ -231,12 +244,14 @@ class BSREM(StatisticalIterative):
             torch.tensor[batch_size, Lx, Ly, Lz]: reconstructed object
         """
         self.callback = callback
-        subset_indices_array = self.system_matrix.get_subset_splits(n_subsets)
+        self.subset_indices_array = self.system_matrix.get_subset_splits(n_subsets)
         # Set normalization factor H^T 1 if it hasnt already been set in previous call to __call__
-        if (self.scaling_matrix_type=='subind_norm') * (not(hasattr(self, 'norm_BP_allsubsets'))):
+        if self.scaling_matrix_type=='subdep_norm':
+            self._compute_normalization_factors()
+        elif (self.scaling_matrix_type=='subind_norm') * (not(hasattr(self, 'norm_BP_allsubsets'))):
             self.norm_BP_allsubsets = self.system_matrix.compute_normalization_factor()
         for j in range(n_iters):
-            for k, subset_indices in enumerate(subset_indices_array):
+            for k, subset_indices in enumerate(self.subset_indices_array):
                 if n_subset_specific is not None:
                     # For considering only a specific subset
                     if n_subset_specific!=k:
@@ -244,7 +259,8 @@ class BSREM(StatisticalIterative):
                 ratio = (self.proj+pytomography.delta) / (self.system_matrix.forward(self.object_prediction, angle_subset=subset_indices) + self.scatter + pytomography.delta)
                 # Obtain the scaling matrix D and the ratio to be back projected
                 if self.scaling_matrix_type=='subdep_norm':
-                    ratio_BP, norm_BP = self.system_matrix.backward(ratio, angle_subset=subset_indices, return_norm_constant=True)
+                    ratio_BP = self.system_matrix.backward(ratio, angle_subset=subset_indices)
+                    norm_BP = self.norm_BPs[k]
                     quantity_BP = ratio_BP - norm_BP
                     scaling_matrix = 1 / (norm_BP+pytomography.delta)
                 elif self.scaling_matrix_type=='subind_norm':
@@ -254,8 +270,8 @@ class BSREM(StatisticalIterative):
                     scaling_matrix = 1 / (norm_BP+pytomography.delta)
                 if self.prior:
                     self.prior.set_beta_scale(len(subset_indices) / self.total_projections)
-                    self.prior.set_object(torch.clone(self.object_prediction))
-                    gradient = self.prior.compute_gradient()
+                    self.prior.set_object(torch.clone(self.object_prediction).to(self.device))
+                    gradient = self.prior.compute_gradient().to(self.device)
                     # Gradient not applied to null regions
                     self._scale_prior_gradient(gradient)
                 else:
@@ -285,9 +301,10 @@ class OSEM(OSEMOSL):
         system_matrix: SystemMatrix,
         object_initial: torch.tensor | None = None,
         scatter: torch.tensor | float = 0,
-        precompute_normalization_factors: bool = True
+        precompute_normalization_factors: bool = True,
+        device: str = pytomography.device,
     ) -> None:
-        super(OSEM, self).__init__(projections, system_matrix, object_initial, scatter, precompute_normalization_factors=precompute_normalization_factors)
+        super(OSEM, self).__init__(projections, system_matrix, object_initial, scatter, precompute_normalization_factors=precompute_normalization_factors, device=device)
         
 class KEM(OSEM):
     r"""Implementation of the KEM reconstruction algorithm given by :math:`\hat{\alpha}^{n,m+1} = \left[\frac{1}{K^T H_m^T 1} K^T H_m^T \left(\frac{g_m}{H_m K \hat{\alpha}^{n,m}+s}\right)\right] \hat{\alpha}^{n,m}` and where the final predicted object is :math:`\hat{f}^{n,m} = K \hat{\alpha}^{n,m}`.
@@ -338,3 +355,77 @@ class KEM(OSEM):
         """
         object_prediction = super(KEM, self).__call__(n_iters, n_subsets, callback)
         return self.kem_transform.forward(object_prediction)
+    
+    
+class DIPRecon(StatisticalIterative):
+    r"""Implementation of the Deep Image Prior reconstruction technique (see https://ieeexplore.ieee.org/document/8581448). This reconstruction technique requires an instance of a user-defined ``prior_network`` that implements two functions: (i) a ``fit`` method that takes in an ``object`` (:math:`x`) which the network ``f(z;\theta)`` is subsequently fit to, and (ii) a ``predict`` function that returns the current network prediction :math:`f(z;\theta)`. For more details, see the Deep Image Prior tutorial.
+
+        Args:
+            projections (torch.tensor): projection data :math:`g` to be reconstructed
+            system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.
+            prior_network (nn.Module): User defined prior network that implements the neural network ``f(z;\theta)``
+            rho (float, optional): Value of :math:`\rho` used in the optimization procedure. Defaults to 1.
+            scatter (torch.tensor | float, optional): Projection space scatter estimate. Defaults to 0.
+            precompute_normalization_factors (bool, optional): Whether to precompute :math:`H_m^T 1` and store on GPU in the OSEM network before reconstruction. Defaults to True.
+        """
+    def __init__(
+        self,
+        projections: torch.tensor,
+        system_matrix: SystemMatrix,
+        prior_network: nn.Module,
+        rho: float = 3e-3,
+        scatter: torch.tensor | float = 0,
+        precompute_normalization_factors: bool = True,
+        
+    ) -> None:
+        
+        super(DIPRecon, self).__init__(
+            projections,
+            system_matrix,
+            scatter=scatter)
+        self.osem_network = OSEM(
+            projections,
+            system_matrix,
+            scatter=scatter,
+            precompute_normalization_factors=precompute_normalization_factors)
+        self.prior_network = prior_network
+        self.rho = rho
+        
+    def __call__(
+        self,
+        n_iters,
+        subit1,
+        n_subsets_osem=1,
+        callback=None,
+    ):  
+        r"""Implementation of Algorithm 1 in https://ieeexplore.ieee.org/document/8581448. This implementation gives the additional option to use ordered subsets. The quantity SubIt2 specified in the paper is controlled by the user-defined ``prior_network`` class.
+
+        Args:
+            n_iters (int): Number of iterations (MaxIt in paper)
+            subit1 (int): Number of OSEM iterations before retraining neural network (SubIt1 in paper)
+            n_subsets_osem (int, optional): Number of subsets to use in OSEM reconstruction. Defaults to 1.
+
+        Returns:
+            torch.Tensor: Reconstructed image
+        """
+        self.callback = callback
+        # Initialize quantities
+        mu = 0 
+        norm_BP = self.system_matrix.compute_normalization_factor()
+        x = self.prior_network.predict()
+        x_network = x.clone()
+        for _ in range(n_iters):
+            for j in range(subit1):
+                for k in range(n_subsets_osem):
+                    self.osem_network.object_prediction = x.clone()
+                    x_EM = self.osem_network(1,n_subsets_osem, k)
+                    x = 0.5 * (x_network - mu - norm_BP / self.rho) + 0.5 * torch.sqrt((x_network - mu - norm_BP / self.rho)**2 + 4*x_EM * norm_BP / self.rho)
+            x_label = x + mu
+            self.prior_network.fit(x_label)
+            x_network = self.prior_network.predict()
+            mu = mu + x - x_network
+            self.object_prediction = nn.ReLU()(x_network)
+            # evaluate callback
+            if self.callback is not None:
+                self._compute_callback(n_iter = _)
+        return self.object_prediction
