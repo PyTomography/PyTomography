@@ -205,7 +205,9 @@ def get_attenuation_map_from_file(file_AM: str) -> torch.Tensor:
 def get_psfmeta_from_scanner_params(
     collimator_name: str,
     energy_keV: float,
-    min_sigmas: float = 3
+    min_sigmas: float = 3,
+    material: str = 'lead',
+    intrinsic_resolution: float = 0,
     ) -> SPECTPSFMeta:
     """Obtains SPECT PSF metadata given a unique collimator code and photopeak energy of radionuclide. For more information on collimator codes, see the "external data" section of the readthedocs page.
 
@@ -213,6 +215,8 @@ def get_psfmeta_from_scanner_params(
         collimator_name (str): Code for the collimator used.
         energy_keV (float): Energy of the photopeak
         min_sigmas (float): Minimum size of the blurring kernel used. Fixes the convolutional kernel size so that all locations have at least ``min_sigmas`` in dimensions (some will be greater)
+        material (str): Material of the collimator.
+        intrinsic_resolution (float): Intrinsic resolution (FWHM) of the scintillator crystals. Defaults to 0.
 
     Returns:
         SPECTPSFMeta: PSF metadata.
@@ -232,12 +236,21 @@ def get_psfmeta_from_scanner_params(
     hole_length = float(line.split()[3])
     hole_diameter = float(line.split()[1])
 
-    lead_attenuation = get_mu_from_spectrum_interp(os.path.join(module_path, '../../data/NIST_attenuation_data/lead.csv'), energy_keV)
+    lead_attenuation = get_mu_from_spectrum_interp(os.path.join(module_path, f'../../data/NIST_attenuation_data/{material}.csv'), energy_keV)
     
-    collimator_slope = hole_diameter/(hole_length - (2/lead_attenuation)) * 1/(2*np.sqrt(2*np.log(2)))
-    collimator_intercept = hole_diameter * 1/(2*np.sqrt(2*np.log(2)))
+    FWHM2sigma = 1/(2*np.sqrt(2*np.log(2)))
+    collimator_slope = hole_diameter/(hole_length - (2/lead_attenuation)) * FWHM2sigma
+    collimator_intercept = hole_diameter * FWHM2sigma
+    intrinsic_resolution = intrinsic_resolution * FWHM2sigma
     
-    return SPECTPSFMeta((collimator_slope, collimator_intercept), min_sigmas=min_sigmas)
+    sigma_fit = lambda r, a, b, c: np.sqrt((a*r+b)**2+c**2)
+    sigma_fit_params = [collimator_slope, collimator_intercept, intrinsic_resolution]
+    
+    return SPECTPSFMeta(
+        sigma_fit_params=sigma_fit_params,
+        sigma_fit=sigma_fit,
+        min_sigmas=min_sigmas
+        )
 
 def CT_to_mumap(
     CT: torch.tensor,
