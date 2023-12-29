@@ -394,9 +394,10 @@ def _get_affine_spect_projections(filename: str) -> np.array:
     Sx, Sy, Sz = ds.DetectorInformationSequence[0].ImagePositionPatient
     dx = dy = ds.PixelSpacing[0]
     dz = ds.PixelSpacing[1]
-    Sx -= ds.Rows / 2 * dx
-    Sy -= ds.Rows / 2 * dy
-    Sy -= ds.RotationInformationSequence[0].TableHeight
+    if Sy == 0:
+        Sx -= ds.Rows / 2 * dx
+        Sy -= ds.Rows / 2 * dy
+        Sy -= ds.RotationInformationSequence[0].TableHeight
     M = np.zeros((4, 4))
     M[0] = np.array([dx, 0, 0, Sx])
     M[1] = np.array([0, dy, 0, Sy])
@@ -530,10 +531,11 @@ def save_dcm(
     Sx, Sy, Sz = ds_NM.DetectorInformationSequence[0].ImagePositionPatient
     dx = dy = ds_NM.PixelSpacing[0]
     dz = ds_NM.PixelSpacing[1]
-    Sx -= ds_NM.Rows / 2 * dx
-    Sy -= ds_NM.Rows / 2 * dy
-    # Y-Origin point at tableheight=0
-    Sy -= ds_NM.RotationInformationSequence[0].TableHeight
+    if Sy == 0:
+        Sx -= ds_NM.Rows / 2 * dx
+        Sy -= ds_NM.Rows / 2 * dy
+        # Y-Origin point at tableheight=0
+        Sy -= ds_NM.RotationInformationSequence[0].TableHeight
     # Sz now refers to location of lowest slice
     Sz -= (pixel_data.shape[0] - 1) * dz
     SOP_instance_UID = generate_uid()
