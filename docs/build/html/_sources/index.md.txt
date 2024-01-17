@@ -54,6 +54,8 @@ conda activate pytomography_env
 pip install pytomography
 ```
 
+If you want to use the PET reconstruction options available, you need to additionally follow the installation instructions for parallelproj at [this link](https://parallelproj.readthedocs.io/en/stable/installation.html).
+
 Be sure to check out  {doc}`usage` for some simple examples. If you wish to make a contribution, please read the {doc}`developers_guide`.
 
 ## Examples
