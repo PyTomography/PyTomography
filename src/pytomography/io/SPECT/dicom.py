@@ -432,8 +432,7 @@ def save_dcm(
     save_path: str,
     object: torch.Tensor,
     file_NM: str,
-    recon_name: str = '',
-    scale_factor: float = 1024,
+    recon_name: str = ''
     ) -> None:
     """Saves the reconstructed object `object` to a series of DICOM files in the folder given by `save_path`. Requires the filepath of the projection data `file_NM` to get Study information.
 
@@ -442,15 +441,16 @@ def save_dcm(
         save_path (str): Location of folder where to save the DICOM output files.
         file_NM (str): File path of the projection data corresponding to the reconstruction.
         recon_name (str): Type of reconstruction performed. Obtained from the `recon_method_str` attribute of a reconstruction algorithm class.
-        scale_factor (float, optional): Amount by which to scale output data so that it can be converted into a 16 bit integer. Defaults to 1024.
     """
     try:
         Path(save_path).resolve().mkdir(parents=True, exist_ok=False)
     except:
         raise Exception(f'Folder {save_path} already exists; new folder name is required.')
     # Convert tensor image to numpy array
-    pixel_data = torch.permute(object.squeeze(),(2,1,0)) * scale_factor
-    pixel_data = pixel_data.cpu().numpy().astype(np.uint16)
+    pixel_data = torch.permute(object.squeeze(),(2,1,0)).cpu().numpy()    
+    scale_factor = (2**16 - 1) / pixel_data.max()
+    pixel_data *= scale_factor #maximum dynamic range
+    pixel_data = pixel_data.astype(np.uint16)
     # Get affine information
     ds_NM = pydicom.dcmread(file_NM)
     Sx, Sy, Sz = ds_NM.DetectorInformationSequence[0].ImagePositionPatient
@@ -471,6 +471,7 @@ def save_dcm(
     ds.NumberOfSlices = pixel_data.shape[0]
     ds.PixelSpacing = [dx,dy]
     ds.SliceThickness = dz
+    ds.SpacingBetweenSlices = dz
     ds.ImageOrientationPatient = [1,0,0,0,1,0]
     ds.RescaleSlope = 1/scale_factor
     # Set other things
@@ -493,3 +494,23 @@ def save_dcm(
         # Set the pixel data
         ds_i.PixelData = pixel_data[i].tobytes()
         ds_i.save_as(os.path.join(save_path, f'{ds.SOPInstanceUID}.dcm'))
+        
+def open_SPECT_file(
+    files_SPECT: Sequence[str],
+    ) -> np.array:
+    """Given a list of seperate SPECT DICOM files, opens them up and stacks them together into a single SPECT image. 
+
+    Args:
+        files_SPECT (Sequence[str]): List of SPECT DICOM filepaths corresponding to different z slices of the same scan.
+
+    Returns:
+        np.array: SPECT scan with units of vendor.
+    """
+    SPECT_slices = []
+    slice_locs = []
+    for file in files_SPECT:
+        ds = pydicom.read_file(file)
+        SPECT_slices.append(ds.RescaleSlope * ds.pixel_array + ds.RescaleIntercept)
+        slice_locs.append(float(ds.ImagePositionPatient[2]))
+    SPECT_image = np.transpose(np.array(SPECT_slices)[np.argsort(slice_locs)], (2,1,0)).astype(np.float32)
+    return SPECT_image

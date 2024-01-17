@@ -9,7 +9,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
-    <title>PyTomography &#8212; PyTomography 1.2.1 documentation</title>
+    <title>PyTomography &#8212; PyTomography 1.2.2 documentation</title>
   
   
   
@@ -321,9 +321,11 @@ document.write(`
 <li><p>System matrix modeling includes attenuation correction, PSF modeling, scatter correction</p></li>
 </ul>
 </li>
-<li><p>2D Positron Emission Tomography (PET)</p>
+<li><p>Positron Emission Tomography (PET)</p>
 <ul>
-<li><p>System matrix modeling includes attenuation correction and radially dependent PSF modeling.</p></li>
+<li><p>Listmode</p></li>
+<li><p>Time-of-flight</p></li>
+<li><p>Corrections for attenuation/normalization, and options for PSF modeling.</p></li>
 </ul>
 </li>
 </ul>
@@ -336,21 +338,33 @@ document.write(`
 <li><p>OSEMOSL (see <a class="reference external" href="https://ieeexplore.ieee.org/document/52985">here</a>)</p></li>
 <li><p>BSREM (see <a class="reference external" href="https://ieeexplore.ieee.org/document/1207396">here</a>)</p></li>
 <li><p>KEM (see <a class="reference external" href="https://ieeexplore.ieee.org/abstract/document/6868314">here</a>)</p></li>
+<li><p>DIPRecon (see <a class="reference external" href="https://ieeexplore.ieee.org/document/8581448">here</a>)</p></li>
 </ul>
 </li>
 </ul>
 <p>Options exist to include anatomical information (such as MRI/CT) when using priors/regularization.</p>
 <p><strong>Supported Datatypes</strong></p>
 <ul class="simple">
-<li><p>DICOM</p>
+<li><p>DICOM (SPECT)</p>
 <ul>
 <li><p>Ability to open and align SPECT/CT data and create attenuation maps</p></li>
 <li><p>Repository of collimator parameters for different scanners for obtaining PSF information</p></li>
 </ul>
 </li>
-<li><p>SIMIND output files (interfile)</p>
+<li><p>SIMIND output files (SPECT)</p>
 <ul>
 <li><p>Functionality to combine multiple sets of projections (representing different organs/regions) into a single set of projection data</p></li>
+</ul>
+</li>
+<li><p>GATE output files (PET)</p>
+<ul>
+<li><p>ability to read ROOT files generated from gate simulations</p></li>
+<li><p>generation of scanner lookup tables (detector coordinates) from GATE macro files</p></li>
+</ul>
+</li>
+<li><p>PETSIRD data files (PET)</p>
+<ul>
+<li><p>ability to read PETSIRD files, which contain all detected events and scanner geometry information</p></li>
 </ul>
 </li>
 </ul>
@@ -373,8 +387,9 @@ document.write(`
 <h2>Examples<a class="headerlink" href="#examples" title="Permalink to this heading">#</a></h2>
 <p><strong>Example 1</strong>: <em>SPECT/CT Images of patient receiving targeted radionuclide therapy with Lu177 DOTATATE for neuroendocrine tumours (4 cycles of 7.4 GBq/cycle administered every 8 weeks). Row 1: OSEM (5 iterations, 8 subsets); row 2: BSREM (30 iterations, 8 subsets) using the RDP prior; row 3: BSREM (30 iterations, 8 subsets) using the RDP prior with anatomical weighting.</em></p>
 <p><img alt="" src="_images/deep_blue.jpg" /></p>
-<p><strong>Example 2</strong>: <em>Reconstructed SIMIND maximum intensity projections corresponding to activity distribution of typical patient treated with with Lu177 DOTATATE. Ground truth was generated using the XCAT phantom software. Shown are reconstructions with OSEM (8 iterations and 120 iteratons), BSREM with the RDP prior (120 iterations), and BSREM with the RDP prior and anatomical weighting (120 iterations). SPECT projections are overlaid with MIPs of the attenuation coefficient (hence the visible skeleton, even though it had no sigificant uptake).</em></p>
-<img src="https://drive.google.com/uc?export=view&id=1rTFjWTvTvxsBs34yo9Nc2urD-M4T4x_l">
+<p><strong>Example 2</strong>: <em>Ultra high resolution PET/MR brain phantom ground truth and reconstructions with time-of-flight. PET Monte Carlo acquisition data was obtained via simulation of a Siemens mMR scanner (with 550 ps time-of-flight resolution) in GATE. From top to bottom: sample axial, coronal, and sagittal slices. From left to right: T1-weighted MR image (inverse contrast), ground truth PET concentration, high count (630 million events) reconstruction with OSEM (4it20ss), low count recon (35 million events) with OSEM (80it/1ss) and low count recon (35 million events) with the DIPRecon method (100it).</em>
+*</p>
+<p><img alt="" src="_images/dip_recon.jpg" /></p>
 </section>
 <section id="contents">
 <h2>Contents<a class="headerlink" href="#contents" title="Permalink to this heading">#</a></h2>

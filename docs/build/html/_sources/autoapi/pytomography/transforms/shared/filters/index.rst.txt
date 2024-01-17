@@ -17,7 +17,7 @@ Classes
 
 
 
-.. py:class:: GaussianFilter(FWHM)
+.. py:class:: GaussianFilter(FWHM, n_sigmas = 3)
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 
@@ -25,6 +25,8 @@ Classes
 
    :param FWHM: Specifies the width of the gaussian
    :type FWHM: float
+   :param n_sigmas: Number of sigmas to include before truncating the kernel.
+   :type n_sigmas: float
 
    .. py:method:: configure(object_meta, proj_meta)
 

@@ -8,7 +8,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.projectors.system_matrix &#8212; PyTomography 1.2.1 documentation</title>
+    <title>pytomography.projectors.system_matrix &#8212; PyTomography 1.2.2 documentation</title>
   
   
   
@@ -339,6 +339,7 @@ document.write(`
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span> <span class="nn">abc</span>
 <span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">pytomography</span>
 <span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
 <span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ProjMeta</span>
 
@@ -401,8 +402,116 @@ document.write(`
 <span class="sd">        Returns:</span>
 <span class="sd">            torch.tensor[batch_size, Lr, Lr, Lz]: the object obtained from back projection.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+<div class="viewcode-block" id="SystemMatrix.get_subset_splits"><a class="viewcode-back" href="../../../autoapi/pytomography/projectors/system_matrix/index.html#pytomography.projectors.SystemMatrix.get_subset_splits">[docs]</a>    <span class="k">def</span> <span class="nf">get_subset_splits</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">n_subsets</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a list of subsets corresponding to a partition of the projection data used in a reconstruction algorithm.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            n_subsets (int): number of subsets used in OSEM </span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list: list of index arrays for each subset</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="o">...</span></div></div>
 
+<div class="viewcode-block" id="ExtendedSystemMatrix"><a class="viewcode-back" href="../../../autoapi/pytomography/projectors/system_matrix/index.html#pytomography.projectors.ExtendedSystemMatrix">[docs]</a><span class="k">class</span> <span class="nc">ExtendedSystemMatrix</span><span class="p">(</span><span class="n">SystemMatrix</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">system_matrices</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">SystemMatrix</span><span class="p">],</span>
+        <span class="n">obj2obj_transforms</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Transform</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">proj2proj_transforms</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Transform</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;System matrix that supports the extension of projection space. Maps to an extended image space :math:`\mathcal{V}^{*}` where projections have shape ``[N,...]`` where ``...`` is the regular projeciton size. As such, this projector only supports objects with a batch size of 1. The forward transform is given by :math:`H&#39; = \sum_n v_n \otimes B_n H_n A_n` where :math:`\left\{A_n\right\}` are object-to-object space transforms, :math:`\left\{H_n\right\}` are a sequence of system matrices, :math:`\left\{B_n\right\}` are a sequence of projection-to-projection space transforms, :math:`v_n` is a basis vector of length :math:`N` with a value of 1 in component :math:`n` and :math:`\otimes` is a tensor product. </span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            system_matrices (Sequence[SystemMatrix]): List of system matrices corresponding to each dimension :math:`n`. </span>
+<span class="sd">            obj2obj_transforms (Sequence[Transform]): List of object to object transforms corresponding to each dimension :math:`n`. </span>
+<span class="sd">            proj2proj_transforms (Sequence[Transform]): List of projection to projection transforms corresponding to each dimension :math:`n`. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">object_meta</span> <span class="o">=</span> <span class="n">system_matrices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">object_meta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">proj_meta</span> <span class="o">=</span> <span class="n">system_matrices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">proj_meta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">system_matrices</span> <span class="o">=</span> <span class="n">system_matrices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obj2obj_transforms</span> <span class="o">=</span> <span class="n">obj2obj_transforms</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">proj2proj_transforms</span> <span class="o">=</span> <span class="n">proj2proj_transforms</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_matrices</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj2obj_transforms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj2obj_transforms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">obj2obj_transforms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_matrices</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">object_meta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_matrices</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">proj_meta</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj2proj_transforms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj2proj_transforms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">proj2proj_transforms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_matrices</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">object_meta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_matrices</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">proj_meta</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="ExtendedSystemMatrix.forward"><a class="viewcode-back" href="../../../autoapi/pytomography/projectors/system_matrix/index.html#pytomography.projectors.ExtendedSystemMatrix.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="n">angle_subset</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Forward transform :math:`H&#39; = \sum_n v_n \otimes B_n H_n A_n`, This adds an additional dimension to the projection space.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            object (torch.Tensor[1,Lx,Ly,Lz]): Object to be forward projected. Must have a batch size of 1.</span>
+<span class="sd">            angle_subset (Sequence[int], optional): Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">           torch.Tensor[N_gates,...]: Forward projection.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">projs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_matrices</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj2obj_transforms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj2obj_transforms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">object_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj2obj_transforms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span>
+            <span class="n">proj_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_matrices</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">object_i</span><span class="p">,</span> <span class="n">angle_subset</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj2proj_transforms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj2proj_transforms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">proj_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj2proj_transforms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">proj_i</span><span class="p">)</span>
+            <span class="n">projs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">proj_i</span><span class="o">.</span><span class="n">clone</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">projs</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="ExtendedSystemMatrix.backward"><a class="viewcode-back" href="../../../autoapi/pytomography/projectors/system_matrix/index.html#pytomography.projectors.ExtendedSystemMatrix.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proj</span><span class="p">,</span> <span class="n">angle_subset</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Back projection :math:`H&#39; = \sum_n v_n^T \otimes A_n^T H_n^T B_n^T`. This maps an extended projection back to the original object space.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            proj (torch.Tensor[N,...]): Projection data to be back-projected.</span>
+<span class="sd">            angle_subset (Sequence[int], optional): Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.. Defaults to None.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor[1,Lx,Ly,Lz]: Back projection.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">objects</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_matrices</span><span class="p">)):</span>
+            <span class="n">proj_i</span> <span class="o">=</span> <span class="n">proj</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj2proj_transforms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj2proj_transforms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">proj_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj2proj_transforms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">proj_i</span><span class="p">)</span>
+            <span class="n">object_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_matrices</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">proj_i</span><span class="p">,</span> <span class="n">angle_subset</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj2obj_transforms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj2obj_transforms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">object_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj2obj_transforms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">object_i</span><span class="p">)</span>
+            <span class="n">objects</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">object_i</span><span class="o">.</span><span class="n">clone</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">objects</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="ExtendedSystemMatrix.get_subset_splits"><a class="viewcode-back" href="../../../autoapi/pytomography/projectors/system_matrix/index.html#pytomography.projectors.ExtendedSystemMatrix.get_subset_splits">[docs]</a>    <span class="k">def</span> <span class="nf">get_subset_splits</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">n_subsets</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a list of subsets (where each subset contains indicies corresponding to different angles). For example, if the projections consisted of 6 total angles, then ``get_subsets_splits(2)`` would return ``[[0,2,4],[1,3,5]]``.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            n_subsets (int): number of subsets used in OSEM </span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list: list of index arrays for each subset</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_matrices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_subset_splits</span><span class="p">(</span><span class="n">n_subsets</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="ExtendedSystemMatrix.compute_normalization_factor"><a class="viewcode-back" href="../../../autoapi/pytomography/projectors/system_matrix/index.html#pytomography.projectors.ExtendedSystemMatrix.compute_normalization_factor">[docs]</a>    <span class="k">def</span> <span class="nf">compute_normalization_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">angle_subset</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Function called by reconstruction algorithms to get the normalization factor :math:`H&#39; = \sum_n v_n^T \otimes A_n^T H_n^T B_n^T` 1.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">           torch.Tensor[1,Lx,Ly,Lz]: Normalization factor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">norm_proj</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_matrices</span><span class="p">),</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">proj_meta</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">norm_proj</span><span class="p">,</span> <span class="n">angle_subset</span><span class="p">)</span></div></div>
 </pre></div>
 
                 </article>

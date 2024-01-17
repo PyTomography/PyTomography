@@ -8,7 +8,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.projectors.shared.kem_system_matrix &#8212; PyTomography 1.2.1 documentation</title>
+    <title>pytomography.projectors.shared.kem_system_matrix &#8212; PyTomography 1.2.2 documentation</title>
   
   
   
@@ -337,6 +337,7 @@ document.write(`
                   
   <h1>Source code for pytomography.projectors.shared.kem_system_matrix</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">..system_matrix</span> <span class="kn">import</span> <span class="n">SystemMatrix</span>
+<span class="kn">import</span> <span class="nn">torch</span>
 
 <div class="viewcode-block" id="KEMSystemMatrix"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/shared/kem_system_matrix/index.html#pytomography.projectors.KEMSystemMatrix">[docs]</a><span class="k">class</span> <span class="nc">KEMSystemMatrix</span><span class="p">(</span><span class="n">SystemMatrix</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Given a KEM transform :math:`K` and a system matrix :math:`H`, implements the transform :math:`HK` (and backward transform :math:`K^T H^T`)</span>
@@ -350,35 +351,52 @@ document.write(`
         <span class="bp">self</span><span class="o">.</span><span class="n">proj_meta</span> <span class="o">=</span> <span class="n">system_matrix</span><span class="o">.</span><span class="n">proj_meta</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span> <span class="o">=</span> <span class="n">system_matrix</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">kem_transform</span> <span class="o">=</span> <span class="n">kem_transform</span>
-<div class="viewcode-block" id="KEMSystemMatrix.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/shared/kem_system_matrix/index.html#pytomography.projectors.KEMSystemMatrix.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="n">angle_subset</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward transform :math:`HK`</span>
+        <span class="c1"># Inherit required functions from system matrix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_n_subsets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span><span class="o">.</span><span class="n">set_n_subsets</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_projection_subset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span><span class="o">.</span><span class="n">get_projection_subset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_weighting_subset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span><span class="o">.</span><span class="n">get_projection_subset</span>
+        
+<div class="viewcode-block" id="KEMSystemMatrix.compute_normalization_factor"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/shared/kem_system_matrix/index.html#pytomography.projectors.KEMSystemMatrix.compute_normalization_factor">[docs]</a>    <span class="k">def</span> <span class="nf">compute_normalization_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subset_idx</span> <span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Function used to get normalization factor :math:`K^T H^T_m 1` corresponding to projection subset :math:`m`.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            subset_idx (int | None, optional): Index of subset. If none, then considers all projections. Defaults to None.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor: normalization factor :math:`K^T H^T_m 1`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">object</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span><span class="o">.</span><span class="n">compute_normalization_factor</span><span class="p">(</span><span class="n">subset_idx</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">kem_transform</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="KEMSystemMatrix.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/shared/kem_system_matrix/index.html#pytomography.projectors.KEMSystemMatrix.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="n">subset_idx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Forward transform :math:`HK`</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            object (torch.tensor): Object to be forward projected</span>
-<span class="sd">            angle_subset (Sequence, optional): Angles to forward projected; if none, project to all angles. Defaults to None.</span>
+<span class="sd">            subset_idx (int, optional): Only uses a subset of angles :math:`g_m` corresponding to the provided subset index :math:`m`. If None, then defaults to the full projections :math:`g`.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            torch.tensor: Corresponding projections generated from forward projection</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">object</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kem_transform</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="n">angle_subset</span><span class="p">)</span></div>
-<div class="viewcode-block" id="KEMSystemMatrix.backward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/shared/kem_system_matrix/index.html#pytomography.projectors.KEMSystemMatrix.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proj</span><span class="p">,</span> <span class="n">angle_subset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">return_norm_constant</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Backward transform :math:`K^T H^T`</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="n">subset_idx</span><span class="p">)</span></div>
+<div class="viewcode-block" id="KEMSystemMatrix.backward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/shared/kem_system_matrix/index.html#pytomography.projectors.KEMSystemMatrix.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proj</span><span class="p">,</span> <span class="n">subset_idx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">return_norm_constant</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Backward transform :math:`K^T H^T`</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            proj (torch.tensor): Projection data to be back projected</span>
-<span class="sd">            angle_subset (Sequence, optional): Angles corresponding to projections; if none, then all projections from ``self.proj_meta`` are contained. Defaults to None.</span>
+<span class="sd">            subset_idx (int, optional): Only uses a subset of angles :math:`g_m` corresponding to the provided subset index :math:`m`. If None, then defaults to the full projections :math:`g`.</span>
 <span class="sd">            return_norm_constant (bool, optional): Additionally returns :math:`K^T H^T 1` if true; defaults to False.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            torch.tensor: Corresponding object generated from back projection.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">return_norm_constant</span><span class="p">:</span>
-            <span class="nb">object</span><span class="p">,</span> <span class="n">norm_constant</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">proj</span><span class="p">,</span> <span class="n">angle_subset</span><span class="p">,</span> <span class="n">return_norm_constant</span><span class="p">)</span>
+            <span class="nb">object</span><span class="p">,</span> <span class="n">norm_constant</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">proj</span><span class="p">,</span> <span class="n">subset_idx</span><span class="p">,</span> <span class="n">return_norm_constant</span><span class="p">)</span>
             <span class="nb">object</span><span class="p">,</span> <span class="n">norm_constant</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kem_transform</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="n">norm_constant</span><span class="p">)</span>
             <span class="k">return</span> <span class="nb">object</span><span class="p">,</span> <span class="n">norm_constant</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="nb">object</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">proj</span><span class="p">,</span> <span class="n">angle_subset</span><span class="p">,</span> <span class="n">return_norm_constant</span><span class="p">)</span>
+            <span class="nb">object</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">proj</span><span class="p">,</span> <span class="n">subset_idx</span><span class="p">,</span> <span class="n">return_norm_constant</span><span class="p">)</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">kem_transform</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span></div></div>
         
 </pre></div>

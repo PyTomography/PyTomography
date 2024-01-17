@@ -8,7 +8,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.transforms.SPECT.psf &#8212; PyTomography 1.2.1 documentation</title>
+    <title>pytomography.transforms.SPECT.psf &#8212; PyTomography 1.2.2 documentation</title>
   
   
   
@@ -453,6 +453,7 @@ document.write(`
         <span class="n">psf_meta</span><span class="p">:</span> <span class="n">SPECTPSFMeta</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">kernel_f</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">psf_net</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">assume_padded</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializer that sets corresponding psf parameters&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">SPECTPSFTransform</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -461,6 +462,7 @@ document.write(`
         <span class="bp">self</span><span class="o">.</span><span class="n">psf_meta</span> <span class="o">=</span> <span class="n">psf_meta</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">kernel_f</span> <span class="o">=</span> <span class="n">kernel_f</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">psf_net</span> <span class="o">=</span> <span class="n">psf_net</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assume_padded</span> <span class="o">=</span> <span class="n">assume_padded</span>
         
 <div class="viewcode-block" id="SPECTPSFTransform._configure_gaussian_model"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/index.html#pytomography.transforms.SPECT.SPECTPSFTransform._configure_gaussian_model">[docs]</a>    <span class="k">def</span> <span class="nf">_configure_gaussian_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Internal function to configure Gaussian modeling. This is called when `psf_meta` is given in initialization</span>
@@ -541,7 +543,9 @@ document.write(`
 <span class="sd">        Returns:</span>
 <span class="sd">            array: An array of length Lx corresponding to blurring at each point along the 1st axis in object space</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_meta</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">compute_pad_size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">object_meta</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_meta</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">assume_padded</span><span class="p">:</span>
+            <span class="n">dim</span> <span class="o">+=</span> <span class="mi">2</span><span class="o">*</span><span class="n">compute_pad_size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">object_meta</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="n">distances</span> <span class="o">=</span> <span class="n">get_distance</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_meta</span><span class="o">.</span><span class="n">dx</span><span class="p">)</span>
         <span class="n">sigma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psf_meta</span><span class="o">.</span><span class="n">sigma_fit</span><span class="p">(</span><span class="n">distances</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">psf_meta</span><span class="o">.</span><span class="n">sigma_fit_params</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">sigma</span></div>
