@@ -1,0 +1,645 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pytomography.io.PET.prd.binary &#8212; PyTomography 1.3.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../../_static/styles/theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../../../../../_static/styles/bootstrap.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../../../../../_static/styles/pydata-sphinx-theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+
+  
+  <link href="../../../../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=e353d410970836974a52" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/graphviz.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
+<link rel="preload" as="script" href="../../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
+
+    <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
+    <script src="../../../../../_static/doctools.js"></script>
+    <script src="../../../../../_static/sphinx_highlight.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pytomography/io/PET/prd/binary';</script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+<div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+    <span class="fa-solid fa-bars"></span>
+  </label>
+  
+  <div class="navbar-header-items__start">
+    
+      <div class="navbar-item">
+  
+
+<a class="navbar-brand logo" href="../../../../../index.html">
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../../../_static/PT1.png" class="logo__image only-light" alt="Logo image"/>
+    <script>document.write(`<img src="../../../../../_static/PT1.png" class="logo__image only-dark" alt="Logo image"/>`);</script>
+  
+  
+</a></div>
+    
+  </div>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../external_data.html">
+                        External Data
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../autoapi/index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+        </div>
+      
+      
+        <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+    </div>
+  
+
+  
+</div>
+
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../external_data.html">
+                        External Data
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../autoapi/index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+
+
+<nav aria-label="Breadcrumbs">
+  <ul class="bd-breadcrumbs" role="navigation" aria-label="Breadcrumb">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><i class="fa-solid fa-ellipsis"></i></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../prd.html" class="nav-link">pytomography.io.PET.prd</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page">pytomography.io.PET.prd.binary</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <h1>Source code for pytomography.io.PET.prd.binary</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This file was generated by the &quot;yardl&quot; tool. DO NOT EDIT.</span>
+
+<span class="c1"># pyright: reportUnusedClass=false</span>
+<span class="c1"># pyright: reportUnusedImport=false</span>
+<span class="c1"># pyright: reportUnknownArgumentType=false</span>
+<span class="c1"># pyright: reportUnknownMemberType=false</span>
+<span class="c1"># pyright: reportUnknownVariableType=false</span>
+
+<span class="kn">import</span> <span class="nn">collections.abc</span>
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">typing</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numpy.typing</span> <span class="k">as</span> <span class="nn">npt</span>
+
+<span class="kn">from</span> <span class="nn">.types</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">.protocols</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_binary</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">yardl_types</span> <span class="k">as</span> <span class="n">yardl</span>
+
+<div class="viewcode-block" id="BinaryPrdExperimentWriter"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/index.html#pytomography.io.PET.prd.binary.BinaryPrdExperimentWriter">[docs]</a><span class="k">class</span> <span class="nc">BinaryPrdExperimentWriter</span><span class="p">(</span><span class="n">_binary</span><span class="o">.</span><span class="n">BinaryProtocolWriter</span><span class="p">,</span> <span class="n">PrdExperimentWriterBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Binary writer for the PrdExperiment protocol.&quot;&quot;&quot;</span>
+
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">BinaryIO</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">PrdExperimentWriterBase</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">_binary</span><span class="o">.</span><span class="n">BinaryProtocolWriter</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">,</span> <span class="n">PrdExperimentWriterBase</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BinaryPrdExperimentWriter._write_header"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/index.html#pytomography.io.PET.prd.binary.BinaryPrdExperimentWriter._write_header">[docs]</a>    <span class="k">def</span> <span class="nf">_write_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Header</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_HeaderSerializer</span><span class="p">()</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_stream</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BinaryPrdExperimentWriter._write_time_blocks"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/index.html#pytomography.io.PET.prd.binary.BinaryPrdExperimentWriter._write_time_blocks">[docs]</a>    <span class="k">def</span> <span class="nf">_write_time_blocks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">TimeBlock</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_binary</span><span class="o">.</span><span class="n">StreamSerializer</span><span class="p">(</span><span class="n">_TimeBlockSerializer</span><span class="p">())</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_stream</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="BinaryPrdExperimentReader"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/index.html#pytomography.io.PET.prd.binary.BinaryPrdExperimentReader">[docs]</a><span class="k">class</span> <span class="nc">BinaryPrdExperimentReader</span><span class="p">(</span><span class="n">_binary</span><span class="o">.</span><span class="n">BinaryProtocolReader</span><span class="p">,</span> <span class="n">PrdExperimentReaderBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Binary writer for the PrdExperiment protocol.&quot;&quot;&quot;</span>
+
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">io</span><span class="o">.</span><span class="n">BufferedReader</span><span class="p">,</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">BinaryIO</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">PrdExperimentReaderBase</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">_binary</span><span class="o">.</span><span class="n">BinaryProtocolReader</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">,</span> <span class="n">PrdExperimentReaderBase</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BinaryPrdExperimentReader._read_header"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/index.html#pytomography.io.PET.prd.binary.BinaryPrdExperimentReader._read_header">[docs]</a>    <span class="k">def</span> <span class="nf">_read_header</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Header</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_HeaderSerializer</span><span class="p">()</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_stream</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BinaryPrdExperimentReader._read_time_blocks"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/index.html#pytomography.io.PET.prd.binary.BinaryPrdExperimentReader._read_time_blocks">[docs]</a>    <span class="k">def</span> <span class="nf">_read_time_blocks</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">TimeBlock</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">_binary</span><span class="o">.</span><span class="n">StreamSerializer</span><span class="p">(</span><span class="n">_TimeBlockSerializer</span><span class="p">())</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_stream</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="_CoincidenceEventSerializer"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._CoincidenceEventSerializer">[docs]</a><span class="k">class</span> <span class="nc">_CoincidenceEventSerializer</span><span class="p">(</span><span class="n">_binary</span><span class="o">.</span><span class="n">RecordSerializer</span><span class="p">[</span><span class="n">CoincidenceEvent</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([(</span><span class="s2">&quot;detector_1_id&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">uint32_serializer</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;detector_2_id&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">uint32_serializer</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;tof_idx&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">uint32_serializer</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;energy_1_idx&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">uint32_serializer</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;energy_2_idx&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">uint32_serializer</span><span class="p">)])</span>
+
+<div class="viewcode-block" id="_CoincidenceEventSerializer.write"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._CoincidenceEventSerializer.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedOutputStream</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">CoincidenceEvent</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_numpy</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">detector_1_id</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">detector_2_id</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">tof_idx</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">energy_1_idx</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">energy_2_idx</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_CoincidenceEventSerializer.write_numpy"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._CoincidenceEventSerializer.write_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">write_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedOutputStream</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;detector_1_id&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;detector_2_id&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;tof_idx&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;energy_1_idx&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;energy_2_idx&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="_CoincidenceEventSerializer.read"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._CoincidenceEventSerializer.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedInputStream</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CoincidenceEvent</span><span class="p">:</span>
+        <span class="n">field_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">CoincidenceEvent</span><span class="p">(</span><span class="n">detector_1_id</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">detector_2_id</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">tof_idx</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">energy_1_idx</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">energy_2_idx</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span></div></div>
+
+
+<div class="viewcode-block" id="_SubjectSerializer"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._SubjectSerializer">[docs]</a><span class="k">class</span> <span class="nc">_SubjectSerializer</span><span class="p">(</span><span class="n">_binary</span><span class="o">.</span><span class="n">RecordSerializer</span><span class="p">[</span><span class="n">Subject</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">OptionalSerializer</span><span class="p">(</span><span class="n">_binary</span><span class="o">.</span><span class="n">string_serializer</span><span class="p">)),</span> <span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">string_serializer</span><span class="p">)])</span>
+
+<div class="viewcode-block" id="_SubjectSerializer.write"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._SubjectSerializer.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedOutputStream</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Subject</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_numpy</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">id</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_SubjectSerializer.write_numpy"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._SubjectSerializer.write_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">write_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedOutputStream</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="_SubjectSerializer.read"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._SubjectSerializer.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedInputStream</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Subject</span><span class="p">:</span>
+        <span class="n">field_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Subject</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">id</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span></div></div>
+
+
+<div class="viewcode-block" id="_InstitutionSerializer"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._InstitutionSerializer">[docs]</a><span class="k">class</span> <span class="nc">_InstitutionSerializer</span><span class="p">(</span><span class="n">_binary</span><span class="o">.</span><span class="n">RecordSerializer</span><span class="p">[</span><span class="n">Institution</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">string_serializer</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;address&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">string_serializer</span><span class="p">)])</span>
+
+<div class="viewcode-block" id="_InstitutionSerializer.write"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._InstitutionSerializer.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedOutputStream</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Institution</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_numpy</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">address</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_InstitutionSerializer.write_numpy"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._InstitutionSerializer.write_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">write_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedOutputStream</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;address&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="_InstitutionSerializer.read"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._InstitutionSerializer.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedInputStream</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Institution</span><span class="p">:</span>
+        <span class="n">field_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Institution</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">address</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span></div></div>
+
+
+<div class="viewcode-block" id="_ExamInformationSerializer"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._ExamInformationSerializer">[docs]</a><span class="k">class</span> <span class="nc">_ExamInformationSerializer</span><span class="p">(</span><span class="n">_binary</span><span class="o">.</span><span class="n">RecordSerializer</span><span class="p">[</span><span class="n">ExamInformation</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([(</span><span class="s2">&quot;subject&quot;</span><span class="p">,</span> <span class="n">_SubjectSerializer</span><span class="p">()),</span> <span class="p">(</span><span class="s2">&quot;institution&quot;</span><span class="p">,</span> <span class="n">_InstitutionSerializer</span><span class="p">()),</span> <span class="p">(</span><span class="s2">&quot;protocol&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">OptionalSerializer</span><span class="p">(</span><span class="n">_binary</span><span class="o">.</span><span class="n">string_serializer</span><span class="p">)),</span> <span class="p">(</span><span class="s2">&quot;start_of_acquisition&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">OptionalSerializer</span><span class="p">(</span><span class="n">_binary</span><span class="o">.</span><span class="n">datetime_serializer</span><span class="p">))])</span>
+
+<div class="viewcode-block" id="_ExamInformationSerializer.write"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._ExamInformationSerializer.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedOutputStream</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">ExamInformation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_numpy</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">subject</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">institution</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">protocol</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">start_of_acquisition</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_ExamInformationSerializer.write_numpy"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._ExamInformationSerializer.write_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">write_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedOutputStream</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;subject&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;institution&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;protocol&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;start_of_acquisition&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="_ExamInformationSerializer.read"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._ExamInformationSerializer.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedInputStream</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExamInformation</span><span class="p">:</span>
+        <span class="n">field_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ExamInformation</span><span class="p">(</span><span class="n">subject</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">institution</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">protocol</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">start_of_acquisition</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span></div></div>
+
+
+<div class="viewcode-block" id="_DetectorSerializer"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._DetectorSerializer">[docs]</a><span class="k">class</span> <span class="nc">_DetectorSerializer</span><span class="p">(</span><span class="n">_binary</span><span class="o">.</span><span class="n">RecordSerializer</span><span class="p">[</span><span class="n">Detector</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">uint32_serializer</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">float32_serializer</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">float32_serializer</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">float32_serializer</span><span class="p">)])</span>
+
+<div class="viewcode-block" id="_DetectorSerializer.write"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._DetectorSerializer.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedOutputStream</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Detector</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_numpy</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">z</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_DetectorSerializer.write_numpy"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._DetectorSerializer.write_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">write_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedOutputStream</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;z&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="_DetectorSerializer.read"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._DetectorSerializer.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedInputStream</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detector</span><span class="p">:</span>
+        <span class="n">field_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Detector</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">y</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">z</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span></div></div>
+
+
+<div class="viewcode-block" id="_ScannerInformationSerializer"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._ScannerInformationSerializer">[docs]</a><span class="k">class</span> <span class="nc">_ScannerInformationSerializer</span><span class="p">(</span><span class="n">_binary</span><span class="o">.</span><span class="n">RecordSerializer</span><span class="p">[</span><span class="n">ScannerInformation</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([(</span><span class="s2">&quot;model_name&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">OptionalSerializer</span><span class="p">(</span><span class="n">_binary</span><span class="o">.</span><span class="n">string_serializer</span><span class="p">)),</span> <span class="p">(</span><span class="s2">&quot;detectors&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">VectorSerializer</span><span class="p">(</span><span class="n">_DetectorSerializer</span><span class="p">())),</span> <span class="p">(</span><span class="s2">&quot;tof_bin_edges&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">NDArraySerializer</span><span class="p">(</span><span class="n">_binary</span><span class="o">.</span><span class="n">float32_serializer</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="p">(</span><span class="s2">&quot;tof_resolution&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">float32_serializer</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;energy_bin_edges&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">NDArraySerializer</span><span class="p">(</span><span class="n">_binary</span><span class="o">.</span><span class="n">float32_serializer</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="p">(</span><span class="s2">&quot;energy_resolution_at_511&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">float32_serializer</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;listmode_time_block_duration&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">uint32_serializer</span><span class="p">)])</span>
+
+<div class="viewcode-block" id="_ScannerInformationSerializer.write"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._ScannerInformationSerializer.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedOutputStream</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">ScannerInformation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_numpy</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">model_name</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">detectors</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">tof_bin_edges</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">tof_resolution</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">energy_bin_edges</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">energy_resolution_at_511</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">listmode_time_block_duration</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_ScannerInformationSerializer.write_numpy"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._ScannerInformationSerializer.write_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">write_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedOutputStream</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;model_name&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;detectors&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;tof_bin_edges&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;tof_resolution&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;energy_bin_edges&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;energy_resolution_at_511&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;listmode_time_block_duration&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="_ScannerInformationSerializer.read"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._ScannerInformationSerializer.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedInputStream</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ScannerInformation</span><span class="p">:</span>
+        <span class="n">field_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ScannerInformation</span><span class="p">(</span><span class="n">model_name</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">detectors</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">tof_bin_edges</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">tof_resolution</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">energy_bin_edges</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">energy_resolution_at_511</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="n">listmode_time_block_duration</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span></div></div>
+
+
+<div class="viewcode-block" id="_HeaderSerializer"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._HeaderSerializer">[docs]</a><span class="k">class</span> <span class="nc">_HeaderSerializer</span><span class="p">(</span><span class="n">_binary</span><span class="o">.</span><span class="n">RecordSerializer</span><span class="p">[</span><span class="n">Header</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([(</span><span class="s2">&quot;scanner&quot;</span><span class="p">,</span> <span class="n">_ScannerInformationSerializer</span><span class="p">()),</span> <span class="p">(</span><span class="s2">&quot;exam&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">OptionalSerializer</span><span class="p">(</span><span class="n">_ExamInformationSerializer</span><span class="p">()))])</span>
+
+<div class="viewcode-block" id="_HeaderSerializer.write"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._HeaderSerializer.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedOutputStream</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Header</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_numpy</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">scanner</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">exam</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_HeaderSerializer.write_numpy"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._HeaderSerializer.write_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">write_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedOutputStream</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;scanner&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;exam&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="_HeaderSerializer.read"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._HeaderSerializer.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedInputStream</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Header</span><span class="p">:</span>
+        <span class="n">field_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Header</span><span class="p">(</span><span class="n">scanner</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">exam</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span></div></div>
+
+
+<div class="viewcode-block" id="_TimeBlockSerializer"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._TimeBlockSerializer">[docs]</a><span class="k">class</span> <span class="nc">_TimeBlockSerializer</span><span class="p">(</span><span class="n">_binary</span><span class="o">.</span><span class="n">RecordSerializer</span><span class="p">[</span><span class="n">TimeBlock</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">uint32_serializer</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;prompt_events&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">VectorSerializer</span><span class="p">(</span><span class="n">_CoincidenceEventSerializer</span><span class="p">())),</span> <span class="p">(</span><span class="s2">&quot;delayed_events&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">OptionalSerializer</span><span class="p">(</span><span class="n">_binary</span><span class="o">.</span><span class="n">VectorSerializer</span><span class="p">(</span><span class="n">_CoincidenceEventSerializer</span><span class="p">())))])</span>
+
+<div class="viewcode-block" id="_TimeBlockSerializer.write"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._TimeBlockSerializer.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedOutputStream</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">TimeBlock</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_numpy</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">prompt_events</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">delayed_events</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_TimeBlockSerializer.write_numpy"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._TimeBlockSerializer.write_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">write_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedOutputStream</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;prompt_events&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;delayed_events&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="_TimeBlockSerializer.read"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._TimeBlockSerializer.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedInputStream</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TimeBlock</span><span class="p">:</span>
+        <span class="n">field_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">TimeBlock</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">prompt_events</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">delayed_events</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span></div></div>
+
+
+<div class="viewcode-block" id="_TimeIntervalSerializer"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._TimeIntervalSerializer">[docs]</a><span class="k">class</span> <span class="nc">_TimeIntervalSerializer</span><span class="p">(</span><span class="n">_binary</span><span class="o">.</span><span class="n">RecordSerializer</span><span class="p">[</span><span class="n">TimeInterval</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([(</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">uint32_serializer</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;stop&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">uint32_serializer</span><span class="p">)])</span>
+
+<div class="viewcode-block" id="_TimeIntervalSerializer.write"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._TimeIntervalSerializer.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedOutputStream</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_numpy</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">stop</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_TimeIntervalSerializer.write_numpy"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._TimeIntervalSerializer.write_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">write_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedOutputStream</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;start&#39;</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;stop&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="_TimeIntervalSerializer.read"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._TimeIntervalSerializer.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedInputStream</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TimeInterval</span><span class="p">:</span>
+        <span class="n">field_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">TimeInterval</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">stop</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span></div></div>
+
+
+<div class="viewcode-block" id="_TimeFrameInformationSerializer"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._TimeFrameInformationSerializer">[docs]</a><span class="k">class</span> <span class="nc">_TimeFrameInformationSerializer</span><span class="p">(</span><span class="n">_binary</span><span class="o">.</span><span class="n">RecordSerializer</span><span class="p">[</span><span class="n">TimeFrameInformation</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([(</span><span class="s2">&quot;time_frames&quot;</span><span class="p">,</span> <span class="n">_binary</span><span class="o">.</span><span class="n">VectorSerializer</span><span class="p">(</span><span class="n">_TimeIntervalSerializer</span><span class="p">()))])</span>
+
+<div class="viewcode-block" id="_TimeFrameInformationSerializer.write"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._TimeFrameInformationSerializer.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedOutputStream</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">TimeFrameInformation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_numpy</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">time_frames</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_TimeFrameInformationSerializer.write_numpy"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._TimeFrameInformationSerializer.write_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">write_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedOutputStream</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;time_frames&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="_TimeFrameInformationSerializer.read"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/binary/index.html#pytomography.io.PET.prd.binary._TimeFrameInformationSerializer.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">_binary</span><span class="o">.</span><span class="n">CodedInputStream</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TimeFrameInformation</span><span class="p">:</span>
+        <span class="n">field_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">TimeFrameInformation</span><span class="p">(</span><span class="n">time_frames</span><span class="o">=</span><span class="n">field_values</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div></div>
+
+
+</pre></div>
+
+                </article>
+              
+              
+              
+                <footer class="bd-footer-article">
+                  
+<div class="footer-article-items footer-article__inner">
+  
+    <div class="footer-article-item"><!-- Previous / next buttons -->
+<div class="prev-next-area">
+</div></div>
+  
+</div>
+
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52"></script>
+<script src="../../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+  <p class="copyright">
+    
+      © Copyright 2023, Luke Polson.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 6.2.1.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item"><p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.13.3.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

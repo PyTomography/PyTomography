@@ -10,9 +10,11 @@ class GaussianFilter(Transform):
 
     Args:
         FWHM (float): Specifies the width of the gaussian
+        n_sigmas (float): Number of sigmas to include before truncating the kernel.
     """
-    def __init__(self, FWHM: float):
+    def __init__(self, FWHM: float, n_sigmas: float = 3):
         self.sigma = FWHM / (2*np.sqrt(2*np.log(2))) 
+        self.n_sigmas = n_sigmas
         
     def configure(self, object_meta: ObjectMeta, proj_meta: ProjMeta) -> None:
         """Configures the transform to the object/proj metadata. This is done after creating the network so that it can be adjusted to the system matrix.
@@ -31,7 +33,7 @@ class GaussianFilter(Transform):
         self.kernels = []
         for i in range(3):
             dx = self.object_meta.dr[i]
-            kernel_size = int(2*np.ceil(3*self.sigma/dx)+1)
+            kernel_size = int(2*np.ceil(self.n_sigmas*self.sigma/dx)+1)
             x = torch.arange(-int(kernel_size//2), int(kernel_size//2)+1).to(pytomography.device)*dx
             k = torch.exp(-x**2/(2*self.sigma**2)).reshape(1,1,-1)
             self.kernels.append(k/k.sum())

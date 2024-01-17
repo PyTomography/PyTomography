@@ -1,0 +1,150 @@
+:py:mod:`pytomography.io.PET.gate`
+==================================
+
+.. py:module:: pytomography.io.PET.gate
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.io.PET.gate.get_aligned_attenuation_map
+   pytomography.io.PET.gate.get_scanner_LUT
+   pytomography.io.PET.gate.get_N_components
+   pytomography.io.PET.gate.get_detector_ids
+   pytomography.io.PET.gate.get_radius
+   pytomography.io.PET.gate.get_table
+   pytomography.io.PET.gate.get_eta_cylinder_calibration
+   pytomography.io.PET.gate.remove_events_out_of_bounds
+
+
+
+.. py:function:: get_aligned_attenuation_map(headerfile, object_meta)
+
+   Returns an aligned attenuation map in units of inverse mm for reconstruction. This assumes that the attenuation map shares the same center point with the reconstruction space.
+
+   :param headerfile: Filepath to the header file of the attenuation map
+   :type headerfile: str
+   :param object_meta: Object metadata providing spatial information about the reconstructed dimensions.
+   :type object_meta: ObjectMeta
+
+   :returns: Aligned attenuation map
+   :rtype: torch.Tensor
+
+
+.. py:function:: get_scanner_LUT(path, init_volume_name = 'crystal', final_volume_name = 'world', mean_interaction_depth = 0, return_info = False)
+
+   Returns the scanner lookup table. The three values at a particular index in the lookup table correspond to the x, y, and z positions of the detector id correpsonding to that index.
+
+   :param path: Path to .mac file where the scanner geometry is defined in FATE
+   :type path: str
+   :param init_volume_name: Volume name corresponding the lowest level element in the GATE geometry. Defaults to 'crystal'.
+   :type init_volume_name: str, optional
+   :param final_volume_name: Volume name corresponding the highest level element in the GATE geometry. Defaults to 'world'.
+   :type final_volume_name: str, optional
+   :param mean_interaction_depth: Average interaction depth of photons in the crystals in mm. Defaults to 0.
+   :type mean_interaction_depth: float, optional
+   :param return_info: Returns information about the scanner geometry. Defaults to False.
+   :type return_info: bool, optional
+
+   :returns: Scanner lookup table.
+   :rtype: np.array
+
+
+.. py:function:: get_N_components(mac_file)
+
+   Obtains the number of gantrys, rsectors, modules, submodules, and crystals per level from a GATE macro file.
+
+   :param mac_file: Path to the gate macro file
+   :type mac_file: str
+
+   :returns: number of gantrys, rsectors, modules, submodules, and crystals
+   :rtype: tuple
+
+
+.. py:function:: get_detector_ids(paths, mac_file, TOF = False, TOF_bin_edges = None, substr = 'Coincidences', same_source_pos = False)
+
+   Obtains the detector IDs from a sequence of ROOT files
+
+   :param paths: sequence of root file paths
+   :type paths: Sequence[str]
+   :param mac_file: GATE geometry macro file
+   :type mac_file: str
+   :param TOF: Whether or not to get TOF binning information. Defaults to False.
+   :type TOF: bool, optional
+   :param TOF_bin_edges: TOF bin edges; required if TOF is True. Defaults to None.
+   :type TOF_bin_edges: np.array, optional
+   :param substr: Substring to index for in ROOT files. Defaults to 'Coincidences'.
+   :type substr: str, optional
+   :param same_source_pos: Only include coincidences that correspond to the same source position. This can be used to filter randoms. Defaults to False.
+   :type same_source_pos: bool, optional
+
+   :returns: Array of all detector ID pairs corresponding to all detected LORs.
+   :rtype: np.array
+
+
+.. py:function:: get_radius(detector_ids, scanner_LUT)
+
+   Gets the radial position of all LORs
+
+   :param detector_ids: Detector ID pairs corresponding to LORs
+   :type detector_ids: torch.tensor
+   :param scanner_LUT: scanner look up table
+   :type scanner_LUT: torch.tensor
+
+   :returns: radii of all detector ID pairs provided
+   :rtype: torch.tensor
+
+
+.. py:function:: get_table(det_ids, mac_file)
+
+   Obtains a table of crystal1ID, crystal2ID, submoduleID, :math:`\Delta`moduleID, :math:`\Delta`rsectorID corresponding to each of the detector id pairs provided. Useful fo symmetries when computing normalization :math:`\eta`.
+
+   :param det_ids: :math:`N \times 2` (non-TOF) or :math:`N \times 3` (TOF) tensor that provides detector ID pairs (and TOF bin) for coincidence events.
+   :type det_ids: torch.tensor
+   :param mac_file: GATE macro file that defines detector geometry
+   :type mac_file: str
+
+   :returns: A 2D tensor that lists crystal1ID, crystal2ID, submoduleID, :math:`\Delta`moduleID, :math:`\Delta`rsectorID for each LOR.
+   :rtype: torch.tensor
+
+
+.. py:function:: get_eta_cylinder_calibration(paths, mac_file, cylinder_radius, same_source_pos = False, mean_interaction_depth = 0)
+
+   Obtain normalization :math:`\eta` from a calibration scan consisting of a cylindrical shell
+
+   :param paths: paths of all ROOT files containing data
+   :type paths: Sequence[str]
+   :param mac_file: GATE macro file that defines scanner geometry
+   :type mac_file: str
+   :param cylinder_radius: The radius of the cylindrical shell used in calibration
+   :type cylinder_radius: float
+   :param same_source_pos: Only include coincidence events with same source position; can be used to filter out randoms. Defaults to False.
+   :type same_source_pos: bool, optional
+   :param mean_interaction_depth: Mean interaction depth of photons in detector crystals. Defaults to 0.
+   :type mean_interaction_depth: float, optional
+
+   :returns: Tensor corresponding to :math:`eta`.
+   :rtype: torch.tensor
+
+
+.. py:function:: remove_events_out_of_bounds(detector_ids, scanner_LUT, object_meta)
+
+   Removes all detected LORs outside of the reconstruced volume given by ``object_meta``.
+
+   :param detector_ids: :math:`N \times 2` (non-TOF) or :math:`N \times 3` (TOF) tensor that provides detector ID pairs (and TOF bin) for coincidence events.
+   :type detector_ids: torch.tensor
+   :param scanner_LUT: scanner lookup table that provides spatial coordinates for all detector ID pairs
+   :type scanner_LUT: torch.tensor
+   :param object_meta: object metadata providing the region of reconstruction
+   :type object_meta: ObjectMeta
+
+   :returns: all detector ID pairs corresponding to coincidence events
+   :rtype: torch.tensor
+
+

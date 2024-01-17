@@ -15,6 +15,7 @@ Subpackages
    :titlesonly:
    :maxdepth: 3
 
+   PET/index.rst
    SPECT/index.rst
    shared/index.rst
 
@@ -37,9 +38,12 @@ Classes
 .. autoapisummary::
 
    pytomography.projectors.SystemMatrix
+   pytomography.projectors.ExtendedSystemMatrix
    pytomography.projectors.SPECTSystemMatrix
    pytomography.projectors.SPECTSystemMatrixMaskedSegments
+   pytomography.projectors.PETLMSystemMatrix
    pytomography.projectors.KEMSystemMatrix
+   pytomography.projectors.MotionSystemMatrix
 
 
 
@@ -93,6 +97,79 @@ Classes
       :rtype: torch.tensor[batch_size, Lr, Lr, Lz]
 
 
+   .. py:method:: get_subset_splits(n_subsets)
+      :abstractmethod:
+
+      Returns a list of subsets corresponding to a partition of the projection data used in a reconstruction algorithm.
+
+      :param n_subsets: number of subsets used in OSEM
+      :type n_subsets: int
+
+      :returns: list of index arrays for each subset
+      :rtype: list
+
+
+
+.. py:class:: ExtendedSystemMatrix(system_matrices, obj2obj_transforms = None, proj2proj_transforms = None)
+
+   Bases: :py:obj:`SystemMatrix`
+
+   Abstract class for a general system matrix :math:`H:\mathbb{U} \to \mathbb{V}` which takes in an object :math:`f \in \mathbb{U}` and maps it to corresponding projections :math:`g \in \mathbb{V}` that would be produced by the imaging system. A system matrix consists of sequences of object-to-object and proj-to-proj transforms that model various characteristics of the imaging system, such as attenuation and blurring. While the class implements the operator :math:`H:\mathbb{U} \to \mathbb{V}` through the ``forward`` method, it also implements :math:`H^T:\mathbb{V} \to \mathbb{U}` through the `backward` method, required during iterative reconstruction algorithms such as OSEM.
+
+   :param obj2obj_transforms: Sequence of object mappings that occur before forward projection.
+   :type obj2obj_transforms: Sequence[Transform]
+   :param im2im_transforms: Sequence of proj mappings that occur after forward projection.
+   :type im2im_transforms: Sequence[Transform]
+   :param object_meta: Object metadata.
+   :type object_meta: ObjectMeta
+   :param proj_meta: Projection metadata.
+   :type proj_meta: ProjMeta
+
+   .. py:method:: forward(object, angle_subset=None)
+
+      Forward transform :math:`H' = \sum_n v_n \otimes B_n H_n A_n`, This adds an additional dimension to the projection space.
+
+      :param object: Object to be forward projected. Must have a batch size of 1.
+      :type object: torch.Tensor[1,Lx,Ly,Lz]
+      :param angle_subset: Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
+      :type angle_subset: Sequence[int], optional
+
+      :returns: Forward projection.
+      :rtype: torch.Tensor[N_gates,...]
+
+
+   .. py:method:: backward(proj, angle_subset=None)
+
+      Back projection :math:`H' = \sum_n v_n^T \otimes A_n^T H_n^T B_n^T`. This maps an extended projection back to the original object space.
+
+      :param proj: Projection data to be back-projected.
+      :type proj: torch.Tensor[N,...]
+      :param angle_subset: Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.. Defaults to None.
+      :type angle_subset: Sequence[int], optional
+
+      :returns: Back projection.
+      :rtype: torch.Tensor[1,Lx,Ly,Lz]
+
+
+   .. py:method:: get_subset_splits(n_subsets)
+
+      Returns a list of subsets (where each subset contains indicies corresponding to different angles). For example, if the projections consisted of 6 total angles, then ``get_subsets_splits(2)`` would return ``[[0,2,4],[1,3,5]]``.
+
+      :param n_subsets: number of subsets used in OSEM
+      :type n_subsets: int
+
+      :returns: list of index arrays for each subset
+      :rtype: list
+
+
+   .. py:method:: compute_normalization_factor(angle_subset = None)
+
+      Function called by reconstruction algorithms to get the normalization factor :math:`H' = \sum_n v_n^T \otimes A_n^T H_n^T B_n^T` 1.
+
+      :returns: Normalization factor.
+      :rtype: torch.Tensor[1,Lx,Ly,Lz]
+
+
 
 .. py:class:: SPECTSystemMatrix(obj2obj_transforms, proj2proj_transforms, object_meta, proj_meta, n_parallel=1)
 
@@ -111,32 +188,75 @@ Classes
    :param n_parallel: Number of projections to use in parallel when applying transforms. More parallel events may speed up reconstruction time, but also increases GPU usage. Defaults to 1.
    :type n_parallel: int
 
-   .. py:method:: forward(object, angle_subset = None)
+   .. py:method:: compute_normalization_factor(subset_idx = None)
+
+      Function used to get normalization factor :math:`H^T_m 1` corresponding to projection subset :math:`m`.
+
+      :param subset_idx: Index of subset. If none, then considers all projections. Defaults to None.
+      :type subset_idx: int | None, optional
+
+      :returns: normalization factor :math:`H^T_m 1`
+      :rtype: torch.Tensor
+
+
+   .. py:method:: set_n_subsets(n_subsets)
+
+      Sets the subsets for this system matrix given ``n_subsets`` total subsets.
+
+      :param n_subsets: number of subsets used in OSEM
+      :type n_subsets: int
+
+
+   .. py:method:: get_projection_subset(projections, subset_idx)
+
+      Gets the subset of projections :math:`g_m` corresponding to index :math:`m`.
+
+      :param projections: full projections :math:`g`
+      :type projections: torch.tensor
+      :param subset_idx: subset index :math:`m`
+      :type subset_idx: int
+
+      :returns: subsampled projections :math:`g_m`
+      :rtype: torch.tensor
+
+
+   .. py:method:: get_weighting_subset(subset_idx)
+
+      Computes the relative weighting of a given subset (given that the projection space is reduced). This is used for scaling parameters relative to :math:`H_m^T 1` in reconstruction algorithms, such as prior weighting :math:`\beta`
+
+      :param subset_idx: Subset index
+      :type subset_idx: int
+
+      :returns: Weighting for the subset.
+      :rtype: float
+
+
+   .. py:method:: forward(object, subset_idx = None)
 
       Applies forward projection to ``object`` for a SPECT imaging system.
 
       :param object: The object to be forward projected
       :type object: torch.tensor[batch_size, Lx, Ly, Lz]
-      :param angle_subset: Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
-      :type angle_subset: list, optional
+      :param subset_idx: Only uses a subset of angles :math:`g_m` corresponding to the provided subset index :math:`m`. If None, then defaults to the full projections :math:`g`.
+      :type subset_idx: int, optional
 
-      :returns: Forward projected projections where Ltheta is specified by `self.proj_meta` and `angle_subset`.
-      :rtype: torch.tensor[batch_size, Ltheta, Lx, Lz]
+      :returns: forward projection estimate :math:`g_m=H_mf`
+      :rtype: torch.tensor
 
 
-   .. py:method:: backward(proj, angle_subset = None, return_norm_constant = False)
+   .. py:method:: backward(proj, subset_idx = None, return_norm_constant = False)
 
       Applies back projection to ``proj`` for a SPECT imaging system.
 
-      :param proj: projections which are to be back projected
-      :type proj: torch.tensor[batch_size, Ltheta, Lr, Lz]
-      :param angle_subset: Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
-      :type angle_subset: list, optional
-      :param return_norm_constant: Whether or not to return :math:`1/\sum_j H_{ij}` along with back projection. Defaults to 'False'.
+      :param proj: projections :math:`g` which are to be back projected
+      :type proj: torch.tensor
+      :param subset_idx: Only uses a subset of angles :math:`g_m` corresponding to the provided subset index :math:`m`. If None, then defaults to the full projections :math:`g`.
+      :type subset_idx: int, optional
+      :param return_norm_constant: Whether or not to return :math:`H_m^T 1` along with back projection. Defaults to 'False'.
       :type return_norm_constant: bool
 
-      :returns: the object obtained from back projection.
-      :rtype: torch.tensor[batch_size, Lr, Lr, Lz]
+      :returns: the object :math:`\hat{f} = H_m^T g_m` obtained via back projection.
+      :rtype: torch.tensor
 
 
 
@@ -190,6 +310,119 @@ Classes
 
 
 
+.. py:class:: PETLMSystemMatrix(object_meta, proj_meta, obj2obj_transforms = [], attenuation_map = None, N_splits = 1, device = pytomography.device)
+
+   Bases: :py:obj:`pytomography.projectors.SystemMatrix`
+
+   System matrix of PET list mode data. Forward projections corresponds to computing the expected counts along all LORs specified: in particular it approximates :math:`g_i = \int_{\text{LOR}_i} h(r) f(r) dr` where index :math:`i` corresponds to a particular detector pair and :math:`h(r)` is a Gaussian function that incorporates time-of-flight information (:math:`h(r)=1` for non-time-of-flight). The integral is approximated in the discrete object space using Joseph3D projections. In general, the system matrix implements two different projections, the quantity :math:`H` which projects to LORs corresponding to all detected events, and the quantity :math:`\tilde{H}` which projects to all valid LORs. The quantity :math:`H` is used for standard forward/back projection, while :math:`\tilde{H}` is used to compute the sensitivity image.
+
+   :param object_meta: Metadata of object space, containing information on voxel size and dimensions.
+   :type object_meta: SPECTObjectMeta
+   :param proj_meta: PET listmode projection space metadata. This information contains the detector ID pairs of all detected events, as well as a scanner lookup table and time-of-flight metadata. In addition, this meadata contains all information regarding event weights, typically corresponding to the effects of attenuation :math:`\mu` and :math:`\eta`.
+   :type proj_meta: PETLMProjMeta
+   :param obj2obj_transforms: Object to object space transforms applied before forward projection and after back projection. These are typically used for PSF modeling in PET imaging.
+   :type obj2obj_transforms: Sequence[Transform]
+   :param attenuation_map: Attenuation map used for attenuation modeling. If provided, all weights will be scaled by detection probabilities derived from this map. Note that this scales on top of any weights provided in ``proj_meta``, so if attenuation is already accounted for there, this is not needed. Defaults to None.
+   :type attenuation_map: torch.tensor[float] | None, optional
+   :param N_splits: Splits up computation of forward/back projection to save GPU memory. Defaults to 1.
+   :type N_splits: int
+   :param device: The device on which forward/back projection tensors are output. This is seperate from ``pytomography.device``, which handles internal computations. The reason for having the option of a second device is that the projection space may be very large, and certain GPUs may not have enough memory to store the projections. If ``device`` is not the same as ``pytomography.device``, then one must also specify the same ``device`` in any reconstruction algorithm used. Defaults to ``pytomography.device``.
+   :type device: str
+
+   .. py:method:: set_n_subsets(n_subsets)
+
+      Returns a list where each element consists of an array of indices corresponding to a partitioned version of the projections.
+
+      :param n_subsets: Number of subsets to partition the projections into
+      :type n_subsets: int
+
+      :returns: List of arrays where each array corresponds to the projection indices of a particular subset.
+      :rtype: list
+
+
+   .. py:method:: get_projection_subset(projections, subset_idx)
+
+      Obtains subsampled projections :math:`g_m` corresponding to subset index :math:`m`. For LM PET, its always the case that :math:`g_m=1`, but this function is still required for subsampling scatter :math:`s_m` as is required in certain reconstruction algorithms
+
+      :param projections: total projections :math:`g`
+      :type projections: torch.Tensor
+      :param subset_idx: subset index :math:`m`
+      :type subset_idx: int
+
+      :returns: subsampled projections :math:`g_m`.
+      :rtype: torch.Tensor
+
+
+   .. py:method:: get_weighting_subset(subset_idx)
+
+      Computes the relative weighting of a given subset (given that the projection space is reduced). This is used for scaling parameters relative to :math:`\tilde{H}_m^T 1` in reconstruction algorithms, such as prior weighting :math:`\beta`
+
+      :param subset_idx: Subset index
+      :type subset_idx: int
+
+      :returns: Weighting for the subset.
+      :rtype: float
+
+
+   .. py:method:: compute_atteunation_probability_projection(idx)
+
+      Computes probabilities of photons being detected along an LORs corresponding to ``idx``.
+
+      :param idx: Indices of the detector pairs.
+      :type idx: torch.tensor
+
+      :returns: The probabilities of photons being detected along the detector pairs.
+      :rtype: torch.Tensor
+
+
+   .. py:method:: compute_sens_factor(N_splits = 10)
+
+      Computes the normalization factor :math:`\tilde{H}^T w` where :math:`w` is the weighting specified in the projection metadata that accounts for attenuation/normalization correction.
+
+      :param N_splits: Optionally splits up computation to save memory on GPU. Defaults to 10.
+      :type N_splits: int, optional
+
+
+   .. py:method:: compute_normalization_factor(subset_idx = None)
+
+      Function called by reconstruction algorithms to get the sensitivty image :math:`\tilde{H}_m^T w`.
+
+      :param subset_idx: Subset index :math:`m`. If none, then considers backprojection over all subsets. Defaults to None.
+      :type subset_idx: int | None, optional
+
+      :returns: Normalization factor.
+      :rtype: torch.tensor
+
+
+   .. py:method:: forward(object, subset_idx = None)
+
+      Computes forward projection. In the case of list mode PET, this corresponds to the expected number of detected counts along each LOR corresponding to a particular object.
+
+      :param object: Object to be forward projected
+      :type object: torch.tensor
+      :param subset_idx: Subset index :math:`m` of the projection. If None, then assumes projection to the entire projection space. Defaults to None.
+      :type subset_idx: int, optional
+
+      :returns: Projections corresponding to the expected number of counts along each LOR.
+      :rtype: torch.tensor
+
+
+   .. py:method:: backward(proj, subset_idx = None, return_norm_constant = False)
+
+      Computes back projection. This corresponds to tracing a sequence of LORs into object space.
+
+      :param proj: Projections to be back projected
+      :type proj: torch.tensor
+      :param subset_idx: Subset index :math:`m` of the projection. If None, then assumes projection to the entire projection space. Defaults to None.
+      :type subset_idx: int, optional
+      :param return_norm_constant: Whether or not to return the normalization constant: useful in reconstruction algorithms that require :math:`H_m^T 1`. Defaults to False.
+      :type return_norm_constant: bool, optional
+
+      :returns: _description_
+      :rtype: torch.tensor
+
+
+
 .. py:class:: KEMSystemMatrix(system_matrix, kem_transform)
 
    Bases: :py:obj:`pytomography.projectors.system_matrix.SystemMatrix`
@@ -201,32 +434,59 @@ Classes
    :param kem_transform: Transform used to go from coefficient image to real image of predicted counts.
    :type kem_transform: KEMTransform
 
-   .. py:method:: forward(object, angle_subset=None)
+   .. py:method:: compute_normalization_factor(subset_idx = None)
+
+      Function used to get normalization factor :math:`K^T H^T_m 1` corresponding to projection subset :math:`m`.
+
+      :param subset_idx: Index of subset. If none, then considers all projections. Defaults to None.
+      :type subset_idx: int | None, optional
+
+      :returns: normalization factor :math:`K^T H^T_m 1`
+      :rtype: torch.Tensor
+
+
+   .. py:method:: forward(object, subset_idx=None)
 
       Forward transform :math:`HK`
 
       :param object: Object to be forward projected
       :type object: torch.tensor
-      :param angle_subset: Angles to forward projected; if none, project to all angles. Defaults to None.
-      :type angle_subset: Sequence, optional
+      :param subset_idx: Only uses a subset of angles :math:`g_m` corresponding to the provided subset index :math:`m`. If None, then defaults to the full projections :math:`g`.
+      :type subset_idx: int, optional
 
       :returns: Corresponding projections generated from forward projection
       :rtype: torch.tensor
 
 
-   .. py:method:: backward(proj, angle_subset=None, return_norm_constant=False)
+   .. py:method:: backward(proj, subset_idx=None, return_norm_constant=False)
 
       Backward transform :math:`K^T H^T`
 
       :param proj: Projection data to be back projected
       :type proj: torch.tensor
-      :param angle_subset: Angles corresponding to projections; if none, then all projections from ``self.proj_meta`` are contained. Defaults to None.
-      :type angle_subset: Sequence, optional
+      :param subset_idx: Only uses a subset of angles :math:`g_m` corresponding to the provided subset index :math:`m`. If None, then defaults to the full projections :math:`g`.
+      :type subset_idx: int, optional
       :param return_norm_constant: Additionally returns :math:`K^T H^T 1` if true; defaults to False.
       :type return_norm_constant: bool, optional
 
       :returns: Corresponding object generated from back projection.
       :rtype: torch.tensor
 
+
+
+.. py:class:: MotionSystemMatrix(system_matrices, motion_transforms)
+
+   Bases: :py:obj:`pytomography.projectors.system_matrix.ExtendedSystemMatrix`
+
+   Abstract class for a general system matrix :math:`H:\mathbb{U} \to \mathbb{V}` which takes in an object :math:`f \in \mathbb{U}` and maps it to corresponding projections :math:`g \in \mathbb{V}` that would be produced by the imaging system. A system matrix consists of sequences of object-to-object and proj-to-proj transforms that model various characteristics of the imaging system, such as attenuation and blurring. While the class implements the operator :math:`H:\mathbb{U} \to \mathbb{V}` through the ``forward`` method, it also implements :math:`H^T:\mathbb{V} \to \mathbb{U}` through the `backward` method, required during iterative reconstruction algorithms such as OSEM.
+
+   :param obj2obj_transforms: Sequence of object mappings that occur before forward projection.
+   :type obj2obj_transforms: Sequence[Transform]
+   :param im2im_transforms: Sequence of proj mappings that occur after forward projection.
+   :type im2im_transforms: Sequence[Transform]
+   :param object_meta: Object metadata.
+   :type object_meta: ObjectMeta
+   :param proj_meta: Projection metadata.
+   :type proj_meta: ProjMeta
 
 

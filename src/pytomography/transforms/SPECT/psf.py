@@ -115,6 +115,7 @@ class SPECTPSFTransform(Transform):
         psf_meta: SPECTPSFMeta | None = None,
         kernel_f: Callable | None = None,
         psf_net: Callable | None = None,
+        assume_padded: bool = True,
     ) -> None:
         """Initializer that sets corresponding psf parameters"""
         super(SPECTPSFTransform, self).__init__()
@@ -123,6 +124,7 @@ class SPECTPSFTransform(Transform):
         self.psf_meta = psf_meta
         self.kernel_f = kernel_f
         self.psf_net = psf_net
+        self.assume_padded = assume_padded
         
     def _configure_gaussian_model(self):
         """Internal function to configure Gaussian modeling. This is called when `psf_meta` is given in initialization
@@ -203,7 +205,9 @@ class SPECTPSFTransform(Transform):
         Returns:
             array: An array of length Lx corresponding to blurring at each point along the 1st axis in object space
         """
-        dim = self.object_meta.shape[0] + 2*compute_pad_size(self.object_meta.shape[0])
+        dim = self.object_meta.shape[0]
+        if self.assume_padded:
+            dim += 2*compute_pad_size(self.object_meta.shape[0])
         distances = get_distance(dim, radius, self.object_meta.dx)
         sigma = self.psf_meta.sigma_fit(distances, *self.psf_meta.sigma_fit_params)
         return sigma

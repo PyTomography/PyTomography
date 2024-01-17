@@ -2,6 +2,7 @@ from __future__ import annotations
 import warnings
 import os
 import collections.abc
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Sequence
 import numpy as np
@@ -14,7 +15,7 @@ from pydicom.uid import generate_uid
 import pytomography
 from pytomography.metadata import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
 from pytomography.utils import get_blank_below_above, compute_TEW, get_mu_from_spectrum_interp
-from ..CT import get_HU2mu_conversion, open_CT_file, compute_max_slice_loc_CT
+from ..CT import get_HU2mu_conversion, open_CT_file, compute_max_slice_loc_CT, compute_slice_thickness_CT
 from ..shared import create_ds
 
 def parse_projection_dataset(ds: Dataset) -> Sequence[torch.Tensor, np.array, np.array, dict]:
@@ -204,7 +205,9 @@ def get_attenuation_map_from_file(file_AM: str) -> torch.Tensor:
 def get_psfmeta_from_scanner_params(
     collimator_name: str,
     energy_keV: float,
-    min_sigmas: float = 3
+    min_sigmas: float = 3,
+    material: str = 'lead',
+    intrinsic_resolution: float = 0,
     ) -> SPECTPSFMeta:
     """Obtains SPECT PSF metadata given a unique collimator code and photopeak energy of radionuclide. For more information on collimator codes, see the "external data" section of the readthedocs page.
 
@@ -212,6 +215,8 @@ def get_psfmeta_from_scanner_params(
         collimator_name (str): Code for the collimator used.
         energy_keV (float): Energy of the photopeak
         min_sigmas (float): Minimum size of the blurring kernel used. Fixes the convolutional kernel size so that all locations have at least ``min_sigmas`` in dimensions (some will be greater)
+        material (str): Material of the collimator.
+        intrinsic_resolution (float): Intrinsic resolution (FWHM) of the scintillator crystals. Defaults to 0.
 
     Returns:
         SPECTPSFMeta: PSF metadata.
@@ -231,12 +236,21 @@ def get_psfmeta_from_scanner_params(
     hole_length = float(line.split()[3])
     hole_diameter = float(line.split()[1])
 
-    lead_attenuation = get_mu_from_spectrum_interp(os.path.join(module_path, '../../data/NIST_attenuation_data/lead.csv'), energy_keV)
+    lead_attenuation = get_mu_from_spectrum_interp(os.path.join(module_path, f'../../data/NIST_attenuation_data/{material}.csv'), energy_keV)
     
-    collimator_slope = hole_diameter/(hole_length - (2/lead_attenuation)) * 1/(2*np.sqrt(2*np.log(2)))
-    collimator_intercept = hole_diameter * 1/(2*np.sqrt(2*np.log(2)))
+    FWHM2sigma = 1/(2*np.sqrt(2*np.log(2)))
+    collimator_slope = hole_diameter/(hole_length - (2/lead_attenuation)) * FWHM2sigma
+    collimator_intercept = hole_diameter * FWHM2sigma
+    intrinsic_resolution = intrinsic_resolution * FWHM2sigma
     
-    return SPECTPSFMeta((collimator_slope, collimator_intercept), min_sigmas=min_sigmas)
+    sigma_fit = lambda r, a, b, c: np.sqrt((a*r+b)**2+c**2)
+    sigma_fit_params = [collimator_slope, collimator_intercept, intrinsic_resolution]
+    
+    return SPECTPSFMeta(
+        sigma_fit_params=sigma_fit_params,
+        sigma_fit=sigma_fit,
+        min_sigmas=min_sigmas
+        )
 
 def CT_to_mumap(
     CT: torch.tensor,
@@ -269,7 +283,9 @@ def get_attenuation_map_from_CT_slices(
     file_NM: str | None = None,
     index_peak: int = 0,
     keep_as_HU: bool = False,
-    mode: str = 'constant'
+    mode: str = 'constant',
+    CT_output_shape: Sequence[int] | None = None,
+    apply_affine: bool = True,
     ) -> torch.Tensor:
     """Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography.
 
@@ -278,6 +294,8 @@ def get_attenuation_map_from_CT_slices(
         file_NM (str): File corresponding to raw PET/SPECT data (required to align CT with projections). If None, then no alignment is done. Defaults to None.
         index_peak (int, optional): Index corresponding to photopeak in projection data. Defaults to 0.
         keep_as_HU (bool): If True, then don't convert to linear attenuation coefficient and keep as Hounsfield units. Defaults to False
+        CT_output_shape (Sequence, optional): If not None, then the CT is returned with the desired dimensions. Otherwise, it defaults to the shape in the file_NM data.
+        apply_affine (bool): Whether or not to align CT with NM.
 
     Returns:
         torch.Tensor: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.
@@ -287,16 +305,17 @@ def get_attenuation_map_from_CT_slices(
     
     if file_NM is None:
         return torch.tensor(CT_HU[:,:,::-1].copy()).unsqueeze(dim=0).to(pytomography.dtype).to(pytomography.device)
-    
     ds_NM = pydicom.read_file(file_NM)
-    # Align with SPECT:
-    M_CT = _get_affine_CT(files_CT)
-    M_NM = _get_affine_spect_projections(file_NM)
-    # Resample CT and convert to mu at 208keV and save
-    M = npl.inv(M_CT) @ M_NM
     # When doing affine transform, fill outside with point below -1000HU so it automatically gets converted to mu=0 after bilinear transform
-    CT_HU = affine_transform(CT_HU, M, output_shape=(ds_NM.Rows, ds_NM.Rows, ds_NM.Columns), mode=mode, cval=-1500)
-    
+    if CT_output_shape is None:
+        CT_output_shape = (ds_NM.Rows, ds_NM.Rows, ds_NM.Columns)
+    if apply_affine:
+        # Align with SPECT:
+        M_CT = _get_affine_CT(files_CT)
+        M_NM = _get_affine_spect_projections(file_NM)
+        # Resample CT and convert to mu at 208keV and save
+        M = npl.inv(M_CT) @ M_NM
+        CT_HU = affine_transform(CT_HU, M, output_shape=CT_output_shape, mode=mode, cval=-1500)
     if keep_as_HU:
         CT = CT_HU
     else:
@@ -340,11 +359,12 @@ def _get_affine_CT(filenames: Sequence[str]):
     """
     # Note: per DICOM convention z actually decreases as the z-index increases (initial z slices start with the head)
     ds = pydicom.read_file(filenames[0])
+    dz = compute_slice_thickness_CT(filenames)
     max_z = compute_max_slice_loc_CT(filenames)
     M = np.zeros((4,4))
     M[0:3, 0] = np.array(ds.ImageOrientationPatient[0:3])*ds.PixelSpacing[0]
     M[0:3, 1] = np.array(ds.ImageOrientationPatient[3:])*ds.PixelSpacing[1]
-    M[0:3, 2] = - np.array([0,0,1]) * ds.SliceThickness 
+    M[0:3, 2] = - np.array([0,0,1]) * dz 
     M[0:2, 3] = np.array(ds.ImagePositionPatient)[0:2] 
     M[2, 3] = max_z
     M[3, 3] = 1
@@ -412,8 +432,7 @@ def save_dcm(
     save_path: str,
     object: torch.Tensor,
     file_NM: str,
-    recon_name: str = '',
-    scale_factor: float = 1024,
+    recon_name: str = ''
     ) -> None:
     """Saves the reconstructed object `object` to a series of DICOM files in the folder given by `save_path`. Requires the filepath of the projection data `file_NM` to get Study information.
 
@@ -422,15 +441,16 @@ def save_dcm(
         save_path (str): Location of folder where to save the DICOM output files.
         file_NM (str): File path of the projection data corresponding to the reconstruction.
         recon_name (str): Type of reconstruction performed. Obtained from the `recon_method_str` attribute of a reconstruction algorithm class.
-        scale_factor (float, optional): Amount by which to scale output data so that it can be converted into a 16 bit integer. Defaults to 1024.
     """
     try:
         Path(save_path).resolve().mkdir(parents=True, exist_ok=False)
     except:
         raise Exception(f'Folder {save_path} already exists; new folder name is required.')
     # Convert tensor image to numpy array
-    pixel_data = torch.permute(object.squeeze(),(2,1,0)) * scale_factor
-    pixel_data = pixel_data.cpu().numpy().astype(np.uint16)
+    pixel_data = torch.permute(object.squeeze(),(2,1,0)).cpu().numpy()    
+    scale_factor = (2**16 - 1) / pixel_data.max()
+    pixel_data *= scale_factor #maximum dynamic range
+    pixel_data = pixel_data.astype(np.uint16)
     # Get affine information
     ds_NM = pydicom.dcmread(file_NM)
     Sx, Sy, Sz = ds_NM.DetectorInformationSequence[0].ImagePositionPatient
@@ -451,6 +471,7 @@ def save_dcm(
     ds.NumberOfSlices = pixel_data.shape[0]
     ds.PixelSpacing = [dx,dy]
     ds.SliceThickness = dz
+    ds.SpacingBetweenSlices = dz
     ds.ImageOrientationPatient = [1,0,0,0,1,0]
     ds.RescaleSlope = 1/scale_factor
     # Set other things
@@ -473,3 +494,23 @@ def save_dcm(
         # Set the pixel data
         ds_i.PixelData = pixel_data[i].tobytes()
         ds_i.save_as(os.path.join(save_path, f'{ds.SOPInstanceUID}.dcm'))
+        
+def open_SPECT_file(
+    files_SPECT: Sequence[str],
+    ) -> np.array:
+    """Given a list of seperate SPECT DICOM files, opens them up and stacks them together into a single SPECT image. 
+
+    Args:
+        files_SPECT (Sequence[str]): List of SPECT DICOM filepaths corresponding to different z slices of the same scan.
+
+    Returns:
+        np.array: SPECT scan with units of vendor.
+    """
+    SPECT_slices = []
+    slice_locs = []
+    for file in files_SPECT:
+        ds = pydicom.read_file(file)
+        SPECT_slices.append(ds.RescaleSlope * ds.pixel_array + ds.RescaleIntercept)
+        slice_locs.append(float(ds.ImagePositionPatient[2]))
+    SPECT_image = np.transpose(np.array(SPECT_slices)[np.argsort(slice_locs)], (2,1,0)).astype(np.float32)
+    return SPECT_image

@@ -8,40 +8,19 @@ import os
 import pytomography
 from pytomography.metadata import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
 from pytomography.utils import get_mu_from_spectrum_interp, compute_TEW
+from ..shared import get_header_value
 
 relation_dict = {'unsignedinteger': 'int',
                  'shortfloat': 'float',
                  'int': 'int'}
 
-def find_first_entry_containing_header(
-    list_of_attributes: list[str],
-    header: str,
-    dtype: type = np.float32
-    ) -> float|str|int:
-    """Finds the first entry in a SIMIND Interfile output corresponding to the header (header).
-
-    Args:
-        list_of_attributes (list[str]): Simind data file, as a list of lines.
-        header (str): The header looked for
-        dtype (type, optional): The data type to be returned corresponding to the value of the header. Defaults to np.float32.
-
-    Returns:
-        float|str|int: The value corresponding to the header (header).
-    """
-    line = list_of_attributes[np.char.find(list_of_attributes, header)>=0][0]
-    if dtype == np.float32:
-        return np.float32(line.replace('\n', '').split(':=')[-1])
-    elif dtype == str:
-        return (line.replace('\n', '').split(':=')[-1].replace(' ', ''))
-    elif dtype == int:
-        return int(line.replace('\n', '').split(':=')[-1].replace(' ', ''))
-    
-def get_metadata(headerfile: str, distance: str = 'cm'):
+def get_metadata(headerfile: str, distance: str = 'cm', corrfile: str | None = None):
     """Obtains required metadata from a SIMIND header file.
 
     Args:
         headerfile (str): Path to the header file
         distance (str, optional): The units of measurements in the SIMIND file (this is required as input, since SIMIND uses mm/cm but doesn't specify). Defaults to 'cm'.
+        corrfile (str, optional): .cor file used in SIMIND to specify radial positions for non-circular orbits. This needs to be provided for non-standard orbits.
 
     Returns:
         (SPECTObjectMeta, SPECTProjMeta, torch.Tensor[1, Ltheta, Lr, Lz]): Required information for reconstruction in PyTomography.
@@ -53,19 +32,27 @@ def get_metadata(headerfile: str, distance: str = 'cm'):
     with open(headerfile) as f:
         headerdata = f.readlines()
     headerdata = np.array(headerdata)
-    proj_dim1 = find_first_entry_containing_header(headerdata, 'matrix size [1]', int)
-    proj_dim2 = find_first_entry_containing_header(headerdata, 'matrix size [2]', int)
-    dx = find_first_entry_containing_header(headerdata, 'scaling factor (mm/pixel) [1]', np.float32) / 10 # to mm
-    dz = find_first_entry_containing_header(headerdata, 'scaling factor (mm/pixel) [2]', np.float32) / 10 # to mm
+    proj_dim1 = get_header_value(headerdata, 'matrix size [1]', int)
+    proj_dim2 = get_header_value(headerdata, 'matrix size [2]', int)
+    dx = get_header_value(headerdata, 'scaling factor (mm/pixel) [1]', np.float32) / 10 # to mm
+    dz = get_header_value(headerdata, 'scaling factor (mm/pixel) [2]', np.float32) / 10 # to mm
     dr = (dx, dx, dz)
-    extent_of_rotation = find_first_entry_containing_header(headerdata, 'extent of rotation', np.float32)
-    number_of_projections = find_first_entry_containing_header(headerdata, 'number of projections', int)
-    start_angle = find_first_entry_containing_header(headerdata, 'start angle', np.float32)
+    extent_of_rotation = get_header_value(headerdata, 'extent of rotation', np.float32)
+    number_of_projections = get_header_value(headerdata, 'number of projections', int)
+    start_angle = get_header_value(headerdata, 'start angle', np.float32)
+    direction = get_header_value(headerdata, 'direction of rotation', str)
     angles = np.linspace(start_angle, extent_of_rotation, number_of_projections, endpoint=False)
-    radius = find_first_entry_containing_header(headerdata, 'Radius', np.float32) *scale_factor
+    if direction=='CW':
+        angles = -angles % 360
+    # Get radial positions
+    if corrfile is not None:
+        radii = np.loadtxt(corrfile) * scale_factor
+    else:
+        radius = get_header_value(headerdata, 'Radius', np.float32) * scale_factor
+        radii = np.ones(len(angles))*radius
     shape_obj = (proj_dim1, proj_dim1, proj_dim2)
     object_meta = SPECTObjectMeta(dr,shape_obj)
-    proj_meta = SPECTProjMeta((proj_dim1, proj_dim2), angles, np.ones(len(angles))*radius)
+    proj_meta = SPECTProjMeta((proj_dim1, proj_dim2), angles, radii)
     return object_meta, proj_meta
 
 def get_projections(headerfile: str):
@@ -81,13 +68,13 @@ def get_projections(headerfile: str):
     with open(headerfile) as f:
         headerdata = f.readlines()
     headerdata = np.array(headerdata)
-    num_proj = find_first_entry_containing_header(headerdata, 'total number of images', int)
-    proj_dim1 = find_first_entry_containing_header(headerdata, 'matrix size [1]', int)
-    proj_dim2 = find_first_entry_containing_header(headerdata, 'matrix size [2]', int)
-    number_format = find_first_entry_containing_header(headerdata, 'number format', str)
+    num_proj = get_header_value(headerdata, 'total number of images', int)
+    proj_dim1 = get_header_value(headerdata, 'matrix size [1]', int)
+    proj_dim2 = get_header_value(headerdata, 'matrix size [2]', int)
+    number_format = get_header_value(headerdata, 'number format', str)
     number_format= relation_dict[number_format]
-    num_bytes_per_pixel = find_first_entry_containing_header(headerdata, 'number of bytes per pixel', int)
-    imagefile = find_first_entry_containing_header(headerdata, 'name of data file', str)
+    num_bytes_per_pixel = get_header_value(headerdata, 'number of bytes per pixel', int)
+    imagefile = get_header_value(headerdata, 'name of data file', str)
     dtype = eval(f'np.{number_format}{num_bytes_per_pixel*8}')
     projections = np.fromfile(os.path.join(str(Path(headerfile).parent), imagefile), dtype=dtype)
     projections = np.transpose(projections.reshape((num_proj,proj_dim2,proj_dim1))[:,::-1], (0,2,1))
@@ -118,8 +105,8 @@ def get_scatter_from_TEW(
         with open(headerfile) as f:
             headerdata = f.readlines()
         headerdata = np.array(headerdata)
-        lwr_window = find_first_entry_containing_header(headerdata, 'energy window lower level', np.float32)
-        upr_window = find_first_entry_containing_header(headerdata, 'energy window upper level', np.float32)
+        lwr_window = get_header_value(headerdata, 'energy window lower level', np.float32)
+        upr_window = get_header_value(headerdata, 'energy window upper level', np.float32)
         window_widths.append(upr_window - lwr_window)
         projectionss.append(projections)
     projections_scatter = compute_TEW(projectionss[1], projectionss[2], window_widths[1], window_widths[2], window_widths[0])
@@ -179,13 +166,15 @@ def get_attenuation_map(headerfile: str):
     with open(headerfile) as f:
         headerdata = f.readlines()
     headerdata = np.array(headerdata)
-    matrix_size_1 = find_first_entry_containing_header(headerdata, 'matrix size [1]', int)
-    matrix_size_2 = find_first_entry_containing_header(headerdata, 'matrix size [2]', int)
-    matrix_size_3 = find_first_entry_containing_header(headerdata, 'matrix size [3]', int)
+    matrix_size_1 = get_header_value(headerdata, 'matrix size [1]', int)
+    matrix_size_2 = get_header_value(headerdata, 'matrix size [2]', int)
+    matrix_size_3 = get_header_value(headerdata, 'matrix size [3]', int)
     shape = (matrix_size_3, matrix_size_2, matrix_size_1)
-    imagefile = find_first_entry_containing_header(headerdata, 'name of data file', str)
+    imagefile = get_header_value(headerdata, 'name of data file', str)
     CT = np.fromfile(os.path.join(str(Path(headerfile).parent), imagefile), dtype=np.float32)
-    CT = np.transpose(CT.reshape(shape)[::-1,::-1], (2,1,0))
+    # Flip "Z" ("X" in SIMIND) b/c "first density image located at +X" according to SIMIND manual
+    # Flip "Y" ("Z" in SIMIND) b/c axis convention is opposite for x22,5x (mu-castor format)
+    CT = np.transpose(CT.reshape(shape), (2,1,0))[:,::-1,::-1]
     CT = torch.tensor(CT.copy()).unsqueeze(dim=0)
     return CT.to(pytomography.device)
 
@@ -202,9 +191,9 @@ def get_psfmeta_from_header(headerfile: str):
     with open(headerfile) as f:
         headerdata = f.readlines()
     headerdata = np.array(headerdata)
-    hole_diameter = find_first_entry_containing_header(headerdata, 'Collimator hole diameter', np.float32)
-    hole_length = find_first_entry_containing_header(headerdata, 'Collimator thickness', np.float32)
-    energy_keV = find_first_entry_containing_header(headerdata, 'Photon Energy', np.float32)
+    hole_diameter = get_header_value(headerdata, 'Collimator hole diameter', np.float32)
+    hole_length = get_header_value(headerdata, 'Collimator thickness', np.float32)
+    energy_keV = get_header_value(headerdata, 'Photon Energy', np.float32)
     lead_attenuation = get_mu_from_spectrum_interp(os.path.join(module_path, '../../data/NIST_attenuation_data/lead.csv'), energy_keV)
     collimator_slope = hole_diameter/(hole_length - (2/lead_attenuation)) * 1/(2*np.sqrt(2*np.log(2)))
     collimator_intercept = hole_diameter * 1/(2*np.sqrt(2*np.log(2)))

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pytomography"
-version = "1.2.2"
+version = "1.3.0"
 
 authors = [
   { name="Luke Polson", email="lukepolson@outlook.com" },
@@ -17,6 +17,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+
 dependencies = [
   "numpy>=1.24.2",
   "scipy>=1.10.1",
@@ -24,8 +25,12 @@ dependencies = [
   "kornia>=0.6.12",
   "torch>=1.10.2",
   "fft-conv-pytorch>=1.2.0",
-  "matplotlib>=3.8.0"
+  "matplotlib>=3.8.0",
+  "uproot>=5.2.1"
 ]
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [project.urls]
 "Homepage" = "https://github.com/qurit/PyTomography"

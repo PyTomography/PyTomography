@@ -1,0 +1,582 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pytomography.io.PET.prd.protocols &#8212; PyTomography 1.3.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../../_static/styles/theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../../../../../_static/styles/bootstrap.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../../../../../_static/styles/pydata-sphinx-theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+
+  
+  <link href="../../../../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=e353d410970836974a52" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/graphviz.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
+<link rel="preload" as="script" href="../../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
+
+    <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
+    <script src="../../../../../_static/doctools.js"></script>
+    <script src="../../../../../_static/sphinx_highlight.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pytomography/io/PET/prd/protocols';</script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+<div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+    <span class="fa-solid fa-bars"></span>
+  </label>
+  
+  <div class="navbar-header-items__start">
+    
+      <div class="navbar-item">
+  
+
+<a class="navbar-brand logo" href="../../../../../index.html">
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../../../_static/PT1.png" class="logo__image only-light" alt="Logo image"/>
+    <script>document.write(`<img src="../../../../../_static/PT1.png" class="logo__image only-dark" alt="Logo image"/>`);</script>
+  
+  
+</a></div>
+    
+  </div>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../external_data.html">
+                        External Data
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../autoapi/index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+        </div>
+      
+      
+        <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+    </div>
+  
+
+  
+</div>
+
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../external_data.html">
+                        External Data
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../autoapi/index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+
+
+<nav aria-label="Breadcrumbs">
+  <ul class="bd-breadcrumbs" role="navigation" aria-label="Breadcrumb">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><i class="fa-solid fa-ellipsis"></i></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../prd.html" class="nav-link">pytomography.io.PET.prd</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page">pytomography.io.PET.prd.protocols</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <h1>Source code for pytomography.io.PET.prd.protocols</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This file was generated by the &quot;yardl&quot; tool. DO NOT EDIT.</span>
+
+<span class="c1"># pyright: reportUnusedImport=false</span>
+
+<span class="kn">import</span> <span class="nn">abc</span>
+<span class="kn">import</span> <span class="nn">collections.abc</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">typing</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numpy.typing</span> <span class="k">as</span> <span class="nn">npt</span>
+
+<span class="kn">from</span> <span class="nn">.types</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">.yardl_types</span> <span class="kn">import</span> <span class="n">ProtocolError</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">yardl_types</span> <span class="k">as</span> <span class="n">yardl</span>
+
+<div class="viewcode-block" id="PrdExperimentWriterBase"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentWriterBase">[docs]</a><span class="k">class</span> <span class="nc">PrdExperimentWriterBase</span><span class="p">(</span><span class="n">abc</span><span class="o">.</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract writer for the PrdExperiment protocol.&quot;&quot;&quot;</span>
+
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="PrdExperimentWriterBase.schema"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentWriterBase.schema">[docs]</a>    <span class="n">schema</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;{&quot;protocol&quot;:{&quot;name&quot;:&quot;PrdExperiment&quot;,&quot;sequence&quot;:[{&quot;name&quot;:&quot;header&quot;,&quot;type&quot;:&quot;Prd.Header&quot;},{&quot;name&quot;:&quot;timeBlocks&quot;,&quot;type&quot;:{&quot;stream&quot;:{&quot;items&quot;:&quot;Prd.TimeBlock&quot;}}}]},&quot;types&quot;:[{&quot;name&quot;:&quot;CoincidenceEvent&quot;,&quot;fields&quot;:[{&quot;name&quot;:&quot;detector1Id&quot;,&quot;type&quot;:&quot;uint32&quot;},{&quot;name&quot;:&quot;detector2Id&quot;,&quot;type&quot;:&quot;uint32&quot;},{&quot;name&quot;:&quot;tofIdx&quot;,&quot;type&quot;:&quot;uint32&quot;},{&quot;name&quot;:&quot;energy1Idx&quot;,&quot;type&quot;:&quot;uint32&quot;},{&quot;name&quot;:&quot;energy2Idx&quot;,&quot;type&quot;:&quot;uint32&quot;}]},{&quot;name&quot;:&quot;Detector&quot;,&quot;fields&quot;:[{&quot;name&quot;:&quot;id&quot;,&quot;type&quot;:&quot;uint32&quot;},{&quot;name&quot;:&quot;x&quot;,&quot;type&quot;:&quot;float32&quot;},{&quot;name&quot;:&quot;y&quot;,&quot;type&quot;:&quot;float32&quot;},{&quot;name&quot;:&quot;z&quot;,&quot;type&quot;:&quot;float32&quot;}]},{&quot;name&quot;:&quot;ExamInformation&quot;,&quot;fields&quot;:[{&quot;name&quot;:&quot;subject&quot;,&quot;type&quot;:&quot;Prd.Subject&quot;},{&quot;name&quot;:&quot;institution&quot;,&quot;type&quot;:&quot;Prd.Institution&quot;},{&quot;name&quot;:&quot;protocol&quot;,&quot;type&quot;:[null,&quot;string&quot;]},{&quot;name&quot;:&quot;startOfAcquisition&quot;,&quot;type&quot;:[null,&quot;datetime&quot;]}]},{&quot;name&quot;:&quot;Header&quot;,&quot;fields&quot;:[{&quot;name&quot;:&quot;scanner&quot;,&quot;type&quot;:&quot;Prd.ScannerInformation&quot;},{&quot;name&quot;:&quot;exam&quot;,&quot;type&quot;:[null,&quot;Prd.ExamInformation&quot;]}]},{&quot;name&quot;:&quot;Institution&quot;,&quot;fields&quot;:[{&quot;name&quot;:&quot;name&quot;,&quot;type&quot;:&quot;string&quot;},{&quot;name&quot;:&quot;address&quot;,&quot;type&quot;:&quot;string&quot;}]},{&quot;name&quot;:&quot;ScannerInformation&quot;,&quot;fields&quot;:[{&quot;name&quot;:&quot;modelName&quot;,&quot;type&quot;:[null,&quot;string&quot;]},{&quot;name&quot;:&quot;detectors&quot;,&quot;type&quot;:{&quot;vector&quot;:{&quot;items&quot;:&quot;Prd.Detector&quot;}}},{&quot;name&quot;:&quot;tofBinEdges&quot;,&quot;type&quot;:{&quot;array&quot;:{&quot;items&quot;:&quot;float32&quot;,&quot;dimensions&quot;:1}}},{&quot;name&quot;:&quot;tofResolution&quot;,&quot;type&quot;:&quot;float32&quot;},{&quot;name&quot;:&quot;energyBinEdges&quot;,&quot;type&quot;:{&quot;array&quot;:{&quot;items&quot;:&quot;float32&quot;,&quot;dimensions&quot;:1}}},{&quot;name&quot;:&quot;energyResolutionAt511&quot;,&quot;type&quot;:&quot;float32&quot;},{&quot;name&quot;:&quot;listmodeTimeBlockDuration&quot;,&quot;type&quot;:&quot;uint32&quot;}]},{&quot;name&quot;:&quot;Subject&quot;,&quot;fields&quot;:[{&quot;name&quot;:&quot;name&quot;,&quot;type&quot;:[null,&quot;string&quot;]},{&quot;name&quot;:&quot;id&quot;,&quot;type&quot;:&quot;string&quot;}]},{&quot;name&quot;:&quot;TimeBlock&quot;,&quot;fields&quot;:[{&quot;name&quot;:&quot;id&quot;,&quot;type&quot;:&quot;uint32&quot;},{&quot;name&quot;:&quot;promptEvents&quot;,&quot;type&quot;:{&quot;vector&quot;:{&quot;items&quot;:&quot;Prd.CoincidenceEvent&quot;}}},{&quot;name&quot;:&quot;delayedEvents&quot;,&quot;type&quot;:[null,{&quot;vector&quot;:{&quot;items&quot;:&quot;Prd.CoincidenceEvent&quot;}}]}]}]}&quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="PrdExperimentWriterBase.__enter__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentWriterBase.__enter__">[docs]</a>    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="PrdExperimentWriterBase.__exit__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentWriterBase.__exit__">[docs]</a>    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="ne">BaseException</span><span class="p">]],</span> <span class="n">exc</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="ne">BaseException</span><span class="p">],</span> <span class="n">traceback</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">exc</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_end_stream</span><span class="p">()</span>
+                <span class="k">return</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">exc</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="n">expected_method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_to_method_name</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="o">~</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ProtocolError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Protocol writer closed before all steps were called. Expected to call to &#39;</span><span class="si">{</span><span class="n">expected_method</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PrdExperimentWriterBase.write_header"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentWriterBase.write_header">[docs]</a>    <span class="k">def</span> <span class="nf">write_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Header</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Ordinal 0&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_raise_unexpected_state</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_header</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="mi">2</span></div>
+
+<div class="viewcode-block" id="PrdExperimentWriterBase.write_time_blocks"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentWriterBase.write_time_blocks">[docs]</a>    <span class="k">def</span> <span class="nf">write_time_blocks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">TimeBlock</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Ordinal 1&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">&amp;</span> <span class="o">~</span><span class="mi">1</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_raise_unexpected_state</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_time_blocks</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="mi">3</span></div>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+<div class="viewcode-block" id="PrdExperimentWriterBase._write_header"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentWriterBase._write_header">[docs]</a>    <span class="k">def</span> <span class="nf">_write_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Header</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+<div class="viewcode-block" id="PrdExperimentWriterBase._write_time_blocks"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentWriterBase._write_time_blocks">[docs]</a>    <span class="k">def</span> <span class="nf">_write_time_blocks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">TimeBlock</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+<div class="viewcode-block" id="PrdExperimentWriterBase.close"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentWriterBase.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">pass</span></div>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+<div class="viewcode-block" id="PrdExperimentWriterBase._end_stream"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentWriterBase._end_stream">[docs]</a>    <span class="k">def</span> <span class="nf">_end_stream</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="PrdExperimentWriterBase._raise_unexpected_state"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentWriterBase._raise_unexpected_state">[docs]</a>    <span class="k">def</span> <span class="nf">_raise_unexpected_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">actual</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">expected_method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_to_method_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">)</span>
+        <span class="n">actual_method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_to_method_name</span><span class="p">(</span><span class="n">actual</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">ProtocolError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Expected to call to &#39;</span><span class="si">{</span><span class="n">expected_method</span><span class="si">}</span><span class="s2">&#39; but received call to &#39;</span><span class="si">{</span><span class="n">actual_method</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PrdExperimentWriterBase._state_to_method_name"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentWriterBase._state_to_method_name">[docs]</a>    <span class="k">def</span> <span class="nf">_state_to_method_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">state</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;write_header&#39;</span>
+        <span class="k">if</span> <span class="n">state</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;write_time_blocks&#39;</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;unknown&gt;&quot;</span></div></div>
+
+<div class="viewcode-block" id="PrdExperimentReaderBase"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentReaderBase">[docs]</a><span class="k">class</span> <span class="nc">PrdExperimentReaderBase</span><span class="p">(</span><span class="n">abc</span><span class="o">.</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract reader for the PrdExperiment protocol.&quot;&quot;&quot;</span>
+
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="PrdExperimentReaderBase.schema"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentReaderBase.schema">[docs]</a>    <span class="n">schema</span> <span class="o">=</span> <span class="n">PrdExperimentWriterBase</span><span class="o">.</span><span class="n">schema</span></div>
+
+<div class="viewcode-block" id="PrdExperimentReaderBase.__enter__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentReaderBase.__enter__">[docs]</a>    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="PrdExperimentReaderBase.__exit__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentReaderBase.__exit__">[docs]</a>    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="ne">BaseException</span><span class="p">]],</span> <span class="n">exc</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="ne">BaseException</span><span class="p">],</span> <span class="n">traceback</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">exc</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">previous_method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_to_method_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">ProtocolError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Protocol reader closed before all data was consumed. The iterable returned by &#39;</span><span class="si">{</span><span class="n">previous_method</span><span class="si">}</span><span class="s2">&#39; was not fully consumed.&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">expected_method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_to_method_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">ProtocolError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Protocol reader closed before all data was consumed. Expected call to &#39;</span><span class="si">{</span><span class="n">expected_method</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span></div>
+            	
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+<div class="viewcode-block" id="PrdExperimentReaderBase.close"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentReaderBase.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PrdExperimentReaderBase.read_header"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentReaderBase.read_header">[docs]</a>    <span class="k">def</span> <span class="nf">read_header</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Header</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Ordinal 0&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_raise_unexpected_state</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_header</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="k">return</span> <span class="n">value</span></div>
+
+<div class="viewcode-block" id="PrdExperimentReaderBase.read_time_blocks"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentReaderBase.read_time_blocks">[docs]</a>    <span class="k">def</span> <span class="nf">read_time_blocks</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">TimeBlock</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Ordinal 1&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_raise_unexpected_state</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_time_blocks</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wrap_iterable</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PrdExperimentReaderBase.copy_to"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentReaderBase.copy_to">[docs]</a>    <span class="k">def</span> <span class="nf">copy_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">writer</span><span class="p">:</span> <span class="n">PrdExperimentWriterBase</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">write_header</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">read_header</span><span class="p">())</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">write_time_blocks</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">read_time_blocks</span><span class="p">())</span></div>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+<div class="viewcode-block" id="PrdExperimentReaderBase._read_header"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentReaderBase._read_header">[docs]</a>    <span class="k">def</span> <span class="nf">_read_header</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Header</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+<div class="viewcode-block" id="PrdExperimentReaderBase._read_time_blocks"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentReaderBase._read_time_blocks">[docs]</a>    <span class="k">def</span> <span class="nf">_read_time_blocks</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">TimeBlock</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PrdExperimentReaderBase.T"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentReaderBase.T">[docs]</a>    <span class="n">T</span> <span class="o">=</span> <span class="n">typing</span><span class="o">.</span><span class="n">TypeVar</span><span class="p">(</span><span class="s1">&#39;T&#39;</span><span class="p">)</span></div>
+<div class="viewcode-block" id="PrdExperimentReaderBase._wrap_iterable"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentReaderBase._wrap_iterable">[docs]</a>    <span class="k">def</span> <span class="nf">_wrap_iterable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterable</span><span class="p">:</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">final_state</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">T</span><span class="p">]:</span>
+        <span class="k">yield from</span> <span class="n">iterable</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">final_state</span></div>
+
+<div class="viewcode-block" id="PrdExperimentReaderBase._raise_unexpected_state"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentReaderBase._raise_unexpected_state">[docs]</a>    <span class="k">def</span> <span class="nf">_raise_unexpected_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">actual</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">actual_method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_to_method_name</span><span class="p">(</span><span class="n">actual</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">previous_method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_to_method_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ProtocolError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Received call to &#39;</span><span class="si">{</span><span class="n">actual_method</span><span class="si">}</span><span class="s2">&#39; but the iterable returned by &#39;</span><span class="si">{</span><span class="n">previous_method</span><span class="si">}</span><span class="s2">&#39; was not fully consumed.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">expected_method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_to_method_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ProtocolError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Expected to call to &#39;</span><span class="si">{</span><span class="n">expected_method</span><span class="si">}</span><span class="s2">&#39; but received call to &#39;</span><span class="si">{</span><span class="n">actual_method</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span></div>
+        	
+<div class="viewcode-block" id="PrdExperimentReaderBase._state_to_method_name"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/protocols/index.html#pytomography.io.PET.prd.PrdExperimentReaderBase._state_to_method_name">[docs]</a>    <span class="k">def</span> <span class="nf">_state_to_method_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">state</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;read_header&#39;</span>
+        <span class="k">if</span> <span class="n">state</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;read_time_blocks&#39;</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;unknown&gt;&quot;</span></div></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+                <footer class="bd-footer-article">
+                  
+<div class="footer-article-items footer-article__inner">
+  
+    <div class="footer-article-item"><!-- Previous / next buttons -->
+<div class="prev-next-area">
+</div></div>
+  
+</div>
+
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52"></script>
+<script src="../../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+  <p class="copyright">
+    
+      © Copyright 2023, Luke Polson.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 6.2.1.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item"><p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.13.3.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

@@ -1,0 +1,798 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pytomography.io.PET.prd.types &#8212; PyTomography 1.3.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../../_static/styles/theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../../../../../_static/styles/bootstrap.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../../../../../_static/styles/pydata-sphinx-theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+
+  
+  <link href="../../../../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=e353d410970836974a52" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/graphviz.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
+<link rel="preload" as="script" href="../../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
+
+    <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
+    <script src="../../../../../_static/doctools.js"></script>
+    <script src="../../../../../_static/sphinx_highlight.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pytomography/io/PET/prd/types';</script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+<div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+    <span class="fa-solid fa-bars"></span>
+  </label>
+  
+  <div class="navbar-header-items__start">
+    
+      <div class="navbar-item">
+  
+
+<a class="navbar-brand logo" href="../../../../../index.html">
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../../../_static/PT1.png" class="logo__image only-light" alt="Logo image"/>
+    <script>document.write(`<img src="../../../../../_static/PT1.png" class="logo__image only-dark" alt="Logo image"/>`);</script>
+  
+  
+</a></div>
+    
+  </div>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../external_data.html">
+                        External Data
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../autoapi/index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+        </div>
+      
+      
+        <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+    </div>
+  
+
+  
+</div>
+
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../external_data.html">
+                        External Data
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../autoapi/index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+
+
+<nav aria-label="Breadcrumbs">
+  <ul class="bd-breadcrumbs" role="navigation" aria-label="Breadcrumb">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><i class="fa-solid fa-ellipsis"></i></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../prd.html" class="nav-link">pytomography.io.PET.prd</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page">pytomography.io.PET.prd.types</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <h1>Source code for pytomography.io.PET.prd.types</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This file was generated by the &quot;yardl&quot; tool. DO NOT EDIT.</span>
+
+<span class="c1"># pyright: reportUnusedImport=false</span>
+<span class="c1"># pyright: reportUnknownArgumentType=false</span>
+<span class="c1"># pyright: reportUnknownMemberType=false</span>
+<span class="c1"># pyright: reportUnknownVariableType=false</span>
+
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">enum</span>
+<span class="kn">import</span> <span class="nn">types</span>
+<span class="kn">import</span> <span class="nn">typing</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numpy.typing</span> <span class="k">as</span> <span class="nn">npt</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">yardl_types</span> <span class="k">as</span> <span class="n">yardl</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_dtypes</span>
+
+<div class="viewcode-block" id="CoincidenceEvent"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.CoincidenceEvent">[docs]</a><span class="k">class</span> <span class="nc">CoincidenceEvent</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;All information about a coincidence event specified as identifiers or indices (i.e. discretized).</span>
+<span class="sd">    TODO: this might take up too much space, so some/all of these could be combined in a single index if necessary.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="CoincidenceEvent.detector_1_id"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.CoincidenceEvent.detector_1_id">[docs]</a>    <span class="n">detector_1_id</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">UInt32</span></div>
+<div class="viewcode-block" id="CoincidenceEvent.detector_2_id"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.CoincidenceEvent.detector_2_id">[docs]</a>    <span class="n">detector_2_id</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">UInt32</span></div>
+<div class="viewcode-block" id="CoincidenceEvent.tof_idx"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.CoincidenceEvent.tof_idx">[docs]</a>    <span class="n">tof_idx</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">UInt32</span></div>
+<div class="viewcode-block" id="CoincidenceEvent.energy_1_idx"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.CoincidenceEvent.energy_1_idx">[docs]</a>    <span class="n">energy_1_idx</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">UInt32</span></div>
+<div class="viewcode-block" id="CoincidenceEvent.energy_2_idx"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.CoincidenceEvent.energy_2_idx">[docs]</a>    <span class="n">energy_2_idx</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">UInt32</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+        <span class="n">detector_1_id</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">UInt32</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">detector_2_id</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">UInt32</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">tof_idx</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">UInt32</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">energy_1_idx</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">UInt32</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">energy_2_idx</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">UInt32</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detector_1_id</span> <span class="o">=</span> <span class="n">detector_1_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detector_2_id</span> <span class="o">=</span> <span class="n">detector_2_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tof_idx</span> <span class="o">=</span> <span class="n">tof_idx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">energy_1_idx</span> <span class="o">=</span> <span class="n">energy_1_idx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">energy_2_idx</span> <span class="o">=</span> <span class="n">energy_2_idx</span>
+
+<div class="viewcode-block" id="CoincidenceEvent.__eq__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.CoincidenceEvent.__eq__">[docs]</a>    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">CoincidenceEvent</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">detector_1_id</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">detector_1_id</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">detector_2_id</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">detector_2_id</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">tof_idx</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">tof_idx</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_1_idx</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">energy_1_idx</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_2_idx</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">energy_2_idx</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="CoincidenceEvent.__str__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.CoincidenceEvent.__str__">[docs]</a>    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;CoincidenceEvent(detector1Id=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">detector_1_id</span><span class="si">}</span><span class="s2">, detector2Id=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">detector_2_id</span><span class="si">}</span><span class="s2">, tofIdx=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">tof_idx</span><span class="si">}</span><span class="s2">, energy1Idx=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">energy_1_idx</span><span class="si">}</span><span class="s2">, energy2Idx=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">energy_2_idx</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+
+<div class="viewcode-block" id="CoincidenceEvent.__repr__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.CoincidenceEvent.__repr__">[docs]</a>    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;CoincidenceEvent(detector1Id=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">detector_1_id</span><span class="p">)</span><span class="si">}</span><span class="s2">, detector2Id=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">detector_2_id</span><span class="p">)</span><span class="si">}</span><span class="s2">, tofIdx=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tof_idx</span><span class="p">)</span><span class="si">}</span><span class="s2">, energy1Idx=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">energy_1_idx</span><span class="p">)</span><span class="si">}</span><span class="s2">, energy2Idx=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">energy_2_idx</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span></div></div>
+
+
+<div class="viewcode-block" id="Subject"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Subject">[docs]</a><span class="k">class</span> <span class="nc">Subject</span><span class="p">:</span>
+<div class="viewcode-block" id="Subject.name"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Subject.name">[docs]</a>    <span class="n">name</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></div>
+<div class="viewcode-block" id="Subject.id"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Subject.id">[docs]</a>    <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="nb">id</span>
+
+<div class="viewcode-block" id="Subject.__eq__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Subject.__eq__">[docs]</a>    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Subject</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">name</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">id</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Subject.__str__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Subject.__str__">[docs]</a>    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Subject(name=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, id=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+
+<div class="viewcode-block" id="Subject.__repr__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Subject.__repr__">[docs]</a>    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Subject(name=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="si">}</span><span class="s2">, id=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span></div></div>
+
+
+<div class="viewcode-block" id="Institution"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Institution">[docs]</a><span class="k">class</span> <span class="nc">Institution</span><span class="p">:</span>
+<div class="viewcode-block" id="Institution.name"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Institution.name">[docs]</a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span></div>
+<div class="viewcode-block" id="Institution.address"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Institution.address">[docs]</a>    <span class="n">address</span><span class="p">:</span> <span class="nb">str</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">address</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">address</span> <span class="o">=</span> <span class="n">address</span>
+
+<div class="viewcode-block" id="Institution.__eq__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Institution.__eq__">[docs]</a>    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Institution</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">name</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">address</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">address</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Institution.__str__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Institution.__str__">[docs]</a>    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Institution(name=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, address=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+
+<div class="viewcode-block" id="Institution.__repr__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Institution.__repr__">[docs]</a>    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Institution(name=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="si">}</span><span class="s2">, address=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span></div></div>
+
+
+<div class="viewcode-block" id="ExamInformation"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ExamInformation">[docs]</a><span class="k">class</span> <span class="nc">ExamInformation</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Items describing the exam (incomplete)&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ExamInformation.subject"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ExamInformation.subject">[docs]</a>    <span class="n">subject</span><span class="p">:</span> <span class="n">Subject</span></div>
+<div class="viewcode-block" id="ExamInformation.institution"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ExamInformation.institution">[docs]</a>    <span class="n">institution</span><span class="p">:</span> <span class="n">Institution</span></div>
+<div class="viewcode-block" id="ExamInformation.protocol"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ExamInformation.protocol">[docs]</a>    <span class="n">protocol</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></div>
+<div class="viewcode-block" id="ExamInformation.start_of_acquisition"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ExamInformation.start_of_acquisition">[docs]</a>    <span class="n">start_of_acquisition</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">yardl</span><span class="o">.</span><span class="n">DateTime</span><span class="p">]</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+        <span class="n">subject</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Subject</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">institution</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Institution</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">protocol</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">start_of_acquisition</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">yardl</span><span class="o">.</span><span class="n">DateTime</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subject</span> <span class="o">=</span> <span class="n">subject</span> <span class="k">if</span> <span class="n">subject</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">Subject</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">institution</span> <span class="o">=</span> <span class="n">institution</span> <span class="k">if</span> <span class="n">institution</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">Institution</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">protocol</span> <span class="o">=</span> <span class="n">protocol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_of_acquisition</span> <span class="o">=</span> <span class="n">start_of_acquisition</span>
+
+<div class="viewcode-block" id="ExamInformation.__eq__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ExamInformation.__eq__">[docs]</a>    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">ExamInformation</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">subject</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">subject</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">institution</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">institution</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">protocol</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">protocol</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_of_acquisition</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">start_of_acquisition</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="ExamInformation.__str__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ExamInformation.__str__">[docs]</a>    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;ExamInformation(subject=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">subject</span><span class="si">}</span><span class="s2">, institution=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">institution</span><span class="si">}</span><span class="s2">, protocol=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">protocol</span><span class="si">}</span><span class="s2">, startOfAcquisition=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">start_of_acquisition</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+
+<div class="viewcode-block" id="ExamInformation.__repr__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ExamInformation.__repr__">[docs]</a>    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;ExamInformation(subject=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subject</span><span class="p">)</span><span class="si">}</span><span class="s2">, institution=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">institution</span><span class="p">)</span><span class="si">}</span><span class="s2">, protocol=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">protocol</span><span class="p">)</span><span class="si">}</span><span class="s2">, startOfAcquisition=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start_of_acquisition</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span></div></div>
+
+
+<div class="viewcode-block" id="Detector"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Detector">[docs]</a><span class="k">class</span> <span class="nc">Detector</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Detector ID and location. Units are in mm</span>
+<span class="sd">    TODO: this is currently just a sample implementation with &quot;point&quot; detectors.</span>
+<span class="sd">    We plan to have full shape information here.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Detector.id"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Detector.id">[docs]</a>    <span class="nb">id</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">UInt32</span></div>
+<div class="viewcode-block" id="Detector.x"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Detector.x">[docs]</a>    <span class="n">x</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">Float32</span></div>
+<div class="viewcode-block" id="Detector.y"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Detector.y">[docs]</a>    <span class="n">y</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">Float32</span></div>
+<div class="viewcode-block" id="Detector.z"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Detector.z">[docs]</a>    <span class="n">z</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">Float32</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+        <span class="nb">id</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">UInt32</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">Float32</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">Float32</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">z</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">Float32</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="nb">id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">y</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="n">z</span>
+
+<div class="viewcode-block" id="Detector.__eq__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Detector.__eq__">[docs]</a>    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Detector</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">id</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">x</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">y</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">z</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">z</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Detector.__str__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Detector.__str__">[docs]</a>    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Detector(id=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">, x=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="si">}</span><span class="s2">, y=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="si">}</span><span class="s2">, z=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+
+<div class="viewcode-block" id="Detector.__repr__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Detector.__repr__">[docs]</a>    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Detector(id=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="si">}</span><span class="s2">, x=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">)</span><span class="si">}</span><span class="s2">, y=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">)</span><span class="si">}</span><span class="s2">, z=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span></div></div>
+
+
+<div class="viewcode-block" id="ScannerInformation"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ScannerInformation">[docs]</a><span class="k">class</span> <span class="nc">ScannerInformation</span><span class="p">:</span>
+<div class="viewcode-block" id="ScannerInformation.model_name"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ScannerInformation.model_name">[docs]</a>    <span class="n">model_name</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></div>
+<div class="viewcode-block" id="ScannerInformation.detectors"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ScannerInformation.detectors">[docs]</a>    <span class="n">detectors</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Detector</span><span class="p">]</span></div>
+<div class="viewcode-block" id="ScannerInformation.tof_bin_edges"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ScannerInformation.tof_bin_edges">[docs]</a>    <span class="n">tof_bin_edges</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">]</span></div>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;edge information for TOF bins in mm (given as from first to last edge, so there is one more edge than the number of bins)</span>
+<span class="sd">    TODO: this currently assumes equal size for each TOF bin, but some scanners &quot;stretch&quot; TOF bins depending on length of LOR</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ScannerInformation.tof_resolution"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ScannerInformation.tof_resolution">[docs]</a>    <span class="n">tof_resolution</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">Float32</span></div>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;TOF resolution in mm&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ScannerInformation.energy_bin_edges"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ScannerInformation.energy_bin_edges">[docs]</a>    <span class="n">energy_bin_edges</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">]</span></div>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;edge information for energy windows in keV (given as from first to last edge, so there is one more edge than the number of bins)&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ScannerInformation.energy_resolution_at_511"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ScannerInformation.energy_resolution_at_511">[docs]</a>    <span class="n">energy_resolution_at_511</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">Float32</span></div>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;FWHM of photopeak for incoming gamma of 511 keV, expressed as a ratio w.r.t. 511&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ScannerInformation.listmode_time_block_duration"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ScannerInformation.listmode_time_block_duration">[docs]</a>    <span class="n">listmode_time_block_duration</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">UInt32</span></div>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;duration of each time block in ms&quot;&quot;&quot;</span>
+
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+        <span class="n">model_name</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">detectors</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">Detector</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tof_bin_edges</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tof_resolution</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">Float32</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">energy_bin_edges</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">energy_resolution_at_511</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">Float32</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">listmode_time_block_duration</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">UInt32</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="o">=</span> <span class="n">model_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detectors</span> <span class="o">=</span> <span class="n">detectors</span> <span class="k">if</span> <span class="n">detectors</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tof_bin_edges</span> <span class="o">=</span> <span class="n">tof_bin_edges</span> <span class="k">if</span> <span class="n">tof_bin_edges</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tof_resolution</span> <span class="o">=</span> <span class="n">tof_resolution</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">energy_bin_edges</span> <span class="o">=</span> <span class="n">energy_bin_edges</span> <span class="k">if</span> <span class="n">energy_bin_edges</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">energy_resolution_at_511</span> <span class="o">=</span> <span class="n">energy_resolution_at_511</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">listmode_time_block_duration</span> <span class="o">=</span> <span class="n">listmode_time_block_duration</span>
+
+<div class="viewcode-block" id="ScannerInformation.number_of_detectors"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ScannerInformation.number_of_detectors">[docs]</a>    <span class="k">def</span> <span class="nf">number_of_detectors</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">yardl</span><span class="o">.</span><span class="n">Size</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">detectors</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ScannerInformation.number_of_tof_bins"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ScannerInformation.number_of_tof_bins">[docs]</a>    <span class="k">def</span> <span class="nf">number_of_tof_bins</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">yardl</span><span class="o">.</span><span class="n">Size</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tof_bin_edges</span><span class="o">.</span><span class="n">size</span> <span class="o">-</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="ScannerInformation.number_of_energy_bins"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ScannerInformation.number_of_energy_bins">[docs]</a>    <span class="k">def</span> <span class="nf">number_of_energy_bins</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">yardl</span><span class="o">.</span><span class="n">Size</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_bin_edges</span><span class="o">.</span><span class="n">size</span> <span class="o">-</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="ScannerInformation.__eq__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ScannerInformation.__eq__">[docs]</a>    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">ScannerInformation</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">model_name</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">detectors</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">detectors</span>
+            <span class="ow">and</span> <span class="n">yardl</span><span class="o">.</span><span class="n">structural_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tof_bin_edges</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">tof_bin_edges</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">tof_resolution</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">tof_resolution</span>
+            <span class="ow">and</span> <span class="n">yardl</span><span class="o">.</span><span class="n">structural_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">energy_bin_edges</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">energy_bin_edges</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_resolution_at_511</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">energy_resolution_at_511</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">listmode_time_block_duration</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">listmode_time_block_duration</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="ScannerInformation.__str__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ScannerInformation.__str__">[docs]</a>    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;ScannerInformation(modelName=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="si">}</span><span class="s2">, detectors=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">detectors</span><span class="si">}</span><span class="s2">, tofBinEdges=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">tof_bin_edges</span><span class="si">}</span><span class="s2">, tofResolution=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">tof_resolution</span><span class="si">}</span><span class="s2">, energyBinEdges=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">energy_bin_edges</span><span class="si">}</span><span class="s2">, energyResolutionAt511=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">energy_resolution_at_511</span><span class="si">}</span><span class="s2">, listmodeTimeBlockDuration=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">listmode_time_block_duration</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+
+<div class="viewcode-block" id="ScannerInformation.__repr__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.ScannerInformation.__repr__">[docs]</a>    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;ScannerInformation(modelName=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="p">)</span><span class="si">}</span><span class="s2">, detectors=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">detectors</span><span class="p">)</span><span class="si">}</span><span class="s2">, tofBinEdges=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tof_bin_edges</span><span class="p">)</span><span class="si">}</span><span class="s2">, tofResolution=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tof_resolution</span><span class="p">)</span><span class="si">}</span><span class="s2">, energyBinEdges=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">energy_bin_edges</span><span class="p">)</span><span class="si">}</span><span class="s2">, energyResolutionAt511=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">energy_resolution_at_511</span><span class="p">)</span><span class="si">}</span><span class="s2">, listmodeTimeBlockDuration=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">listmode_time_block_duration</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span></div></div>
+
+
+<div class="viewcode-block" id="Header"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Header">[docs]</a><span class="k">class</span> <span class="nc">Header</span><span class="p">:</span>
+<div class="viewcode-block" id="Header.scanner"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Header.scanner">[docs]</a>    <span class="n">scanner</span><span class="p">:</span> <span class="n">ScannerInformation</span></div>
+<div class="viewcode-block" id="Header.exam"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Header.exam">[docs]</a>    <span class="n">exam</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">ExamInformation</span><span class="p">]</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+        <span class="n">scanner</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">ScannerInformation</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">exam</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">ExamInformation</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scanner</span> <span class="o">=</span> <span class="n">scanner</span> <span class="k">if</span> <span class="n">scanner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ScannerInformation</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exam</span> <span class="o">=</span> <span class="n">exam</span>
+
+<div class="viewcode-block" id="Header.__eq__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Header.__eq__">[docs]</a>    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Header</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">scanner</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">scanner</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">exam</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">exam</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Header.__str__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Header.__str__">[docs]</a>    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Header(scanner=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">scanner</span><span class="si">}</span><span class="s2">, exam=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">exam</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+
+<div class="viewcode-block" id="Header.__repr__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.Header.__repr__">[docs]</a>    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Header(scanner=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scanner</span><span class="p">)</span><span class="si">}</span><span class="s2">, exam=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">exam</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span></div></div>
+
+
+<div class="viewcode-block" id="TimeBlock"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.TimeBlock">[docs]</a><span class="k">class</span> <span class="nc">TimeBlock</span><span class="p">:</span>
+<div class="viewcode-block" id="TimeBlock.id"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.TimeBlock.id">[docs]</a>    <span class="nb">id</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">UInt32</span></div>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;number of the block. Multiply with listmodeTimeBlockDuration to get time since startOfAcquisition&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TimeBlock.prompt_events"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.TimeBlock.prompt_events">[docs]</a>    <span class="n">prompt_events</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">CoincidenceEvent</span><span class="p">]</span></div>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;list of prompts in this time block</span>
+<span class="sd">    TODO might be better to use !array</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TimeBlock.delayed_events"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.TimeBlock.delayed_events">[docs]</a>    <span class="n">delayed_events</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">CoincidenceEvent</span><span class="p">]]</span></div>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;list of delayed coincidences in this time block&quot;&quot;&quot;</span>
+
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+        <span class="nb">id</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">UInt32</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">prompt_events</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">CoincidenceEvent</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">delayed_events</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">CoincidenceEvent</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="nb">id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prompt_events</span> <span class="o">=</span> <span class="n">prompt_events</span> <span class="k">if</span> <span class="n">prompt_events</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delayed_events</span> <span class="o">=</span> <span class="n">delayed_events</span>
+
+<div class="viewcode-block" id="TimeBlock.__eq__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.TimeBlock.__eq__">[docs]</a>    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">TimeBlock</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">id</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">prompt_events</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">prompt_events</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">delayed_events</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">delayed_events</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="TimeBlock.__str__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.TimeBlock.__str__">[docs]</a>    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;TimeBlock(id=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">, promptEvents=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prompt_events</span><span class="si">}</span><span class="s2">, delayedEvents=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">delayed_events</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+
+<div class="viewcode-block" id="TimeBlock.__repr__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.TimeBlock.__repr__">[docs]</a>    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;TimeBlock(id=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="si">}</span><span class="s2">, promptEvents=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prompt_events</span><span class="p">)</span><span class="si">}</span><span class="s2">, delayedEvents=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">delayed_events</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span></div></div>
+
+
+<div class="viewcode-block" id="TimeInterval"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.TimeInterval">[docs]</a><span class="k">class</span> <span class="nc">TimeInterval</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Time interval in milliseconds since start of acquisition&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TimeInterval.start"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.TimeInterval.start">[docs]</a>    <span class="n">start</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">UInt32</span></div>
+<div class="viewcode-block" id="TimeInterval.stop"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.TimeInterval.stop">[docs]</a>    <span class="n">stop</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">UInt32</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+        <span class="n">start</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">UInt32</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">stop</span><span class="p">:</span> <span class="n">yardl</span><span class="o">.</span><span class="n">UInt32</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stop</span> <span class="o">=</span> <span class="n">stop</span>
+
+<div class="viewcode-block" id="TimeInterval.__eq__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.TimeInterval.__eq__">[docs]</a>    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">TimeInterval</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">start</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">stop</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">stop</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="TimeInterval.__str__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.TimeInterval.__str__">[docs]</a>    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;TimeInterval(start=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="si">}</span><span class="s2">, stop=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">stop</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+
+<div class="viewcode-block" id="TimeInterval.__repr__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.TimeInterval.__repr__">[docs]</a>    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;TimeInterval(start=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">)</span><span class="si">}</span><span class="s2">, stop=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stop</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span></div></div>
+
+
+<div class="viewcode-block" id="TimeFrameInformation"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.TimeFrameInformation">[docs]</a><span class="k">class</span> <span class="nc">TimeFrameInformation</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A sequence of time intervals (could be consecutive)&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TimeFrameInformation.time_frames"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.TimeFrameInformation.time_frames">[docs]</a>    <span class="n">time_frames</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">TimeInterval</span><span class="p">]</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+        <span class="n">time_frames</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">TimeInterval</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_frames</span> <span class="o">=</span> <span class="n">time_frames</span> <span class="k">if</span> <span class="n">time_frames</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="TimeFrameInformation.number_of_time_frames"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.TimeFrameInformation.number_of_time_frames">[docs]</a>    <span class="k">def</span> <span class="nf">number_of_time_frames</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">yardl</span><span class="o">.</span><span class="n">Size</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_frames</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TimeFrameInformation.__eq__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.TimeFrameInformation.__eq__">[docs]</a>    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">TimeFrameInformation</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_frames</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">time_frames</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="TimeFrameInformation.__str__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.TimeFrameInformation.__str__">[docs]</a>    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;TimeFrameInformation(timeFrames=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">time_frames</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+
+<div class="viewcode-block" id="TimeFrameInformation.__repr__"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.TimeFrameInformation.__repr__">[docs]</a>    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;TimeFrameInformation(timeFrames=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_frames</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span></div></div>
+
+
+<div class="viewcode-block" id="_mk_get_dtype"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd._mk_get_dtype">[docs]</a><span class="k">def</span> <span class="nf">_mk_get_dtype</span><span class="p">():</span>
+    <span class="n">dtype_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">type</span><span class="p">,</span> <span class="n">types</span><span class="o">.</span><span class="n">GenericAlias</span><span class="p">],</span> <span class="n">typing</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">],</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">type</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]]]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">get_dtype</span> <span class="o">=</span> <span class="n">_dtypes</span><span class="o">.</span><span class="n">make_get_dtype_func</span><span class="p">(</span><span class="n">dtype_map</span><span class="p">)</span>
+
+    <span class="n">dtype_map</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">CoincidenceEvent</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s1">&#39;detector_1_id&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;detector_2_id&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;tof_idx&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;energy_1_idx&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;energy_2_idx&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">))],</span> <span class="n">align</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="n">dtype_map</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">Subject</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s1">&#39;has_value&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">object_</span><span class="p">))],</span> <span class="n">align</span><span class="o">=</span><span class="kc">True</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">object_</span><span class="p">))],</span> <span class="n">align</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="n">dtype_map</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">Institution</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">object_</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;address&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">object_</span><span class="p">))],</span> <span class="n">align</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="n">dtype_map</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">ExamInformation</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s1">&#39;subject&#39;</span><span class="p">,</span> <span class="n">get_dtype</span><span class="p">(</span><span class="n">Subject</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;institution&#39;</span><span class="p">,</span> <span class="n">get_dtype</span><span class="p">(</span><span class="n">Institution</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;protocol&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s1">&#39;has_value&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">object_</span><span class="p">))],</span> <span class="n">align</span><span class="o">=</span><span class="kc">True</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;start_of_acquisition&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s1">&#39;has_value&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">datetime64</span><span class="p">))],</span> <span class="n">align</span><span class="o">=</span><span class="kc">True</span><span class="p">))],</span> <span class="n">align</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="n">dtype_map</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">Detector</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))],</span> <span class="n">align</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="n">dtype_map</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">ScannerInformation</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s1">&#39;model_name&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s1">&#39;has_value&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">object_</span><span class="p">))],</span> <span class="n">align</span><span class="o">=</span><span class="kc">True</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;detectors&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">object_</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;tof_bin_edges&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">object_</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;tof_resolution&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;energy_bin_edges&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">object_</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;energy_resolution_at_511&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;listmode_time_block_duration&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">))],</span> <span class="n">align</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="n">dtype_map</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">Header</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s1">&#39;scanner&#39;</span><span class="p">,</span> <span class="n">get_dtype</span><span class="p">(</span><span class="n">ScannerInformation</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;exam&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s1">&#39;has_value&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">get_dtype</span><span class="p">(</span><span class="n">ExamInformation</span><span class="p">))],</span> <span class="n">align</span><span class="o">=</span><span class="kc">True</span><span class="p">))],</span> <span class="n">align</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="n">dtype_map</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">TimeBlock</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;prompt_events&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">object_</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;delayed_events&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s1">&#39;has_value&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">object_</span><span class="p">))],</span> <span class="n">align</span><span class="o">=</span><span class="kc">True</span><span class="p">))],</span> <span class="n">align</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="n">dtype_map</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">TimeInterval</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s1">&#39;start&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;stop&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">))],</span> <span class="n">align</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="n">dtype_map</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">TimeFrameInformation</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s1">&#39;time_frames&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">object_</span><span class="p">))],</span> <span class="n">align</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">get_dtype</span></div>
+
+<div class="viewcode-block" id="get_dtype"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/types/index.html#pytomography.io.PET.prd.get_dtype">[docs]</a><span class="n">get_dtype</span> <span class="o">=</span> <span class="n">_mk_get_dtype</span><span class="p">()</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+                <footer class="bd-footer-article">
+                  
+<div class="footer-article-items footer-article__inner">
+  
+    <div class="footer-article-item"><!-- Previous / next buttons -->
+<div class="prev-next-area">
+</div></div>
+  
+</div>
+
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52"></script>
+<script src="../../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+  <p class="copyright">
+    
+      © Copyright 2023, Luke Polson.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 6.2.1.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item"><p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.13.3.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

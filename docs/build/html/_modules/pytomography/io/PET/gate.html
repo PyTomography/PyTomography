@@ -1,0 +1,767 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pytomography.io.PET.gate &#8212; PyTomography 1.3.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../../../../_static/styles/bootstrap.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+
+  
+  <link href="../../../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=e353d410970836974a52" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
+
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/sphinx_highlight.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pytomography/io/PET/gate';</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+<div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+    <span class="fa-solid fa-bars"></span>
+  </label>
+  
+  <div class="navbar-header-items__start">
+    
+      <div class="navbar-item">
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../../_static/PT1.png" class="logo__image only-light" alt="Logo image"/>
+    <script>document.write(`<img src="../../../../_static/PT1.png" class="logo__image only-dark" alt="Logo image"/>`);</script>
+  
+  
+</a></div>
+    
+  </div>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../external_data.html">
+                        External Data
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../autoapi/index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+        </div>
+      
+      
+        <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+    </div>
+  
+
+  
+</div>
+
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../external_data.html">
+                        External Data
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../autoapi/index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumbs">
+  <ul class="bd-breadcrumbs" role="navigation" aria-label="Breadcrumb">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../../pytomography.html" class="nav-link">pytomography</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page">pytomography.io.PET.gate</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <h1>Source code for pytomography.io.PET.gate</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">import</span> <span class="nn">pytomography</span>
+<span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">ObjectMeta</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numpy.linalg</span> <span class="k">as</span> <span class="nn">npl</span>
+<span class="kn">import</span> <span class="nn">uproot</span>
+<span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="kn">import</span> <span class="n">affine_transform</span>
+<span class="kn">from</span> <span class="nn">..shared</span> <span class="kn">import</span> <span class="n">get_header_value</span><span class="p">,</span> <span class="n">get_attenuation_map_interfile</span>
+
+<div class="viewcode-block" id="get_aligned_attenuation_map"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/PET/gate/index.html#pytomography.io.PET.gate.get_aligned_attenuation_map">[docs]</a><span class="k">def</span> <span class="nf">get_aligned_attenuation_map</span><span class="p">(</span>
+    <span class="n">headerfile</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">object_meta</span><span class="p">:</span> <span class="n">ObjectMeta</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns an aligned attenuation map in units of inverse mm for reconstruction. This assumes that the attenuation map shares the same center point with the reconstruction space.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        headerfile (str): Filepath to the header file of the attenuation map</span>
+<span class="sd">        object_meta (ObjectMeta): Object metadata providing spatial information about the reconstructed dimensions.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor: Aligned attenuation map</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">amap</span> <span class="o">=</span> <span class="n">get_attenuation_map_interfile</span><span class="p">(</span><span class="n">headerfile</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="c1"># Load metadata</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">headerfile</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">headerdata</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="n">headerdata</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">headerdata</span><span class="p">)</span>
+    <span class="n">dx</span> <span class="o">=</span> <span class="n">get_header_value</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;scaling factor (mm/pixel) [1]&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">dy</span> <span class="o">=</span> <span class="n">get_header_value</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;scaling factor (mm/pixel) [2]&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">dz</span> <span class="o">=</span> <span class="n">get_header_value</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;scaling factor (mm/pixel) [3]&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">dr_amap</span> <span class="o">=</span> <span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">dz</span><span class="p">)</span>
+    <span class="n">shape_amap</span> <span class="o">=</span> <span class="n">amap</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">object_origin_amap</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">shape_amap</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dr_amap</span><span class="p">))</span>
+    <span class="n">dr</span> <span class="o">=</span> <span class="n">object_meta</span><span class="o">.</span><span class="n">dr</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="n">object_meta</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">object_origin</span> <span class="o">=</span> <span class="n">object_origin</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dr</span><span class="p">))</span>
+    <span class="n">M_PET</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+        <span class="p">[</span><span class="n">dr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">object_origin</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+        <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="n">dr</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="mi">0</span><span class="p">,</span><span class="n">object_origin</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
+        <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">dr</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">object_origin</span><span class="p">[</span><span class="mi">2</span><span class="p">]],</span>
+        <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
+    <span class="p">])</span>
+    <span class="n">M_CT</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+        <span class="p">[</span><span class="n">dr_amap</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">object_origin_amap</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+        <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="n">dr_amap</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="mi">0</span><span class="p">,</span><span class="n">object_origin_amap</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
+        <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">dr_amap</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">object_origin_amap</span><span class="p">[</span><span class="mi">2</span><span class="p">]],</span>
+        <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
+    <span class="p">])</span>
+    <span class="n">amap</span> <span class="o">=</span> <span class="n">affine_transform</span><span class="p">(</span><span class="n">amap</span><span class="p">,</span> <span class="n">npl</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">M_CT</span><span class="p">)</span><span class="nd">@M_PET</span><span class="p">,</span> <span class="n">output_shape</span> <span class="o">=</span> <span class="n">shape</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">amap</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">amap</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span> <span class="c1"># to mm^-1</span>
+    <span class="k">return</span> <span class="n">amap</span></div>
+
+<div class="viewcode-block" id="get_scanner_LUT"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/PET/gate/index.html#pytomography.io.PET.gate.get_scanner_LUT">[docs]</a><span class="k">def</span> <span class="nf">get_scanner_LUT</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">init_volume_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;crystal&#39;</span><span class="p">,</span>
+    <span class="n">final_volume_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;world&#39;</span><span class="p">,</span>
+    <span class="n">mean_interaction_depth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">return_info</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the scanner lookup table. The three values at a particular index in the lookup table correspond to the x, y, and z positions of the detector id correpsonding to that index.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path (str): Path to .mac file where the scanner geometry is defined in FATE</span>
+<span class="sd">        init_volume_name (str, optional): Volume name corresponding the lowest level element in the GATE geometry. Defaults to &#39;crystal&#39;.</span>
+<span class="sd">        final_volume_name (str, optional): Volume name corresponding the highest level element in the GATE geometry. Defaults to &#39;world&#39;.</span>
+<span class="sd">        mean_interaction_depth (float, optional): Average interaction depth of photons in the crystals in mm. Defaults to 0.</span>
+<span class="sd">        return_info (bool, optional): Returns information about the scanner geometry. Defaults to False.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.array: Scanner lookup table.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">headerdata</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="n">headerdata</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">headerdata</span><span class="p">)</span>
+    <span class="c1"># Recursively get names of all volumes</span>
+    <span class="n">volume</span> <span class="o">=</span> <span class="n">init_volume_name</span>
+    <span class="n">parents</span> <span class="o">=</span> <span class="p">[</span><span class="n">volume</span><span class="p">]</span>
+    <span class="k">while</span> <span class="n">volume</span><span class="o">!=</span><span class="n">final_volume_name</span><span class="p">:</span>
+        <span class="n">volume</span> <span class="o">=</span> <span class="n">get_header_value</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;/daughters/name.*</span><span class="si">{</span><span class="n">volume</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">split_substr</span><span class="o">=</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="n">split_idx</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span><span class="p">(</span><span class="n">volume</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">parents</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">volume</span><span class="p">)</span>
+    <span class="c1"># Get initial positions of crystal</span>
+    <span class="n">positions</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">parent</span> <span class="ow">in</span> <span class="n">parents</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">get_header_value</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;/gate/</span><span class="si">{</span><span class="n">parent</span><span class="si">}</span><span class="s1">/placement/setTranslation&#39;</span><span class="p">,</span> <span class="n">split_substr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">split_idx</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">get_header_value</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;/gate/</span><span class="si">{</span><span class="n">parent</span><span class="si">}</span><span class="s1">/placement/setTranslation&#39;</span><span class="p">,</span> <span class="n">split_substr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">split_idx</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="n">get_header_value</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;/gate/</span><span class="si">{</span><span class="n">parent</span><span class="si">}</span><span class="s1">/placement/setTranslation&#39;</span><span class="p">,</span> <span class="n">split_substr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">split_idx</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">y</span> <span class="o">=</span> <span class="n">z</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">positions</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">z</span><span class="p">])</span>
+    <span class="n">positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span>
+    <span class="n">x_crystal</span><span class="p">,</span> <span class="n">y_crystal</span><span class="p">,</span> <span class="n">z_crystal</span> <span class="o">=</span> <span class="n">positions</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">x_crystal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x_crystal</span><span class="p">])</span>
+    <span class="n">y_crystal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">y_crystal</span><span class="p">])</span>
+    <span class="n">z_crystal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">z_crystal</span><span class="p">])</span>
+    <span class="c1"># Get edges of crystal (assume original in +X) TODO: fix</span>
+    <span class="n">x_crystal</span> <span class="o">=</span> <span class="n">x_crystal</span> <span class="o">-</span> <span class="n">get_header_value</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;/gate/</span><span class="si">{</span><span class="n">init_volume_name</span><span class="si">}</span><span class="s1">/geometry/setXLength&#39;</span><span class="p">,</span> <span class="n">split_substr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">split_idx</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">mean_interaction_depth</span>
+    <span class="c1"># Generate positions of all crystals using repeaters</span>
+    <span class="c1">#parents.reverse()</span>
+    <span class="n">repeats</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">parent</span> <span class="ow">in</span> <span class="n">parents</span><span class="p">:</span>
+        <span class="n">repeaters</span> <span class="o">=</span> <span class="n">get_header_value</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;/gate/</span><span class="si">{</span><span class="n">parent</span><span class="si">}</span><span class="s1">/repeaters/insert&#39;</span><span class="p">,</span> <span class="n">split_substr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">split_idx</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">return_all</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span><span class="p">(</span><span class="n">repeaters</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="k">for</span> <span class="n">repeater</span> <span class="ow">in</span> <span class="n">repeaters</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">repeater</span><span class="o">==</span><span class="s1">&#39;cubicArray&#39;</span><span class="p">:</span>
+                <span class="n">repeat_numbers</span> <span class="o">=</span> <span class="p">[</span><span class="n">get_header_value</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;/gate/</span><span class="si">{</span><span class="n">parent</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">repeater</span><span class="si">}</span><span class="s1">/setRepeatNumber</span><span class="si">{</span><span class="n">coord</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">split_substr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">split_idx</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;X&#39;</span><span class="p">,</span> <span class="s1">&#39;Y&#39;</span><span class="p">,</span> <span class="s1">&#39;Z&#39;</span><span class="p">]]</span>
+                <span class="n">repeat_vector</span> <span class="o">=</span> <span class="p">[</span><span class="n">get_header_value</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;/gate/</span><span class="si">{</span><span class="n">parent</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">repeater</span><span class="si">}</span><span class="s1">/setRepeatVector&#39;</span><span class="p">,</span> <span class="n">split_substr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">split_idx</span><span class="o">=</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">4</span><span class="p">)]</span>
+                <span class="c1"># GATE convention is that z changes first, so meshgrid is done like this</span>
+                <span class="n">xv</span><span class="p">,</span> <span class="n">zv</span><span class="p">,</span> <span class="n">yv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span>
+                    <span class="n">repeat_vector</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">repeat_numbers</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="p">(</span><span class="n">repeat_numbers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">),</span>
+                    <span class="n">repeat_vector</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">repeat_numbers</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">-</span> <span class="p">(</span><span class="n">repeat_numbers</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">),</span>
+                    <span class="n">repeat_vector</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">repeat_numbers</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="p">(</span><span class="n">repeat_numbers</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">),</span>
+                        <span class="p">)</span>
+                <span class="n">len_repeat</span> <span class="o">=</span> <span class="n">xv</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">x_crystal_repeated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">x_crystal</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="n">len_repeat</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">y_crystal_repeated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">y_crystal</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="n">len_repeat</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">z_crystal_repeated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">z_crystal</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="n">len_repeat</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">x_crystal</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_crystal_repeated</span><span class="o">+</span><span class="n">xv</span><span class="o">.</span><span class="n">ravel</span><span class="p">())</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+                <span class="n">y_crystal</span> <span class="o">=</span> <span class="p">(</span><span class="n">y_crystal_repeated</span><span class="o">+</span><span class="n">yv</span><span class="o">.</span><span class="n">ravel</span><span class="p">())</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+                <span class="n">z_crystal</span> <span class="o">=</span> <span class="p">(</span><span class="n">z_crystal_repeated</span><span class="o">+</span><span class="n">zv</span><span class="o">.</span><span class="n">ravel</span><span class="p">())</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+                <span class="n">repeats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">repeat_numbers</span><span class="p">)))</span>
+            <span class="k">elif</span> <span class="n">repeater</span><span class="o">==</span><span class="s1">&#39;linear&#39;</span><span class="p">:</span>
+                <span class="n">repeat_number</span> <span class="o">=</span> <span class="n">get_header_value</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;/gate/</span><span class="si">{</span><span class="n">parent</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">repeater</span><span class="si">}</span><span class="s1">/setRepeatNumber&#39;</span><span class="p">,</span> <span class="n">split_substr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">split_idx</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">repeat_vector</span> <span class="o">=</span> <span class="p">[</span><span class="n">get_header_value</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;/gate/</span><span class="si">{</span><span class="n">parent</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">repeater</span><span class="si">}</span><span class="s1">/setRepeatVector&#39;</span><span class="p">,</span> <span class="n">split_substr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">split_idx</span><span class="o">=</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">4</span><span class="p">)]</span>
+                <span class="n">xr</span> <span class="o">=</span> <span class="n">repeat_vector</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">repeat_number</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">repeat_number</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+                <span class="n">yr</span> <span class="o">=</span> <span class="n">repeat_vector</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">repeat_number</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">repeat_number</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+                <span class="n">zr</span> <span class="o">=</span> <span class="n">repeat_vector</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">repeat_number</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">repeat_number</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+                <span class="n">len_repeat</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">x_crystal_repeated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">x_crystal</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="n">len_repeat</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">y_crystal_repeated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">y_crystal</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="n">len_repeat</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">z_crystal_repeated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">z_crystal</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="n">len_repeat</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">x_crystal</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_crystal_repeated</span><span class="o">+</span><span class="n">xr</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+                <span class="n">y_crystal</span> <span class="o">=</span> <span class="p">(</span><span class="n">y_crystal_repeated</span><span class="o">+</span><span class="n">yr</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+                <span class="n">z_crystal</span> <span class="o">=</span> <span class="p">(</span><span class="n">z_crystal_repeated</span><span class="o">+</span><span class="n">zr</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span> 
+                <span class="n">repeats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">repeat_number</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">repeater</span><span class="o">==</span><span class="s1">&#39;ring&#39;</span><span class="p">:</span>
+                <span class="n">repeat_number</span> <span class="o">=</span> <span class="n">get_header_value</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;/gate/</span><span class="si">{</span><span class="n">parent</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">repeater</span><span class="si">}</span><span class="s1">/setRepeatNumber&#39;</span><span class="p">,</span> <span class="n">split_substr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">split_idx</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">first_angle</span> <span class="o">=</span> <span class="n">get_header_value</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;/gate/</span><span class="si">{</span><span class="n">parent</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">repeater</span><span class="si">}</span><span class="s1">/setFirstAngle&#39;</span><span class="p">,</span> <span class="n">split_substr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">split_idx</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">first_angle</span><span class="p">:</span>
+                    <span class="n">first_angle</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">first_angle</span><span class="p">,</span> <span class="n">first_angle</span><span class="o">+</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">repeat_number</span><span class="p">),</span> <span class="n">endpoint</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="n">x_crystal_repeated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">x_crystal</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">y_crystal_repeated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">y_crystal</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">z_crystal_repeated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">z_crystal</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">x_crystal</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">x_crystal_repeated</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">y_crystal_repeated</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+                <span class="n">y_crystal</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">x_crystal_repeated</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">y_crystal_repeated</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+                <span class="n">z_crystal</span> <span class="o">=</span> <span class="p">(</span><span class="n">z_crystal_repeated</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+                <span class="n">repeats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">repeat_number</span><span class="p">))</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">parents</span><span class="p">,</span> <span class="n">repeats</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">return_info</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">x_crystal</span><span class="p">,</span><span class="n">y_crystal</span><span class="p">,</span><span class="n">z_crystal</span><span class="p">))</span><span class="o">.</span><span class="n">T</span><span class="p">),</span> <span class="n">info</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">x_crystal</span><span class="p">,</span><span class="n">y_crystal</span><span class="p">,</span><span class="n">z_crystal</span><span class="p">))</span><span class="o">.</span><span class="n">T</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="get_N_components"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/PET/gate/index.html#pytomography.io.PET.gate.get_N_components">[docs]</a><span class="k">def</span> <span class="nf">get_N_components</span><span class="p">(</span><span class="n">mac_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtains the number of gantrys, rsectors, modules, submodules, and crystals per level from a GATE macro file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        mac_file (str): Path to the gate macro file</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: number of gantrys, rsectors, modules, submodules, and crystals</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">geom_info</span> <span class="o">=</span> <span class="n">get_scanner_LUT</span><span class="p">(</span><span class="n">mac_file</span><span class="p">,</span> <span class="n">return_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">N_gantry</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">N_module</span> <span class="o">=</span> <span class="n">geom_info</span><span class="p">[</span><span class="s1">&#39;module&#39;</span><span class="p">]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">N_submodule</span> <span class="o">=</span> <span class="n">geom_info</span><span class="p">[</span><span class="s1">&#39;submodule&#39;</span><span class="p">]</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">N_submodule</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">N_rsector</span> <span class="o">=</span> <span class="n">geom_info</span><span class="p">[</span><span class="s1">&#39;rsector&#39;</span><span class="p">]</span>
+    <span class="n">N_crystal</span> <span class="o">=</span> <span class="n">geom_info</span><span class="p">[</span><span class="s1">&#39;crystal&#39;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">N_gantry</span><span class="p">,</span> <span class="n">N_rsector</span><span class="p">,</span> <span class="n">N_module</span><span class="p">,</span> <span class="n">N_submodule</span><span class="p">,</span> <span class="n">N_crystal</span></div>
+
+<div class="viewcode-block" id="get_detector_ids"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/PET/gate/index.html#pytomography.io.PET.gate.get_detector_ids">[docs]</a><span class="k">def</span> <span class="nf">get_detector_ids</span><span class="p">(</span>
+    <span class="n">paths</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">mac_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">TOF</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">TOF_bin_edges</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">substr</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;Coincidences&#39;</span><span class="p">,</span>
+    <span class="n">same_source_pos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtains the detector IDs from a sequence of ROOT files</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        paths (Sequence[str]): sequence of root file paths</span>
+<span class="sd">        mac_file (str): GATE geometry macro file</span>
+<span class="sd">        TOF (bool, optional): Whether or not to get TOF binning information. Defaults to False.</span>
+<span class="sd">        TOF_bin_edges (np.array, optional): TOF bin edges; required if TOF is True. Defaults to None.</span>
+<span class="sd">        substr (str, optional): Substring to index for in ROOT files. Defaults to &#39;Coincidences&#39;.</span>
+<span class="sd">        same_source_pos (bool, optional): Only include coincidences that correspond to the same source position. This can be used to filter randoms. Defaults to False.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.array: Array of all detector ID pairs corresponding to all detected LORs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">TOF</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">TOF_bin_edges</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;If using TOF, must provide TOF bin edges for binning&#39;</span><span class="p">)</span>
+    <span class="n">N_gantry</span><span class="p">,</span> <span class="n">N_rsector</span><span class="p">,</span> <span class="n">N_module</span><span class="p">,</span> <span class="n">N_submodule</span><span class="p">,</span> <span class="n">N_crystal</span> <span class="o">=</span> <span class="n">get_N_components</span><span class="p">(</span><span class="n">mac_file</span><span class="p">)</span>
+    <span class="n">detector_ids</span> <span class="o">=</span> <span class="p">[[],[],[]]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">path</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">paths</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">uproot</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">same_source_pos</span><span class="p">:</span>
+                <span class="n">xs1</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="n">substr</span><span class="p">][</span><span class="s1">&#39;sourcePosX1&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">library</span><span class="o">=</span><span class="s1">&#39;np&#39;</span><span class="p">)</span>
+                <span class="n">xs2</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="n">substr</span><span class="p">][</span><span class="s1">&#39;sourcePosX2&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">library</span><span class="o">=</span><span class="s1">&#39;np&#39;</span><span class="p">)</span>
+                <span class="n">ys1</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="n">substr</span><span class="p">][</span><span class="s1">&#39;sourcePosY1&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">library</span><span class="o">=</span><span class="s1">&#39;np&#39;</span><span class="p">)</span>
+                <span class="n">ys2</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="n">substr</span><span class="p">][</span><span class="s1">&#39;sourcePosY2&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">library</span><span class="o">=</span><span class="s1">&#39;np&#39;</span><span class="p">)</span>
+                <span class="n">zs1</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="n">substr</span><span class="p">][</span><span class="s1">&#39;sourcePosZ1&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">library</span><span class="o">=</span><span class="s1">&#39;np&#39;</span><span class="p">)</span>
+                <span class="n">zs2</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="n">substr</span><span class="p">][</span><span class="s1">&#39;sourcePosZ2&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">library</span><span class="o">=</span><span class="s1">&#39;np&#39;</span><span class="p">)</span>
+                <span class="n">same_location_idxs</span> <span class="o">=</span> <span class="p">(</span><span class="n">xs1</span><span class="o">==</span><span class="n">xs2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">ys1</span><span class="o">==</span><span class="n">ys2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">zs1</span><span class="o">==</span><span class="n">zs2</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+                <span class="n">gantry_id</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="n">substr</span><span class="p">][</span><span class="sa">f</span><span class="s1">&#39;gantryID</span><span class="si">{</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">library</span><span class="o">=</span><span class="s2">&quot;np&quot;</span><span class="p">)</span>
+                <span class="n">rsector_id</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="n">substr</span><span class="p">][</span><span class="sa">f</span><span class="s1">&#39;rsectorID</span><span class="si">{</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">library</span><span class="o">=</span><span class="s2">&quot;np&quot;</span><span class="p">)</span>
+                <span class="n">module_id</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="n">substr</span><span class="p">][</span><span class="sa">f</span><span class="s1">&#39;moduleID</span><span class="si">{</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">library</span><span class="o">=</span><span class="s2">&quot;np&quot;</span><span class="p">)</span>
+                <span class="n">submodule_id</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="n">substr</span><span class="p">][</span><span class="sa">f</span><span class="s1">&#39;submoduleID</span><span class="si">{</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">library</span><span class="o">=</span><span class="s2">&quot;np&quot;</span><span class="p">)</span>
+                <span class="n">crystal_id</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="n">substr</span><span class="p">][</span><span class="sa">f</span><span class="s1">&#39;crystalID</span><span class="si">{</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">library</span><span class="o">=</span><span class="s2">&quot;np&quot;</span><span class="p">)</span>
+                <span class="n">detector_id</span> <span class="o">=</span> <span class="n">crystal_id</span> <span class="o">*</span> <span class="n">N_submodule</span> <span class="o">*</span> <span class="n">N_module</span> <span class="o">*</span> <span class="n">N_rsector</span> <span class="o">*</span> <span class="n">N_gantry</span> \
+                    <span class="o">+</span> <span class="n">submodule_id</span> <span class="o">*</span> <span class="n">N_module</span> <span class="o">*</span> <span class="n">N_rsector</span> <span class="o">*</span> <span class="n">N_gantry</span> \
+                    <span class="o">+</span> <span class="n">module_id</span> <span class="o">*</span> <span class="n">N_rsector</span> <span class="o">*</span> <span class="n">N_gantry</span> \
+                    <span class="o">+</span> <span class="n">rsector_id</span> <span class="o">*</span> <span class="n">N_gantry</span> \
+                    <span class="o">+</span> <span class="n">gantry_id</span>
+                <span class="k">if</span> <span class="n">same_source_pos</span><span class="p">:</span>
+                    <span class="n">detector_id</span> <span class="o">=</span> <span class="n">detector_id</span><span class="p">[</span><span class="n">same_location_idxs</span><span class="p">]</span>
+                <span class="n">detector_ids</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">detector_id</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">TOF</span><span class="p">:</span>
+                <span class="n">t1</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="n">substr</span><span class="p">][</span><span class="s1">&#39;time1&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">library</span><span class="o">=</span><span class="s1">&#39;np&#39;</span><span class="p">)</span>
+                <span class="n">t2</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="n">substr</span><span class="p">][</span><span class="s1">&#39;time2&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">library</span><span class="o">=</span><span class="s1">&#39;np&#39;</span><span class="p">)</span>
+                <span class="n">tof_pos</span> <span class="o">=</span> <span class="mf">1e12</span><span class="o">*</span><span class="p">(</span><span class="n">t2</span> <span class="o">-</span> <span class="n">t1</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.15</span> <span class="c1"># ps to mm</span>
+                <span class="n">detector_id</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">digitize</span><span class="p">(</span><span class="o">-</span><span class="n">tof_pos</span><span class="p">,</span> <span class="n">TOF_bin_edges</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">same_source_pos</span><span class="p">:</span>
+                    <span class="n">detector_id</span> <span class="o">=</span> <span class="n">detector_id</span><span class="p">[</span><span class="n">same_location_idxs</span><span class="p">]</span>
+                <span class="n">detector_ids</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">detector_id</span><span class="p">)</span> 
+    <span class="k">if</span> <span class="n">TOF</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">detector_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">detector_ids</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">detector_ids</span><span class="p">[</span><span class="mi">2</span><span class="p">])])</span><span class="o">.</span><span class="n">T</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">detector_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">detector_ids</span><span class="p">[</span><span class="mi">1</span><span class="p">])])</span><span class="o">.</span><span class="n">T</span></div>
+
+<div class="viewcode-block" id="get_radius"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/PET/gate/index.html#pytomography.io.PET.gate.get_radius">[docs]</a><span class="k">def</span> <span class="nf">get_radius</span><span class="p">(</span><span class="n">detector_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span> <span class="n">scanner_LUT</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets the radial position of all LORs</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        detector_ids (torch.tensor): Detector ID pairs corresponding to LORs</span>
+<span class="sd">        scanner_LUT (torch.tensor): scanner look up table</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.tensor: radii of all detector ID pairs provided</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">z1</span> <span class="o">=</span> <span class="n">scanner_LUT</span><span class="p">[</span><span class="n">detector_ids</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">scanner_LUT</span><span class="p">[</span><span class="n">detector_ids</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">T</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">x1</span><span class="o">==</span><span class="n">x2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">y1</span><span class="o">==</span><span class="n">y2</span><span class="p">),</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">x1</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">y1</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x1</span><span class="o">*</span><span class="n">y2</span><span class="o">-</span><span class="n">y1</span><span class="o">*</span><span class="n">x2</span><span class="p">)</span><span class="o">/</span><span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">x1</span><span class="o">-</span><span class="n">x2</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="p">(</span><span class="n">y1</span><span class="o">-</span><span class="n">y2</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+<div class="viewcode-block" id="get_table"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/PET/gate/index.html#pytomography.io.PET.gate.get_table">[docs]</a><span class="k">def</span> <span class="nf">get_table</span><span class="p">(</span><span class="n">det_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span> <span class="n">mac_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Obtains a table of crystal1ID, crystal2ID, submoduleID, :math:`\Delta`moduleID, :math:`\Delta`rsectorID corresponding to each of the detector id pairs provided. Useful fo symmetries when computing normalization :math:`\eta`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        det_ids (torch.tensor): :math:`N \times 2` (non-TOF) or :math:`N \times 3` (TOF) tensor that provides detector ID pairs (and TOF bin) for coincidence events.</span>
+<span class="sd">        mac_file (str): GATE macro file that defines detector geometry</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.tensor: A 2D tensor that lists crystal1ID, crystal2ID, submoduleID, :math:`\Delta`moduleID, :math:`\Delta`rsectorID for each LOR.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">N_gantry</span><span class="p">,</span> <span class="n">N_rsector</span><span class="p">,</span> <span class="n">N_module</span><span class="p">,</span> <span class="n">N_submodule</span><span class="p">,</span> <span class="n">N_crystal</span> <span class="o">=</span> <span class="n">get_N_components</span><span class="p">(</span><span class="n">mac_file</span><span class="p">)</span>
+    <span class="c1"># Larger ID comes second</span>
+    <span class="n">det_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">det_ids</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">det_ids</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]])</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">cry_ids</span> <span class="o">=</span> <span class="n">det_ids</span> <span class="o">//</span> <span class="p">(</span><span class="n">N_submodule</span> <span class="o">*</span> <span class="n">N_module</span> <span class="o">*</span> <span class="n">N_rsector</span> <span class="o">*</span> <span class="n">N_gantry</span><span class="p">)</span>
+    <span class="n">subM_ids</span> <span class="o">=</span> <span class="n">det_ids</span> <span class="o">%</span> <span class="p">(</span><span class="n">N_submodule</span> <span class="o">*</span> <span class="n">N_module</span> <span class="o">*</span> <span class="n">N_rsector</span> <span class="o">*</span> <span class="n">N_gantry</span><span class="p">)</span> <span class="o">//</span> <span class="p">(</span><span class="n">N_module</span> <span class="o">*</span> <span class="n">N_rsector</span> <span class="o">*</span> <span class="n">N_gantry</span><span class="p">)</span>
+    <span class="n">M_ids</span> <span class="o">=</span> <span class="n">det_ids</span> <span class="o">%</span> <span class="p">(</span><span class="n">N_module</span> <span class="o">*</span> <span class="n">N_rsector</span> <span class="o">*</span> <span class="n">N_gantry</span><span class="p">)</span> <span class="o">//</span> <span class="p">(</span><span class="n">N_rsector</span> <span class="o">*</span> <span class="n">N_gantry</span><span class="p">)</span>
+    <span class="n">R_ids</span> <span class="o">=</span> <span class="n">det_ids</span> <span class="o">%</span> <span class="p">(</span><span class="n">N_rsector</span> <span class="o">*</span> <span class="n">N_gantry</span><span class="p">)</span> <span class="o">//</span> <span class="n">N_gantry</span>
+    <span class="n">deltaM_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">M_ids</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">deltaR_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">R_ids</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">cry_ids</span><span class="p">,</span> <span class="n">subM_ids</span><span class="p">,</span> <span class="n">deltaM_ids</span><span class="p">,</span> <span class="n">deltaR_ids</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="get_eta_cylinder_calibration"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/PET/gate/index.html#pytomography.io.PET.gate.get_eta_cylinder_calibration">[docs]</a><span class="k">def</span> <span class="nf">get_eta_cylinder_calibration</span><span class="p">(</span>
+    <span class="n">paths</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">mac_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">cylinder_radius</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">same_source_pos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">mean_interaction_depth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtain normalization :math:`\eta` from a calibration scan consisting of a cylindrical shell</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        paths (Sequence[str]): paths of all ROOT files containing data</span>
+<span class="sd">        mac_file (str): GATE macro file that defines scanner geometry</span>
+<span class="sd">        cylinder_radius (float): The radius of the cylindrical shell used in calibration</span>
+<span class="sd">        same_source_pos (bool, optional): Only include coincidence events with same source position; can be used to filter out randoms. Defaults to False.</span>
+<span class="sd">        mean_interaction_depth (float, optional): Mean interaction depth of photons in detector crystals. Defaults to 0.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.tensor: Tensor corresponding to :math:`eta`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">N_gantry</span><span class="p">,</span> <span class="n">N_rsector</span><span class="p">,</span> <span class="n">N_module</span><span class="p">,</span> <span class="n">N_submodule</span><span class="p">,</span> <span class="n">N_crystal</span> <span class="o">=</span> <span class="n">get_N_components</span><span class="p">(</span><span class="n">mac_file</span><span class="p">)</span>
+    <span class="n">N_detectors</span> <span class="o">=</span> <span class="n">N_gantry</span><span class="o">*</span> <span class="n">N_rsector</span> <span class="o">*</span> <span class="n">N_module</span> <span class="o">*</span> <span class="n">N_submodule</span> <span class="o">*</span> <span class="n">N_crystal</span>
+    <span class="c1"># Geometry correction factor for non-unform exposure from cylindrical shell</span>
+    <span class="n">scanner_LUT</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">get_scanner_LUT</span><span class="p">(</span><span class="n">mac_file</span><span class="p">,</span> <span class="n">mean_interaction_depth</span><span class="o">=</span><span class="n">mean_interaction_depth</span><span class="p">))</span>
+    <span class="n">all_LOR_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">combinations</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">N_detectors</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">geometric_correction_factor</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="p">(</span><span class="n">get_radius</span><span class="p">(</span><span class="n">all_LOR_ids</span><span class="p">,</span> <span class="n">scanner_LUT</span><span class="p">)</span> <span class="o">/</span> <span class="n">cylinder_radius</span> <span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">pytomography</span><span class="o">.</span><span class="n">delta</span><span class="p">)</span>
+    <span class="c1"># Detector correction factor (exploits symmetries)</span>
+    <span class="n">H</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N_crystal</span><span class="p">,</span> <span class="n">N_crystal</span><span class="p">,</span> <span class="n">N_submodule</span><span class="p">,</span> <span class="n">N_submodule</span><span class="p">,</span> <span class="n">N_module</span><span class="p">,</span> <span class="n">N_rsector</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
+        <span class="n">det_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">get_detector_ids</span><span class="p">([</span><span class="n">path</span><span class="p">],</span> <span class="n">mac_file</span><span class="p">,</span> <span class="n">same_source_pos</span><span class="o">=</span><span class="n">same_source_pos</span><span class="p">))</span>
+        <span class="n">vals</span> <span class="o">=</span> <span class="n">get_table</span><span class="p">(</span><span class="n">det_ids</span><span class="p">,</span> <span class="n">mac_file</span><span class="p">)</span>
+        <span class="n">bins</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">-</span><span class="mf">0.5</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="n">N_crystal</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">N_crystal</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">N_submodule</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">N_submodule</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">N_module</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">N_rsector</span><span class="o">+</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="n">H</span> <span class="o">+=</span> <span class="n">torch</span><span class="o">.</span><span class="n">histogramdd</span><span class="p">(</span><span class="n">vals</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">bins</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">vals_all_pairs</span> <span class="o">=</span> <span class="n">get_table</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">combinations</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">N_detectors</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="mi">2</span><span class="p">),</span> <span class="n">mac_file</span><span class="p">)</span>
+    <span class="n">N_bins</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">histogramdd</span><span class="p">(</span><span class="n">vals_all_pairs</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">bins</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="c1"># If you want to test this later, also return H and N_bins seperately</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">H</span><span class="o">/</span><span class="n">N_bins</span><span class="p">)[</span><span class="n">vals_all_pairs</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">vals_all_pairs</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">vals_all_pairs</span><span class="p">[:,</span><span class="mi">2</span><span class="p">],</span> <span class="n">vals_all_pairs</span><span class="p">[:,</span><span class="mi">3</span><span class="p">],</span> <span class="n">vals_all_pairs</span><span class="p">[:,</span><span class="mi">4</span><span class="p">],</span> <span class="n">vals_all_pairs</span><span class="p">[:,</span><span class="mi">5</span><span class="p">]]</span> <span class="o">*</span> <span class="n">geometric_correction_factor</span></div>
+
+<span class="c1"># Removes all LORs not intersecting with reconstruction cube</span>
+<div class="viewcode-block" id="remove_events_out_of_bounds"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/PET/gate/index.html#pytomography.io.PET.gate.remove_events_out_of_bounds">[docs]</a><span class="k">def</span> <span class="nf">remove_events_out_of_bounds</span><span class="p">(</span>
+    <span class="n">detector_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span>
+    <span class="n">scanner_LUT</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span>
+    <span class="n">object_meta</span><span class="p">:</span> <span class="n">ObjectMeta</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Removes all detected LORs outside of the reconstruced volume given by ``object_meta``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        detector_ids (torch.tensor): :math:`N \times 2` (non-TOF) or :math:`N \times 3` (TOF) tensor that provides detector ID pairs (and TOF bin) for coincidence events.</span>
+<span class="sd">        scanner_LUT (torch.tensor): scanner lookup table that provides spatial coordinates for all detector ID pairs</span>
+<span class="sd">        object_meta (ObjectMeta): object metadata providing the region of reconstruction</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.tensor: all detector ID pairs corresponding to coincidence events</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bmin</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">object_meta</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">object_meta</span><span class="o">.</span><span class="n">dr</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">bmax</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">object_meta</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">object_meta</span><span class="o">.</span><span class="n">dr</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">bmin</span> <span class="o">=</span> <span class="n">bmin</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">detector_ids</span><span class="o">.</span><span class="n">device</span><span class="p">);</span> <span class="n">bmax</span><span class="o">=</span><span class="n">bmax</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">detector_ids</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">origin</span> <span class="o">=</span> <span class="n">scanner_LUT</span><span class="p">[</span><span class="n">detector_ids</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]]</span>
+    <span class="n">direction</span> <span class="o">=</span> <span class="n">scanner_LUT</span><span class="p">[</span><span class="n">detector_ids</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]]</span> <span class="o">-</span> <span class="n">origin</span>
+    <span class="n">t1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">direction</span><span class="o">&gt;=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">bmin</span> <span class="o">-</span> <span class="n">origin</span><span class="p">)</span> <span class="o">/</span> <span class="n">direction</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">bmax</span> <span class="o">-</span> <span class="n">origin</span><span class="p">)</span> <span class="o">/</span> <span class="n">direction</span>
+    <span class="p">)</span>
+    <span class="n">t2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">direction</span><span class="o">&gt;=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">bmax</span> <span class="o">-</span> <span class="n">origin</span><span class="p">)</span> <span class="o">/</span> <span class="n">direction</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">bmin</span> <span class="o">-</span> <span class="n">origin</span><span class="p">)</span> <span class="o">/</span> <span class="n">direction</span>
+    <span class="p">)</span>
+    <span class="n">intersect</span> <span class="o">=</span> <span class="p">(</span><span class="n">t1</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span><span class="o">&gt;</span><span class="n">t2</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span><span class="o">+</span><span class="p">(</span><span class="n">t1</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span><span class="o">&gt;</span><span class="n">t2</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="p">((</span><span class="n">t1</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span><span class="o">&gt;</span><span class="n">t2</span><span class="p">[:,</span><span class="mi">2</span><span class="p">]))</span><span class="o">+</span><span class="p">(</span><span class="n">t1</span><span class="p">[:,</span><span class="mi">2</span><span class="p">]</span><span class="o">&gt;</span><span class="n">t2</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">detector_ids</span><span class="p">[</span><span class="o">~</span><span class="n">intersect</span><span class="p">]</span></div>
+</pre></div>
+
+                </article>
+              
+              
+              
+                <footer class="bd-footer-article">
+                  
+<div class="footer-article-items footer-article__inner">
+  
+    <div class="footer-article-item"><!-- Previous / next buttons -->
+<div class="prev-next-area">
+</div></div>
+  
+</div>
+
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52"></script>
+<script src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+  <p class="copyright">
+    
+      © Copyright 2023, Luke Polson.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 6.2.1.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item"><p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.13.3.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

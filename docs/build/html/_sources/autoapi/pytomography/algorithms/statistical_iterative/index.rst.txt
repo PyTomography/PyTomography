@@ -22,11 +22,23 @@ Classes
    pytomography.algorithms.statistical_iterative.BSREM
    pytomography.algorithms.statistical_iterative.OSEM
    pytomography.algorithms.statistical_iterative.KEM
+   pytomography.algorithms.statistical_iterative.DIPRecon
 
 
 
+Functions
+~~~~~~~~~
 
-.. py:class:: StatisticalIterative(projections, system_matrix, object_initial = None, scatter = 0, prior = None, precompute_normalization_factors = True)
+.. autoapisummary::
+
+   pytomography.algorithms.statistical_iterative.get_projection_subset
+
+
+
+.. py:function:: get_projection_subset(projections, subset_indices, device)
+
+
+.. py:class:: StatisticalIterative(projections, system_matrix, object_initial = None, scatter = None, prior = None, precompute_normalization_factors = True, device = pytomography.device)
 
    Parent class for all statistical iterative algorithms. All child classes must implement the ``__call__`` method to perform reconstruction.
 
@@ -42,17 +54,8 @@ Classes
    :type prior: Prior, optional
    :param precompute_normalization_factors:
    :type precompute_normalization_factors: bool
-
-   .. py:method:: get_subset_splits(n_subsets)
-
-      Returns a list of subsets (where each subset contains indicies corresponding to different angles). For example, if the projections consisted of 6 total angles, then ``get_subsets_splits(2)`` would return ``[[0,2,4],[1,3,5]]``.
-
-      :param n_subsets: number of subsets used in OSEM
-      :type n_subsets: int
-
-      :returns: list of index arrays for each subset
-      :rtype: list
-
+   :param device: The device correpsonding to the tensors output by the system matrix. In some cases, although the system matrix implementation uses ``pytomography.device`` in its internal computation, it will output tensors on the CPU due to their size (such as in listmode PET). Defaults to ``pytomography.device``.
+   :type device: str
 
    .. py:method:: __call__(n_iters, n_subsets, callback = None)
       :abstractmethod:
@@ -67,8 +70,11 @@ Classes
       :type callbacks: Callback, optional
 
 
+   .. py:method:: _compute_callback(n_iter)
 
-.. py:class:: OSEMOSL(projections, system_matrix, object_initial = None, scatter = 0, prior = None, precompute_normalization_factors = True)
+
+
+.. py:class:: OSEMOSL(projections, system_matrix, object_initial = None, scatter = None, prior = None, precompute_normalization_factors = True, device = pytomography.device)
 
    Bases: :py:obj:`StatisticalIterative`
 
@@ -86,6 +92,8 @@ Classes
    :type prior: Prior, optional
    :param precompute_normalization_factors:
    :type precompute_normalization_factors: bool
+   :param device: The device correpsonding to the tensors output by the system matrix. In some cases, although the system matrix implementation uses ``pytomography.device`` in its internal computation, it will output tensors on the CPU due to their size (such as in listmode PET). Defaults to ``pytomography.device``.
+   :type device: str
 
    .. py:method:: _set_recon_name(n_iters, n_subsets)
 
@@ -97,7 +105,13 @@ Classes
       :type n_subsets: int
 
 
-   .. py:method:: __call__(n_iters, n_subsets, callback = None)
+   .. py:method:: _compute_normalization_factors()
+
+      Computes normalization factors :math:`H_m^T 1` for all subsets :math:`m`.
+
+
+
+   .. py:method:: __call__(n_iters, n_subsets, n_subset_specific = None, callback = None)
 
       Performs the reconstruction using ``n_iters`` iterations and ``n_subsets`` subsets.
 
@@ -105,6 +119,8 @@ Classes
       :type n_iters: int
       :param n_subsets: Number of subsets
       :type n_subsets: int
+      :param n_subset_specific: Iterate only over the subset specified. Defaults to None
+      :type n_subset_specific: int
       :param callback: Callback function to be evaluated after each subiteration. Defaults to None.
       :type callback: Callback, optional
 
@@ -113,7 +129,7 @@ Classes
 
 
 
-.. py:class:: BSREM(projections, system_matrix, object_initial = None, scatter = 0, prior = None, relaxation_function = lambda x: 1, scaling_matrix_type = 'subind_norm')
+.. py:class:: BSREM(projections, system_matrix, object_initial = None, scatter = 0, prior = None, relaxation_function = lambda x: 1, scaling_matrix_type = 'subind_norm', precompute_normalization_factors = True, device = pytomography.device)
 
    Bases: :py:obj:`StatisticalIterative`
 
@@ -133,6 +149,14 @@ Classes
    :type relaxation_function: Callable, optional
    :param scaling_matrix_type: The form of the scaling matrix :math:`D` used. If ``subind_norm`` (sub-iteration independent + normalized), then :math:`D=\left(S_m/M \cdot H^T 1 \right)^{-1}`. If ``subdep_norm`` (sub-iteration dependent + normalized) then :math:`D = \left(H_m^T 1\right)^{-1}`. See section III.D in the paper above for a discussion on this.
    :type scaling_matrix_type: str, optional
+   :param device: The device correpsonding to the tensors output by the system matrix. In some cases, although the system matrix implementation uses ``pytomography.device`` in its internal computation, it will output tensors on the CPU due to their size (such as in listmode PET). Defaults to ``pytomography.device``.
+   :type device: str
+
+   .. py:method:: _compute_normalization_factors()
+
+      Computes normalization factors :math:`H_m^T 1` for all subsets :math:`m`.
+
+
 
    .. py:method:: _set_recon_name(n_iters, n_subsets)
 
@@ -155,7 +179,7 @@ Classes
       :rtype: torch.tensor
 
 
-   .. py:method:: __call__(n_iters, n_subsets, callback = None)
+   .. py:method:: __call__(n_iters, n_subsets, n_subset_specific = None, callback = None)
 
       Performs the reconstruction using ``n_iters`` iterations and ``n_subsets`` subsets.
 
@@ -163,6 +187,8 @@ Classes
       :type n_iters: int
       :param n_subsets: Number of subsets
       :type n_subsets: int
+      :param n_subset_specific: Iterate only over the subset specified. Defaults to None
+      :type n_subset_specific: int
       :param callback: Callback function to be called after each subiteration. Defaults to None.
       :type callback: Callback, optional
 
@@ -171,7 +197,7 @@ Classes
 
 
 
-.. py:class:: OSEM(projections, system_matrix, object_initial = None, scatter = 0, precompute_normalization_factor = True)
+.. py:class:: OSEM(projections, system_matrix, object_initial = None, scatter = 0, precompute_normalization_factors = True, device = pytomography.device)
 
    Bases: :py:obj:`OSEMOSL`
 
@@ -206,6 +232,14 @@ Classes
    :param scatter: estimate of scatter contribution :math:`s`.
    :type scatter: torch.Tensor
 
+   .. py:method:: _compute_callback(n_iter)
+
+      Computes callback for KEM transform; this is reimplemented here because the `self.object_prediction` corresponds to the :math:`\alpha` value and not :math:`f`. As such, the `KEMTransform` needs to be applied before the object is input to the callback.
+
+      :param n_iter: _description_
+      :type n_iter: int
+
+
    .. py:method:: __call__(n_iters, n_subsets, callback = None)
 
       Performs the reconstruction using ``n_iters`` iterations and ``n_subsets`` subsets.
@@ -219,6 +253,41 @@ Classes
 
       :returns: reconstructed object
       :rtype: torch.tensor[batch_size, Lx, Ly, Lz]
+
+
+
+.. py:class:: DIPRecon(projections, system_matrix, prior_network, rho = 0.003, scatter = 0, precompute_normalization_factors = True)
+
+   Bases: :py:obj:`StatisticalIterative`
+
+   Implementation of the Deep Image Prior reconstruction technique (see https://ieeexplore.ieee.org/document/8581448). This reconstruction technique requires an instance of a user-defined ``prior_network`` that implements two functions: (i) a ``fit`` method that takes in an ``object`` (:math:`x`) which the network ``f(z;\theta)`` is subsequently fit to, and (ii) a ``predict`` function that returns the current network prediction :math:`f(z;\theta)`. For more details, see the Deep Image Prior tutorial.
+
+   :param projections: projection data :math:`g` to be reconstructed
+   :type projections: torch.tensor
+   :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
+   :type system_matrix: SystemMatrix
+   :param prior_network: User defined prior network that implements the neural network ``f(z;\theta)``
+   :type prior_network: nn.Module
+   :param rho: Value of :math:`\rho` used in the optimization procedure. Defaults to 1.
+   :type rho: float, optional
+   :param scatter: Projection space scatter estimate. Defaults to 0.
+   :type scatter: torch.tensor | float, optional
+   :param precompute_normalization_factors: Whether to precompute :math:`H_m^T 1` and store on GPU in the OSEM network before reconstruction. Defaults to True.
+   :type precompute_normalization_factors: bool, optional
+
+   .. py:method:: __call__(n_iters, subit1, n_subsets_osem=1, callback=None)
+
+      Implementation of Algorithm 1 in https://ieeexplore.ieee.org/document/8581448. This implementation gives the additional option to use ordered subsets. The quantity SubIt2 specified in the paper is controlled by the user-defined ``prior_network`` class.
+
+      :param n_iters: Number of iterations (MaxIt in paper)
+      :type n_iters: int
+      :param subit1: Number of OSEM iterations before retraining neural network (SubIt1 in paper)
+      :type subit1: int
+      :param n_subsets_osem: Number of subsets to use in OSEM reconstruction. Defaults to 1.
+      :type n_subsets_osem: int, optional
+
+      :returns: Reconstructed image
+      :rtype: torch.Tensor
 
 
 

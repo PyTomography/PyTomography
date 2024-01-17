@@ -75,7 +75,7 @@ Functions
    :rtype: torch.Tensor
 
 
-.. py:function:: get_attenuation_map_from_CT_slices(files_CT, file_NM = None, index_peak = 0, keep_as_HU = False, mode = 'constant')
+.. py:function:: get_attenuation_map_from_CT_slices(files_CT, file_NM = None, index_peak = 0, keep_as_HU = False, mode = 'constant', CT_output_shape = None, apply_affine = True)
 
    Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography.
 
@@ -87,6 +87,10 @@ Functions
    :type index_peak: int, optional
    :param keep_as_HU: If True, then don't convert to linear attenuation coefficient and keep as Hounsfield units. Defaults to False
    :type keep_as_HU: bool
+   :param CT_output_shape: If not None, then the CT is returned with the desired dimensions. Otherwise, it defaults to the shape in the file_NM data.
+   :type CT_output_shape: Sequence, optional
+   :param apply_affine: Whether or not to align CT with NM.
+   :type apply_affine: bool
 
    :returns: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.
    :rtype: torch.Tensor
@@ -109,7 +113,7 @@ Functions
    :rtype: torch.Tensor[1,Ltheta,Lr,Lz]
 
 
-.. py:function:: get_psfmeta_from_scanner_params(collimator_name, energy_keV, min_sigmas = 3)
+.. py:function:: get_psfmeta_from_scanner_params(collimator_name, energy_keV, min_sigmas = 3, material = 'lead', intrinsic_resolution = 0)
 
    Obtains SPECT PSF metadata given a unique collimator code and photopeak energy of radionuclide. For more information on collimator codes, see the "external data" section of the readthedocs page.
 
@@ -119,6 +123,10 @@ Functions
    :type energy_keV: float
    :param min_sigmas: Minimum size of the blurring kernel used. Fixes the convolutional kernel size so that all locations have at least ``min_sigmas`` in dimensions (some will be greater)
    :type min_sigmas: float
+   :param material: Material of the collimator.
+   :type material: str
+   :param intrinsic_resolution: Intrinsic resolution (FWHM) of the scintillator crystals. Defaults to 0.
+   :type intrinsic_resolution: float
 
    :returns: PSF metadata.
    :rtype: SPECTPSFMeta

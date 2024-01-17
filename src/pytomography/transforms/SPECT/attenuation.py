@@ -1,7 +1,8 @@
 from __future__ import annotations
 from typing import Sequence
 import torch
-from pytomography.utils import rotate_detector_z, rev_cumsum, pad_object
+import pytomography
+from pytomography.utils import rotate_detector_z, rev_cumsum, pad_object, unpad_object
 from pytomography.transforms import Transform
 from pytomography.io.SPECT import open_CT_file
 from pytomography.metadata import SPECTObjectMeta, SPECTProjMeta
@@ -26,12 +27,14 @@ class SPECTAttenuationTransform(Transform):
 		attenuation_map (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{cm}^{-1}}` at the photon energy corresponding to the particular scan
 		filepath (Sequence[str]): Folder location of CT scan; all .dcm files must correspond to different slices of the same scan.
 		mode (str): Mode used for extrapolation of CT beyond edges when aligning DICOM SPECT/CT data. Defaults to `'constant'`, which means the image is padded with zeros.
+		assume_padded (bool): Assumes objects and projections fed into forward and backward methods are padded, as they will be in reconstruction algorithms
 	"""
 	def __init__(
 		self,
 		attenuation_map: torch.Tensor | None = None,
 		filepath: Sequence[str] | None = None,
 		mode: str = 'constant',
+		assume_padded: bool = True,
 		)-> None:
 		super(SPECTAttenuationTransform, self).__init__()
 		self.filepath = filepath
@@ -45,6 +48,7 @@ class SPECTAttenuationTransform(Transform):
 			# TODO: offer support for all input types
 			self.CT_unaligned_numpy = open_CT_file(filepath)
 			# Will then get aligned with projections when configured
+		self.assume_padded = assume_padded
 	 
 	def configure(
 		self,
@@ -77,7 +81,10 @@ class SPECTAttenuationTransform(Transform):
 		Returns:
 			torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.
 		"""
-		attenuation_map = pad_object(self.attenuation_map)
+		if self.assume_padded:
+			attenuation_map = pad_object(self.attenuation_map)
+		else:
+			attenuation_map = self.attenuation_map.clone()
 		norm_factor = get_prob_of_detection_matrix(rotate_detector_z(attenuation_map.repeat(object_i.shape[0],1,1,1), self.proj_meta.angles[ang_idx]), self.object_meta.dx)
 		object_i*=norm_factor
 		return object_i
@@ -99,7 +106,10 @@ class SPECTAttenuationTransform(Transform):
 		Returns:
 			torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.
 		"""
-		attenuation_map = pad_object(self.attenuation_map)
+		if self.assume_padded:
+			attenuation_map = pad_object(self.attenuation_map)
+		else:
+			attenuation_map = self.attenuation_map.clone()
 		norm_factor = get_prob_of_detection_matrix(rotate_detector_z(attenuation_map.repeat(object_i.shape[0],1,1,1), self.proj_meta.angles[ang_idx]), self.object_meta.dx)
 		object_i*=norm_factor
 		if norm_constant is not None:
@@ -107,4 +117,14 @@ class SPECTAttenuationTransform(Transform):
 			return object_i, norm_constant
 		else:
 			return object_i
+
+	@torch.no_grad()
+	def compute_average_prob_matrix(self):
+		attenuation_map = pad_object(self.attenuation_map)
+		average_norm_factor = torch.zeros(attenuation_map.shape).to(pytomography.device)
+		for angle in self.proj_meta.angles:
+			average_norm_factor += rotate_detector_z(get_prob_of_detection_matrix(rotate_detector_z(attenuation_map, angle), self.object_meta.dx), angle, negative=True)
+		average_norm_factor /= len(self.proj_meta.angles)
+		return unpad_object(average_norm_factor)
+
 

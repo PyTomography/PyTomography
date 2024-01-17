@@ -1,0 +1,998 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pytomography.io.PET.prd.ndjson &#8212; PyTomography 1.3.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../../_static/styles/theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../../../../../_static/styles/bootstrap.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../../../../../_static/styles/pydata-sphinx-theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+
+  
+  <link href="../../../../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=e353d410970836974a52" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/graphviz.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
+<link rel="preload" as="script" href="../../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
+
+    <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
+    <script src="../../../../../_static/doctools.js"></script>
+    <script src="../../../../../_static/sphinx_highlight.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pytomography/io/PET/prd/ndjson';</script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+<div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+    <span class="fa-solid fa-bars"></span>
+  </label>
+  
+  <div class="navbar-header-items__start">
+    
+      <div class="navbar-item">
+  
+
+<a class="navbar-brand logo" href="../../../../../index.html">
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../../../_static/PT1.png" class="logo__image only-light" alt="Logo image"/>
+    <script>document.write(`<img src="../../../../../_static/PT1.png" class="logo__image only-dark" alt="Logo image"/>`);</script>
+  
+  
+</a></div>
+    
+  </div>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../external_data.html">
+                        External Data
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../autoapi/index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+        </div>
+      
+      
+        <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+    </div>
+  
+
+  
+</div>
+
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../external_data.html">
+                        External Data
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../autoapi/index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+
+
+<nav aria-label="Breadcrumbs">
+  <ul class="bd-breadcrumbs" role="navigation" aria-label="Breadcrumb">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><i class="fa-solid fa-ellipsis"></i></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../prd.html" class="nav-link">pytomography.io.PET.prd</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page">pytomography.io.PET.prd.ndjson</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <h1>Source code for pytomography.io.PET.prd.ndjson</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This file was generated by the &quot;yardl&quot; tool. DO NOT EDIT.</span>
+
+<span class="c1"># pyright: reportUnusedClass=false</span>
+<span class="c1"># pyright: reportUnusedImport=false</span>
+<span class="c1"># pyright: reportUnknownArgumentType=false</span>
+<span class="c1"># pyright: reportUnknownMemberType=false</span>
+<span class="c1"># pyright: reportUnknownVariableType=false</span>
+
+<span class="kn">import</span> <span class="nn">collections.abc</span>
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">typing</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numpy.typing</span> <span class="k">as</span> <span class="nn">npt</span>
+
+<span class="kn">from</span> <span class="nn">.types</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">.protocols</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_ndjson</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">yardl_types</span> <span class="k">as</span> <span class="n">yardl</span>
+
+<div class="viewcode-block" id="_CoincidenceEventConverter"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._CoincidenceEventConverter">[docs]</a><span class="k">class</span> <span class="nc">_CoincidenceEventConverter</span><span class="p">(</span><span class="n">_ndjson</span><span class="o">.</span><span class="n">JsonConverter</span><span class="p">[</span><span class="n">CoincidenceEvent</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_detector_1_id_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">uint32_converter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_detector_2_id_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">uint32_converter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tof_idx_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">uint32_converter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_energy_1_idx_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">uint32_converter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_energy_2_idx_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">uint32_converter</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;detector_1_id&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detector_1_id_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;detector_2_id&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detector_2_id_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;tof_idx&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tof_idx_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;energy_1_idx&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_energy_1_idx_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;energy_2_idx&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_energy_2_idx_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+        <span class="p">]))</span>
+
+<div class="viewcode-block" id="_CoincidenceEventConverter.to_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._CoincidenceEventConverter.to_json">[docs]</a>    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">CoincidenceEvent</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">CoincidenceEvent</span><span class="p">):</span> <span class="c1"># pyright: ignore [reportUnnecessaryIsInstance]</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;CoincidenceEvent&#39; instance&quot;</span><span class="p">)</span>
+        <span class="n">json_object</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;detector1Id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detector_1_id_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">detector_1_id</span><span class="p">)</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;detector2Id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detector_2_id_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">detector_2_id</span><span class="p">)</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;tofIdx&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tof_idx_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">tof_idx</span><span class="p">)</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;energy1Idx&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_energy_1_idx_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">energy_1_idx</span><span class="p">)</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;energy2Idx&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_energy_2_idx_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">energy_2_idx</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">json_object</span></div>
+
+<div class="viewcode-block" id="_CoincidenceEventConverter.numpy_to_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._CoincidenceEventConverter.numpy_to_json">[docs]</a>    <span class="k">def</span> <span class="nf">numpy_to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span> <span class="c1"># pyright: ignore [reportUnnecessaryIsInstance]</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;np.void&#39; instance&quot;</span><span class="p">)</span>
+        <span class="n">json_object</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;detector1Id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detector_1_id_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;detector_1_id&quot;</span><span class="p">])</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;detector2Id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detector_2_id_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;detector_2_id&quot;</span><span class="p">])</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;tofIdx&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tof_idx_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;tof_idx&quot;</span><span class="p">])</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;energy1Idx&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_energy_1_idx_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;energy_1_idx&quot;</span><span class="p">])</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;energy2Idx&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_energy_2_idx_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;energy_2_idx&quot;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">json_object</span></div>
+
+<div class="viewcode-block" id="_CoincidenceEventConverter.from_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._CoincidenceEventConverter.from_json">[docs]</a>    <span class="k">def</span> <span class="nf">from_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_object</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CoincidenceEvent</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;dict&#39; instance&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">CoincidenceEvent</span><span class="p">(</span>
+            <span class="n">detector_1_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_detector_1_id_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;detector1Id&quot;</span><span class="p">],),</span>
+            <span class="n">detector_2_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_detector_2_id_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;detector2Id&quot;</span><span class="p">],),</span>
+            <span class="n">tof_idx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_tof_idx_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;tofIdx&quot;</span><span class="p">],),</span>
+            <span class="n">energy_1_idx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_energy_1_idx_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;energy1Idx&quot;</span><span class="p">],),</span>
+            <span class="n">energy_2_idx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_energy_2_idx_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;energy2Idx&quot;</span><span class="p">],),</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="_CoincidenceEventConverter.from_json_to_numpy"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._CoincidenceEventConverter.from_json_to_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">from_json_to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_object</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;dict&#39; instance&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_detector_1_id_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;detector1Id&quot;</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_detector_2_id_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;detector2Id&quot;</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_tof_idx_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;tofIdx&quot;</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_energy_1_idx_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;energy1Idx&quot;</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_energy_2_idx_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;energy2Idx&quot;</span><span class="p">]),</span>
+        <span class="p">)</span> <span class="c1"># type:ignore </span></div></div>
+
+
+<div class="viewcode-block" id="_SubjectConverter"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._SubjectConverter">[docs]</a><span class="k">class</span> <span class="nc">_SubjectConverter</span><span class="p">(</span><span class="n">_ndjson</span><span class="o">.</span><span class="n">JsonConverter</span><span class="p">[</span><span class="n">Subject</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">OptionalConverter</span><span class="p">(</span><span class="n">_ndjson</span><span class="o">.</span><span class="n">string_converter</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_id_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">string_converter</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+        <span class="p">]))</span>
+
+<div class="viewcode-block" id="_SubjectConverter.to_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._SubjectConverter.to_json">[docs]</a>    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Subject</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Subject</span><span class="p">):</span> <span class="c1"># pyright: ignore [reportUnnecessaryIsInstance]</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;Subject&#39; instance&quot;</span><span class="p">)</span>
+        <span class="n">json_object</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">json_object</span></div>
+
+<div class="viewcode-block" id="_SubjectConverter.numpy_to_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._SubjectConverter.numpy_to_json">[docs]</a>    <span class="k">def</span> <span class="nf">numpy_to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span> <span class="c1"># pyright: ignore [reportUnnecessaryIsInstance]</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;np.void&#39; instance&quot;</span><span class="p">)</span>
+        <span class="n">json_object</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">field_val</span> <span class="o">:=</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">])</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">field_val</span><span class="p">)</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">json_object</span></div>
+
+<div class="viewcode-block" id="_SubjectConverter.from_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._SubjectConverter.from_json">[docs]</a>    <span class="k">def</span> <span class="nf">from_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_object</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Subject</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;dict&#39; instance&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Subject</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_name_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)),</span>
+            <span class="nb">id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_id_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],),</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="_SubjectConverter.from_json_to_numpy"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._SubjectConverter.from_json_to_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">from_json_to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_object</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;dict&#39; instance&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_name_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_id_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]),</span>
+        <span class="p">)</span> <span class="c1"># type:ignore </span></div></div>
+
+
+<div class="viewcode-block" id="_InstitutionConverter"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._InstitutionConverter">[docs]</a><span class="k">class</span> <span class="nc">_InstitutionConverter</span><span class="p">(</span><span class="n">_ndjson</span><span class="o">.</span><span class="n">JsonConverter</span><span class="p">[</span><span class="n">Institution</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">string_converter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_address_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">string_converter</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;address&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_address_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+        <span class="p">]))</span>
+
+<div class="viewcode-block" id="_InstitutionConverter.to_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._InstitutionConverter.to_json">[docs]</a>    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Institution</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Institution</span><span class="p">):</span> <span class="c1"># pyright: ignore [reportUnnecessaryIsInstance]</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;Institution&#39; instance&quot;</span><span class="p">)</span>
+        <span class="n">json_object</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;address&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_address_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">address</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">json_object</span></div>
+
+<div class="viewcode-block" id="_InstitutionConverter.numpy_to_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._InstitutionConverter.numpy_to_json">[docs]</a>    <span class="k">def</span> <span class="nf">numpy_to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span> <span class="c1"># pyright: ignore [reportUnnecessaryIsInstance]</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;np.void&#39; instance&quot;</span><span class="p">)</span>
+        <span class="n">json_object</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">])</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;address&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_address_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;address&quot;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">json_object</span></div>
+
+<div class="viewcode-block" id="_InstitutionConverter.from_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._InstitutionConverter.from_json">[docs]</a>    <span class="k">def</span> <span class="nf">from_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_object</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Institution</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;dict&#39; instance&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Institution</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_name_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],),</span>
+            <span class="n">address</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_address_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;address&quot;</span><span class="p">],),</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="_InstitutionConverter.from_json_to_numpy"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._InstitutionConverter.from_json_to_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">from_json_to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_object</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;dict&#39; instance&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_name_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_address_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;address&quot;</span><span class="p">]),</span>
+        <span class="p">)</span> <span class="c1"># type:ignore </span></div></div>
+
+
+<div class="viewcode-block" id="_ExamInformationConverter"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._ExamInformationConverter">[docs]</a><span class="k">class</span> <span class="nc">_ExamInformationConverter</span><span class="p">(</span><span class="n">_ndjson</span><span class="o">.</span><span class="n">JsonConverter</span><span class="p">[</span><span class="n">ExamInformation</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_subject_converter</span> <span class="o">=</span> <span class="n">_SubjectConverter</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_institution_converter</span> <span class="o">=</span> <span class="n">_InstitutionConverter</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_protocol_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">OptionalConverter</span><span class="p">(</span><span class="n">_ndjson</span><span class="o">.</span><span class="n">string_converter</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_start_of_acquisition_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">OptionalConverter</span><span class="p">(</span><span class="n">_ndjson</span><span class="o">.</span><span class="n">datetime_converter</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;subject&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subject_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;institution&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_institution_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;protocol&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_protocol_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;start_of_acquisition&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_of_acquisition_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+        <span class="p">]))</span>
+
+<div class="viewcode-block" id="_ExamInformationConverter.to_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._ExamInformationConverter.to_json">[docs]</a>    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">ExamInformation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">ExamInformation</span><span class="p">):</span> <span class="c1"># pyright: ignore [reportUnnecessaryIsInstance]</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;ExamInformation&#39; instance&quot;</span><span class="p">)</span>
+        <span class="n">json_object</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;subject&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subject_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">subject</span><span class="p">)</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;institution&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_institution_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">institution</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">protocol</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_protocol_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">protocol</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">start_of_acquisition</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;startOfAcquisition&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_of_acquisition_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">start_of_acquisition</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">json_object</span></div>
+
+<div class="viewcode-block" id="_ExamInformationConverter.numpy_to_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._ExamInformationConverter.numpy_to_json">[docs]</a>    <span class="k">def</span> <span class="nf">numpy_to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span> <span class="c1"># pyright: ignore [reportUnnecessaryIsInstance]</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;np.void&#39; instance&quot;</span><span class="p">)</span>
+        <span class="n">json_object</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;subject&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subject_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;subject&quot;</span><span class="p">])</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;institution&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_institution_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;institution&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">field_val</span> <span class="o">:=</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">])</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_protocol_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">field_val</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">field_val</span> <span class="o">:=</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;start_of_acquisition&quot;</span><span class="p">])</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;startOfAcquisition&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_of_acquisition_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">field_val</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">json_object</span></div>
+
+<div class="viewcode-block" id="_ExamInformationConverter.from_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._ExamInformationConverter.from_json">[docs]</a>    <span class="k">def</span> <span class="nf">from_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_object</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExamInformation</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;dict&#39; instance&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ExamInformation</span><span class="p">(</span>
+            <span class="n">subject</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_subject_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;subject&quot;</span><span class="p">],),</span>
+            <span class="n">institution</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_institution_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;institution&quot;</span><span class="p">],),</span>
+            <span class="n">protocol</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_protocol_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;protocol&quot;</span><span class="p">)),</span>
+            <span class="n">start_of_acquisition</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_start_of_acquisition_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;startOfAcquisition&quot;</span><span class="p">)),</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="_ExamInformationConverter.from_json_to_numpy"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._ExamInformationConverter.from_json_to_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">from_json_to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_object</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;dict&#39; instance&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_subject_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;subject&quot;</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_institution_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;institution&quot;</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_protocol_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;protocol&quot;</span><span class="p">)),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_start_of_acquisition_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;startOfAcquisition&quot;</span><span class="p">)),</span>
+        <span class="p">)</span> <span class="c1"># type:ignore </span></div></div>
+
+
+<div class="viewcode-block" id="_DetectorConverter"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._DetectorConverter">[docs]</a><span class="k">class</span> <span class="nc">_DetectorConverter</span><span class="p">(</span><span class="n">_ndjson</span><span class="o">.</span><span class="n">JsonConverter</span><span class="p">[</span><span class="n">Detector</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_id_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">uint32_converter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_x_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">float32_converter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_y_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">float32_converter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_z_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">float32_converter</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_x_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_z_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+        <span class="p">]))</span>
+
+<div class="viewcode-block" id="_DetectorConverter.to_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._DetectorConverter.to_json">[docs]</a>    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Detector</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Detector</span><span class="p">):</span> <span class="c1"># pyright: ignore [reportUnnecessaryIsInstance]</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;Detector&#39; instance&quot;</span><span class="p">)</span>
+        <span class="n">json_object</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_x_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_z_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">z</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">json_object</span></div>
+
+<div class="viewcode-block" id="_DetectorConverter.numpy_to_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._DetectorConverter.numpy_to_json">[docs]</a>    <span class="k">def</span> <span class="nf">numpy_to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span> <span class="c1"># pyright: ignore [reportUnnecessaryIsInstance]</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;np.void&#39; instance&quot;</span><span class="p">)</span>
+        <span class="n">json_object</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_x_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">])</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">])</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_z_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">json_object</span></div>
+
+<div class="viewcode-block" id="_DetectorConverter.from_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._DetectorConverter.from_json">[docs]</a>    <span class="k">def</span> <span class="nf">from_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_object</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detector</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;dict&#39; instance&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Detector</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_id_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],),</span>
+            <span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_x_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">],),</span>
+            <span class="n">y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_y_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">],),</span>
+            <span class="n">z</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_z_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">],),</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="_DetectorConverter.from_json_to_numpy"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._DetectorConverter.from_json_to_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">from_json_to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_object</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;dict&#39; instance&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_id_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_x_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_y_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_z_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">]),</span>
+        <span class="p">)</span> <span class="c1"># type:ignore </span></div></div>
+
+
+<div class="viewcode-block" id="_ScannerInformationConverter"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._ScannerInformationConverter">[docs]</a><span class="k">class</span> <span class="nc">_ScannerInformationConverter</span><span class="p">(</span><span class="n">_ndjson</span><span class="o">.</span><span class="n">JsonConverter</span><span class="p">[</span><span class="n">ScannerInformation</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_name_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">OptionalConverter</span><span class="p">(</span><span class="n">_ndjson</span><span class="o">.</span><span class="n">string_converter</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_detectors_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">VectorConverter</span><span class="p">(</span><span class="n">_DetectorConverter</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tof_bin_edges_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">NDArrayConverter</span><span class="p">(</span><span class="n">_ndjson</span><span class="o">.</span><span class="n">float32_converter</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tof_resolution_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">float32_converter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_energy_bin_edges_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">NDArrayConverter</span><span class="p">(</span><span class="n">_ndjson</span><span class="o">.</span><span class="n">float32_converter</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_energy_resolution_at_511_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">float32_converter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_listmode_time_block_duration_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">uint32_converter</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;model_name&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_name_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;detectors&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detectors_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;tof_bin_edges&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tof_bin_edges_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;tof_resolution&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tof_resolution_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;energy_bin_edges&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_energy_bin_edges_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;energy_resolution_at_511&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_energy_resolution_at_511_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;listmode_time_block_duration&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_listmode_time_block_duration_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+        <span class="p">]))</span>
+
+<div class="viewcode-block" id="_ScannerInformationConverter.to_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._ScannerInformationConverter.to_json">[docs]</a>    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">ScannerInformation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">ScannerInformation</span><span class="p">):</span> <span class="c1"># pyright: ignore [reportUnnecessaryIsInstance]</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;ScannerInformation&#39; instance&quot;</span><span class="p">)</span>
+        <span class="n">json_object</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">model_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;modelName&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_name_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">model_name</span><span class="p">)</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;detectors&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detectors_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">detectors</span><span class="p">)</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;tofBinEdges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tof_bin_edges_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">tof_bin_edges</span><span class="p">)</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;tofResolution&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tof_resolution_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">tof_resolution</span><span class="p">)</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;energyBinEdges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_energy_bin_edges_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">energy_bin_edges</span><span class="p">)</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;energyResolutionAt511&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_energy_resolution_at_511_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">energy_resolution_at_511</span><span class="p">)</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;listmodeTimeBlockDuration&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_listmode_time_block_duration_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">listmode_time_block_duration</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">json_object</span></div>
+
+<div class="viewcode-block" id="_ScannerInformationConverter.numpy_to_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._ScannerInformationConverter.numpy_to_json">[docs]</a>    <span class="k">def</span> <span class="nf">numpy_to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span> <span class="c1"># pyright: ignore [reportUnnecessaryIsInstance]</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;np.void&#39; instance&quot;</span><span class="p">)</span>
+        <span class="n">json_object</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">field_val</span> <span class="o">:=</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;model_name&quot;</span><span class="p">])</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;modelName&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_name_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">field_val</span><span class="p">)</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;detectors&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detectors_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;detectors&quot;</span><span class="p">])</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;tofBinEdges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tof_bin_edges_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;tof_bin_edges&quot;</span><span class="p">])</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;tofResolution&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tof_resolution_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;tof_resolution&quot;</span><span class="p">])</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;energyBinEdges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_energy_bin_edges_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;energy_bin_edges&quot;</span><span class="p">])</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;energyResolutionAt511&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_energy_resolution_at_511_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;energy_resolution_at_511&quot;</span><span class="p">])</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;listmodeTimeBlockDuration&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_listmode_time_block_duration_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;listmode_time_block_duration&quot;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">json_object</span></div>
+
+<div class="viewcode-block" id="_ScannerInformationConverter.from_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._ScannerInformationConverter.from_json">[docs]</a>    <span class="k">def</span> <span class="nf">from_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_object</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ScannerInformation</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;dict&#39; instance&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ScannerInformation</span><span class="p">(</span>
+            <span class="n">model_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;modelName&quot;</span><span class="p">)),</span>
+            <span class="n">detectors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_detectors_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;detectors&quot;</span><span class="p">],),</span>
+            <span class="n">tof_bin_edges</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_tof_bin_edges_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;tofBinEdges&quot;</span><span class="p">],),</span>
+            <span class="n">tof_resolution</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_tof_resolution_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;tofResolution&quot;</span><span class="p">],),</span>
+            <span class="n">energy_bin_edges</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_energy_bin_edges_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;energyBinEdges&quot;</span><span class="p">],),</span>
+            <span class="n">energy_resolution_at_511</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_energy_resolution_at_511_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;energyResolutionAt511&quot;</span><span class="p">],),</span>
+            <span class="n">listmode_time_block_duration</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_listmode_time_block_duration_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;listmodeTimeBlockDuration&quot;</span><span class="p">],),</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="_ScannerInformationConverter.from_json_to_numpy"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._ScannerInformationConverter.from_json_to_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">from_json_to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_object</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;dict&#39; instance&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model_name_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;modelName&quot;</span><span class="p">)),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_detectors_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;detectors&quot;</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_tof_bin_edges_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;tofBinEdges&quot;</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_tof_resolution_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;tofResolution&quot;</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_energy_bin_edges_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;energyBinEdges&quot;</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_energy_resolution_at_511_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;energyResolutionAt511&quot;</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_listmode_time_block_duration_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;listmodeTimeBlockDuration&quot;</span><span class="p">]),</span>
+        <span class="p">)</span> <span class="c1"># type:ignore </span></div></div>
+
+
+<div class="viewcode-block" id="_HeaderConverter"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._HeaderConverter">[docs]</a><span class="k">class</span> <span class="nc">_HeaderConverter</span><span class="p">(</span><span class="n">_ndjson</span><span class="o">.</span><span class="n">JsonConverter</span><span class="p">[</span><span class="n">Header</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_scanner_converter</span> <span class="o">=</span> <span class="n">_ScannerInformationConverter</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_exam_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">OptionalConverter</span><span class="p">(</span><span class="n">_ExamInformationConverter</span><span class="p">())</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;scanner&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scanner_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;exam&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exam_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+        <span class="p">]))</span>
+
+<div class="viewcode-block" id="_HeaderConverter.to_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._HeaderConverter.to_json">[docs]</a>    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Header</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Header</span><span class="p">):</span> <span class="c1"># pyright: ignore [reportUnnecessaryIsInstance]</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;Header&#39; instance&quot;</span><span class="p">)</span>
+        <span class="n">json_object</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;scanner&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scanner_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">scanner</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">exam</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;exam&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exam_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">exam</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">json_object</span></div>
+
+<div class="viewcode-block" id="_HeaderConverter.numpy_to_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._HeaderConverter.numpy_to_json">[docs]</a>    <span class="k">def</span> <span class="nf">numpy_to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span> <span class="c1"># pyright: ignore [reportUnnecessaryIsInstance]</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;np.void&#39; instance&quot;</span><span class="p">)</span>
+        <span class="n">json_object</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;scanner&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scanner_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;scanner&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">field_val</span> <span class="o">:=</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;exam&quot;</span><span class="p">])</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;exam&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exam_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">field_val</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">json_object</span></div>
+
+<div class="viewcode-block" id="_HeaderConverter.from_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._HeaderConverter.from_json">[docs]</a>    <span class="k">def</span> <span class="nf">from_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_object</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Header</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;dict&#39; instance&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Header</span><span class="p">(</span>
+            <span class="n">scanner</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_scanner_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;scanner&quot;</span><span class="p">],),</span>
+            <span class="n">exam</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_exam_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;exam&quot;</span><span class="p">)),</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="_HeaderConverter.from_json_to_numpy"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._HeaderConverter.from_json_to_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">from_json_to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_object</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;dict&#39; instance&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_scanner_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;scanner&quot;</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_exam_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;exam&quot;</span><span class="p">)),</span>
+        <span class="p">)</span> <span class="c1"># type:ignore </span></div></div>
+
+
+<div class="viewcode-block" id="_TimeBlockConverter"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._TimeBlockConverter">[docs]</a><span class="k">class</span> <span class="nc">_TimeBlockConverter</span><span class="p">(</span><span class="n">_ndjson</span><span class="o">.</span><span class="n">JsonConverter</span><span class="p">[</span><span class="n">TimeBlock</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_id_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">uint32_converter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prompt_events_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">VectorConverter</span><span class="p">(</span><span class="n">_CoincidenceEventConverter</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_delayed_events_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">OptionalConverter</span><span class="p">(</span><span class="n">_ndjson</span><span class="o">.</span><span class="n">VectorConverter</span><span class="p">(</span><span class="n">_CoincidenceEventConverter</span><span class="p">()))</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;prompt_events&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prompt_events_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;delayed_events&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_delayed_events_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+        <span class="p">]))</span>
+
+<div class="viewcode-block" id="_TimeBlockConverter.to_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._TimeBlockConverter.to_json">[docs]</a>    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">TimeBlock</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">TimeBlock</span><span class="p">):</span> <span class="c1"># pyright: ignore [reportUnnecessaryIsInstance]</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;TimeBlock&#39; instance&quot;</span><span class="p">)</span>
+        <span class="n">json_object</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;promptEvents&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prompt_events_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">prompt_events</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">delayed_events</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;delayedEvents&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_delayed_events_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">delayed_events</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">json_object</span></div>
+
+<div class="viewcode-block" id="_TimeBlockConverter.numpy_to_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._TimeBlockConverter.numpy_to_json">[docs]</a>    <span class="k">def</span> <span class="nf">numpy_to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span> <span class="c1"># pyright: ignore [reportUnnecessaryIsInstance]</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;np.void&#39; instance&quot;</span><span class="p">)</span>
+        <span class="n">json_object</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;promptEvents&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prompt_events_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;prompt_events&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">field_val</span> <span class="o">:=</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;delayed_events&quot;</span><span class="p">])</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;delayedEvents&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_delayed_events_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">field_val</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">json_object</span></div>
+
+<div class="viewcode-block" id="_TimeBlockConverter.from_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._TimeBlockConverter.from_json">[docs]</a>    <span class="k">def</span> <span class="nf">from_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_object</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TimeBlock</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;dict&#39; instance&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">TimeBlock</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_id_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],),</span>
+            <span class="n">prompt_events</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_prompt_events_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;promptEvents&quot;</span><span class="p">],),</span>
+            <span class="n">delayed_events</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_delayed_events_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;delayedEvents&quot;</span><span class="p">)),</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="_TimeBlockConverter.from_json_to_numpy"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._TimeBlockConverter.from_json_to_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">from_json_to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_object</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;dict&#39; instance&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_id_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_prompt_events_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;promptEvents&quot;</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_delayed_events_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;delayedEvents&quot;</span><span class="p">)),</span>
+        <span class="p">)</span> <span class="c1"># type:ignore </span></div></div>
+
+
+<div class="viewcode-block" id="_TimeIntervalConverter"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._TimeIntervalConverter">[docs]</a><span class="k">class</span> <span class="nc">_TimeIntervalConverter</span><span class="p">(</span><span class="n">_ndjson</span><span class="o">.</span><span class="n">JsonConverter</span><span class="p">[</span><span class="n">TimeInterval</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_start_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">uint32_converter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stop_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">uint32_converter</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;stop&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stop_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+        <span class="p">]))</span>
+
+<div class="viewcode-block" id="_TimeIntervalConverter.to_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._TimeIntervalConverter.to_json">[docs]</a>    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">TimeInterval</span><span class="p">):</span> <span class="c1"># pyright: ignore [reportUnnecessaryIsInstance]</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;TimeInterval&#39; instance&quot;</span><span class="p">)</span>
+        <span class="n">json_object</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">start</span><span class="p">)</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;stop&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stop_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">stop</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">json_object</span></div>
+
+<div class="viewcode-block" id="_TimeIntervalConverter.numpy_to_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._TimeIntervalConverter.numpy_to_json">[docs]</a>    <span class="k">def</span> <span class="nf">numpy_to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span> <span class="c1"># pyright: ignore [reportUnnecessaryIsInstance]</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;np.void&#39; instance&quot;</span><span class="p">)</span>
+        <span class="n">json_object</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">])</span>
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;stop&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stop_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;stop&quot;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">json_object</span></div>
+
+<div class="viewcode-block" id="_TimeIntervalConverter.from_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._TimeIntervalConverter.from_json">[docs]</a>    <span class="k">def</span> <span class="nf">from_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_object</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TimeInterval</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;dict&#39; instance&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">TimeInterval</span><span class="p">(</span>
+            <span class="n">start</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_start_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">],),</span>
+            <span class="n">stop</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_stop_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;stop&quot;</span><span class="p">],),</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="_TimeIntervalConverter.from_json_to_numpy"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._TimeIntervalConverter.from_json_to_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">from_json_to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_object</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;dict&#39; instance&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_start_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_stop_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;stop&quot;</span><span class="p">]),</span>
+        <span class="p">)</span> <span class="c1"># type:ignore </span></div></div>
+
+
+<div class="viewcode-block" id="_TimeFrameInformationConverter"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._TimeFrameInformationConverter">[docs]</a><span class="k">class</span> <span class="nc">_TimeFrameInformationConverter</span><span class="p">(</span><span class="n">_ndjson</span><span class="o">.</span><span class="n">JsonConverter</span><span class="p">[</span><span class="n">TimeFrameInformation</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_time_frames_converter</span> <span class="o">=</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">VectorConverter</span><span class="p">(</span><span class="n">_TimeIntervalConverter</span><span class="p">())</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;time_frames&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time_frames_converter</span><span class="o">.</span><span class="n">overall_dtype</span><span class="p">()),</span>
+        <span class="p">]))</span>
+
+<div class="viewcode-block" id="_TimeFrameInformationConverter.to_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._TimeFrameInformationConverter.to_json">[docs]</a>    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">TimeFrameInformation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">TimeFrameInformation</span><span class="p">):</span> <span class="c1"># pyright: ignore [reportUnnecessaryIsInstance]</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;TimeFrameInformation&#39; instance&quot;</span><span class="p">)</span>
+        <span class="n">json_object</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;timeFrames&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time_frames_converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">time_frames</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">json_object</span></div>
+
+<div class="viewcode-block" id="_TimeFrameInformationConverter.numpy_to_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._TimeFrameInformationConverter.numpy_to_json">[docs]</a>    <span class="k">def</span> <span class="nf">numpy_to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span> <span class="c1"># pyright: ignore [reportUnnecessaryIsInstance]</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;np.void&#39; instance&quot;</span><span class="p">)</span>
+        <span class="n">json_object</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;timeFrames&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time_frames_converter</span><span class="o">.</span><span class="n">numpy_to_json</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;time_frames&quot;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">json_object</span></div>
+
+<div class="viewcode-block" id="_TimeFrameInformationConverter.from_json"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._TimeFrameInformationConverter.from_json">[docs]</a>    <span class="k">def</span> <span class="nf">from_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_object</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TimeFrameInformation</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;dict&#39; instance&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">TimeFrameInformation</span><span class="p">(</span>
+            <span class="n">time_frames</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_time_frames_converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;timeFrames&quot;</span><span class="p">],),</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="_TimeFrameInformationConverter.from_json_to_numpy"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd._TimeFrameInformationConverter.from_json_to_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">from_json_to_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_object</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected &#39;dict&#39; instance&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_time_frames_converter</span><span class="o">.</span><span class="n">from_json_to_numpy</span><span class="p">(</span><span class="n">json_object</span><span class="p">[</span><span class="s2">&quot;timeFrames&quot;</span><span class="p">]),</span>
+        <span class="p">)</span> <span class="c1"># type:ignore </span></div></div>
+
+
+<div class="viewcode-block" id="NDJsonPrdExperimentWriter"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd.NDJsonPrdExperimentWriter">[docs]</a><span class="k">class</span> <span class="nc">NDJsonPrdExperimentWriter</span><span class="p">(</span><span class="n">_ndjson</span><span class="o">.</span><span class="n">NDJsonProtocolWriter</span><span class="p">,</span> <span class="n">PrdExperimentWriterBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;NDJson writer for the PrdExperiment protocol.&quot;&quot;&quot;</span>
+
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">TextIO</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">PrdExperimentWriterBase</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">_ndjson</span><span class="o">.</span><span class="n">NDJsonProtocolWriter</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">,</span> <span class="n">PrdExperimentWriterBase</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+
+<div class="viewcode-block" id="NDJsonPrdExperimentWriter._write_header"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd.NDJsonPrdExperimentWriter._write_header">[docs]</a>    <span class="k">def</span> <span class="nf">_write_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Header</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">converter</span> <span class="o">=</span> <span class="n">_HeaderConverter</span><span class="p">()</span>
+        <span class="n">json_value</span> <span class="o">=</span> <span class="n">converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_json_line</span><span class="p">({</span><span class="s2">&quot;header&quot;</span><span class="p">:</span> <span class="n">json_value</span><span class="p">})</span></div>
+
+<div class="viewcode-block" id="NDJsonPrdExperimentWriter._write_time_blocks"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd.NDJsonPrdExperimentWriter._write_time_blocks">[docs]</a>    <span class="k">def</span> <span class="nf">_write_time_blocks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">TimeBlock</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">converter</span> <span class="o">=</span> <span class="n">_TimeBlockConverter</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">value</span><span class="p">:</span>
+            <span class="n">json_item</span> <span class="o">=</span> <span class="n">converter</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_write_json_line</span><span class="p">({</span><span class="s2">&quot;timeBlocks&quot;</span><span class="p">:</span> <span class="n">json_item</span><span class="p">})</span></div></div>
+
+
+<div class="viewcode-block" id="NDJsonPrdExperimentReader"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd.NDJsonPrdExperimentReader">[docs]</a><span class="k">class</span> <span class="nc">NDJsonPrdExperimentReader</span><span class="p">(</span><span class="n">_ndjson</span><span class="o">.</span><span class="n">NDJsonProtocolReader</span><span class="p">,</span> <span class="n">PrdExperimentReaderBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;NDJson writer for the PrdExperiment protocol.&quot;&quot;&quot;</span>
+
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">io</span><span class="o">.</span><span class="n">BufferedReader</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">TextIO</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">PrdExperimentReaderBase</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">_ndjson</span><span class="o">.</span><span class="n">NDJsonProtocolReader</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">,</span> <span class="n">PrdExperimentReaderBase</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+
+<div class="viewcode-block" id="NDJsonPrdExperimentReader._read_header"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd.NDJsonPrdExperimentReader._read_header">[docs]</a>    <span class="k">def</span> <span class="nf">_read_header</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Header</span><span class="p">:</span>
+        <span class="n">json_object</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_json_line</span><span class="p">(</span><span class="s2">&quot;header&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">converter</span> <span class="o">=</span> <span class="n">_HeaderConverter</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NDJsonPrdExperimentReader._read_time_blocks"><a class="viewcode-back" href="../../../../../autoapi/pytomography/io/PET/prd/ndjson/index.html#pytomography.io.PET.prd.NDJsonPrdExperimentReader._read_time_blocks">[docs]</a>    <span class="k">def</span> <span class="nf">_read_time_blocks</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">TimeBlock</span><span class="p">]:</span>
+        <span class="n">converter</span> <span class="o">=</span> <span class="n">_TimeBlockConverter</span><span class="p">()</span>
+        <span class="k">while</span> <span class="p">(</span><span class="n">json_object</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_json_line</span><span class="p">(</span><span class="s2">&quot;timeBlocks&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">_ndjson</span><span class="o">.</span><span class="n">MISSING_SENTINEL</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">converter</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_object</span><span class="p">)</span></div></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+                <footer class="bd-footer-article">
+                  
+<div class="footer-article-items footer-article__inner">
+  
+    <div class="footer-article-item"><!-- Previous / next buttons -->
+<div class="prev-next-area">
+</div></div>
+  
+</div>
+
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52"></script>
+<script src="../../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+  <p class="copyright">
+    
+      © Copyright 2023, Luke Polson.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 6.2.1.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item"><p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.13.3.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
