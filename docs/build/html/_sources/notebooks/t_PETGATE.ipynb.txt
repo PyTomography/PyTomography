@@ -35,6 +35,15 @@
   },
   {
    "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "torch.cuda.is_available()"
+   ]
+  },
+  {
+   "cell_type": "code",
    "execution_count": 2,
    "metadata": {},
    "outputs": [],
