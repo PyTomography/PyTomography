@@ -2,13 +2,15 @@ from __future__ import annotations
 import pytomography
 import torch
 from . import prd
+from pytomography.metadata import PETTOFMeta
 from typing import Sequence
 
-def read_petsird(
+def get_detector_ids(
     petsird_file: str,
     read_tof: bool | None = None,
     read_energy: bool | None = None,
     time_block_ids: Sequence[int] | None = None,
+    return_header : bool = False
 ) -> tuple[prd.types.Header, torch.Tensor]:
     """Read all time blocks of a PETSIRD listmode file
 
@@ -33,7 +35,6 @@ def read_petsird(
     with prd.BinaryPrdExperimentReader(petsird_file) as reader:
         # Read header and build lookup table
         header = reader.read_header()
-
         # bool that decides whether the scanner has TOF and whether it is
         # meaningful to read TOF
         if read_tof is None:
@@ -91,5 +92,43 @@ def read_petsird(
                         ]
                         for e in time_block.prompt_events
                     ]
+                    
+    detector_ids = torch.tensor(event_attribute_list).cpu()
+    if return_header:
+        return detector_ids, header
+    else:
+        return detector_ids
+    
+def get_scanner_LUT_from_header(header: prd.Header) -> torch.Tensor:
+    """Obtains the scanner lookup table (relating detector IDs to physical coordinates) from a PETSIRD header.
 
-    return header, torch.tensor(event_attribute_list).to(pytomography.device)
+    Args:
+        header (prd.Header): PETSIRD header
+
+    Returns:
+        torch.Tensor: scanner lookup table.
+    """
+    x_pos = [det.x for det in header.scanner.detectors]
+    y_pos = [det.y for det in header.scanner.detectors]
+    z_pos = [det.z for det in header.scanner.detectors]
+    scanner_LUT = torch.vstack([
+        torch.tensor(x_pos),
+        torch.tensor(y_pos),
+        torch.tensor(z_pos)
+    ]).T.cpu()
+    return scanner_LUT
+
+def get_TOF_meta_from_header(header: prd.Header, n_sigmas: float = 3.) -> PETTOFMeta:
+    """Obtain time of flight metadata from a PETSIRD header
+
+    Args:
+        header (prd.Header): PETSIRD header
+        n_sigmas (float, optional): Number of sigmas to consider when performing TOF projection. Defaults to 3..
+
+    Returns:
+        PETTOFMeta: Time of flight metadata.
+    """
+    num_tof_bins = header.scanner.tof_bin_edges.shape[0] - 1
+    tofbin_width = (header.scanner.tof_bin_edges[1] - header.scanner.tof_bin_edges[0])
+    fwhm_tof = header.scanner.tof_resolution 
+    return PETTOFMeta(num_tof_bins, tofbin_width, fwhm_tof, n_sigmas)

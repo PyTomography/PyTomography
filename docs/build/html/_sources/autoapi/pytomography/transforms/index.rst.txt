@@ -15,7 +15,6 @@ Subpackages
    :titlesonly:
    :maxdepth: 3
 
-   PET/index.rst
    SPECT/index.rst
    shared/index.rst
 
@@ -41,10 +40,10 @@ Classes
    pytomography.transforms.SPECTAttenuationTransform
    pytomography.transforms.SPECTPSFTransform
    pytomography.transforms.CutOffTransform
-   pytomography.transforms.PETAttenuationTransform
-   pytomography.transforms.PETPSFTransform
    pytomography.transforms.KEMTransform
    pytomography.transforms.GaussianFilter
+   pytomography.transforms.RotationTransform
+   pytomography.transforms.DVFMotionTransform
 
 
 
@@ -81,7 +80,7 @@ Classes
 
 
 
-.. py:class:: SPECTAttenuationTransform(attenuation_map = None, filepath = None, mode = 'constant')
+.. py:class:: SPECTAttenuationTransform(attenuation_map = None, filepath = None, mode = 'constant', assume_padded = True)
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 
@@ -93,6 +92,8 @@ Classes
    :type filepath: Sequence[str]
    :param mode: Mode used for extrapolation of CT beyond edges when aligning DICOM SPECT/CT data. Defaults to `'constant'`, which means the image is padded with zeros.
    :type mode: str
+   :param assume_padded: Assumes objects and projections fed into forward and backward methods are padded, as they will be in reconstruction algorithms
+   :type assume_padded: bool
 
    .. py:method:: configure(object_meta, proj_meta)
 
@@ -132,8 +133,11 @@ Classes
       :rtype: torch.tensor
 
 
+   .. py:method:: compute_average_prob_matrix()
 
-.. py:class:: SPECTPSFTransform(psf_meta = None, kernel_f = None, psf_net = None)
+
+
+.. py:class:: SPECTPSFTransform(psf_meta = None, kernel_f = None, psf_net = None, assume_padded = True)
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 
@@ -269,101 +273,6 @@ Classes
 
 
 
-.. py:class:: PETAttenuationTransform(CT)
-
-   Bases: :py:obj:`pytomography.transforms.Transform`
-
-   proj2proj mapping used to model the effects of attenuation in PET.
-
-   :param CT: Tensor of size [batch_size, Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{cm}^{-1}}` at a photon energy of 511keV.
-   :type CT: torch.tensor
-   :param device: Pytorch device used for computation. If None, uses the default device `pytomography.device` Defaults to None.
-   :type device: str, optional
-
-   .. py:method:: configure(object_meta, proj_meta)
-
-      Function used to initalize the transform using corresponding object and projection metadata
-
-      :param object_meta: Object metadata.
-      :type object_meta: ObjectMeta
-      :param proj_meta: Projection metadata.
-      :type proj_meta: ProjMeta
-
-
-   .. py:method:: forward(proj)
-
-      Applies forward projection of attenuation modeling :math:`B:\mathbb{V} \to \mathbb{V}` to 2D PET projections.
-
-      :param proj: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
-      :type proj: torch.Tensor
-
-      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected projections.
-      :rtype: torch.Tensor
-
-
-   .. py:method:: backward(proj, norm_constant = None)
-
-      Applies back projection of attenuation modeling :math:`B^T:\mathbb{V} \to \mathbb{V}` to 2D PET projections. Since the matrix is diagonal, its the ``backward`` implementation is identical to the ``forward`` implementation; the only difference is the optional ``norm_constant`` which is needed if one wants to normalize the back projection.
-
-      :param proj: Tensor of size [batch_size, Ltheta, Lr, Lz] which transform is appplied to
-      :type proj: torch.Tensor
-      :param norm_constant: A tensor used to normalize the output during back projection. Defaults to None.
-      :type norm_constant: torch.Tensor | None, optional
-
-      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz]  corresponding to attenuation-corrected projections.
-      :rtype: torch.tensor
-
-
-
-.. py:class:: PETPSFTransform(kerns)
-
-   Bases: :py:obj:`pytomography.transforms.Transform`
-
-   proj2proj transform used to model the effects of PSF blurring in PET. The smoothing kernel is assumed to be independent of :math:`\theta` and :math:`z`, but is dependent on :math:`r`.
-
-   :param kerns: A sequence of PSF kernels applied to the Lr dimension of the projections with shape [batch_size, Lr, Ltheta, Lz]
-   :type kerns: Sequence[callable]
-
-   .. py:method:: configure(object_meta, proj_meta)
-
-      Function used to initalize the transform using corresponding object and proj metadata
-
-      :param object_meta: Object metadata.
-      :type object_meta: ObjectMeta
-      :param proj_meta: Projection metadata.
-      :type proj_meta: ProjMeta
-
-
-   .. py:method:: construct_matrix()
-
-      Constructs the matrix used to apply PSF blurring.
-
-
-
-   .. py:method:: forward(proj)
-
-      Applies the forward projection of PSF modeling :math:`B:\mathbb{V} \to \mathbb{V}` to a PET proj.
-
-      :param proj: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the projections
-      :type proj: torch.tensor]
-
-      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the PSF corrected projections.
-      :rtype: torch.tensor
-
-
-   .. py:method:: backward(proj, norm_constant = None)
-
-      Applies the back projection of PSF modeling :math:`B^T:\mathbb{V} \to \mathbb{V}` to PET projections .
-
-      :param proj: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the projections
-                   norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
-      :type proj: torch.tensor]
-
-      :returns: Tensor of size [batch_size, Ltheta, Lr, Lz] corresponding to the PSF corrected projections.
-      :rtype: torch.tensor
-
-
-
 .. py:class:: KEMTransform(support_objects, support_kernels=None, support_kernels_params=None, distance_kernel=None, distance_kernel_params=None, size = 5, top_N = None, kernel_on_gpu = False)
 
    Bases: :py:obj:`pytomography.transforms.Transform`
@@ -419,7 +328,7 @@ Classes
 
 
 
-.. py:class:: GaussianFilter(FWHM)
+.. py:class:: GaussianFilter(FWHM, n_sigmas = 3)
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 
@@ -427,6 +336,8 @@ Classes
 
    :param FWHM: Specifies the width of the gaussian
    :type FWHM: float
+   :param n_sigmas: Number of sigmas to include before truncating the kernel.
+   :type n_sigmas: float
 
    .. py:method:: configure(object_meta, proj_meta)
 
@@ -471,6 +382,111 @@ Classes
 
       :returns: Smoothed object
       :rtype: torch.tensor
+
+
+
+.. py:class:: RotationTransform(mode = 'bilinear')
+
+   Bases: :py:obj:`pytomography.transforms.Transform`
+
+   obj2obj transform used to rotate an object to angle :math:`\beta` in the DICOM reference frame. (Note that an angle of )
+
+   :param mode: Interpolation mode used in the rotation.
+   :type mode: str
+
+   .. py:method:: forward(object, angles)
+
+      Rotates an object to angle :math:`\beta` in the DICOM reference frame. Note that the scanner angle :math:`\beta` is related to :math:`\phi` (azimuthal angle) by :math:`\phi = 3\pi/2 - \beta`.
+
+      :param object: Tensor of size [batch_size, Lx, Ly, Lz] being rotated.
+      :type object: torch.tensor
+      :param angles: Tensor of size [batch_size] corresponding to the rotation angles.
+      :type angles: torch.Tensor
+
+      :returns: Tensor of size [batch_size, Lx, Ly, Lz] where each element in the batch dimension is rotated by the corresponding angle.
+      :rtype: torch.tensor
+
+
+   .. py:method:: backward(object, angles)
+
+      Forward projection :math:`A:\mathbb{U} \to \mathbb{U}` of attenuation correction.
+
+      :param object: Tensor of size [batch_size, Lx, Ly, Lz] being rotated.
+      :type object: torch.tensor
+      :param angles: Tensor of size [batch_size] corresponding to the rotation angles.
+      :type angles: torch.Tensor
+
+      :returns: Tensor of size [batch_size, Lx, Ly, Lz] where each element in the batch dimension is rotated by the corresponding angle.
+      :rtype: torch.tensor
+
+
+
+.. py:class:: DVFMotionTransform(dvf_forward = None, dvf_backward = None)
+
+   Bases: :py:obj:`pytomography.transforms.Transform`
+
+   The parent class for all transforms used in reconstruction (obj2obj, im2im, obj2im). Subclasses must implement the ``__call__`` method.
+
+   :param device: Pytorch device used for computation
+   :type device: str
+
+   .. py:method:: _get_vol_ratio(DVF)
+
+
+   .. py:method:: _get_old_coordinates()
+
+      Obtain meshgrid of coordinates corresponding to the object
+
+      :returns: Tensor of coordinates corresponding to input object
+      :rtype: torch.Tensor
+
+
+   .. py:method:: _get_new_coordinates(old_coordinates, DVF)
+
+      Obtain the new coordinates of each voxel based on the DVF.
+
+      :param old_coordinates: Old coordinates of each voxel
+      :type old_coordinates: torch.Tensor
+      :param DVF: Deformation vector field.
+      :type DVF: torch.Tensor
+
+      :returns: _description_
+      :rtype: _type_
+
+
+   .. py:method:: _apply_dvf(DVF, vol_ratio, object_i)
+
+      Applies the deformation vector field to the object
+
+      :param DVF: Deformation vector field
+      :type DVF: torch.Tensor
+      :param object_i: Old object.
+      :type object_i: torch.Tensor
+
+      :returns: Deformed object.
+      :rtype: torch.Tensor
+
+
+   .. py:method:: forward(object_i)
+
+      Forward transform of deformation vector field
+
+      :param object_i: Original object.
+      :type object_i: torch.Tensor
+
+      :returns: Deformed object corresponding to forward transform.
+      :rtype: torch.Tensor
+
+
+   .. py:method:: backward(object_i)
+
+      Backward transform of deformation vector field
+
+      :param object_i: Original object.
+      :type object_i: torch.Tensor
+
+      :returns: Deformed object corresponding to backward transform.
+      :rtype: torch.Tensor
 
 
 

@@ -1,0 +1,789 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>pytomography.io.PET.gate &#8212; PyTomography 1.3.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../../_static/styles/theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../../../../../_static/styles/bootstrap.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../../../../../_static/styles/pydata-sphinx-theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+
+  
+  <link href="../../../../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=e353d410970836974a52" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/graphviz.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
+<link rel="preload" as="script" href="../../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
+
+    <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
+    <script src="../../../../../_static/doctools.js"></script>
+    <script src="../../../../../_static/sphinx_highlight.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'autoapi/pytomography/io/PET/gate/index';</script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
+    <link rel="next" title="pytomography.io.PET.petsird" href="../petsird/index.html" />
+    <link rel="prev" title="pytomography.io.PET.prd.yardl_types" href="../prd/yardl_types/index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+<div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+    <span class="fa-solid fa-bars"></span>
+  </label>
+  
+  <div class="navbar-header-items__start">
+    
+      <div class="navbar-item">
+  
+
+<a class="navbar-brand logo" href="../../../../../index.html">
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../../../_static/PT1.png" class="logo__image only-light" alt="Logo image"/>
+    <script>document.write(`<img src="../../../../../_static/PT1.png" class="logo__image only-dark" alt="Logo image"/>`);</script>
+  
+  
+</a></div>
+    
+  </div>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../external_data.html">
+                        External Data
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="../../../../index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+        </div>
+      
+      
+        <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+    </div>
+  
+
+  
+    <label class="sidebar-toggle secondary-toggle" for="__secondary">
+      <span class="fa-solid fa-outdent"></span>
+    </label>
+  
+</div>
+
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../external_data.html">
+                        External Data
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="../../../../index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item"><nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../algorithms/fbp/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.fbp</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../algorithms/statistical_iterative/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.statistical_iterative</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../callbacks/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-3"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../callbacks/callback/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.callback</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../callbacks/likelihood/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.likelihood</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-4"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../CT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.CT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-5"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../CT/attenuation_map/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.CT.attenuation_map</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../CT/dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.CT.dicom</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 current active has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-6"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../prd/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET.prd</span></code></a></li>
+<li class="toctree-l4 current active"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET.gate</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../petsird/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET.petsird</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-7"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../SPECT/dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../SPECT/simind/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.simind</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-8"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../shared/dicom_creation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.shared.dicom_creation</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../shared/interfile/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.shared.interfile</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-9"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../metadata/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-10"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../metadata/PET/pet_tof_metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.PET.pet_tof_metadata</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../metadata/PET/petlm_metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.PET.petlm_metadata</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../metadata/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-11"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../metadata/SPECT/spect_metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.SPECT.spect_metadata</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../metadata/metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.metadata</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../priors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-12"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../priors/nearest_neighbour/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.nearest_neighbour</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../priors/prior/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.prior</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../projectors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-13"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../projectors/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-14"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../projectors/PET/petlm_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.PET.petlm_system_matrix</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../projectors/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-15"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../projectors/SPECT/spect_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT.spect_system_matrix</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../projectors/shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-16"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../projectors/shared/kem_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.shared.kem_system_matrix</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../projectors/shared/motion_correction_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.shared.motion_correction_system_matrix</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../projectors/system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.system_matrix</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../transforms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-17"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../transforms/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-18"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../transforms/SPECT/attenuation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.attenuation</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../transforms/SPECT/cutoff/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.cutoff</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../transforms/SPECT/psf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.psf</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../transforms/shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-19"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../transforms/shared/filters/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.filters</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../transforms/shared/kem/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.kem</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../transforms/shared/motion/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.motion</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../transforms/shared/spatial/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.spatial</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../transforms/transform/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.transform</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-20"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../utils/fourier_filters/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.fourier_filters</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../utils/misc/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.misc</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../utils/nist_data/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.nist_data</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../utils/scatter/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.scatter</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../utils/spatial/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.spatial</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+
+
+<nav aria-label="Breadcrumbs">
+  <ul class="bd-breadcrumbs" role="navigation" aria-label="Breadcrumb">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../../index.html" class="nav-link">API Reference</a></li>
+    
+    
+    <li class="breadcrumb-item"><i class="fa-solid fa-ellipsis"></i></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET</span></code></a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET.gate</span></code></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section id="module-pytomography.io.PET.gate">
+<span id="pytomography-io-pet-gate"></span><h1><a class="reference internal" href="#module-pytomography.io.PET.gate" title="pytomography.io.PET.gate"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET.gate</span></code></a><a class="headerlink" href="#module-pytomography.io.PET.gate" title="Permalink to this heading">#</a></h1>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this heading">#</a></h2>
+<section id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this heading">#</a></h3>
+<table class="autosummary longtable table autosummary">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.PET.gate.get_aligned_attenuation_map" title="pytomography.io.PET.gate.get_aligned_attenuation_map"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_aligned_attenuation_map</span></code></a>(headerfile, object_meta)</p></td>
+<td><p>Returns an aligned attenuation map in units of inverse mm for reconstruction. This assumes that the attenuation map shares the same center point with the reconstruction space.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.PET.gate.get_scanner_LUT" title="pytomography.io.PET.gate.get_scanner_LUT"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_scanner_LUT</span></code></a>(path[, init_volume_name, ...])</p></td>
+<td><p>Returns the scanner lookup table. The three values at a particular index in the lookup table correspond to the x, y, and z positions of the detector id correpsonding to that index.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.PET.gate.get_N_components" title="pytomography.io.PET.gate.get_N_components"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_N_components</span></code></a>(mac_file)</p></td>
+<td><p>Obtains the number of gantrys, rsectors, modules, submodules, and crystals per level from a GATE macro file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.PET.gate.get_detector_ids" title="pytomography.io.PET.gate.get_detector_ids"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_detector_ids</span></code></a>(paths, mac_file[, TOF, ...])</p></td>
+<td><p>Obtains the detector IDs from a sequence of ROOT files</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.PET.gate.get_radius" title="pytomography.io.PET.gate.get_radius"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_radius</span></code></a>(detector_ids, scanner_LUT)</p></td>
+<td><p>Gets the radial position of all LORs</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.PET.gate.get_table" title="pytomography.io.PET.gate.get_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_table</span></code></a>(det_ids, mac_file)</p></td>
+<td><p>Obtains a table of crystal1ID, crystal2ID, submoduleID, <span class="math notranslate nohighlight">\(\Delta`moduleID, :math:\)</span>Delta`rsectorID corresponding to each of the detector id pairs provided. Useful fo symmetries when computing normalization <span class="math notranslate nohighlight">\(\eta\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.PET.gate.get_eta_cylinder_calibration" title="pytomography.io.PET.gate.get_eta_cylinder_calibration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_eta_cylinder_calibration</span></code></a>(paths, mac_file, ...[, ...])</p></td>
+<td><p>Obtain normalization <span class="math notranslate nohighlight">\(\eta\)</span> from a calibration scan consisting of a cylindrical shell</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.PET.gate.remove_events_out_of_bounds" title="pytomography.io.PET.gate.remove_events_out_of_bounds"><code class="xref py py-obj docutils literal notranslate"><span class="pre">remove_events_out_of_bounds</span></code></a>(detector_ids, scanner_LUT, ...)</p></td>
+<td><p>Removes all detected LORs outside of the reconstruced volume given by <code class="docutils literal notranslate"><span class="pre">object_meta</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.PET.gate.get_aligned_attenuation_map">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.PET.gate.</span></span><span class="sig-name descname"><span class="pre">get_aligned_attenuation_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">headerfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/PET/gate.html#get_aligned_attenuation_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.gate.get_aligned_attenuation_map" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns an aligned attenuation map in units of inverse mm for reconstruction. This assumes that the attenuation map shares the same center point with the reconstruction space.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>headerfile</strong> (<em>str</em>) – Filepath to the header file of the attenuation map</p></li>
+<li><p><strong>object_meta</strong> (<a class="reference internal" href="../../../metadata/index.html#pytomography.metadata.ObjectMeta" title="pytomography.metadata.ObjectMeta"><em>ObjectMeta</em></a>) – Object metadata providing spatial information about the reconstructed dimensions.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Aligned attenuation map</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.PET.gate.get_scanner_LUT">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.PET.gate.</span></span><span class="sig-name descname"><span class="pre">get_scanner_LUT</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_volume_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'crystal'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">final_volume_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'world'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean_interaction_depth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/PET/gate.html#get_scanner_LUT"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.gate.get_scanner_LUT" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the scanner lookup table. The three values at a particular index in the lookup table correspond to the x, y, and z positions of the detector id correpsonding to that index.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<em>str</em>) – Path to .mac file where the scanner geometry is defined in FATE</p></li>
+<li><p><strong>init_volume_name</strong> (<em>str</em><em>, </em><em>optional</em>) – Volume name corresponding the lowest level element in the GATE geometry. Defaults to ‘crystal’.</p></li>
+<li><p><strong>final_volume_name</strong> (<em>str</em><em>, </em><em>optional</em>) – Volume name corresponding the highest level element in the GATE geometry. Defaults to ‘world’.</p></li>
+<li><p><strong>mean_interaction_depth</strong> (<em>float</em><em>, </em><em>optional</em>) – Average interaction depth of photons in the crystals in mm. Defaults to 0.</p></li>
+<li><p><strong>return_info</strong> (<em>bool</em><em>, </em><em>optional</em>) – Returns information about the scanner geometry. Defaults to False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Scanner lookup table.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.PET.gate.get_N_components">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.PET.gate.</span></span><span class="sig-name descname"><span class="pre">get_N_components</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mac_file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/PET/gate.html#get_N_components"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.gate.get_N_components" title="Permalink to this definition">#</a></dt>
+<dd><p>Obtains the number of gantrys, rsectors, modules, submodules, and crystals per level from a GATE macro file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mac_file</strong> (<em>str</em>) – Path to the gate macro file</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>number of gantrys, rsectors, modules, submodules, and crystals</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.PET.gate.get_detector_ids">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.PET.gate.</span></span><span class="sig-name descname"><span class="pre">get_detector_ids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mac_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TOF</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TOF_bin_edges</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">substr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Coincidences'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">same_source_pos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/PET/gate.html#get_detector_ids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.gate.get_detector_ids" title="Permalink to this definition">#</a></dt>
+<dd><p>Obtains the detector IDs from a sequence of ROOT files</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>paths</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>) – sequence of root file paths</p></li>
+<li><p><strong>mac_file</strong> (<em>str</em>) – GATE geometry macro file</p></li>
+<li><p><strong>TOF</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether or not to get TOF binning information. Defaults to False.</p></li>
+<li><p><strong>TOF_bin_edges</strong> (<em>np.array</em><em>, </em><em>optional</em>) – TOF bin edges; required if TOF is True. Defaults to None.</p></li>
+<li><p><strong>substr</strong> (<em>str</em><em>, </em><em>optional</em>) – Substring to index for in ROOT files. Defaults to ‘Coincidences’.</p></li>
+<li><p><strong>same_source_pos</strong> (<em>bool</em><em>, </em><em>optional</em>) – Only include coincidences that correspond to the same source position. This can be used to filter randoms. Defaults to False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Array of all detector ID pairs corresponding to all detected LORs.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.PET.gate.get_radius">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.PET.gate.</span></span><span class="sig-name descname"><span class="pre">get_radius</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">detector_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scanner_LUT</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/PET/gate.html#get_radius"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.gate.get_radius" title="Permalink to this definition">#</a></dt>
+<dd><p>Gets the radial position of all LORs</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>detector_ids</strong> (<em>torch.tensor</em>) – Detector ID pairs corresponding to LORs</p></li>
+<li><p><strong>scanner_LUT</strong> (<em>torch.tensor</em>) – scanner look up table</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>radii of all detector ID pairs provided</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.PET.gate.get_table">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.PET.gate.</span></span><span class="sig-name descname"><span class="pre">get_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">det_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mac_file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/PET/gate.html#get_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.gate.get_table" title="Permalink to this definition">#</a></dt>
+<dd><p>Obtains a table of crystal1ID, crystal2ID, submoduleID, <span class="math notranslate nohighlight">\(\Delta`moduleID, :math:\)</span>Delta`rsectorID corresponding to each of the detector id pairs provided. Useful fo symmetries when computing normalization <span class="math notranslate nohighlight">\(\eta\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>det_ids</strong> (<em>torch.tensor</em>) – <span class="math notranslate nohighlight">\(N \times 2\)</span> (non-TOF) or <span class="math notranslate nohighlight">\(N \times 3\)</span> (TOF) tensor that provides detector ID pairs (and TOF bin) for coincidence events.</p></li>
+<li><p><strong>mac_file</strong> (<em>str</em>) – GATE macro file that defines detector geometry</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A 2D tensor that lists crystal1ID, crystal2ID, submoduleID, <span class="math notranslate nohighlight">\(\Delta`moduleID, :math:\)</span>Delta`rsectorID for each LOR.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.PET.gate.get_eta_cylinder_calibration">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.PET.gate.</span></span><span class="sig-name descname"><span class="pre">get_eta_cylinder_calibration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mac_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cylinder_radius</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">same_source_pos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean_interaction_depth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/PET/gate.html#get_eta_cylinder_calibration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.gate.get_eta_cylinder_calibration" title="Permalink to this definition">#</a></dt>
+<dd><p>Obtain normalization <span class="math notranslate nohighlight">\(\eta\)</span> from a calibration scan consisting of a cylindrical shell</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>paths</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>) – paths of all ROOT files containing data</p></li>
+<li><p><strong>mac_file</strong> (<em>str</em>) – GATE macro file that defines scanner geometry</p></li>
+<li><p><strong>cylinder_radius</strong> (<em>float</em>) – The radius of the cylindrical shell used in calibration</p></li>
+<li><p><strong>same_source_pos</strong> (<em>bool</em><em>, </em><em>optional</em>) – Only include coincidence events with same source position; can be used to filter out randoms. Defaults to False.</p></li>
+<li><p><strong>mean_interaction_depth</strong> (<em>float</em><em>, </em><em>optional</em>) – Mean interaction depth of photons in detector crystals. Defaults to 0.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tensor corresponding to <span class="math notranslate nohighlight">\(eta\)</span>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.PET.gate.remove_events_out_of_bounds">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.PET.gate.</span></span><span class="sig-name descname"><span class="pre">remove_events_out_of_bounds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">detector_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scanner_LUT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/io/PET/gate.html#remove_events_out_of_bounds"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.gate.remove_events_out_of_bounds" title="Permalink to this definition">#</a></dt>
+<dd><p>Removes all detected LORs outside of the reconstruced volume given by <code class="docutils literal notranslate"><span class="pre">object_meta</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>detector_ids</strong> (<em>torch.tensor</em>) – <span class="math notranslate nohighlight">\(N \times 2\)</span> (non-TOF) or <span class="math notranslate nohighlight">\(N \times 3\)</span> (TOF) tensor that provides detector ID pairs (and TOF bin) for coincidence events.</p></li>
+<li><p><strong>scanner_LUT</strong> (<em>torch.tensor</em>) – scanner lookup table that provides spatial coordinates for all detector ID pairs</p></li>
+<li><p><strong>object_meta</strong> (<a class="reference internal" href="../../../metadata/index.html#pytomography.metadata.ObjectMeta" title="pytomography.metadata.ObjectMeta"><em>ObjectMeta</em></a>) – object metadata providing the region of reconstruction</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>all detector ID pairs corresponding to coincidence events</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+                <footer class="bd-footer-article">
+                  
+<div class="footer-article-items footer-article__inner">
+  
+    <div class="footer-article-item"><!-- Previous / next buttons -->
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../prd/yardl_types/index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET.prd.yardl_types</span></code></p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../petsird/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET.petsird</span></code></p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div></div>
+  
+</div>
+
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.gate.get_aligned_attenuation_map"><code class="docutils literal notranslate"><span class="pre">get_aligned_attenuation_map()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.gate.get_scanner_LUT"><code class="docutils literal notranslate"><span class="pre">get_scanner_LUT()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.gate.get_N_components"><code class="docutils literal notranslate"><span class="pre">get_N_components()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.gate.get_detector_ids"><code class="docutils literal notranslate"><span class="pre">get_detector_ids()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.gate.get_radius"><code class="docutils literal notranslate"><span class="pre">get_radius()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.gate.get_table"><code class="docutils literal notranslate"><span class="pre">get_table()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.gate.get_eta_cylinder_calibration"><code class="docutils literal notranslate"><span class="pre">get_eta_cylinder_calibration()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.gate.remove_events_out_of_bounds"><code class="docutils literal notranslate"><span class="pre">remove_events_out_of_bounds()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div class="tocsection sourcelink">
+    <a href="../../../../../_sources/autoapi/pytomography/io/PET/gate/index.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52"></script>
+<script src="../../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+  <p class="copyright">
+    
+      © Copyright 2023, Luke Polson.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 6.2.1.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item"><p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.13.3.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

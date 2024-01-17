@@ -1,0 +1,1465 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>pytomography.io.PET.prd.types &#8212; PyTomography 1.3.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../../../_static/styles/theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../../../../../../_static/styles/bootstrap.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../../../../../../_static/styles/pydata-sphinx-theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+
+  
+  <link href="../../../../../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=e353d410970836974a52" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../../_static/graphviz.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
+<link rel="preload" as="script" href="../../../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
+
+    <script data-url_root="../../../../../../" id="documentation_options" src="../../../../../../_static/documentation_options.js"></script>
+    <script src="../../../../../../_static/doctools.js"></script>
+    <script src="../../../../../../_static/sphinx_highlight.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'autoapi/pytomography/io/PET/prd/types/index';</script>
+    <link rel="index" title="Index" href="../../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../../search.html" />
+    <link rel="next" title="pytomography.io.PET.prd.yardl_types" href="../yardl_types/index.html" />
+    <link rel="prev" title="pytomography.io.PET.prd.protocols" href="../protocols/index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+<div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+    <span class="fa-solid fa-bars"></span>
+  </label>
+  
+  <div class="navbar-header-items__start">
+    
+      <div class="navbar-item">
+  
+
+<a class="navbar-brand logo" href="../../../../../../index.html">
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../../../../_static/PT1.png" class="logo__image only-light" alt="Logo image"/>
+    <script>document.write(`<img src="../../../../../../_static/PT1.png" class="logo__image only-dark" alt="Logo image"/>`);</script>
+  
+  
+</a></div>
+    
+  </div>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../../external_data.html">
+                        External Data
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="../../../../../index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+        </div>
+      
+      
+        <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+    </div>
+  
+
+  
+    <label class="sidebar-toggle secondary-toggle" for="__secondary">
+      <span class="fa-solid fa-outdent"></span>
+    </label>
+  
+</div>
+
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../../external_data.html">
+                        External Data
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="../../../../../index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item"><nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../../../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../../algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../algorithms/fbp/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.fbp</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../algorithms/statistical_iterative/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.statistical_iterative</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../../callbacks/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-3"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../callbacks/callback/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.callback</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../callbacks/likelihood/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.likelihood</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="../../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-4"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../CT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.CT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-5"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../CT/attenuation_map/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.CT.attenuation_map</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../CT/dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.CT.dicom</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 current active has-children"><a class="reference internal" href="../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-6"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
+<li class="toctree-l4 current active"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET.prd</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../gate/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET.gate</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../petsird/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET.petsird</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-7"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../SPECT/dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../SPECT/simind/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.simind</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-8"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../shared/dicom_creation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.shared.dicom_creation</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../shared/interfile/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.shared.interfile</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../../metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-9"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../metadata/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-10"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../metadata/PET/pet_tof_metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.PET.pet_tof_metadata</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../metadata/PET/petlm_metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.PET.petlm_metadata</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../metadata/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-11"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../metadata/SPECT/spect_metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.SPECT.spect_metadata</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../metadata/metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.metadata</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../../priors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-12"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../priors/nearest_neighbour/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.nearest_neighbour</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../priors/prior/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.prior</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../../projectors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-13"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../projectors/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-14"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../projectors/PET/petlm_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.PET.petlm_system_matrix</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../projectors/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-15"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../projectors/SPECT/spect_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT.spect_system_matrix</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../projectors/shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-16"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../projectors/shared/kem_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.shared.kem_system_matrix</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../projectors/shared/motion_correction_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.shared.motion_correction_system_matrix</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../projectors/system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.system_matrix</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../../transforms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-17"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../transforms/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-18"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../transforms/SPECT/attenuation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.attenuation</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../transforms/SPECT/cutoff/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.cutoff</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../transforms/SPECT/psf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.psf</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../transforms/shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-19"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../transforms/shared/filters/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.filters</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../transforms/shared/kem/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.kem</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../transforms/shared/motion/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.motion</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../transforms/shared/spatial/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.spatial</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../transforms/transform/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.transform</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../../utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-20"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../utils/fourier_filters/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.fourier_filters</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../utils/misc/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.misc</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../utils/nist_data/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.nist_data</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../utils/scatter/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.scatter</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../utils/spatial/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.spatial</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+
+
+<nav aria-label="Breadcrumbs">
+  <ul class="bd-breadcrumbs" role="navigation" aria-label="Breadcrumb">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../../../index.html" class="nav-link">API Reference</a></li>
+    
+    
+    <li class="breadcrumb-item"><i class="fa-solid fa-ellipsis"></i></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET.prd</span></code></a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET.prd.types</span></code></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section id="module-pytomography.io.PET.prd.types">
+<span id="pytomography-io-pet-prd-types"></span><h1><a class="reference internal" href="#module-pytomography.io.PET.prd.types" title="pytomography.io.PET.prd.types"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET.prd.types</span></code></a><a class="headerlink" href="#module-pytomography.io.PET.prd.types" title="Permalink to this heading">#</a></h1>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this heading">#</a></h2>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading">#</a></h3>
+<table class="autosummary longtable table autosummary">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.PET.prd.types.CoincidenceEvent" title="pytomography.io.PET.prd.types.CoincidenceEvent"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CoincidenceEvent</span></code></a></p></td>
+<td><p>All information about a coincidence event specified as identifiers or indices (i.e. discretized).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.PET.prd.types.Subject" title="pytomography.io.PET.prd.types.Subject"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Subject</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.PET.prd.types.Institution" title="pytomography.io.PET.prd.types.Institution"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Institution</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.PET.prd.types.ExamInformation" title="pytomography.io.PET.prd.types.ExamInformation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExamInformation</span></code></a></p></td>
+<td><p>Items describing the exam (incomplete)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.PET.prd.types.Detector" title="pytomography.io.PET.prd.types.Detector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Detector</span></code></a></p></td>
+<td><p>Detector ID and location. Units are in mm</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.PET.prd.types.ScannerInformation" title="pytomography.io.PET.prd.types.ScannerInformation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ScannerInformation</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.PET.prd.types.Header" title="pytomography.io.PET.prd.types.Header"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Header</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.PET.prd.types.TimeBlock" title="pytomography.io.PET.prd.types.TimeBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TimeBlock</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.PET.prd.types.TimeInterval" title="pytomography.io.PET.prd.types.TimeInterval"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TimeInterval</span></code></a></p></td>
+<td><p>Time interval in milliseconds since start of acquisition</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.io.PET.prd.types.TimeFrameInformation" title="pytomography.io.PET.prd.types.TimeFrameInformation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TimeFrameInformation</span></code></a></p></td>
+<td><p>A sequence of time intervals (could be consecutive)</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this heading">#</a></h3>
+<table class="autosummary longtable table autosummary">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.PET.prd.types._mk_get_dtype" title="pytomography.io.PET.prd.types._mk_get_dtype"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_mk_get_dtype</span></code></a>()</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="attributes">
+<h3>Attributes<a class="headerlink" href="#attributes" title="Permalink to this heading">#</a></h3>
+<table class="autosummary longtable table autosummary">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.io.PET.prd.types.get_dtype" title="pytomography.io.PET.prd.types.get_dtype"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_dtype</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.CoincidenceEvent">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.io.PET.prd.types.</span></span><span class="sig-name descname"><span class="pre">CoincidenceEvent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detector_1_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detector_2_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tof_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_1_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_2_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#CoincidenceEvent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.CoincidenceEvent" title="Permalink to this definition">#</a></dt>
+<dd><p>All information about a coincidence event specified as identifiers or indices (i.e. discretized).
+TODO: this might take up too much space, so some/all of these could be combined in a single index if necessary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>detector_1_id</strong> (<em>pytomography.io.PET.prd.yardl_types.UInt32</em>) – </p></li>
+<li><p><strong>detector_2_id</strong> (<em>pytomography.io.PET.prd.yardl_types.UInt32</em>) – </p></li>
+<li><p><strong>tof_idx</strong> (<em>pytomography.io.PET.prd.yardl_types.UInt32</em>) – </p></li>
+<li><p><strong>energy_1_idx</strong> (<em>pytomography.io.PET.prd.yardl_types.UInt32</em>) – </p></li>
+<li><p><strong>energy_2_idx</strong> (<em>pytomography.io.PET.prd.yardl_types.UInt32</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.CoincidenceEvent.detector_1_id">
+<span class="sig-name descname"><span class="pre">detector_1_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pytomography.io.PET.prd.yardl_types.UInt32</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#CoincidenceEvent.detector_1_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.CoincidenceEvent.detector_1_id" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.CoincidenceEvent.detector_2_id">
+<span class="sig-name descname"><span class="pre">detector_2_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pytomography.io.PET.prd.yardl_types.UInt32</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#CoincidenceEvent.detector_2_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.CoincidenceEvent.detector_2_id" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.CoincidenceEvent.tof_idx">
+<span class="sig-name descname"><span class="pre">tof_idx</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pytomography.io.PET.prd.yardl_types.UInt32</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#CoincidenceEvent.tof_idx"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.CoincidenceEvent.tof_idx" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.CoincidenceEvent.energy_1_idx">
+<span class="sig-name descname"><span class="pre">energy_1_idx</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pytomography.io.PET.prd.yardl_types.UInt32</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#CoincidenceEvent.energy_1_idx"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.CoincidenceEvent.energy_1_idx" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.CoincidenceEvent.energy_2_idx">
+<span class="sig-name descname"><span class="pre">energy_2_idx</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pytomography.io.PET.prd.yardl_types.UInt32</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#CoincidenceEvent.energy_2_idx"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.CoincidenceEvent.energy_2_idx" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.CoincidenceEvent.__eq__">
+<span class="sig-name descname"><span class="pre">__eq__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#CoincidenceEvent.__eq__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.CoincidenceEvent.__eq__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return self==value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<em>object</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.CoincidenceEvent.__str__">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#CoincidenceEvent.__str__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.CoincidenceEvent.__str__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return str(self).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.CoincidenceEvent.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#CoincidenceEvent.__repr__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.CoincidenceEvent.__repr__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return repr(self).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Subject">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.io.PET.prd.types.</span></span><span class="sig-name descname"><span class="pre">Subject</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Subject"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Subject" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – </p></li>
+<li><p><strong>id</strong> (<em>str</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Subject.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Subject.name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Subject.name" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Subject.id">
+<span class="sig-name descname"><span class="pre">id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Subject.id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Subject.id" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Subject.__eq__">
+<span class="sig-name descname"><span class="pre">__eq__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Subject.__eq__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Subject.__eq__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return self==value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<em>object</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Subject.__str__">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Subject.__str__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Subject.__str__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return str(self).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Subject.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Subject.__repr__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Subject.__repr__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return repr(self).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Institution">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.io.PET.prd.types.</span></span><span class="sig-name descname"><span class="pre">Institution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">address</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Institution"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Institution" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – </p></li>
+<li><p><strong>address</strong> (<em>str</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Institution.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Institution.name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Institution.name" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Institution.address">
+<span class="sig-name descname"><span class="pre">address</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Institution.address"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Institution.address" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Institution.__eq__">
+<span class="sig-name descname"><span class="pre">__eq__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Institution.__eq__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Institution.__eq__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return self==value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<em>object</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Institution.__str__">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Institution.__str__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Institution.__str__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return str(self).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Institution.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Institution.__repr__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Institution.__repr__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return repr(self).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ExamInformation">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.io.PET.prd.types.</span></span><span class="sig-name descname"><span class="pre">ExamInformation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subject</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">institution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">protocol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_of_acquisition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ExamInformation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ExamInformation" title="Permalink to this definition">#</a></dt>
+<dd><p>Items describing the exam (incomplete)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>subject</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#pytomography.io.PET.prd.types.Subject" title="pytomography.io.PET.prd.types.Subject"><em>Subject</em></a><em>]</em>) – </p></li>
+<li><p><strong>institution</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#pytomography.io.PET.prd.types.Institution" title="pytomography.io.PET.prd.types.Institution"><em>Institution</em></a><em>]</em>) – </p></li>
+<li><p><strong>protocol</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – </p></li>
+<li><p><strong>start_of_acquisition</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="../yardl_types/index.html#pytomography.io.PET.prd.yardl_types.DateTime" title="pytomography.io.PET.prd.yardl_types.DateTime"><em>pytomography.io.PET.prd.yardl_types.DateTime</em></a><em>]</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ExamInformation.subject">
+<span class="sig-name descname"><span class="pre">subject</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#pytomography.io.PET.prd.types.Subject" title="pytomography.io.PET.prd.types.Subject"><span class="pre">Subject</span></a></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ExamInformation.subject"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ExamInformation.subject" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ExamInformation.institution">
+<span class="sig-name descname"><span class="pre">institution</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#pytomography.io.PET.prd.types.Institution" title="pytomography.io.PET.prd.types.Institution"><span class="pre">Institution</span></a></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ExamInformation.institution"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ExamInformation.institution" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ExamInformation.protocol">
+<span class="sig-name descname"><span class="pre">protocol</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ExamInformation.protocol"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ExamInformation.protocol" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ExamInformation.start_of_acquisition">
+<span class="sig-name descname"><span class="pre">start_of_acquisition</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../yardl_types/index.html#pytomography.io.PET.prd.yardl_types.DateTime" title="pytomography.io.PET.prd.yardl_types.DateTime"><span class="pre">pytomography.io.PET.prd.yardl_types.DateTime</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ExamInformation.start_of_acquisition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ExamInformation.start_of_acquisition" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ExamInformation.__eq__">
+<span class="sig-name descname"><span class="pre">__eq__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ExamInformation.__eq__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ExamInformation.__eq__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return self==value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<em>object</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ExamInformation.__str__">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ExamInformation.__str__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ExamInformation.__str__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return str(self).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ExamInformation.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ExamInformation.__repr__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ExamInformation.__repr__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return repr(self).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Detector">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.io.PET.prd.types.</span></span><span class="sig-name descname"><span class="pre">Detector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Detector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Detector" title="Permalink to this definition">#</a></dt>
+<dd><p>Detector ID and location. Units are in mm
+TODO: this is currently just a sample implementation with “point” detectors.
+We plan to have full shape information here.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>id</strong> (<em>pytomography.io.PET.prd.yardl_types.UInt32</em>) – </p></li>
+<li><p><strong>x</strong> (<em>pytomography.io.PET.prd.yardl_types.Float32</em>) – </p></li>
+<li><p><strong>y</strong> (<em>pytomography.io.PET.prd.yardl_types.Float32</em>) – </p></li>
+<li><p><strong>z</strong> (<em>pytomography.io.PET.prd.yardl_types.Float32</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Detector.id">
+<span class="sig-name descname"><span class="pre">id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pytomography.io.PET.prd.yardl_types.UInt32</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Detector.id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Detector.id" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Detector.x">
+<span class="sig-name descname"><span class="pre">x</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pytomography.io.PET.prd.yardl_types.Float32</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Detector.x"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Detector.x" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Detector.y">
+<span class="sig-name descname"><span class="pre">y</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pytomography.io.PET.prd.yardl_types.Float32</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Detector.y"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Detector.y" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Detector.z">
+<span class="sig-name descname"><span class="pre">z</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pytomography.io.PET.prd.yardl_types.Float32</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Detector.z"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Detector.z" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Detector.__eq__">
+<span class="sig-name descname"><span class="pre">__eq__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Detector.__eq__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Detector.__eq__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return self==value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<em>object</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Detector.__str__">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Detector.__str__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Detector.__str__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return str(self).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Detector.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Detector.__repr__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Detector.__repr__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return repr(self).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ScannerInformation">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.io.PET.prd.types.</span></span><span class="sig-name descname"><span class="pre">ScannerInformation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detectors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tof_bin_edges</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tof_resolution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_bin_edges</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_resolution_at_511</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">listmode_time_block_duration</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ScannerInformation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ScannerInformation" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_name</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – </p></li>
+<li><p><strong>detectors</strong> (<em>Optional</em><em>[</em><em>list</em><em>[</em><a class="reference internal" href="#pytomography.io.PET.prd.types.Detector" title="pytomography.io.PET.prd.types.Detector"><em>Detector</em></a><em>]</em><em>]</em>) – </p></li>
+<li><p><strong>tof_bin_edges</strong> (<em>Optional</em><em>[</em><em>numpy.typing.NDArray</em><em>[</em><em>numpy.float32</em><em>]</em><em>]</em>) – </p></li>
+<li><p><strong>tof_resolution</strong> (<em>pytomography.io.PET.prd.yardl_types.Float32</em>) – </p></li>
+<li><p><strong>energy_bin_edges</strong> (<em>Optional</em><em>[</em><em>numpy.typing.NDArray</em><em>[</em><em>numpy.float32</em><em>]</em><em>]</em>) – </p></li>
+<li><p><strong>energy_resolution_at_511</strong> (<em>pytomography.io.PET.prd.yardl_types.Float32</em>) – </p></li>
+<li><p><strong>listmode_time_block_duration</strong> (<em>pytomography.io.PET.prd.yardl_types.UInt32</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ScannerInformation.model_name">
+<span class="sig-name descname"><span class="pre">model_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ScannerInformation.model_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ScannerInformation.model_name" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ScannerInformation.detectors">
+<span class="sig-name descname"><span class="pre">detectors</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pytomography.io.PET.prd.types.Detector" title="pytomography.io.PET.prd.types.Detector"><span class="pre">Detector</span></a><span class="p"><span class="pre">]</span></span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ScannerInformation.detectors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ScannerInformation.detectors" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ScannerInformation.tof_bin_edges">
+<span class="sig-name descname"><span class="pre">tof_bin_edges</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.typing.NDArray</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.float32</span><span class="p"><span class="pre">]</span></span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ScannerInformation.tof_bin_edges"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ScannerInformation.tof_bin_edges" title="Permalink to this definition">#</a></dt>
+<dd><p>edge information for TOF bins in mm (given as from first to last edge, so there is one more edge than the number of bins)
+TODO: this currently assumes equal size for each TOF bin, but some scanners “stretch” TOF bins depending on length of LOR</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ScannerInformation.tof_resolution">
+<span class="sig-name descname"><span class="pre">tof_resolution</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pytomography.io.PET.prd.yardl_types.Float32</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ScannerInformation.tof_resolution"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ScannerInformation.tof_resolution" title="Permalink to this definition">#</a></dt>
+<dd><p>TOF resolution in mm</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ScannerInformation.energy_bin_edges">
+<span class="sig-name descname"><span class="pre">energy_bin_edges</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.typing.NDArray</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.float32</span><span class="p"><span class="pre">]</span></span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ScannerInformation.energy_bin_edges"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ScannerInformation.energy_bin_edges" title="Permalink to this definition">#</a></dt>
+<dd><p>edge information for energy windows in keV (given as from first to last edge, so there is one more edge than the number of bins)</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ScannerInformation.energy_resolution_at_511">
+<span class="sig-name descname"><span class="pre">energy_resolution_at_511</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pytomography.io.PET.prd.yardl_types.Float32</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ScannerInformation.energy_resolution_at_511"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ScannerInformation.energy_resolution_at_511" title="Permalink to this definition">#</a></dt>
+<dd><p>FWHM of photopeak for incoming gamma of 511 keV, expressed as a ratio w.r.t. 511</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ScannerInformation.listmode_time_block_duration">
+<span class="sig-name descname"><span class="pre">listmode_time_block_duration</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pytomography.io.PET.prd.yardl_types.UInt32</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ScannerInformation.listmode_time_block_duration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ScannerInformation.listmode_time_block_duration" title="Permalink to this definition">#</a></dt>
+<dd><p>duration of each time block in ms</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ScannerInformation.number_of_detectors">
+<span class="sig-name descname"><span class="pre">number_of_detectors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ScannerInformation.number_of_detectors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ScannerInformation.number_of_detectors" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pytomography.io.PET.prd.yardl_types.Size</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ScannerInformation.number_of_tof_bins">
+<span class="sig-name descname"><span class="pre">number_of_tof_bins</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ScannerInformation.number_of_tof_bins"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ScannerInformation.number_of_tof_bins" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pytomography.io.PET.prd.yardl_types.Size</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ScannerInformation.number_of_energy_bins">
+<span class="sig-name descname"><span class="pre">number_of_energy_bins</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ScannerInformation.number_of_energy_bins"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ScannerInformation.number_of_energy_bins" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pytomography.io.PET.prd.yardl_types.Size</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ScannerInformation.__eq__">
+<span class="sig-name descname"><span class="pre">__eq__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ScannerInformation.__eq__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ScannerInformation.__eq__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return self==value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<em>object</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ScannerInformation.__str__">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ScannerInformation.__str__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ScannerInformation.__str__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return str(self).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.ScannerInformation.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#ScannerInformation.__repr__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.ScannerInformation.__repr__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return repr(self).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Header">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.io.PET.prd.types.</span></span><span class="sig-name descname"><span class="pre">Header</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scanner</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exam</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Header"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Header" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>scanner</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#pytomography.io.PET.prd.types.ScannerInformation" title="pytomography.io.PET.prd.types.ScannerInformation"><em>ScannerInformation</em></a><em>]</em>) – </p></li>
+<li><p><strong>exam</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#pytomography.io.PET.prd.types.ExamInformation" title="pytomography.io.PET.prd.types.ExamInformation"><em>ExamInformation</em></a><em>]</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Header.scanner">
+<span class="sig-name descname"><span class="pre">scanner</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#pytomography.io.PET.prd.types.ScannerInformation" title="pytomography.io.PET.prd.types.ScannerInformation"><span class="pre">ScannerInformation</span></a></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Header.scanner"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Header.scanner" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Header.exam">
+<span class="sig-name descname"><span class="pre">exam</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#pytomography.io.PET.prd.types.ExamInformation" title="pytomography.io.PET.prd.types.ExamInformation"><span class="pre">ExamInformation</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Header.exam"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Header.exam" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Header.__eq__">
+<span class="sig-name descname"><span class="pre">__eq__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Header.__eq__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Header.__eq__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return self==value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<em>object</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Header.__str__">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Header.__str__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Header.__str__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return str(self).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.Header.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#Header.__repr__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.Header.__repr__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return repr(self).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.TimeBlock">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.io.PET.prd.types.</span></span><span class="sig-name descname"><span class="pre">TimeBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prompt_events</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delayed_events</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#TimeBlock"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.TimeBlock" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>id</strong> (<em>pytomography.io.PET.prd.yardl_types.UInt32</em>) – </p></li>
+<li><p><strong>prompt_events</strong> (<em>Optional</em><em>[</em><em>list</em><em>[</em><a class="reference internal" href="#pytomography.io.PET.prd.types.CoincidenceEvent" title="pytomography.io.PET.prd.types.CoincidenceEvent"><em>CoincidenceEvent</em></a><em>]</em><em>]</em>) – </p></li>
+<li><p><strong>delayed_events</strong> (<em>Optional</em><em>[</em><em>list</em><em>[</em><a class="reference internal" href="#pytomography.io.PET.prd.types.CoincidenceEvent" title="pytomography.io.PET.prd.types.CoincidenceEvent"><em>CoincidenceEvent</em></a><em>]</em><em>]</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.TimeBlock.id">
+<span class="sig-name descname"><span class="pre">id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pytomography.io.PET.prd.yardl_types.UInt32</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#TimeBlock.id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.TimeBlock.id" title="Permalink to this definition">#</a></dt>
+<dd><p>number of the block. Multiply with listmodeTimeBlockDuration to get time since startOfAcquisition</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.TimeBlock.prompt_events">
+<span class="sig-name descname"><span class="pre">prompt_events</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pytomography.io.PET.prd.types.CoincidenceEvent" title="pytomography.io.PET.prd.types.CoincidenceEvent"><span class="pre">CoincidenceEvent</span></a><span class="p"><span class="pre">]</span></span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#TimeBlock.prompt_events"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.TimeBlock.prompt_events" title="Permalink to this definition">#</a></dt>
+<dd><p>list of prompts in this time block
+TODO might be better to use !array</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.TimeBlock.delayed_events">
+<span class="sig-name descname"><span class="pre">delayed_events</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pytomography.io.PET.prd.types.CoincidenceEvent" title="pytomography.io.PET.prd.types.CoincidenceEvent"><span class="pre">CoincidenceEvent</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#TimeBlock.delayed_events"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.TimeBlock.delayed_events" title="Permalink to this definition">#</a></dt>
+<dd><p>list of delayed coincidences in this time block</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.TimeBlock.__eq__">
+<span class="sig-name descname"><span class="pre">__eq__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#TimeBlock.__eq__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.TimeBlock.__eq__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return self==value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<em>object</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.TimeBlock.__str__">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#TimeBlock.__str__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.TimeBlock.__str__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return str(self).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.TimeBlock.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#TimeBlock.__repr__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.TimeBlock.__repr__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return repr(self).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.TimeInterval">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.io.PET.prd.types.</span></span><span class="sig-name descname"><span class="pre">TimeInterval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#TimeInterval"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.TimeInterval" title="Permalink to this definition">#</a></dt>
+<dd><p>Time interval in milliseconds since start of acquisition</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> (<em>pytomography.io.PET.prd.yardl_types.UInt32</em>) – </p></li>
+<li><p><strong>stop</strong> (<em>pytomography.io.PET.prd.yardl_types.UInt32</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.TimeInterval.start">
+<span class="sig-name descname"><span class="pre">start</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pytomography.io.PET.prd.yardl_types.UInt32</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#TimeInterval.start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.TimeInterval.start" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.TimeInterval.stop">
+<span class="sig-name descname"><span class="pre">stop</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pytomography.io.PET.prd.yardl_types.UInt32</span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#TimeInterval.stop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.TimeInterval.stop" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.TimeInterval.__eq__">
+<span class="sig-name descname"><span class="pre">__eq__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#TimeInterval.__eq__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.TimeInterval.__eq__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return self==value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<em>object</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.TimeInterval.__str__">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#TimeInterval.__str__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.TimeInterval.__str__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return str(self).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.TimeInterval.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#TimeInterval.__repr__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.TimeInterval.__repr__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return repr(self).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.TimeFrameInformation">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.io.PET.prd.types.</span></span><span class="sig-name descname"><span class="pre">TimeFrameInformation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_frames</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#TimeFrameInformation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.TimeFrameInformation" title="Permalink to this definition">#</a></dt>
+<dd><p>A sequence of time intervals (could be consecutive)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>time_frames</strong> (<em>Optional</em><em>[</em><em>list</em><em>[</em><a class="reference internal" href="#pytomography.io.PET.prd.types.TimeInterval" title="pytomography.io.PET.prd.types.TimeInterval"><em>TimeInterval</em></a><em>]</em><em>]</em>) – </p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.TimeFrameInformation.time_frames">
+<span class="sig-name descname"><span class="pre">time_frames</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pytomography.io.PET.prd.types.TimeInterval" title="pytomography.io.PET.prd.types.TimeInterval"><span class="pre">TimeInterval</span></a><span class="p"><span class="pre">]</span></span></em><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#TimeFrameInformation.time_frames"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.TimeFrameInformation.time_frames" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.TimeFrameInformation.number_of_time_frames">
+<span class="sig-name descname"><span class="pre">number_of_time_frames</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#TimeFrameInformation.number_of_time_frames"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.TimeFrameInformation.number_of_time_frames" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pytomography.io.PET.prd.yardl_types.Size</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.TimeFrameInformation.__eq__">
+<span class="sig-name descname"><span class="pre">__eq__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#TimeFrameInformation.__eq__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.TimeFrameInformation.__eq__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return self==value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<em>object</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.TimeFrameInformation.__str__">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#TimeFrameInformation.__str__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.TimeFrameInformation.__str__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return str(self).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.TimeFrameInformation.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#TimeFrameInformation.__repr__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.TimeFrameInformation.__repr__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return repr(self).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types._mk_get_dtype">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.PET.prd.types.</span></span><span class="sig-name descname"><span class="pre">_mk_get_dtype</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#_mk_get_dtype"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types._mk_get_dtype" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pytomography.io.PET.prd.types.get_dtype">
+<span class="sig-prename descclassname"><span class="pre">pytomography.io.PET.prd.types.</span></span><span class="sig-name descname"><span class="pre">get_dtype</span></span><a class="reference internal" href="../../../../../../_modules/pytomography/io/PET/prd/types.html#get_dtype"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.io.PET.prd.types.get_dtype" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+                <footer class="bd-footer-article">
+                  
+<div class="footer-article-items footer-article__inner">
+  
+    <div class="footer-article-item"><!-- Previous / next buttons -->
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../protocols/index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET.prd.protocols</span></code></p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../yardl_types/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET.prd.yardl_types</span></code></p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div></div>
+  
+</div>
+
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#attributes">Attributes</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.CoincidenceEvent"><code class="docutils literal notranslate"><span class="pre">CoincidenceEvent</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.CoincidenceEvent.detector_1_id"><code class="docutils literal notranslate"><span class="pre">CoincidenceEvent.detector_1_id</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.CoincidenceEvent.detector_2_id"><code class="docutils literal notranslate"><span class="pre">CoincidenceEvent.detector_2_id</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.CoincidenceEvent.tof_idx"><code class="docutils literal notranslate"><span class="pre">CoincidenceEvent.tof_idx</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.CoincidenceEvent.energy_1_idx"><code class="docutils literal notranslate"><span class="pre">CoincidenceEvent.energy_1_idx</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.CoincidenceEvent.energy_2_idx"><code class="docutils literal notranslate"><span class="pre">CoincidenceEvent.energy_2_idx</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.CoincidenceEvent.__eq__"><code class="docutils literal notranslate"><span class="pre">CoincidenceEvent.__eq__()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.CoincidenceEvent.__str__"><code class="docutils literal notranslate"><span class="pre">CoincidenceEvent.__str__()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.CoincidenceEvent.__repr__"><code class="docutils literal notranslate"><span class="pre">CoincidenceEvent.__repr__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Subject"><code class="docutils literal notranslate"><span class="pre">Subject</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Subject.name"><code class="docutils literal notranslate"><span class="pre">Subject.name</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Subject.id"><code class="docutils literal notranslate"><span class="pre">Subject.id</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Subject.__eq__"><code class="docutils literal notranslate"><span class="pre">Subject.__eq__()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Subject.__str__"><code class="docutils literal notranslate"><span class="pre">Subject.__str__()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Subject.__repr__"><code class="docutils literal notranslate"><span class="pre">Subject.__repr__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Institution"><code class="docutils literal notranslate"><span class="pre">Institution</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Institution.name"><code class="docutils literal notranslate"><span class="pre">Institution.name</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Institution.address"><code class="docutils literal notranslate"><span class="pre">Institution.address</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Institution.__eq__"><code class="docutils literal notranslate"><span class="pre">Institution.__eq__()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Institution.__str__"><code class="docutils literal notranslate"><span class="pre">Institution.__str__()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Institution.__repr__"><code class="docutils literal notranslate"><span class="pre">Institution.__repr__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ExamInformation"><code class="docutils literal notranslate"><span class="pre">ExamInformation</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ExamInformation.subject"><code class="docutils literal notranslate"><span class="pre">ExamInformation.subject</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ExamInformation.institution"><code class="docutils literal notranslate"><span class="pre">ExamInformation.institution</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ExamInformation.protocol"><code class="docutils literal notranslate"><span class="pre">ExamInformation.protocol</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ExamInformation.start_of_acquisition"><code class="docutils literal notranslate"><span class="pre">ExamInformation.start_of_acquisition</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ExamInformation.__eq__"><code class="docutils literal notranslate"><span class="pre">ExamInformation.__eq__()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ExamInformation.__str__"><code class="docutils literal notranslate"><span class="pre">ExamInformation.__str__()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ExamInformation.__repr__"><code class="docutils literal notranslate"><span class="pre">ExamInformation.__repr__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Detector"><code class="docutils literal notranslate"><span class="pre">Detector</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Detector.id"><code class="docutils literal notranslate"><span class="pre">Detector.id</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Detector.x"><code class="docutils literal notranslate"><span class="pre">Detector.x</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Detector.y"><code class="docutils literal notranslate"><span class="pre">Detector.y</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Detector.z"><code class="docutils literal notranslate"><span class="pre">Detector.z</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Detector.__eq__"><code class="docutils literal notranslate"><span class="pre">Detector.__eq__()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Detector.__str__"><code class="docutils literal notranslate"><span class="pre">Detector.__str__()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Detector.__repr__"><code class="docutils literal notranslate"><span class="pre">Detector.__repr__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ScannerInformation"><code class="docutils literal notranslate"><span class="pre">ScannerInformation</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ScannerInformation.model_name"><code class="docutils literal notranslate"><span class="pre">ScannerInformation.model_name</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ScannerInformation.detectors"><code class="docutils literal notranslate"><span class="pre">ScannerInformation.detectors</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ScannerInformation.tof_bin_edges"><code class="docutils literal notranslate"><span class="pre">ScannerInformation.tof_bin_edges</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ScannerInformation.tof_resolution"><code class="docutils literal notranslate"><span class="pre">ScannerInformation.tof_resolution</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ScannerInformation.energy_bin_edges"><code class="docutils literal notranslate"><span class="pre">ScannerInformation.energy_bin_edges</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ScannerInformation.energy_resolution_at_511"><code class="docutils literal notranslate"><span class="pre">ScannerInformation.energy_resolution_at_511</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ScannerInformation.listmode_time_block_duration"><code class="docutils literal notranslate"><span class="pre">ScannerInformation.listmode_time_block_duration</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ScannerInformation.number_of_detectors"><code class="docutils literal notranslate"><span class="pre">ScannerInformation.number_of_detectors()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ScannerInformation.number_of_tof_bins"><code class="docutils literal notranslate"><span class="pre">ScannerInformation.number_of_tof_bins()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ScannerInformation.number_of_energy_bins"><code class="docutils literal notranslate"><span class="pre">ScannerInformation.number_of_energy_bins()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ScannerInformation.__eq__"><code class="docutils literal notranslate"><span class="pre">ScannerInformation.__eq__()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ScannerInformation.__str__"><code class="docutils literal notranslate"><span class="pre">ScannerInformation.__str__()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.ScannerInformation.__repr__"><code class="docutils literal notranslate"><span class="pre">ScannerInformation.__repr__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Header"><code class="docutils literal notranslate"><span class="pre">Header</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Header.scanner"><code class="docutils literal notranslate"><span class="pre">Header.scanner</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Header.exam"><code class="docutils literal notranslate"><span class="pre">Header.exam</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Header.__eq__"><code class="docutils literal notranslate"><span class="pre">Header.__eq__()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Header.__str__"><code class="docutils literal notranslate"><span class="pre">Header.__str__()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.Header.__repr__"><code class="docutils literal notranslate"><span class="pre">Header.__repr__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.TimeBlock"><code class="docutils literal notranslate"><span class="pre">TimeBlock</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.TimeBlock.id"><code class="docutils literal notranslate"><span class="pre">TimeBlock.id</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.TimeBlock.prompt_events"><code class="docutils literal notranslate"><span class="pre">TimeBlock.prompt_events</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.TimeBlock.delayed_events"><code class="docutils literal notranslate"><span class="pre">TimeBlock.delayed_events</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.TimeBlock.__eq__"><code class="docutils literal notranslate"><span class="pre">TimeBlock.__eq__()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.TimeBlock.__str__"><code class="docutils literal notranslate"><span class="pre">TimeBlock.__str__()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.TimeBlock.__repr__"><code class="docutils literal notranslate"><span class="pre">TimeBlock.__repr__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.TimeInterval"><code class="docutils literal notranslate"><span class="pre">TimeInterval</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.TimeInterval.start"><code class="docutils literal notranslate"><span class="pre">TimeInterval.start</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.TimeInterval.stop"><code class="docutils literal notranslate"><span class="pre">TimeInterval.stop</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.TimeInterval.__eq__"><code class="docutils literal notranslate"><span class="pre">TimeInterval.__eq__()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.TimeInterval.__str__"><code class="docutils literal notranslate"><span class="pre">TimeInterval.__str__()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.TimeInterval.__repr__"><code class="docutils literal notranslate"><span class="pre">TimeInterval.__repr__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.TimeFrameInformation"><code class="docutils literal notranslate"><span class="pre">TimeFrameInformation</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.TimeFrameInformation.time_frames"><code class="docutils literal notranslate"><span class="pre">TimeFrameInformation.time_frames</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.TimeFrameInformation.number_of_time_frames"><code class="docutils literal notranslate"><span class="pre">TimeFrameInformation.number_of_time_frames()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.TimeFrameInformation.__eq__"><code class="docutils literal notranslate"><span class="pre">TimeFrameInformation.__eq__()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.TimeFrameInformation.__str__"><code class="docutils literal notranslate"><span class="pre">TimeFrameInformation.__str__()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.TimeFrameInformation.__repr__"><code class="docutils literal notranslate"><span class="pre">TimeFrameInformation.__repr__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types._mk_get_dtype"><code class="docutils literal notranslate"><span class="pre">_mk_get_dtype()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.io.PET.prd.types.get_dtype"><code class="docutils literal notranslate"><span class="pre">get_dtype</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div class="tocsection sourcelink">
+    <a href="../../../../../../_sources/autoapi/pytomography/io/PET/prd/types/index.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52"></script>
+<script src="../../../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+  <p class="copyright">
+    
+      © Copyright 2023, Luke Polson.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 6.2.1.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item"><p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.13.3.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

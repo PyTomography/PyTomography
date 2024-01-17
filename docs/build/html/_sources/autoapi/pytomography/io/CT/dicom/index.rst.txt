@@ -20,6 +20,7 @@ Functions
 
    pytomography.io.CT.dicom.open_CT_file
    pytomography.io.CT.dicom.compute_max_slice_loc_CT
+   pytomography.io.CT.dicom.compute_slice_thickness_CT
 
 
 
@@ -42,6 +43,17 @@ Functions
    :type files_CT: Sequence[str]
 
    :returns: Maximum z location
+   :rtype: float
+
+
+.. py:function:: compute_slice_thickness_CT(files_CT)
+
+   Compute the slice thickness for files that make up a CT scan. Though this information is often contained in the DICOM file, it is sometimes inconsistent with the ImagePositionPatient attribute, which gives the true location of the slices.
+
+   :param files_CT: List of CT DICOM filepaths corresponding to different z slices of the same scan.
+   :type files_CT: Sequence[str]
+
+   :returns: Slice thickness of CT scan
    :rtype: float
 
 

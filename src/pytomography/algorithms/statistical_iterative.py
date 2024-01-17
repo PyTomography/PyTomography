@@ -13,6 +13,13 @@ from pytomography.transforms import KEMTransform, CutOffTransform
 from pytomography.projectors import KEMSystemMatrix
 from collections.abc import Callable
 
+def get_projection_subset(projections, subset_indices, device):
+    if (len(projections.shape)>1)*(subset_indices is not None):
+        proj_subset = projections[:,subset_indices.to(device)]
+    else:
+        proj_subset = projections
+    return proj_subset
+
 class StatisticalIterative():
     r"""Parent class for all statistical iterative algorithms. All child classes must implement the ``__call__`` method to perform reconstruction.
 
@@ -31,7 +38,7 @@ class StatisticalIterative():
         projections: torch.tensor,
         system_matrix: SystemMatrix,
         object_initial: torch.tensor | None = None,
-        scatter: torch.tensor | float = 0,
+        scatter: torch.tensor | None = None,
         prior: Prior = None,
         precompute_normalization_factors: bool = True,
         device: str = pytomography.device
@@ -47,7 +54,7 @@ class StatisticalIterative():
         if type(scatter) is torch.Tensor:
             self.scatter = scatter.to(self.device).to(pytomography.dtype)
         else:
-            self.scatter = scatter
+            self.scatter = torch.zeros(projections.shape).to(self.device).to(pytomography.dtype)
         if self.prior is not None:
             self.prior.set_object_meta(self.system_matrix.object_meta)
         # Unique string used to identify the type of reconstruction performed
@@ -55,9 +62,6 @@ class StatisticalIterative():
         self.precompute_normalization_factors = precompute_normalization_factors
         # Set n_subsets_previous, which is used for determining whether normalization factors need to be recomputed during successive calls to __call__
         self.n_subsets_previous = -1 
-        # Get total number of projections (n_subset=1 as argument)
-        self.total_projections = self.system_matrix.get_subset_splits(1)[0].shape[0]
-            
 
     @abc.abstractmethod
     def __call__(self,
@@ -105,8 +109,8 @@ class OSEMOSL(StatisticalIterative):
         # Looks for change in n_subsets during successive calls to __call__. First call this is always true, since n_subsets_previous is initially set to -1
         if self.n_subsets_previous!=self.n_subsets:
             self.norm_BPs = []
-            for subset_indices in self.subset_indices_array:
-                self.norm_BPs.append(self.system_matrix.compute_normalization_factor(subset_indices))
+            for k in range(self.n_subsets):
+                self.norm_BPs.append(self.system_matrix.compute_normalization_factor(k))
         
     def __call__(
         self,
@@ -127,22 +131,27 @@ class OSEMOSL(StatisticalIterative):
         """
         self.n_subsets = n_subsets
         self.callback = callback
-        self.subset_indices_array = self.system_matrix.get_subset_splits(n_subsets)
+        self.system_matrix.set_n_subsets(n_subsets)
         self._compute_normalization_factors()
         for j in range(n_iters):
-            for k, subset_indices in enumerate(self.subset_indices_array):
+            for k in range(n_subsets):
                 if n_subset_specific is not None:
                     # For considering only a specific subset
                     if n_subset_specific!=k:
                         continue
                 # Set OSL Prior to have object from previous prediction
                 if self.prior:
-                    self.prior.set_object(torch.clone(self.object_prediction).to(self.system_matrix.device))
-                ratio = (self.proj+pytomography.delta) / (self.system_matrix.forward(self.object_prediction, angle_subset=subset_indices) + self.scatter + pytomography.delta)
-                ratio_BP = self.system_matrix.backward(ratio, angle_subset=subset_indices)
+                    self.prior.set_object(torch.clone(self.object_prediction).to(pytomography.device))
+                # Get subsets
+                proj_subset = self.system_matrix.get_projection_subset(self.proj, k)
+                scatter_subset = self.system_matrix.get_projection_subset(self.scatter, k)
+                # Compute ratio
+                ratio = (proj_subset+pytomography.delta) / (self.system_matrix.forward(self.object_prediction, subset_idx=k) + scatter_subset + pytomography.delta)
+                # Back project ratio
+                ratio_BP = self.system_matrix.backward(ratio, subset_idx=k)
                 norm_BP = self.norm_BPs[k].to(self.device)
                 if self.prior:
-                    self.prior.set_beta_scale(len(subset_indices) / self.total_projections)
+                    self.prior.set_beta_scale(self.system_matrix.get_weighting_subset(k))
                     prior = self.prior.compute_gradient().to(self.device)
                     prior[-prior>=norm_BP] = 0 # prevents negative updates
                 else:
@@ -244,33 +253,37 @@ class BSREM(StatisticalIterative):
             torch.tensor[batch_size, Lx, Ly, Lz]: reconstructed object
         """
         self.callback = callback
-        self.subset_indices_array = self.system_matrix.get_subset_splits(n_subsets)
+        self.system_matrix.set_n_subsets(n_subsets)
         # Set normalization factor H^T 1 if it hasnt already been set in previous call to __call__
         if self.scaling_matrix_type=='subdep_norm':
             self._compute_normalization_factors()
         elif (self.scaling_matrix_type=='subind_norm') * (not(hasattr(self, 'norm_BP_allsubsets'))):
             self.norm_BP_allsubsets = self.system_matrix.compute_normalization_factor()
         for j in range(n_iters):
-            for k, subset_indices in enumerate(self.subset_indices_array):
+            for k in range(n_subsets):
                 if n_subset_specific is not None:
                     # For considering only a specific subset
                     if n_subset_specific!=k:
                         continue
-                ratio = (self.proj+pytomography.delta) / (self.system_matrix.forward(self.object_prediction, angle_subset=subset_indices) + self.scatter + pytomography.delta)
+                # Compute subsets
+                proj_subset = self.system_matrix.get_projection_subset(self.proj, k)
+                scatter_subset = self.system_matrix.get_projection_subset(self.scatter, k)
+                # Compute ratio
+                ratio = (proj_subset + pytomography.delta) / (self.system_matrix.forward(self.object_prediction, subset_idx=k) + scatter_subset + pytomography.delta)
                 # Obtain the scaling matrix D and the ratio to be back projected
                 if self.scaling_matrix_type=='subdep_norm':
-                    ratio_BP = self.system_matrix.backward(ratio, angle_subset=subset_indices)
+                    ratio_BP = self.system_matrix.backward(ratio, subset_idx=k)
                     norm_BP = self.norm_BPs[k]
                     quantity_BP = ratio_BP - norm_BP
                     scaling_matrix = 1 / (norm_BP+pytomography.delta)
                 elif self.scaling_matrix_type=='subind_norm':
-                    ratio_BP = self.system_matrix.backward(ratio, angle_subset=subset_indices)
-                    norm_BP = self.norm_BP_allsubsets * len(subset_indices) / self.total_projections
+                    ratio_BP = self.system_matrix.backward(ratio, subset_idx=k)
+                    norm_BP = self.norm_BP_allsubsets * self.system_matrix.get_weighting_subset(k)
                     quantity_BP = ratio_BP - norm_BP
                     scaling_matrix = 1 / (norm_BP+pytomography.delta)
                 if self.prior:
-                    self.prior.set_beta_scale(len(subset_indices) / self.total_projections)
-                    self.prior.set_object(torch.clone(self.object_prediction).to(self.device))
+                    self.prior.set_beta_scale(self.system_matrix.get_weighting_subset(k))
+                    self.prior.set_object(torch.clone(self.object_prediction).to(pytomography.device))
                     gradient = self.prior.compute_gradient().to(self.device)
                     # Gradient not applied to null regions
                     self._scale_prior_gradient(gradient)
@@ -417,13 +430,12 @@ class DIPRecon(StatisticalIterative):
         for _ in range(n_iters):
             for j in range(subit1):
                 for k in range(n_subsets_osem):
-                    self.osem_network.object_prediction = x.clone()
+                    self.osem_network.object_prediction = nn.ReLU()(x.clone())
                     x_EM = self.osem_network(1,n_subsets_osem, k)
-                    x = 0.5 * (x_network - mu - norm_BP / self.rho) + 0.5 * torch.sqrt((x_network - mu - norm_BP / self.rho)**2 + 4*x_EM * norm_BP / self.rho)
-            x_label = x + mu
-            self.prior_network.fit(x_label)
+                    x = 0.5 * (x_network - mu - norm_BP / self.rho) + 0.5 * torch.sqrt((x_network - mu - norm_BP / self.rho)**2 + 4 * x_EM * norm_BP / self.rho)
+            self.prior_network.fit(x + mu)
             x_network = self.prior_network.predict()
-            mu = mu + x - x_network
+            mu += x - x_network
             self.object_prediction = nn.ReLU()(x_network)
             # evaluate callback
             if self.callback is not None:

@@ -13,6 +13,7 @@ Classes
 .. autoapisummary::
 
    pytomography.projectors.system_matrix.SystemMatrix
+   pytomography.projectors.system_matrix.ExtendedSystemMatrix
 
 
 
@@ -64,6 +65,79 @@ Classes
 
       :returns: the object obtained from back projection.
       :rtype: torch.tensor[batch_size, Lr, Lr, Lz]
+
+
+   .. py:method:: get_subset_splits(n_subsets)
+      :abstractmethod:
+
+      Returns a list of subsets corresponding to a partition of the projection data used in a reconstruction algorithm.
+
+      :param n_subsets: number of subsets used in OSEM
+      :type n_subsets: int
+
+      :returns: list of index arrays for each subset
+      :rtype: list
+
+
+
+.. py:class:: ExtendedSystemMatrix(system_matrices, obj2obj_transforms = None, proj2proj_transforms = None)
+
+   Bases: :py:obj:`SystemMatrix`
+
+   Abstract class for a general system matrix :math:`H:\mathbb{U} \to \mathbb{V}` which takes in an object :math:`f \in \mathbb{U}` and maps it to corresponding projections :math:`g \in \mathbb{V}` that would be produced by the imaging system. A system matrix consists of sequences of object-to-object and proj-to-proj transforms that model various characteristics of the imaging system, such as attenuation and blurring. While the class implements the operator :math:`H:\mathbb{U} \to \mathbb{V}` through the ``forward`` method, it also implements :math:`H^T:\mathbb{V} \to \mathbb{U}` through the `backward` method, required during iterative reconstruction algorithms such as OSEM.
+
+   :param obj2obj_transforms: Sequence of object mappings that occur before forward projection.
+   :type obj2obj_transforms: Sequence[Transform]
+   :param im2im_transforms: Sequence of proj mappings that occur after forward projection.
+   :type im2im_transforms: Sequence[Transform]
+   :param object_meta: Object metadata.
+   :type object_meta: ObjectMeta
+   :param proj_meta: Projection metadata.
+   :type proj_meta: ProjMeta
+
+   .. py:method:: forward(object, angle_subset=None)
+
+      Forward transform :math:`H' = \sum_n v_n \otimes B_n H_n A_n`, This adds an additional dimension to the projection space.
+
+      :param object: Object to be forward projected. Must have a batch size of 1.
+      :type object: torch.Tensor[1,Lx,Ly,Lz]
+      :param angle_subset: Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
+      :type angle_subset: Sequence[int], optional
+
+      :returns: Forward projection.
+      :rtype: torch.Tensor[N_gates,...]
+
+
+   .. py:method:: backward(proj, angle_subset=None)
+
+      Back projection :math:`H' = \sum_n v_n^T \otimes A_n^T H_n^T B_n^T`. This maps an extended projection back to the original object space.
+
+      :param proj: Projection data to be back-projected.
+      :type proj: torch.Tensor[N,...]
+      :param angle_subset: Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.. Defaults to None.
+      :type angle_subset: Sequence[int], optional
+
+      :returns: Back projection.
+      :rtype: torch.Tensor[1,Lx,Ly,Lz]
+
+
+   .. py:method:: get_subset_splits(n_subsets)
+
+      Returns a list of subsets (where each subset contains indicies corresponding to different angles). For example, if the projections consisted of 6 total angles, then ``get_subsets_splits(2)`` would return ``[[0,2,4],[1,3,5]]``.
+
+      :param n_subsets: number of subsets used in OSEM
+      :type n_subsets: int
+
+      :returns: list of index arrays for each subset
+      :rtype: list
+
+
+   .. py:method:: compute_normalization_factor(angle_subset = None)
+
+      Function called by reconstruction algorithms to get the normalization factor :math:`H' = \sum_n v_n^T \otimes A_n^T H_n^T B_n^T` 1.
+
+      :returns: Normalization factor.
+      :rtype: torch.Tensor[1,Lx,Ly,Lz]
 
 
 

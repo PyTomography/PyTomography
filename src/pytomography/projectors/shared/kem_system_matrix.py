@@ -1,4 +1,5 @@
 from ..system_matrix import SystemMatrix
+import torch
 
 class KEMSystemMatrix(SystemMatrix):
     """Given a KEM transform :math:`K` and a system matrix :math:`H`, implements the transform :math:`HK` (and backward transform :math:`K^T H^T`)
@@ -12,34 +13,51 @@ class KEMSystemMatrix(SystemMatrix):
         self.proj_meta = system_matrix.proj_meta
         self.system_matrix = system_matrix
         self.kem_transform = kem_transform
-    def forward(self, object, angle_subset=None):
-        """Forward transform :math:`HK`
+        # Inherit required functions from system matrix
+        self.set_n_subsets = self.system_matrix.set_n_subsets
+        self.get_projection_subset = self.system_matrix.get_projection_subset
+        self.get_weighting_subset = self.system_matrix.get_projection_subset
+        
+    def compute_normalization_factor(self, subset_idx : int | None = None):
+        """Function used to get normalization factor :math:`K^T H^T_m 1` corresponding to projection subset :math:`m`.
+
+        Args:
+            subset_idx (int | None, optional): Index of subset. If none, then considers all projections. Defaults to None.
+
+        Returns:
+            torch.Tensor: normalization factor :math:`K^T H^T_m 1`
+        """
+        object = self.system_matrix.compute_normalization_factor(subset_idx)
+        return self.kem_transform.backward(object)
+        
+    def forward(self, object, subset_idx=None):
+        r"""Forward transform :math:`HK`
 
         Args:
             object (torch.tensor): Object to be forward projected
-            angle_subset (Sequence, optional): Angles to forward projected; if none, project to all angles. Defaults to None.
+            subset_idx (int, optional): Only uses a subset of angles :math:`g_m` corresponding to the provided subset index :math:`m`. If None, then defaults to the full projections :math:`g`.
 
         Returns:
             torch.tensor: Corresponding projections generated from forward projection
         """
         object = self.kem_transform.forward(object)
-        return self.system_matrix.forward(object, angle_subset)
-    def backward(self, proj, angle_subset=None, return_norm_constant = False):
-        """Backward transform :math:`K^T H^T`
+        return self.system_matrix.forward(object, subset_idx)
+    def backward(self, proj, subset_idx=None, return_norm_constant = False):
+        r"""Backward transform :math:`K^T H^T`
 
         Args:
             proj (torch.tensor): Projection data to be back projected
-            angle_subset (Sequence, optional): Angles corresponding to projections; if none, then all projections from ``self.proj_meta`` are contained. Defaults to None.
+            subset_idx (int, optional): Only uses a subset of angles :math:`g_m` corresponding to the provided subset index :math:`m`. If None, then defaults to the full projections :math:`g`.
             return_norm_constant (bool, optional): Additionally returns :math:`K^T H^T 1` if true; defaults to False.
 
         Returns:
             torch.tensor: Corresponding object generated from back projection.
         """
         if return_norm_constant:
-            object, norm_constant = self.system_matrix.backward(proj, angle_subset, return_norm_constant)
+            object, norm_constant = self.system_matrix.backward(proj, subset_idx, return_norm_constant)
             object, norm_constant = self.kem_transform.backward(object, norm_constant)
             return object, norm_constant
         else:
-            object = self.system_matrix.backward(proj, angle_subset, return_norm_constant)
+            object = self.system_matrix.backward(proj, subset_idx, return_norm_constant)
             return self.kem_transform.backward(object)
         

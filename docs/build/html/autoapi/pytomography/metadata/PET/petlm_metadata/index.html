@@ -1,0 +1,623 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>pytomography.metadata.PET.petlm_metadata &#8212; PyTomography 1.3.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../../_static/styles/theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../../../../../_static/styles/bootstrap.css?digest=e353d410970836974a52" rel="stylesheet" />
+<link href="../../../../../_static/styles/pydata-sphinx-theme.css?digest=e353d410970836974a52" rel="stylesheet" />
+
+  
+  <link href="../../../../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=e353d410970836974a52" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/graphviz.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52" />
+<link rel="preload" as="script" href="../../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52" />
+
+    <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
+    <script src="../../../../../_static/doctools.js"></script>
+    <script src="../../../../../_static/sphinx_highlight.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'autoapi/pytomography/metadata/PET/petlm_metadata/index';</script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
+    <link rel="next" title="pytomography.metadata.SPECT" href="../../SPECT/index.html" />
+    <link rel="prev" title="pytomography.metadata.PET.pet_tof_metadata" href="../pet_tof_metadata/index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+<div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+    <span class="fa-solid fa-bars"></span>
+  </label>
+  
+  <div class="navbar-header-items__start">
+    
+      <div class="navbar-item">
+  
+
+<a class="navbar-brand logo" href="../../../../../index.html">
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../../../_static/PT1.png" class="logo__image only-light" alt="Logo image"/>
+    <script>document.write(`<img src="../../../../../_static/PT1.png" class="logo__image only-dark" alt="Logo image"/>`);</script>
+  
+  
+</a></div>
+    
+  </div>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../external_data.html">
+                        External Data
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="../../../../index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+        </div>
+      
+      
+        <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+`);
+</script>
+    </div>
+  
+
+  
+    <label class="sidebar-toggle secondary-toggle" for="__secondary">
+      <span class="fa-solid fa-outdent"></span>
+    </label>
+  
+</div>
+
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../usage.html">
+                        Tutorials
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../developers_guide.html">
+                        Developer’s Guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../../../../external_data.html">
+                        External Data
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="../../../../index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+<script>
+document.write(`
+  <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item"><nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../algorithms/fbp/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.fbp</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../algorithms/statistical_iterative/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.statistical_iterative</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../callbacks/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-3"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../callbacks/callback/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.callback</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../callbacks/likelihood/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.likelihood</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../io/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-4"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../io/CT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.CT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-5"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../io/CT/attenuation_map/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.CT.attenuation_map</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../io/CT/dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.CT.dicom</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../io/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-6"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../io/PET/prd/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET.prd</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../io/PET/gate/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET.gate</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../io/PET/petsird/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET.petsird</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../io/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-7"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../io/SPECT/dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../io/SPECT/simind/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.simind</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../io/shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-8"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../io/shared/dicom_creation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.shared.dicom_creation</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../io/shared/interfile/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.shared.interfile</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-9"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
+<li class="toctree-l3 current active has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.PET</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-10"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../pet_tof_metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.PET.pet_tof_metadata</span></code></a></li>
+<li class="toctree-l4 current active"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.PET.petlm_metadata</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-11"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../SPECT/spect_metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.SPECT.spect_metadata</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.metadata</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../priors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-12"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../priors/nearest_neighbour/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.nearest_neighbour</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../priors/prior/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.prior</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../projectors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-13"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../projectors/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-14"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../projectors/PET/petlm_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.PET.petlm_system_matrix</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../projectors/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-15"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../projectors/SPECT/spect_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT.spect_system_matrix</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../projectors/shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-16"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../projectors/shared/kem_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.shared.kem_system_matrix</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../projectors/shared/motion_correction_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.shared.motion_correction_system_matrix</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../projectors/system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.system_matrix</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../transforms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-17"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../transforms/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-18"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../transforms/SPECT/attenuation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.attenuation</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../transforms/SPECT/cutoff/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.cutoff</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../transforms/SPECT/psf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.psf</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../transforms/shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-19"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../transforms/shared/filters/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.filters</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../transforms/shared/kem/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.kem</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../transforms/shared/motion/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.motion</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../transforms/shared/spatial/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.spatial</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../transforms/transform/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.transform</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-20"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../utils/fourier_filters/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.fourier_filters</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../utils/misc/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.misc</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../utils/nist_data/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.nist_data</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../utils/scatter/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.scatter</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../utils/spatial/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.spatial</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+
+
+<nav aria-label="Breadcrumbs">
+  <ul class="bd-breadcrumbs" role="navigation" aria-label="Breadcrumb">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../../index.html" class="nav-link">API Reference</a></li>
+    
+    
+    <li class="breadcrumb-item"><i class="fa-solid fa-ellipsis"></i></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.PET</span></code></a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.PET.petlm_metadata</span></code></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section id="module-pytomography.metadata.PET.petlm_metadata">
+<span id="pytomography-metadata-pet-petlm-metadata"></span><h1><a class="reference internal" href="#module-pytomography.metadata.PET.petlm_metadata" title="pytomography.metadata.PET.petlm_metadata"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.PET.petlm_metadata</span></code></a><a class="headerlink" href="#module-pytomography.metadata.PET.petlm_metadata" title="Permalink to this heading">#</a></h1>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this heading">#</a></h2>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading">#</a></h3>
+<table class="autosummary longtable table autosummary">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.metadata.PET.petlm_metadata.PETLMProjMeta" title="pytomography.metadata.PET.petlm_metadata.PETLMProjMeta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PETLMProjMeta</span></code></a></p></td>
+<td><p>Metadata required for PET listmode modeling. PET listmode projection actually requires two different projectors: the system matrix that projects to all detected crystal pair LORs (which is denoted as <span class="math notranslate nohighlight">\(H\)</span>) and the system matrix that projects to all valid LORs (denoted as <span class="math notranslate nohighlight">\(\tilde{H}\)</span>). The system matrix <span class="math notranslate nohighlight">\(H\)</span> is used for forward/back projection in reconstruction algorithms, while <span class="math notranslate nohighlight">\(\tilde{H}\)</span> is used for computing the normalization image <span class="math notranslate nohighlight">\(\tilde{H}^T 1\)</span>.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomography.metadata.PET.petlm_metadata.PETLMProjMeta">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.metadata.PET.petlm_metadata.</span></span><span class="sig-name descname"><span class="pre">PETLMProjMeta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">detector_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scanner_LUT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tof_meta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detector_ids_sensitivity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights_sensitivity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../../_modules/pytomography/metadata/PET/petlm_metadata.html#PETLMProjMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.metadata.PET.petlm_metadata.PETLMProjMeta" title="Permalink to this definition">#</a></dt>
+<dd><p>Metadata required for PET listmode modeling. PET listmode projection actually requires two different projectors: the system matrix that projects to all detected crystal pair LORs (which is denoted as <span class="math notranslate nohighlight">\(H\)</span>) and the system matrix that projects to all valid LORs (denoted as <span class="math notranslate nohighlight">\(\tilde{H}\)</span>). The system matrix <span class="math notranslate nohighlight">\(H\)</span> is used for forward/back projection in reconstruction algorithms, while <span class="math notranslate nohighlight">\(\tilde{H}\)</span> is used for computing the normalization image <span class="math notranslate nohighlight">\(\tilde{H}^T 1\)</span>.
+:param detector_ids: <span class="math notranslate nohighlight">\(N \times 2\)</span> (non-TOF) or <span class="math notranslate nohighlight">\(N \times 3\)</span> (TOF) tensor that provides detector ID pairs (and TOF bin) for coincidence events. This information is used to construct <span class="math notranslate nohighlight">\(H\)</span>.
+:type detector_ids: torch.Tensor
+:param scanner_LUT: scanner lookup table that provides spatial coordinates for all detector ID pairs
+:type scanner_LUT: torch.Tensor
+:param tof_meta: PET time-of-flight metadata used to modify <span class="math notranslate nohighlight">\(H\)</span> for time of flight projection. If None, then time of flight is not used. Defaults to None.
+:type tof_meta: PETTOFMeta | None, optional
+:param weights: weights used to scale projections after forward projection and before back projection; these modify the system matrix <span class="math notranslate nohighlight">\(H\)</span>. While such weights can be used to apply attenuation/normalization correction, they aren’t required in the absence of randoms/scatter; these correction need only be performed using <code class="docutils literal notranslate"><span class="pre">weights_sensitivity</span></code>. If provided, these weights must have the number of elements as the first dimension of <code class="docutils literal notranslate"><span class="pre">detector_ids</span></code>. If none, then no scaling is done. Defaults to None.
+:type weights: torch.tensor | None, optional
+:param detector_ids_sensitivity: valid detector ids used to generate the sensitivity image <span class="math notranslate nohighlight">\(\tilde{H}^T 1\)</span>. As such, these are used to construct <span class="math notranslate nohighlight">\(\tilde{H}\)</span>. If None, then assumes all detector ids (specified by <code class="docutils literal notranslate"><span class="pre">scanner_LUT</span></code>) are valid. Defaults to None.
+:type detector_ids_sensitivity: torch.tensor | None, optional
+:param weights_sensitivity: weights used for scaling projections in the computation of the sensitivity image, if the weights are given as <span class="math notranslate nohighlight">\(w\)</span> then the sensitivty image becomes <span class="math notranslate nohighlight">\(\tilde{H}^T w\)</span>; these modify the system matrix <span class="math notranslate nohighlight">\(\tilde{H}\)</span>. These weights are used for attenuation/normalization correction. If <code class="docutils literal notranslate"><span class="pre">detector_ids_sensitivity</span></code> is provided, then <code class="docutils literal notranslate"><span class="pre">weights_sensitivity</span></code> should have the same shape. If <code class="docutils literal notranslate"><span class="pre">detector_ids_sensitivity</span></code> is not provided, then <code class="docutils literal notranslate"><span class="pre">weights_sensitivity</span></code> should be the same length as all possible combinations of detectors in the <code class="docutils literal notranslate"><span class="pre">scanner_LUT</span></code>. If None, then no scaling is performed. Defaults to None.
+:type weights_sensitivity: torch.tensor | None, optional</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>detector_ids</strong> (<em>torch.Tensor</em>) – </p></li>
+<li><p><strong>scanner_LUT</strong> (<em>torch.Tensor</em>) – </p></li>
+<li><p><strong>tof_meta</strong> (<a class="reference internal" href="../pet_tof_metadata/index.html#pytomography.metadata.PET.pet_tof_metadata.PETTOFMeta" title="pytomography.metadata.PET.pet_tof_metadata.PETTOFMeta"><em>pytomography.metadata.PET.pet_tof_metadata.PETTOFMeta</em></a><em> | </em><em>None</em>) – </p></li>
+<li><p><strong>weights</strong> (<em>torch.tensor</em><em> | </em><em>None</em>) – </p></li>
+<li><p><strong>detector_ids_sensitivity</strong> (<em>torch.tensor</em><em> | </em><em>None</em>) – </p></li>
+<li><p><strong>weights_sensitivity</strong> (<em>torch.tensor</em><em> | </em><em>None</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+                <footer class="bd-footer-article">
+                  
+<div class="footer-article-items footer-article__inner">
+  
+    <div class="footer-article-item"><!-- Previous / next buttons -->
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../pet_tof_metadata/index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.PET.pet_tof_metadata</span></code></p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../../SPECT/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.SPECT</span></code></p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div></div>
+  
+</div>
+
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.metadata.PET.petlm_metadata.PETLMProjMeta"><code class="docutils literal notranslate"><span class="pre">PETLMProjMeta</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div class="tocsection sourcelink">
+    <a href="../../../../../_sources/autoapi/pytomography/metadata/PET/petlm_metadata/index.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../../../_static/scripts/bootstrap.js?digest=e353d410970836974a52"></script>
+<script src="../../../../../_static/scripts/pydata-sphinx-theme.js?digest=e353d410970836974a52"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+  <p class="copyright">
+    
+      © Copyright 2023, Luke Polson.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 6.2.1.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item"><p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.13.3.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
