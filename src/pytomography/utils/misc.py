@@ -77,6 +77,16 @@ def print_collimator_parameters():
     with open(collimator_filepath) as f:
         for line in f.readlines():
             print(line)
+            
+def check_if_class_contains_method(instance, method_name):
+    """Checks if class corresponding to instance implements the method ``method_name``
+
+    Args:
+        instance (Object): A python object
+        method_name (str): Name of the method of the object being checked
+    """
+    if not (hasattr(instance, method_name) and callable(getattr(instance, method_name))):
+        raise Exception(f'"{instance.__class__.__name__}" must implement "{method_name}"')
 
 
 
