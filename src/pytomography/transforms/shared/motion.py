@@ -19,8 +19,10 @@ class DVFMotionTransform(Transform):
         """
         self.dvf_forward = dvf_forward.to(pytomography.device).to(pytomography.dtype)
         self.dvf_backward = dvf_backward.to(pytomography.device).to(pytomography.dtype)
-        self.dvf_forward_vol_ratio = self._get_vol_ratio(self.dvf_forward)
-        self.dvf_backward_vol_ratio = self._get_vol_ratio(self.dvf_backward)
+        #self.dvf_forward_vol_ratio = self._get_vol_ratio(self.dvf_forward)
+        #self.dvf_backward_vol_ratio = self._get_vol_ratio(self.dvf_backward)
+        self.dvf_forward_vol_ratio = 1
+        self.dvf_backward_vol_ratio = 1
         super(DVFMotionTransform, self).__init__()  ## go to the _init_ in Class Transform
   
     def _get_vol_ratio(self, DVF):
