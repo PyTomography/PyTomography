@@ -9,16 +9,11 @@ import abc
 import pytomography
 from pytomography.priors import Prior
 from pytomography.callbacks import Callback
-from pytomography.transforms import KEMTransform, CutOffTransform
-from pytomography.projectors import KEMSystemMatrix
+from pytomography.transforms.shared import KEMTransform
+from pytomography.transforms.SPECT import CutOffTransform
+from pytomography.projectors.shared import KEMSystemMatrix
+from pytomography.utils import check_if_class_contains_method
 from collections.abc import Callable
-
-def get_projection_subset(projections, subset_indices, device):
-    if (len(projections.shape)>1)*(subset_indices is not None):
-        proj_subset = projections[:,subset_indices.to(device)]
-    else:
-        proj_subset = projections
-    return proj_subset
 
 class StatisticalIterative():
     r"""Parent class for all statistical iterative algorithms. All child classes must implement the ``__call__`` method to perform reconstruction.
@@ -44,6 +39,7 @@ class StatisticalIterative():
         device: str = pytomography.device
     ) -> None:
         self.device = device
+        self._validate_projector(system_matrix)
         self.system_matrix = system_matrix
         if object_initial is None:
             self.object_prediction = torch.ones((projections.shape[0], *self.system_matrix.object_meta.shape)).to(self.device).to(pytomography.dtype)
@@ -62,6 +58,18 @@ class StatisticalIterative():
         self.precompute_normalization_factors = precompute_normalization_factors
         # Set n_subsets_previous, which is used for determining whether normalization factors need to be recomputed during successive calls to __call__
         self.n_subsets_previous = -1 
+        
+    @abc.abstractmethod
+    def _validate_projector(
+        self,
+        system_matrix,
+    ):
+        """Method implemented by child classes that checks if the system matrix implements the required methods for reconstruction.
+
+        Args:
+            system_matrix (_type_): _description_
+        """
+        ...
 
     @abc.abstractmethod
     def __call__(self,
@@ -91,6 +99,20 @@ class OSEMOSL(StatisticalIterative):
         precompute_normalization_factors (bool). Whether or not to precompute the normalization factors :math:`H_m^T 1` for each subset :math:`m` before reconstruction. This saves computational time during each iteration, but requires more GPU memory. Defaults to True.
         device (str): The device correpsonding to the tensors output by the system matrix. In some cases, although the system matrix implementation uses ``pytomography.device`` in its internal computation, it will output tensors on the CPU due to their size (such as in listmode PET). Defaults to ``pytomography.device``. 
     """
+    
+    def _validate_projector(
+        self,
+        system_matrix: SystemMatrix,
+    ):
+        """Checks that the required classes are implemented by the reconstruction algorithm
+
+        Args:
+            system_matrix (SystemMatrix): System matrix being used as projector in reconstruction algorithm
+        """
+        methods = ['get_projection_subset', 'get_weighting_subset', 'set_n_subsets', 'compute_normalization_factor']
+        for method in methods:
+            check_if_class_contains_method(system_matrix, method)
+    
     def _set_recon_name(self, n_iters: int, n_subsets: int):
         """Set the unique identifier for the type of reconstruction performed. Useful when saving reconstructions to DICOM files
 
@@ -199,7 +221,20 @@ class BSREM(StatisticalIterative):
         super(BSREM, self).__init__(projections, system_matrix, object_initial, scatter, prior, precompute_normalization_factors, device)
         self.relaxation_function = relaxation_function
         self.scaling_matrix_type = scaling_matrix_type
-        
+    
+    def _validate_projector(
+        self,
+        system_matrix: SystemMatrix,
+    ):
+        """Checks that the required classes are implemented by the reconstruction algorithm
+
+        Args:
+            system_matrix (SystemMatrix): System matrix being used as projector in reconstruction algorithm
+        """
+        methods = ['get_projection_subset', 'get_weighting_subset', 'set_n_subsets', 'compute_normalization_factor']
+        for method in methods:
+            check_if_class_contains_method(system_matrix, method)
+    
     def _compute_normalization_factors(self):
         """Computes normalization factors :math:`H_m^T 1` for all subsets :math:`m`.
         """
@@ -391,7 +426,6 @@ class DIPRecon(StatisticalIterative):
         precompute_normalization_factors: bool = True,
         
     ) -> None:
-        
         super(DIPRecon, self).__init__(
             projections,
             system_matrix,
@@ -403,6 +437,19 @@ class DIPRecon(StatisticalIterative):
             precompute_normalization_factors=precompute_normalization_factors)
         self.prior_network = prior_network
         self.rho = rho
+        
+    def _validate_projector(
+        self,
+        system_matrix: SystemMatrix,
+    ):
+        """Checks that the required classes are implemented by the reconstruction algorithm
+
+        Args:
+            system_matrix (SystemMatrix): System matrix being used as projector in reconstruction algorithm
+        """
+        methods = ['get_projection_subset', 'get_weighting_subset', 'set_n_subsets', 'compute_normalization_factor']
+        for method in methods:
+            check_if_class_contains_method(system_matrix, method)
         
     def __call__(
         self,

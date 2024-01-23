@@ -1,7 +1,8 @@
 from __future__ import annotations
 import torch
 import pytomography
-from pytomography.transforms import Transform, RotationTransform
+from pytomography.transforms import transform
+from pytomography.transforms.shared import RotationTransform
 from pytomography.metadata import SPECTObjectMeta, SPECTProjMeta
 from pytomography.priors import Prior
 from pytomography.utils import pad_object, unpad_object, pad_proj, unpad_proj
