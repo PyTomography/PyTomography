@@ -56,17 +56,23 @@ pip install pytomography
 
 If you want to use the PET reconstruction options available, you need to additionally follow the installation instructions for parallelproj at [this link](https://parallelproj.readthedocs.io/en/stable/installation.html).
 
+## Tutorials
+
 Be sure to check out  {doc}`usage` for some simple examples. If you wish to make a contribution, please read the {doc}`developers_guide`.
 
-## Examples
-**Example 1**: *SPECT/CT Images of patient receiving targeted radionuclide therapy with Lu177 DOTATATE for neuroendocrine tumours (4 cycles of 7.4 GBq/cycle administered every 8 weeks). Row 1: OSEM (5 iterations, 8 subsets); row 2: BSREM (30 iterations, 8 subsets) using the RDP prior; row 3: BSREM (30 iterations, 8 subsets) using the RDP prior with anatomical weighting.*
+## User Forum
 
-![](images/deep_blue.jpg)
+If you have any questions about how to use the software, feel free to ask them on the discourse page at [this link](https://pytomography.discourse.group/).
+
+## Examples
+**Example 1**: *SPECT/CT Images of patient receiving targeted radionuclide therapy with Lu177 DOTATATE for neuroendocrine tumours (4 cycles of 7.4 GBq/cycle administered every 8 week; shown is first cycle). From left to right: OSEM (50it/8ss), BSREM (50it/8ss) using the RDP prior with anatomical weighting, and KEM (50it/8ss).*
+
+![](images/figure4.jpg)
 
 **Example 2**: *Ultra high resolution PET/MR brain phantom ground truth and reconstructions with time-of-flight. PET Monte Carlo acquisition data was obtained via simulation of a Siemens mMR scanner (with 550 ps time-of-flight resolution) in GATE. From top to bottom: sample axial, coronal, and sagittal slices. From left to right: T1-weighted MR image (inverse contrast), ground truth PET concentration, high count (630 million events) reconstruction with OSEM (4it20ss), low count recon (35 million events) with OSEM (80it/1ss) and low count recon (35 million events) with the DIPRecon method (100it).*
 *
 
-![](images/dip_recon.jpg)
+![](images/figure5.jpg)
 
 ## Contents
 

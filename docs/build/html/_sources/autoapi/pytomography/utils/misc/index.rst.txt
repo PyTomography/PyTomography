@@ -18,6 +18,7 @@ Functions
    pytomography.utils.misc.get_object_nearest_neighbour
    pytomography.utils.misc.get_blank_below_above
    pytomography.utils.misc.print_collimator_parameters
+   pytomography.utils.misc.check_if_class_contains_method
 
 
 
@@ -76,5 +77,15 @@ Functions
 
    Prints all the available SPECT collimator parameters
 
+
+
+.. py:function:: check_if_class_contains_method(instance, method_name)
+
+   Checks if class corresponding to instance implements the method ``method_name``
+
+   :param instance: A python object
+   :type instance: Object
+   :param method_name: Name of the method of the object being checked
+   :type method_name: str
 
 

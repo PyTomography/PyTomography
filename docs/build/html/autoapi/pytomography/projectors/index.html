@@ -9,7 +9,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
-    <title>pytomography.projectors &#8212; PyTomography 1.3.0 documentation</title>
+    <title>pytomography.projectors &#8212; PyTomography 1.3.2 documentation</title>
   
   
   
@@ -494,21 +494,6 @@ document.write(`
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.projectors.ExtendedSystemMatrix" title="pytomography.projectors.ExtendedSystemMatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExtendedSystemMatrix</span></code></a></p></td>
 <td><p>Abstract class for a general system matrix <span class="math notranslate nohighlight">\(H:\mathbb{U} \to \mathbb{V}\)</span> which takes in an object <span class="math notranslate nohighlight">\(f \in \mathbb{U}\)</span> and maps it to corresponding projections <span class="math notranslate nohighlight">\(g \in \mathbb{V}\)</span> that would be produced by the imaging system. A system matrix consists of sequences of object-to-object and proj-to-proj transforms that model various characteristics of the imaging system, such as attenuation and blurring. While the class implements the operator <span class="math notranslate nohighlight">\(H:\mathbb{U} \to \mathbb{V}\)</span> through the <code class="docutils literal notranslate"><span class="pre">forward</span></code> method, it also implements <span class="math notranslate nohighlight">\(H^T:\mathbb{V} \to \mathbb{U}\)</span> through the <cite>backward</cite> method, required during iterative reconstruction algorithms such as OSEM.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.projectors.SPECTSystemMatrix" title="pytomography.projectors.SPECTSystemMatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SPECTSystemMatrix</span></code></a></p></td>
-<td><p>System matrix for SPECT imaging. By default, this applies to parallel hole collimators, but appropriate use of <cite>proj2proj_transforms</cite> can allow this system matrix to also model converging/diverging collimator configurations as well.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.projectors.SPECTSystemMatrixMaskedSegments" title="pytomography.projectors.SPECTSystemMatrixMaskedSegments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SPECTSystemMatrixMaskedSegments</span></code></a></p></td>
-<td><p>SPECT system matrix where the object space is a vector of length <span class="math notranslate nohighlight">\(N\)</span> consisting of the mean activities for each masks in <code class="docutils literal notranslate"><span class="pre">masks</span></code>. This system matrix can be used in reconstruction algorithms to obtain maximum liklihood estimations for the average value of <span class="math notranslate nohighlight">\(f\)</span> inside each of the masks.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.projectors.PETLMSystemMatrix" title="pytomography.projectors.PETLMSystemMatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PETLMSystemMatrix</span></code></a></p></td>
-<td><p>System matrix of PET list mode data. Forward projections corresponds to computing the expected counts along all LORs specified: in particular it approximates <span class="math notranslate nohighlight">\(g_i = \int_{\text{LOR}_i} h(r) f(r) dr\)</span> where index <span class="math notranslate nohighlight">\(i\)</span> corresponds to a particular detector pair and <span class="math notranslate nohighlight">\(h(r)\)</span> is a Gaussian function that incorporates time-of-flight information (<span class="math notranslate nohighlight">\(h(r)=1\)</span> for non-time-of-flight). The integral is approximated in the discrete object space using Joseph3D projections. In general, the system matrix implements two different projections, the quantity <span class="math notranslate nohighlight">\(H\)</span> which projects to LORs corresponding to all detected events, and the quantity <span class="math notranslate nohighlight">\(\tilde{H}\)</span> which projects to all valid LORs. The quantity <span class="math notranslate nohighlight">\(H\)</span> is used for standard forward/back projection, while <span class="math notranslate nohighlight">\(\tilde{H}\)</span> is used to compute the sensitivity image.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pytomography.projectors.KEMSystemMatrix" title="pytomography.projectors.KEMSystemMatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KEMSystemMatrix</span></code></a></p></td>
-<td><p>Given a KEM transform <span class="math notranslate nohighlight">\(K\)</span> and a system matrix <span class="math notranslate nohighlight">\(H\)</span>, implements the transform <span class="math notranslate nohighlight">\(HK\)</span> (and backward transform <span class="math notranslate nohighlight">\(K^T H^T\)</span>)</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.projectors.MotionSystemMatrix" title="pytomography.projectors.MotionSystemMatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MotionSystemMatrix</span></code></a></p></td>
-<td><p>Abstract class for a general system matrix <span class="math notranslate nohighlight">\(H:\mathbb{U} \to \mathbb{V}\)</span> which takes in an object <span class="math notranslate nohighlight">\(f \in \mathbb{U}\)</span> and maps it to corresponding projections <span class="math notranslate nohighlight">\(g \in \mathbb{V}\)</span> that would be produced by the imaging system. A system matrix consists of sequences of object-to-object and proj-to-proj transforms that model various characteristics of the imaging system, such as attenuation and blurring. While the class implements the operator <span class="math notranslate nohighlight">\(H:\mathbb{U} \to \mathbb{V}\)</span> through the <code class="docutils literal notranslate"><span class="pre">forward</span></code> method, it also implements <span class="math notranslate nohighlight">\(H^T:\mathbb{V} \to \mathbb{U}\)</span> through the <cite>backward</cite> method, required during iterative reconstruction algorithms such as OSEM.</p></td>
-</tr>
 </tbody>
 </table>
 <dl class="py class">
@@ -611,13 +596,14 @@ document.write(`
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.projectors.ExtendedSystemMatrix.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_subset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/system_matrix.html#ExtendedSystemMatrix.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.ExtendedSystemMatrix.forward" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/system_matrix.html#ExtendedSystemMatrix.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.ExtendedSystemMatrix.forward" title="Permalink to this definition">#</a></dt>
 <dd><p>Forward transform <span class="math notranslate nohighlight">\(H' = \sum_n v_n \otimes B_n H_n A_n\)</span>, This adds an additional dimension to the projection space.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>object</strong> (<em>torch.Tensor</em><em>[</em><em>1</em><em>,</em><em>Lx</em><em>,</em><em>Ly</em><em>,</em><em>Lz</em><em>]</em>) – Object to be forward projected. Must have a batch size of 1.</p></li>
 <li><p><strong>angle_subset</strong> (<em>Sequence</em><em>[</em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Only uses a subset of angles (i.e. only certain values of <span class="math notranslate nohighlight">\(j\)</span> in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.</p></li>
+<li><p><strong>subset_idx</strong> (<em>int</em><em> | </em><em>None</em>) – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -631,13 +617,14 @@ document.write(`
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.projectors.ExtendedSystemMatrix.backward">
-<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_subset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/system_matrix.html#ExtendedSystemMatrix.backward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.ExtendedSystemMatrix.backward" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/system_matrix.html#ExtendedSystemMatrix.backward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.ExtendedSystemMatrix.backward" title="Permalink to this definition">#</a></dt>
 <dd><p>Back projection <span class="math notranslate nohighlight">\(H' = \sum_n v_n^T \otimes A_n^T H_n^T B_n^T\)</span>. This maps an extended projection back to the original object space.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>proj</strong> (<em>torch.Tensor</em><em>[</em><em>N</em><em>,</em><em>...</em><em>]</em>) – Projection data to be back-projected.</p></li>
 <li><p><strong>angle_subset</strong> (<em>Sequence</em><em>[</em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Only uses a subset of angles (i.e. only certain values of <span class="math notranslate nohighlight">\(j\)</span> in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.. Defaults to None.</p></li>
+<li><p><strong>subset_idx</strong> (<em>int</em><em> | </em><em>None</em>) – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -650,25 +637,37 @@ document.write(`
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pytomography.projectors.ExtendedSystemMatrix.get_subset_splits">
-<span class="sig-name descname"><span class="pre">get_subset_splits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/system_matrix.html#ExtendedSystemMatrix.get_subset_splits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.ExtendedSystemMatrix.get_subset_splits" title="Permalink to this definition">#</a></dt>
-<dd><p>Returns a list of subsets (where each subset contains indicies corresponding to different angles). For example, if the projections consisted of 6 total angles, then <code class="docutils literal notranslate"><span class="pre">get_subsets_splits(2)</span></code> would return <code class="docutils literal notranslate"><span class="pre">[[0,2,4],[1,3,5]]</span></code>.</p>
-<dl class="field-list simple">
+<dt class="sig sig-object py" id="pytomography.projectors.ExtendedSystemMatrix.set_n_subsets">
+<span class="sig-name descname"><span class="pre">set_n_subsets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/system_matrix.html#ExtendedSystemMatrix.set_n_subsets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.ExtendedSystemMatrix.set_n_subsets" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>n_subsets</strong> (<em>int</em>) – number of subsets used in OSEM</p>
+<dd class="field-odd"><p><strong>n_subsets</strong> (<em>int</em>) – </p>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>list of index arrays for each subset</p>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>list</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list</p>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.projectors.ExtendedSystemMatrix.get_projection_subset">
+<span class="sig-name descname"><span class="pre">get_projection_subset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">projections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset_idx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/system_matrix.html#ExtendedSystemMatrix.get_projection_subset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.ExtendedSystemMatrix.get_projection_subset" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>projections</strong> (<em>torch.tensor</em>) – </p></li>
+<li><p><strong>subset_idx</strong> (<em>int</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>torch.tensor</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.projectors.ExtendedSystemMatrix.compute_normalization_factor">
-<span class="sig-name descname"><span class="pre">compute_normalization_factor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">angle_subset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/system_matrix.html#ExtendedSystemMatrix.compute_normalization_factor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.ExtendedSystemMatrix.compute_normalization_factor" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">compute_normalization_factor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subset_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/system_matrix.html#ExtendedSystemMatrix.compute_normalization_factor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.ExtendedSystemMatrix.compute_normalization_factor" title="Permalink to this definition">#</a></dt>
 <dd><p>Function called by reconstruction algorithms to get the normalization factor <span class="math notranslate nohighlight">\(H' = \sum_n v_n^T \otimes A_n^T H_n^T B_n^T\)</span> 1.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -678,450 +677,11 @@ document.write(`
 <dd class="field-even"><p>torch.Tensor[1,Lx,Ly,Lz]</p>
 </dd>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>angle_subset</strong> (<em>list</em><em>[</em><em>int</em><em>]</em>) – </p>
+<dd class="field-odd"><p><strong>subset_idx</strong> (<em>int</em><em> | </em><em>None</em>) – </p>
 </dd>
 </dl>
 </dd></dl>
 
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="pytomography.projectors.SPECTSystemMatrix">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.projectors.</span></span><span class="sig-name descname"><span class="pre">SPECTSystemMatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj2obj_transforms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proj2proj_transforms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proj_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/SPECT/spect_system_matrix.html#SPECTSystemMatrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.SPECTSystemMatrix" title="Permalink to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference internal" href="system_matrix/index.html#pytomography.projectors.system_matrix.SystemMatrix" title="pytomography.projectors.system_matrix.SystemMatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pytomography.projectors.system_matrix.SystemMatrix</span></code></a></p>
-<p>System matrix for SPECT imaging. By default, this applies to parallel hole collimators, but appropriate use of <cite>proj2proj_transforms</cite> can allow this system matrix to also model converging/diverging collimator configurations as well.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>obj2obj_transforms</strong> (<em>Sequence</em><em>[</em><a class="reference internal" href="../transforms/index.html#pytomography.transforms.Transform" title="pytomography.transforms.Transform"><em>Transform</em></a><em>]</em>) – Sequence of object mappings that occur before forward projection.</p></li>
-<li><p><strong>proj2proj_transforms</strong> (<em>Sequence</em><em>[</em><a class="reference internal" href="../transforms/index.html#pytomography.transforms.Transform" title="pytomography.transforms.Transform"><em>Transform</em></a><em>]</em>) – Sequence of proj mappings that occur after forward projection.</p></li>
-<li><p><strong>object_meta</strong> (<a class="reference internal" href="../metadata/SPECT/index.html#pytomography.metadata.SPECT.SPECTObjectMeta" title="pytomography.metadata.SPECT.SPECTObjectMeta"><em>SPECTObjectMeta</em></a>) – SPECT Object metadata.</p></li>
-<li><p><strong>proj_meta</strong> (<a class="reference internal" href="../metadata/SPECT/index.html#pytomography.metadata.SPECT.SPECTProjMeta" title="pytomography.metadata.SPECT.SPECTProjMeta"><em>SPECTProjMeta</em></a>) – SPECT projection metadata.</p></li>
-<li><p><strong>n_parallel</strong> (<em>int</em>) – Number of projections to use in parallel when applying transforms. More parallel events may speed up reconstruction time, but also increases GPU usage. Defaults to 1.</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.projectors.SPECTSystemMatrix.compute_normalization_factor">
-<span class="sig-name descname"><span class="pre">compute_normalization_factor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subset_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/SPECT/spect_system_matrix.html#SPECTSystemMatrix.compute_normalization_factor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.SPECTSystemMatrix.compute_normalization_factor" title="Permalink to this definition">#</a></dt>
-<dd><p>Function used to get normalization factor <span class="math notranslate nohighlight">\(H^T_m 1\)</span> corresponding to projection subset <span class="math notranslate nohighlight">\(m\)</span>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>subset_idx</strong> (<em>int</em><em> | </em><em>None</em><em>, </em><em>optional</em>) – Index of subset. If none, then considers all projections. Defaults to None.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>normalization factor <span class="math notranslate nohighlight">\(H^T_m 1\)</span></p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>torch.Tensor</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.projectors.SPECTSystemMatrix.set_n_subsets">
-<span class="sig-name descname"><span class="pre">set_n_subsets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/SPECT/spect_system_matrix.html#SPECTSystemMatrix.set_n_subsets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.SPECTSystemMatrix.set_n_subsets" title="Permalink to this definition">#</a></dt>
-<dd><p>Sets the subsets for this system matrix given <code class="docutils literal notranslate"><span class="pre">n_subsets</span></code> total subsets.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>n_subsets</strong> (<em>int</em>) – number of subsets used in OSEM</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>list</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.projectors.SPECTSystemMatrix.get_projection_subset">
-<span class="sig-name descname"><span class="pre">get_projection_subset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">projections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset_idx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/SPECT/spect_system_matrix.html#SPECTSystemMatrix.get_projection_subset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.SPECTSystemMatrix.get_projection_subset" title="Permalink to this definition">#</a></dt>
-<dd><p>Gets the subset of projections <span class="math notranslate nohighlight">\(g_m\)</span> corresponding to index <span class="math notranslate nohighlight">\(m\)</span>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>projections</strong> (<em>torch.tensor</em>) – full projections <span class="math notranslate nohighlight">\(g\)</span></p></li>
-<li><p><strong>subset_idx</strong> (<em>int</em>) – subset index <span class="math notranslate nohighlight">\(m\)</span></p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>subsampled projections <span class="math notranslate nohighlight">\(g_m\)</span></p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>torch.tensor</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.projectors.SPECTSystemMatrix.get_weighting_subset">
-<span class="sig-name descname"><span class="pre">get_weighting_subset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subset_idx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/SPECT/spect_system_matrix.html#SPECTSystemMatrix.get_weighting_subset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.SPECTSystemMatrix.get_weighting_subset" title="Permalink to this definition">#</a></dt>
-<dd><p>Computes the relative weighting of a given subset (given that the projection space is reduced). This is used for scaling parameters relative to <span class="math notranslate nohighlight">\(H_m^T 1\)</span> in reconstruction algorithms, such as prior weighting <span class="math notranslate nohighlight">\(\beta\)</span></p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>subset_idx</strong> (<em>int</em>) – Subset index</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Weighting for the subset.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.projectors.SPECTSystemMatrix.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/SPECT/spect_system_matrix.html#SPECTSystemMatrix.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.SPECTSystemMatrix.forward" title="Permalink to this definition">#</a></dt>
-<dd><p>Applies forward projection to <code class="docutils literal notranslate"><span class="pre">object</span></code> for a SPECT imaging system.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>object</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>]</em>) – The object to be forward projected</p></li>
-<li><p><strong>subset_idx</strong> (<em>int</em><em>, </em><em>optional</em>) – Only uses a subset of angles <span class="math notranslate nohighlight">\(g_m\)</span> corresponding to the provided subset index <span class="math notranslate nohighlight">\(m\)</span>. If None, then defaults to the full projections <span class="math notranslate nohighlight">\(g\)</span>.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>forward projection estimate <span class="math notranslate nohighlight">\(g_m=H_mf\)</span></p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>torch.tensor</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.projectors.SPECTSystemMatrix.backward">
-<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/SPECT/spect_system_matrix.html#SPECTSystemMatrix.backward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.SPECTSystemMatrix.backward" title="Permalink to this definition">#</a></dt>
-<dd><p>Applies back projection to <code class="docutils literal notranslate"><span class="pre">proj</span></code> for a SPECT imaging system.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>proj</strong> (<em>torch.tensor</em>) – projections <span class="math notranslate nohighlight">\(g\)</span> which are to be back projected</p></li>
-<li><p><strong>subset_idx</strong> (<em>int</em><em>, </em><em>optional</em>) – Only uses a subset of angles <span class="math notranslate nohighlight">\(g_m\)</span> corresponding to the provided subset index <span class="math notranslate nohighlight">\(m\)</span>. If None, then defaults to the full projections <span class="math notranslate nohighlight">\(g\)</span>.</p></li>
-<li><p><strong>return_norm_constant</strong> (<em>bool</em>) – Whether or not to return <span class="math notranslate nohighlight">\(H_m^T 1\)</span> along with back projection. Defaults to ‘False’.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>the object <span class="math notranslate nohighlight">\(\hat{f} = H_m^T g_m\)</span> obtained via back projection.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>torch.tensor</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="pytomography.projectors.SPECTSystemMatrixMaskedSegments">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.projectors.</span></span><span class="sig-name descname"><span class="pre">SPECTSystemMatrixMaskedSegments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj2obj_transforms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proj2proj_transforms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proj_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">masks</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/SPECT/spect_system_matrix.html#SPECTSystemMatrixMaskedSegments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.SPECTSystemMatrixMaskedSegments" title="Permalink to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#pytomography.projectors.SPECTSystemMatrix" title="pytomography.projectors.SPECTSystemMatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SPECTSystemMatrix</span></code></a></p>
-<p>SPECT system matrix where the object space is a vector of length <span class="math notranslate nohighlight">\(N\)</span> consisting of the mean activities for each masks in <code class="docutils literal notranslate"><span class="pre">masks</span></code>. This system matrix can be used in reconstruction algorithms to obtain maximum liklihood estimations for the average value of <span class="math notranslate nohighlight">\(f\)</span> inside each of the masks.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>obj2obj_transforms</strong> (<em>Sequence</em><em>[</em><a class="reference internal" href="../transforms/index.html#pytomography.transforms.Transform" title="pytomography.transforms.Transform"><em>Transform</em></a><em>]</em>) – Sequence of object mappings that occur before forward projection.</p></li>
-<li><p><strong>proj2proj_transforms</strong> (<em>Sequence</em><em>[</em><a class="reference internal" href="../transforms/index.html#pytomography.transforms.Transform" title="pytomography.transforms.Transform"><em>Transform</em></a><em>]</em>) – Sequence of proj mappings that occur after forward projection.</p></li>
-<li><p><strong>object_meta</strong> (<a class="reference internal" href="../metadata/SPECT/index.html#pytomography.metadata.SPECT.SPECTObjectMeta" title="pytomography.metadata.SPECT.SPECTObjectMeta"><em>SPECTObjectMeta</em></a>) – SPECT Object metadata.</p></li>
-<li><p><strong>proj_meta</strong> (<a class="reference internal" href="../metadata/SPECT/index.html#pytomography.metadata.SPECT.SPECTProjMeta" title="pytomography.metadata.SPECT.SPECTProjMeta"><em>SPECTProjMeta</em></a>) – SPECT proj metadata.</p></li>
-<li><p><strong>masks</strong> (<em>torch.Tensor</em>) – Masks corresponding to each segmented region.</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.projectors.SPECTSystemMatrixMaskedSegments.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">activities</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_subset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/SPECT/spect_system_matrix.html#SPECTSystemMatrixMaskedSegments.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.SPECTSystemMatrixMaskedSegments.forward" title="Permalink to this definition">#</a></dt>
-<dd><p>Implements forward projection <span class="math notranslate nohighlight">\(HUa\)</span> on a vector of activities <span class="math notranslate nohighlight">\(a\)</span> corresponding to <cite>self.masks</cite>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>activities</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>n_masks</em><em>]</em>) – Activities in each mask region.</p></li>
-<li><p><strong>angle_subset</strong> (<em>list</em><em>, </em><em>optional</em>) – Only uses a subset of angles (i.e. only certain values of <span class="math notranslate nohighlight">\(j\)</span> in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Forward projected projections where Ltheta is specified by <cite>self.proj_meta</cite> and <cite>angle_subset</cite>.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>torch.tensor[batch_size, Ltheta, Lx, Lz]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.projectors.SPECTSystemMatrixMaskedSegments.backward">
-<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_subset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prior</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/SPECT/spect_system_matrix.html#SPECTSystemMatrixMaskedSegments.backward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.SPECTSystemMatrixMaskedSegments.backward" title="Permalink to this definition">#</a></dt>
-<dd><p>Implements back projection <span class="math notranslate nohighlight">\(U^T H^T g\)</span> on projections <span class="math notranslate nohighlight">\(g\)</span>, returning a vector of activities for each mask region.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>proj</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Ltheta</em><em>, </em><em>Lr</em><em>, </em><em>Lz</em><em>]</em>) – projections which are to be back projected</p></li>
-<li><p><strong>angle_subset</strong> (<em>list</em><em>, </em><em>optional</em>) – Only uses a subset of angles (i.e. only certain values of <span class="math notranslate nohighlight">\(j\)</span> in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.</p></li>
-<li><p><strong>prior</strong> (<a class="reference internal" href="../priors/index.html#pytomography.priors.Prior" title="pytomography.priors.Prior"><em>Prior</em></a><em>, </em><em>optional</em>) – If included, modifes normalizing factor to <span class="math notranslate nohighlight">\(\frac{1}{\sum_j H_{ij} + P_i}\)</span> where <span class="math notranslate nohighlight">\(P_i\)</span> is given by the prior. Used, for example, during in MAP OSEM. Defaults to None.</p></li>
-<li><p><strong>normalize</strong> (<em>bool</em>) – Whether or not to divide result by <span class="math notranslate nohighlight">\(\sum_j H_{ij}\)</span></p></li>
-<li><p><strong>return_norm_constant</strong> (<em>bool</em>) – Whether or not to return <span class="math notranslate nohighlight">\(1/\sum_j H_{ij}\)</span> along with back projection. Defaults to ‘False’.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>the activities in each mask region.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>torch.tensor[batch_size, n_masks]</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="pytomography.projectors.PETLMSystemMatrix">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.projectors.</span></span><span class="sig-name descname"><span class="pre">PETLMSystemMatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proj_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj2obj_transforms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attenuation_map</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N_splits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">pytomography.device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/PET/petlm_system_matrix.html#PETLMSystemMatrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.PETLMSystemMatrix" title="Permalink to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#pytomography.projectors.SystemMatrix" title="pytomography.projectors.SystemMatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pytomography.projectors.SystemMatrix</span></code></a></p>
-<p>System matrix of PET list mode data. Forward projections corresponds to computing the expected counts along all LORs specified: in particular it approximates <span class="math notranslate nohighlight">\(g_i = \int_{\text{LOR}_i} h(r) f(r) dr\)</span> where index <span class="math notranslate nohighlight">\(i\)</span> corresponds to a particular detector pair and <span class="math notranslate nohighlight">\(h(r)\)</span> is a Gaussian function that incorporates time-of-flight information (<span class="math notranslate nohighlight">\(h(r)=1\)</span> for non-time-of-flight). The integral is approximated in the discrete object space using Joseph3D projections. In general, the system matrix implements two different projections, the quantity <span class="math notranslate nohighlight">\(H\)</span> which projects to LORs corresponding to all detected events, and the quantity <span class="math notranslate nohighlight">\(\tilde{H}\)</span> which projects to all valid LORs. The quantity <span class="math notranslate nohighlight">\(H\)</span> is used for standard forward/back projection, while <span class="math notranslate nohighlight">\(\tilde{H}\)</span> is used to compute the sensitivity image.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>object_meta</strong> (<a class="reference internal" href="../metadata/SPECT/index.html#pytomography.metadata.SPECT.SPECTObjectMeta" title="pytomography.metadata.SPECT.SPECTObjectMeta"><em>SPECTObjectMeta</em></a>) – Metadata of object space, containing information on voxel size and dimensions.</p></li>
-<li><p><strong>proj_meta</strong> (<a class="reference internal" href="../metadata/PET/index.html#pytomography.metadata.PET.PETLMProjMeta" title="pytomography.metadata.PET.PETLMProjMeta"><em>PETLMProjMeta</em></a>) – PET listmode projection space metadata. This information contains the detector ID pairs of all detected events, as well as a scanner lookup table and time-of-flight metadata. In addition, this meadata contains all information regarding event weights, typically corresponding to the effects of attenuation <span class="math notranslate nohighlight">\(\mu\)</span> and <span class="math notranslate nohighlight">\(\eta\)</span>.</p></li>
-<li><p><strong>obj2obj_transforms</strong> (<em>Sequence</em><em>[</em><a class="reference internal" href="../transforms/index.html#pytomography.transforms.Transform" title="pytomography.transforms.Transform"><em>Transform</em></a><em>]</em>) – Object to object space transforms applied before forward projection and after back projection. These are typically used for PSF modeling in PET imaging.</p></li>
-<li><p><strong>attenuation_map</strong> (<em>torch.tensor</em><em>[</em><em>float</em><em>] </em><em>| </em><em>None</em><em>, </em><em>optional</em>) – Attenuation map used for attenuation modeling. If provided, all weights will be scaled by detection probabilities derived from this map. Note that this scales on top of any weights provided in <code class="docutils literal notranslate"><span class="pre">proj_meta</span></code>, so if attenuation is already accounted for there, this is not needed. Defaults to None.</p></li>
-<li><p><strong>N_splits</strong> (<em>int</em>) – Splits up computation of forward/back projection to save GPU memory. Defaults to 1.</p></li>
-<li><p><strong>device</strong> (<em>str</em>) – The device on which forward/back projection tensors are output. This is seperate from <code class="docutils literal notranslate"><span class="pre">pytomography.device</span></code>, which handles internal computations. The reason for having the option of a second device is that the projection space may be very large, and certain GPUs may not have enough memory to store the projections. If <code class="docutils literal notranslate"><span class="pre">device</span></code> is not the same as <code class="docutils literal notranslate"><span class="pre">pytomography.device</span></code>, then one must also specify the same <code class="docutils literal notranslate"><span class="pre">device</span></code> in any reconstruction algorithm used. Defaults to <code class="docutils literal notranslate"><span class="pre">pytomography.device</span></code>.</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.projectors.PETLMSystemMatrix.set_n_subsets">
-<span class="sig-name descname"><span class="pre">set_n_subsets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/PET/petlm_system_matrix.html#PETLMSystemMatrix.set_n_subsets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.PETLMSystemMatrix.set_n_subsets" title="Permalink to this definition">#</a></dt>
-<dd><p>Returns a list where each element consists of an array of indices corresponding to a partitioned version of the projections.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>n_subsets</strong> (<em>int</em>) – Number of subsets to partition the projections into</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>List of arrays where each array corresponds to the projection indices of a particular subset.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.projectors.PETLMSystemMatrix.get_projection_subset">
-<span class="sig-name descname"><span class="pre">get_projection_subset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">projections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset_idx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/PET/petlm_system_matrix.html#PETLMSystemMatrix.get_projection_subset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.PETLMSystemMatrix.get_projection_subset" title="Permalink to this definition">#</a></dt>
-<dd><p>Obtains subsampled projections <span class="math notranslate nohighlight">\(g_m\)</span> corresponding to subset index <span class="math notranslate nohighlight">\(m\)</span>. For LM PET, its always the case that <span class="math notranslate nohighlight">\(g_m=1\)</span>, but this function is still required for subsampling scatter <span class="math notranslate nohighlight">\(s_m\)</span> as is required in certain reconstruction algorithms</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>projections</strong> (<em>torch.Tensor</em>) – total projections <span class="math notranslate nohighlight">\(g\)</span></p></li>
-<li><p><strong>subset_idx</strong> (<em>int</em>) – subset index <span class="math notranslate nohighlight">\(m\)</span></p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>subsampled projections <span class="math notranslate nohighlight">\(g_m\)</span>.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>torch.Tensor</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.projectors.PETLMSystemMatrix.get_weighting_subset">
-<span class="sig-name descname"><span class="pre">get_weighting_subset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subset_idx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/PET/petlm_system_matrix.html#PETLMSystemMatrix.get_weighting_subset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.PETLMSystemMatrix.get_weighting_subset" title="Permalink to this definition">#</a></dt>
-<dd><p>Computes the relative weighting of a given subset (given that the projection space is reduced). This is used for scaling parameters relative to <span class="math notranslate nohighlight">\(\tilde{H}_m^T 1\)</span> in reconstruction algorithms, such as prior weighting <span class="math notranslate nohighlight">\(\beta\)</span></p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>subset_idx</strong> (<em>int</em>) – Subset index</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Weighting for the subset.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.projectors.PETLMSystemMatrix.compute_atteunation_probability_projection">
-<span class="sig-name descname"><span class="pre">compute_atteunation_probability_projection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/PET/petlm_system_matrix.html#PETLMSystemMatrix.compute_atteunation_probability_projection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.PETLMSystemMatrix.compute_atteunation_probability_projection" title="Permalink to this definition">#</a></dt>
-<dd><p>Computes probabilities of photons being detected along an LORs corresponding to <code class="docutils literal notranslate"><span class="pre">idx</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>idx</strong> (<em>torch.tensor</em>) – Indices of the detector pairs.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The probabilities of photons being detected along the detector pairs.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>torch.Tensor</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.projectors.PETLMSystemMatrix.compute_sens_factor">
-<span class="sig-name descname"><span class="pre">compute_sens_factor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N_splits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/PET/petlm_system_matrix.html#PETLMSystemMatrix.compute_sens_factor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.PETLMSystemMatrix.compute_sens_factor" title="Permalink to this definition">#</a></dt>
-<dd><p>Computes the normalization factor <span class="math notranslate nohighlight">\(\tilde{H}^T w\)</span> where <span class="math notranslate nohighlight">\(w\)</span> is the weighting specified in the projection metadata that accounts for attenuation/normalization correction.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>N_splits</strong> (<em>int</em><em>, </em><em>optional</em>) – Optionally splits up computation to save memory on GPU. Defaults to 10.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.projectors.PETLMSystemMatrix.compute_normalization_factor">
-<span class="sig-name descname"><span class="pre">compute_normalization_factor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subset_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/PET/petlm_system_matrix.html#PETLMSystemMatrix.compute_normalization_factor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.PETLMSystemMatrix.compute_normalization_factor" title="Permalink to this definition">#</a></dt>
-<dd><p>Function called by reconstruction algorithms to get the sensitivty image <span class="math notranslate nohighlight">\(\tilde{H}_m^T w\)</span>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>subset_idx</strong> (<em>int</em><em> | </em><em>None</em><em>, </em><em>optional</em>) – Subset index <span class="math notranslate nohighlight">\(m\)</span>. If none, then considers backprojection over all subsets. Defaults to None.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Normalization factor.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>torch.tensor</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.projectors.PETLMSystemMatrix.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/PET/petlm_system_matrix.html#PETLMSystemMatrix.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.PETLMSystemMatrix.forward" title="Permalink to this definition">#</a></dt>
-<dd><p>Computes forward projection. In the case of list mode PET, this corresponds to the expected number of detected counts along each LOR corresponding to a particular object.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>object</strong> (<em>torch.tensor</em>) – Object to be forward projected</p></li>
-<li><p><strong>subset_idx</strong> (<em>int</em><em>, </em><em>optional</em>) – Subset index <span class="math notranslate nohighlight">\(m\)</span> of the projection. If None, then assumes projection to the entire projection space. Defaults to None.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Projections corresponding to the expected number of counts along each LOR.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>torch.tensor</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.projectors.PETLMSystemMatrix.backward">
-<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/PET/petlm_system_matrix.html#PETLMSystemMatrix.backward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.PETLMSystemMatrix.backward" title="Permalink to this definition">#</a></dt>
-<dd><p>Computes back projection. This corresponds to tracing a sequence of LORs into object space.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>proj</strong> (<em>torch.tensor</em>) – Projections to be back projected</p></li>
-<li><p><strong>subset_idx</strong> (<em>int</em><em>, </em><em>optional</em>) – Subset index <span class="math notranslate nohighlight">\(m\)</span> of the projection. If None, then assumes projection to the entire projection space. Defaults to None.</p></li>
-<li><p><strong>return_norm_constant</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether or not to return the normalization constant: useful in reconstruction algorithms that require <span class="math notranslate nohighlight">\(H_m^T 1\)</span>. Defaults to False.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>_description_</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>torch.tensor</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="pytomography.projectors.KEMSystemMatrix">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.projectors.</span></span><span class="sig-name descname"><span class="pre">KEMSystemMatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kem_transform</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/shared/kem_system_matrix.html#KEMSystemMatrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.KEMSystemMatrix" title="Permalink to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference internal" href="system_matrix/index.html#pytomography.projectors.system_matrix.SystemMatrix" title="pytomography.projectors.system_matrix.SystemMatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pytomography.projectors.system_matrix.SystemMatrix</span></code></a></p>
-<p>Given a KEM transform <span class="math notranslate nohighlight">\(K\)</span> and a system matrix <span class="math notranslate nohighlight">\(H\)</span>, implements the transform <span class="math notranslate nohighlight">\(HK\)</span> (and backward transform <span class="math notranslate nohighlight">\(K^T H^T\)</span>)</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>system_matrix</strong> (<a class="reference internal" href="#pytomography.projectors.SystemMatrix" title="pytomography.projectors.SystemMatrix"><em>SystemMatrix</em></a>) – System matrix corresponding to a particular imaging system</p></li>
-<li><p><strong>kem_transform</strong> (<a class="reference internal" href="../transforms/index.html#pytomography.transforms.KEMTransform" title="pytomography.transforms.KEMTransform"><em>KEMTransform</em></a>) – Transform used to go from coefficient image to real image of predicted counts.</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.projectors.KEMSystemMatrix.compute_normalization_factor">
-<span class="sig-name descname"><span class="pre">compute_normalization_factor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subset_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/shared/kem_system_matrix.html#KEMSystemMatrix.compute_normalization_factor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.KEMSystemMatrix.compute_normalization_factor" title="Permalink to this definition">#</a></dt>
-<dd><p>Function used to get normalization factor <span class="math notranslate nohighlight">\(K^T H^T_m 1\)</span> corresponding to projection subset <span class="math notranslate nohighlight">\(m\)</span>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>subset_idx</strong> (<em>int</em><em> | </em><em>None</em><em>, </em><em>optional</em>) – Index of subset. If none, then considers all projections. Defaults to None.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>normalization factor <span class="math notranslate nohighlight">\(K^T H^T_m 1\)</span></p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>torch.Tensor</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.projectors.KEMSystemMatrix.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/shared/kem_system_matrix.html#KEMSystemMatrix.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.KEMSystemMatrix.forward" title="Permalink to this definition">#</a></dt>
-<dd><p>Forward transform <span class="math notranslate nohighlight">\(HK\)</span></p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>object</strong> (<em>torch.tensor</em>) – Object to be forward projected</p></li>
-<li><p><strong>subset_idx</strong> (<em>int</em><em>, </em><em>optional</em>) – Only uses a subset of angles <span class="math notranslate nohighlight">\(g_m\)</span> corresponding to the provided subset index <span class="math notranslate nohighlight">\(m\)</span>. If None, then defaults to the full projections <span class="math notranslate nohighlight">\(g\)</span>.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Corresponding projections generated from forward projection</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>torch.tensor</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pytomography.projectors.KEMSystemMatrix.backward">
-<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_norm_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/shared/kem_system_matrix.html#KEMSystemMatrix.backward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.KEMSystemMatrix.backward" title="Permalink to this definition">#</a></dt>
-<dd><p>Backward transform <span class="math notranslate nohighlight">\(K^T H^T\)</span></p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>proj</strong> (<em>torch.tensor</em>) – Projection data to be back projected</p></li>
-<li><p><strong>subset_idx</strong> (<em>int</em><em>, </em><em>optional</em>) – Only uses a subset of angles <span class="math notranslate nohighlight">\(g_m\)</span> corresponding to the provided subset index <span class="math notranslate nohighlight">\(m\)</span>. If None, then defaults to the full projections <span class="math notranslate nohighlight">\(g\)</span>.</p></li>
-<li><p><strong>return_norm_constant</strong> (<em>bool</em><em>, </em><em>optional</em>) – Additionally returns <span class="math notranslate nohighlight">\(K^T H^T 1\)</span> if true; defaults to False.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Corresponding object generated from back projection.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>torch.tensor</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="pytomography.projectors.MotionSystemMatrix">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.projectors.</span></span><span class="sig-name descname"><span class="pre">MotionSystemMatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system_matrices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">motion_transforms</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/projectors/shared/motion_correction_system_matrix.html#MotionSystemMatrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.projectors.MotionSystemMatrix" title="Permalink to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference internal" href="system_matrix/index.html#pytomography.projectors.system_matrix.ExtendedSystemMatrix" title="pytomography.projectors.system_matrix.ExtendedSystemMatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pytomography.projectors.system_matrix.ExtendedSystemMatrix</span></code></a></p>
-<p>Abstract class for a general system matrix <span class="math notranslate nohighlight">\(H:\mathbb{U} \to \mathbb{V}\)</span> which takes in an object <span class="math notranslate nohighlight">\(f \in \mathbb{U}\)</span> and maps it to corresponding projections <span class="math notranslate nohighlight">\(g \in \mathbb{V}\)</span> that would be produced by the imaging system. A system matrix consists of sequences of object-to-object and proj-to-proj transforms that model various characteristics of the imaging system, such as attenuation and blurring. While the class implements the operator <span class="math notranslate nohighlight">\(H:\mathbb{U} \to \mathbb{V}\)</span> through the <code class="docutils literal notranslate"><span class="pre">forward</span></code> method, it also implements <span class="math notranslate nohighlight">\(H^T:\mathbb{V} \to \mathbb{U}\)</span> through the <cite>backward</cite> method, required during iterative reconstruction algorithms such as OSEM.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>obj2obj_transforms</strong> (<em>Sequence</em><em>[</em><a class="reference internal" href="../transforms/index.html#pytomography.transforms.Transform" title="pytomography.transforms.Transform"><em>Transform</em></a><em>]</em>) – Sequence of object mappings that occur before forward projection.</p></li>
-<li><p><strong>im2im_transforms</strong> (<em>Sequence</em><em>[</em><a class="reference internal" href="../transforms/index.html#pytomography.transforms.Transform" title="pytomography.transforms.Transform"><em>Transform</em></a><em>]</em>) – Sequence of proj mappings that occur after forward projection.</p></li>
-<li><p><strong>object_meta</strong> (<a class="reference internal" href="../metadata/index.html#pytomography.metadata.ObjectMeta" title="pytomography.metadata.ObjectMeta"><em>ObjectMeta</em></a>) – Object metadata.</p></li>
-<li><p><strong>proj_meta</strong> (<a class="reference internal" href="../metadata/index.html#pytomography.metadata.ProjMeta" title="pytomography.metadata.ProjMeta"><em>ProjMeta</em></a>) – Projection metadata.</p></li>
-<li><p><strong>system_matrices</strong> (<em>collections.abc.Sequence</em><em>[</em><a class="reference internal" href="#pytomography.projectors.SystemMatrix" title="pytomography.projectors.SystemMatrix"><em>pytomography.projectors.SystemMatrix</em></a><em>]</em>) – </p></li>
-<li><p><strong>motion_transforms</strong> (<em>collections.abc.Sequence</em><em>[</em><a class="reference internal" href="../transforms/index.html#pytomography.transforms.Transform" title="pytomography.transforms.Transform"><em>pytomography.transforms.Transform</em></a><em>]</em>) – </p></li>
-</ul>
-</dd>
-</dl>
 </dd></dl>
 
 </section>
@@ -1189,42 +749,11 @@ document.write(`
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.ExtendedSystemMatrix"><code class="docutils literal notranslate"><span class="pre">ExtendedSystemMatrix</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.ExtendedSystemMatrix.forward"><code class="docutils literal notranslate"><span class="pre">ExtendedSystemMatrix.forward()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.ExtendedSystemMatrix.backward"><code class="docutils literal notranslate"><span class="pre">ExtendedSystemMatrix.backward()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.ExtendedSystemMatrix.get_subset_splits"><code class="docutils literal notranslate"><span class="pre">ExtendedSystemMatrix.get_subset_splits()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.ExtendedSystemMatrix.set_n_subsets"><code class="docutils literal notranslate"><span class="pre">ExtendedSystemMatrix.set_n_subsets()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.ExtendedSystemMatrix.get_projection_subset"><code class="docutils literal notranslate"><span class="pre">ExtendedSystemMatrix.get_projection_subset()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.ExtendedSystemMatrix.compute_normalization_factor"><code class="docutils literal notranslate"><span class="pre">ExtendedSystemMatrix.compute_normalization_factor()</span></code></a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.SPECTSystemMatrix"><code class="docutils literal notranslate"><span class="pre">SPECTSystemMatrix</span></code></a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.SPECTSystemMatrix.compute_normalization_factor"><code class="docutils literal notranslate"><span class="pre">SPECTSystemMatrix.compute_normalization_factor()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.SPECTSystemMatrix.set_n_subsets"><code class="docutils literal notranslate"><span class="pre">SPECTSystemMatrix.set_n_subsets()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.SPECTSystemMatrix.get_projection_subset"><code class="docutils literal notranslate"><span class="pre">SPECTSystemMatrix.get_projection_subset()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.SPECTSystemMatrix.get_weighting_subset"><code class="docutils literal notranslate"><span class="pre">SPECTSystemMatrix.get_weighting_subset()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.SPECTSystemMatrix.forward"><code class="docutils literal notranslate"><span class="pre">SPECTSystemMatrix.forward()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.SPECTSystemMatrix.backward"><code class="docutils literal notranslate"><span class="pre">SPECTSystemMatrix.backward()</span></code></a></li>
-</ul>
-</li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.SPECTSystemMatrixMaskedSegments"><code class="docutils literal notranslate"><span class="pre">SPECTSystemMatrixMaskedSegments</span></code></a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.SPECTSystemMatrixMaskedSegments.forward"><code class="docutils literal notranslate"><span class="pre">SPECTSystemMatrixMaskedSegments.forward()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.SPECTSystemMatrixMaskedSegments.backward"><code class="docutils literal notranslate"><span class="pre">SPECTSystemMatrixMaskedSegments.backward()</span></code></a></li>
-</ul>
-</li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.PETLMSystemMatrix"><code class="docutils literal notranslate"><span class="pre">PETLMSystemMatrix</span></code></a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.PETLMSystemMatrix.set_n_subsets"><code class="docutils literal notranslate"><span class="pre">PETLMSystemMatrix.set_n_subsets()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.PETLMSystemMatrix.get_projection_subset"><code class="docutils literal notranslate"><span class="pre">PETLMSystemMatrix.get_projection_subset()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.PETLMSystemMatrix.get_weighting_subset"><code class="docutils literal notranslate"><span class="pre">PETLMSystemMatrix.get_weighting_subset()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.PETLMSystemMatrix.compute_atteunation_probability_projection"><code class="docutils literal notranslate"><span class="pre">PETLMSystemMatrix.compute_atteunation_probability_projection()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.PETLMSystemMatrix.compute_sens_factor"><code class="docutils literal notranslate"><span class="pre">PETLMSystemMatrix.compute_sens_factor()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.PETLMSystemMatrix.compute_normalization_factor"><code class="docutils literal notranslate"><span class="pre">PETLMSystemMatrix.compute_normalization_factor()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.PETLMSystemMatrix.forward"><code class="docutils literal notranslate"><span class="pre">PETLMSystemMatrix.forward()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.PETLMSystemMatrix.backward"><code class="docutils literal notranslate"><span class="pre">PETLMSystemMatrix.backward()</span></code></a></li>
-</ul>
-</li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.KEMSystemMatrix"><code class="docutils literal notranslate"><span class="pre">KEMSystemMatrix</span></code></a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.KEMSystemMatrix.compute_normalization_factor"><code class="docutils literal notranslate"><span class="pre">KEMSystemMatrix.compute_normalization_factor()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.KEMSystemMatrix.forward"><code class="docutils literal notranslate"><span class="pre">KEMSystemMatrix.forward()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.KEMSystemMatrix.backward"><code class="docutils literal notranslate"><span class="pre">KEMSystemMatrix.backward()</span></code></a></li>
-</ul>
-</li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.projectors.MotionSystemMatrix"><code class="docutils literal notranslate"><span class="pre">MotionSystemMatrix</span></code></a></li>
 </ul>
 </li>
 </ul>

@@ -354,6 +354,19 @@ class OSEM(OSEMOSL):
     ) -> None:
         super(OSEM, self).__init__(projections, system_matrix, object_initial, scatter, precompute_normalization_factors=precompute_normalization_factors, device=device)
         
+    def _validate_projector(
+        self,
+        system_matrix: SystemMatrix,
+    ):
+        """Checks that the required classes are implemented by the reconstruction algorithm
+
+        Args:
+            system_matrix (SystemMatrix): System matrix being used as projector in reconstruction algorithm
+        """
+        methods = ['get_projection_subset', 'set_n_subsets', 'compute_normalization_factor']
+        for method in methods:
+            check_if_class_contains_method(system_matrix, method)
+        
 class KEM(OSEM):
     r"""Implementation of the KEM reconstruction algorithm given by :math:`\hat{\alpha}^{n,m+1} = \left[\frac{1}{K^T H_m^T 1} K^T H_m^T \left(\frac{g_m}{H_m K \hat{\alpha}^{n,m}+s}\right)\right] \hat{\alpha}^{n,m}` and where the final predicted object is :math:`\hat{f}^{n,m} = K \hat{\alpha}^{n,m}`.
 
@@ -424,17 +437,19 @@ class DIPRecon(StatisticalIterative):
         rho: float = 3e-3,
         scatter: torch.tensor | float = 0,
         precompute_normalization_factors: bool = True,
-        
+        EM_algorithm = OSEM,
     ) -> None:
         super(DIPRecon, self).__init__(
             projections,
             system_matrix,
             scatter=scatter)
-        self.osem_network = OSEM(
+        self.EM_algorithm = EM_algorithm(
             projections,
             system_matrix,
             scatter=scatter,
-            precompute_normalization_factors=precompute_normalization_factors)
+            precompute_normalization_factors=precompute_normalization_factors,
+            object_initial = nn.ReLU()(prior_network.predict().clone())
+            )
         self.prior_network = prior_network
         self.rho = rho
         
@@ -477,8 +492,8 @@ class DIPRecon(StatisticalIterative):
         for _ in range(n_iters):
             for j in range(subit1):
                 for k in range(n_subsets_osem):
-                    self.osem_network.object_prediction = nn.ReLU()(x.clone())
-                    x_EM = self.osem_network(1,n_subsets_osem, k)
+                    self.EM_algorithm.object_prediction = nn.ReLU()(x.clone())
+                    x_EM = self.EM_algorithm(1,n_subsets_osem, k)
                     x = 0.5 * (x_network - mu - norm_BP / self.rho) + 0.5 * torch.sqrt((x_network - mu - norm_BP / self.rho)**2 + 4 * x_EM * norm_BP / self.rho)
             self.prior_network.fit(x + mu)
             x_network = self.prior_network.predict()

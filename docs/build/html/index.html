@@ -9,7 +9,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
-    <title>PyTomography &#8212; PyTomography 1.3.0 documentation</title>
+    <title>PyTomography &#8212; PyTomography 1.3.2 documentation</title>
   
   
   
@@ -382,15 +382,22 @@ document.write(`
 </pre></div>
 </div>
 <p>If you want to use the PET reconstruction options available, you need to additionally follow the installation instructions for parallelproj at <a class="reference external" href="https://parallelproj.readthedocs.io/en/stable/installation.html">this link</a>.</p>
+</section>
+<section id="tutorials">
+<h2>Tutorials<a class="headerlink" href="#tutorials" title="Permalink to this heading">#</a></h2>
 <p>Be sure to check out  <a class="reference internal" href="usage.html"><span class="doc">Tutorials</span></a> for some simple examples. If you wish to make a contribution, please read the <a class="reference internal" href="developers_guide.html"><span class="doc">Developer’s Guide</span></a>.</p>
+</section>
+<section id="user-forum">
+<h2>User Forum<a class="headerlink" href="#user-forum" title="Permalink to this heading">#</a></h2>
+<p>If you have any questions about how to use the software, feel free to ask them on the discourse page at <a class="reference external" href="https://pytomography.discourse.group/">this link</a>.</p>
 </section>
 <section id="examples">
 <h2>Examples<a class="headerlink" href="#examples" title="Permalink to this heading">#</a></h2>
-<p><strong>Example 1</strong>: <em>SPECT/CT Images of patient receiving targeted radionuclide therapy with Lu177 DOTATATE for neuroendocrine tumours (4 cycles of 7.4 GBq/cycle administered every 8 weeks). Row 1: OSEM (5 iterations, 8 subsets); row 2: BSREM (30 iterations, 8 subsets) using the RDP prior; row 3: BSREM (30 iterations, 8 subsets) using the RDP prior with anatomical weighting.</em></p>
-<p><img alt="" src="_images/deep_blue.jpg" /></p>
+<p><strong>Example 1</strong>: <em>SPECT/CT Images of patient receiving targeted radionuclide therapy with Lu177 DOTATATE for neuroendocrine tumours (4 cycles of 7.4 GBq/cycle administered every 8 week; shown is first cycle). From left to right: OSEM (50it/8ss), BSREM (50it/8ss) using the RDP prior with anatomical weighting, and KEM (50it/8ss).</em></p>
+<p><img alt="" src="_images/figure4.jpg" /></p>
 <p><strong>Example 2</strong>: <em>Ultra high resolution PET/MR brain phantom ground truth and reconstructions with time-of-flight. PET Monte Carlo acquisition data was obtained via simulation of a Siemens mMR scanner (with 550 ps time-of-flight resolution) in GATE. From top to bottom: sample axial, coronal, and sagittal slices. From left to right: T1-weighted MR image (inverse contrast), ground truth PET concentration, high count (630 million events) reconstruction with OSEM (4it20ss), low count recon (35 million events) with OSEM (80it/1ss) and low count recon (35 million events) with the DIPRecon method (100it).</em>
 *</p>
-<p><img alt="" src="_images/dip_recon.jpg" /></p>
+<p><img alt="" src="_images/figure5.jpg" /></p>
 </section>
 <section id="contents">
 <h2>Contents<a class="headerlink" href="#contents" title="Permalink to this heading">#</a></h2>
@@ -445,6 +452,8 @@ document.write(`
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#features">Features</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installation">Installation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tutorials">Tutorials</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#user-forum">User Forum</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#examples">Examples</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#contents">Contents</a></li>
 </ul>

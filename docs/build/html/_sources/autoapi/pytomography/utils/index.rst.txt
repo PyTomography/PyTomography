@@ -45,6 +45,7 @@ Functions
    pytomography.utils.get_object_nearest_neighbour
    pytomography.utils.get_blank_below_above
    pytomography.utils.print_collimator_parameters
+   pytomography.utils.check_if_class_contains_method
    pytomography.utils.rotate_detector_z
    pytomography.utils.compute_pad_size
    pytomography.utils.pad_proj
@@ -115,6 +116,16 @@ Functions
 
    Prints all the available SPECT collimator parameters
 
+
+
+.. py:function:: check_if_class_contains_method(instance, method_name)
+
+   Checks if class corresponding to instance implements the method ``method_name``
+
+   :param instance: A python object
+   :type instance: Object
+   :param method_name: Name of the method of the object being checked
+   :type method_name: str
 
 
 .. py:function:: rotate_detector_z(x, angles, mode = 'bilinear', negative = False)
