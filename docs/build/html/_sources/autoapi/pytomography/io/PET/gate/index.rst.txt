@@ -41,7 +41,7 @@ Functions
 
    Returns the scanner lookup table. The three values at a particular index in the lookup table correspond to the x, y, and z positions of the detector id correpsonding to that index.
 
-   :param path: Path to .mac file where the scanner geometry is defined in FATE
+   :param path: Path to .mac file where the scanner geometry is defined in GATE
    :type path: str
    :param init_volume_name: Volume name corresponding the lowest level element in the GATE geometry. Defaults to 'crystal'.
    :type init_volume_name: str, optional

@@ -8,7 +8,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.algorithms.statistical_iterative &#8212; PyTomography 1.3.0 documentation</title>
+    <title>pytomography.algorithms.statistical_iterative &#8212; PyTomography 1.3.2 documentation</title>
   
   
   
@@ -347,16 +347,11 @@ document.write(`
 <span class="kn">import</span> <span class="nn">pytomography</span>
 <span class="kn">from</span> <span class="nn">pytomography.priors</span> <span class="kn">import</span> <span class="n">Prior</span>
 <span class="kn">from</span> <span class="nn">pytomography.callbacks</span> <span class="kn">import</span> <span class="n">Callback</span>
-<span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">KEMTransform</span><span class="p">,</span> <span class="n">CutOffTransform</span>
-<span class="kn">from</span> <span class="nn">pytomography.projectors</span> <span class="kn">import</span> <span class="n">KEMSystemMatrix</span>
+<span class="kn">from</span> <span class="nn">pytomography.transforms.shared</span> <span class="kn">import</span> <span class="n">KEMTransform</span>
+<span class="kn">from</span> <span class="nn">pytomography.transforms.SPECT</span> <span class="kn">import</span> <span class="n">CutOffTransform</span>
+<span class="kn">from</span> <span class="nn">pytomography.projectors.shared</span> <span class="kn">import</span> <span class="n">KEMSystemMatrix</span>
+<span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">check_if_class_contains_method</span>
 <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Callable</span>
-
-<div class="viewcode-block" id="get_projection_subset"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/statistical_iterative/index.html#pytomography.algorithms.get_projection_subset">[docs]</a><span class="k">def</span> <span class="nf">get_projection_subset</span><span class="p">(</span><span class="n">projections</span><span class="p">,</span> <span class="n">subset_indices</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
-    <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">projections</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">subset_indices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
-        <span class="n">proj_subset</span> <span class="o">=</span> <span class="n">projections</span><span class="p">[:,</span><span class="n">subset_indices</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)]</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">proj_subset</span> <span class="o">=</span> <span class="n">projections</span>
-    <span class="k">return</span> <span class="n">proj_subset</span></div>
 
 <div class="viewcode-block" id="StatisticalIterative"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/statistical_iterative/index.html#pytomography.algorithms.StatisticalIterative">[docs]</a><span class="k">class</span> <span class="nc">StatisticalIterative</span><span class="p">():</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Parent class for all statistical iterative algorithms. All child classes must implement the ``__call__`` method to perform reconstruction.</span>
@@ -382,6 +377,7 @@ document.write(`
         <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">pytomography</span><span class="o">.</span><span class="n">device</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_projector</span><span class="p">(</span><span class="n">system_matrix</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span> <span class="o">=</span> <span class="n">system_matrix</span>
         <span class="k">if</span> <span class="n">object_initial</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">object_prediction</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">projections</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span><span class="o">.</span><span class="n">object_meta</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
@@ -400,6 +396,18 @@ document.write(`
         <span class="bp">self</span><span class="o">.</span><span class="n">precompute_normalization_factors</span> <span class="o">=</span> <span class="n">precompute_normalization_factors</span>
         <span class="c1"># Set n_subsets_previous, which is used for determining whether normalization factors need to be recomputed during successive calls to __call__</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_subsets_previous</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> 
+        
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+<div class="viewcode-block" id="StatisticalIterative._validate_projector"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/statistical_iterative/index.html#pytomography.algorithms.StatisticalIterative._validate_projector">[docs]</a>    <span class="k">def</span> <span class="nf">_validate_projector</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">system_matrix</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Method implemented by child classes that checks if the system matrix implements the required methods for reconstruction.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            system_matrix (_type_): _description_</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
 
     <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
 <div class="viewcode-block" id="StatisticalIterative.__call__"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/statistical_iterative/index.html#pytomography.algorithms.StatisticalIterative.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -429,6 +437,20 @@ document.write(`
 <span class="sd">        precompute_normalization_factors (bool). Whether or not to precompute the normalization factors :math:`H_m^T 1` for each subset :math:`m` before reconstruction. This saves computational time during each iteration, but requires more GPU memory. Defaults to True.</span>
 <span class="sd">        device (str): The device correpsonding to the tensors output by the system matrix. In some cases, although the system matrix implementation uses ``pytomography.device`` in its internal computation, it will output tensors on the CPU due to their size (such as in listmode PET). Defaults to ``pytomography.device``. </span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="OSEMOSL._validate_projector"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/statistical_iterative/index.html#pytomography.algorithms.OSEMOSL._validate_projector">[docs]</a>    <span class="k">def</span> <span class="nf">_validate_projector</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">system_matrix</span><span class="p">:</span> <span class="n">SystemMatrix</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Checks that the required classes are implemented by the reconstruction algorithm</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            system_matrix (SystemMatrix): System matrix being used as projector in reconstruction algorithm</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">methods</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;get_projection_subset&#39;</span><span class="p">,</span> <span class="s1">&#39;get_weighting_subset&#39;</span><span class="p">,</span> <span class="s1">&#39;set_n_subsets&#39;</span><span class="p">,</span> <span class="s1">&#39;compute_normalization_factor&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">methods</span><span class="p">:</span>
+            <span class="n">check_if_class_contains_method</span><span class="p">(</span><span class="n">system_matrix</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span></div>
+    
 <div class="viewcode-block" id="OSEMOSL._set_recon_name"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/statistical_iterative/index.html#pytomography.algorithms.OSEMOSL._set_recon_name">[docs]</a>    <span class="k">def</span> <span class="nf">_set_recon_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_iters</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_subsets</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the unique identifier for the type of reconstruction performed. Useful when saving reconstructions to DICOM files</span>
 
@@ -537,7 +559,20 @@ document.write(`
         <span class="nb">super</span><span class="p">(</span><span class="n">BSREM</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">projections</span><span class="p">,</span> <span class="n">system_matrix</span><span class="p">,</span> <span class="n">object_initial</span><span class="p">,</span> <span class="n">scatter</span><span class="p">,</span> <span class="n">prior</span><span class="p">,</span> <span class="n">precompute_normalization_factors</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">relaxation_function</span> <span class="o">=</span> <span class="n">relaxation_function</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">scaling_matrix_type</span> <span class="o">=</span> <span class="n">scaling_matrix_type</span>
-        
+    
+<div class="viewcode-block" id="BSREM._validate_projector"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/statistical_iterative/index.html#pytomography.algorithms.BSREM._validate_projector">[docs]</a>    <span class="k">def</span> <span class="nf">_validate_projector</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">system_matrix</span><span class="p">:</span> <span class="n">SystemMatrix</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Checks that the required classes are implemented by the reconstruction algorithm</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            system_matrix (SystemMatrix): System matrix being used as projector in reconstruction algorithm</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">methods</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;get_projection_subset&#39;</span><span class="p">,</span> <span class="s1">&#39;get_weighting_subset&#39;</span><span class="p">,</span> <span class="s1">&#39;set_n_subsets&#39;</span><span class="p">,</span> <span class="s1">&#39;compute_normalization_factor&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">methods</span><span class="p">:</span>
+            <span class="n">check_if_class_contains_method</span><span class="p">(</span><span class="n">system_matrix</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span></div>
+    
 <div class="viewcode-block" id="BSREM._compute_normalization_factors"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/statistical_iterative/index.html#pytomography.algorithms.BSREM._compute_normalization_factors">[docs]</a>    <span class="k">def</span> <span class="nf">_compute_normalization_factors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Computes normalization factors :math:`H_m^T 1` for all subsets :math:`m`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -655,7 +690,20 @@ document.write(`
         <span class="n">precompute_normalization_factors</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">OSEM</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">projections</span><span class="p">,</span> <span class="n">system_matrix</span><span class="p">,</span> <span class="n">object_initial</span><span class="p">,</span> <span class="n">scatter</span><span class="p">,</span> <span class="n">precompute_normalization_factors</span><span class="o">=</span><span class="n">precompute_normalization_factors</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span></div>
+        <span class="nb">super</span><span class="p">(</span><span class="n">OSEM</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">projections</span><span class="p">,</span> <span class="n">system_matrix</span><span class="p">,</span> <span class="n">object_initial</span><span class="p">,</span> <span class="n">scatter</span><span class="p">,</span> <span class="n">precompute_normalization_factors</span><span class="o">=</span><span class="n">precompute_normalization_factors</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="OSEM._validate_projector"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/statistical_iterative/index.html#pytomography.algorithms.OSEM._validate_projector">[docs]</a>    <span class="k">def</span> <span class="nf">_validate_projector</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">system_matrix</span><span class="p">:</span> <span class="n">SystemMatrix</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Checks that the required classes are implemented by the reconstruction algorithm</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            system_matrix (SystemMatrix): System matrix being used as projector in reconstruction algorithm</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">methods</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;get_projection_subset&#39;</span><span class="p">,</span> <span class="s1">&#39;set_n_subsets&#39;</span><span class="p">,</span> <span class="s1">&#39;compute_normalization_factor&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">methods</span><span class="p">:</span>
+            <span class="n">check_if_class_contains_method</span><span class="p">(</span><span class="n">system_matrix</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span></div></div>
         
 <div class="viewcode-block" id="KEM"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/statistical_iterative/index.html#pytomography.algorithms.KEM">[docs]</a><span class="k">class</span> <span class="nc">KEM</span><span class="p">(</span><span class="n">OSEM</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Implementation of the KEM reconstruction algorithm given by :math:`\hat{\alpha}^{n,m+1} = \left[\frac{1}{K^T H_m^T 1} K^T H_m^T \left(\frac{g_m}{H_m K \hat{\alpha}^{n,m}+s}\right)\right] \hat{\alpha}^{n,m}` and where the final predicted object is :math:`\hat{f}^{n,m} = K \hat{\alpha}^{n,m}`.</span>
@@ -727,20 +775,34 @@ document.write(`
         <span class="n">rho</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3e-3</span><span class="p">,</span>
         <span class="n">scatter</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
         <span class="n">precompute_normalization_factors</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-        
+        <span class="n">EM_algorithm</span> <span class="o">=</span> <span class="n">OSEM</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        
         <span class="nb">super</span><span class="p">(</span><span class="n">DIPRecon</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">projections</span><span class="p">,</span>
             <span class="n">system_matrix</span><span class="p">,</span>
             <span class="n">scatter</span><span class="o">=</span><span class="n">scatter</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">osem_network</span> <span class="o">=</span> <span class="n">OSEM</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">EM_algorithm</span> <span class="o">=</span> <span class="n">EM_algorithm</span><span class="p">(</span>
             <span class="n">projections</span><span class="p">,</span>
             <span class="n">system_matrix</span><span class="p">,</span>
             <span class="n">scatter</span><span class="o">=</span><span class="n">scatter</span><span class="p">,</span>
-            <span class="n">precompute_normalization_factors</span><span class="o">=</span><span class="n">precompute_normalization_factors</span><span class="p">)</span>
+            <span class="n">precompute_normalization_factors</span><span class="o">=</span><span class="n">precompute_normalization_factors</span><span class="p">,</span>
+            <span class="n">object_initial</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">()(</span><span class="n">prior_network</span><span class="o">.</span><span class="n">predict</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">())</span>
+            <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">prior_network</span> <span class="o">=</span> <span class="n">prior_network</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">=</span> <span class="n">rho</span>
+        
+<div class="viewcode-block" id="DIPRecon._validate_projector"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/statistical_iterative/index.html#pytomography.algorithms.DIPRecon._validate_projector">[docs]</a>    <span class="k">def</span> <span class="nf">_validate_projector</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">system_matrix</span><span class="p">:</span> <span class="n">SystemMatrix</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Checks that the required classes are implemented by the reconstruction algorithm</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            system_matrix (SystemMatrix): System matrix being used as projector in reconstruction algorithm</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">methods</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;get_projection_subset&#39;</span><span class="p">,</span> <span class="s1">&#39;get_weighting_subset&#39;</span><span class="p">,</span> <span class="s1">&#39;set_n_subsets&#39;</span><span class="p">,</span> <span class="s1">&#39;compute_normalization_factor&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">methods</span><span class="p">:</span>
+            <span class="n">check_if_class_contains_method</span><span class="p">(</span><span class="n">system_matrix</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span></div>
         
 <div class="viewcode-block" id="DIPRecon.__call__"><a class="viewcode-back" href="../../../autoapi/pytomography/algorithms/statistical_iterative/index.html#pytomography.algorithms.DIPRecon.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -768,8 +830,8 @@ document.write(`
         <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_iters</span><span class="p">):</span>
             <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">subit1</span><span class="p">):</span>
                 <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_subsets_osem</span><span class="p">):</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">osem_network</span><span class="o">.</span><span class="n">object_prediction</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">()(</span><span class="n">x</span><span class="o">.</span><span class="n">clone</span><span class="p">())</span>
-                    <span class="n">x_EM</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">osem_network</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">n_subsets_osem</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">EM_algorithm</span><span class="o">.</span><span class="n">object_prediction</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">()(</span><span class="n">x</span><span class="o">.</span><span class="n">clone</span><span class="p">())</span>
+                    <span class="n">x_EM</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">EM_algorithm</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">n_subsets_osem</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
                     <span class="n">x</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">x_network</span> <span class="o">-</span> <span class="n">mu</span> <span class="o">-</span> <span class="n">norm_BP</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">x_network</span> <span class="o">-</span> <span class="n">mu</span> <span class="o">-</span> <span class="n">norm_BP</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">x_EM</span> <span class="o">*</span> <span class="n">norm_BP</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">prior_network</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">mu</span><span class="p">)</span>
             <span class="n">x_network</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior_network</span><span class="o">.</span><span class="n">predict</span><span class="p">()</span>

@@ -119,6 +119,7 @@ class ExtendedSystemMatrix(SystemMatrix):
         """
         projs = []
         for i in range(len(self.system_matrices)):
+            object_i = object.clone()
             if self.obj2obj_transforms is not None:
                 if self.obj2obj_transforms[i] is not None:
                     object_i = self.obj2obj_transforms[i].forward(object)
@@ -175,4 +176,6 @@ class ExtendedSystemMatrix(SystemMatrix):
            torch.Tensor[1,Lx,Ly,Lz]: Normalization factor.
         """
         norm_proj = torch.ones((len(self.system_matrices), *self.proj_meta.shape)).to(pytomography.device)
+        if subset_idx is not None:
+            norm_proj = norm_proj[:,self.subset_indices_array[subset_idx]]
         return self.backward(norm_proj, subset_idx)

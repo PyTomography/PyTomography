@@ -9,7 +9,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
-    <title>pytomography.algorithms.statistical_iterative &#8212; PyTomography 1.3.0 documentation</title>
+    <title>pytomography.algorithms.statistical_iterative &#8212; PyTomography 1.3.2 documentation</title>
   
   
   
@@ -485,21 +485,6 @@ document.write(`
 </tr>
 </tbody>
 </table>
-</section>
-<section id="functions">
-<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this heading">#</a></h3>
-<table class="autosummary longtable table autosummary">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.algorithms.statistical_iterative.get_projection_subset" title="pytomography.algorithms.statistical_iterative.get_projection_subset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_projection_subset</span></code></a>(projections, subset_indices, device)</p></td>
-<td><p></p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py function">
-<dt class="sig sig-object py" id="pytomography.algorithms.statistical_iterative.get_projection_subset">
-<span class="sig-prename descclassname"><span class="pre">pytomography.algorithms.statistical_iterative.</span></span><span class="sig-name descname"><span class="pre">get_projection_subset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">projections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/statistical_iterative.html#get_projection_subset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.statistical_iterative.get_projection_subset" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
-
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomography.algorithms.statistical_iterative.StatisticalIterative">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.algorithms.statistical_iterative.</span></span><span class="sig-name descname"><span class="pre">StatisticalIterative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">projections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_initial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prior</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">precompute_normalization_factors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">pytomography.device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/statistical_iterative.html#StatisticalIterative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.statistical_iterative.StatisticalIterative" title="Permalink to this definition">#</a></dt>
@@ -517,6 +502,17 @@ document.write(`
 </ul>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.algorithms.statistical_iterative.StatisticalIterative._validate_projector">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_validate_projector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system_matrix</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/statistical_iterative.html#StatisticalIterative._validate_projector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.statistical_iterative.StatisticalIterative._validate_projector" title="Permalink to this definition">#</a></dt>
+<dd><p>Method implemented by child classes that checks if the system matrix implements the required methods for reconstruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>system_matrix</strong> (<em>_type_</em>) – _description_</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.algorithms.statistical_iterative.StatisticalIterative.__call__">
 <em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_iters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/statistical_iterative.html#StatisticalIterative.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.statistical_iterative.StatisticalIterative.__call__" title="Permalink to this definition">#</a></dt>
@@ -566,6 +562,17 @@ document.write(`
 </ul>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.algorithms.statistical_iterative.OSEMOSL._validate_projector">
+<span class="sig-name descname"><span class="pre">_validate_projector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system_matrix</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/statistical_iterative.html#OSEMOSL._validate_projector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.statistical_iterative.OSEMOSL._validate_projector" title="Permalink to this definition">#</a></dt>
+<dd><p>Checks that the required classes are implemented by the reconstruction algorithm</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>system_matrix</strong> (<a class="reference internal" href="../../projectors/index.html#pytomography.projectors.SystemMatrix" title="pytomography.projectors.SystemMatrix"><em>SystemMatrix</em></a>) – System matrix being used as projector in reconstruction algorithm</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.algorithms.statistical_iterative.OSEMOSL._set_recon_name">
 <span class="sig-name descname"><span class="pre">_set_recon_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_iters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_subsets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/statistical_iterative.html#OSEMOSL._set_recon_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.statistical_iterative.OSEMOSL._set_recon_name" title="Permalink to this definition">#</a></dt>
@@ -630,6 +637,17 @@ document.write(`
 </ul>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.algorithms.statistical_iterative.BSREM._validate_projector">
+<span class="sig-name descname"><span class="pre">_validate_projector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system_matrix</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/statistical_iterative.html#BSREM._validate_projector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.statistical_iterative.BSREM._validate_projector" title="Permalink to this definition">#</a></dt>
+<dd><p>Checks that the required classes are implemented by the reconstruction algorithm</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>system_matrix</strong> (<a class="reference internal" href="../../projectors/index.html#pytomography.projectors.SystemMatrix" title="pytomography.projectors.SystemMatrix"><em>SystemMatrix</em></a>) – System matrix being used as projector in reconstruction algorithm</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.algorithms.statistical_iterative.BSREM._compute_normalization_factors">
 <span class="sig-name descname"><span class="pre">_compute_normalization_factors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/statistical_iterative.html#BSREM._compute_normalization_factors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.statistical_iterative.BSREM._compute_normalization_factors" title="Permalink to this definition">#</a></dt>
@@ -708,6 +726,17 @@ document.write(`
 </ul>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.algorithms.statistical_iterative.OSEM._validate_projector">
+<span class="sig-name descname"><span class="pre">_validate_projector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system_matrix</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/statistical_iterative.html#OSEM._validate_projector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.statistical_iterative.OSEM._validate_projector" title="Permalink to this definition">#</a></dt>
+<dd><p>Checks that the required classes are implemented by the reconstruction algorithm</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>system_matrix</strong> (<a class="reference internal" href="../../projectors/index.html#pytomography.projectors.SystemMatrix" title="pytomography.projectors.SystemMatrix"><em>SystemMatrix</em></a>) – System matrix being used as projector in reconstruction algorithm</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -720,7 +749,7 @@ document.write(`
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>projections</strong> (<em>torch.Tensor</em>) – projection data <span class="math notranslate nohighlight">\(g\)</span> to be reconstructed</p></li>
 <li><p><strong>system_matrix</strong> (<a class="reference internal" href="../../projectors/index.html#pytomography.projectors.SystemMatrix" title="pytomography.projectors.SystemMatrix"><em>SystemMatrix</em></a>) – System matrix <span class="math notranslate nohighlight">\(H\)</span> used in <span class="math notranslate nohighlight">\(g=Hf\)</span>.</p></li>
-<li><p><strong>kem_transform</strong> (<a class="reference internal" href="../../transforms/index.html#pytomography.transforms.KEMTransform" title="pytomography.transforms.KEMTransform"><em>KEMTransform</em></a>) – The transform corresponding to the matrix <span class="math notranslate nohighlight">\(K\)</span>.</p></li>
+<li><p><strong>kem_transform</strong> (<a class="reference internal" href="../../transforms/shared/index.html#pytomography.transforms.shared.KEMTransform" title="pytomography.transforms.shared.KEMTransform"><em>KEMTransform</em></a>) – The transform corresponding to the matrix <span class="math notranslate nohighlight">\(K\)</span>.</p></li>
 <li><p><strong>object_initial</strong> (<em>torch.tensor</em><em>[</em><em>batch_size</em><em>, </em><em>Lx</em><em>, </em><em>Ly</em><em>, </em><em>Lz</em><em>]</em>) – represents the initial object guess <span class="math notranslate nohighlight">\(f^{0,0}\)</span> for the algorithm in object space</p></li>
 <li><p><strong>scatter</strong> (<em>torch.Tensor</em>) – estimate of scatter contribution <span class="math notranslate nohighlight">\(s\)</span>.</p></li>
 </ul>
@@ -762,7 +791,7 @@ document.write(`
 
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomography.algorithms.statistical_iterative.DIPRecon">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.algorithms.statistical_iterative.</span></span><span class="sig-name descname"><span class="pre">DIPRecon</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">projections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prior_network</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.003</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">precompute_normalization_factors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/statistical_iterative.html#DIPRecon"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.statistical_iterative.DIPRecon" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.algorithms.statistical_iterative.</span></span><span class="sig-name descname"><span class="pre">DIPRecon</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">projections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prior_network</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.003</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">precompute_normalization_factors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">EM_algorithm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">OSEM</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/statistical_iterative.html#DIPRecon"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.statistical_iterative.DIPRecon" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pytomography.algorithms.statistical_iterative.StatisticalIterative" title="pytomography.algorithms.statistical_iterative.StatisticalIterative"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StatisticalIterative</span></code></a></p>
 <p>Implementation of the Deep Image Prior reconstruction technique (see <a class="reference external" href="https://ieeexplore.ieee.org/document/8581448">https://ieeexplore.ieee.org/document/8581448</a>). This reconstruction technique requires an instance of a user-defined <code class="docutils literal notranslate"><span class="pre">prior_network</span></code> that implements two functions: (i) a <code class="docutils literal notranslate"><span class="pre">fit</span></code> method that takes in an <code class="docutils literal notranslate"><span class="pre">object</span></code> (<span class="math notranslate nohighlight">\(x\)</span>) which the network <code class="docutils literal notranslate"><span class="pre">f(z;\theta)</span></code> is subsequently fit to, and (ii) a <code class="docutils literal notranslate"><span class="pre">predict</span></code> function that returns the current network prediction <span class="math notranslate nohighlight">\(f(z;\theta)\)</span>. For more details, see the Deep Image Prior tutorial.</p>
 <dl class="field-list simple">
@@ -777,6 +806,17 @@ document.write(`
 </ul>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.algorithms.statistical_iterative.DIPRecon._validate_projector">
+<span class="sig-name descname"><span class="pre">_validate_projector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system_matrix</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/statistical_iterative.html#DIPRecon._validate_projector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.statistical_iterative.DIPRecon._validate_projector" title="Permalink to this definition">#</a></dt>
+<dd><p>Checks that the required classes are implemented by the reconstruction algorithm</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>system_matrix</strong> (<a class="reference internal" href="../../projectors/index.html#pytomography.projectors.SystemMatrix" title="pytomography.projectors.SystemMatrix"><em>SystemMatrix</em></a>) – System matrix being used as projector in reconstruction algorithm</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomography.algorithms.statistical_iterative.DIPRecon.__call__">
 <span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_iters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subit1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_subsets_osem</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/pytomography/algorithms/statistical_iterative.html#DIPRecon.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.algorithms.statistical_iterative.DIPRecon.__call__" title="Permalink to this definition">#</a></dt>
@@ -852,34 +892,39 @@ document.write(`
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.get_projection_subset"><code class="docutils literal notranslate"><span class="pre">get_projection_subset()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.StatisticalIterative"><code class="docutils literal notranslate"><span class="pre">StatisticalIterative</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.StatisticalIterative._validate_projector"><code class="docutils literal notranslate"><span class="pre">StatisticalIterative._validate_projector()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.StatisticalIterative.__call__"><code class="docutils literal notranslate"><span class="pre">StatisticalIterative.__call__()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.StatisticalIterative._compute_callback"><code class="docutils literal notranslate"><span class="pre">StatisticalIterative._compute_callback()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.OSEMOSL"><code class="docutils literal notranslate"><span class="pre">OSEMOSL</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.OSEMOSL._validate_projector"><code class="docutils literal notranslate"><span class="pre">OSEMOSL._validate_projector()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.OSEMOSL._set_recon_name"><code class="docutils literal notranslate"><span class="pre">OSEMOSL._set_recon_name()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.OSEMOSL._compute_normalization_factors"><code class="docutils literal notranslate"><span class="pre">OSEMOSL._compute_normalization_factors()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.OSEMOSL.__call__"><code class="docutils literal notranslate"><span class="pre">OSEMOSL.__call__()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.BSREM"><code class="docutils literal notranslate"><span class="pre">BSREM</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.BSREM._validate_projector"><code class="docutils literal notranslate"><span class="pre">BSREM._validate_projector()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.BSREM._compute_normalization_factors"><code class="docutils literal notranslate"><span class="pre">BSREM._compute_normalization_factors()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.BSREM._set_recon_name"><code class="docutils literal notranslate"><span class="pre">BSREM._set_recon_name()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.BSREM._scale_prior_gradient"><code class="docutils literal notranslate"><span class="pre">BSREM._scale_prior_gradient()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.BSREM.__call__"><code class="docutils literal notranslate"><span class="pre">BSREM.__call__()</span></code></a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.OSEM"><code class="docutils literal notranslate"><span class="pre">OSEM</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.OSEM"><code class="docutils literal notranslate"><span class="pre">OSEM</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.OSEM._validate_projector"><code class="docutils literal notranslate"><span class="pre">OSEM._validate_projector()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.KEM"><code class="docutils literal notranslate"><span class="pre">KEM</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.KEM._compute_callback"><code class="docutils literal notranslate"><span class="pre">KEM._compute_callback()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.KEM.__call__"><code class="docutils literal notranslate"><span class="pre">KEM.__call__()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.DIPRecon"><code class="docutils literal notranslate"><span class="pre">DIPRecon</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.DIPRecon._validate_projector"><code class="docutils literal notranslate"><span class="pre">DIPRecon._validate_projector()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.algorithms.statistical_iterative.DIPRecon.__call__"><code class="docutils literal notranslate"><span class="pre">DIPRecon.__call__()</span></code></a></li>
 </ul>
 </li>

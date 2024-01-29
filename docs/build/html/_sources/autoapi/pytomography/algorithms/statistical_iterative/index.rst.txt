@@ -26,17 +26,6 @@ Classes
 
 
 
-Functions
-~~~~~~~~~
-
-.. autoapisummary::
-
-   pytomography.algorithms.statistical_iterative.get_projection_subset
-
-
-
-.. py:function:: get_projection_subset(projections, subset_indices, device)
-
 
 .. py:class:: StatisticalIterative(projections, system_matrix, object_initial = None, scatter = None, prior = None, precompute_normalization_factors = True, device = pytomography.device)
 
@@ -56,6 +45,15 @@ Functions
    :type precompute_normalization_factors: bool
    :param device: The device correpsonding to the tensors output by the system matrix. In some cases, although the system matrix implementation uses ``pytomography.device`` in its internal computation, it will output tensors on the CPU due to their size (such as in listmode PET). Defaults to ``pytomography.device``.
    :type device: str
+
+   .. py:method:: _validate_projector(system_matrix)
+      :abstractmethod:
+
+      Method implemented by child classes that checks if the system matrix implements the required methods for reconstruction.
+
+      :param system_matrix: _description_
+      :type system_matrix: _type_
+
 
    .. py:method:: __call__(n_iters, n_subsets, callback = None)
       :abstractmethod:
@@ -94,6 +92,14 @@ Functions
    :type precompute_normalization_factors: bool
    :param device: The device correpsonding to the tensors output by the system matrix. In some cases, although the system matrix implementation uses ``pytomography.device`` in its internal computation, it will output tensors on the CPU due to their size (such as in listmode PET). Defaults to ``pytomography.device``.
    :type device: str
+
+   .. py:method:: _validate_projector(system_matrix)
+
+      Checks that the required classes are implemented by the reconstruction algorithm
+
+      :param system_matrix: System matrix being used as projector in reconstruction algorithm
+      :type system_matrix: SystemMatrix
+
 
    .. py:method:: _set_recon_name(n_iters, n_subsets)
 
@@ -151,6 +157,14 @@ Functions
    :type scaling_matrix_type: str, optional
    :param device: The device correpsonding to the tensors output by the system matrix. In some cases, although the system matrix implementation uses ``pytomography.device`` in its internal computation, it will output tensors on the CPU due to their size (such as in listmode PET). Defaults to ``pytomography.device``.
    :type device: str
+
+   .. py:method:: _validate_projector(system_matrix)
+
+      Checks that the required classes are implemented by the reconstruction algorithm
+
+      :param system_matrix: System matrix being used as projector in reconstruction algorithm
+      :type system_matrix: SystemMatrix
+
 
    .. py:method:: _compute_normalization_factors()
 
@@ -214,6 +228,14 @@ Functions
    :param precompute_normalization_factors:
    :type precompute_normalization_factors: bool
 
+   .. py:method:: _validate_projector(system_matrix)
+
+      Checks that the required classes are implemented by the reconstruction algorithm
+
+      :param system_matrix: System matrix being used as projector in reconstruction algorithm
+      :type system_matrix: SystemMatrix
+
+
 
 .. py:class:: KEM(projections, system_matrix, kem_transform, object_initial = None, scatter = 0)
 
@@ -256,7 +278,7 @@ Functions
 
 
 
-.. py:class:: DIPRecon(projections, system_matrix, prior_network, rho = 0.003, scatter = 0, precompute_normalization_factors = True)
+.. py:class:: DIPRecon(projections, system_matrix, prior_network, rho = 0.003, scatter = 0, precompute_normalization_factors = True, EM_algorithm=OSEM)
 
    Bases: :py:obj:`StatisticalIterative`
 
@@ -274,6 +296,14 @@ Functions
    :type scatter: torch.tensor | float, optional
    :param precompute_normalization_factors: Whether to precompute :math:`H_m^T 1` and store on GPU in the OSEM network before reconstruction. Defaults to True.
    :type precompute_normalization_factors: bool, optional
+
+   .. py:method:: _validate_projector(system_matrix)
+
+      Checks that the required classes are implemented by the reconstruction algorithm
+
+      :param system_matrix: System matrix being used as projector in reconstruction algorithm
+      :type system_matrix: SystemMatrix
+
 
    .. py:method:: __call__(n_iters, subit1, n_subsets_osem=1, callback=None)
 
