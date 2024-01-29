@@ -17,9 +17,9 @@
     "import os\n",
     "import numpy as np\n",
     "from pytomography.io.SPECT import dicom\n",
-    "from pytomography.transforms import SPECTAttenuationTransform, SPECTPSFTransform\n",
+    "from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform\n",
     "from pytomography.algorithms import OSEM\n",
-    "from pytomography.projectors import SPECTSystemMatrix\n",
+    "from pytomography.projectors.SPECT import SPECTSystemMatrix\n",
     "from pytomography.utils import print_collimator_parameters\n",
     "import matplotlib.pyplot as plt\n",
     "import pydicom"

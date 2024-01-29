@@ -397,6 +397,9 @@ def stitch_multibed(
     new_z_height = zs[-1] + recons.shape[-1]
     recon_aligned = torch.zeros((1, dss[0].Rows, dss[0].Rows, new_z_height)).to(pytomography.device)
     blank_below, blank_above = get_blank_below_above(get_projections(files_NM[0]))
+    # Ignore first two slices
+    blank_below +=1
+    blank_above -=1
     for i in range(len(zs)):
         recon_aligned[:,:,:,zs[i]+blank_below:zs[i]+blank_above] = recons[i,:,:,blank_below:blank_above]
     # Apply stitching method
@@ -420,7 +423,7 @@ def stitch_multibed(
                 idx = torch.arange(dL).to(pytomography.device) + 0.5
                 recon_aligned[:,:,:,zmin:zmax] = ((dL-idx)*r1 + idx*r2) / dL
             elif method=='TEM':
-                stitch_index = torch.min(torch.abs(r1-r2), axis=2)[1]
+                stitch_index = torch.min(torch.abs(r1-r2)/(r1+r2), axis=2)[1]
                 range_tensor = torch.arange(dL).unsqueeze(0).unsqueeze(0).to(pytomography.device)
                 mask_tensor = range_tensor < stitch_index.unsqueeze(-1)
                 expanded_mask = mask_tensor.expand(*stitch_index.shape, dL)

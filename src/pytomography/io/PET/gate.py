@@ -62,7 +62,7 @@ def get_scanner_LUT(
     """Returns the scanner lookup table. The three values at a particular index in the lookup table correspond to the x, y, and z positions of the detector id correpsonding to that index.
 
     Args:
-        path (str): Path to .mac file where the scanner geometry is defined in FATE
+        path (str): Path to .mac file where the scanner geometry is defined in GATE
         init_volume_name (str, optional): Volume name corresponding the lowest level element in the GATE geometry. Defaults to 'crystal'.
         final_volume_name (str, optional): Volume name corresponding the highest level element in the GATE geometry. Defaults to 'world'.
         mean_interaction_depth (float, optional): Average interaction depth of photons in the crystals in mm. Defaults to 0.
@@ -153,9 +153,9 @@ def get_scanner_LUT(
                 repeats.append(int(repeat_number))
     info = dict(zip(parents, repeats))
     if return_info:
-        return torch.tensor(-np.vstack((x_crystal,y_crystal,z_crystal)).T), info
+        return torch.tensor(np.vstack((x_crystal,y_crystal,-z_crystal)).T), info
     else:
-        return torch.tensor(-np.vstack((x_crystal,y_crystal,z_crystal)).T)
+        return torch.tensor(np.vstack((x_crystal,y_crystal,-z_crystal)).T)
     
 def get_N_components(mac_file: str) -> tuple:
     """Obtains the number of gantrys, rsectors, modules, submodules, and crystals per level from a GATE macro file.
@@ -280,8 +280,10 @@ def get_table(det_ids: torch.tensor, mac_file: str) -> torch.tensor:
     subM_ids = det_ids % (N_submodule * N_module * N_rsector * N_gantry) // (N_module * N_rsector * N_gantry)
     M_ids = det_ids % (N_module * N_rsector * N_gantry) // (N_rsector * N_gantry)
     R_ids = det_ids % (N_rsector * N_gantry) // N_gantry
-    deltaM_ids = torch.abs(torch.diff(M_ids, axis=1))
-    deltaR_ids = torch.abs(torch.diff(R_ids, axis=1))
+    # deltaM_ids = torch.abs(torch.diff(M_ids, axis=1))
+    # deltaR_ids = torch.abs(torch.diff(R_ids, axis=1))
+    deltaM_ids = torch.diff(M_ids, axis=1) % N_module # because of circle
+    deltaR_ids = torch.diff(R_ids, axis=1) + (N_rsector - 1)
     return torch.tensor(torch.concatenate([cry_ids, subM_ids, deltaM_ids, deltaR_ids], axis=1))
 
 def get_eta_cylinder_calibration(
@@ -309,14 +311,15 @@ def get_eta_cylinder_calibration(
     scanner_LUT = torch.tensor(get_scanner_LUT(mac_file, mean_interaction_depth=mean_interaction_depth))
     all_LOR_ids = torch.combinations(torch.arange(N_detectors).to(torch.int32), 2)
     geometric_correction_factor = 1/(torch.sqrt(1-(get_radius(all_LOR_ids, scanner_LUT) / cylinder_radius )**2) + pytomography.delta)
+    print(geometric_correction_factor.max())
     # Detector correction factor (exploits symmetries)
-    H = torch.zeros(N_crystal, N_crystal, N_submodule, N_submodule, N_module, N_rsector)
+    H = torch.zeros(N_crystal, N_crystal, N_submodule, N_submodule, N_module, 2*N_rsector-1)
     for path in paths:
         det_ids = torch.tensor(get_detector_ids([path], mac_file, same_source_pos=same_source_pos))
         vals = get_table(det_ids, mac_file)
-        bins = [torch.arange(x).to(torch.float32)-0.5 for x in [N_crystal+1, N_crystal+1, N_submodule+1, N_submodule+1, N_module+1, N_rsector+1]]
+        bins = [torch.arange(x).to(torch.float32)-0.5 for x in [N_crystal+1, N_crystal+1, N_submodule+1, N_submodule+1, N_module+1, 2*N_rsector]]
         H += torch.histogramdd(vals.to(torch.float32), bins)[0]
-    vals_all_pairs = get_table(torch.combinations(torch.arange(N_detectors).to(torch.int32), 2), mac_file)
+    vals_all_pairs = get_table(all_LOR_ids, mac_file)
     N_bins = torch.histogramdd(vals_all_pairs.to(torch.float32), bins)[0]
     # If you want to test this later, also return H and N_bins seperately
     return (H/N_bins)[vals_all_pairs[:,0], vals_all_pairs[:,1], vals_all_pairs[:,2], vals_all_pairs[:,3], vals_all_pairs[:,4], vals_all_pairs[:,5]] * geometric_correction_factor

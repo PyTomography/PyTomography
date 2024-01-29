@@ -8,7 +8,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.projectors.SPECT.spect_system_matrix &#8212; PyTomography 1.3.0 documentation</title>
+    <title>pytomography.projectors.SPECT.spect_system_matrix &#8212; PyTomography 1.3.2 documentation</title>
   
   
   
@@ -339,13 +339,14 @@ document.write(`
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">pytomography</span>
-<span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">Transform</span><span class="p">,</span> <span class="n">RotationTransform</span>
+<span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">transform</span>
+<span class="kn">from</span> <span class="nn">pytomography.transforms.shared</span> <span class="kn">import</span> <span class="n">RotationTransform</span>
 <span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTProjMeta</span>
 <span class="kn">from</span> <span class="nn">pytomography.priors</span> <span class="kn">import</span> <span class="n">Prior</span>
 <span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">pad_object</span><span class="p">,</span> <span class="n">unpad_object</span><span class="p">,</span> <span class="n">pad_proj</span><span class="p">,</span> <span class="n">unpad_proj</span>
 <span class="kn">from</span> <span class="nn">..system_matrix</span> <span class="kn">import</span> <span class="n">SystemMatrix</span>
 
-<div class="viewcode-block" id="SPECTSystemMatrix"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/index.html#pytomography.projectors.SPECT.SPECTSystemMatrix">[docs]</a><span class="k">class</span> <span class="nc">SPECTSystemMatrix</span><span class="p">(</span><span class="n">SystemMatrix</span><span class="p">):</span>
+<div class="viewcode-block" id="SPECTSystemMatrix"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/SPECT/spect_system_matrix/index.html#pytomography.projectors.SPECT.SPECTSystemMatrix">[docs]</a><span class="k">class</span> <span class="nc">SPECTSystemMatrix</span><span class="p">(</span><span class="n">SystemMatrix</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;System matrix for SPECT imaging. By default, this applies to parallel hole collimators, but appropriate use of `proj2proj_transforms` can allow this system matrix to also model converging/diverging collimator configurations as well.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
@@ -367,7 +368,7 @@ document.write(`
         <span class="bp">self</span><span class="o">.</span><span class="n">n_parallel</span> <span class="o">=</span> <span class="n">n_parallel</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">rotation_transform</span> <span class="o">=</span> <span class="n">RotationTransform</span><span class="p">()</span>
     
-<div class="viewcode-block" id="SPECTSystemMatrix.compute_normalization_factor"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/index.html#pytomography.projectors.SPECT.SPECTSystemMatrix.compute_normalization_factor">[docs]</a>    <span class="k">def</span> <span class="nf">compute_normalization_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subset_idx</span> <span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
+<div class="viewcode-block" id="SPECTSystemMatrix.compute_normalization_factor"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/SPECT/spect_system_matrix/index.html#pytomography.projectors.SPECT.SPECTSystemMatrix.compute_normalization_factor">[docs]</a>    <span class="k">def</span> <span class="nf">compute_normalization_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subset_idx</span> <span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Function used to get normalization factor :math:`H^T_m 1` corresponding to projection subset :math:`m`.</span>
 
 <span class="sd">        Args:</span>
@@ -382,7 +383,7 @@ document.write(`
             <span class="n">norm_proj</span> <span class="o">=</span> <span class="n">norm_proj</span><span class="p">[:,</span><span class="bp">self</span><span class="o">.</span><span class="n">subset_indices_array</span><span class="p">[</span><span class="n">subset_idx</span><span class="p">]]</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">norm_proj</span><span class="p">,</span> <span class="n">subset_idx</span><span class="p">)</span></div>
         
-<div class="viewcode-block" id="SPECTSystemMatrix.set_n_subsets"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/index.html#pytomography.projectors.SPECT.SPECTSystemMatrix.set_n_subsets">[docs]</a>    <span class="k">def</span> <span class="nf">set_n_subsets</span><span class="p">(</span>
+<div class="viewcode-block" id="SPECTSystemMatrix.set_n_subsets"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/SPECT/spect_system_matrix/index.html#pytomography.projectors.SPECT.SPECTSystemMatrix.set_n_subsets">[docs]</a>    <span class="k">def</span> <span class="nf">set_n_subsets</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">n_subsets</span><span class="p">:</span> <span class="nb">int</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
@@ -397,7 +398,7 @@ document.write(`
             <span class="n">subset_indices_array</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">indices</span><span class="p">[</span><span class="n">i</span><span class="p">::</span><span class="n">n_subsets</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">subset_indices_array</span> <span class="o">=</span> <span class="n">subset_indices_array</span></div>
         
-<div class="viewcode-block" id="SPECTSystemMatrix.get_projection_subset"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/index.html#pytomography.projectors.SPECT.SPECTSystemMatrix.get_projection_subset">[docs]</a>    <span class="k">def</span> <span class="nf">get_projection_subset</span><span class="p">(</span>
+<div class="viewcode-block" id="SPECTSystemMatrix.get_projection_subset"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/SPECT/spect_system_matrix/index.html#pytomography.projectors.SPECT.SPECTSystemMatrix.get_projection_subset">[docs]</a>    <span class="k">def</span> <span class="nf">get_projection_subset</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">projections</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span>
         <span class="n">subset_idx</span><span class="p">:</span> <span class="nb">int</span>
@@ -413,7 +414,7 @@ document.write(`
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">projections</span><span class="p">[:,</span><span class="bp">self</span><span class="o">.</span><span class="n">subset_indices_array</span><span class="p">[</span><span class="n">subset_idx</span><span class="p">]]</span></div>
     
-<div class="viewcode-block" id="SPECTSystemMatrix.get_weighting_subset"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/index.html#pytomography.projectors.SPECT.SPECTSystemMatrix.get_weighting_subset">[docs]</a>    <span class="k">def</span> <span class="nf">get_weighting_subset</span><span class="p">(</span>
+<div class="viewcode-block" id="SPECTSystemMatrix.get_weighting_subset"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/SPECT/spect_system_matrix/index.html#pytomography.projectors.SPECT.SPECTSystemMatrix.get_weighting_subset">[docs]</a>    <span class="k">def</span> <span class="nf">get_weighting_subset</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">subset_idx</span><span class="p">:</span> <span class="nb">int</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
@@ -427,7 +428,7 @@ document.write(`
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subset_indices_array</span><span class="p">[</span><span class="n">subset_idx</span><span class="p">])</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj_meta</span><span class="o">.</span><span class="n">num_projections</span></div>
 
-<div class="viewcode-block" id="SPECTSystemMatrix.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/index.html#pytomography.projectors.SPECT.SPECTSystemMatrix.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+<div class="viewcode-block" id="SPECTSystemMatrix.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/SPECT/spect_system_matrix/index.html#pytomography.projectors.SPECT.SPECTSystemMatrix.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="nb">object</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span>
         <span class="n">subset_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -471,7 +472,7 @@ document.write(`
             <span class="n">proj</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">proj</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">unpad_proj</span><span class="p">(</span><span class="n">proj</span><span class="p">)</span></div>
     
-<div class="viewcode-block" id="SPECTSystemMatrix.backward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/index.html#pytomography.projectors.SPECT.SPECTSystemMatrix.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span>
+<div class="viewcode-block" id="SPECTSystemMatrix.backward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/SPECT/spect_system_matrix/index.html#pytomography.projectors.SPECT.SPECTSystemMatrix.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">proj</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span>
         <span class="n">subset_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -537,7 +538,7 @@ document.write(`
             <span class="k">return</span> <span class="nb">object</span></div></div>
         
         
-<div class="viewcode-block" id="SPECTSystemMatrixMaskedSegments"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/index.html#pytomography.projectors.SPECT.SPECTSystemMatrixMaskedSegments">[docs]</a><span class="k">class</span> <span class="nc">SPECTSystemMatrixMaskedSegments</span><span class="p">(</span><span class="n">SPECTSystemMatrix</span><span class="p">):</span>
+<div class="viewcode-block" id="SPECTSystemMatrixMaskedSegments"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/SPECT/spect_system_matrix/index.html#pytomography.projectors.SPECT.SPECTSystemMatrixMaskedSegments">[docs]</a><span class="k">class</span> <span class="nc">SPECTSystemMatrixMaskedSegments</span><span class="p">(</span><span class="n">SPECTSystemMatrix</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;SPECT system matrix where the object space is a vector of length :math:`N` consisting of the mean activities for each masks in ``masks``. This system matrix can be used in reconstruction algorithms to obtain maximum liklihood estimations for the average value of :math:`f` inside each of the masks.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
@@ -559,7 +560,7 @@ document.write(`
         <span class="nb">super</span><span class="p">(</span><span class="n">SPECTSystemMatrixMaskedSegments</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">obj2obj_transforms</span><span class="p">,</span> <span class="n">proj2proj_transforms</span><span class="p">,</span> <span class="n">object_meta</span><span class="p">,</span> <span class="n">proj_meta</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">masks</span> <span class="o">=</span> <span class="n">masks</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
-<div class="viewcode-block" id="SPECTSystemMatrixMaskedSegments.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/index.html#pytomography.projectors.SPECT.SPECTSystemMatrixMaskedSegments.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+<div class="viewcode-block" id="SPECTSystemMatrixMaskedSegments.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/SPECT/spect_system_matrix/index.html#pytomography.projectors.SPECT.SPECTSystemMatrixMaskedSegments.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">activities</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">angle_subset</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -578,7 +579,7 @@ document.write(`
         <span class="nb">object</span> <span class="o">=</span> <span class="p">(</span><span class="n">activities</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">SPECTSystemMatrixMaskedSegments</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="n">angle_subset</span><span class="p">)</span></div>
     
-<div class="viewcode-block" id="SPECTSystemMatrixMaskedSegments.backward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/index.html#pytomography.projectors.SPECT.SPECTSystemMatrixMaskedSegments.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span>
+<div class="viewcode-block" id="SPECTSystemMatrixMaskedSegments.backward"><a class="viewcode-back" href="../../../../autoapi/pytomography/projectors/SPECT/spect_system_matrix/index.html#pytomography.projectors.SPECT.SPECTSystemMatrixMaskedSegments.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">proj</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">angle_subset</span><span class="p">:</span> <span class="nb">list</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>

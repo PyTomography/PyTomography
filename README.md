@@ -8,12 +8,7 @@
 ![Issues](https://img.shields.io/github/issues/qurit/PyTomography)
 
 ## How to get started?
-We have prepared a very detailed documentation guide available at [readthedocs](https://pytomography.readthedocs.io/en/latest/).
-
-## Some Technical Aspects
-PyTomography uses the functionality of [PyTorch](https://pytorch.org/) to:
- 1. Enable fast GPU-accelerated reconstruction 
- 2. Permit easy integration of deep-learning models in traditional reconstruction algorithms.
+We have prepared a very detailed documentation guide available at [readthedocs](https://pytomography.readthedocs.io/en/latest/). If you have any additional questions, please ask them on the [discourse website](https://pytomography.discourse.group/).
 
 # License
 This work is licensed under an MIT license, as is found in the LICENSE file.
