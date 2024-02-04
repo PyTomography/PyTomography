@@ -90,7 +90,7 @@ Functions
    :rtype: torch.nn.Conv2d
 
 
-.. py:class:: SPECTPSFTransform(psf_meta = None, kernel_f = None, psf_net = None)
+.. py:class:: SPECTPSFTransform(psf_meta = None, kernel_f = None, psf_net = None, assume_padded = True)
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 

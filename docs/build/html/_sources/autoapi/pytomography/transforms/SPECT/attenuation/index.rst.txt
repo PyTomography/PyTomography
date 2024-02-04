@@ -38,7 +38,7 @@ Functions
    :rtype: torch.tensor
 
 
-.. py:class:: SPECTAttenuationTransform(attenuation_map = None, filepath = None, mode = 'constant')
+.. py:class:: SPECTAttenuationTransform(attenuation_map = None, filepath = None, mode = 'constant', assume_padded = True)
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 
@@ -50,6 +50,8 @@ Functions
    :type filepath: Sequence[str]
    :param mode: Mode used for extrapolation of CT beyond edges when aligning DICOM SPECT/CT data. Defaults to `'constant'`, which means the image is padded with zeros.
    :type mode: str
+   :param assume_padded: Assumes objects and projections fed into forward and backward methods are padded, as they will be in reconstruction algorithms
+   :type assume_padded: bool
 
    .. py:method:: configure(object_meta, proj_meta)
 
@@ -87,6 +89,9 @@ Functions
 
       :returns: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.
       :rtype: torch.tensor
+
+
+   .. py:method:: compute_average_prob_matrix()
 
 
 

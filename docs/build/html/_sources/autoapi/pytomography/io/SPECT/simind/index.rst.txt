@@ -13,7 +13,6 @@ Functions
 
 .. autoapisummary::
 
-   pytomography.io.SPECT.simind.find_first_entry_containing_header
    pytomography.io.SPECT.simind.get_metadata
    pytomography.io.SPECT.simind.get_projections
    pytomography.io.SPECT.simind.get_scatter_from_TEW
@@ -36,22 +35,7 @@ Attributes
 
    
 
-.. py:function:: find_first_entry_containing_header(list_of_attributes, header, dtype = np.float32)
-
-   Finds the first entry in a SIMIND Interfile output corresponding to the header (header).
-
-   :param list_of_attributes: Simind data file, as a list of lines.
-   :type list_of_attributes: list[str]
-   :param header: The header looked for
-   :type header: str
-   :param dtype: The data type to be returned corresponding to the value of the header. Defaults to np.float32.
-   :type dtype: type, optional
-
-   :returns: The value corresponding to the header (header).
-   :rtype: float|str|int
-
-
-.. py:function:: get_metadata(headerfile, distance = 'cm')
+.. py:function:: get_metadata(headerfile, distance = 'cm', corrfile = None)
 
    Obtains required metadata from a SIMIND header file.
 
@@ -59,6 +43,8 @@ Attributes
    :type headerfile: str
    :param distance: The units of measurements in the SIMIND file (this is required as input, since SIMIND uses mm/cm but doesn't specify). Defaults to 'cm'.
    :type distance: str, optional
+   :param corrfile: .cor file used in SIMIND to specify radial positions for non-circular orbits. This needs to be provided for non-standard orbits.
+   :type corrfile: str, optional
 
    :returns: Required information for reconstruction in PyTomography.
    :rtype: (SPECTObjectMeta, SPECTProjMeta, torch.Tensor[1, Ltheta, Lr, Lz])

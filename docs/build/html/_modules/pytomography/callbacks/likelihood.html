@@ -8,7 +8,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.callbacks.likelihood &#8212; PyTomography 1.2.1 documentation</title>
+    <title>pytomography.callbacks.likelihood &#8212; PyTomography 1.3.2 documentation</title>
   
   
   
@@ -369,7 +369,7 @@ document.write(`
 <span class="sd">            n_iter (int): Iteration number</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">projection_estimate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_matrix</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span>
-        <span class="n">liklihood</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">projections</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">projection_estimate</span><span class="p">)</span> <span class="o">-</span> <span class="n">projection_estimate</span>
+        <span class="n">liklihood</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">projections</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">projection_estimate</span><span class="p">))</span> <span class="o">-</span> <span class="n">projection_estimate</span>
         <span class="n">liklihood</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">projections</span><span class="o">&lt;=</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">projection_estimate</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">projections</span><span class="o">&lt;=</span><span class="mi">0</span><span class="p">]</span>
         <span class="c1"># Sum components of each voxel</span>
         <span class="n">liklihood</span> <span class="o">=</span> <span class="n">liklihood</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
@@ -378,7 +378,7 @@ document.write(`
             <span class="bp">self</span><span class="o">.</span><span class="n">prior</span><span class="o">.</span><span class="n">set_object</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span>
             <span class="n">prior_component</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">prior</span><span class="o">.</span><span class="n">compute_prior</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">liklihoods_prior_component</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">prior_component</span><span class="p">)</span>
-            <span class="n">liklihood</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior</span><span class="o">.</span><span class="n">compute_prior</span><span class="p">()</span>
+            <span class="n">liklihood</span> <span class="o">-=</span> <span class="n">prior_component</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">liklihoods</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">liklihood</span><span class="p">)</span></div></div>
 </pre></div>
 

@@ -1,0 +1,55 @@
+:py:mod:`pytomography.transforms.shared.spatial`
+================================================
+
+.. py:module:: pytomography.transforms.shared.spatial
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.transforms.shared.spatial.RotationTransform
+
+
+
+
+.. py:class:: RotationTransform(mode = 'bilinear')
+
+   Bases: :py:obj:`pytomography.transforms.Transform`
+
+   obj2obj transform used to rotate an object to angle :math:`\beta` in the DICOM reference frame. (Note that an angle of )
+
+   :param mode: Interpolation mode used in the rotation.
+   :type mode: str
+
+   .. py:method:: forward(object, angles)
+
+      Rotates an object to angle :math:`\beta` in the DICOM reference frame. Note that the scanner angle :math:`\beta` is related to :math:`\phi` (azimuthal angle) by :math:`\phi = 3\pi/2 - \beta`.
+
+      :param object: Tensor of size [batch_size, Lx, Ly, Lz] being rotated.
+      :type object: torch.tensor
+      :param angles: Tensor of size [batch_size] corresponding to the rotation angles.
+      :type angles: torch.Tensor
+
+      :returns: Tensor of size [batch_size, Lx, Ly, Lz] where each element in the batch dimension is rotated by the corresponding angle.
+      :rtype: torch.tensor
+
+
+   .. py:method:: backward(object, angles)
+
+      Forward projection :math:`A:\mathbb{U} \to \mathbb{U}` of attenuation correction.
+
+      :param object: Tensor of size [batch_size, Lx, Ly, Lz] being rotated.
+      :type object: torch.tensor
+      :param angles: Tensor of size [batch_size] corresponding to the rotation angles.
+      :type angles: torch.Tensor
+
+      :returns: Tensor of size [batch_size, Lx, Ly, Lz] where each element in the batch dimension is rotated by the corresponding angle.
+      :rtype: torch.tensor
+
+
+

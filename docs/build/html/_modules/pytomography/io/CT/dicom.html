@@ -8,7 +8,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.io.CT.dicom &#8212; PyTomography 1.2.1 documentation</title>
+    <title>pytomography.io.CT.dicom &#8212; PyTomography 1.3.2 documentation</title>
   
   
   
@@ -378,6 +378,22 @@ document.write(`
         <span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
         <span class="n">slice_locs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">ImagePositionPatient</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">slice_locs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="compute_slice_thickness_CT"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/CT/index.html#pytomography.io.CT.dicom.compute_slice_thickness_CT">[docs]</a><span class="k">def</span> <span class="nf">compute_slice_thickness_CT</span><span class="p">(</span><span class="n">files_CT</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the slice thickness for files that make up a CT scan. Though this information is often contained in the DICOM file, it is sometimes inconsistent with the ImagePositionPatient attribute, which gives the true location of the slices.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        files_CT (Sequence[str]): List of CT DICOM filepaths corresponding to different z slices of the same scan.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: Slice thickness of CT scan</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">slice_locs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files_CT</span><span class="p">:</span>
+        <span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        <span class="n">slice_locs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">ImagePositionPatient</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+    <span class="n">slice_locs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">slice_locs</span><span class="p">)[</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">slice_locs</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">slice_locs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">slice_locs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
 </pre></div>
 
                 </article>

@@ -107,7 +107,7 @@ class ExtendedSystemMatrix(SystemMatrix):
                 if self.proj2proj_transforms[i] is not None:
                     self.proj2proj_transforms[i].configure(self.system_matrices[i].object_meta, self.system_matrices[i].proj_meta)
         
-    def forward(self, object, angle_subset=None):
+    def forward(self, object, subset_idx: int | None = None):
         r"""Forward transform :math:`H' = \sum_n v_n \otimes B_n H_n A_n`, This adds an additional dimension to the projection space.
 
         Args:
@@ -119,17 +119,18 @@ class ExtendedSystemMatrix(SystemMatrix):
         """
         projs = []
         for i in range(len(self.system_matrices)):
+            object_i = object.clone()
             if self.obj2obj_transforms is not None:
                 if self.obj2obj_transforms[i] is not None:
                     object_i = self.obj2obj_transforms[i].forward(object)
-            proj_i = self.system_matrices[i].forward(object_i, angle_subset)
+            proj_i = self.system_matrices[i].forward(object_i, subset_idx)
             if self.proj2proj_transforms is not None:
                 if self.proj2proj_transforms[i] is not None:
                     proj_i = self.proj2proj_transforms[i].forward(proj_i)
             projs.append(proj_i.clone())
         return torch.vstack(projs)
     
-    def backward(self, proj, angle_subset=None):
+    def backward(self, proj, subset_idx: int | None =None):
         r"""Back projection :math:`H' = \sum_n v_n^T \otimes A_n^T H_n^T B_n^T`. This maps an extended projection back to the original object space.
 
         Args:
@@ -145,32 +146,36 @@ class ExtendedSystemMatrix(SystemMatrix):
             if self.proj2proj_transforms is not None:
                 if self.proj2proj_transforms[i] is not None:
                     proj_i = self.proj2proj_transforms[i].backward(proj_i)
-            object_i = self.system_matrices[i].backward(proj_i, angle_subset)
+            object_i = self.system_matrices[i].backward(proj_i, subset_idx)
             if self.obj2obj_transforms is not None:
                 if self.obj2obj_transforms[i] is not None:
                     object_i = self.obj2obj_transforms[i].backward(object_i)
             objects.append(object_i.clone())
         return torch.vstack(objects).sum(axis=0).unsqueeze(0)
     
-    def get_subset_splits(
+    def set_n_subsets(
         self,
         n_subsets: int
     ) -> list:
-        """Returns a list of subsets (where each subset contains indicies corresponding to different angles). For example, if the projections consisted of 6 total angles, then ``get_subsets_splits(2)`` would return ``[[0,2,4],[1,3,5]]``.
+        # assumes all are similar
+        for system_matrix in self.system_matrices:
+            system_matrix.set_n_subsets(n_subsets)
+        self.subset_indices_array = self.system_matrices[0].subset_indices_array
         
-        Args:
-            n_subsets (int): number of subsets used in OSEM 
-
-        Returns:
-            list: list of index arrays for each subset
-        """
-        return self.system_matrices[0].get_subset_splits(n_subsets)
+    def get_projection_subset(
+        self,
+        projections: torch.tensor,
+        subset_idx: int
+    ) -> torch.tensor: 
+        return self.system_matrices[0].get_projection_subset(projections, subset_idx)
     
-    def compute_normalization_factor(self, angle_subset: list[int] = None):
+    def compute_normalization_factor(self, subset_idx: int | None = None):
         r"""Function called by reconstruction algorithms to get the normalization factor :math:`H' = \sum_n v_n^T \otimes A_n^T H_n^T B_n^T` 1.
 
         Returns:
            torch.Tensor[1,Lx,Ly,Lz]: Normalization factor.
         """
         norm_proj = torch.ones((len(self.system_matrices), *self.proj_meta.shape)).to(pytomography.device)
-        return self.backward(norm_proj, angle_subset)
+        if subset_idx is not None:
+            norm_proj = norm_proj[:,self.subset_indices_array[subset_idx]]
+        return self.backward(norm_proj, subset_idx)
