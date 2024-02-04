@@ -1,4 +1,5 @@
 *.code-workspace
+*.vscode
 __pycache__
 images_testing/
 notebook_testing
