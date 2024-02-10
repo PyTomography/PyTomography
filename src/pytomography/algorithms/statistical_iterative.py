@@ -84,8 +84,8 @@ class StatisticalIterative():
             n_subsets (int): Number of subsets
             callbacks (Callback, optional): Callbacks to be evaluated after each subiteration. Defaults to None.
         """
-    def _compute_callback(self, n_iter: int):
-        self.callback.run(self.object_prediction, n_iter)
+    def _compute_callback(self, n_iter: int, n_subset: int):
+        self.callback.run(self.object_prediction, n_iter, n_subset)
 
 class OSEMOSL(StatisticalIterative):
     r"""Implementation of the ordered subset expectation algorithm using the one-step-late method to include prior information: :math:`\hat{f}^{n,m+1} = \left[\frac{1}{H_m^T 1  + \beta \frac{\partial V}{\partial \hat{f}}|_{\hat{f}=\hat{f}^{n,m}}} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}`.
@@ -179,8 +179,8 @@ class OSEMOSL(StatisticalIterative):
                 else:
                     prior = 0
                 self.object_prediction = self.object_prediction * ratio_BP / (norm_BP + prior + pytomography.delta)
-            if self.callback is not None:
-                self._compute_callback(n_iter=j)
+                if self.callback is not None:
+                    self._compute_callback(n_iter=j, n_subset=k)
         # Set unique string for identifying the type of reconstruction
         self._set_recon_name(n_iters, n_subsets)
         # Set previous subsets used, for if normalization factors need to be recomputed for different subset config in future __call__

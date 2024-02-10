@@ -20,13 +20,13 @@ from pytomography.utils import (
     get_mu_from_spectrum_interp,
 )
 from ..CT import (
-    get_HU2mu_conversion,
-    open_CT_file,
-    compute_max_slice_loc_CT,
-    compute_slice_thickness_CT,
+    get_HU2mu_conversion
 )
-from ..shared import create_ds
-
+from ..shared import (
+    open_multifile,
+    _get_affine_multifile,
+    create_ds
+)
 
 def parse_projection_dataset(
     ds: Dataset,
@@ -352,11 +352,11 @@ def get_attenuation_map_from_CT_slices(
         torch.Tensor: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.
     """
 
-    CT_HU = open_CT_file(files_CT)
+    CT_HU = open_multifile(files_CT)
 
     if file_NM is None:
         return (
-            torch.tensor(CT_HU[:, :, ::-1].copy())
+            torch.tensor(CT_HU.copy())
             .unsqueeze(dim=0)
             .to(pytomography.dtype)
             .to(pytomography.device)
@@ -367,12 +367,12 @@ def get_attenuation_map_from_CT_slices(
         CT_output_shape = (ds_NM.Rows, ds_NM.Rows, ds_NM.Columns)
     if apply_affine:
         # Align with SPECT:
-        M_CT = _get_affine_CT(files_CT)
+        M_CT = _get_affine_multifile(files_CT)
         M_NM = _get_affine_spect_projections(file_NM)
         # Resample CT and convert to mu at 208keV and save
         M = npl.inv(M_CT) @ M_NM
         CT_HU = affine_transform(
-            CT_HU, M, output_shape=CT_output_shape, mode=mode, cval=-1500
+            CT_HU[:,:,::-1], M, output_shape=CT_output_shape, mode=mode, cval=-1500
         )
     if keep_as_HU:
         CT = CT_HU
@@ -405,37 +405,15 @@ def _get_affine_spect_projections(filename: str) -> np.array:
         Sx -= ds.Rows / 2 * dx
         Sy -= ds.Rows / 2 * dy
         Sy -= ds.RotationInformationSequence[0].TableHeight
+    # Difference between Siemens and GE
+    # if ds.Manufacturer=='GE MEDICAL SYSTEMS':
+    #     Sz -= ds.RotationInformationSequence[0].TableTraverse
     M = np.zeros((4, 4))
     M[0] = np.array([dx, 0, 0, Sx])
     M[1] = np.array([0, dy, 0, Sy])
     M[2] = np.array([0, 0, -dz, Sz])
     M[3] = np.array([0, 0, 0, 1])
     return M
-
-
-def _get_affine_CT(filenames: Sequence[str]):
-    """Computes an affine matrix corresponding the coordinate system of a CT DICOM file. Note that since CT scans consist of many independent DICOM files, ds corresponds to an individual one of these files. This is why the maximum z value is also required (across all seperate independent DICOM files).
-
-    Args:
-        ds (Dataset): DICOM dataset of CT data
-        max_z (float): Maximum value of z across all axial slices that make up the CT scan
-
-    Returns:
-        np.array: Affine matrix corresponding to CT scan.
-    """
-    # Note: per DICOM convention z actually decreases as the z-index increases (initial z slices start with the head)
-    ds = pydicom.read_file(filenames[0])
-    dz = compute_slice_thickness_CT(filenames)
-    max_z = compute_max_slice_loc_CT(filenames)
-    M = np.zeros((4, 4))
-    M[0:3, 0] = np.array(ds.ImageOrientationPatient[0:3]) * ds.PixelSpacing[0]
-    M[0:3, 1] = np.array(ds.ImageOrientationPatient[3:]) * ds.PixelSpacing[1]
-    M[0:3, 2] = -np.array([0, 0, 1]) * dz
-    M[0:2, 3] = np.array(ds.ImagePositionPatient)[0:2]
-    M[2, 3] = max_z
-    M[3, 3] = 1
-    return M
-
 
 def stitch_multibed(
     recons: torch.Tensor,

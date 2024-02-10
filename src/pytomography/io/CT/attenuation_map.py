@@ -10,7 +10,7 @@ from scipy.signal import find_peaks
 from functools import partial
 import pytomography
 from pytomography.utils import dual_sqrt_exponential, get_E_mu_data_from_datasheet, get_mu_from_spectrum_interp
-from .dicom import open_CT_file
+from ..shared import open_multifile
 
 # Set filepaths of the module
 module_path = os.path.dirname(os.path.abspath(__file__))
@@ -131,7 +131,7 @@ def get_HU_corticalbone(
     Returns:
         float | None: Hounsfield unit of bone. If not found, then returns ``None``.
     """
-    HU_from_CT_slices = open_CT_file(files_CT)
+    HU_from_CT_slices = open_multifile(files_CT)
     x = HU_from_CT_slices.ravel()
     N, bin_edges = np.histogram(x[(x>1200)*(x<1600)], bins=10, density=True)
     bins = bin_edges[:-1] + np.diff(bin_edges)[0]/2

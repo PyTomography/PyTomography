@@ -140,6 +140,8 @@ class RelativeDifferencePrior(NearestNeighbourPrior):
     ) -> None:
         gradient = lambda object, nearest, gamma: (2*(object-nearest)*(gamma*torch.abs(object-nearest)+3*nearest+object) + pytomography.delta) / ((object + nearest + gamma*torch.abs(object-nearest))**2 + pytomography.delta)
         Vr = lambda object, nearest, gamma: (object-nearest)**2 / (object + nearest + gamma*torch.abs(object-nearest) + pytomography.delta)
+        # Needed for noise estimation
+        second_derivative = lambda object, nearest, gamma: (gamma*torch.abs(object-nearest)+object+nearest + pytomography.delta)**(-2) * (2*(gamma*torch.abs(object-nearest)+3*nearest+object) + 2*(object-nearest)*((gamma*(object-nearest))/(torch.abs(object-nearest) + pytomography.delta)+1) - (4*(object-nearest)*(gamma*torch.abs(object-nearest)+3*nearest+object)*((gamma*(object-nearest))/(torch.abs(object-nearest) + pytomography.delta)+1))/(gamma*torch.abs(object-nearest)+object+nearest + pytomography.delta))
         super(RelativeDifferencePrior, self).__init__(beta, gradient, Vr=Vr, gamma=gamma, weight=weight)
         
 class NeighbourWeight():
