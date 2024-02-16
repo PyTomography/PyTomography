@@ -11,11 +11,13 @@ class Prior():
     
     Args:
             beta (float): Used to scale the weight of the prior
+            obj2obj_transforms (Sequence): Sequence of transforms applied after computation of prior or gradients.
 
     """
     @abc.abstractmethod
-    def __init__(self, beta: float):
+    def __init__(self, beta: float, obj2obj_transforms: list[Transform] = []):
         self.beta = beta
+        self.obj2obj_transforms = []
         self.device = pytomography.device
 
     def set_object_meta(self, object_meta: ObjectMeta) -> None:
@@ -44,7 +46,7 @@ class Prior():
         self.object = object
 
     @abc.abstractmethod
-    def compute_gradient(self):
+    def __call__(self):
         """Abstract method to compute the gradient of the prior based on the ``self.object`` attribute.
         """
         ...
