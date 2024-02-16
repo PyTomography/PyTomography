@@ -95,14 +95,15 @@ def get_projections(headerfiles: str | Sequence[str], weights: float = None):
         return _get_projections_from_single_file(headerfiles)
     elif isinstance(headerfiles[0], Sequence) and not isinstance(headerfiles[0], str):
         projections = []
-        for i, headerfiles_i in enumerate(headerfiles):
-            projections_i = []
-            for headerfiles_i_window_j in headerfiles_i:
-                projections_i.append(get_projections(headerfiles_i_window_j))
-            projections_i = torch.cat(projections_i, dim=0)
-            if weights is not None: projections_i *= weights[i]
-            projections.append(projections_i)
-        projections = torch.sum(torch.stack(projections), dim=0)
+        for i, headerfiles_window_i in enumerate(headerfiles):
+            projections_window_i = []
+            for j, headerfiles_window_i_organ_j in enumerate(headerfiles_window_i):
+                projections_window_i_organ_j = get_projections(headerfiles_window_i_organ_j)
+                if weights is not None: projections_window_i_organ_j *= weights[j]
+                projections_window_i.append(projections_window_i_organ_j)
+            projections_window_i = torch.sum(torch.stack(projections_window_i), dim=0)
+            projections.append(projections_window_i)
+        projections = torch.cat(projections, dim=0)
         return projections
     else:
         projections = []
