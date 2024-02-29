@@ -1,4 +1,4 @@
-"""For all priors implemented here, the neighbouring voxels considered are those directly surrounding a given voxel, so :math:`\sum_s` is a sum over 26 points."""
+r"""The code here is implementation of priors that depend on summation over nearest neighbours :math:`s` to voxel :math:`r` given by :math:`V(f) = \beta \sum_{r,s}w_{r,s}\phi_0(f_r, f_s)`. These priors have first order gradients given by :math:`\nabla_r V(f) = \sum_s w_{r,s} \phi_1(f_r, f_s)` where :math:`\phi_1(f_r, f_s) = \nabla_r (\phi_0(f_r, f_s) + \phi_0(f_s, f_r))`. In addition, they have higher order gradients given by :math:`\nabla_{r'r} V(f) = \theta(r-r')\left(\sum_s w_{r,s} \phi_2^{(1)}(f_r, f_s)\right) + w_{r,r'}\phi_2^{(2)}(f_r, f_{r'})` where :math:`\phi_2^{(1)}(f_r, f_s) = \nabla_r \phi_1(f_r, f_s)` and :math:`\phi_2^{(2)}(f_r, f_s) = \nabla_s \phi_1(f_r, f_s)`. The particular :math:`\phi` functions must be implemented by subclasses depending on the functionality required. The second order derivative is only required to be implemented if one wishes to use the prior function in error estimation"""
 
 from __future__ import annotations
 import abc
@@ -12,19 +12,16 @@ from pytomography.utils import get_object_nearest_neighbour
 from pytomography.metadata import ObjectMeta
 
 class NearestNeighbourPrior(Prior):
-    r"""Implementation of priors where gradients depend on summation over nearest neighbours :math:`s` to voxel :math:`r` given by : :math:`\frac{\partial V}{\partial f_r}=\beta\sum_{r,s}w_{r,s}\phi(f_r, f_s)` where :math:`V` is from the log-posterior probability :math:`\ln L (\tilde{f}, f) - \beta V(f)`.
+    r"""Generic class for the nearest neighbour prior.
     
     Args:
             beta (float): Used to scale the weight of the prior
-            phi (Callable): Function :math:`\phi` used in formula above. Input arguments should be :math:`f_r`, :math:`f_s`, and any `kwargs` passed to this initialization function.
-            weight (NeighbourWeight, optional). Weighting scheme to use for nearest neighbours. If ``None``, then uses EuclideanNeighbourWeight. Defaults to None.
+            weight (NeighbourWeight, optional). Weighting scheme to use for nearest neighbours: this specifies :math:`w_{r,s}` above. If ``None``, then uses EuclideanNeighbourWeight, which weights neighbouring voxels based on their euclidean distance. Defaults to None.
     """
     def __init__(
         self,
         beta: float,
-        phi: Callable,
         weight: NeighbourWeight | None = None,
-        Vr: Callable | None = None,
         **kwargs
     ) -> None:
         super(NearestNeighbourPrior, self).__init__(beta)
@@ -32,9 +29,7 @@ class NearestNeighbourPrior(Prior):
             self.weight = EuclideanNeighbourWeight()
         else:
             self.weight = weight
-        self.phi = phi
-        self.Vr = Vr
-        self.kwargs = kwargs
+        self.__dict__.update(kwargs)
         
     def set_object_meta(self, object_meta: ObjectMeta) -> None:
         """Sets object metadata parameters.
@@ -45,13 +40,12 @@ class NearestNeighbourPrior(Prior):
         self.weight.set_object_meta(object_meta)
         self.object_meta = object_meta
         
-
     @torch.no_grad()
-    def compute_gradient(self) -> torch.tensor:
-        r"""Computes the gradient of the prior on ``self.object``
+    def _pair_contribution(self, phi: Callable, beta_scale=False, second_order_derivative_object: torch.Tensor | None = None, swap_object_and_neighbour: bool = False) -> torch.tensor:
+        r"""Helper function used to compute prior and associated gradients
 
         Returns:
-            torch.tensor: Tensor of shape [batch_size, Lx, Ly, Lz] representing :math:`\frac{\partial V}{\partial f_r}`
+            torch.tensor: Tensor of shape [batch_size, Lx, Ly, Lz].
         """
         object_return = torch.zeros(self.object.shape).to(self.device)
         for i in [-1,0,1]:
@@ -60,54 +54,83 @@ class NearestNeighbourPrior(Prior):
                     if (i==0)*(j==0)*(k==0):
                         continue
                     neighbour = get_object_nearest_neighbour(self.object, (i,j,k))
-                    object_return += self.phi(self.object, neighbour, **self.kwargs) * self.weight((i,j,k))
-        return self.beta*self.beta_scale_factor * object_return
-    
-    @torch.no_grad()
-    def compute_prior(self, beta_scale=False) -> float:
-        r"""Computes the value of the prior for ``self.object``
-        
-        Args:
-            beta_scale (bool): Whether or not to use the beta scale factor pertaining to the current subset index. Defaults to False.
-
-        Returns:
-            float: Value of the prior `V(f)`
-        """
-        net_prior = torch.zeros(self.object.shape).to(self.device)
-        for i in [-1,0,1]:
-            for j in [-1,0,1]:
-                for k in [-1,0,1]:
-                    if (i==0)*(j==0)*(k==0):
-                        continue
-                    neighbour = get_object_nearest_neighbour(self.object, (i,j,k))
-                    net_prior += self.Vr(self.object, neighbour, **self.kwargs) * self.weight((i,j,k))
+                    # Only done when computing higher order derivatives for error computation
+                    if second_order_derivative_object is not None:
+                        if swap_object_and_neighbour:
+                            second_order_derivative_object_neighbour = get_object_nearest_neighbour(second_order_derivative_object, (i,j,k))
+                            object_return += phi(neighbour, self.object) * second_order_derivative_object_neighbour * self.weight((i,j,k))
+                        else:
+                            object_return += phi(self.object, neighbour) * second_order_derivative_object * self.weight((i,j,k))
+                    # Done for regular computation of priors
+                    else:
+                        object_return += phi(self.object, neighbour) * self.weight((i,j,k))
+        for transform in self.obj2obj_transforms:
+            object_return = transform.forward(object_return)
         if beta_scale:
             scale_factor = self.beta_scale_factor
         else:
             scale_factor = 1
-        return self.beta * scale_factor * net_prior.sum().item()
+        return self.beta * scale_factor * object_return
     
+    def phi0(self, fr, fs):
+        raise NotImplementedError(f"Prior evaluation not implemented")
+    
+    def phi1(self, fr, fs):
+        raise NotImplementedError(f"Prior derivative of order 1 not implemented: must be implemented for incorporating priors in reconstruction")
+    
+    def phi2_1(self, fr, fs):
+        raise NotImplementedError(f"Prior derivative of order 2 not fully implemented: must implement both phi2_1 and phi2_2 methods")
+    
+    def phi2_2(self, fr, fs):
+        raise NotImplementedError(f"Prior derivative of order 2 not fully implemented: must implement both phi2_1 and phi2_2 methods")
+    
+    def __call__(self, derivative_order: int = 0) -> float | torch.Tensor | Callable:
+        """Used to compute the prior with gradient of specified order. If order 0, then returns a float (the value of the prior). If order 1, then returns a torch.Tensor representative of the prior gradient at each voxel. If order 2, then returns a callable function (representative of a higher order tensor but without storing each component).
+
+        Args:
+            derivative_order (int, optional): The order of the derivative to compute. This will specify the ouput; only possible values are 0, 1, or 2. Defaults to 0.
+
+        Raises:
+            NotImplementedError: for cases where the derivative order is not between 0 and 2.
+
+        Returns:
+            float | torch.Tensor | Callable: The prior with derivative of specified order. 
+        """
+        if derivative_order==0:
+            return self._pair_contribution(self.phi0).sum().item()
+        elif derivative_order==1:
+            return self._pair_contribution(self.phi1, beta_scale=True)
+        elif derivative_order==2:
+            diagonal_component = self._pair_contribution(self.phi2_1, second_order_derivative_object=torch.ones(self.object.shape).to(pytomography.device), beta_scale=True)
+            blur_component = lambda input: self._pair_contribution(self.phi2_2, second_order_derivative_object = input, swap_object_and_neighbour=True, beta_scale=True)
+            return lambda input: diagonal_component * input + blur_component(input)
+        else:
+            raise NotImplementedError(f"Prior not implemented for derivative order >2")
 
 class QuadraticPrior(NearestNeighbourPrior):
-    r"""Subclass of ``NearestNeighbourPrior`` where :math:`\phi(f_r, f_s)= (f_r-f_s)/\delta` corresponds to a quadratic prior :math:`V(f)=\frac{1}{4}\sum_{r,s} w_{r,s} \left(\frac{f_r-f_s}{\delta}\right)^2`
+    r"""Subclass of ``NearestNeighbourPrior`` corresponding to a quadratic prior: namely :math:`\phi_0(f_r, f_s) = 1/4 \left[(fr-fs)/\delta\right]^2` and where the gradient is determined by :math:`\phi_1(f_r, f_s) = (f_r-f_s)/\delta`
     
     Args:
             beta (float): Used to scale the weight of the prior
-            delta (float, optional): Parameter :math:`\delta` in equation above. Defaults to 1.
             weight (NeighbourWeight, optional). Weighting scheme to use for nearest neighbours. If ``None``, then uses EuclideanNeighbourWeight. Defaults to None.
+            delta (float, optional): Parameter :math:`\delta` in equation above. Defaults to 1.
     """
     def __init__(
         self,
         beta: float,
-        delta: float = 1,
         weight: NeighbourWeight | None = None,
+        delta: float = 1,
     ) -> None:
-        gradient = lambda object, nearest, delta: (object-nearest) / delta
-        Vr = lambda object, nearest, delta: 1/4 * ((object-nearest)/delta)**2
-        super(QuadraticPrior, self).__init__(beta, gradient, Vr=Vr, weight=weight, delta=delta)
+        super(QuadraticPrior, self).__init__(beta, weight=weight, delta=delta)
+        
+    def phi0(self, fr, fs):
+        return 1/4 * ((fr - fs)/self.delta)**2
+    
+    def phi1(self, fr, fs):
+        return (fr - fs) / self.delta
 
 class LogCoshPrior(NearestNeighbourPrior):
-    r"""Subclass of ``NearestNeighbourPrior`` where :math:`\phi(f_r,f_s)=\tanh((f_r-f_s)/\delta)` corresponds to the logcosh prior :math:`V(f)=\sum_{r,s} w_{r,s} \log\cosh\left(\frac{f_r-f_s}{\delta}\right)`
+    r"""Subclass of ``NearestNeighbourPrior`` corresponding to a logcosh prior: namely :math:`\phi_0(f_r, f_s) = \tanh((f_r-f_s)/\delta)` and where the gradient is determined by :math:`\phi_1(f_r, f_s) = \log \cosh \left[(f_r-f_s)/\delta\right]`
     
     Args:
             beta (float): Used to scale the weight of the prior
@@ -123,9 +146,15 @@ class LogCoshPrior(NearestNeighbourPrior):
         gradient = lambda object, nearest, delta: torch.tanh((object-nearest) / delta)
         Vr = lambda object, nearest, delta: torch.log(torch.cosh((object-nearest) / delta))
         super(LogCoshPrior, self).__init__(beta, gradient, Vr=Vr, weight=weight, delta=delta)
+        
+    def phi0(self, fr, fs):
+        return torch.tanh((fr - fs) / self.delta)
+    
+    def phi1(self, fr, fs):
+        return torch.tanh((fr - fs) / self.delta)
 
 class RelativeDifferencePrior(NearestNeighbourPrior):
-    r"""Subclass of ``NearestNeighbourPrior`` where :math:`\phi(f_r,f_s)=\frac{2(f_r-f_s)(\gamma|f_r-f_s|+3f_s + f_r)}{(\gamma|f_r-f_s|+f_r+f_s)^2}` corresponds to the relative difference prior :math:`V(f)=\sum_{r,s} w_{r,s} \frac{(f_r-f_s)^2}{f_r+f_s+\gamma|f_r-f_s|}`
+    r"""Subclass of ``NearestNeighbourPrior`` corresponding to the relative difference prior: namely :math:`\phi_0(f_r, f_s) = \frac{(f_r-f_s)^2}{f_r+f_s+\gamma|f_r-f_s|}` and where the gradient is determined by :math:`\phi_1(f_r, f_s) = \frac{2(f_r-f_s)(\gamma|f_r-f_s|+3f_s + f_r)}{(\gamma|f_r-f_s|+f_r+f_s)^2}`
     
     Args:
             beta (float): Used to scale the weight of the prior
@@ -133,14 +162,24 @@ class RelativeDifferencePrior(NearestNeighbourPrior):
             weight (NeighbourWeight, optional). Weighting scheme to use for nearest neighbours. If ``None``, then uses EuclideanNeighbourWeight. Defaults to None.
     """
     def __init__(
-        self, 
-        beta: float = 1, 
-        gamma: float = 1, 
+        self,
+        beta: float,
         weight: NeighbourWeight | None = None,
+        gamma: float = 1,
     ) -> None:
-        gradient = lambda object, nearest, gamma: (2*(object-nearest)*(gamma*torch.abs(object-nearest)+3*nearest+object) + pytomography.delta) / ((object + nearest + gamma*torch.abs(object-nearest))**2 + pytomography.delta)
-        Vr = lambda object, nearest, gamma: (object-nearest)**2 / (object + nearest + gamma*torch.abs(object-nearest) + pytomography.delta)
-        super(RelativeDifferencePrior, self).__init__(beta, gradient, Vr=Vr, gamma=gamma, weight=weight)
+        super(RelativeDifferencePrior, self).__init__(beta, weight=weight, gamma = gamma)
+        
+    def phi0(self, fr, fs):
+        return (fr-fs)**2 / (fr + fs + self.gamma*torch.abs(fr-fs) + pytomography.delta)
+    
+    def phi1(self, fr, fs):
+        return (2*(fr-fs)*(self.gamma*torch.abs(fr-fs)+3*fs+fr) + pytomography.delta) / ((fr + fs + self.gamma*torch.abs(fr-fs))**2 + pytomography.delta)
+    
+    def phi2_1(self, fr, fs):
+        return 16*fs**2 / ((self.gamma*torch.abs(fr-fs) + fr + fs)**3 + pytomography.delta)
+    
+    def phi2_2(self, fr, fs):
+        return -16*fr*fs / ((self.gamma*torch.abs(fr-fs) + fr + fs)**3 + pytomography.delta)
         
 class NeighbourWeight():
     r"""Abstract class for assigning weight :math:`w_{r,s}` in nearest neighbour priors. 

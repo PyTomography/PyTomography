@@ -1,1 +1,1 @@
-from .spect_system_matrix import SPECTSystemMatrix, SPECTSystemMatrixMaskedSegments
+from .spect_system_matrix import SPECTSystemMatrix, SPECTCompleteSystemMatrix

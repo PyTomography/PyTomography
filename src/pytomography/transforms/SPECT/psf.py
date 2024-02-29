@@ -58,10 +58,10 @@ class ArbitraryPSFNet(nn.Module):
         ) -> None:
         super(ArbitraryPSFNet, self).__init__()
         self.kernel_f = kernel_f
-        self.kernel_size = kernel_size
+        self.kernel_size = 240#kernel_size
         self.distances = distances
-        self.x_eval = np.arange(-(kernel_size-1)/2, (kernel_size+1)/2, 1) * dr[0]
-        self.y_eval = np.arange(-(kernel_size-1)/2, (kernel_size+1)/2, 1) * dr[1]
+        self.x_eval = torch.arange(-(self.kernel_size-1)/2, (self.kernel_size+1)/2, 1).to(pytomography.device) * dr[0]
+        self.y_eval = torch.arange(-(self.kernel_size-1)/2, (self.kernel_size+1)/2, 1).to(pytomography.device) * dr[1]
 
     @torch.no_grad()
     def forward(self, input):
@@ -74,8 +74,8 @@ class ArbitraryPSFNet(nn.Module):
             torch.tensor: Blurred object, adjusted such that subsequent summation along the x-axis models the CDR
         """
         groups = input.shape[1]
-        kernel = torch.tensor(np.array([self.kernel_f(self.x_eval, self.y_eval, d) for d in self.distances])).unsqueeze(1).to(pytomography.device).to(pytomography.dtype)
-        net = FFTConv2d(groups, groups, self.kernel_size, padding=int((self.kernel_size-1)/2), groups=groups, bias=False).to(pytomography.device)
+        kernel = torch.vstack([self.kernel_f(self.x_eval, self.y_eval, d) for d in self.distances]).unsqueeze(1).to(pytomography.device).to(pytomography.dtype)
+        net = FFTConv2d(groups, groups, self.kernel_size, padding='same', groups=groups, bias=False).to(pytomography.device)
         net.weight = torch.nn.Parameter(kernel)
         return net(input)
 
@@ -147,7 +147,7 @@ class SPECTPSFTransform(Transform):
         """Internal function to configure arbitrary kernel modeling. This is called when `kernel_f` is given in initialization
         """
         self.layers = {}
-        kernel_size = self.object_meta.shape[0] - 1
+        kernel_size = 2*self.object_meta.shape[0]
         for radius in np.unique(self.proj_meta.radii):
             dim = self.object_meta.shape[0] + 2*compute_pad_size(self.object_meta.shape[0])
             distances = get_distance(dim, radius, self.object_meta.dx)
