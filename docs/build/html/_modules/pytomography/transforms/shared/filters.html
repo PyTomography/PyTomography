@@ -8,7 +8,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.transforms.shared.filters &#8212; PyTomography 1.3.2 documentation</title>
+    <title>pytomography.transforms.shared.filters &#8212; PyTomography 2.0.0 documentation</title>
   
   
   
@@ -343,7 +343,7 @@ document.write(`
 <span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ProjMeta</span>
 <span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
 
-<div class="viewcode-block" id="GaussianFilter"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/index.html#pytomography.transforms.GaussianFilter">[docs]</a><span class="k">class</span> <span class="nc">GaussianFilter</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
+<div class="viewcode-block" id="GaussianFilter"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/index.html#pytomography.transforms.shared.filters.GaussianFilter">[docs]</a><span class="k">class</span> <span class="nc">GaussianFilter</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Applies a Gaussian smoothing filter to the reconstructed object with the specified full-width-half-max (FWHM)</span>
 
 <span class="sd">    Args:</span>
@@ -354,7 +354,7 @@ document.write(`
         <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="n">FWHM</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">)))</span> 
         <span class="bp">self</span><span class="o">.</span><span class="n">n_sigmas</span> <span class="o">=</span> <span class="n">n_sigmas</span>
         
-<div class="viewcode-block" id="GaussianFilter.configure"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/index.html#pytomography.transforms.GaussianFilter.configure">[docs]</a>    <span class="k">def</span> <span class="nf">configure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_meta</span><span class="p">:</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">proj_meta</span><span class="p">:</span> <span class="n">ProjMeta</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="GaussianFilter.configure"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/index.html#pytomography.transforms.shared.filters.GaussianFilter.configure">[docs]</a>    <span class="k">def</span> <span class="nf">configure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_meta</span><span class="p">:</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">proj_meta</span><span class="p">:</span> <span class="n">ProjMeta</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Configures the transform to the object/proj metadata. This is done after creating the network so that it can be adjusted to the system matrix.</span>
 
 <span class="sd">        Args:</span>
@@ -365,7 +365,7 @@ document.write(`
         <span class="bp">self</span><span class="o">.</span><span class="n">proj_meta</span> <span class="o">=</span> <span class="n">proj_meta</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_get_kernels</span><span class="p">()</span></div>
         
-<div class="viewcode-block" id="GaussianFilter._get_kernels"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/index.html#pytomography.transforms.GaussianFilter._get_kernels">[docs]</a>    <span class="k">def</span> <span class="nf">_get_kernels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="GaussianFilter._get_kernels"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/index.html#pytomography.transforms.shared.filters.GaussianFilter._get_kernels">[docs]</a>    <span class="k">def</span> <span class="nf">_get_kernels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Obtains required kernels for smoothing</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">kernels</span> <span class="o">=</span> <span class="p">[]</span>
@@ -376,11 +376,11 @@ document.write(`
             <span class="n">k</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="o">/</span><span class="n">k</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span></div>
             
-<div class="viewcode-block" id="GaussianFilter.__call__"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/index.html#pytomography.transforms.GaussianFilter.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="GaussianFilter.__call__"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/index.html#pytomography.transforms.shared.filters.GaussianFilter.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">object</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Alternative way to call&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span></div>
             
-<div class="viewcode-block" id="GaussianFilter.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/index.html#pytomography.transforms.GaussianFilter.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="GaussianFilter.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/index.html#pytomography.transforms.shared.filters.GaussianFilter.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">object</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Applies the Gaussian smoothing</span>
 
 <span class="sd">        Args:</span>
@@ -398,7 +398,7 @@ document.write(`
             <span class="nb">object</span><span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
         <span class="k">return</span> <span class="nb">object</span></div>
             
-<div class="viewcode-block" id="GaussianFilter.backward"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/index.html#pytomography.transforms.GaussianFilter.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="n">norm_constant</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="GaussianFilter.backward"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/index.html#pytomography.transforms.shared.filters.GaussianFilter.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="n">norm_constant</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Applies Gaussian smoothing in back projection. Because the operation is symmetric, it is the same as the forward projection.</span>
 
 <span class="sd">        Args:</span>

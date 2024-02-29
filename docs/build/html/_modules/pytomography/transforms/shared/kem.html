@@ -8,7 +8,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.transforms.shared.kem &#8212; PyTomography 1.3.2 documentation</title>
+    <title>pytomography.transforms.shared.kem &#8212; PyTomography 2.0.0 documentation</title>
   
   
   
@@ -345,7 +345,7 @@ document.write(`
 <span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">ObjectMeta</span><span class="p">,</span> <span class="n">ProjMeta</span>
 
 
-<div class="viewcode-block" id="KEMTransform"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/kem/index.html#pytomography.transforms.KEMTransform">[docs]</a><span class="k">class</span> <span class="nc">KEMTransform</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
+<div class="viewcode-block" id="KEMTransform"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/kem/index.html#pytomography.transforms.shared.KEMTransform">[docs]</a><span class="k">class</span> <span class="nc">KEMTransform</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Object to object transform used to take in a coefficient image :math:`\alpha` and return an image estimate :math:`f = K\alpha`. This transform implements the matrix :math:`K`.</span>
 
 <span class="sd">    Args:</span>
@@ -398,7 +398,7 @@ document.write(`
         <span class="bp">self</span><span class="o">.</span><span class="n">kernel_on_gpu</span> <span class="o">=</span> <span class="n">kernel_on_gpu</span>
         
     
-<div class="viewcode-block" id="KEMTransform.compute_kernel"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/kem/index.html#pytomography.transforms.KEMTransform.compute_kernel">[docs]</a>    <span class="k">def</span> <span class="nf">compute_kernel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="KEMTransform.compute_kernel"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/kem/index.html#pytomography.transforms.shared.KEMTransform.compute_kernel">[docs]</a>    <span class="k">def</span> <span class="nf">compute_kernel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">support_objects</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
         <span class="c1"># Keep kernel on CPU until its used (its too big for GPU)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="o">*</span><span class="n">shape</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
@@ -424,7 +424,7 @@ document.write(`
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel_on_gpu</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
             
-<div class="viewcode-block" id="KEMTransform.configure"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/kem/index.html#pytomography.transforms.KEMTransform.configure">[docs]</a>    <span class="k">def</span> <span class="nf">configure</span><span class="p">(</span>
+<div class="viewcode-block" id="KEMTransform.configure"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/kem/index.html#pytomography.transforms.shared.KEMTransform.configure">[docs]</a>    <span class="k">def</span> <span class="nf">configure</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">object_meta</span><span class="p">:</span> <span class="n">ObjectMeta</span><span class="p">,</span>
         <span class="n">proj_meta</span><span class="p">:</span> <span class="n">ProjMeta</span>
@@ -439,7 +439,7 @@ document.write(`
         <span class="bp">self</span><span class="o">.</span><span class="n">compute_kernel</span><span class="p">()</span></div>
     
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
-<div class="viewcode-block" id="KEMTransform.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/kem/index.html#pytomography.transforms.KEMTransform.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+<div class="viewcode-block" id="KEMTransform.forward"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/kem/index.html#pytomography.transforms.shared.KEMTransform.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="nb">object</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
@@ -460,7 +460,7 @@ document.write(`
         <span class="k">return</span> <span class="n">object_return</span></div>
         
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
-<div class="viewcode-block" id="KEMTransform.backward"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/kem/index.html#pytomography.transforms.KEMTransform.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span>
+<div class="viewcode-block" id="KEMTransform.backward"><a class="viewcode-back" href="../../../../autoapi/pytomography/transforms/shared/kem/index.html#pytomography.transforms.shared.KEMTransform.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="nb">object</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
 		<span class="n">norm_constant</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>

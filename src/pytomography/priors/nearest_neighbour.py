@@ -1,4 +1,4 @@
-"""The code here is implementation of priors that depend on summation over nearest neighbours :math:`s` to voxel :math:`r` given by :math:`V(f) = \beta \sum_{r,s}w_{r,s}\phi_0(f_r, f_s)`. These priors have first order gradients given by :math:`\nabla_r V(f) = \sum_s w_{r,s} \phi_1(f_r, f_s)` where :math:`\phi_1(f_r, f_s) = \nabla_r (\phi_0(f_r, f_s) + \phi_0(f_s, f_r))`. In addition, they have higher order gradients given by :math:`\nabla_{r'r} V(f) = \theta(r-r')\left(\sum_s w_{r,s} \phi_2^{(1)}(f_r, f_s)\right) + w_{r,r'}\phi_2^{(2)}(f_r, f_{r'})` where :math:`\phi_2^{(1)}(f_r, f_s) = \nabla_r \phi_1(f_r, f_s)` and :math:`\phi_2^{(2)}(f_r, f_s) = \nabla_s \phi_1(f_r, f_s)`. The particular :math:`\phi` functions must be implemented by subclasses depending on the functionality required. The second order derivative is only required to be implemented if one wishes to use the prior function in error estimation"""
+r"""The code here is implementation of priors that depend on summation over nearest neighbours :math:`s` to voxel :math:`r` given by :math:`V(f) = \beta \sum_{r,s}w_{r,s}\phi_0(f_r, f_s)`. These priors have first order gradients given by :math:`\nabla_r V(f) = \sum_s w_{r,s} \phi_1(f_r, f_s)` where :math:`\phi_1(f_r, f_s) = \nabla_r (\phi_0(f_r, f_s) + \phi_0(f_s, f_r))`. In addition, they have higher order gradients given by :math:`\nabla_{r'r} V(f) = \theta(r-r')\left(\sum_s w_{r,s} \phi_2^{(1)}(f_r, f_s)\right) + w_{r,r'}\phi_2^{(2)}(f_r, f_{r'})` where :math:`\phi_2^{(1)}(f_r, f_s) = \nabla_r \phi_1(f_r, f_s)` and :math:`\phi_2^{(2)}(f_r, f_s) = \nabla_s \phi_1(f_r, f_s)`. The particular :math:`\phi` functions must be implemented by subclasses depending on the functionality required. The second order derivative is only required to be implemented if one wishes to use the prior function in error estimation"""
 
 from __future__ import annotations
 import abc
@@ -123,10 +123,10 @@ class QuadraticPrior(NearestNeighbourPrior):
     ) -> None:
         super(QuadraticPrior, self).__init__(beta, weight=weight, delta=delta)
         
-    def phi0(fr, fs):
+    def phi0(self, fr, fs):
         return 1/4 * ((fr - fs)/self.delta)**2
     
-    def phi1(fr, fs):
+    def phi1(self, fr, fs):
         return (fr - fs) / self.delta
 
 class LogCoshPrior(NearestNeighbourPrior):

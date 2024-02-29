@@ -37,6 +37,14 @@ Classes
 
 
 
+   .. py:method:: _get_object_initial()
+
+      Returns an initial object estimate used in reconstruction algorithms. By default, this is a tensor of ones with the same shape as the object metadata.
+
+      :returns: Initial object used in image reconstruction algorithms.
+      :rtype: torch.Tensor
+
+
    .. py:method:: forward(object, **kwargs)
       :abstractmethod:
 

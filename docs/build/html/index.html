@@ -9,7 +9,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
-    <title>PyTomography &#8212; PyTomography 1.3.2 documentation</title>
+    <title>PyTomography &#8212; PyTomography 2.0.0 documentation</title>
   
   
   
@@ -314,7 +314,7 @@ document.write(`
 <p>PyTomography is a python library for medical image reconstruction. It uses the functionality of PyTorch to (i) enable fast GPU-accelerated reconstruction and (ii) permit easy integration of deep-learning models in traditional reconstruction algorithms. <strong>If you use PyTomography in your own research, please cite the following:</strong> <a class="reference external" href="https://arxiv.org/abs/2309.01977">https://arxiv.org/abs/2309.01977</a></p>
 <section id="features">
 <h2>Features<a class="headerlink" href="#features" title="Permalink to this heading">#</a></h2>
-<p><strong>Supported Modalities</strong></p>
+<p><strong>Modalities</strong></p>
 <ul class="simple">
 <li><p>Single Photon Computed Emission Tomography (SPECT)</p>
 <ul>
@@ -335,7 +335,7 @@ document.write(`
 <li><p>Statistical Iterative Algorithms</p>
 <ul>
 <li><p>OSEM / MLEM</p></li>
-<li><p>OSEMOSL (see <a class="reference external" href="https://ieeexplore.ieee.org/document/52985">here</a>)</p></li>
+<li><p>OSMAPOSL (see <a class="reference external" href="https://ieeexplore.ieee.org/document/52985">here</a>)</p></li>
 <li><p>BSREM (see <a class="reference external" href="https://ieeexplore.ieee.org/document/1207396">here</a>)</p></li>
 <li><p>KEM (see <a class="reference external" href="https://ieeexplore.ieee.org/abstract/document/6868314">here</a>)</p></li>
 <li><p>DIPRecon (see <a class="reference external" href="https://ieeexplore.ieee.org/document/8581448">here</a>)</p></li>
@@ -343,7 +343,7 @@ document.write(`
 </li>
 </ul>
 <p>Options exist to include anatomical information (such as MRI/CT) when using priors/regularization.</p>
-<p><strong>Supported Datatypes</strong></p>
+<p><strong>Datatypes</strong></p>
 <ul class="simple">
 <li><p>DICOM (SPECT)</p>
 <ul>
@@ -367,6 +367,10 @@ document.write(`
 <li><p>ability to read PETSIRD files, which contain all detected events and scanner geometry information</p></li>
 </ul>
 </li>
+</ul>
+<p><strong>Additional</strong></p>
+<ul class="simple">
+<li><p>Uncertainty estimation</p></li>
 </ul>
 </section>
 <section id="installation">

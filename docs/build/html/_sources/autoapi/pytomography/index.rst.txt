@@ -13,6 +13,7 @@ Subpackages
    algorithms/index.rst
    callbacks/index.rst
    io/index.rst
+   likelihoods/index.rst
    metadata/index.rst
    priors/index.rst
    projectors/index.rst

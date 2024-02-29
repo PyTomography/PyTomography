@@ -3,3 +3,4 @@
 
 from .simind import get_projections, get_attenuation_map, get_scatter_from_TEW
 from .dicom import get_projections, get_attenuation_map_from_file, get_attenuation_map_from_CT_slices, get_scatter_from_TEW, get_psfmeta_from_scanner_params, CT_to_mumap
+from .shared import reduce_amap, reduce_projections

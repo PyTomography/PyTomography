@@ -6,3 +6,4 @@ notebook_testing
 stir_testing
 dist/
 test_files
+docs/build

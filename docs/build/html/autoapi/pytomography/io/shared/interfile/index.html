@@ -9,7 +9,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
-    <title>pytomography.io.shared.interfile &#8212; PyTomography 1.3.2 documentation</title>
+    <title>pytomography.io.shared.interfile &#8212; PyTomography 2.0.0 documentation</title>
   
   
   
@@ -43,7 +43,7 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'autoapi/pytomography/io/shared/interfile/index';</script>
     <link rel="index" title="Index" href="../../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../../search.html" />
-    <link rel="next" title="pytomography.metadata" href="../../../metadata/index.html" />
+    <link rel="next" title="pytomography.likelihoods" href="../../../likelihoods/index.html" />
     <link rel="prev" title="pytomography.io.shared.dicom_creation" href="../dicom_creation/index.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
@@ -294,19 +294,20 @@ document.write(`
   <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
 <li class="toctree-l1 current active has-children"><a class="reference internal" href="../../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../../algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../algorithms/dip_recon/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.dip_recon</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../algorithms/fbp/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.fbp</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../algorithms/statistical_iterative/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.statistical_iterative</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../algorithms/preconditioned_gradient_ascent/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.preconditioned_gradient_ascent</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../../callbacks/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-3"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../callbacks/callback/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.callback</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../callbacks/data_saving/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.data_saving</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../callbacks/likelihood/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.likelihood</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2 current active has-children"><a class="reference internal" href="../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-4"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../CT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.CT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-5"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../CT/attenuation_map/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.CT.attenuation_map</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../CT/dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.CT.dicom</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-6"><i class="fa-solid fa-chevron-down"></i></label><ul>
@@ -317,44 +318,51 @@ document.write(`
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-7"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../SPECT/dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../SPECT/shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.shared</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../SPECT/simind/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.simind</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3 current active has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.shared</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-8"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.shared.dicom</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../dicom_creation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.shared.dicom_creation</span></code></a></li>
 <li class="toctree-l4 current active"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.shared.interfile</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../../metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-9"><i class="fa-solid fa-chevron-down"></i></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../metadata/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-10"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../likelihoods/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.likelihoods</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-9"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../likelihoods/likelihood/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.likelihoods.likelihood</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../likelihoods/poisson_log_likelihood/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.likelihoods.poisson_log_likelihood</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-10"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../metadata/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-11"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../metadata/PET/pet_tof_metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.PET.pet_tof_metadata</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../metadata/PET/petlm_metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.PET.petlm_metadata</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../metadata/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-11"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../metadata/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-12"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../metadata/SPECT/spect_metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.SPECT.spect_metadata</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../metadata/metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.metadata</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../../priors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-12"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../priors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-13"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../priors/nearest_neighbour/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.nearest_neighbour</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../priors/prior/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.prior</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../../projectors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-13"><i class="fa-solid fa-chevron-down"></i></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../projectors/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-14"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../projectors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-14"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../projectors/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-15"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../projectors/PET/petlm_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.PET.petlm_system_matrix</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../projectors/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-15"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../projectors/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-16"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../projectors/SPECT/spect_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT.spect_system_matrix</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../projectors/shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-16"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../projectors/shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-17"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../projectors/shared/kem_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.shared.kem_system_matrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../projectors/shared/motion_correction_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.shared.motion_correction_system_matrix</span></code></a></li>
 </ul>
@@ -362,14 +370,14 @@ document.write(`
 <li class="toctree-l3"><a class="reference internal" href="../../../projectors/system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.system_matrix</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../../transforms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-17"><i class="fa-solid fa-chevron-down"></i></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../transforms/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-18"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../transforms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-18"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../transforms/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-19"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../transforms/SPECT/attenuation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.attenuation</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../transforms/SPECT/cutoff/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.cutoff</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../transforms/SPECT/psf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.psf</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../transforms/shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-19"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../transforms/shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-20"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../transforms/shared/filters/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.filters</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../transforms/shared/kem/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.kem</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../transforms/shared/motion/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.motion</span></code></a></li>
@@ -379,7 +387,7 @@ document.write(`
 <li class="toctree-l3"><a class="reference internal" href="../../../transforms/transform/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.transform</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../../utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-20"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-21"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../utils/fourier_filters/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.fourier_filters</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../utils/misc/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.misc</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../utils/nist_data/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.nist_data</span></code></a></li>
@@ -533,11 +541,11 @@ document.write(`
       </div>
     </a>
     <a class="right-next"
-       href="../../../metadata/index.html"
+       href="../../../likelihoods/index.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata</span></code></p>
+        <p class="prev-next-title"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.likelihoods</span></code></p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>

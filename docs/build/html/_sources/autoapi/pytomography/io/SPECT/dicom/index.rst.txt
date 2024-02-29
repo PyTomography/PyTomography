@@ -23,10 +23,9 @@ Functions
    pytomography.io.SPECT.dicom.CT_to_mumap
    pytomography.io.SPECT.dicom.get_attenuation_map_from_CT_slices
    pytomography.io.SPECT.dicom._get_affine_spect_projections
-   pytomography.io.SPECT.dicom._get_affine_CT
    pytomography.io.SPECT.dicom.stitch_multibed
+   pytomography.io.SPECT.dicom.get_aligned_rtstruct
    pytomography.io.SPECT.dicom.save_dcm
-   pytomography.io.SPECT.dicom.open_SPECT_file
 
 
 
@@ -177,19 +176,6 @@ Functions
    :rtype: np.array
 
 
-.. py:function:: _get_affine_CT(filenames)
-
-   Computes an affine matrix corresponding the coordinate system of a CT DICOM file. Note that since CT scans consist of many independent DICOM files, ds corresponds to an individual one of these files. This is why the maximum z value is also required (across all seperate independent DICOM files).
-
-   :param ds: DICOM dataset of CT data
-   :type ds: Dataset
-   :param max_z: Maximum value of z across all axial slices that make up the CT scan
-   :type max_z: float
-
-   :returns: Affine matrix corresponding to CT scan.
-   :rtype: np.array
-
-
 .. py:function:: stitch_multibed(recons, files_NM, method = 'midslice')
 
    Stitches together multiple reconstructed objects corresponding to different bed positions.
@@ -205,6 +191,25 @@ Functions
    :rtype: torch.Tensor[1, Lx, Ly, Lz']
 
 
+.. py:function:: get_aligned_rtstruct(file_RT, file_NM, dicom_series_path, rt_struct_name, cutoff_value=0.5)
+
+   Loads an RT struct file and aligns it with SPECT projection data corresponding to ``file_NM``.
+
+   :param file_RT: Filepath of the RT Struct file
+   :type file_RT: str
+   :param file_NM: Filepath of the NM file (used to align the RT struct)
+   :type file_NM: str
+   :param dicom_series_path: Filepath of the DICOM series linked to the RTStruct file (required for loading RTStructs).
+   :type dicom_series_path: str
+   :param rt_struct_name: Name of the desired RT struct.
+   :type rt_struct_name: str
+   :param cutoff_value: After interpolation is performed to align the mask in the new frame, mask voxels with values less than this are excluded. Defaults to 0.5.
+   :type cutoff_value: float, optional
+
+   :returns: RTStruct mask aligned with SPECT data.
+   :rtype: torch.Tensor
+
+
 .. py:function:: save_dcm(save_path, object, file_NM, recon_name = '')
 
    Saves the reconstructed object `object` to a series of DICOM files in the folder given by `save_path`. Requires the filepath of the projection data `file_NM` to get Study information.
@@ -217,16 +222,5 @@ Functions
    :type file_NM: str
    :param recon_name: Type of reconstruction performed. Obtained from the `recon_method_str` attribute of a reconstruction algorithm class.
    :type recon_name: str
-
-
-.. py:function:: open_SPECT_file(files_SPECT)
-
-   Given a list of seperate SPECT DICOM files, opens them up and stacks them together into a single SPECT image.
-
-   :param files_SPECT: List of SPECT DICOM filepaths corresponding to different z slices of the same scan.
-   :type files_SPECT: Sequence[str]
-
-   :returns: SPECT scan with units of vendor.
-   :rtype: np.array
 
 

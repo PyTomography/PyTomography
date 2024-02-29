@@ -9,7 +9,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
-    <title>Reconstructing SIMIND Data &#8212; PyTomography 1.3.2 documentation</title>
+    <title>SIMIND Data Introduction &#8212; PyTomography 2.0.0 documentation</title>
   
   
   
@@ -319,7 +319,7 @@ document.write(`
         <i class="fa-solid fa-home"></i>
       </a>
     </li>
-    <li class="breadcrumb-item active" aria-current="page">Reconstructing SIMIND Data</li>
+    <li class="breadcrumb-item active" aria-current="page">SIMIND Data Introduction</li>
   </ul>
 </nav>
 </div>
@@ -593,20 +593,29 @@ div.rendered_html tbody tr:hover {
   background: rgba(66, 165, 245, 0.2);
 }
 </style>
-<section id="Reconstructing-SIMIND-Data">
-<h1>Reconstructing SIMIND Data<a class="headerlink" href="#Reconstructing-SIMIND-Data" title="Permalink to this heading">#</a></h1>
+<section id="SIMIND-Data-Introduction">
+<h1>SIMIND Data Introduction<a class="headerlink" href="#SIMIND-Data-Introduction" title="Permalink to this heading">#</a></h1>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">pytomography.io.SPECT</span> <span class="kn">import</span> <span class="n">simind</span>
-<span class="kn">from</span> <span class="nn">pytomography.projectors</span> <span class="kn">import</span> <span class="n">SPECTSystemMatrix</span>
-<span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">SPECTAttenuationTransform</span><span class="p">,</span> <span class="n">SPECTPSFTransform</span>
-<span class="kn">from</span> <span class="nn">pytomography.algorithms</span> <span class="kn">import</span> <span class="n">OSEM</span>
-<span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">GaussianFilter</span>
+<span class="kn">from</span> <span class="nn">pytomography.projectors.SPECT</span> <span class="kn">import</span> <span class="n">SPECTSystemMatrix</span>
+<span class="kn">from</span> <span class="nn">pytomography.transforms.SPECT</span> <span class="kn">import</span> <span class="n">SPECTAttenuationTransform</span><span class="p">,</span> <span class="n">SPECTPSFTransform</span>
+<span class="kn">from</span> <span class="nn">pytomography.algorithms</span> <span class="kn">import</span> <span class="n">OSEM</span><span class="p">,</span> <span class="n">OSMAPOSL</span><span class="p">,</span> <span class="n">BSREM</span><span class="p">,</span> <span class="n">KEM</span>
+<span class="kn">from</span> <span class="nn">pytomography.transforms.shared</span> <span class="kn">import</span> <span class="n">GaussianFilter</span>
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">poisson</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">pytomography</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">pytomography.callbacks</span> <span class="kn">import</span> <span class="n">Callback</span>
+<span class="kn">from</span> <span class="nn">pytomography.priors</span> <span class="kn">import</span> <span class="n">RelativeDifferencePrior</span>
+<span class="kn">from</span> <span class="nn">pytomography.priors</span> <span class="kn">import</span> <span class="n">TopNAnatomyNeighbourWeight</span>
+<span class="kn">from</span> <span class="nn">pytomography.likelihoods</span> <span class="kn">import</span> <span class="n">PoissonLogLikelihood</span>
+<span class="kn">from</span> <span class="nn">pytomography.transforms.shared</span> <span class="kn">import</span> <span class="n">KEMTransform</span>
+<span class="kn">from</span> <span class="nn">pytomography.projectors.shared</span> <span class="kn">import</span> <span class="n">KEMSystemMatrix</span>
 </pre></div>
 </div>
 </div>
@@ -619,62 +628,125 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-<section id="Case-1:-Single-Projection-File">
-<h2>Case 1: Single Projection File<a class="headerlink" href="#Case-1:-Single-Projection-File" title="Permalink to this heading">#</a></h2>
-<p>When running SIMIND simulations, it is commonly the case that organs, background, and lesions are simulated seperately and then added together in projection space after the fact. For now, lets consider the liver region, and how it would look to simulate/reconstruct a scan consisting only of a liver.</p>
+<section id="1.-Opening-Projection-Data">
+<h2>1. Opening Projection Data<a class="headerlink" href="#1.-Opening-Projection-Data" title="Permalink to this heading">#</a></h2>
+<p>SIMIND simulation data consists of header files <code class="docutils literal notranslate"><span class="pre">filename.h00</span></code> consisting of metadata and associated data files <code class="docutils literal notranslate"><span class="pre">filename.a00</span></code> corresponding to the associated data. To open a single SIMIND simulation file, we use the <code class="docutils literal notranslate"><span class="pre">simind.get_projections</span></code> function</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">photopeak_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="s1">&#39;liver&#39;</span><span class="p">,</span> <span class="s1">&#39;photopeak.h00&#39;</span><span class="p">)</span>
-<span class="n">upperscatter_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="s1">&#39;liver&#39;</span><span class="p">,</span> <span class="s1">&#39;lowerscatter.h00&#39;</span><span class="p">)</span>
-<span class="n">lowerscatter_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="s1">&#39;liver&#39;</span><span class="p">,</span> <span class="s1">&#39;upperscatter.h00&#39;</span><span class="p">)</span>
-<span class="n">attenuation_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;single_projections&#39;</span><span class="p">,</span> <span class="s1">&#39;body1.hct&#39;</span><span class="p">)</span>
+<span class="n">photopeak</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_projections</span><span class="p">(</span><span class="n">photopeak_path</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<p>Open required metadata for reconstruction</p>
-<div class="nbinput nblast docutils container">
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">object_meta</span><span class="p">,</span> <span class="n">proj_meta</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_metadata</span><span class="p">(</span><span class="n">photopeak_path</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">photopeak</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">photopeak</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>  <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;Counts per second per MBq&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
-<p>Open the projection data corresponding to the photopeak:</p>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+torch.Size([1, 120, 128, 384])
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_t_siminddata_7_1.png" src="../_images/notebooks_t_siminddata_7_1.png" />
+</div>
+</div>
+<p>The projection file has shape (1,120,128,384) implying there is 1 energy window, and 120 2D projections of shape 128 <span class="math notranslate nohighlight">\(\times\)</span> 384.</p>
+<p>To open multiple energy windows at once, we feed them in as a list:</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">photopeak</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_projections</span><span class="p">(</span><span class="n">photopeak_path</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">photopeak_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="s1">&#39;liver&#39;</span><span class="p">,</span> <span class="s1">&#39;photopeak.h00&#39;</span><span class="p">)</span>
+<span class="n">upperscatter_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="s1">&#39;liver&#39;</span><span class="p">,</span> <span class="s1">&#39;lowerscatter.h00&#39;</span><span class="p">)</span>
+<span class="n">lowerscatter_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="s1">&#39;liver&#39;</span><span class="p">,</span> <span class="s1">&#39;upperscatter.h00&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<p>The data generated in SIMIND has units of counts per second per MBQ. A real SPECT scan has units of counts. The reason SIMIND provides these units is that * it allows one to scale for (i) different net patient activities and (ii) different scanner acquisition times * multiple noise realizations can be obtained. Once counts are obtained using (i) and (ii) above, the “real number” data is used as Poisson mean values, and noise realizations are generated</p>
-<div class="nbinput nblast docutils container">
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">activity</span> <span class="o">=</span> <span class="mi">100</span> <span class="c1"># MBq</span>
-<span class="n">projection_time</span> <span class="o">=</span> <span class="mi">15</span> <span class="c1">#seconds, typical of Lu177 scan</span>
-<span class="n">photopeak</span> <span class="o">=</span> <span class="n">poisson</span><span class="p">(</span><span class="n">photopeak</span> <span class="o">*</span> <span class="n">activity</span> <span class="o">*</span> <span class="n">projection_time</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">projections</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_projections</span><span class="p">([</span><span class="n">photopeak_path</span><span class="p">,</span> <span class="n">upperscatter_path</span><span class="p">,</span> <span class="n">lowerscatter_path</span><span class="p">])</span>
+<span class="n">projections</span><span class="o">.</span><span class="n">shape</span>
 </pre></div>
 </div>
 </div>
-<p>The projection data consists of a series of 2D images taken at different angles around the imaged object:</p>
-<div class="nbinput docutils container">
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+torch.Size([3, 120, 128, 384])
+</pre></div></div>
+</div>
+<p>Now each element of the first axis corresponds to each energy window specified from the photopeak and upper/lower scatter windows.</p>
+<p>Sometimes it is the case that multiple regions are simulated seperately in SIMIND and added together in projection space after the fact. To load in projections this way, we need to specify the relative scaling for each seperate region when adding them together</p>
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sample_projections</span> <span class="o">=</span> <span class="n">photopeak</span><span class="p">[</span><span class="mi">0</span><span class="p">,::</span><span class="mi">15</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-<span class="n">sample_angles</span> <span class="o">=</span> <span class="n">proj_meta</span><span class="o">.</span><span class="n">angles</span><span class="p">[::</span><span class="mi">15</span><span class="p">]</span>
-<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mf">2.5</span><span class="p">))</span>
-<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ax</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">axes</span><span class="p">):</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">sample_projections</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">sample_angles</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">:</span><span class="s1">.0f</span><span class="si">}</span><span class="s1">&#39;</span><span class="o">+</span><span class="sa">r</span><span class="s1">&#39;$^{\circ}$&#39;</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
-<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">organs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;bkg&#39;</span><span class="p">,</span> <span class="s1">&#39;liver&#39;</span><span class="p">,</span> <span class="s1">&#39;l_lung&#39;</span><span class="p">,</span> <span class="s1">&#39;r_lung&#39;</span><span class="p">,</span> <span class="s1">&#39;l_kidney&#39;</span><span class="p">,</span> <span class="s1">&#39;r_kidney&#39;</span><span class="p">,</span><span class="s1">&#39;salivary&#39;</span><span class="p">,</span> <span class="s1">&#39;bladder&#39;</span><span class="p">]</span>
+<span class="n">activities</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2500</span><span class="p">,</span> <span class="mi">450</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">90</span><span class="p">]</span> <span class="c1"># MBq</span>
+<span class="n">headerfiles</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="n">organ</span><span class="p">,</span> <span class="s1">&#39;photopeak.h00&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">organ</span> <span class="ow">in</span> <span class="n">organs</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<p>To load all these projections together and combine them, we include the list of headerfiles as a list within a list (to differentiate them between being different scatter windows)</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">projections</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_projections</span><span class="p">([</span><span class="n">headerfiles</span><span class="p">],</span> <span class="n">weights</span><span class="o">=</span><span class="n">activities</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>We can get all three energy windows analogous to the first case:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">headerfiles_lower</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="n">organ</span><span class="p">,</span> <span class="s1">&#39;lowerscatter.h00&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">organ</span> <span class="ow">in</span> <span class="n">organs</span><span class="p">]</span>
+<span class="n">headerfiles_upper</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="n">organ</span><span class="p">,</span> <span class="s1">&#39;upperscatter.h00&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">organ</span> <span class="ow">in</span> <span class="n">organs</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">projections</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_projections</span><span class="p">([</span><span class="n">headerfiles</span><span class="p">,</span> <span class="n">headerfiles_lower</span><span class="p">,</span> <span class="n">headerfiles_upper</span><span class="p">],</span> <span class="n">weights</span><span class="o">=</span><span class="n">activities</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>Let’s plot the first index (photopeak). Because we scaled by activities (units of MBq) in weights, our projections now only have units of counts per second</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">projections</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>  <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;Counts per second&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
@@ -682,46 +754,140 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_siminddata_13_0.png" src="../_images/notebooks_t_siminddata_13_0.png" />
+<img alt="../_images/notebooks_t_siminddata_21_0.png" src="../_images/notebooks_t_siminddata_21_0.png" />
 </div>
 </div>
-<p>Open the estimate for the scatter using the <code class="docutils literal notranslate"><span class="pre">get_scatter_from_TEW</span></code> method:</p>
+<p>If we want to simulate a realistic SPECT scan, we need to multiply by the time acquired per projection and add Poisson noise</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">scatter</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_scatter_from_TEW</span><span class="p">(</span>
-    <span class="n">headerfile_peak</span> <span class="o">=</span> <span class="n">photopeak_path</span><span class="p">,</span>
-    <span class="n">headerfile_lower</span> <span class="o">=</span> <span class="n">lowerscatter_path</span><span class="p">,</span>
-    <span class="n">headerfile_upper</span> <span class="o">=</span> <span class="n">upperscatter_path</span>
-<span class="p">)</span>
-<span class="n">scatter</span> <span class="o">=</span> <span class="n">poisson</span><span class="p">(</span><span class="n">scatter</span> <span class="o">*</span> <span class="n">activity</span> <span class="o">*</span> <span class="n">projection_time</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dT</span> <span class="o">=</span> <span class="mi">15</span> <span class="c1"># seconds per projection</span>
+<span class="n">projections_realization</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="n">projections</span> <span class="o">*</span> <span class="n">dT</span><span class="p">)</span>
+<span class="n">photopeak</span> <span class="o">=</span> <span class="n">projections_realization</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<p>The following transform is used for attenuation correction in the system matrix. It uses a 3D attenuation map generated via SIMIND</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">photopeak</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>  <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;Counts per second&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_t_siminddata_24_0.png" src="../_images/notebooks_t_siminddata_24_0.png" />
+</div>
+</div>
+<p>The scatter can be estimated using the triple energy window technique:</p>
+<div class="math notranslate nohighlight">
+\[s = \left(\frac{p_{upper}}{w_{upper}} + \frac{p_{lower}}{w_{lower}}\right) \frac{w_{peak}}{2}\]</div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">attenuation_map</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_attenuation_map</span><span class="p">(</span><span class="n">attenuation_path</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ww_peak</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_energy_window_width</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">ww_lower</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_energy_window_width</span><span class="p">(</span><span class="n">headerfiles_lower</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">ww_upper</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_energy_window_width</span><span class="p">(</span><span class="n">headerfiles_upper</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">lower_scatter</span> <span class="o">=</span> <span class="n">projections_realization</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">upper_scatter</span> <span class="o">=</span> <span class="n">projections_realization</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">scatter</span> <span class="o">=</span> <span class="p">(</span><span class="n">lower_scatter</span><span class="o">/</span><span class="n">ww_lower</span><span class="o">+</span><span class="n">upper_scatter</span><span class="o">/</span><span class="n">ww_upper</span><span class="p">)</span><span class="o">*</span><span class="n">ww_peak</span><span class="o">/</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">scatter</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>  <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;Counts per second&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_t_siminddata_27_0.png" src="../_images/notebooks_t_siminddata_27_0.png" />
+</div>
+</div>
+<p>Finally, the required metadata for reconstruction (such as pixel/voxel size, projection angles/radii, etc.) can be obtained from one of the headerfiles</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">object_meta</span><span class="p">,</span> <span class="n">proj_meta</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_metadata</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="2.-Creating-The-System-Matrix">
+<h2>2. Creating The System Matrix<a class="headerlink" href="#2.-Creating-The-System-Matrix" title="Permalink to this heading">#</a></h2>
+<p>Once the data and metadata have been loaded, its time to create the system matrix <span class="math notranslate nohighlight">\(H\)</span> the models the SPECT system; this system matrix is required for image reconstruction. This requires building up a sequence of <strong>transforms</strong> that each model seperate phenomena in the imaging modality.</p>
+<p>The following transform is used for attenuation modeling in the system matrix. It uses a 3D attenuation map generated via SIMIND.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">attenuation_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="s1">&#39;mu208.hct&#39;</span><span class="p">)</span>
+<span class="n">attenuation_map</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_attenuation_map</span><span class="p">(</span><span class="n">attenuation_path</span><span class="p">)</span>
 <span class="n">att_transform</span> <span class="o">=</span> <span class="n">SPECTAttenuationTransform</span><span class="p">(</span><span class="n">attenuation_map</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<p>The following allows for PSF modeling in the system matrix:</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<p><strong>As a consistency check, we can make sure the projections and attenuation map are aligned (PyTomography uses the DICOM standard)</strong> 1. A coronal slice of the attenuation map should be aligned with the projection at 0 degrees 2. A sagital slice of the attenuation map should be aligned with the projection at 270 degrees</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">psf_meta</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_psfmeta_from_header</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;single_projections&#39;</span><span class="p">,</span> <span class="s1">&#39;body1t2ew6_tot_w2.hdr&#39;</span><span class="p">))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">141</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">projections</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">142</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">attenuation_map</span><span class="p">[</span><span class="mi">0</span><span class="p">,:,</span><span class="mi">64</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;bone&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">143</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">projections</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">90</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">144</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">attenuation_map</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">64</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;bone&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_t_siminddata_35_0.png" src="../_images/notebooks_t_siminddata_35_0.png" />
+</div>
+</div>
+<p>The following transform is for PSF modeling in the system matrix. It obtains required detector parameters from one of the header files.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">psf_meta</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_psfmeta_from_header</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 <span class="n">psf_transform</span> <span class="o">=</span> <span class="n">SPECTPSFTransform</span><span class="p">(</span><span class="n">psf_meta</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<p>Now we can build our system matrix <span class="math notranslate nohighlight">\(H\)</span>. Both the attenuation transform and PSF transform are fed to the <code class="docutils literal notranslate"><span class="pre">obj2obj_transforms</span></code> argument, with the attenuation transform coming first:</p>
+<p>The system matrix <span class="math notranslate nohighlight">\(H\)</span> is built by using these transforms:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">system_matrix</span> <span class="o">=</span> <span class="n">SPECTSystemMatrix</span><span class="p">(</span>
@@ -733,54 +899,88 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-<p>The system matrix is then used to create the reconstruction algorithm, which in this case is OSEM:</p>
+</section>
+<section id="3.-Defining-The-Likelihood">
+<h2>3. Defining The Likelihood<a class="headerlink" href="#3.-Defining-The-Likelihood" title="Permalink to this heading">#</a></h2>
+<p>The likelihood function specifies <span class="math notranslate nohighlight">\(L(g|f)\)</span> or the likelihood of measuring the data <span class="math notranslate nohighlight">\(g\)</span> given an object estimate <span class="math notranslate nohighlight">\(f\)</span>. Reconstruction algorithms are used to maximize this likelihood. When <span class="math notranslate nohighlight">\(g\)</span> is Poisson (which is always the case for SPECT/PET) the log likelihood takes the form</p>
+<div class="math notranslate nohighlight">
+\[L(g|f) = \sum_i g_i \log (Hf+s)_i - (Hf+s)_i + ...\]</div>
+<p>We specify the likelihood</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reconstruction_algorithm</span> <span class="o">=</span> <span class="n">OSEM</span><span class="p">(</span>
-    <span class="n">projections</span> <span class="o">=</span> <span class="n">photopeak</span><span class="p">,</span>
-    <span class="n">system_matrix</span> <span class="o">=</span> <span class="n">system_matrix</span><span class="p">,</span>
-    <span class="n">scatter</span> <span class="o">=</span> <span class="n">scatter</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">likelihood</span> <span class="o">=</span> <span class="n">PoissonLogLikelihood</span><span class="p">(</span><span class="n">system_matrix</span><span class="p">,</span> <span class="n">photopeak</span><span class="p">,</span> <span class="n">additive_term</span><span class="o">=</span><span class="n">scatter</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<p>Get the reconstructed object</p>
+</section>
+<section id="4.-Reconstruction-Algorithms">
+<h2>4. Reconstruction Algorithms<a class="headerlink" href="#4.-Reconstruction-Algorithms" title="Permalink to this heading">#</a></h2>
+<p>With the likelihood established, we can now reconstruct our data. This tutorial will focus on ordered-subset preconditioned gradient ascent algorithms, which all have the form</p>
+<div class="math notranslate nohighlight">
+\[\hat{f}^{n,m+1} = \hat{f}^{n,m} + C^{n,m+1}(\hat{f}^{n,m}) \left[\nabla_{f^{n,m}} L(g|f^{n,m}) - \beta \nabla_{f^{n,m}} V \right]\]</div>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\hat{f}^{n,m}\)</span> is the object estimate of the nth iteration and the mth subset</p></li>
+<li><p><span class="math notranslate nohighlight">\(C^{n,m+1}(\hat{f}^{n,m})\)</span> is the preconditioner, which can depend on the current image estimate <span class="math notranslate nohighlight">\(\hat{f}^{n,m}\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(\nabla_{f^{n,m}} L(g|f^{n,m})\)</span> is the gradient of the likelihood function</p></li>
+<li><p><span class="math notranslate nohighlight">\(\nabla_{f^{n,m}} V\)</span> is the gradient of some additional penalization or prior function, and <span class="math notranslate nohighlight">\(\beta\)</span> is a scaling factor.</p></li>
+</ul>
+<section id="4.1-OSEM">
+<h3>4.1 OSEM<a class="headerlink" href="#4.1-OSEM" title="Permalink to this heading">#</a></h3>
+<p>The ordered-subset expectation maximum algorithm (OSEM) in SPECT imaging corresponds to</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(C^{n,m+1}(\hat{f}^{n,m}) = \hat{f}^{n,m} / H_T^m 1\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(\nabla_{f^{n,m}} L(g|f^{n,m}) = H_m^T \left(\frac{g_m}{H_m \hat{f}^{n,m} + s_m}-H^T_m 1\right)\)</span> -&gt; this is because of Poisson statistics</p></li>
+<li><p><span class="math notranslate nohighlight">\(V=0\)</span></p></li>
+</ul>
+<p>so the reconstruction algorithm can be written as</p>
+<div class="math notranslate nohighlight">
+\[\hat{f}^{n,m+1} = \left[\frac{1}{H_m^T 1} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s_m}\right)\right] \hat{f}^{n,m}\]</div>
+<p>To reconstruct with OSEM, we first create the reconstruction algorithm, then specify the number of iterations/subsets required for reconstruction.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reconstructed_object</span> <span class="o">=</span> <span class="n">reconstruction_algorithm</span><span class="p">(</span><span class="n">n_iters</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">n_subsets</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<p>PyTomography also has functionality for Gaussian post-smoothing. In this case, we’ll apply post smoothing with a 1cm FWHM.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">post_smoothing_filter</span> <span class="o">=</span> <span class="n">GaussianFilter</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-<span class="n">post_smoothing_filter</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">object_meta</span><span class="p">,</span><span class="n">proj_meta</span><span class="p">)</span>
-<span class="n">reconstructed_object_filt</span> <span class="o">=</span> <span class="n">post_smoothing_filter</span><span class="p">(</span><span class="n">reconstructed_object</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">recon_algorithm</span> <span class="o">=</span> <span class="n">OSEM</span><span class="p">(</span><span class="n">likelihood</span><span class="p">)</span>
+<span class="n">recon_OSEM</span> <span class="o">=</span> <span class="n">recon_algorithm</span><span class="p">(</span><span class="n">n_iters</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="n">n_subsets</span> <span class="o">=</span> <span class="mi">8</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<p>Plot the reconstructed object next to the CT. * The reconstructed object has units of counts, and would need to be adjusted by a proportionality factor if one wants to obtain units of MBq</p>
+<p>The returned object has the following shape:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">recon_OSEM</span><span class="o">.</span><span class="n">shape</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+torch.Size([1, 128, 128, 384])
+</pre></div></div>
+</div>
+<p>Meaning we have 1 3D object of shape 128 <span class="math notranslate nohighlight">\(\times\)</span> 128 <span class="math notranslate nohighlight">\(\times\)</span> 384. We can look at coronal and sagittal slices of the reconstruction:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">121</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">reconstructed_object_filt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[:,</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">recon_OSEM</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[:,</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Reconstructed Object&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Coronal Slice&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">122</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">attenuation_map</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[</span><span class="mi">0</span><span class="p">][:,</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;Greys_r&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">recon_OSEM</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;$\mu$ (CT scan)&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Sagittal Slice&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -789,202 +989,116 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_siminddata_29_0.png" src="../_images/notebooks_t_siminddata_29_0.png" />
+<img alt="../_images/notebooks_t_siminddata_50_0.png" src="../_images/notebooks_t_siminddata_50_0.png" />
 </div>
 </div>
 </section>
-<section id="Case-2:-Multiple-Regions">
-<h2>Case 2: Multiple Regions<a class="headerlink" href="#Case-2:-Multiple-Regions" title="Permalink to this heading">#</a></h2>
-<p>When running simulations with SIMIND, it is standard to run different regions of the body seperately and then combine them together in projection space after the fact. This enables one to create arbtrary organ activities using the same set of simulated data. A few noteworthy things</p>
+</section>
+<section id="4.2-OSMAPOSL">
+<h2>4.2 OSMAPOSL<a class="headerlink" href="#4.2-OSMAPOSL" title="Permalink to this heading">#</a></h2>
+<p>The ordered subset maximum a posteriori one step late (OSMAPOSL) algorithm is an extension of OSEM that encorporates a prior function <span class="math notranslate nohighlight">\(V\)</span></p>
 <ul class="simple">
-<li><p>SIMIND projection data is typically given in units of CPS/MBq where CPS=counts/second. Real life SPECT data consists of units of counts. In order to simulate a realistic scenario, therefore, we need to multiply the projections by some value in MBq, and some value in seconds. The value in MBq corresponds to the total activity of the organ/region you’ve simulated. The value in seconds corresponds to the total projection time.</p></li>
+<li><p><span class="math notranslate nohighlight">\(C^{n,m+1}(\hat{f}^{n,m}) = \frac{\hat{f}^{n,m}}{H_T^m 1 + \beta \nabla_{f^{n,m}} V}\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(\nabla_{f^{n,m}} L(g|f^{n,m}) = H_m^T \left(\frac{g_m}{H_m \hat{f}^{n,m} + s_m}-H^T_m 1\right)\)</span> -&gt; this is because of Poisson statistics</p></li>
 </ul>
-<p>We’ll start by opening up SIMIND projections corresponding to 8 distinct regions of the body, each with activities representative of a true clinical case</p>
+<p>Thus the algorithm can be written as</p>
+<div class="math notranslate nohighlight">
+\[\hat{f}^{n,m+1} = \left[\frac{1}{H_m^T 1  + \beta \nabla_{f^{n,m}} V} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s_m}\right)\right] \hat{f}^{n,m}\]</div>
+<p>The user need to provide the smoothing function <span class="math notranslate nohighlight">\(V\)</span>. In this case, we’ll use a relative difference penalty for each voxel that only includes contributing terms from the 8 nearest neighbours based on the anatomical image.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">beta</span></code> (which is <span class="math notranslate nohighlight">\(\beta\)</span> above) is the scaling factor for the prior</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gamma</span></code> is a hyperparameter for the relative difference prior.</p></li>
+</ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[34]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">organs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;bkg&#39;</span><span class="p">,</span> <span class="s1">&#39;liver&#39;</span><span class="p">,</span> <span class="s1">&#39;l_lung&#39;</span><span class="p">,</span> <span class="s1">&#39;r_lung&#39;</span><span class="p">,</span> <span class="s1">&#39;l_kidney&#39;</span><span class="p">,</span> <span class="s1">&#39;r_kidney&#39;</span><span class="p">,</span><span class="s1">&#39;salivary&#39;</span><span class="p">,</span> <span class="s1">&#39;bladder&#39;</span><span class="p">]</span>
-<span class="n">activities</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2500</span><span class="p">,</span> <span class="mi">450</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">90</span><span class="p">]</span> <span class="c1"># MBq</span>
-<span class="n">headerfiles</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="n">organ</span><span class="p">,</span> <span class="s1">&#39;photopeak.h00&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">organ</span> <span class="ow">in</span> <span class="n">organs</span><span class="p">]</span>
-<span class="n">headerfiles_lower</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="n">organ</span><span class="p">,</span> <span class="s1">&#39;lowerscatter.h00&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">organ</span> <span class="ow">in</span> <span class="n">organs</span><span class="p">]</span>
-<span class="n">headerfiles_upper</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="n">organ</span><span class="p">,</span> <span class="s1">&#39;upperscatter.h00&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">organ</span> <span class="ow">in</span> <span class="n">organs</span><span class="p">]</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">weight_top8anatomy</span> <span class="o">=</span> <span class="n">TopNAnatomyNeighbourWeight</span><span class="p">(</span><span class="n">attenuation_map</span><span class="p">,</span> <span class="n">N_neighbours</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">prior_rdpap</span> <span class="o">=</span> <span class="n">RelativeDifferencePrior</span><span class="p">(</span><span class="n">beta</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="n">weight_top8anatomy</span><span class="p">)</span>
+<span class="c1"># to use all nearest neighbours (non attenuation map based) use the code below:</span>
+<span class="c1"># prior_rdp = RelativeDifferencePrior(beta=0.3, gamma=2)</span>
 </pre></div>
 </div>
 </div>
-<p>Open the projection/scatter data</p>
+<p>Then we define the algorithm like before and reconstruct</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[35]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">object_meta</span><span class="p">,</span> <span class="n">proj_meta</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_metadata</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="c1">#assumes the same for all</span>
-<span class="n">photopeak</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">combine_projection_data</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">,</span> <span class="n">activities</span><span class="p">)</span>
-<span class="n">scatter</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">combine_scatter_data_TEW</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">,</span> <span class="n">headerfiles_lower</span><span class="p">,</span> <span class="n">headerfiles_upper</span><span class="p">,</span> <span class="n">activities</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">recon_algorithm_osmaposl</span> <span class="o">=</span> <span class="n">OSMAPOSL</span><span class="p">(</span>
+    <span class="n">likelihood</span> <span class="o">=</span> <span class="n">likelihood</span><span class="p">,</span>
+    <span class="n">prior</span> <span class="o">=</span> <span class="n">prior_rdpap</span><span class="p">)</span>
+<span class="n">recon_osmaposl</span> <span class="o">=</span> <span class="n">recon_algorithm_osmaposl</span><span class="p">(</span><span class="n">n_iters</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span> <span class="n">n_subsets</span> <span class="o">=</span> <span class="mi">8</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<p>Note that our <code class="docutils literal notranslate"><span class="pre">weights</span></code> were in units of MBq, so our projection data currently has units of counts/second.</p>
+<p>Using the nearest neighbour prior works particularily well for this simple ideal case where the attenuation map is aligned with the phantom, but it doesn’t necessarily work as well in clinical practice when the scans are misaligned</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[36]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">121</span><span class="p">)</span>
-<span class="n">im</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">photopeak</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">recon_osmaposl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[:,</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Coronal Slice&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">122</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">scatter</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">recon_osmaposl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
-<span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Counts/Second&#39;</span><span class="p">,</span> <span class="n">extend</span><span class="o">=</span><span class="s1">&#39;max&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Sagittal Slice&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-&lt;matplotlib.colorbar.Colorbar at 0x7f1eee6aa350&gt;
-</pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_siminddata_36_1.png" src="../_images/notebooks_t_siminddata_36_1.png" />
+<img alt="../_images/notebooks_t_siminddata_57_0.png" src="../_images/notebooks_t_siminddata_57_0.png" />
 </div>
 </div>
-<p>Now we need to decide how long the scan was taken for. We’ll assume each projection was taken for 15 seconds</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dT</span> <span class="o">=</span> <span class="mi">15</span> <span class="c1">#s</span>
-<span class="n">photopeak</span> <span class="o">*=</span> <span class="n">dT</span>
-<span class="n">scatter</span> <span class="o">*=</span> <span class="n">dT</span>
-</pre></div>
-</div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">121</span><span class="p">)</span>
-<span class="n">im</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">photopeak</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">122</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">scatter</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
-<span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Counts&#39;</span><span class="p">,</span> <span class="n">extend</span><span class="o">=</span><span class="s1">&#39;max&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-&lt;matplotlib.colorbar.Colorbar at 0x7f1eee6ed790&gt;
-</pre></div></div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<img alt="../_images/notebooks_t_siminddata_39_1.png" src="../_images/notebooks_t_siminddata_39_1.png" />
-</div>
-</div>
-<p>In realtity, SPECT projection data is noisy. Provided enough events are ran during the SIMIND simulation, the SIMIND data is essentially noise-free. We need to add Poisson noise if we are to simulate a realistic clinical imaging scenario</p>
+<section id="4.3-BSREM">
+<h3>4.3 BSREM<a class="headerlink" href="#4.3-BSREM" title="Permalink to this heading">#</a></h3>
+<p>The Block Sequential Regularized Expectation Maximum (BSREM) algorithm is another way of incorporating a prior funciton in a reconstruction algorithm. It has the form</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(C^{n,m+1}(\hat{f}^{n,m}) = \alpha_n \frac{\hat{f}^{n,m}}{\omega_m H^T 1}\)</span> where <span class="math notranslate nohighlight">\(\alpha_n\)</span> is a user defined “relaxation” sequence and <span class="math notranslate nohighlight">\(\omega_n = S_m/M\)</span> is the fraction of subsets considered <span class="math notranslate nohighlight">\(S_m\)</span> divided by the total number of subsets <span class="math notranslate nohighlight">\(M\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(\nabla_{f^{n,m}} L(g|f^{n,m}) = H_m^T \left(\frac{g_m}{H_m \hat{f}^{n,m} + s_m}-H^T_m 1\right)\)</span> -&gt; this is because of Poisson statistics</p></li>
+</ul>
+<p>The reconstruction algorithm can thus be written as</p>
+<div class="math notranslate nohighlight">
+\[\hat{f}^{n,m+1} = \hat{f}^{n,m} + \alpha_n \frac{\hat{f}^{n,m}}{\omega_m H^T 1} \left[H_m^T \left(\frac{g_m}{H_m \hat{f}^{n,m} + s_m} -1 \right) - \beta \nabla_{f^{n,m}} V \right]\]</div>
+<p>In addition to the prior <span class="math notranslate nohighlight">\(V\)</span>, we also specify the relaxation sequence <span class="math notranslate nohighlight">\(\alpha_n\)</span> when creating the algorithm (if <code class="docutils literal notranslate"><span class="pre">relaxation_sequence</span></code> is not provided, it defaults to 1 for all <span class="math notranslate nohighlight">\(n\)</span>)</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">photopeak_poisson</span> <span class="o">=</span> <span class="n">poisson</span><span class="p">(</span><span class="n">photopeak</span><span class="p">)</span>
-<span class="n">scatter_poisson</span> <span class="o">=</span> <span class="n">poisson</span><span class="p">(</span><span class="n">scatter</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">weight_top8anatomy</span> <span class="o">=</span> <span class="n">TopNAnatomyNeighbourWeight</span><span class="p">(</span><span class="n">attenuation_map</span><span class="p">,</span> <span class="n">N_neighbours</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">prior_rdpap</span> <span class="o">=</span> <span class="n">RelativeDifferencePrior</span><span class="p">(</span><span class="n">beta</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="n">weight_top8anatomy</span><span class="p">)</span>
+<span class="n">recon_algorithm_bsrem</span> <span class="o">=</span> <span class="n">BSREM</span><span class="p">(</span>
+    <span class="n">likelihood</span> <span class="o">=</span> <span class="n">likelihood</span><span class="p">,</span>
+    <span class="n">prior</span> <span class="o">=</span> <span class="n">prior_rdpap</span><span class="p">,</span>
+    <span class="n">relaxation_sequence</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">n</span><span class="p">:</span> <span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="n">n</span><span class="o">/</span><span class="mi">50</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+<span class="n">recon_bsrem</span> <span class="o">=</span> <span class="n">recon_algorithm_bsrem</span><span class="p">(</span><span class="mi">40</span><span class="p">,</span><span class="mi">8</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<p>Now can look at our realistic noisy data:</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">121</span><span class="p">)</span>
-<span class="n">im</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">photopeak_poisson</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">122</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">scatter_poisson</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
-<span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Counts&#39;</span><span class="p">,</span> <span class="n">extend</span><span class="o">=</span><span class="s1">&#39;max&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-&lt;matplotlib.colorbar.Colorbar at 0x7f1eed56d790&gt;
-</pre></div></div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<img alt="../_images/notebooks_t_siminddata_43_1.png" src="../_images/notebooks_t_siminddata_43_1.png" />
-</div>
-</div>
-<p>Now the projection and scatter data is representative of a realistic clinical scenario. Now we reconstruct as we did earlier.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">attenuation_map</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_attenuation_map</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;multi_projections&#39;</span><span class="p">,</span> <span class="s1">&#39;mu208.hct&#39;</span><span class="p">))</span>
-<span class="n">att_transform</span> <span class="o">=</span> <span class="n">SPECTAttenuationTransform</span><span class="p">(</span><span class="n">attenuation_map</span><span class="p">)</span>
-<span class="n">psf_meta</span> <span class="o">=</span> <span class="n">simind</span><span class="o">.</span><span class="n">get_psfmeta_from_header</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<span class="n">psf_transform</span> <span class="o">=</span> <span class="n">SPECTPSFTransform</span><span class="p">(</span><span class="n">psf_meta</span><span class="p">)</span>
-<span class="n">system_matrix</span> <span class="o">=</span> <span class="n">SPECTSystemMatrix</span><span class="p">(</span>
-    <span class="n">obj2obj_transforms</span> <span class="o">=</span> <span class="p">[</span><span class="n">att_transform</span><span class="p">,</span><span class="n">psf_transform</span><span class="p">],</span>
-    <span class="n">proj2proj_transforms</span> <span class="o">=</span> <span class="p">[],</span>
-    <span class="n">object_meta</span> <span class="o">=</span> <span class="n">object_meta</span><span class="p">,</span>
-    <span class="n">proj_meta</span> <span class="o">=</span> <span class="n">proj_meta</span><span class="p">)</span>
-<span class="n">reconstruction_algorithm</span> <span class="o">=</span> <span class="n">OSEM</span><span class="p">(</span>
-    <span class="n">projections</span> <span class="o">=</span> <span class="n">photopeak_poisson</span><span class="p">,</span>
-    <span class="n">system_matrix</span> <span class="o">=</span> <span class="n">system_matrix</span><span class="p">,</span>
-    <span class="n">scatter</span> <span class="o">=</span> <span class="n">scatter_poisson</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<p>Now we reconstruct:</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reconstructed_object</span> <span class="o">=</span> <span class="n">reconstruction_algorithm</span><span class="p">(</span><span class="n">n_iters</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">n_subsets</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<p>Lets see the reconstructed object</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">121</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">reconstructed_object</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[:,</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">recon_bsrem</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[:,</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Reconstructed Object&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Coronal Slice&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">122</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">attenuation_map</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[</span><span class="mi">0</span><span class="p">][:,</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;Greys_r&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">recon_bsrem</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;$\mu$ (CT scan)&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Sagittal Slice&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -993,9 +1107,109 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/notebooks_t_siminddata_49_0.png" src="../_images/notebooks_t_siminddata_49_0.png" />
+<img alt="../_images/notebooks_t_siminddata_62_0.png" src="../_images/notebooks_t_siminddata_62_0.png" />
 </div>
 </div>
+</section>
+<section id="4.4-KEM">
+<h3>4.4 KEM<a class="headerlink" href="#4.4-KEM" title="Permalink to this heading">#</a></h3>
+<p>The kernel expectation maximum (KEM) algorithm assumes the reconstructed object <span class="math notranslate nohighlight">\(\hat{f}^{n,m}\)</span> can be represented by a kernel operator acting on a correspond 3D “image” of coefficients <span class="math notranslate nohighlight">\(\hat{\alpha}^{n,m}\)</span> such that <span class="math notranslate nohighlight">\(\hat{f}^{n,m} = K \hat{\alpha}^{n,m}\)</span>. The coefficient image <span class="math notranslate nohighlight">\(\hat{\alpha}^{n,m}\)</span> is obtained via regular OSEM updates with a modified system matrix <span class="math notranslate nohighlight">\(\tilde{H}_m = H_m K\)</span>, so image updates (in SPECT/PET) have the form:</p>
+<div class="math notranslate nohighlight">
+\[\hat{\alpha}^{n,m+1} = \left[\frac{1}{\tilde{H}_m^T 1} \tilde{H}_m^T \left(\frac{g_m}{\tilde{H}_m\hat{\alpha}^{n,m}+s}\right)\right] \hat{\alpha}^{n,m}\]</div>
+<p>and the final image is givenby <span class="math notranslate nohighlight">\(\hat{f}^{n,m} = K \hat{\alpha}^{n,m}\)</span>.</p>
+<p>We start by defining the kernel transform <span class="math notranslate nohighlight">\(K\)</span>. The matrix <span class="math notranslate nohighlight">\(K\)</span> is a square matrix with components</p>
+<div class="math notranslate nohighlight">
+\[K_{ij} = \left(\prod_{v \in S_v} k_v(v_i, v_j; ...) \right) k_x(x_i, x_j; ...)\]</div>
+<p>where</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(v\)</span> corresponds to a “support object” (such as a CT scan, MRI, PET). These are denoted as <code class="docutils literal notranslate"><span class="pre">support_objects</span></code></p></li>
+<li><p><span class="math notranslate nohighlight">\(S_v\)</span> corresponds to the set of all support objects used</p></li>
+<li><p><span class="math notranslate nohighlight">\(k_v\)</span> is the support kernel for support image <span class="math notranslate nohighlight">\(v\)</span>. These are denoted as <code class="docutils literal notranslate"><span class="pre">support_kernels</span></code>.</p></li>
+<li><p><span class="math notranslate nohighlight">\(x_i\)</span> is the position of voxel <span class="math notranslate nohighlight">\(i\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(k_x\)</span> is the kernel that weights based on positional differences. This is denoted as <code class="docutils literal notranslate"><span class="pre">distance_kernel</span></code>.</p></li>
+<li><p>… are additional parameters for each kernel. They are denoted as <code class="docutils literal notranslate"><span class="pre">distance_kernel_params</span></code> or <code class="docutils literal notranslate"><span class="pre">support_kernel_params</span></code>/</p></li>
+</ul>
+<p>In the <code class="docutils literal notranslate"><span class="pre">KEMTransform</span></code>, one gives a list of all the support objects via the <code class="docutils literal notranslate"><span class="pre">support_objects</span></code> argument. By default, the support kernel for each support object will be</p>
+<div class="math notranslate nohighlight">
+\[k_v(v_i, v_j; \sigma) = \exp\left( -\frac{(v_i-v_j)^2}{2\sigma^2}\right)\]</div>
+<p>In this default kernel, there is <em>one</em> additional required argument: <span class="math notranslate nohighlight">\(\sigma\)</span>. The values of <span class="math notranslate nohighlight">\(\sigma\)</span> can be given using the <code class="docutils literal notranslate"><span class="pre">support_kernels_params</span></code> argument. The argument is a list of lists, where each internal list corresponds to all the additional required parameters for each kernel function. In the example below, one support object is used, and the function takes in one additional argument, so specifying <span class="math notranslate nohighlight">\(\sigma=0.005\)</span> cm <span class="math notranslate nohighlight">\(^{-1}\)</span> requires giving
+<code class="docutils literal notranslate"><span class="pre">support_kernels_params=[[0.005]]</span></code>. Since there is a single distance kernel, any additional parameters to that kernel are given by a single list to the <code class="docutils literal notranslate"><span class="pre">distance_kernel_params</span></code> argument Alternative kernels can be specified using the <code class="docutils literal notranslate"><span class="pre">support_kernels</span></code> and <code class="docutils literal notranslate"><span class="pre">distance_kernel</span></code> arguments of the function; in this tutorial, we make use of the default ones:</p>
+<ul class="simple">
+<li><p><strong>Note</strong>: You may have to set <code class="docutils literal notranslate"><span class="pre">kernel_on_gpu=False</span></code> if your computer runs out of GPU memory; this means the kernel gets stored in regular RAM. Only portions of it get put on GPU during run time, but this results in a much longer run time (3x as long)</p></li>
+</ul>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[43]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">kem_transform</span> <span class="o">=</span> <span class="n">KEMTransform</span><span class="p">(</span>
+    <span class="n">support_objects</span><span class="o">=</span><span class="p">[</span><span class="n">attenuation_map</span><span class="p">],</span>
+    <span class="n">support_kernels_params</span><span class="o">=</span><span class="p">[[</span><span class="mf">0.003</span><span class="p">]],</span>
+    <span class="n">distance_kernel_params</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+    <span class="n">top_N</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
+    <span class="n">kernel_on_gpu</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>This transform is used to build the system matrix <span class="math notranslate nohighlight">\(\tilde{H} = HK\)</span></p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[44]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">system_matrix_kem</span> <span class="o">=</span> <span class="n">KEMSystemMatrix</span><span class="p">(</span><span class="n">system_matrix</span><span class="p">,</span> <span class="n">kem_transform</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>One also has to define a new likelihood function, since the system matrix has now changed</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[45]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">likelihood_kem</span> <span class="o">=</span> <span class="n">PoissonLogLikelihood</span><span class="p">(</span><span class="n">system_matrix_kem</span><span class="p">,</span> <span class="n">photopeak</span><span class="p">,</span> <span class="n">scatter</span><span class="o">=</span><span class="n">scatter</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>We then create the KEM reconstruction algorithm, which iterates over the <span class="math notranslate nohighlight">\(\hat{\alpha}^{n,m}\)</span> and automatically computes <span class="math notranslate nohighlight">\(\hat{f}^{n,m} = K \hat{\alpha}^{n,m}\)</span> at output:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[46]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">recon_algorithm_kem</span> <span class="o">=</span> <span class="n">KEM</span><span class="p">(</span><span class="n">likelihood_kem</span><span class="p">)</span>
+<span class="n">recon_kem</span> <span class="o">=</span> <span class="n">recon_algorithm_kem</span><span class="p">(</span><span class="mi">40</span><span class="p">,</span><span class="mi">8</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>And we can plot</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[47]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">121</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">recon_kem</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[:,</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Coronal Slice&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">122</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">recon_kem</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[</span><span class="mi">70</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;magma&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Sagittal Slice&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_t_siminddata_73_0.png" src="../_images/notebooks_t_siminddata_73_0.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="5.-Post-Reconstruction">
+<h2>5. Post Reconstruction<a class="headerlink" href="#5.-Post-Reconstruction" title="Permalink to this heading">#</a></h2>
 </section>
 </section>
 
@@ -1028,8 +1242,19 @@ div.rendered_html tbody tr:hover {
   </div>
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Case-1:-Single-Projection-File">Case 1: Single Projection File</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Case-2:-Multiple-Regions">Case 2: Multiple Regions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#1.-Opening-Projection-Data">1. Opening Projection Data</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#2.-Creating-The-System-Matrix">2. Creating The System Matrix</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#3.-Defining-The-Likelihood">3. Defining The Likelihood</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#4.-Reconstruction-Algorithms">4. Reconstruction Algorithms</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#4.1-OSEM">4.1 OSEM</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#4.2-OSMAPOSL">4.2 OSMAPOSL</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#4.3-BSREM">4.3 BSREM</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#4.4-KEM">4.4 KEM</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#5.-Post-Reconstruction">5. Post Reconstruction</a></li>
 </ul>
   </nav></div>
 

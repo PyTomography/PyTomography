@@ -8,7 +8,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.projectors.system_matrix &#8212; PyTomography 1.3.2 documentation</title>
+    <title>pytomography.projectors.system_matrix &#8212; PyTomography 2.0.0 documentation</title>
   
   
   
@@ -372,6 +372,14 @@ document.write(`
             <span class="n">transform</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">object_meta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj_meta</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">transform</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj2proj_transforms</span><span class="p">:</span>
             <span class="n">transform</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">object_meta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj_meta</span><span class="p">)</span></div>
+            
+<div class="viewcode-block" id="SystemMatrix._get_object_initial"><a class="viewcode-back" href="../../../autoapi/pytomography/projectors/system_matrix/index.html#pytomography.projectors.SystemMatrix._get_object_initial">[docs]</a>    <span class="k">def</span> <span class="nf">_get_object_initial</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns an initial object estimate used in reconstruction algorithms. By default, this is a tensor of ones with the same shape as the object metadata.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor: Initial object used in image reconstruction algorithms.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">object_meta</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
             
     <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
 <div class="viewcode-block" id="SystemMatrix.forward"><a class="viewcode-back" href="../../../autoapi/pytomography/projectors/system_matrix/index.html#pytomography.projectors.SystemMatrix.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">object</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>

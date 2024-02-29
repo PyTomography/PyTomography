@@ -16,6 +16,7 @@ Submodules
    :maxdepth: 1
 
    callback/index.rst
+   data_saving/index.rst
    likelihood/index.rst
 
 
@@ -29,6 +30,7 @@ Classes
 
    pytomography.callbacks.Callback
    pytomography.callbacks.LogLikelihoodCallback
+   pytomography.callbacks.DataStorageCallback
 
 
 
@@ -47,6 +49,14 @@ Classes
       :type obj: torch.tensor[batch_size, Lx, Ly, Lz]
       :param n_iter: The iteration number
       :type n_iter: int
+
+
+   .. py:method:: finalize(obj)
+
+      Abstract method for ``run``.
+
+      :param obj: An object which one can compute various statistics from.
+      :type obj: torch.tensor[batch_size, Lx, Ly, Lz]
 
 
 
@@ -71,6 +81,32 @@ Classes
       :type object: torch.tensor
       :param n_iter: Iteration number
       :type n_iter: int
+
+
+
+.. py:class:: DataStorageCallback(likelihood, object_initial)
+
+   Bases: :py:obj:`pytomography.callbacks.callback.Callback`
+
+   Abstract class used for callbacks. Subclasses must redefine the ``__init__`` and ``run`` methods. If a callback is used as an argument in an iterative reconstruction algorihtm, the ``__run__`` method is called after each subiteration.
+
+
+   .. py:method:: run(object, n_iter, n_subset)
+
+      Abstract method for ``run``.
+
+      :param obj: An object which one can compute various statistics from.
+      :type obj: torch.tensor[batch_size, Lx, Ly, Lz]
+      :param n_iter: The iteration number
+      :type n_iter: int
+
+
+   .. py:method:: finalize(object)
+
+      Abstract method for ``run``.
+
+      :param obj: An object which one can compute various statistics from.
+      :type obj: torch.tensor[batch_size, Lx, Ly, Lz]
 
 
 

@@ -1,3 +1,5 @@
+r"""This module consists of preconditioned gradient ascent (PGA) algorithms: these algorithms are both statistical (since they depend on a likelihood function dependent on the imaging system) and iterative. Common clinical reconstruction algorithms, such as OSEM, correspond to a subclass of PGA algorithms. PGA algorithms are characterized by the update rule :math:`f^{n+1} = f^{n} + C^{n}(f^{n}) \left[\nabla_{f} L(g^n|f^{n}) - \beta \nabla_{f} V(f^{n}) \right]` where :math:`L(g^n|f^{n})` is the likelihood function, :math:`V(f^{n})` is the prior function, :math:`C^{n}(f^{n})` is the preconditioner, and :math:`\beta` is a scalar used to scale the prior function."""
+
 from __future__ import annotations
 from collections.abc import Callable, Sequence
 import pytomography
@@ -25,14 +27,14 @@ class PreconditionedGradientAscentAlgorithm:
     ) -> None:
         self.likelihood = likelihood
         if object_initial is None:
-            self.object_prediction = torch.ones((self.likelihood.projections.shape[0], *self.likelihood.system_matrix.object_meta.shape)).to(pytomography.device).to(pytomography.dtype)
+            self.object_prediction = self.likelihood.system_matrix._get_object_initial()
         else:
             self.object_prediction = object_initial.to(pytomography.device).to(pytomography.dtype)
         self.prior = prior
         if self.prior is not None:
             self.prior.set_object_meta(self.likelihood.system_matrix.object_meta)
         self.norm_BP_subset_method = norm_BP_subset_method
-        # These are if objects / FPS are stored during reconstruction for error analysis afterwards
+        # These are if objects / FPS are stored during reconstruction for uncertainty analysis afterwards
         self.objects_stored = []
         self.projections_predicted_stored = []
                 
@@ -118,7 +120,7 @@ class PreconditionedGradientAscentAlgorithm:
         return self.object_prediction 
                 
 class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAlgorithm):
-    r"""Implementation of a special case of `PreconditionedGradientAscentAlgorithm` whereby :math:`C^{n}(f^n) = D^{n} f^{n}`
+    r"""Implementation of a special case of ``PreconditionedGradientAscentAlgorithm`` whereby :math:`C^{n}(f^n) = D^{n} f^{n}`
 
     Args:
         likelihood (Likelihood): Likelihood class that facilitates computation of :math:`L(g^n|f^{n})` and its associated derivatives.
@@ -156,7 +158,7 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
         """
         return object * self._linear_preconditioner_factor(n_iter, n_subset)
     
-    def compute_error(
+    def compute_uncertainty(
         self,
         mask: torch.Tensor,
         data_storage_callback: DataStorageCallback,
@@ -168,23 +170,23 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
         Args:
             mask (torch.Tensor): Masked region of the reconstructed object: a boolean Tensor.
             data_storage_callback (Callback): Callback that has been used in a reconstruction algorithm.
-            subiteration_number (int | None, optional): Subiteration number to compute the error for. If None, then computes the error for the last iteration. Defaults to None.
-            return_pct (bool, optional): If true, then additionally returns the percent error for the sum of counts. Defaults to False.
+            subiteration_number (int | None, optional): Subiteration number to compute the uncertainty for. If None, then computes the uncertainty for the last iteration. Defaults to None.
+            return_pct (bool, optional): If true, then additionally returns the percent uncertainty for the sum of counts. Defaults to False.
 
         Returns:
             float | Sequence[float]: Absolute uncertainty in the sum of counts in the masked region (if `return_pct` is False) OR absolute uncertainty and relative uncertainty in percent (if `return_pct` is True)
         """
         if subiteration_number is None:
             subiteration_number = len(data_storage_callback.objects) - 1
-        V = self._compute_error_matrix(mask, data_storage_callback, subiteration_number)
-        error_abs = torch.sqrt(torch.sum(V * self.likelihood.projections * V)).item()
+        V = self._compute_uncertainty_matrix(mask, data_storage_callback, subiteration_number)
+        uncertainty_abs = torch.sqrt(torch.sum(V * self.likelihood.projections * V)).item()
         if not(return_pct):
-            return error_abs
+            return uncertainty_abs
         else:
-            error_rel = error_abs / data_storage_callback.objects[subiteration_number].to(pytomography.device)[mask].sum().item() * 100
-            return error_abs, error_rel
+            uncertainty_rel = uncertainty_abs / data_storage_callback.objects[subiteration_number].to(pytomography.device)[mask].sum().item() * 100
+            return uncertainty_abs, uncertainty_rel
     
-    def _compute_error_matrix(
+    def _compute_uncertainty_matrix(
         self,
         mask: torch.Tensor,
         data_storage_callback: DataStorageCallback,
@@ -223,7 +225,7 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
             del(FP_previous_update)
             del(likelihood_grad_ff)
             torch.cuda.empty_cache()
-            term1 = self._compute_error_matrix(1*mask-term1, data_storage_callback, n-1)
+            term1 = self._compute_uncertainty_matrix(1*mask-term1, data_storage_callback, n-1)
             # Additive step after recursion
             object_previous_update = data_storage_callback.objects[n-1].to(pytomography.device)
             FP_previous_update = data_storage_callback.projections_predicted[n-1].to(pytomography.device)
@@ -245,17 +247,18 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
             return term_return     
         
 class OSEM(LinearPreconditionedGradientAscentAlgorithm):
-    def __init__(
-        self,
-        likelihood: Likelihood,
-        object_initial: torch.tensor | None = None,
-        ):
-        r"""Implementation of the ordered subset expectation maximum algorithm :math:`f^{n+1} = f^{n} + \frac{f^n}{H_n^T} \nabla_{f} L(g^n|f^{n})`.
+    r"""Implementation of the ordered subset expectation maximum algorithm :math:`f^{n+1} = f^{n} + \frac{f^n}{H_n^T} \nabla_{f} L(g^n|f^{n})`.
 
         Args:
             likelihood (Likelihood): Likelihood function :math:`L`.
             object_initial (torch.Tensor | None, optional): Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
         """
+    def __init__(
+        self,
+        likelihood: Likelihood,
+        object_initial: torch.tensor | None = None,
+        ):
+
         super(OSEM, self).__init__(
             likelihood = likelihood,
             object_initial = object_initial,
@@ -274,19 +277,19 @@ class OSEM(LinearPreconditionedGradientAscentAlgorithm):
         return 1/(self.likelihood.norm_BPs[n_subset] + pytomography.delta)
     
 class OSMAPOSL(PreconditionedGradientAscentAlgorithm):
-    def __init__(
-        self,
-        likelihood: Likelihood,
-        object_initial: torch.tensor | None = None,
-        prior: Prior | None = None,
-    ):
-        r"""Implementation of the ordered subset maximum a posteriori one step late algorithm :math:`f^{n+1} = f^{n} + \frac{f^n}{H_n^T+\nabla_f V(f^n)} \left[\nabla_{f} L(g^n|f^{n}) - \nabla_f V(f^n)} \right]`
+    r"""Implementation of the ordered subset maximum a posteriori one step late algorithm :math:`f^{n+1} = f^{n} + \frac{f^n}{H_n^T+\nabla_f V(f^n)} \left[ \nabla_{f} L(g^n|f^{n}) - \nabla_f V(f^n) \right]`
 
         Args:
             likelihood (Likelihood): Likelihood function :math:`L`.
             object_initial (torch.Tensor | None, optional): Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
             prior (Prior, optional): Prior class that faciliates the computation of function :math:`V(f)` and its associated derivatives. If None, then no prior is used. Defaults to None.
         """
+    def __init__(
+        self,
+        likelihood: Likelihood,
+        object_initial: torch.tensor | None = None,
+        prior: Prior | None = None,
+    ):
         super(OSMAPOSL, self).__init__(
             likelihood = likelihood,
             object_initial = object_initial,
@@ -307,14 +310,7 @@ class OSMAPOSL(PreconditionedGradientAscentAlgorithm):
         return object/(self.likelihood.norm_BPs[n_subset] + self.prior_gradient + pytomography.delta)
     
 class BSREM(LinearPreconditionedGradientAscentAlgorithm):
-    def __init__(
-        self,
-        likelihood: Likelihood,
-        object_initial: torch.tensor | None = None,
-        prior: Prior | None = None,
-        relaxation_sequence: Callable = lambda _: 1,
-    ):
-        r"""Implementation of the block sequential regularized expectation maximum algorithm :math:`f^{n+1} = f^{n} + \frac{\alpha(n)}{\omega_n H^T 1} \left[\nabla_{f} L(g^n|f^{n}) - \nabla_f V(f^n)} \right]`
+    r"""Implementation of the block sequential regularized expectation maximum algorithm :math:`f^{n+1} = f^{n} + \frac{\alpha(n)}{\omega_n H^T 1} \left[\nabla_{f} L(g^n|f^{n}) - \nabla_f V(f^n) \right]`
 
         Args:
             likelihood (Likelihood): likelihood function :math:`L`
@@ -322,6 +318,13 @@ class BSREM(LinearPreconditionedGradientAscentAlgorithm):
             prior (Prior, optional): Prior class that faciliates the computation of function :math:`V(f)` and its associated derivatives. If None, then no prior is used. Defaults to None.
             relaxation_sequence (Callable, optional): Relxation sequence :math:`\alpha(n)` used to scale future updates. Defaults to 1 for all :math:`n`. Note that when this function is provided, it takes the iteration number (not the subiteration) so that e.g. if 4 iterations and 8 subsets are used, it would call :math:`\alpha(4)` for all 8 subiterations of the final iteration.
         """
+    def __init__(
+        self,
+        likelihood: Likelihood,
+        object_initial: torch.tensor | None = None,
+        prior: Prior | None = None,
+        relaxation_sequence: Callable = lambda _: 1,
+    ):
         self.relaxation_sequence = relaxation_sequence
         super(BSREM, self).__init__(
             likelihood = likelihood,
@@ -345,7 +348,7 @@ class BSREM(LinearPreconditionedGradientAscentAlgorithm):
         return relaxation_factor/(norm_BP_weight * norm_BP + pytomography.delta)
     
 class KEM(OSEM):
-    r"""Implementation of the ordered subset expectation maximum algorithm :math:`\alpha^{n+1} = \alpha^{n} + \frac{\alpha^n}{\tilde{H}_n^T} \nabla_{f} L(g^n|\alpha^{n})` and where the final predicted object is :math:`f^n = K \hat{\alpha}^{n}`. The system matrix :\tilde{H}` includes the kernel transform :math:`K`.
+    r"""Implementation of the ordered subset expectation maximum algorithm :math:`\alpha^{n+1} = \alpha^{n} + \frac{\alpha^n}{\tilde{H}_n^T} \nabla_{f} L(g^n|\alpha^{n})` and where the final predicted object is :math:`f^n = K \hat{\alpha}^{n}`. The system matrix :math:`\tilde{H}` includes the kernel transform :math:`K`.
 
         Args:
             likelihood (Likelihood): Likelihood function :math:`L`.

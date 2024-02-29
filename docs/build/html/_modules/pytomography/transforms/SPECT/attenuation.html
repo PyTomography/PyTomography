@@ -8,7 +8,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.transforms.SPECT.attenuation &#8212; PyTomography 1.3.2 documentation</title>
+    <title>pytomography.transforms.SPECT.attenuation &#8212; PyTomography 2.0.0 documentation</title>
   
   
   
@@ -342,7 +342,7 @@ document.write(`
 <span class="kn">import</span> <span class="nn">pytomography</span>
 <span class="kn">from</span> <span class="nn">pytomography.utils</span> <span class="kn">import</span> <span class="n">rotate_detector_z</span><span class="p">,</span> <span class="n">rev_cumsum</span><span class="p">,</span> <span class="n">pad_object</span><span class="p">,</span> <span class="n">unpad_object</span>
 <span class="kn">from</span> <span class="nn">pytomography.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
-<span class="kn">from</span> <span class="nn">pytomography.io.SPECT</span> <span class="kn">import</span> <span class="n">open_CT_file</span>
+<span class="kn">from</span> <span class="nn">pytomography.io.shared</span> <span class="kn">import</span> <span class="n">open_multifile</span>
 <span class="kn">from</span> <span class="nn">pytomography.metadata</span> <span class="kn">import</span> <span class="n">SPECTObjectMeta</span><span class="p">,</span> <span class="n">SPECTProjMeta</span>
 <span class="kn">from</span> <span class="nn">pytomography.io.SPECT</span> <span class="kn">import</span> <span class="n">get_attenuation_map_from_CT_slices</span>
 
@@ -384,7 +384,7 @@ document.write(`
 			<span class="bp">self</span><span class="o">.</span><span class="n">attenuation_map</span> <span class="o">=</span> <span class="n">attenuation_map</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 		<span class="k">else</span><span class="p">:</span>
 			<span class="c1"># TODO: offer support for all input types</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">CT_unaligned_numpy</span> <span class="o">=</span> <span class="n">open_CT_file</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">CT_unaligned_numpy</span> <span class="o">=</span> <span class="n">open_multifile</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
 			<span class="c1"># Will then get aligned with projections when configured</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">assume_padded</span> <span class="o">=</span> <span class="n">assume_padded</span>
 	 

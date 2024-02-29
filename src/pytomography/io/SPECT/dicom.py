@@ -13,6 +13,7 @@ import pydicom
 from pydicom.dataset import Dataset
 from pydicom.uid import generate_uid
 import pytomography
+from rt_utils import RTStructBuilder
 from pytomography.metadata import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
 from pytomography.utils import (
     get_blank_below_above,
@@ -486,6 +487,38 @@ def stitch_multibed(
                 ]
     return recon_aligned
 
+def get_aligned_rtstruct(
+    file_RT: str,
+    file_NM: str,
+    dicom_series_path: str,
+    rt_struct_name: str,
+    cutoff_value = 0.5
+):
+    """Loads an RT struct file and aligns it with SPECT projection data corresponding to ``file_NM``. 
+
+    Args:
+        file_RT (str): Filepath of the RT Struct file
+        file_NM (str): Filepath of the NM file (used to align the RT struct)
+        dicom_series_path (str): Filepath of the DICOM series linked to the RTStruct file (required for loading RTStructs).
+        rt_struct_name (str): Name of the desired RT struct.
+        cutoff_value (float, optional): After interpolation is performed to align the mask in the new frame, mask voxels with values less than this are excluded. Defaults to 0.5.
+
+    Returns:
+        torch.Tensor: RTStruct mask aligned with SPECT data.
+    """
+    object_meta, _ = get_metadata(file_NM)
+    rtstruct = RTStructBuilder.create_from(
+        dicom_series_path=dicom_series_path, 
+        rt_struct_path=file_RT
+    )
+    files_CT = [os.path.join(dicom_series_path, file) for file in os.listdir(dicom_series_path)]
+    mask = rtstruct.get_roi_mask_by_name(rt_struct_name).astype(float)
+    M_CT = _get_affine_multifile(files_CT)
+    M_NM = _get_affine_spect_projections(file_NM)
+    M = npl.inv(M_CT) @ M_NM
+    mask_aligned = affine_transform(mask.transpose((1,0,2))[:,:,::-1], M, output_shape=object_meta.shape, mode='constant', cval=0, order=1)[:,:,::-1]
+    return torch.tensor(mask_aligned>cutoff_value).to(pytomography.device).unsqueeze(0)
+
 
 def save_dcm(
     save_path: str,
@@ -557,22 +590,3 @@ def save_dcm(
         ds_i.PixelData = pixel_data[i].tobytes()
         ds_i.save_as(os.path.join(save_path, f'{ds.SOPInstanceUID}.dcm'))
         
-def open_SPECT_file(
-    files_SPECT: Sequence[str],
-    ) -> np.array:
-    """Given a list of seperate SPECT DICOM files, opens them up and stacks them together into a single SPECT image. 
-
-    Args:
-        files_SPECT (Sequence[str]): List of SPECT DICOM filepaths corresponding to different z slices of the same scan.
-
-    Returns:
-        np.array: SPECT scan with units of vendor.
-    """
-    SPECT_slices = []
-    slice_locs = []
-    for file in files_SPECT:
-        ds = pydicom.read_file(file)
-        SPECT_slices.append(ds.RescaleSlope * ds.pixel_array + ds.RescaleIntercept)
-        slice_locs.append(float(ds.ImagePositionPatient[2]))
-    SPECT_image = np.transpose(np.array(SPECT_slices)[np.argsort(slice_locs)], (2,1,0)).astype(np.float32)
-    return SPECT_image

@@ -14,7 +14,9 @@ Functions
 .. autoapisummary::
 
    pytomography.io.SPECT.simind.get_metadata
+   pytomography.io.SPECT.simind._get_projections_from_single_file
    pytomography.io.SPECT.simind.get_projections
+   pytomography.io.SPECT.simind.get_energy_window_width
    pytomography.io.SPECT.simind.get_scatter_from_TEW
    pytomography.io.SPECT.simind.combine_projection_data
    pytomography.io.SPECT.simind.combine_scatter_data_TEW
@@ -50,7 +52,7 @@ Attributes
    :rtype: (SPECTObjectMeta, SPECTProjMeta, torch.Tensor[1, Ltheta, Lr, Lz])
 
 
-.. py:function:: get_projections(headerfile)
+.. py:function:: _get_projections_from_single_file(headerfile)
 
    Gets projection data from a SIMIND header file.
 
@@ -63,13 +65,30 @@ Attributes
    :rtype: (torch.Tensor[1, Ltheta, Lr, Lz])
 
 
-.. py:function:: get_scatter_from_TEW(headerfile_peak, headerfile_lower, headerfile_upper)
+.. py:function:: get_projections(headerfiles, weights = None)
+
+   Gets projection data from a SIMIND header file.
+
+   :param headerfile: Path to the header file
+   :type headerfile: str
+   :param distance: The units of measurements in the SIMIND file (this is required as input, since SIMIND uses mm/cm but doesn't specify). Defaults to 'cm'.
+   :type distance: str, optional
+
+   :returns: Simulated SPECT projection data.
+   :rtype: (torch.Tensor[1, Ltheta, Lr, Lz])
+
+
+.. py:function:: get_energy_window_width(headerfile)
+
+
+.. py:function:: get_scatter_from_TEW(headerfile_peak, headerfile_lower, headerfile_upper, activity_time=None)
 
    Obtains a triple energy window scatter estimate from corresponding photopeak, lower, and upper energy windows.
 
    :param headerfile_peak: Headerfile corresponding to the photopeak
    :param headerfile_lower: Headerfile corresponding to the lower energy window
    :param headerfile_upper: Headerfile corresponding to the upper energy window
+   :param activity_time: Product of activity and time corresponding to the projections. If this argument is provided, then projections are first scaled by activity and time, and then the poisson noise is taken. If the argument is not provided, then poisson noise is not taken.
 
    :returns: Estimated scatter from the triple energy window.
    :rtype: torch.Tensor[1, Ltheta, Lr, Lz]

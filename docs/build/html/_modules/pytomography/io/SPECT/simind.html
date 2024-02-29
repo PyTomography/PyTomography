@@ -8,7 +8,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.io.SPECT.simind &#8212; PyTomography 1.3.2 documentation</title>
+    <title>pytomography.io.SPECT.simind &#8212; PyTomography 2.0.0 documentation</title>
   
   
   
@@ -393,7 +393,7 @@ document.write(`
     <span class="n">proj_meta</span> <span class="o">=</span> <span class="n">SPECTProjMeta</span><span class="p">((</span><span class="n">proj_dim1</span><span class="p">,</span> <span class="n">proj_dim2</span><span class="p">),</span> <span class="n">angles</span><span class="p">,</span> <span class="n">radii</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">object_meta</span><span class="p">,</span> <span class="n">proj_meta</span></div>
 
-<div class="viewcode-block" id="get_projections"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.get_projections">[docs]</a><span class="k">def</span> <span class="nf">get_projections</span><span class="p">(</span><span class="n">headerfile</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<div class="viewcode-block" id="_get_projections_from_single_file"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT._get_projections_from_single_file">[docs]</a><span class="k">def</span> <span class="nf">_get_projections_from_single_file</span><span class="p">(</span><span class="n">headerfile</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets projection data from a SIMIND header file.</span>
 
 <span class="sd">    Args:</span>
@@ -419,10 +419,51 @@ document.write(`
     <span class="n">projections</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">projections</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pytomography</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">projections</span></div>
 
+<div class="viewcode-block" id="get_projections"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.get_projections">[docs]</a><span class="k">def</span> <span class="nf">get_projections</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">weights</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets projection data from a SIMIND header file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        headerfile (str): Path to the header file</span>
+<span class="sd">        distance (str, optional): The units of measurements in the SIMIND file (this is required as input, since SIMIND uses mm/cm but doesn&#39;t specify). Defaults to &#39;cm&#39;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (torch.Tensor[1, Ltheta, Lr, Lz]): Simulated SPECT projection data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_get_projections_from_single_file</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">Sequence</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">projections</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">headerfiles_window_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">):</span>
+            <span class="n">projections_window_i</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">headerfiles_window_i_organ_j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">headerfiles_window_i</span><span class="p">):</span>
+                <span class="n">projections_window_i_organ_j</span> <span class="o">=</span> <span class="n">get_projections</span><span class="p">(</span><span class="n">headerfiles_window_i_organ_j</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="n">projections_window_i_organ_j</span> <span class="o">*=</span> <span class="n">weights</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+                <span class="n">projections_window_i</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">projections_window_i_organ_j</span><span class="p">)</span>
+            <span class="n">projections_window_i</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">projections_window_i</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">projections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">projections_window_i</span><span class="p">)</span>
+        <span class="n">projections</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">projections</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">projections</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">projections</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">headerfile</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">headerfiles</span><span class="p">):</span>
+            <span class="n">projections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">get_projections</span><span class="p">(</span><span class="n">headerfile</span><span class="p">))</span>
+        <span class="n">projections</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">projections</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">projections</span></div>
+
+<div class="viewcode-block" id="get_energy_window_width"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.get_energy_window_width">[docs]</a><span class="k">def</span> <span class="nf">get_energy_window_width</span><span class="p">(</span><span class="n">headerfile</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">headerfile</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">headerdata</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="n">headerdata</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">headerdata</span><span class="p">)</span>
+    <span class="n">lwr</span> <span class="o">=</span> <span class="n">get_header_value</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;energy window lower level&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">upr</span> <span class="o">=</span> <span class="n">get_header_value</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;energy window upper level&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">upr</span> <span class="o">-</span> <span class="n">lwr</span></div>
+    
+
 <div class="viewcode-block" id="get_scatter_from_TEW"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.get_scatter_from_TEW">[docs]</a><span class="k">def</span> <span class="nf">get_scatter_from_TEW</span><span class="p">(</span>
     <span class="n">headerfile_peak</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">headerfile_lower</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">headerfile_upper</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">activity_time</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtains a triple energy window scatter estimate from corresponding photopeak, lower, and upper energy windows.</span>
 
@@ -430,6 +471,7 @@ document.write(`
 <span class="sd">        headerfile_peak: Headerfile corresponding to the photopeak</span>
 <span class="sd">        headerfile_lower: Headerfile corresponding to the lower energy window</span>
 <span class="sd">        headerfile_upper: Headerfile corresponding to the upper energy window</span>
+<span class="sd">        activity_time: Product of activity and time corresponding to the projections. If this argument is provided, then projections are first scaled by activity and time, and then the poisson noise is taken. If the argument is not provided, then poisson noise is not taken.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        torch.Tensor[1, Ltheta, Lr, Lz]: Estimated scatter from the triple energy window.</span>
@@ -446,6 +488,8 @@ document.write(`
         <span class="n">lwr_window</span> <span class="o">=</span> <span class="n">get_header_value</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;energy window lower level&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
         <span class="n">upr_window</span> <span class="o">=</span> <span class="n">get_header_value</span><span class="p">(</span><span class="n">headerdata</span><span class="p">,</span> <span class="s1">&#39;energy window upper level&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
         <span class="n">window_widths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">upr_window</span> <span class="o">-</span> <span class="n">lwr_window</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">activity_time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">projections</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="n">projections</span><span class="o">*</span><span class="n">activity_time</span><span class="p">)</span>
         <span class="n">projectionss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">projections</span><span class="p">)</span>
     <span class="n">projections_scatter</span> <span class="o">=</span> <span class="n">compute_TEW</span><span class="p">(</span><span class="n">projectionss</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">projectionss</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">window_widths</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">window_widths</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">window_widths</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">projections_scatter</span></div>
@@ -473,7 +517,7 @@ document.write(`
     <span class="n">headerfiles_peak</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">headerfiles_lower</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">headerfiles_upper</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">weights</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+    <span class="n">weights</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
     <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the triple energy window scatter estimate of the sequence of projection data weighted by `weights`. See `combine_projection_data` for more details.</span>
 
@@ -490,6 +534,7 @@ document.write(`
     <span class="k">for</span> <span class="n">headerfile_peak</span><span class="p">,</span> <span class="n">headerfile_lower</span><span class="p">,</span> <span class="n">headerfile_upper</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">headerfiles_peak</span><span class="p">,</span> <span class="n">headerfiles_lower</span><span class="p">,</span> <span class="n">headerfiles_upper</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
         <span class="n">scatter_i</span> <span class="o">=</span> <span class="n">get_scatter_from_TEW</span><span class="p">(</span><span class="n">headerfile_peak</span><span class="p">,</span> <span class="n">headerfile_lower</span><span class="p">,</span> <span class="n">headerfile_upper</span><span class="p">)</span>
         <span class="n">scatter</span><span class="o">+=</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">scatter_i</span>
+    
     <span class="k">return</span> <span class="n">scatter</span>   </div>
 
 <div class="viewcode-block" id="get_attenuation_map"><a class="viewcode-back" href="../../../../autoapi/pytomography/io/SPECT/simind/index.html#pytomography.io.SPECT.get_attenuation_map">[docs]</a><span class="k">def</span> <span class="nf">get_attenuation_map</span><span class="p">(</span><span class="n">headerfile</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>

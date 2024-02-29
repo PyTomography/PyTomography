@@ -64,9 +64,9 @@ def get_blank_below_above(proj: torch.tensor):
     Returns:
         Sequence[int]: A tuple of two elements corresponding to the number of blank slices at the inf, and the number of blank slices at the sup.
     """
-    greater_than_zero = (proj[0].cpu().numpy() > 0).sum(axis=(0,1))>0
+    greater_than_zero = (proj.cpu().numpy() > 0).sum(axis=(0,1,2))>0
     blank_below = np.argmax(greater_than_zero)
-    blank_above = proj[0].cpu().numpy().shape[-1] - np.argmax(greater_than_zero[::-1])
+    blank_above = proj.cpu().numpy().shape[-1] - np.argmax(greater_than_zero[::-1])
     return blank_below, blank_above
 
 def print_collimator_parameters():

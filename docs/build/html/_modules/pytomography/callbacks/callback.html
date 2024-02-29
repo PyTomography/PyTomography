@@ -8,7 +8,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pytomography.callbacks.callback &#8212; PyTomography 1.3.2 documentation</title>
+    <title>pytomography.callbacks.callback &#8212; PyTomography 2.0.0 documentation</title>
   
   
   
@@ -356,7 +356,14 @@ document.write(`
 <span class="sd">            obj (torch.tensor[batch_size, Lx, Ly, Lz]): An object which one can compute various statistics from.</span>
 <span class="sd">            n_iter (int): The iteration number</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="o">...</span></div></div>
+        <span class="o">...</span></div>
+<div class="viewcode-block" id="Callback.finalize"><a class="viewcode-back" href="../../../autoapi/pytomography/callbacks/index.html#pytomography.callbacks.callback.Callback.finalize">[docs]</a>    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Abstract method for ``run``.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            obj (torch.tensor[batch_size, Lx, Ly, Lz]): An object which one can compute various statistics from.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">None</span></div></div>
         
 </pre></div>
 

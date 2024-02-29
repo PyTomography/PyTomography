@@ -9,7 +9,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
-    <title>pytomography.priors &#8212; PyTomography 1.3.2 documentation</title>
+    <title>pytomography.priors &#8212; PyTomography 2.0.0 documentation</title>
   
   
   
@@ -296,19 +296,20 @@ document.write(`
   <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
 <li class="toctree-l1 current active has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
 <li class="toctree-l2 has-children"><a class="reference internal" href="../algorithms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../algorithms/dip_recon/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.dip_recon</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../algorithms/fbp/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.fbp</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../algorithms/statistical_iterative/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.statistical_iterative</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../algorithms/preconditioned_gradient_ascent/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.algorithms.preconditioned_gradient_ascent</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../callbacks/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-3"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../callbacks/callback/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.callback</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../callbacks/data_saving/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.data_saving</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../callbacks/likelihood/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.callbacks.likelihood</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../io/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-4"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../io/CT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.CT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-5"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../io/CT/attenuation_map/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.CT.attenuation_map</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../io/CT/dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.CT.dicom</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../io/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-6"><i class="fa-solid fa-chevron-down"></i></label><ul>
@@ -319,44 +320,51 @@ document.write(`
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../io/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-7"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../io/SPECT/dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.dicom</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../io/SPECT/shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.shared</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../io/SPECT/simind/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.SPECT.simind</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../io/shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-8"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../io/shared/dicom/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.shared.dicom</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../io/shared/dicom_creation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.shared.dicom_creation</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../io/shared/interfile/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.io.shared.interfile</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-9"><i class="fa-solid fa-chevron-down"></i></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../metadata/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-10"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../likelihoods/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.likelihoods</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-9"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../likelihoods/likelihood/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.likelihoods.likelihood</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../likelihoods/poisson_log_likelihood/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.likelihoods.poisson_log_likelihood</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-10"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../metadata/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-11"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../metadata/PET/pet_tof_metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.PET.pet_tof_metadata</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../metadata/PET/petlm_metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.PET.petlm_metadata</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../metadata/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-11"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../metadata/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-12"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../metadata/SPECT/spect_metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.SPECT.spect_metadata</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../metadata/metadata/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.metadata.metadata</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2 current active has-children"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-12"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2 current active has-children"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-13"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="nearest_neighbour/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.nearest_neighbour</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="prior/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.priors.prior</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../projectors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-13"><i class="fa-solid fa-chevron-down"></i></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../projectors/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-14"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../projectors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-14"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../projectors/PET/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.PET</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-15"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../projectors/PET/petlm_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.PET.petlm_system_matrix</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../projectors/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-15"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../projectors/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-16"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../projectors/SPECT/spect_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.SPECT.spect_system_matrix</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../projectors/shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-16"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../projectors/shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-17"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../projectors/shared/kem_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.shared.kem_system_matrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../projectors/shared/motion_correction_system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.shared.motion_correction_system_matrix</span></code></a></li>
 </ul>
@@ -364,14 +372,14 @@ document.write(`
 <li class="toctree-l3"><a class="reference internal" href="../projectors/system_matrix/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.projectors.system_matrix</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../transforms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-17"><i class="fa-solid fa-chevron-down"></i></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../transforms/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-18"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../transforms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-18"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../transforms/SPECT/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-19"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../transforms/SPECT/attenuation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.attenuation</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../transforms/SPECT/cutoff/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.cutoff</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../transforms/SPECT/psf/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.SPECT.psf</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../transforms/shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-19"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../transforms/shared/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-20"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../transforms/shared/filters/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.filters</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../transforms/shared/kem/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.kem</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../transforms/shared/motion/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.shared.motion</span></code></a></li>
@@ -381,7 +389,7 @@ document.write(`
 <li class="toctree-l3"><a class="reference internal" href="../transforms/transform/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.transforms.transform</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-20"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-21"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../utils/fourier_filters/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.fourier_filters</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../utils/misc/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.misc</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../utils/nist_data/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pytomography.utils.nist_data</span></code></a></li>
@@ -473,16 +481,16 @@ document.write(`
 <td><p>Abstract class for implementation of prior <span class="math notranslate nohighlight">\(V(f)\)</span> where <span class="math notranslate nohighlight">\(V\)</span> is from the log-posterior probability <span class="math notranslate nohighlight">\(\ln L(\tilde{f}, f) - \beta V(f)\)</span>. Any function inheriting from this class should implement a <code class="docutils literal notranslate"><span class="pre">foward</span></code> method that computes the tensor <span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}\)</span> where <span class="math notranslate nohighlight">\(f\)</span> is an object tensor.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.priors.NearestNeighbourPrior" title="pytomography.priors.NearestNeighbourPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code></a></p></td>
-<td><p>Implementation of priors where gradients depend on summation over nearest neighbours <span class="math notranslate nohighlight">\(s\)</span> to voxel <span class="math notranslate nohighlight">\(r\)</span> given by : <span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}=\beta\sum_{r,s}w_{r,s}\phi(f_r, f_s)\)</span> where <span class="math notranslate nohighlight">\(V\)</span> is from the log-posterior probability <span class="math notranslate nohighlight">\(\ln L (\tilde{f}, f) - \beta V(f)\)</span>.</p></td>
+<td><p>Generic class for the nearest neighbour prior.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.priors.QuadraticPrior" title="pytomography.priors.QuadraticPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QuadraticPrior</span></code></a></p></td>
-<td><p>Subclass of <code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code> where <span class="math notranslate nohighlight">\(\phi(f_r, f_s)= (f_r-f_s)/\delta\)</span> corresponds to a quadratic prior <span class="math notranslate nohighlight">\(V(f)=\frac{1}{4}\sum_{r,s} w_{r,s} \left(\frac{f_r-f_s}{\delta}\right)^2\)</span></p></td>
+<td><p>Subclass of <code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code> corresponding to a quadratic prior: namely <span class="math notranslate nohighlight">\(\phi_0(f_r, f_s) = 1/4 \left[(fr-fs)/\delta\right]^2\)</span> and where the gradient is determined by <span class="math notranslate nohighlight">\(\phi_1(f_r, f_s) = (f_r-f_s)/\delta\)</span></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.priors.LogCoshPrior" title="pytomography.priors.LogCoshPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LogCoshPrior</span></code></a></p></td>
-<td><p>Subclass of <code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code> where <span class="math notranslate nohighlight">\(\phi(f_r,f_s)=\tanh((f_r-f_s)/\delta)\)</span> corresponds to the logcosh prior <span class="math notranslate nohighlight">\(V(f)=\sum_{r,s} w_{r,s} \log\cosh\left(\frac{f_r-f_s}{\delta}\right)\)</span></p></td>
+<td><p>Subclass of <code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code> corresponding to a logcosh prior: namely <span class="math notranslate nohighlight">\(\phi_0(f_r, f_s) = \tanh((f_r-f_s)/\delta)\)</span> and where the gradient is determined by <span class="math notranslate nohighlight">\(\phi_1(f_r, f_s) = \log \cosh \left[(f_r-f_s)/\delta\right]\)</span></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pytomography.priors.RelativeDifferencePrior" title="pytomography.priors.RelativeDifferencePrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RelativeDifferencePrior</span></code></a></p></td>
-<td><p>Subclass of <code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code> where <span class="math notranslate nohighlight">\(\phi(f_r,f_s)=\frac{2(f_r-f_s)(\gamma|f_r-f_s|+3f_s + f_r)}{(\gamma|f_r-f_s|+f_r+f_s)^2}\)</span> corresponds to the relative difference prior <span class="math notranslate nohighlight">\(V(f)=\sum_{r,s} w_{r,s} \frac{(f_r-f_s)^2}{f_r+f_s+\gamma|f_r-f_s|}\)</span></p></td>
+<td><p>Subclass of <code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code> corresponding to the relative difference prior: namely <span class="math notranslate nohighlight">\(\phi_0(f_r, f_s) = \frac{(f_r-f_s)^2}{f_r+f_s+\gamma|f_r-f_s|}\)</span> and where the gradient is determined by <span class="math notranslate nohighlight">\(\phi_1(f_r, f_s) = \frac{2(f_r-f_s)(\gamma|f_r-f_s|+3f_s + f_r)}{(\gamma|f_r-f_s|+f_r+f_s)^2}\)</span></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pytomography.priors.NeighbourWeight" title="pytomography.priors.NeighbourWeight"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NeighbourWeight</span></code></a></p></td>
 <td><p>Abstract class for assigning weight <span class="math notranslate nohighlight">\(w_{r,s}\)</span> in nearest neighbour priors.</p></td>
@@ -500,11 +508,14 @@ document.write(`
 </table>
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomography.priors.Prior">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.</span></span><span class="sig-name descname"><span class="pre">Prior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/prior.html#Prior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.Prior" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.</span></span><span class="sig-name descname"><span class="pre">Prior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj2obj_transforms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/prior.html#Prior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.Prior" title="Permalink to this definition">#</a></dt>
 <dd><p>Abstract class for implementation of prior <span class="math notranslate nohighlight">\(V(f)\)</span> where <span class="math notranslate nohighlight">\(V\)</span> is from the log-posterior probability <span class="math notranslate nohighlight">\(\ln L(\tilde{f}, f) - \beta V(f)\)</span>. Any function inheriting from this class should implement a <code class="docutils literal notranslate"><span class="pre">foward</span></code> method that computes the tensor <span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}\)</span> where <span class="math notranslate nohighlight">\(f\)</span> is an object tensor.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>beta</strong> (<em>float</em>) – Used to scale the weight of the prior</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>beta</strong> (<em>float</em>) – Used to scale the weight of the prior</p></li>
+<li><p><strong>obj2obj_transforms</strong> (<em>Sequence</em>) – Sequence of transforms applied after computation of prior or gradients.</p></li>
+</ul>
 </dd>
 </dl>
 <dl class="py method">
@@ -550,8 +561,8 @@ document.write(`
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pytomography.priors.Prior.compute_gradient">
-<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">compute_gradient</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/prior.html#Prior.compute_gradient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.Prior.compute_gradient" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="pytomography.priors.Prior.__call__">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/prior.html#Prior.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.Prior.__call__" title="Permalink to this definition">#</a></dt>
 <dd><p>Abstract method to compute the gradient of the prior based on the <code class="docutils literal notranslate"><span class="pre">self.object</span></code> attribute.</p>
 </dd></dl>
 
@@ -559,16 +570,14 @@ document.write(`
 
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomography.priors.NearestNeighbourPrior">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.</span></span><span class="sig-name descname"><span class="pre">NearestNeighbourPrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Vr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#NearestNeighbourPrior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.NearestNeighbourPrior" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.</span></span><span class="sig-name descname"><span class="pre">NearestNeighbourPrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#NearestNeighbourPrior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.NearestNeighbourPrior" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="prior/index.html#pytomography.priors.prior.Prior" title="pytomography.priors.prior.Prior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pytomography.priors.prior.Prior</span></code></a></p>
-<p>Implementation of priors where gradients depend on summation over nearest neighbours <span class="math notranslate nohighlight">\(s\)</span> to voxel <span class="math notranslate nohighlight">\(r\)</span> given by : <span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}=\beta\sum_{r,s}w_{r,s}\phi(f_r, f_s)\)</span> where <span class="math notranslate nohighlight">\(V\)</span> is from the log-posterior probability <span class="math notranslate nohighlight">\(\ln L (\tilde{f}, f) - \beta V(f)\)</span>.</p>
+<p>Generic class for the nearest neighbour prior.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>beta</strong> (<em>float</em>) – Used to scale the weight of the prior</p></li>
-<li><p><strong>phi</strong> (<em>Callable</em>) – Function <span class="math notranslate nohighlight">\(\phi\)</span> used in formula above. Input arguments should be <span class="math notranslate nohighlight">\(f_r\)</span>, <span class="math notranslate nohighlight">\(f_s\)</span>, and any <cite>kwargs</cite> passed to this initialization function.</p></li>
-<li><p><strong>weight</strong> (<a class="reference internal" href="#pytomography.priors.NeighbourWeight" title="pytomography.priors.NeighbourWeight"><em>NeighbourWeight</em></a><em>, </em><em>optional</em>) – </p></li>
-<li><p><strong>Vr</strong> (<em>collections.abc.Callable</em><em> | </em><em>None</em>) – </p></li>
+<li><p><strong>weight</strong> (<a class="reference internal" href="#pytomography.priors.NeighbourWeight" title="pytomography.priors.NeighbourWeight"><em>NeighbourWeight</em></a><em>, </em><em>optional</em>) – this specifies <span class="math notranslate nohighlight">\(w_{r,s}\)</span> above. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, then uses EuclideanNeighbourWeight, which weights neighbouring voxels based on their euclidean distance. Defaults to None.</p></li>
 </ul>
 </dd>
 </dl>
@@ -587,32 +596,62 @@ document.write(`
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pytomography.priors.NearestNeighbourPrior.compute_gradient">
-<span class="sig-name descname"><span class="pre">compute_gradient</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#NearestNeighbourPrior.compute_gradient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.NearestNeighbourPrior.compute_gradient" title="Permalink to this definition">#</a></dt>
-<dd><p>Computes the gradient of the prior on <code class="docutils literal notranslate"><span class="pre">self.object</span></code></p>
+<dt class="sig sig-object py" id="pytomography.priors.NearestNeighbourPrior._pair_contribution">
+<span class="sig-name descname"><span class="pre">_pair_contribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">second_order_derivative_object</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">swap_object_and_neighbour</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#NearestNeighbourPrior._pair_contribution"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.NearestNeighbourPrior._pair_contribution" title="Permalink to this definition">#</a></dt>
+<dd><p>Helper function used to compute prior and associated gradients</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tensor of shape [batch_size, Lx, Ly, Lz] representing <span class="math notranslate nohighlight">\(\frac{\partial V}{\partial f_r}\)</span></p>
+<dd class="field-odd"><p>Tensor of shape [batch_size, Lx, Ly, Lz].</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>torch.tensor</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>phi</strong> (<em>collections.abc.Callable</em>) – </p></li>
+<li><p><strong>second_order_derivative_object</strong> (<em>torch.Tensor</em><em> | </em><em>None</em>) – </p></li>
+<li><p><strong>swap_object_and_neighbour</strong> (<em>bool</em>) – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pytomography.priors.NearestNeighbourPrior.compute_prior">
-<span class="sig-name descname"><span class="pre">compute_prior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#NearestNeighbourPrior.compute_prior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.NearestNeighbourPrior.compute_prior" title="Permalink to this definition">#</a></dt>
-<dd><p>Computes the value of the prior for <code class="docutils literal notranslate"><span class="pre">self.object</span></code></p>
+<dt class="sig sig-object py" id="pytomography.priors.NearestNeighbourPrior.phi0">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">phi0</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#NearestNeighbourPrior.phi0"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.NearestNeighbourPrior.phi0" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.priors.NearestNeighbourPrior.phi1">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">phi1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#NearestNeighbourPrior.phi1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.NearestNeighbourPrior.phi1" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.priors.NearestNeighbourPrior.phi2_1">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">phi2_1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#NearestNeighbourPrior.phi2_1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.NearestNeighbourPrior.phi2_1" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.priors.NearestNeighbourPrior.phi2_2">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">phi2_2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#NearestNeighbourPrior.phi2_2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.NearestNeighbourPrior.phi2_2" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.priors.NearestNeighbourPrior.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">derivative_order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#NearestNeighbourPrior.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.NearestNeighbourPrior.__call__" title="Permalink to this definition">#</a></dt>
+<dd><p>Used to compute the prior with gradient of specified order. If order 0, then returns a float (the value of the prior). If order 1, then returns a torch.Tensor representative of the prior gradient at each voxel. If order 2, then returns a callable function (representative of a higher order tensor but without storing each component).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>beta_scale</strong> (<em>bool</em>) – Whether or not to use the beta scale factor pertaining to the current subset index. Defaults to False.</p>
+<dd class="field-odd"><p><strong>derivative_order</strong> (<em>int</em><em>, </em><em>optional</em>) – The order of the derivative to compute. This will specify the ouput; only possible values are 0, 1, or 2. Defaults to 0.</p>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Value of the prior <cite>V(f)</cite></p>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>NotImplementedError</strong> – for cases where the derivative order is not between 0 and 2.</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The prior with derivative of specified order.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>float | torch.Tensor | Callable</p>
 </dd>
 </dl>
 </dd></dl>
@@ -621,25 +660,35 @@ document.write(`
 
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomography.priors.QuadraticPrior">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.</span></span><span class="sig-name descname"><span class="pre">QuadraticPrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#QuadraticPrior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.QuadraticPrior" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.</span></span><span class="sig-name descname"><span class="pre">QuadraticPrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#QuadraticPrior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.QuadraticPrior" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pytomography.priors.NearestNeighbourPrior" title="pytomography.priors.NearestNeighbourPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code></a></p>
-<p>Subclass of <code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code> where <span class="math notranslate nohighlight">\(\phi(f_r, f_s)= (f_r-f_s)/\delta\)</span> corresponds to a quadratic prior <span class="math notranslate nohighlight">\(V(f)=\frac{1}{4}\sum_{r,s} w_{r,s} \left(\frac{f_r-f_s}{\delta}\right)^2\)</span></p>
+<p>Subclass of <code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code> corresponding to a quadratic prior: namely <span class="math notranslate nohighlight">\(\phi_0(f_r, f_s) = 1/4 \left[(fr-fs)/\delta\right]^2\)</span> and where the gradient is determined by <span class="math notranslate nohighlight">\(\phi_1(f_r, f_s) = (f_r-f_s)/\delta\)</span></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>beta</strong> (<em>float</em>) – Used to scale the weight of the prior</p></li>
-<li><p><strong>delta</strong> (<em>float</em><em>, </em><em>optional</em>) – Parameter <span class="math notranslate nohighlight">\(\delta\)</span> in equation above. Defaults to 1.</p></li>
 <li><p><strong>weight</strong> (<a class="reference internal" href="#pytomography.priors.NeighbourWeight" title="pytomography.priors.NeighbourWeight"><em>NeighbourWeight</em></a><em>, </em><em>optional</em>) – </p></li>
+<li><p><strong>delta</strong> (<em>float</em><em>, </em><em>optional</em>) – Parameter <span class="math notranslate nohighlight">\(\delta\)</span> in equation above. Defaults to 1.</p></li>
 </ul>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.priors.QuadraticPrior.phi0">
+<span class="sig-name descname"><span class="pre">phi0</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#QuadraticPrior.phi0"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.QuadraticPrior.phi0" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.priors.QuadraticPrior.phi1">
+<span class="sig-name descname"><span class="pre">phi1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#QuadraticPrior.phi1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.QuadraticPrior.phi1" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomography.priors.LogCoshPrior">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.</span></span><span class="sig-name descname"><span class="pre">LogCoshPrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#LogCoshPrior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.LogCoshPrior" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pytomography.priors.NearestNeighbourPrior" title="pytomography.priors.NearestNeighbourPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code></a></p>
-<p>Subclass of <code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code> where <span class="math notranslate nohighlight">\(\phi(f_r,f_s)=\tanh((f_r-f_s)/\delta)\)</span> corresponds to the logcosh prior <span class="math notranslate nohighlight">\(V(f)=\sum_{r,s} w_{r,s} \log\cosh\left(\frac{f_r-f_s}{\delta}\right)\)</span></p>
+<p>Subclass of <code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code> corresponding to a logcosh prior: namely <span class="math notranslate nohighlight">\(\phi_0(f_r, f_s) = \tanh((f_r-f_s)/\delta)\)</span> and where the gradient is determined by <span class="math notranslate nohighlight">\(\phi_1(f_r, f_s) = \log \cosh \left[(f_r-f_s)/\delta\right]\)</span></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -649,13 +698,23 @@ document.write(`
 </ul>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.priors.LogCoshPrior.phi0">
+<span class="sig-name descname"><span class="pre">phi0</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#LogCoshPrior.phi0"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.LogCoshPrior.phi0" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.priors.LogCoshPrior.phi1">
+<span class="sig-name descname"><span class="pre">phi1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#LogCoshPrior.phi1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.LogCoshPrior.phi1" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomography.priors.RelativeDifferencePrior">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.</span></span><span class="sig-name descname"><span class="pre">RelativeDifferencePrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#RelativeDifferencePrior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.RelativeDifferencePrior" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pytomography.priors.</span></span><span class="sig-name descname"><span class="pre">RelativeDifferencePrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#RelativeDifferencePrior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.RelativeDifferencePrior" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pytomography.priors.NearestNeighbourPrior" title="pytomography.priors.NearestNeighbourPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code></a></p>
-<p>Subclass of <code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code> where <span class="math notranslate nohighlight">\(\phi(f_r,f_s)=\frac{2(f_r-f_s)(\gamma|f_r-f_s|+3f_s + f_r)}{(\gamma|f_r-f_s|+f_r+f_s)^2}\)</span> corresponds to the relative difference prior <span class="math notranslate nohighlight">\(V(f)=\sum_{r,s} w_{r,s} \frac{(f_r-f_s)^2}{f_r+f_s+\gamma|f_r-f_s|}\)</span></p>
+<p>Subclass of <code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code> corresponding to the relative difference prior: namely <span class="math notranslate nohighlight">\(\phi_0(f_r, f_s) = \frac{(f_r-f_s)^2}{f_r+f_s+\gamma|f_r-f_s|}\)</span> and where the gradient is determined by <span class="math notranslate nohighlight">\(\phi_1(f_r, f_s) = \frac{2(f_r-f_s)(\gamma|f_r-f_s|+3f_s + f_r)}{(\gamma|f_r-f_s|+f_r+f_s)^2}\)</span></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -665,6 +724,26 @@ document.write(`
 </ul>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.priors.RelativeDifferencePrior.phi0">
+<span class="sig-name descname"><span class="pre">phi0</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#RelativeDifferencePrior.phi0"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.RelativeDifferencePrior.phi0" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.priors.RelativeDifferencePrior.phi1">
+<span class="sig-name descname"><span class="pre">phi1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#RelativeDifferencePrior.phi1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.RelativeDifferencePrior.phi1" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.priors.RelativeDifferencePrior.phi2_1">
+<span class="sig-name descname"><span class="pre">phi2_1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#RelativeDifferencePrior.phi2_1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.RelativeDifferencePrior.phi2_1" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomography.priors.RelativeDifferencePrior.phi2_2">
+<span class="sig-name descname"><span class="pre">phi2_2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pytomography/priors/nearest_neighbour.html#RelativeDifferencePrior.phi2_2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pytomography.priors.RelativeDifferencePrior.phi2_2" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -853,18 +932,36 @@ document.write(`
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.Prior.set_object_meta"><code class="docutils literal notranslate"><span class="pre">Prior.set_object_meta()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.Prior.set_beta_scale"><code class="docutils literal notranslate"><span class="pre">Prior.set_beta_scale()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.Prior.set_object"><code class="docutils literal notranslate"><span class="pre">Prior.set_object()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.Prior.compute_gradient"><code class="docutils literal notranslate"><span class="pre">Prior.compute_gradient()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.Prior.__call__"><code class="docutils literal notranslate"><span class="pre">Prior.__call__()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.NearestNeighbourPrior"><code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.NearestNeighbourPrior.set_object_meta"><code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior.set_object_meta()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.NearestNeighbourPrior.compute_gradient"><code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior.compute_gradient()</span></code></a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.NearestNeighbourPrior.compute_prior"><code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior.compute_prior()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.NearestNeighbourPrior._pair_contribution"><code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior._pair_contribution()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.NearestNeighbourPrior.phi0"><code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior.phi0()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.NearestNeighbourPrior.phi1"><code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior.phi1()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.NearestNeighbourPrior.phi2_1"><code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior.phi2_1()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.NearestNeighbourPrior.phi2_2"><code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior.phi2_2()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.NearestNeighbourPrior.__call__"><code class="docutils literal notranslate"><span class="pre">NearestNeighbourPrior.__call__()</span></code></a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.QuadraticPrior"><code class="docutils literal notranslate"><span class="pre">QuadraticPrior</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.LogCoshPrior"><code class="docutils literal notranslate"><span class="pre">LogCoshPrior</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.RelativeDifferencePrior"><code class="docutils literal notranslate"><span class="pre">RelativeDifferencePrior</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.QuadraticPrior"><code class="docutils literal notranslate"><span class="pre">QuadraticPrior</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.QuadraticPrior.phi0"><code class="docutils literal notranslate"><span class="pre">QuadraticPrior.phi0()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.QuadraticPrior.phi1"><code class="docutils literal notranslate"><span class="pre">QuadraticPrior.phi1()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.LogCoshPrior"><code class="docutils literal notranslate"><span class="pre">LogCoshPrior</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.LogCoshPrior.phi0"><code class="docutils literal notranslate"><span class="pre">LogCoshPrior.phi0()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.LogCoshPrior.phi1"><code class="docutils literal notranslate"><span class="pre">LogCoshPrior.phi1()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.RelativeDifferencePrior"><code class="docutils literal notranslate"><span class="pre">RelativeDifferencePrior</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.RelativeDifferencePrior.phi0"><code class="docutils literal notranslate"><span class="pre">RelativeDifferencePrior.phi0()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.RelativeDifferencePrior.phi1"><code class="docutils literal notranslate"><span class="pre">RelativeDifferencePrior.phi1()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.RelativeDifferencePrior.phi2_1"><code class="docutils literal notranslate"><span class="pre">RelativeDifferencePrior.phi2_1()</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.RelativeDifferencePrior.phi2_2"><code class="docutils literal notranslate"><span class="pre">RelativeDifferencePrior.phi2_2()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.NeighbourWeight"><code class="docutils literal notranslate"><span class="pre">NeighbourWeight</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.NeighbourWeight.set_object_meta"><code class="docutils literal notranslate"><span class="pre">NeighbourWeight.set_object_meta()</span></code></a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pytomography.priors.NeighbourWeight.__call__"><code class="docutils literal notranslate"><span class="pre">NeighbourWeight.__call__()</span></code></a></li>

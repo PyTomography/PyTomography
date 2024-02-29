@@ -16,6 +16,7 @@ Submodules
    :maxdepth: 1
 
    dicom/index.rst
+   shared/index.rst
    simind/index.rst
 
 
@@ -34,8 +35,9 @@ Functions
    pytomography.io.SPECT.get_attenuation_map_from_CT_slices
    pytomography.io.SPECT.get_scatter_from_TEW
    pytomography.io.SPECT.get_psfmeta_from_scanner_params
-   pytomography.io.SPECT.open_CT_file
    pytomography.io.SPECT.CT_to_mumap
+   pytomography.io.SPECT.reduce_amap
+   pytomography.io.SPECT.reduce_projections
 
 
 
@@ -132,17 +134,6 @@ Functions
    :rtype: SPECTPSFMeta
 
 
-.. py:function:: open_CT_file(files_CT)
-
-   Given a list of seperate DICOM files, opens them up and stacks them together into a single CT image.
-
-   :param files_CT: List of CT DICOM filepaths corresponding to different z slices of the same scan.
-   :type files_CT: Sequence[str]
-
-   :returns: CT scan in units of Hounsfield Units at the effective CT energy.
-   :rtype: np.array
-
-
 .. py:function:: CT_to_mumap(CT, files_CT, file_NM, index_peak=0)
 
    Converts a CT image to a mu-map given SPECT projection data. The CT data must be aligned with the projection data already; this is a helper function for ``get_attenuation_map_from_CT_slices``.
@@ -158,5 +149,11 @@ Functions
 
    :returns: Attenuation map in units of 1/cm
    :rtype: torch.tensor
+
+
+.. py:function:: reduce_amap(amap, N)
+
+
+.. py:function:: reduce_projections(object_meta, proj_meta, projections, N_pixel=1, N_angle=1, N_angle_start=0)
 
 

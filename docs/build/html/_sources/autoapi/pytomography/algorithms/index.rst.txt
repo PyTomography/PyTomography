@@ -15,8 +15,9 @@ Submodules
    :titlesonly:
    :maxdepth: 1
 
+   dip_recon/index.rst
    fbp/index.rst
-   statistical_iterative/index.rst
+   preconditioned_gradient_ascent/index.rst
 
 
 Package Contents
@@ -27,307 +28,191 @@ Classes
 
 .. autoapisummary::
 
-   pytomography.algorithms.StatisticalIterative
+   pytomography.algorithms.PreconditionedGradientAscentAlgorithm
    pytomography.algorithms.OSEM
-   pytomography.algorithms.OSEMOSL
+   pytomography.algorithms.OSMAPOSL
    pytomography.algorithms.BSREM
    pytomography.algorithms.KEM
-   pytomography.algorithms.DIPRecon
    pytomography.algorithms.FilteredBackProjection
+   pytomography.algorithms.DIPRecon
 
 
 
 
-.. py:class:: StatisticalIterative(projections, system_matrix, object_initial = None, scatter = None, prior = None, precompute_normalization_factors = True, device = pytomography.device)
+.. py:class:: PreconditionedGradientAscentAlgorithm(likelihood, prior = None, object_initial = None, norm_BP_subset_method = 'subset_specific', **kwargs)
 
-   Parent class for all statistical iterative algorithms. All child classes must implement the ``__call__`` method to perform reconstruction.
+   Generic class for preconditioned gradient ascent algorithms: i.e. those that have the form :math:`f^{n+1} = f^{n} + C^{n}(f^{n}) \left[\nabla_{f} L(g^n|f^{n}) - \beta \nabla_{f} V(f^{n}) \right]`.
 
-   :param projections: photopeak window projection data :math:`g` to be reconstructed
-   :type projections: torch.Tensor
-   :param system_matrix: system matrix that models the imaging system. In particular, corresponds to :math:`H` in :math:`g=Hf`.
-   :type system_matrix: SystemMatrix
-   :param object_initial: the initial object guess :math:`f^{0,0}`. If None, then initial guess consists of all 1s. Defaults to None.
-   :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
-   :param scatter: estimate of scatter contribution :math:`s`. Defaults to 0.
-   :type scatter: torch.Tensor
-   :param prior: the Bayesian prior; used to compute :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.
+   :param likelihood: Likelihood class that facilitates computation of :math:`L(g^n|f^{n})` and its associated derivatives.
+   :type likelihood: Likelihood
+   :param prior: Prior class that faciliates the computation of function :math:`V(f)` and its associated derivatives. If None, then no prior is used Defaults to None.
    :type prior: Prior, optional
-   :param precompute_normalization_factors:
-   :type precompute_normalization_factors: bool
-   :param device: The device correpsonding to the tensors output by the system matrix. In some cases, although the system matrix implementation uses ``pytomography.device`` in its internal computation, it will output tensors on the CPU due to their size (such as in listmode PET). Defaults to ``pytomography.device``.
-   :type device: str
+   :param object_initial: Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
+   :type object_initial: torch.Tensor | None, optional
+   :param norm_BP_subset_method: Specifies how :math:`H^T 1` is calculated when subsets are used. If 'subset_specific', then uses :math:`H_n^T 1`. If `average_of_subsets`, then uses the average of all :math:`H_n^T 1`s for any given subset (scaled to the relative size of the subset if subsets are not equal size). Defaults to 'subset_specific'.
+   :type norm_BP_subset_method: str, optional
 
-   .. py:method:: _validate_projector(system_matrix)
-      :abstractmethod:
+   .. py:method:: _set_n_subsets(n_subsets)
 
-      Method implemented by child classes that checks if the system matrix implements the required methods for reconstruction.
+      Sets the number of subsets used in the reconstruction algorithm.
 
-      :param system_matrix: _description_
-      :type system_matrix: _type_
-
-
-   .. py:method:: __call__(n_iters, n_subsets, callback = None)
-      :abstractmethod:
-
-      Abstract method for performing reconstruction: must be implemented by subclasses.
-
-      :param n_iters: Number of iterations
-      :type n_iters: int
-      :param n_subsets: Number of subsets
-      :type n_subsets: int
-      :param callbacks: Callbacks to be evaluated after each subiteration. Defaults to None.
-      :type callbacks: Callback, optional
-
-
-   .. py:method:: _compute_callback(n_iter)
-
-
-
-.. py:class:: OSEM(projections, system_matrix, object_initial = None, scatter = 0, precompute_normalization_factors = True, device = pytomography.device)
-
-   Bases: :py:obj:`OSEMOSL`
-
-   Implementation of the ordered subset expectation maximum algorithm :math:`\hat{f}^{n,m+1} = \left[\frac{1}{H_m^T 1} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}`.
-
-   :param projections: photopeak window projection data :math:`g` to be reconstructed
-   :type projections: torch.Tensor
-   :param system_matrix: system matrix that models the imaging system. In particular, corresponds to :math:`H` in :math:`g=Hf`.
-   :type system_matrix: SystemMatrix
-   :param object_initial: the initial object guess :math:`f^{0,0}`. If None, then initial guess consists of all 1s. Defaults to None.
-   :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
-   :param scatter: estimate of scatter contribution :math:`s`. Defaults to 0.
-   :type scatter: torch.Tensor
-   :param precompute_normalization_factors:
-   :type precompute_normalization_factors: bool
-
-   .. py:method:: _validate_projector(system_matrix)
-
-      Checks that the required classes are implemented by the reconstruction algorithm
-
-      :param system_matrix: System matrix being used as projector in reconstruction algorithm
-      :type system_matrix: SystemMatrix
-
-
-
-.. py:class:: OSEMOSL(projections, system_matrix, object_initial = None, scatter = None, prior = None, precompute_normalization_factors = True, device = pytomography.device)
-
-   Bases: :py:obj:`StatisticalIterative`
-
-   Implementation of the ordered subset expectation algorithm using the one-step-late method to include prior information: :math:`\hat{f}^{n,m+1} = \left[\frac{1}{H_m^T 1  + \beta \frac{\partial V}{\partial \hat{f}}|_{\hat{f}=\hat{f}^{n,m}}} H_m^T \left(\frac{g_m}{H_m\hat{f}^{n,m}+s}\right)\right] \hat{f}^{n,m}`.
-
-   :param projections: photopeak window projection data :math:`g` to be reconstructed
-   :type projections: torch.Tensor
-   :param system_matrix: system matrix that models the imaging system. In particular, corresponds to :math:`H` in :math:`g=Hf`.
-   :type system_matrix: SystemMatrix
-   :param object_initial: the initial object guess :math:`f^{0,0}`. If None, then initial guess consists of all 1s. Defaults to None.
-   :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
-   :param scatter: estimate of scatter contribution :math:`s`. Defaults to 0.
-   :type scatter: torch.Tensor
-   :param prior: the Bayesian prior; used to compute :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.
-   :type prior: Prior, optional
-   :param precompute_normalization_factors:
-   :type precompute_normalization_factors: bool
-   :param device: The device correpsonding to the tensors output by the system matrix. In some cases, although the system matrix implementation uses ``pytomography.device`` in its internal computation, it will output tensors on the CPU due to their size (such as in listmode PET). Defaults to ``pytomography.device``.
-   :type device: str
-
-   .. py:method:: _validate_projector(system_matrix)
-
-      Checks that the required classes are implemented by the reconstruction algorithm
-
-      :param system_matrix: System matrix being used as projector in reconstruction algorithm
-      :type system_matrix: SystemMatrix
-
-
-   .. py:method:: _set_recon_name(n_iters, n_subsets)
-
-      Set the unique identifier for the type of reconstruction performed. Useful when saving reconstructions to DICOM files
-
-      :param n_iters: Number of iterations
-      :type n_iters: int
       :param n_subsets: Number of subsets
       :type n_subsets: int
 
 
-   .. py:method:: _compute_normalization_factors()
+   .. py:method:: _compute_preconditioner(object, n_iter, n_subset)
+      :abstractmethod:
 
-      Computes normalization factors :math:`H_m^T 1` for all subsets :math:`m`.
+      Computes the preconditioner factor :math:`C^{n}(f^{n})`. Must be implemented by any reconstruction algorithm that inherits from this generic class.
 
+      :param object: Object :math:`f^n`
+      :type object: torch.Tensor
+      :param n_iter: Iteration number
+      :type n_iter: int
+      :param n_subset: Subset number
+      :type n_subset: int
+
+      :raises NotImplementedError: .
+
+
+   .. py:method:: _compute_callback(n_iter, n_subset)
+
+      Method for computing callbacks after each reconstruction iteration
+
+      :param n_iter: Number of iterations
+      :type n_iter: int
+      :param n_subset: Number of subsets
+      :type n_subset: int
 
 
    .. py:method:: __call__(n_iters, n_subsets, n_subset_specific = None, callback = None)
 
-      Performs the reconstruction using ``n_iters`` iterations and ``n_subsets`` subsets.
+      _summary_
 
+      :param Args:
       :param n_iters: Number of iterations
       :type n_iters: int
       :param n_subsets: Number of subsets
       :type n_subsets: int
-      :param n_subset_specific: Iterate only over the subset specified. Defaults to None
-      :type n_subset_specific: int
-      :param callback: Callback function to be evaluated after each subiteration. Defaults to None.
-      :type callback: Callback, optional
-
-      :returns: reconstructed object
-      :rtype: torch.tensor[batch_size, Lx, Ly, Lz]
-
-
-
-.. py:class:: BSREM(projections, system_matrix, object_initial = None, scatter = 0, prior = None, relaxation_function = lambda x: 1, scaling_matrix_type = 'subind_norm', precompute_normalization_factors = True, device = pytomography.device)
-
-   Bases: :py:obj:`StatisticalIterative`
-
-   Implementation of the block-sequential-regularized (BSREM) reconstruction algorithm: :math:`\hat{f}^{n,m+1} = \hat{f}^{n,m} + \alpha_n D \left[H_m^T \left(\frac{g_m}{H_m \hat{f}^{n,m} + s} -1 \right) - \beta \nabla_{f^{n,m}} V \right]`. The implementation of this algorithm corresponds to Modified BSREM-II with :math:`U=\infty`, :math:`t=0`, and :math:`\epsilon=0` (see https://ieeexplore.ieee.org/document/1207396). There is one difference in this implementation: rather than using FBP to get an initial estimate (as is done in the paper), a single iteration of OSEM is used; this initialization is required here due to the requirement for global scaling (see discussion on page 620 of paper).
-
-   :param projections: projection data :math:`g` to be reconstructed.
-   :type projections: torch.Tensor
-   :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
-   :type system_matrix: SystemMatrix
-   :param object_initial: represents the initial object guess :math:`f^{0,0}` for the algorithm in object space
-   :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
-   :param scatter: estimate of scatter contribution :math:`s`.
-   :type scatter: torch.Tensor
-   :param prior: the Bayesian prior; computes :math:`\beta \frac{\partial V}{\partial f}`. If ``None``, then this term is 0. Defaults to None.
-   :type prior: Prior, optional
-   :param relaxation_function: Sequence :math:`\alpha_n` used for relaxation. Defaults to :math:`\alpha_n=1/(n+1)`.
-   :type relaxation_function: Callable, optional
-   :param scaling_matrix_type: The form of the scaling matrix :math:`D` used. If ``subind_norm`` (sub-iteration independent + normalized), then :math:`D=\left(S_m/M \cdot H^T 1 \right)^{-1}`. If ``subdep_norm`` (sub-iteration dependent + normalized) then :math:`D = \left(H_m^T 1\right)^{-1}`. See section III.D in the paper above for a discussion on this.
-   :type scaling_matrix_type: str, optional
-   :param device: The device correpsonding to the tensors output by the system matrix. In some cases, although the system matrix implementation uses ``pytomography.device`` in its internal computation, it will output tensors on the CPU due to their size (such as in listmode PET). Defaults to ``pytomography.device``.
-   :type device: str
-
-   .. py:method:: _validate_projector(system_matrix)
-
-      Checks that the required classes are implemented by the reconstruction algorithm
-
-      :param system_matrix: System matrix being used as projector in reconstruction algorithm
-      :type system_matrix: SystemMatrix
-
-
-   .. py:method:: _compute_normalization_factors()
-
-      Computes normalization factors :math:`H_m^T 1` for all subsets :math:`m`.
-
-
-
-   .. py:method:: _set_recon_name(n_iters, n_subsets)
-
-      Set the unique identifier for the type of reconstruction performed. Useful for saving to DICOM files
-
-      :param n_iters: Number of iterations
-      :type n_iters: int
-      :param n_subsets: Number of subsets
-      :type n_subsets: int
-
-
-   .. py:method:: _scale_prior_gradient(gradient)
-
-      Used to scale gradient to avoid divisional errors in null regions when using CutOffTransform
-
-      :param gradient: Gradient returned by prior function
-      :type gradient: torch.tensor
-
-      :returns: New gradient tensor where values are set to 0 outside the cutoff region.
-      :rtype: torch.tensor
-
-
-   .. py:method:: __call__(n_iters, n_subsets, n_subset_specific = None, callback = None)
-
-      Performs the reconstruction using ``n_iters`` iterations and ``n_subsets`` subsets.
-
-      :param n_iters: Number of iterations
-      :type n_iters: int
-      :param n_subsets: Number of subsets
-      :type n_subsets: int
-      :param n_subset_specific: Iterate only over the subset specified. Defaults to None
+      :param n_subset_specific: Ignore all updates except for this subset.
       :type n_subset_specific: int
       :param callback: Callback function to be called after each subiteration. Defaults to None.
       :type callback: Callback, optional
 
-      :returns: reconstructed object
-      :rtype: torch.tensor[batch_size, Lx, Ly, Lz]
+      :returns: Reconstructed object.
+      :rtype: torch.Tensor
 
 
 
-.. py:class:: KEM(projections, system_matrix, kem_transform, object_initial = None, scatter = 0)
+.. py:class:: OSEM(likelihood, object_initial = None)
+
+   Bases: :py:obj:`LinearPreconditionedGradientAscentAlgorithm`
+
+   Implementation of the ordered subset expectation maximum algorithm :math:`f^{n+1} = f^{n} + \frac{f^n}{H_n^T} \nabla_{f} L(g^n|f^{n})`.
+
+   :param likelihood: Likelihood function :math:`L`.
+   :type likelihood: Likelihood
+   :param object_initial: Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
+   :type object_initial: torch.Tensor | None, optional
+
+   .. py:method:: _linear_preconditioner_factor(n_iter, n_subset)
+
+      Computes the linear preconditioner factor :math:`D^n = 1/H_n^T 1`
+
+      :param n_iter: iteration number
+      :type n_iter: int
+      :param n_subset: subset number
+      :type n_subset: int
+
+      :returns: linear preconditioner factor
+      :rtype: torch.Tensor
+
+
+
+.. py:class:: OSMAPOSL(likelihood, object_initial = None, prior = None)
+
+   Bases: :py:obj:`PreconditionedGradientAscentAlgorithm`
+
+   Implementation of the ordered subset maximum a posteriori one step late algorithm :math:`f^{n+1} = f^{n} + \frac{f^n}{H_n^T+\nabla_f V(f^n)} \left[ \nabla_{f} L(g^n|f^{n}) - \nabla_f V(f^n) \right]`
+
+   :param likelihood: Likelihood function :math:`L`.
+   :type likelihood: Likelihood
+   :param object_initial: Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
+   :type object_initial: torch.Tensor | None, optional
+   :param prior: Prior class that faciliates the computation of function :math:`V(f)` and its associated derivatives. If None, then no prior is used. Defaults to None.
+   :type prior: Prior, optional
+
+   .. py:method:: _compute_preconditioner(object, n_iter, n_subset)
+
+      Computes the preconditioner factor :math:`C^n(f^n) = \frac{f^n}{H_n^T+\nabla_f V(f^n)}`
+
+      :param object: Object estimate :math:`f^n`
+      :type object: torch.Tensor
+      :param n_iter: iteration number
+      :type n_iter: int
+      :param n_subset: subset number
+      :type n_subset: int
+
+      :returns: preconditioner factor.
+      :rtype: torch.Tensor
+
+
+
+.. py:class:: BSREM(likelihood, object_initial = None, prior = None, relaxation_sequence = lambda _: 1)
+
+   Bases: :py:obj:`LinearPreconditionedGradientAscentAlgorithm`
+
+   Implementation of the block sequential regularized expectation maximum algorithm :math:`f^{n+1} = f^{n} + \frac{\alpha(n)}{\omega_n H^T 1} \left[\nabla_{f} L(g^n|f^{n}) - \nabla_f V(f^n) \right]`
+
+   :param likelihood: likelihood function :math:`L`
+   :type likelihood: Likelihood
+   :param object_initial: Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
+   :type object_initial: torch.Tensor | None, optional
+   :param prior: Prior class that faciliates the computation of function :math:`V(f)` and its associated derivatives. If None, then no prior is used. Defaults to None.
+   :type prior: Prior, optional
+   :param relaxation_sequence: Relxation sequence :math:`\alpha(n)` used to scale future updates. Defaults to 1 for all :math:`n`. Note that when this function is provided, it takes the iteration number (not the subiteration) so that e.g. if 4 iterations and 8 subsets are used, it would call :math:`\alpha(4)` for all 8 subiterations of the final iteration.
+   :type relaxation_sequence: Callable, optional
+
+   .. py:method:: _linear_preconditioner_factor(n_iter, n_subset)
+
+      Computes the linear preconditioner factor :math:`D^n = 1/(\omega_n H^T 1)` where :math:`\omega_n` corresponds to the fraction of subsets at subiteration :math:`n`.
+
+      :param n_iter: iteration number
+      :type n_iter: int
+      :param n_subset: subset number
+      :type n_subset: int
+
+      :returns: linear preconditioner factor
+      :rtype: torch.Tensor
+
+
+
+.. py:class:: KEM(likelihood, object_initial = None)
 
    Bases: :py:obj:`OSEM`
 
-   Implementation of the KEM reconstruction algorithm given by :math:`\hat{\alpha}^{n,m+1} = \left[\frac{1}{K^T H_m^T 1} K^T H_m^T \left(\frac{g_m}{H_m K \hat{\alpha}^{n,m}+s}\right)\right] \hat{\alpha}^{n,m}` and where the final predicted object is :math:`\hat{f}^{n,m} = K \hat{\alpha}^{n,m}`.
+   Implementation of the ordered subset expectation maximum algorithm :math:`\alpha^{n+1} = \alpha^{n} + \frac{\alpha^n}{\tilde{H}_n^T} \nabla_{f} L(g^n|\alpha^{n})` and where the final predicted object is :math:`f^n = K \hat{\alpha}^{n}`. The system matrix :math:`\tilde{H}` includes the kernel transform :math:`K`.
 
-   :param projections: projection data :math:`g` to be reconstructed
-   :type projections: torch.Tensor
-   :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
-   :type system_matrix: SystemMatrix
-   :param kem_transform: The transform corresponding to the matrix :math:`K`.
-   :type kem_transform: KEMTransform
-   :param object_initial: represents the initial object guess :math:`f^{0,0}` for the algorithm in object space
-   :type object_initial: torch.tensor[batch_size, Lx, Ly, Lz]
-   :param scatter: estimate of scatter contribution :math:`s`.
-   :type scatter: torch.Tensor
+   :param likelihood: Likelihood function :math:`L`.
+   :type likelihood: Likelihood
+   :param object_initial: Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
+   :type object_initial: torch.Tensor | None, optional
 
-   .. py:method:: _compute_callback(n_iter)
+   .. py:method:: _compute_callback(n_iter, n_subset)
 
-      Computes callback for KEM transform; this is reimplemented here because the `self.object_prediction` corresponds to the :math:`\alpha` value and not :math:`f`. As such, the `KEMTransform` needs to be applied before the object is input to the callback.
+      Method for computing callbacks after each reconstruction iteration. This is reimplemented for KEM because the callback needs to be called on :math:`f^n = K \hat{\alpha}^{n}` as opposed to :math:`\hat{\alpha}^{n}`
 
-      :param n_iter: _description_
+      :param n_iter: Number of iterations
       :type n_iter: int
+      :param n_subset: Number of subsets
+      :type n_subset: int
 
 
-   .. py:method:: __call__(n_iters, n_subsets, callback = None)
+   .. py:method:: __call__(*args, **kwargs)
 
-      Performs the reconstruction using ``n_iters`` iterations and ``n_subsets`` subsets.
-
-      :param n_iters: Number of iterations
-      :type n_iters: int
-      :param n_subsets: Number of subsets
-      :type n_subsets: int
-      :param callback: Callback function to be called after each subiteration. Defaults to None.
-      :type callback: Callback, optional
+      Reimplementation of the call method such that :math:`f^n = K \hat{\alpha}^{n}` is returned as opposed to :math:`\hat{\alpha}^{n}`
 
       :returns: reconstructed object
-      :rtype: torch.tensor[batch_size, Lx, Ly, Lz]
-
-
-
-.. py:class:: DIPRecon(projections, system_matrix, prior_network, rho = 0.003, scatter = 0, precompute_normalization_factors = True, EM_algorithm=OSEM)
-
-   Bases: :py:obj:`StatisticalIterative`
-
-   Implementation of the Deep Image Prior reconstruction technique (see https://ieeexplore.ieee.org/document/8581448). This reconstruction technique requires an instance of a user-defined ``prior_network`` that implements two functions: (i) a ``fit`` method that takes in an ``object`` (:math:`x`) which the network ``f(z;\theta)`` is subsequently fit to, and (ii) a ``predict`` function that returns the current network prediction :math:`f(z;\theta)`. For more details, see the Deep Image Prior tutorial.
-
-   :param projections: projection data :math:`g` to be reconstructed
-   :type projections: torch.tensor
-   :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
-   :type system_matrix: SystemMatrix
-   :param prior_network: User defined prior network that implements the neural network ``f(z;\theta)``
-   :type prior_network: nn.Module
-   :param rho: Value of :math:`\rho` used in the optimization procedure. Defaults to 1.
-   :type rho: float, optional
-   :param scatter: Projection space scatter estimate. Defaults to 0.
-   :type scatter: torch.tensor | float, optional
-   :param precompute_normalization_factors: Whether to precompute :math:`H_m^T 1` and store on GPU in the OSEM network before reconstruction. Defaults to True.
-   :type precompute_normalization_factors: bool, optional
-
-   .. py:method:: _validate_projector(system_matrix)
-
-      Checks that the required classes are implemented by the reconstruction algorithm
-
-      :param system_matrix: System matrix being used as projector in reconstruction algorithm
-      :type system_matrix: SystemMatrix
-
-
-   .. py:method:: __call__(n_iters, subit1, n_subsets_osem=1, callback=None)
-
-      Implementation of Algorithm 1 in https://ieeexplore.ieee.org/document/8581448. This implementation gives the additional option to use ordered subsets. The quantity SubIt2 specified in the paper is controlled by the user-defined ``prior_network`` class.
-
-      :param n_iters: Number of iterations (MaxIt in paper)
-      :type n_iters: int
-      :param subit1: Number of OSEM iterations before retraining neural network (SubIt1 in paper)
-      :type subit1: int
-      :param n_subsets_osem: Number of subsets to use in OSEM reconstruction. Defaults to 1.
-      :type n_subsets_osem: int, optional
-
-      :returns: Reconstructed image
       :rtype: torch.Tensor
 
 
@@ -349,6 +234,49 @@ Classes
 
       :returns: Reconstructed object prediction
       :rtype: torch.tensor
+
+
+
+.. py:class:: DIPRecon(likelihood, prior_network, rho = 0.003, EM_algorithm=OSEM)
+
+   Implementation of the Deep Image Prior reconstruction technique (see https://ieeexplore.ieee.org/document/8581448). This reconstruction technique requires an instance of a user-defined ``prior_network`` that implements two functions: (i) a ``fit`` method that takes in an ``object`` (:math:`x`) which the network ``f(z;\theta)`` is subsequently fit to, and (ii) a ``predict`` function that returns the current network prediction :math:`f(z;\theta)`. For more details, see the Deep Image Prior tutorial.
+
+   :param projections: projection data :math:`g` to be reconstructed
+   :type projections: torch.tensor
+   :param system_matrix: System matrix :math:`H` used in :math:`g=Hf`.
+   :type system_matrix: SystemMatrix
+   :param prior_network: User defined prior network that implements the neural network ``f(z;\theta)``
+   :type prior_network: nn.Module
+   :param rho: Value of :math:`\rho` used in the optimization procedure. Defaults to 1.
+   :type rho: float, optional
+   :param scatter: Projection space scatter estimate. Defaults to 0.
+   :type scatter: torch.tensor | float, optional
+   :param precompute_normalization_factors: Whether to precompute :math:`H_m^T 1` and store on GPU in the OSEM network before reconstruction. Defaults to True.
+   :type precompute_normalization_factors: bool, optional
+
+   .. py:method:: _compute_callback(n_iter, n_subset)
+
+      Method for computing callbacks after each reconstruction iteration
+
+      :param n_iter: Number of iterations
+      :type n_iter: int
+      :param n_subset: Number of subsets
+      :type n_subset: int
+
+
+   .. py:method:: __call__(n_iters, subit1, n_subsets_osem=1, callback=None)
+
+      Implementation of Algorithm 1 in https://ieeexplore.ieee.org/document/8581448. This implementation gives the additional option to use ordered subsets. The quantity SubIt2 specified in the paper is controlled by the user-defined ``prior_network`` class.
+
+      :param n_iters: Number of iterations (MaxIt in paper)
+      :type n_iters: int
+      :param subit1: Number of OSEM iterations before retraining neural network (SubIt1 in paper)
+      :type subit1: int
+      :param n_subsets_osem: Number of subsets to use in OSEM reconstruction. Defaults to 1.
+      :type n_subsets_osem: int, optional
+
+      :returns: Reconstructed image
+      :rtype: torch.Tensor
 
 
 
