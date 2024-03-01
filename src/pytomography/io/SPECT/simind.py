@@ -55,7 +55,7 @@ def get_metadata(headerfile: str, distance: str = 'cm', corrfile: str | None = N
     proj_meta = SPECTProjMeta((proj_dim1, proj_dim2), angles, radii)
     return object_meta, proj_meta
 
-def get_projections(headerfile: str):
+def _get_projections_from_single_file(headerfile: str):
     """Gets projection data from a SIMIND header file.
 
     Args:
@@ -81,10 +81,51 @@ def get_projections(headerfile: str):
     projections = torch.tensor(projections.copy()).unsqueeze(dim=0).to(pytomography.device)
     return projections
 
+def get_projections(headerfiles: str | Sequence[str], weights: float = None):
+    """Gets projection data from a SIMIND header file.
+
+    Args:
+        headerfile (str): Path to the header file
+        distance (str, optional): The units of measurements in the SIMIND file (this is required as input, since SIMIND uses mm/cm but doesn't specify). Defaults to 'cm'.
+
+    Returns:
+        (torch.Tensor[1, Ltheta, Lr, Lz]): Simulated SPECT projection data.
+    """
+    if type(headerfiles) is str:
+        return _get_projections_from_single_file(headerfiles)
+    elif isinstance(headerfiles[0], Sequence) and not isinstance(headerfiles[0], str):
+        projections = []
+        for i, headerfiles_window_i in enumerate(headerfiles):
+            projections_window_i = []
+            for j, headerfiles_window_i_organ_j in enumerate(headerfiles_window_i):
+                projections_window_i_organ_j = get_projections(headerfiles_window_i_organ_j)
+                if weights is not None: projections_window_i_organ_j *= weights[j]
+                projections_window_i.append(projections_window_i_organ_j)
+            projections_window_i = torch.sum(torch.stack(projections_window_i), dim=0)
+            projections.append(projections_window_i)
+        projections = torch.cat(projections, dim=0)
+        return projections
+    else:
+        projections = []
+        for i, headerfile in enumerate(headerfiles):
+            projections.append(get_projections(headerfile))
+        projections = torch.cat(projections, dim=0)
+    return projections
+
+def get_energy_window_width(headerfile: str):
+    with open(headerfile) as f:
+        headerdata = f.readlines()
+    headerdata = np.array(headerdata)
+    lwr = get_header_value(headerdata, 'energy window lower level', np.float32)
+    upr = get_header_value(headerdata, 'energy window upper level', np.float32)
+    return upr - lwr
+    
+
 def get_scatter_from_TEW(
     headerfile_peak: str,
     headerfile_lower: str,
     headerfile_upper: str,
+    activity_time = None,
     ):
     """Obtains a triple energy window scatter estimate from corresponding photopeak, lower, and upper energy windows.
 
@@ -92,6 +133,7 @@ def get_scatter_from_TEW(
         headerfile_peak: Headerfile corresponding to the photopeak
         headerfile_lower: Headerfile corresponding to the lower energy window
         headerfile_upper: Headerfile corresponding to the upper energy window
+        activity_time: Product of activity and time corresponding to the projections. If this argument is provided, then projections are first scaled by activity and time, and then the poisson noise is taken. If the argument is not provided, then poisson noise is not taken.
 
     Returns:
         torch.Tensor[1, Ltheta, Lr, Lz]: Estimated scatter from the triple energy window.
@@ -108,6 +150,8 @@ def get_scatter_from_TEW(
         lwr_window = get_header_value(headerdata, 'energy window lower level', np.float32)
         upr_window = get_header_value(headerdata, 'energy window upper level', np.float32)
         window_widths.append(upr_window - lwr_window)
+        if activity_time is not None:
+            projections = torch.poisson(projections*activity_time)
         projectionss.append(projections)
     projections_scatter = compute_TEW(projectionss[1], projectionss[2], window_widths[1], window_widths[2], window_widths[0])
     return projections_scatter
@@ -135,7 +179,7 @@ def combine_scatter_data_TEW(
     headerfiles_peak: Sequence[str],
     headerfiles_lower: Sequence[str],
     headerfiles_upper: Sequence[str],
-    weights: Sequence[float]
+    weights: Sequence[float],
     ):
     """Computes the triple energy window scatter estimate of the sequence of projection data weighted by `weights`. See `combine_projection_data` for more details.
 
@@ -152,6 +196,7 @@ def combine_scatter_data_TEW(
     for headerfile_peak, headerfile_lower, headerfile_upper, weight in zip(headerfiles_peak, headerfiles_lower, headerfiles_upper, weights):
         scatter_i = get_scatter_from_TEW(headerfile_peak, headerfile_lower, headerfile_upper)
         scatter+= weight * scatter_i
+    
     return scatter   
 
 def get_attenuation_map(headerfile: str):

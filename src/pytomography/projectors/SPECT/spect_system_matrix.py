@@ -5,11 +5,17 @@ from pytomography.transforms import transform
 from pytomography.transforms.shared import RotationTransform
 from pytomography.metadata import SPECTObjectMeta, SPECTProjMeta
 from pytomography.priors import Prior
-from pytomography.utils import pad_object, unpad_object, pad_proj, unpad_proj
+from pytomography.utils import pad_object, unpad_object, pad_proj, unpad_proj, rotate_detector_z
+import numpy as np
 from ..system_matrix import SystemMatrix
+try:
+    import parallelproj
+except:
+    pass
+    #Warning('parallelproj not installed. The SPECTCompleteSystemMatrix class requires parallelproj to be installed.')
 
 class SPECTSystemMatrix(SystemMatrix):
-    r"""System matrix for SPECT imaging. By default, this applies to parallel hole collimators, but appropriate use of `proj2proj_transforms` can allow this system matrix to also model converging/diverging collimator configurations as well.
+    r"""System matrix for SPECT imaging implemented using the rotate+sum technique.
     
     Args:
             obj2obj_transforms (Sequence[Transform]): Sequence of object mappings that occur before forward projection.
@@ -17,6 +23,7 @@ class SPECTSystemMatrix(SystemMatrix):
             object_meta (SPECTObjectMeta): SPECT Object metadata.
             proj_meta (SPECTProjMeta): SPECT projection metadata.
             n_parallel (int): Number of projections to use in parallel when applying transforms. More parallel events may speed up reconstruction time, but also increases GPU usage. Defaults to 1.
+            object_initial_based_on_camera_path (bool): Whether or not to initialize the object estimate based on the camera path; this sets voxels to zero that are outside the SPECT camera path. Defaults to False.
     """
     def __init__(
         self,
@@ -25,10 +32,33 @@ class SPECTSystemMatrix(SystemMatrix):
         object_meta: SPECTObjectMeta,
         proj_meta: SPECTProjMeta,
         n_parallel = 1,
+        object_initial_based_on_camera_path: bool = False
     ) -> None:
+        import parallelproj
         super(SPECTSystemMatrix, self).__init__(obj2obj_transforms, proj2proj_transforms, object_meta, proj_meta)
         self.n_parallel = n_parallel
+        self.object_initial_based_on_camera_path = object_initial_based_on_camera_path
         self.rotation_transform = RotationTransform()
+        
+    def _get_object_initial(self):
+        """Returns an initial object estimate used in reconstruction algorithms. By default, this is a tensor of ones with the same shape as the object metadata.
+
+        Returns:
+            torch.Tensor: Initial object used in reconstruction algorithm.
+        """
+        object_initial = torch.ones((1,*self.object_meta.shape)).to(pytomography.device)
+        if self.object_initial_based_on_camera_path:
+            for i in range(len(self.proj_meta.angles)):
+                cutoff_idx = int(np.ceil(self.object_meta.shape[0]/ 2 - self.proj_meta.radii[i]/self.object_meta.dr[0]))
+                if cutoff_idx<0:
+                    continue
+                img_cutoff = torch.ones((1,*self.object_meta.shape)).to(pytomography.device)
+                img_cutoff[:, :cutoff_idx, :, :] = 0
+                img_cutoff = pad_object(img_cutoff, mode='replicate')
+                img_cutoff = rotate_detector_z(img_cutoff, -self.proj_meta.angles[i])
+                img_cutoff = unpad_object(img_cutoff)
+                object_initial *= img_cutoff
+        return object_initial
     
     def compute_normalization_factor(self, subset_idx : int | None = None) -> torch.tensor:
         """Function used to get normalization factor :math:`H^T_m 1` corresponding to projection subset :math:`m`.
@@ -108,7 +138,7 @@ class SPECTSystemMatrix(SystemMatrix):
         if subset_idx is not None:
             angle_subset = self.subset_indices_array[subset_idx]
         N_angles = self.proj_meta.num_projections if subset_idx is None else len(angle_subset)
-        angle_indices = torch.arange(N_angles) if subset_idx is None else angle_subset
+        angle_indices = torch.arange(N_angles).to(pytomography.device) if subset_idx is None else angle_subset
         # Start projection
         object = object.to(pytomography.device)
         proj = torch.zeros(
@@ -154,7 +184,7 @@ class SPECTSystemMatrix(SystemMatrix):
         if subset_idx is not None:
             angle_subset = self.subset_indices_array[subset_idx]
         N_angles = self.proj_meta.num_projections if subset_idx is None else len(angle_subset)
-        angle_indices = torch.arange(N_angles) if subset_idx is None else angle_subset
+        angle_indices = torch.arange(N_angles).to(pytomography.device) if subset_idx is None else angle_subset
         # Box used to perform back projection
         boundary_box_bp = pad_object(torch.ones((1, *self.object_meta.shape)).to(pytomography.device), mode='back_project')
         # Pad proj and norm_proj (norm_proj used to compute sum_j H_ij)
@@ -199,74 +229,134 @@ class SPECTSystemMatrix(SystemMatrix):
         else:
             return object
         
-        
-class SPECTSystemMatrixMaskedSegments(SPECTSystemMatrix):
-    r"""SPECT system matrix where the object space is a vector of length :math:`N` consisting of the mean activities for each masks in ``masks``. This system matrix can be used in reconstruction algorithms to obtain maximum liklihood estimations for the average value of :math:`f` inside each of the masks.
-    
-    Args:
-            obj2obj_transforms (Sequence[Transform]): Sequence of object mappings that occur before forward projection.
-            proj2proj_transforms (Sequence[Transform]): Sequence of proj mappings that occur after forward projection.
-            object_meta (SPECTObjectMeta): SPECT Object metadata.
-            proj_meta (SPECTProjMeta): SPECT proj metadata.
-            masks (torch.Tensor): Masks corresponding to each segmented region.
+class SPECTCompleteSystemMatrix(SPECTSystemMatrix):
+    """Class presently under construction. 
     """
     def __init__(
         self,
-        obj2obj_transforms: list[Transform],
-        proj2proj_transforms: list[Transform],
-        object_meta: SPECTObjectMeta,
-        proj_meta: SPECTProjMeta,
-        masks: torch.Tensor
-        
+        object_meta,
+        proj_meta,
+        attenuation_map,
+        psf_kernel,
+        store_system_matrix = False,
+        mask_based_on_attenuation = False,
+        n_parallel = 1,
     ) -> None:
-        super(SPECTSystemMatrixMaskedSegments, self).__init__(obj2obj_transforms, proj2proj_transforms, object_meta, proj_meta)
-        self.masks = masks.to(pytomography.device)
+        
+        super(SPECTCompleteSystemMatrix, self).__init__([],[], object_meta, proj_meta)
+        self.n_parallel = n_parallel
+        self.dimension_single_proj = (*self.proj_meta.shape[1:], *self.object_meta.shape)
+        self.attenuation_map = attenuation_map
+        self.psf_kernel = psf_kernel
+        self.psf_kernel._configure(object_meta)
+        self.X_obj = self._get_object_positions()
+        self.system_matrices = None
+        self.origin = -(torch.tensor(object_meta.shape).to(pytomography.device)/2-0.5) * torch.tensor(object_meta.dr).to(pytomography.dtype).to(pytomography.device)
+        self.voxel_size = torch.tensor(object_meta.dr).to(pytomography.dtype).to(pytomography.device)
+        if mask_based_on_attenuation:
+            self._compute_projections_mask()
+            self.valid_proj_pixel_mask = torch.flatten(self.projections_mask[0], start_dim=1)
+            self.valid_obj_voxel_mask= (self.attenuation_map>0.01)[0].ravel()
+        else:
+            self.valid_proj_pixel_mask = torch.ones(self.proj_meta.shape).to(pytomography.device).to(torch.bool).ravel()
+            self.valid_obj_voxels_indices = torch.ones(self.object_meta.shape).to(pytomography.device).to(torch.bool).ravel()
+        if store_system_matrix:
+            self.system_matrices = [self._compute_system_matrix_components(i).to(torch.float16) for i in range(self.proj_meta.num_projections)]
+        
+    def _get_proj_positions(self, idx):
+        Ny = self.proj_meta.shape[1]
+        Nz = self.proj_meta.shape[2]
+        dy = self.object_meta.dr[0]
+        dz = self.object_meta.dr[2]
+        angle = (270-self.proj_meta.angles[idx]) * torch.pi / 180
+        radius = self.proj_meta.radii[idx]
+        yv, zv = torch.meshgrid(torch.arange(-Ny/2+0.5, Ny/2+0.5, 1)*dy, torch.arange(-Nz/2+0.5, Nz/2+0.5, 1)*dz, indexing='ij')
+        xv = torch.ones(yv.shape) * radius
+        X = torch.stack([xv,yv,zv], dim=-1).to(pytomography.device)
+        rotation_matrix = torch.tensor([
+                [torch.cos(angle), -torch.sin(angle), 0],
+                [torch.sin(angle), torch.cos(angle), 0],
+                [0, 0, 1]
+            ]).to(pytomography.device)
+        return torch.flatten(torch.matmul(rotation_matrix.unsqueeze(0).unsqueeze(0), X.unsqueeze(-1)).squeeze(), end_dim=-2)
 
+    def _get_object_positions(self):
+        Nx, Ny, Nz = self.object_meta.shape
+        dx, dy, dz = self.object_meta.dr
+        xv, yv, zv = torch.meshgrid(
+            [torch.arange(-Nx/2+0.5, Nx/2+0.5, 1)*dx, torch.arange(-Ny/2+0.5, Ny/2+0.5, 1)*dy, torch.arange(-Nz/2+0.5, Nz/2+0.5, 1)*dz], indexing='ij')
+        X = torch.stack([xv,yv,zv], dim=-1).to(pytomography.device)
+        return torch.flatten(X, end_dim=-2)
+        
+    def _compute_system_matrix_components(self, idx):
+        if self.system_matrices is not None:
+            return self.system_matrices[idx].to(torch.float32).to(pytomography.device)
+        valid_proj_idx = self.valid_proj_pixel_mask[idx]
+        valid_obj_idx = self.valid_obj_voxel_mask
+        X_proj = self._get_proj_positions(idx)[valid_proj_idx]
+        X_obj = self.X_obj[valid_obj_idx]
+        # Assume 0 contribution outside of valid regions (requires cropping object initial and projection data)
+        system_matrix_proj_i = torch.einsum(
+            'i,j->ij',
+            torch.ones(valid_proj_idx.sum()).to(pytomography.device),
+            torch.ones(valid_obj_idx.sum()).to(pytomography.device)
+        )
+        angle = (270-self.proj_meta.angles[idx]) * torch.pi / 180
+        N_splits = 64
+        # PSF
+        for X_proj_sub, indices in zip(torch.tensor_split(X_proj, N_splits), torch.tensor_split(torch.arange(X_proj.shape[0]).to(pytomography.device), N_splits)):
+            delta_r = (X_proj_sub[:,None] - X_obj)
+            d = torch.abs(delta_r[:,:,0]*torch.cos(angle) + delta_r[:,:,1]*torch.sin(angle))
+            x = delta_r[:,:,1]*torch.cos(angle) - delta_r[:,:,0]*torch.sin(angle)
+            y = delta_r[:,:,2]
+            system_matrix_proj_i[indices] *= self.psf_kernel(x.ravel(),y.ravel(),d.ravel()).reshape(x.shape)
+        # Attenuation
+        for X_proj_sub, indices in zip(torch.tensor_split(X_proj, N_splits), torch.tensor_split(torch.arange(X_proj.shape[0]).to(pytomography.device), N_splits)):
+            X_start = X_obj[None].repeat((X_proj_sub.shape[0],1,1))
+            X_end = X_proj_sub[:,None].repeat((1,X_obj.shape[0],1))
+            system_matrix_proj_i[indices] *= torch.exp(-parallelproj.joseph3d_fwd(
+                torch.flatten(X_start, end_dim=-2),
+                torch.flatten(X_end, end_dim=-2),
+                self.attenuation_map[0],
+                self.origin,
+                self.voxel_size,
+            )).reshape(X_proj_sub.shape[0], X_obj.shape[0])
+        return system_matrix_proj_i
+    
+    def _compute_projections_mask(self):
+        self.projections_mask = super(SPECTCompleteSystemMatrix, self).forward(
+            (self.attenuation_map>0.005).to(pytomography.dtype),
+        )>0
+    
     def forward(
         self,
-        activities: torch.Tensor,
-        angle_subset: list[int] = None,
-    ) -> torch.Tensor:
-        r"""Implements forward projection :math:`HUa` on a vector of activities :math:`a` corresponding to `self.masks`.
-
-        Args:
-            activities (torch.tensor[batch_size, n_masks]): Activities in each mask region.
-            angle_subset (list, optional): Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
-
-        Returns:
-            torch.tensor[batch_size, Ltheta, Lx, Lz]: Forward projected projections where Ltheta is specified by `self.proj_meta` and `angle_subset`.
-        """
-        object = 0
-        activities = activities.reshape((*activities.shape, 1, 1, 1)).to(pytomography.device)
-        object = (activities*self.masks).sum(axis=1)
-        return super(SPECTSystemMatrixMaskedSegments, self).forward(object, angle_subset)
+        object,
+        subset_idx: int | None = None
+    ):
+        if subset_idx is not None:
+            angle_subset = self.subset_indices_array[subset_idx]
+        N_angles = self.proj_meta.num_projections if subset_idx is None else len(angle_subset)
+        angle_indices = torch.arange(N_angles) if subset_idx is None else angle_subset
+        proj = torch.zeros(
+            (1,N_angles,self.proj_meta.shape[1]*self.proj_meta.shape[2])
+            ).to(pytomography.device)
+        for idx in angle_indices:
+            system_matrix_proj_i = self._compute_system_matrix_components(idx)
+            proj[:,idx,self.valid_proj_pixel_mask[idx]] = torch.einsum('ij,j->i', system_matrix_proj_i, object.ravel()[self.valid_obj_voxel_mask])
+        return proj.reshape(1,N_angles,self.proj_meta.shape[1],self.proj_meta.shape[2])
     
     def backward(
         self,
-        proj: torch.Tensor,
-        angle_subset: list | None = None,
-        prior: Prior | None = None,
-        normalize: bool = False,
-        return_norm_constant: bool = False,
-    ) -> torch.Tensor:
-        r"""Implements back projection :math:`U^T H^T g` on projections :math:`g`, returning a vector of activities for each mask region.
-
-        Args:
-            proj (torch.tensor[batch_size, Ltheta, Lr, Lz]): projections which are to be back projected
-            angle_subset (list, optional): Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
-            prior (Prior, optional): If included, modifes normalizing factor to :math:`\frac{1}{\sum_j H_{ij} + P_i}` where :math:`P_i` is given by the prior. Used, for example, during in MAP OSEM. Defaults to None.
-            normalize (bool): Whether or not to divide result by :math:`\sum_j H_{ij}`
-            return_norm_constant (bool): Whether or not to return :math:`1/\sum_j H_{ij}` along with back projection. Defaults to 'False'.
-
-        Returns:
-            torch.tensor[batch_size, n_masks]: the activities in each mask region.
-        """
-        object, norm_constant = super(SPECTSystemMatrixMaskedSegments, self).backward(proj, angle_subset, prior, normalize=False, return_norm_constant = True, delta = pytomography.delta)
-        activities = (object.unsqueeze(dim=1) * self.masks).sum(axis=(-1,-2,-3))
-        norm_constant = (norm_constant.unsqueeze(dim=1) * self.masks).sum(axis=(-1,-2,-3))
-        if normalize:
-            activities = (activities+pytomography.delta)/(norm_constant + pytomography.delta)
-        if return_norm_constant:
-            return activities, norm_constant+pytomography.delta
-        else:
-            return activities
+        proj,
+        subset_idx: int | None = None
+    ):
+        if subset_idx is not None:
+            angle_subset = self.subset_indices_array[subset_idx]
+        N_angles = self.proj_meta.num_projections if subset_idx is None else len(angle_subset)
+        angle_indices = torch.arange(N_angles) if subset_idx is None else angle_subset
+        object = torch.flatten(torch.zeros(*self.object_meta.shape).to(pytomography.device))
+        proj = proj.flatten(start_dim=2)
+        for i, idx in enumerate(angle_indices):
+            system_matrix_proj_i = self._compute_system_matrix_components(idx)
+            object[self.valid_obj_voxel_mask] += torch.einsum('ij,i->j', system_matrix_proj_i, proj[0,i][self.valid_proj_pixel_mask[idx]])
+        return object.reshape(1,*self.object_meta.shape)

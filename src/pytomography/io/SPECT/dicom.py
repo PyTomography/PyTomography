@@ -13,6 +13,7 @@ import pydicom
 from pydicom.dataset import Dataset
 from pydicom.uid import generate_uid
 import pytomography
+from rt_utils import RTStructBuilder
 from pytomography.metadata import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
 from pytomography.utils import (
     get_blank_below_above,
@@ -20,13 +21,13 @@ from pytomography.utils import (
     get_mu_from_spectrum_interp,
 )
 from ..CT import (
-    get_HU2mu_conversion,
-    open_CT_file,
-    compute_max_slice_loc_CT,
-    compute_slice_thickness_CT,
+    get_HU2mu_conversion
 )
-from ..shared import create_ds
-
+from ..shared import (
+    open_multifile,
+    _get_affine_multifile,
+    create_ds
+)
 
 def parse_projection_dataset(
     ds: Dataset,
@@ -352,11 +353,11 @@ def get_attenuation_map_from_CT_slices(
         torch.Tensor: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.
     """
 
-    CT_HU = open_CT_file(files_CT)
+    CT_HU = open_multifile(files_CT)
 
     if file_NM is None:
         return (
-            torch.tensor(CT_HU[:, :, ::-1].copy())
+            torch.tensor(CT_HU.copy())
             .unsqueeze(dim=0)
             .to(pytomography.dtype)
             .to(pytomography.device)
@@ -367,12 +368,12 @@ def get_attenuation_map_from_CT_slices(
         CT_output_shape = (ds_NM.Rows, ds_NM.Rows, ds_NM.Columns)
     if apply_affine:
         # Align with SPECT:
-        M_CT = _get_affine_CT(files_CT)
+        M_CT = _get_affine_multifile(files_CT)
         M_NM = _get_affine_spect_projections(file_NM)
         # Resample CT and convert to mu at 208keV and save
         M = npl.inv(M_CT) @ M_NM
         CT_HU = affine_transform(
-            CT_HU, M, output_shape=CT_output_shape, mode=mode, cval=-1500
+            CT_HU[:,:,::-1], M, output_shape=CT_output_shape, mode=mode, cval=-1500
         )
     if keep_as_HU:
         CT = CT_HU
@@ -405,37 +406,15 @@ def _get_affine_spect_projections(filename: str) -> np.array:
         Sx -= ds.Rows / 2 * dx
         Sy -= ds.Rows / 2 * dy
         Sy -= ds.RotationInformationSequence[0].TableHeight
+    # Difference between Siemens and GE
+    # if ds.Manufacturer=='GE MEDICAL SYSTEMS':
+    #     Sz -= ds.RotationInformationSequence[0].TableTraverse
     M = np.zeros((4, 4))
     M[0] = np.array([dx, 0, 0, Sx])
     M[1] = np.array([0, dy, 0, Sy])
     M[2] = np.array([0, 0, -dz, Sz])
     M[3] = np.array([0, 0, 0, 1])
     return M
-
-
-def _get_affine_CT(filenames: Sequence[str]):
-    """Computes an affine matrix corresponding the coordinate system of a CT DICOM file. Note that since CT scans consist of many independent DICOM files, ds corresponds to an individual one of these files. This is why the maximum z value is also required (across all seperate independent DICOM files).
-
-    Args:
-        ds (Dataset): DICOM dataset of CT data
-        max_z (float): Maximum value of z across all axial slices that make up the CT scan
-
-    Returns:
-        np.array: Affine matrix corresponding to CT scan.
-    """
-    # Note: per DICOM convention z actually decreases as the z-index increases (initial z slices start with the head)
-    ds = pydicom.read_file(filenames[0])
-    dz = compute_slice_thickness_CT(filenames)
-    max_z = compute_max_slice_loc_CT(filenames)
-    M = np.zeros((4, 4))
-    M[0:3, 0] = np.array(ds.ImageOrientationPatient[0:3]) * ds.PixelSpacing[0]
-    M[0:3, 1] = np.array(ds.ImageOrientationPatient[3:]) * ds.PixelSpacing[1]
-    M[0:3, 2] = -np.array([0, 0, 1]) * dz
-    M[0:2, 3] = np.array(ds.ImagePositionPatient)[0:2]
-    M[2, 3] = max_z
-    M[3, 3] = 1
-    return M
-
 
 def stitch_multibed(
     recons: torch.Tensor,
@@ -508,6 +487,38 @@ def stitch_multibed(
                 ]
     return recon_aligned
 
+def get_aligned_rtstruct(
+    file_RT: str,
+    file_NM: str,
+    dicom_series_path: str,
+    rt_struct_name: str,
+    cutoff_value = 0.5
+):
+    """Loads an RT struct file and aligns it with SPECT projection data corresponding to ``file_NM``. 
+
+    Args:
+        file_RT (str): Filepath of the RT Struct file
+        file_NM (str): Filepath of the NM file (used to align the RT struct)
+        dicom_series_path (str): Filepath of the DICOM series linked to the RTStruct file (required for loading RTStructs).
+        rt_struct_name (str): Name of the desired RT struct.
+        cutoff_value (float, optional): After interpolation is performed to align the mask in the new frame, mask voxels with values less than this are excluded. Defaults to 0.5.
+
+    Returns:
+        torch.Tensor: RTStruct mask aligned with SPECT data.
+    """
+    object_meta, _ = get_metadata(file_NM)
+    rtstruct = RTStructBuilder.create_from(
+        dicom_series_path=dicom_series_path, 
+        rt_struct_path=file_RT
+    )
+    files_CT = [os.path.join(dicom_series_path, file) for file in os.listdir(dicom_series_path)]
+    mask = rtstruct.get_roi_mask_by_name(rt_struct_name).astype(float)
+    M_CT = _get_affine_multifile(files_CT)
+    M_NM = _get_affine_spect_projections(file_NM)
+    M = npl.inv(M_CT) @ M_NM
+    mask_aligned = affine_transform(mask.transpose((1,0,2))[:,:,::-1], M, output_shape=object_meta.shape, mode='constant', cval=0, order=1)[:,:,::-1]
+    return torch.tensor(mask_aligned>cutoff_value).to(pytomography.device).unsqueeze(0)
+
 
 def save_dcm(
     save_path: str,
@@ -579,22 +590,3 @@ def save_dcm(
         ds_i.PixelData = pixel_data[i].tobytes()
         ds_i.save_as(os.path.join(save_path, f'{ds.SOPInstanceUID}.dcm'))
         
-def open_SPECT_file(
-    files_SPECT: Sequence[str],
-    ) -> np.array:
-    """Given a list of seperate SPECT DICOM files, opens them up and stacks them together into a single SPECT image. 
-
-    Args:
-        files_SPECT (Sequence[str]): List of SPECT DICOM filepaths corresponding to different z slices of the same scan.
-
-    Returns:
-        np.array: SPECT scan with units of vendor.
-    """
-    SPECT_slices = []
-    slice_locs = []
-    for file in files_SPECT:
-        ds = pydicom.read_file(file)
-        SPECT_slices.append(ds.RescaleSlope * ds.pixel_array + ds.RescaleIntercept)
-        slice_locs.append(float(ds.ImagePositionPatient[2]))
-    SPECT_image = np.transpose(np.array(SPECT_slices)[np.argsort(slice_locs)], (2,1,0)).astype(np.float32)
-    return SPECT_image

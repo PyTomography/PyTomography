@@ -14,6 +14,7 @@ class KEMSystemMatrix(SystemMatrix):
         self.proj_meta = system_matrix.proj_meta
         self.system_matrix = system_matrix
         self.kem_transform = kem_transform
+        self.kem_transform.configure(system_matrix.object_meta, system_matrix.proj_meta)
         # Inherit required functions from system matrix
         self.set_n_subsets = self.system_matrix.set_n_subsets
         self.get_projection_subset = self.system_matrix.get_projection_subset

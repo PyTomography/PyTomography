@@ -8,7 +8,7 @@
 PyTomography is a python library for medical image reconstruction. It uses the functionality of PyTorch to (i) enable fast GPU-accelerated reconstruction and (ii) permit easy integration of deep-learning models in traditional reconstruction algorithms. **If you use PyTomography in your own research, please cite the following:** [https://arxiv.org/abs/2309.01977](https://arxiv.org/abs/2309.01977)
 
 ## Features
-**Supported Modalities**
+**Modalities**
 * Single Photon Computed Emission Tomography (SPECT)
     - System matrix modeling includes attenuation correction, PSF modeling, scatter correction
 * Positron Emission Tomography (PET) 
@@ -20,14 +20,14 @@ PyTomography is a python library for medical image reconstruction. It uses the f
 * Filtered Back Projection (FBP)
 * Statistical Iterative Algorithms
     - OSEM / MLEM
-    - OSEMOSL (see [here](https://ieeexplore.ieee.org/document/52985))
+    - OSMAPOSL (see [here](https://ieeexplore.ieee.org/document/52985))
     - BSREM (see [here](https://ieeexplore.ieee.org/document/1207396))
     - KEM (see [here](https://ieeexplore.ieee.org/abstract/document/6868314))
     - DIPRecon (see [here](https://ieeexplore.ieee.org/document/8581448))
     
 Options exist to include anatomical information (such as MRI/CT) when using priors/regularization.
 
-**Supported Datatypes**
+**Datatypes**
 * DICOM (SPECT)
     - Ability to open and align SPECT/CT data and create attenuation maps
     - Repository of collimator parameters for different scanners for obtaining PSF information
@@ -38,6 +38,9 @@ Options exist to include anatomical information (such as MRI/CT) when using prio
     - generation of scanner lookup tables (detector coordinates) from GATE macro files 
 * PETSIRD data files (PET)
     - ability to read PETSIRD files, which contain all detected events and scanner geometry information
+
+**Additional**
+* Uncertainty estimation
 
 ## Installation
 

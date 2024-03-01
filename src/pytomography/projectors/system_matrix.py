@@ -35,6 +35,14 @@ class SystemMatrix():
         for transform in self.proj2proj_transforms:
             transform.configure(self.object_meta, self.proj_meta)
             
+    def _get_object_initial(self):
+        """Returns an initial object estimate used in reconstruction algorithms. By default, this is a tensor of ones with the same shape as the object metadata.
+
+        Returns:
+            torch.Tensor: Initial object used in image reconstruction algorithms.
+        """
+        return torch.ones((1, *self.object_meta.shape)).to(pytomography.device)
+            
     @abc.abstractmethod
     def forward(self, object: torch.tensor, **kwargs):
         r"""Implements forward projection :math:`Hf` on an object :math:`f`.

@@ -19,4 +19,11 @@ class Callback():
             n_iter (int): The iteration number
         """
         ...
+    def finalize(self, obj: torch.tensor):
+        """Abstract method for ``run``.
+
+        Args:
+            obj (torch.tensor[batch_size, Lx, Ly, Lz]): An object which one can compute various statistics from.
+        """
+        return None
         
