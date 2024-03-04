@@ -1,7 +1,7 @@
 from __future__ import annotations
 import torch
 import pytomography
-from pytomography.transforms import transform
+from pytomography.transforms import Transform
 from pytomography.transforms.shared import RotationTransform
 from pytomography.metadata import SPECTObjectMeta, SPECTProjMeta
 from pytomography.priors import Prior
@@ -34,7 +34,6 @@ class SPECTSystemMatrix(SystemMatrix):
         n_parallel = 1,
         object_initial_based_on_camera_path: bool = False
     ) -> None:
-        import parallelproj
         super(SPECTSystemMatrix, self).__init__(obj2obj_transforms, proj2proj_transforms, object_meta, proj_meta)
         self.n_parallel = n_parallel
         self.object_initial_based_on_camera_path = object_initial_based_on_camera_path
