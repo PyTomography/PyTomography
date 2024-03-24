@@ -196,6 +196,8 @@ def get_scatter_from_TEW(
     file: str, index_peak: int, index_lower: int, index_upper: int
 ) -> torch.Tensor:
     """Gets an estimate of scatter projection data from a DICOM file using the triple energy window method.
+        If there is only one scatter window, set both index_lower and index_upper to the lower index.
+        The upper scatter window will be set to zero
 
     Args:
         file (str): Filepath of the DICOM file
@@ -211,9 +213,13 @@ def get_scatter_from_TEW(
     ww_lower = get_window_width(ds, index_lower)
     ww_upper = get_window_width(ds, index_upper)
     projections_all = get_projections(file)
+    projections_upper = projections_all[index_upper]
+    if index_lower == index_upper:
+        projections_upper = projections_all[index_upper].detach().clone()
+        projections_upper[:] = 0
     scatter = compute_TEW(
         projections_all[index_lower],
-        projections_all[index_upper],
+        projections_upper,
         ww_lower,
         ww_upper,
         ww_peak,
