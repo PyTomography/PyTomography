@@ -44,7 +44,7 @@ class PoissonLogLikelihood(Likelihood):
         precomputed_forward_projection: torch.Tensor | None = None,
         subset_idx: int = None,
         ) -> Callable:
-        r"""Computes the second order derivative :math:`\nabla_{ff} L(g|f) = -H^T (g/(Hf)^2) H`. 
+        r"""Computes the second order derivative :math:`\nabla_{ff} L(g|f) = -H^T (g/(Hf+s)^2) H`. 
 
         Args:
             object (torch.Tensor): Object :math:`f` used in computation.
@@ -71,7 +71,7 @@ class PoissonLogLikelihood(Likelihood):
         precomputed_forward_projection = None,
         subset_idx=None,
         ):
-        r"""Computes the second order derivative :math:`\nabla_{gf} L(g|f) = 1/(Hf) H^T`. 
+        r"""Computes the second order derivative :math:`\nabla_{gf} L(g|f) = 1/(Hf+s) H`. 
 
         Args:
             object (torch.Tensor): Object :math:`f` used in computation.
@@ -88,6 +88,32 @@ class PoissonLogLikelihood(Likelihood):
         def operator(input):
             input = self.system_matrix.forward(input, subset_idx)
             return input / (FP + pytomography.delta)
+        return operator
+    
+    def compute_gradient_sf(
+        self,
+        object,
+        precomputed_forward_projection = None,
+        subset_idx=None,
+        ):
+        r"""Computes the second order derivative :math:`\nabla_{sf} L(g|f,s) = -g/(Hf+s)^2 H` where :math:`s` is an additive term representative of scatter. 
+
+        Args:
+            object (torch.Tensor): Object :math:`f` used in computation.
+            precomputed_forward_projection (torch.Tensor | None, optional): The quantity :math:`Hf`. If this value is None, then the forward projection is recomputed. Defaults to None.
+            subset_idx (int, optional): Specifies the subset for all computations. Defaults to None.
+
+        Returns:
+            Callable: The operator given by the second order derivative.
+        """
+        proj_subset = self.system_matrix.get_projection_subset(self.projections, subset_idx)
+        if precomputed_forward_projection is None:
+            FP = self.system_matrix.forward(object, subset_idx)
+        else:
+            FP = precomputed_forward_projection
+        def operator(input):
+            input = self.system_matrix.forward(input, subset_idx)
+            return -input * proj_subset / (FP + pytomography.delta)**2
         return operator
     
             

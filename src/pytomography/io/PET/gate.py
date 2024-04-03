@@ -102,6 +102,7 @@ def get_scanner_LUT(
     # Generate positions of all crystals using repeaters
     #parents.reverse()
     repeats = []
+    axial_transaxial_info = []
     for parent in parents:
         repeaters = get_header_value(headerdata, f'/gate/{parent}/repeaters/insert', split_substr=None, split_idx=1, dtype=str, return_all=True)
         if not(repeaters):
@@ -124,6 +125,9 @@ def get_scanner_LUT(
                 y_crystal = (y_crystal_repeated+yv.ravel()).ravel()
                 z_crystal = (z_crystal_repeated+zv.ravel()).ravel()
                 repeats.append(int(np.prod(repeat_numbers)))
+                # append to axial/transaxial information
+                axial_transaxial_info.append({f'{parent}Trans': int(max(repeat_numbers[:2]))})
+                axial_transaxial_info.append({f'{parent}Axial': int(repeat_numbers[2])})
             elif repeater=='linear':
                 repeat_number = get_header_value(headerdata, f'/gate/{parent}/{repeater}/setRepeatNumber', split_substr=None, split_idx=1)
                 repeat_vector = [get_header_value(headerdata, f'/gate/{parent}/{repeater}/setRepeatVector', split_substr=None, split_idx=i) for i in range(1,4)]
@@ -138,6 +142,9 @@ def get_scanner_LUT(
                 y_crystal = (y_crystal_repeated+yr).ravel()
                 z_crystal = (z_crystal_repeated+zr).ravel() 
                 repeats.append(int(repeat_number))
+                # append to axial/transaxial information
+                axial_transaxial_info.append({f'{parent}Trans': int(max(repeat_numbers[:2]))})
+                axial_transaxial_info.append({f'{parent}Axial': int(repeat_numbers[2])})
             elif repeater=='ring':
                 repeat_number = get_header_value(headerdata, f'/gate/{parent}/{repeater}/setRepeatNumber', split_substr=None, split_idx=1)
                 first_angle = get_header_value(headerdata, f'/gate/{parent}/{repeater}/setFirstAngle', split_substr=None, split_idx=1) * np.pi / 180
@@ -151,7 +158,11 @@ def get_scanner_LUT(
                 y_crystal = (np.sin(phi)*x_crystal_repeated + np.cos(phi)*y_crystal_repeated).ravel()
                 z_crystal = (z_crystal_repeated).ravel()
                 repeats.append(int(repeat_number))
+                # Repeat number for a ring is in the axial direction
+                axial_transaxial_info.append({f'{parent}Trans': int(repeat_number)})
+                axial_transaxial_info.append({f'{parent}Axial': 1})
     info = dict(zip(parents, repeats))
+    [info.update(pair) for pair in axial_transaxial_info]
     if return_info:
         return torch.tensor(np.vstack((x_crystal,y_crystal,-z_crystal)).T), info
     else:
@@ -260,7 +271,25 @@ def get_radius(detector_ids: torch.tensor, scanner_LUT: torch.tensor) -> torch.t
     return torch.where(
         (x1==x2)*(y1==y2),
         torch.sqrt(x1**2+y1**2),
-        torch.abs(x1*y2-y1*x2)/torch.sqrt((x1-x2)**2+(y1-y2)**2)
+        (x1*y2-y1*x2)/torch.sqrt((x1-x2)**2+(y1-y2)**2)
+    )
+    
+def get_angle(detector_ids: torch.tensor, scanner_LUT: torch.tensor) -> torch.tensor:
+    """Gets the angular position of all LORs
+
+    Args:
+        detector_ids (torch.tensor): Detector ID pairs corresponding to LORs
+        scanner_LUT (torch.tensor): scanner look up table
+
+    Returns:
+        torch.tensor: angle of all detector ID pairs provided
+    """
+    x1, y1, z1 = scanner_LUT[detector_ids[:,0]].T
+    x2, y2, z2 = scanner_LUT[detector_ids[:,1]].T
+    return torch.where(
+        (x1==x2)*(y1==y2),
+        torch.inf,
+        torch.arccos(torch.abs(x1-x2)/torch.sqrt((x1-x2)**2+(y1-y2)**2))
     )
 
 def get_table(det_ids: torch.tensor, mac_file: str) -> torch.tensor:
@@ -280,8 +309,6 @@ def get_table(det_ids: torch.tensor, mac_file: str) -> torch.tensor:
     subM_ids = det_ids % (N_submodule * N_module * N_rsector * N_gantry) // (N_module * N_rsector * N_gantry)
     M_ids = det_ids % (N_module * N_rsector * N_gantry) // (N_rsector * N_gantry)
     R_ids = det_ids % (N_rsector * N_gantry) // N_gantry
-    # deltaM_ids = torch.abs(torch.diff(M_ids, axis=1))
-    # deltaR_ids = torch.abs(torch.diff(R_ids, axis=1))
     deltaM_ids = torch.diff(M_ids, axis=1) % N_module # because of circle
     deltaR_ids = torch.diff(R_ids, axis=1) + (N_rsector - 1)
     return torch.tensor(torch.concatenate([cry_ids, subM_ids, deltaM_ids, deltaR_ids], axis=1))
@@ -310,7 +337,7 @@ def get_eta_cylinder_calibration(
     # Geometry correction factor for non-unform exposure from cylindrical shell
     scanner_LUT = torch.tensor(get_scanner_LUT(mac_file, mean_interaction_depth=mean_interaction_depth))
     all_LOR_ids = torch.combinations(torch.arange(N_detectors).to(torch.int32), 2)
-    geometric_correction_factor = 1/(torch.sqrt(1-(get_radius(all_LOR_ids, scanner_LUT) / cylinder_radius )**2) + pytomography.delta)
+    geometric_correction_factor = 1/(torch.sqrt(1-(torch.abs(get_radius(all_LOR_ids, scanner_LUT)) / cylinder_radius )**2) + pytomography.delta)
     print(geometric_correction_factor.max())
     # Detector correction factor (exploits symmetries)
     H = torch.zeros(N_crystal, N_crystal, N_submodule, N_submodule, N_module, 2*N_rsector-1)

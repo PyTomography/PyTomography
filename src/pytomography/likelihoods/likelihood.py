@@ -8,7 +8,8 @@ class Likelihood:
         self,
         system_matrix: SystemMatrix,
         projections: torch.Tensor,
-        additive_term: torch.Tensor = None
+        additive_term: torch.Tensor = None,
+        additive_term_variance_estimate: torch.tensor = None
         ) -> None:
         """Generic likelihood class in PyTomography. Subclasses may implement specific likelihoods with methods to compute the likelihood itself as well as particular gradients of the likelihood 
 
@@ -22,9 +23,12 @@ class Likelihood:
         self.FP = None # stores current state of forward projection
         if type(additive_term) is torch.Tensor:
             self.additive_term = additive_term.to(projections.device).to(pytomography.dtype)
+            self.exists_additive_term = True
         else:
             self.additive_term = torch.zeros(projections.shape).to(projections.device).to(pytomography.dtype)
+            self.exists_additive_term = False
         self.n_subsets_previous = -1
+        self.additive_term_variance_estimate = additive_term_variance_estimate
     
     def _set_n_subsets(
         self,
@@ -66,3 +70,11 @@ class Likelihood:
             NotImplementedError: Must be implemented by sub classes
         """
         raise NotImplementedError("gradient_gf not implemented for this likelihood function")
+    
+    def compute_gradient_sf(self, *args, **kwargs):
+        r"""Function used to compute the second order gradient (with respect to the object then additive term) of the likelihood :math:`\nabla_{sf} L(g|f,s)`
+
+        Raises:
+            NotImplementedError: Must be implemented by sub classes
+        """
+        raise NotImplementedError("gradient_sf not implemented for this likelihood function")
