@@ -42,3 +42,4 @@ class LogLikelihoodCallback(Callback):
             self.liklihoods_prior_component.append(prior_component)
             liklihood -= prior_component
         self.liklihoods.append(liklihood)
+        return object

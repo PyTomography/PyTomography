@@ -12,7 +12,7 @@ def reduce_projections(object_meta, proj_meta, projections, N_pixel=1, N_angle=1
     object_meta.compute_padded_shape()
     object_meta.dx*=N_pixel
     object_meta.dy*=N_pixel
-    object_meta.dz*=N_pixel
+    proj_meta.dr = tuple([N_pixel*dri for dri in proj_meta.dr])
     proj_meta.shape = (int(proj_meta.shape[0]/N_angle), int(proj_meta.shape[1]/N_pixel), int(proj_meta.shape[2]/N_pixel))
     proj_meta.compute_padded_shape()
     proj_meta.radii = proj_meta.radii[N_angle_start::N_angle]

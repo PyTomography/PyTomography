@@ -5,8 +5,9 @@ from collections.abc import Callable, Sequence
 import pytomography
 import torch
 from pytomography.callbacks import Callback, DataStorageCallback
-from pytomography.likelihoods import Likelihood
+from pytomography.likelihoods import Likelihood, SARTWeightedNegativeMSELikelihood
 from pytomography.priors import Prior
+from pytomography.io.SPECT import dicom
 
 class PreconditionedGradientAscentAlgorithm:
     r"""Generic class for preconditioned gradient ascent algorithms: i.e. those that have the form :math:`f^{n+1} = f^{n} + C^{n}(f^{n}) \left[\nabla_{f} L(g^n|f^{n}) - \beta \nabla_{f} V(f^{n}) \right]`. 
@@ -72,7 +73,7 @@ class PreconditionedGradientAscentAlgorithm:
             n_iter (int): Number of iterations
             n_subset (int): Number of subsets
         """
-        self.callback.run(self.object_prediction, n_iter, n_subset)
+        self.object_prediction = self.callback.run(self.object_prediction, n_iter, n_subset)
     
     def __call__(
         self,
@@ -163,7 +164,7 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
         mask: torch.Tensor,
         data_storage_callback: DataStorageCallback,
         subiteration_number : int | None = None,
-        return_pct: bool = False
+        return_pct: bool = False,
         ) -> float | Sequence[float]:
         """Estimates the uncertainty of the sum of voxels in a reconstructed image. Calling this method requires a masked region `mask` as well as an instance of `DataStorageCallback` that has been used in a reconstruction algorithm: this data storage contains the estimated object and associated forward projection at each subiteration number.
 
@@ -178,8 +179,11 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
         """
         if subiteration_number is None:
             subiteration_number = len(data_storage_callback.objects) - 1
-        V = self._compute_uncertainty_matrix(mask, data_storage_callback, subiteration_number)
-        uncertainty_abs = torch.sqrt(torch.sum(V * self.likelihood.projections * V)).item()
+        V = self._compute_uncertainty_matrix(mask, data_storage_callback, subiteration_number, include_additive_term=True)
+        uncertainty_abs2 = torch.sum(V[0].unsqueeze(0) * self.likelihood.projections * V[0].unsqueeze(0))
+        if self.likelihood.additive_term_variance_estimate is not None:
+            uncertainty_abs2 += torch.sum(V[1].unsqueeze(0) * self.likelihood.additive_term_variance_estimate * V[1].unsqueeze(0))
+        uncertainty_abs = torch.sqrt(uncertainty_abs2).item()
         if not(return_pct):
             return uncertainty_abs
         else:
@@ -190,7 +194,8 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
         self,
         mask: torch.Tensor,
         data_storage_callback: DataStorageCallback,
-        n: int
+        n: int,
+        include_additive_term=False
         ) -> torch.Tensor:
         r"""Computes the quantity :math:`V^{n+1}\chi = V^{n} Q^{n} \chi + B^{n}\chi` where :math:`Q^{n} = \left[\nabla_{ff} L(g^n|f^n) -  \nabla_{ff} U(f^n)\right] D^{n} \text{diag}\left(f^{n}\right) + \text{diag}\left(f^{n+1}/f^n\right)` and :math:`B^{n}=\nabla_{gf} L(g^n|f^n) D^n \text{diag}\left(f^{n}\right)` and :math:`V^{0} = 0 . This function is meant to be called recursively.
 
@@ -203,7 +208,10 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
             torch.Tensor: the quantity :math:`V^{n+1}\chi`
         """
         if n==0:
-            return torch.zeros((1, *self.likelihood.system_matrix.proj_meta.shape)).to(pytomography.device)
+            if include_additive_term:
+                return torch.zeros((2, *self.likelihood.system_matrix.proj_meta.shape)).to(pytomography.device)
+            else:
+                return torch.zeros((1, *self.likelihood.system_matrix.proj_meta.shape)).to(pytomography.device)
         else:
             subset_idx = (n-1)%self.n_subsets
             object_current_update = data_storage_callback.objects[n].to(pytomography.device)
@@ -225,18 +233,25 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
             del(FP_previous_update)
             del(likelihood_grad_ff)
             torch.cuda.empty_cache()
-            term1 = self._compute_uncertainty_matrix(1*mask-term1, data_storage_callback, n-1)
-            # Additive step after recursion
+            term1 = self._compute_uncertainty_matrix(1*mask-term1, data_storage_callback, n-1, include_additive_term=include_additive_term)
+            # Additive step after recursion (computation of B_sigma^k and B_n^k)
+            subset_indices_array = self.likelihood.system_matrix.subset_indices_array[subset_idx]
             object_previous_update = data_storage_callback.objects[n-1].to(pytomography.device)
             FP_previous_update = data_storage_callback.projections_predicted[n-1].to(pytomography.device)
-            likelihood_grad_gf = self.likelihood.compute_gradient_gf(object_previous_update, FP_previous_update, subset_idx)
             term2 = mask * object_previous_update * self._linear_preconditioner_factor(None, subset_idx)
-            term2 = likelihood_grad_gf(term2)
-            # Add to term
-            subset_indices_array = self.likelihood.system_matrix.subset_indices_array[subset_idx]
-            term_return = torch.zeros((1, *self.likelihood.system_matrix.proj_meta.shape)).to(pytomography.device)
+            likelihood_grad_gf = self.likelihood.compute_gradient_gf(object_previous_update, FP_previous_update, subset_idx)
+            if include_additive_term:
+                likelihood_grad_sf = self.likelihood.compute_gradient_sf(object_previous_update, FP_previous_update, subset_idx)
+                term2_additive = likelihood_grad_sf(term2)
+                term2 = likelihood_grad_gf(term2)
+                term_return = torch.zeros((2, *self.likelihood.system_matrix.proj_meta.shape)).to(pytomography.device)
+            else:
+                term2 = likelihood_grad_gf(term2)
+                term_return = torch.zeros((1, *self.likelihood.system_matrix.proj_meta.shape)).to(pytomography.device)
             term_return += term1
-            term_return[:,subset_indices_array] += term2
+            term_return[0,subset_indices_array] += term2[0]
+            if include_additive_term:
+                term_return[1,subset_indices_array] += term2_additive[0]
             # Delete to save memory
             del(term1)
             del(term2)
@@ -309,6 +324,78 @@ class OSMAPOSL(PreconditionedGradientAscentAlgorithm):
         """
         return object/(self.likelihood.norm_BPs[n_subset] + self.prior_gradient + pytomography.delta)
     
+class RBIEM(LinearPreconditionedGradientAscentAlgorithm):
+    r"""Implementation of the rescaled block iterative expectation maximum algorithm
+
+        Args:
+            likelihood (Likelihood): Likelihood function :math:`L`.
+            object_initial (torch.Tensor | None, optional): Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
+            prior (Prior, optional): Prior class that faciliates the computation of function :math:`V(f)` and its associated derivatives. If None, then no prior is used. Defaults to None.
+        """
+    def __init__(
+        self,
+        likelihood: Likelihood,
+        object_initial: torch.tensor | None = None,
+        prior: Prior | None = None,
+    ):
+        super(RBIEM, self).__init__(
+            likelihood = likelihood,
+            object_initial = object_initial,
+            prior = prior
+            )
+        
+    def _compute_preconditioner(self, object: torch.Tensor, n_iter: int, n_subset: int) -> torch.Tensor:
+        r"""Computes the preconditioner factor :math:`C^n(f^n) = \frac{f^n}{H_n^T+\nabla_f V(f^n)}`
+
+        Args:
+            object (torch.Tensor): Object estimate :math:`f^n`
+            n_iter (int): iteration number
+            n_subset (int): subset number
+
+        Returns:
+            torch.Tensor: preconditioner factor.
+        """
+        norm_BP = self.likelihood.norm_BPs[n_subset]
+        norm_BP_allsubsets = torch.stack(self.likelihood.norm_BPs).sum(axis=0)
+        rm = torch.max(norm_BP / (norm_BP_allsubsets + pytomography.delta))
+        return object/(norm_BP_allsubsets*rm + pytomography.delta)
+    
+class RBIMAP(PreconditionedGradientAscentAlgorithm):
+    r"""Implementation of the rescaled block iterative maximum a posteriori algorithm
+
+        Args:
+            likelihood (Likelihood): Likelihood function :math:`L`.
+            object_initial (torch.Tensor | None, optional): Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
+            prior (Prior, optional): Prior class that faciliates the computation of function :math:`V(f)` and its associated derivatives. If None, then no prior is used. Defaults to None.
+        """
+    def __init__(
+        self,
+        likelihood: Likelihood,
+        object_initial: torch.tensor | None = None,
+        prior: Prior | None = None,
+    ):
+        super(RBIMAP, self).__init__(
+            likelihood = likelihood,
+            object_initial = object_initial,
+            prior = prior
+            )
+        
+    def _compute_preconditioner(self, object: torch.Tensor, n_iter: int, n_subset: int) -> torch.Tensor:
+        r"""Computes the preconditioner factor :math:`C^n(f^n) = \frac{f^n}{H_n^T+\nabla_f V(f^n)}`
+
+        Args:
+            object (torch.Tensor): Object estimate :math:`f^n`
+            n_iter (int): iteration number
+            n_subset (int): subset number
+
+        Returns:
+            torch.Tensor: preconditioner factor.
+        """
+        norm_BP = self.likelihood.norm_BPs[n_subset]
+        norm_BP_allsubsets = torch.stack(self.likelihood.norm_BPs).sum(axis=0)
+        rm = torch.max((norm_BP + self.prior_gradient) / (norm_BP_allsubsets + self.prior_gradient + pytomography.delta))
+        return object/(norm_BP_allsubsets*rm + self.prior_gradient + pytomography.delta)
+    
 class BSREM(LinearPreconditionedGradientAscentAlgorithm):
     r"""Implementation of the block sequential regularized expectation maximum algorithm :math:`f^{n+1} = f^{n} + \frac{\alpha(n)}{\omega_n H^T 1} \left[\nabla_{f} L(g^n|f^{n}) - \nabla_f V(f^n) \right]`
 
@@ -330,7 +417,6 @@ class BSREM(LinearPreconditionedGradientAscentAlgorithm):
             likelihood = likelihood,
             object_initial = object_initial,
             prior = prior,
-            norm_BP_subset_method = 'average_of_subsets',
             )
     def _linear_preconditioner_factor(self, n_iter: int, n_subset: int):
         """Computes the linear preconditioner factor :math:`D^n = 1/(\omega_n H^T 1)` where :math:`\omega_n` corresponds to the fraction of subsets at subiteration :math:`n`. 
@@ -372,3 +458,137 @@ class KEM(OSEM):
         """
         object_prediction = super(KEM, self).__call__(*args, **kwargs)
         return self.likelihood.system_matrix.kem_transform.forward(object_prediction)
+    
+
+class SART(OSEM):
+    r"""Implementation of the SART algorithm (OSEM with SARTWeightedNegativeMSELikelihood)
+
+        Args:
+            likelihood (Likelihood): Likelihood function :math:`L`.
+            object_initial (torch.Tensor | None, optional): Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
+        """
+    def __init__(
+        self,
+        system_matrix: SystemMatrix,
+        projections: torch.Tensor,
+        additive_term: torch.Tensor | None = None,
+        object_initial: torch.tensor | None = None,
+        ):
+        likelihood = SARTWeightedNegativeMSELikelihood(system_matrix, projections, additive_term=additive_term)
+        super(OSEM, self).__init__(
+            likelihood = likelihood,
+            object_initial = object_initial,
+            )
+    
+class PGAAMultiBedSPECT(PreconditionedGradientAscentAlgorithm):
+    """Assistant class for performing reconstruction on multi-bed SPECT data. This class is a wrapper around a reconstruction algorithm that is called for each bed and then the results are stitched together.
+
+        Args:
+            files_NM (Sequence[str]): Sequence of SPECT raw data paths corresponding to each likelihood
+            reconstruction_algorithm (Algorithm): Reconstruction algorithm used for reconstruction of each bed position
+        """
+    def __init__(
+        self,
+        files_NM: Sequence[str],
+        reconstruction_algorithms: Sequence[object],
+        ) -> None:
+        self.files_NM = files_NM
+        self.reconstruction_algorithms = reconstruction_algorithms
+        
+    def __call__(
+        self,
+        n_iters: int,
+        n_subsets: int,
+        callback: Callback | Sequence[Callback] | None = None,
+        stitching_method: str = 'midslice'
+        ) -> torch.Tensor:
+        """Perform reconstruction of each bed position for specified iteraitons and subsets, and return the stitched image
+
+        Args:
+            n_iters (int): Number of iterations to perform reconstruction for.
+            n_subsets (int): Number of subsets to perform reconstruction for.
+            callback (Callback | Sequence[Callback] | None, optional): Callback function. If a single Callback is given, then the callback is computed for the stitched image. If a sequence of callbacks is given, then it must be the same length as the number of bed positions; each callback is called on the reconstruction for each bed position. If None, no Callback is used. Defaults to None.
+
+        Returns:
+            torch.Tensor: _description_
+        """
+        self.callback = callback
+        for i in range(n_iters):
+            for j in range(n_subsets):
+                self.recons = []
+                for recon_algo in self.reconstruction_algorithms:
+                    self.recons.append(recon_algo(1, n_subsets, n_subset_specific=j))
+                self.object_prediction = dicom.stitch_multibed(
+                    recons=torch.cat(self.recons),
+                    files_NM = self.files_NM,
+                    method=stitching_method)
+                self._compute_callback(i,j)
+        return self.object_prediction
+    
+    def _compute_callback(self, n_iter: int, n_subset: int):
+        """Computes the callback at iteration ``n_iter`` and subset ``n_subset``.
+
+        Args:
+            n_iter (int): Iteration number
+            n_subset (int): Subset index
+        """
+        if self.callback is not None:
+            if type(self.callback) is list:
+                for recon_algo_k, callback_k in zip(self.reconstruction_algorithms, self.callback):
+                    recon_algo_k.callback = callback_k
+                    recon_algo_k._compute_callback(n_iter=n_iter, n_subset=n_subset)
+            else:
+                self.object_prediction = dicom.stitch_multibed(
+                    recons=torch.cat(self.recons),
+                    files_NM = self.files_NM,
+                    method='TEM')  
+                super()._compute_callback(n_iter=n_iter, n_subset=n_subset)
+    
+    def _finalize_callback(self):
+        """Finalizes callbacks after reconstruction. This method is called after the reconstruction algorithm has finished.
+        """
+        if type(self.callback) is list:
+                for recon_algo_k, callback_k in zip(self.reconstruction_algorithms, self.callback):
+                    recon_algo_k.callback = callback_k
+                    recon_algo_k.callback.finalize(recon_algo_k.object_prediction)
+        else:
+            self.callback.finalize(self.object_prediction)
+    
+    def compute_uncertainty(
+        self,
+        mask: torch.Tensor,
+        data_storage_callbacks: Sequence[Callback],
+        subiteration_number: int | None = None,
+        return_pct: bool = False,
+    ):
+        """Estimates the uncertainty in a mask (should be same shape as the stitched image). Calling this method requires a sequence of ``DataStorageCallback`` instances that have been used in a reconstruction algorithm: these data storage contain required information for each bed position.
+
+        Args:
+            mask (torch.Tensor): Masked region of the reconstructed object: a boolean Tensor. This mask should be the same shape as the stitched object.
+            data_storage_callbacks (Sequence[Callback]): Sequence of data storage callbacks used in reconstruction corresponding to each bed position.
+            subiteration_number (int | None, optional): Subiteration number to compute the uncertainty for. If None, then computes the uncertainty for the last iteration. Defaults to None. 
+            return_pct (bool, optional): If true, then additionally returns the percent uncertainty for the sum of counts. Defaults to False.
+
+        Returns:
+            _type_: _description_
+        """
+        if subiteration_number is None:
+            subiteration_number = len(data_storage_callbacks[0].objects) - 1
+        # Crop mask to FOV region
+        recons = [data_storage_callback.objects[subiteration_number].to(pytomography.device) for data_storage_callback in data_storage_callbacks]
+        stitching_weights, zs = dicom.stitch_multibed(torch.cat(recons), self.files_NM, method='TEM', return_stitching_weights=True)
+        uncertainty_abs = []
+        total_counts = 0
+        for k in range(len(recons)):
+            mask_k = mask[:,:,:,zs[k]:zs[k]+recons[0].shape[-1]] * stitching_weights[k]
+            if mask_k.sum()==0:
+                continue
+            uncertainty_abs_k = self.reconstruction_algorithms[k].compute_uncertainty(mask_k, data_storage_callbacks[k], subiteration_number, return_pct=False)
+            total_counts += (recons[k]*mask_k).sum().item()
+            uncertainty_abs.append(uncertainty_abs_k)
+        uncertainty_abs_total = torch.sqrt(torch.sum(torch.tensor(uncertainty_abs)**2)).item()
+        if return_pct:
+            uncertainty_pct = uncertainty_abs_total / total_counts * 100
+            return uncertainty_abs_total, uncertainty_pct
+        else:
+            return uncertainty_abs_total

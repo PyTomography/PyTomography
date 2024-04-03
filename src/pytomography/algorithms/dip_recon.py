@@ -37,6 +37,7 @@ class DIPRecon:
             likelihood,
             object_initial = nn.ReLU()(prior_network.predict().clone())
             )
+        self.likelihood = likelihood
         self.prior_network = prior_network
         self.rho = rho
         

@@ -236,12 +236,13 @@ class SPECTCompleteSystemMatrix(SPECTSystemMatrix):
         object_meta,
         proj_meta,
         attenuation_map,
+        object_meta_amap,
         psf_kernel,
-        store_system_matrix = False,
+        store_system_matrix = None,
         mask_based_on_attenuation = False,
+        photopeak = None,
         n_parallel = 1,
     ) -> None:
-        
         super(SPECTCompleteSystemMatrix, self).__init__([],[], object_meta, proj_meta)
         self.n_parallel = n_parallel
         self.dimension_single_proj = (*self.proj_meta.shape[1:], *self.object_meta.shape)
@@ -250,23 +251,29 @@ class SPECTCompleteSystemMatrix(SPECTSystemMatrix):
         self.psf_kernel._configure(object_meta)
         self.X_obj = self._get_object_positions()
         self.system_matrices = None
-        self.origin = -(torch.tensor(object_meta.shape).to(pytomography.device)/2-0.5) * torch.tensor(object_meta.dr).to(pytomography.dtype).to(pytomography.device)
-        self.voxel_size = torch.tensor(object_meta.dr).to(pytomography.dtype).to(pytomography.device)
-        if mask_based_on_attenuation:
-            self._compute_projections_mask()
+        if store_system_matrix is not None:
+            self.system_matrix_device = store_system_matrix
+        self.origin_amap = -(torch.tensor(object_meta_amap.shape).to(pytomography.device)/2-0.5) * torch.tensor(object_meta_amap.dr).to(pytomography.dtype).to(pytomography.device)
+        self.voxel_size_amap = torch.tensor(object_meta_amap.dr).to(pytomography.dtype).to(pytomography.device)
+        if photopeak is not None:
+            self._compute_projections_mask(photopeak)
             self.valid_proj_pixel_mask = torch.flatten(self.projections_mask[0], start_dim=1)
+        else:
+            self.valid_proj_pixel_mask = torch.ones(self.proj_meta.shape).to(pytomography.device).to(torch.bool).reshape(32,-1)
+            print(self.valid_proj_pixel_mask.shape)
+        if mask_based_on_attenuation:
             self.valid_obj_voxel_mask= (self.attenuation_map>0.01)[0].ravel()
         else:
-            self.valid_proj_pixel_mask = torch.ones(self.proj_meta.shape).to(pytomography.device).to(torch.bool).ravel()
-            self.valid_obj_voxels_indices = torch.ones(self.object_meta.shape).to(pytomography.device).to(torch.bool).ravel()
-        if store_system_matrix:
-            self.system_matrices = [self._compute_system_matrix_components(i).to(torch.float16) for i in range(self.proj_meta.num_projections)]
+            self.valid_obj_voxel_mask = torch.ones(self.object_meta.shape).to(pytomography.device).to(torch.bool).ravel()
+            print(self.valid_obj_voxel_mask.shape)
+        if store_system_matrix is not None:
+            self.system_matrices = [self._compute_system_matrix_components(i).to(torch.float16).to(self.system_matrix_device) for i in range(self.proj_meta.num_projections)]
         
     def _get_proj_positions(self, idx):
         Ny = self.proj_meta.shape[1]
         Nz = self.proj_meta.shape[2]
-        dy = self.object_meta.dr[0]
-        dz = self.object_meta.dr[2]
+        dy = self.proj_meta.dr[0]
+        dz = self.proj_meta.dr[1]
         angle = (270-self.proj_meta.angles[idx]) * torch.pi / 180
         radius = self.proj_meta.radii[idx]
         yv, zv = torch.meshgrid(torch.arange(-Ny/2+0.5, Ny/2+0.5, 1)*dy, torch.arange(-Nz/2+0.5, Nz/2+0.5, 1)*dz, indexing='ij')
@@ -289,7 +296,7 @@ class SPECTCompleteSystemMatrix(SPECTSystemMatrix):
         
     def _compute_system_matrix_components(self, idx):
         if self.system_matrices is not None:
-            return self.system_matrices[idx].to(torch.float32).to(pytomography.device)
+            return self.system_matrices[idx].to(torch.float32)
         valid_proj_idx = self.valid_proj_pixel_mask[idx]
         valid_obj_idx = self.valid_obj_voxel_mask
         X_proj = self._get_proj_positions(idx)[valid_proj_idx]
@@ -317,15 +324,16 @@ class SPECTCompleteSystemMatrix(SPECTSystemMatrix):
                 torch.flatten(X_start, end_dim=-2),
                 torch.flatten(X_end, end_dim=-2),
                 self.attenuation_map[0],
-                self.origin,
-                self.voxel_size,
+                self.origin_amap,
+                self.voxel_size_amap # TODO: adjust for CT,
             )).reshape(X_proj_sub.shape[0], X_obj.shape[0])
         return system_matrix_proj_i
     
-    def _compute_projections_mask(self):
+    def _compute_projections_mask(self, photopeak):
         self.projections_mask = super(SPECTCompleteSystemMatrix, self).forward(
             (self.attenuation_map>0.005).to(pytomography.dtype),
         )>0
+        #self.projections_mask = photopeak > 0
     
     def forward(
         self,
@@ -341,8 +349,12 @@ class SPECTCompleteSystemMatrix(SPECTSystemMatrix):
             ).to(pytomography.device)
         for idx in angle_indices:
             system_matrix_proj_i = self._compute_system_matrix_components(idx)
-            proj[:,idx,self.valid_proj_pixel_mask[idx]] = torch.einsum('ij,j->i', system_matrix_proj_i, object.ravel()[self.valid_obj_voxel_mask])
-        return proj.reshape(1,N_angles,self.proj_meta.shape[1],self.proj_meta.shape[2])
+            proj[:,idx,self.valid_proj_pixel_mask[idx]] = torch.einsum(
+                'ij,j->i',
+                system_matrix_proj_i,
+                object.ravel()[self.valid_obj_voxel_mask].to(self.system_matrix_device)
+            ).to(pytomography.device)
+        return proj.to(pytomography.device).reshape(1,N_angles,self.proj_meta.shape[1],self.proj_meta.shape[2])
     
     def backward(
         self,
@@ -357,5 +369,9 @@ class SPECTCompleteSystemMatrix(SPECTSystemMatrix):
         proj = proj.flatten(start_dim=2)
         for i, idx in enumerate(angle_indices):
             system_matrix_proj_i = self._compute_system_matrix_components(idx)
-            object[self.valid_obj_voxel_mask] += torch.einsum('ij,i->j', system_matrix_proj_i, proj[0,i][self.valid_proj_pixel_mask[idx]])
+            object[self.valid_obj_voxel_mask] += torch.einsum(
+                'ij,i->j',
+                system_matrix_proj_i,
+                proj[0,i][self.valid_proj_pixel_mask[idx]].to(self.system_matrix_device)
+            ).to(pytomography.device)
         return object.reshape(1,*self.object_meta.shape)
