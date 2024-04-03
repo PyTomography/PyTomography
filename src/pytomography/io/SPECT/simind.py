@@ -52,7 +52,7 @@ def get_metadata(headerfile: str, distance: str = 'cm', corrfile: str | None = N
         radii = np.ones(len(angles))*radius
     shape_obj = (proj_dim1, proj_dim1, proj_dim2)
     object_meta = SPECTObjectMeta(dr,shape_obj)
-    proj_meta = SPECTProjMeta((proj_dim1, proj_dim2), angles, radii)
+    proj_meta = SPECTProjMeta((proj_dim1, proj_dim2), (dx,dz), angles, radii)
     return object_meta, proj_meta
 
 def _get_projections_from_single_file(headerfile: str):

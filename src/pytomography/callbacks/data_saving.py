@@ -15,6 +15,7 @@ class DataStorageCallback(Callback):
         # FP contains scatter
         self.projections_predicted.append(self.likelihood.projections_predicted.cpu())
         self.object_previous = torch.clone(object)
+        return object
         
     def finalize(self, object):
         self.objects.append(object.cpu())

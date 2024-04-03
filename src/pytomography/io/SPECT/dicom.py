@@ -15,6 +15,7 @@ from pydicom.uid import generate_uid
 import pytomography
 from rt_utils import RTStructBuilder
 from pytomography.metadata import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
+import nibabel as nib
 from pytomography.utils import (
     get_blank_below_above,
     compute_TEW,
@@ -129,7 +130,7 @@ def get_metadata(
     shape_proj = (projections.shape[-3], projections.shape[-2], projections.shape[-1])
     shape_obj = (shape_proj[1], shape_proj[1], shape_proj[2])
     object_meta = SPECTObjectMeta(dr, shape_obj)
-    proj_meta = SPECTProjMeta((shape_proj[1], shape_proj[2]), angles, radii)
+    proj_meta = SPECTProjMeta((shape_proj[1], shape_proj[2]), (dx, dz), angles, radii)
     object_meta.affine_matrix = _get_affine_spect_projections(file)
     proj_meta.filepath = file
     proj_meta.index_peak = index_peak
@@ -193,7 +194,7 @@ def get_window_width(ds: Dataset, index: int) -> float:
 
 
 def get_scatter_from_TEW(
-    file: str, index_peak: int, index_lower: int, index_upper: int
+    file: str, index_peak: int, index_lower: int, index_upper: int, return_scatter_variance_estimate=False
 ) -> torch.Tensor:
     """Gets an estimate of scatter projection data from a DICOM file using the triple energy window method.
 
@@ -210,15 +211,16 @@ def get_scatter_from_TEW(
     ww_peak = get_window_width(ds, index_peak)
     ww_lower = get_window_width(ds, index_lower)
     ww_upper = get_window_width(ds, index_upper)
-    projections_all = get_projections(file)
+    projections_all = get_projections(file).to(pytomography.device)
     scatter = compute_TEW(
-        projections_all[index_lower],
-        projections_all[index_upper],
+        projections_all[index_lower].unsqueeze(0),
+        projections_all[index_upper].unsqueeze(0),
         ww_lower,
         ww_upper,
         ww_peak,
+        return_scatter_variance_estimate
     )
-    return scatter.to(pytomography.device).unsqueeze(0)
+    return scatter
 
 
 def get_attenuation_map_from_file(file_AM: str) -> torch.Tensor:
@@ -408,7 +410,7 @@ def _get_affine_spect_projections(filename: str) -> np.array:
         Sy -= ds.RotationInformationSequence[0].TableHeight
     # Difference between Siemens and GE
     # if ds.Manufacturer=='GE MEDICAL SYSTEMS':
-    #     Sz -= ds.RotationInformationSequence[0].TableTraverse
+    #Sz -= ds.RotationInformationSequence[0].TableTraverse
     M = np.zeros((4, 4))
     M[0] = np.array([dx, 0, 0, Sx])
     M[1] = np.array([0, dy, 0, Sy])
@@ -420,13 +422,15 @@ def stitch_multibed(
     recons: torch.Tensor,
     files_NM: Sequence[str],
     method: str = "midslice",
+    return_stitching_weights: bool = False
 ) -> torch.Tensor:
     """Stitches together multiple reconstructed objects corresponding to different bed positions.
 
     Args:
         recons (torch.Tensor[n_beds, Lx, Ly, Lz]): Reconstructed objects. The first index of the tensor corresponds to different bed positions
         files_NM (list): List of length ``n_beds`` corresponding to the DICOM file of each reconstruction
-        method (str, optional): Method to perform stitching (see https://doi.org/10.1117/12.2254096 for all methods described). Available methods include ``'midslice'``, ``'average'``, ``'crossfade'``, and ``'TEM'`` (transition error minimization).
+        method (str, optional): Method to perform stitching (see https://doi.org/10.1117/12.2254096 for all methods described). Available methods include ``'midslice'`` and ``'TEM'`` (transition error minimization).
+        return_stitching_weights (bool): If true, instead of returning stitched reconstruction, instead returns the stitching weights (and z location in the stitched image) for each bed position (this is used as a tool for uncertainty estimation in multi bed positions). Defaults to False
 
     Returns:
         torch.Tensor[1, Lx, Ly, Lz']: Stitched together DICOM file. Note the new z-dimension size :math:`L_z'`.
@@ -442,7 +446,8 @@ def stitch_multibed(
     recons = recons[order]
     # convert to voxel height
     zs = np.round((zs - zs[0]) / dss[0].PixelSpacing[1]).astype(int)
-    new_z_height = zs[-1] + recons.shape[-1]
+    original_z_height = recons.shape[-1]
+    new_z_height = zs[-1] + original_z_height
     recon_aligned = torch.zeros((1, dss[0].Rows, dss[0].Rows, new_z_height)).to(
         pytomography.device
     )
@@ -450,49 +455,46 @@ def stitch_multibed(
     # Ignore first two slices
     blank_below +=1
     blank_above -=1
-    for i in range(len(zs)):
-        recon_aligned[:, :, :, zs[i] + blank_below : zs[i] + blank_above] = recons[
-            i, :, :, blank_below:blank_above
-        ]
     # Apply stitching method
-    for i in range(1, len(zs)):
-        zmin = zs[i] + blank_below
-        zmax = zs[i - 1] + blank_above
-        dL = zmax - zmin
-        half = round((zmax - zmin) / 2)
-        if zmax > zmin + 1:  # at least two voxels apart
-            zmin_upper = blank_below
-            zmax_lower = blank_above
-            delta = -(zs[i] - zs[i - 1]) - blank_below + blank_above
-            r1 = recons[i - 1][:, :, zmax_lower - delta : zmax_lower]
-            r2 = recons[i][:, :, zmin_upper : zmin_upper + delta]
+    stitching_weights = []
+    for i in range(len(recons)):
+        stitching_weights_i = torch.zeros(1,*recons.shape[1:]).to(pytomography.device)
+        stitching_weights_i[:,:,:,blank_below:blank_above] = 1
+        stitching_weights.append(stitching_weights_i)
+    for i in range(len(recons)):
+        # stitching from above
+        if i!=len(recons)-1:
+            overlap_lower = zs[i+1] - zs[i] + blank_below
+            overlap_upper = blank_above
+            delta = overlap_upper - overlap_lower
             if method == "midslice":
-                recon_aligned[:, :, :, zmin : zmin + half] = r1[:, :, :half]
-                recon_aligned[:, :, :, zmin + half : zmax] = r2[:, :, half:]
-            elif method == "average":
-                recon_aligned[:, :, :, zmin:zmax] = 0.5 * (r1 + r2)
-            elif method == "crossfade":
-                idx = torch.arange(dL).to(pytomography.device) + 0.5
-                recon_aligned[:,:,:,zmin:zmax] = ((dL-idx)*r1 + idx*r2) / dL
+                half = round(delta / 2)
+                stitching_weights[i][:,:,:,overlap_lower+half:overlap_lower+delta] = 0
+                stitching_weights[i+1][:,:,:,blank_below:blank_below+half] = 0
             elif method=='TEM':
+                r1 = recons[i][:, :, blank_above - delta : blank_above]
+                r2 = recons[i+1][:, :, blank_below : blank_below + delta]
                 stitch_index = torch.min(torch.abs(r1-r2)/(r1+r2), axis=2)[1]
-                range_tensor = torch.arange(dL).unsqueeze(0).unsqueeze(0).to(pytomography.device)
+                range_tensor = torch.arange(delta).unsqueeze(0).unsqueeze(0).to(pytomography.device)
                 mask_tensor = range_tensor < stitch_index.unsqueeze(-1)
-                expanded_mask = mask_tensor.expand(*stitch_index.shape, dL)
-                recon_aligned[:, :, :, zmin:zmax][expanded_mask.unsqueeze(0)] = r1[
-                    expanded_mask
-                ]
-                recon_aligned[:, :, :, zmin:zmax][~expanded_mask.unsqueeze(0)] = r2[
-                    ~expanded_mask
-                ]
-    return recon_aligned
+                expanded_mask = mask_tensor.expand(*stitch_index.shape, delta)
+                stitching_weights[i][:,:,:,blank_above - delta : blank_above] = (expanded_mask).to(pytomography.dtype)
+                stitching_weights[i+1][:,:,:,blank_below : blank_below + delta] = (~expanded_mask).to(pytomography.dtype)
+    for i in range(len(zs)):
+        recon_aligned[:, :, :, zs[i] : zs[i] + original_z_height] += recons[i].unsqueeze(0)  * stitching_weights[i]
+    if return_stitching_weights:
+        # put back in original order
+        return torch.cat(stitching_weights)[np.argsort(order)], zs[np.argsort(order)]
+    else:
+        return recon_aligned
 
 def get_aligned_rtstruct(
     file_RT: str,
     file_NM: str,
     dicom_series_path: str,
     rt_struct_name: str,
-    cutoff_value = 0.5
+    cutoff_value = 0.5,
+    shape = None
 ):
     """Loads an RT struct file and aligns it with SPECT projection data corresponding to ``file_NM``. 
 
@@ -506,7 +508,9 @@ def get_aligned_rtstruct(
     Returns:
         torch.Tensor: RTStruct mask aligned with SPECT data.
     """
-    object_meta, _ = get_metadata(file_NM)
+    if shape is None:
+        object_meta, _ = get_metadata(file_NM)
+        shape = object_meta.shape
     rtstruct = RTStructBuilder.create_from(
         dicom_series_path=dicom_series_path, 
         rt_struct_path=file_RT
@@ -516,7 +520,41 @@ def get_aligned_rtstruct(
     M_CT = _get_affine_multifile(files_CT)
     M_NM = _get_affine_spect_projections(file_NM)
     M = npl.inv(M_CT) @ M_NM
-    mask_aligned = affine_transform(mask.transpose((1,0,2))[:,:,::-1], M, output_shape=object_meta.shape, mode='constant', cval=0, order=1)[:,:,::-1]
+    mask_aligned = affine_transform(mask.transpose((1,0,2))[:,:,::-1], M, output_shape=shape, mode='constant', cval=0, order=1)[:,:,::-1]
+    if cutoff_value is None:
+        return torch.tensor(mask_aligned.copy()).to(pytomography.device).unsqueeze(0)
+    else:
+        return torch.tensor(mask_aligned>cutoff_value).to(pytomography.device).unsqueeze(0)
+
+def get_aligned_nifti_mask(
+    file_nifti: str,
+    file_NM: str,
+    dicom_series_path: str,
+    mask_idx: float,
+    cutoff_value = 0.5,
+    shape = None
+):
+    """Loads an RT struct file and aligns it with SPECT projection data corresponding to ``file_NM``. 
+
+    Args:
+        file_nifti (str): Filepath of the nifti file containing the reconstruction mask
+        file_NM (str): Filepath of the NM file (used to align the RT struct)
+        dicom_series_path (str): Filepath of the DICOM series linked to the RTStruct file (required for loading RTStructs).
+        mask_idx (str): Integer in nifti mask corresponding to ROI.
+        cutoff_value (float, optional): After interpolation is performed to align the mask in the new frame, mask voxels with values less than this are excluded. Defaults to 0.5.
+
+    Returns:
+        torch.Tensor: RTStruct mask aligned with SPECT data.
+    """
+    if shape is None:
+        object_meta, _ = get_metadata(file_NM)
+        shape = object_meta.shape
+    mask = (nib.load(file_nifti).get_fdata().transpose((1,0,2))[::-1]==mask_idx).astype(float)
+    files_CT = [os.path.join(dicom_series_path, file) for file in os.listdir(dicom_series_path)]
+    M_CT = _get_affine_multifile(files_CT)
+    M_NM = _get_affine_spect_projections(file_NM)
+    M = npl.inv(M_CT) @ M_NM
+    mask_aligned = affine_transform(mask.transpose((1,0,2))[:,:,::-1], M, output_shape=shape, mode='constant', cval=0, order=1)[:,:,::-1]
     return torch.tensor(mask_aligned>cutoff_value).to(pytomography.device).unsqueeze(0)
 
 
@@ -524,7 +562,8 @@ def save_dcm(
     save_path: str,
     object: torch.Tensor,
     file_NM: str,
-    recon_name: str = ''
+    recon_name: str = '',
+    return_ds: bool = False
     ) -> None:
     """Saves the reconstructed object `object` to a series of DICOM files in the folder given by `save_path`. Requires the filepath of the projection data `file_NM` to get Study information.
 
@@ -533,6 +572,7 @@ def save_dcm(
         save_path (str): Location of folder where to save the DICOM output files.
         file_NM (str): File path of the projection data corresponding to the reconstruction.
         recon_name (str): Type of reconstruction performed. Obtained from the `recon_method_str` attribute of a reconstruction algorithm class.
+        return_ds (bool): If true, returns the DICOM dataset objects instead of saving to file. Defaults to False.
     """
     try:
         Path(save_path).resolve().mkdir(parents=True, exist_ok=False)
@@ -577,6 +617,7 @@ def save_dcm(
     ds.PixelRepresentation = 0
     ds.ReconstructionMethod = recon_name
     # Create all slices
+    dss = []
     for i in range(pixel_data.shape[0]):
         # Load existing DICOM file
         ds_i = ds.copy()
@@ -588,5 +629,10 @@ def save_dcm(
         ds_i.file_meta.MediaStorageSOPInstanceUID = SOP_instance_UID_slice
         # Set the pixel data
         ds_i.PixelData = pixel_data[i].tobytes()
-        ds_i.save_as(os.path.join(save_path, f'{ds.SOPInstanceUID}.dcm'))
+        dss.append(ds_i)
+    if return_ds:
+        return dss
+    else:
+        for ds_i in dss:
+            ds_i.save_as(os.path.join(save_path, f'{ds.SOPInstanceUID}.dcm'))
         

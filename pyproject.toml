@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pytomography"
-version = "2.0.1"
+version = "2.0.3"
 
 authors = [
   { name="Luke Polson", email="lukepolson@outlook.com" },
@@ -27,7 +27,8 @@ dependencies = [
   "fft-conv-pytorch>=1.2.0",
   "matplotlib>=3.8.0",
   "uproot>=5.2.1",
-  "rt_utils>=1.2.0"
+  "rt_utils>=1.2.0",
+  "nibabel>=5.1.0",
 ]
 
 [tool.hatch.metadata]
