@@ -634,5 +634,5 @@ def save_dcm(
         return dss
     else:
         for ds_i in dss:
-            ds_i.save_as(os.path.join(save_path, f'{ds.SOPInstanceUID}.dcm'))
+            ds_i.save_as(os.path.join(save_path, f'{ds_i.SOPInstanceUID}.dcm'))
         
