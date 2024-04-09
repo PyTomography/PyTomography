@@ -208,14 +208,31 @@ def get_scatter_from_TEW(
     Returns:
         torch.Tensor[1,Ltheta,Lr,Lz]: Tensor corresponding to the scatter estimate.
     """
+    projections_all = get_projections(file).to(pytomography.device)
+    return get_scatter_from_TEW_projections(file, projections_all, index_peak, index_lower, index_upper, return_scatter_variance_estimate)
+
+def get_scatter_from_TEW_projections(
+    file: str, projections: torch.Tensor, index_peak: int, index_lower: int, index_upper: int, return_scatter_variance_estimate=False
+) -> torch.Tensor:
+    """Gets an estimate of scatter projection data from a DICOM file using the triple energy window method. This is seperate from ``get_scatter_from_TEW`` as it allows a user to input projecitons that are already loaded/modified. This is useful for reconstructing multiple bed positions.
+
+    Args:
+        file (str): Filepath of the DICOM file
+        projections (torch.Tensor): Loaded projection data
+        index_peak (int): Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to the photopeak.
+        index_lower (int): Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to lower scatter window.
+        index_upper (int): Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to upper scatter window.
+
+    Returns:
+        torch.Tensor[1,Ltheta,Lr,Lz]: Tensor corresponding to the scatter estimate.
+    """
     ds = pydicom.read_file(file, force=True)
     ww_peak = get_window_width(ds, index_peak)
     ww_lower = get_window_width(ds, index_lower)
     ww_upper = get_window_width(ds, index_upper)
-    projections_all = get_projections(file).to(pytomography.device)
     scatter = compute_TEW(
-        projections_all[index_lower].unsqueeze(0),
-        projections_all[index_upper].unsqueeze(0),
+        projections[index_lower].unsqueeze(0),
+        projections[index_upper].unsqueeze(0),
         ww_lower,
         ww_upper,
         ww_peak,
@@ -418,6 +435,46 @@ def _get_affine_spect_projections(filename: str) -> np.array:
     M[2] = np.array([0, 0, -dz, Sz])
     M[3] = np.array([0, 0, 0, 1])
     return M
+
+def load_multibed_projections(
+    files_NM: str,
+    index_lower: int = 20,
+    index_upper: int = 106,
+) -> torch.Tensor:
+    """This function loads projection data from each of the files in files_NM; for locations outside the FOV in each projection, it appends the data from the adjacent projection. The field of view (in z) is specified by ``index_lower`` and ``index_upper``. The default values of 20 and 106 seem to be sufficient for most scanners.
+
+    Args:
+        files_NM (str): Filespaths for each of the projections
+        index_lower (int, optional): Z-pixel index specifying the lower boundary of the FOV. Defaults to 20.
+        index_upper (int, optional): Z-pixel index specifying the upper boundary of the FOV. Defaults to 106.
+
+    Returns:
+        torch.Tensor: Tensor of shape ``[N_bed_positions, N_energy_windows, Ltheta, Lr, Lz]``.
+    """
+    projectionss = torch.stack([get_projections(file_NM) for file_NM in files_NM])
+    dss = np.array([pydicom.read_file(file_NM) for file_NM in files_NM])
+    zs = torch.tensor(
+        [ds.DetectorInformationSequence[0].ImagePositionPatient[-1] for ds in dss]
+    )
+    # Sort by increasing z-position
+    order = torch.argsort(zs)
+    dss = dss[order.cpu().numpy()]
+    zs = zs[order]
+    zs = torch.round((zs - zs[0]) / dss[0].PixelSpacing[1]).to(torch.long)
+    projectionss = projectionss[order]
+    z_voxels = projectionss[0].shape[-1]
+    projectionss_combined = torch.stack([p for p in projectionss])
+    for i in range(len(projectionss)):
+        if i>0:
+            diff = zs[i] - zs[i-1]
+            # Assumes the projections overlap slightly
+            projectionss_combined[i][...,:index_lower] = projectionss[i-1][...,diff:diff+index_lower]
+        if i<len(projectionss)-1:
+            diff = zs[i+1] - zs[i]
+            # Assumes the projections overlap slightly
+            projectionss_combined[i][...,index_upper:z_voxels] = projectionss[i+1][...,index_upper-diff:z_voxels-diff]
+    # Return back in original order of files_NM
+    return projectionss_combined[torch.argsort(order)]
 
 def stitch_multibed(
     recons: torch.Tensor,
