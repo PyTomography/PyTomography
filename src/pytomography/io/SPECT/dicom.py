@@ -1,5 +1,6 @@
 from __future__ import annotations
 import warnings
+import copy
 import os
 import collections.abc
 from collections.abc import Sequence
@@ -574,12 +575,13 @@ def save_dcm(
         recon_name (str): Type of reconstruction performed. Obtained from the `recon_method_str` attribute of a reconstruction algorithm class.
         return_ds (bool): If true, returns the DICOM dataset objects instead of saving to file. Defaults to False.
     """
-    try:
-        Path(save_path).resolve().mkdir(parents=True, exist_ok=False)
-    except:
-        raise Exception(
-            f"Folder {save_path} already exists; new folder name is required."
-        )
+    if not return_ds:
+        try:
+            Path(save_path).resolve().mkdir(parents=True, exist_ok=False)
+        except:
+            raise Exception(
+                f"Folder {save_path} already exists; new folder name is required."
+            )
     # Convert tensor image to numpy array
     pixel_data = torch.permute(object.squeeze(),(2,1,0)).cpu().numpy()    
     scale_factor = (2**16 - 1) / pixel_data.max()
@@ -620,13 +622,12 @@ def save_dcm(
     dss = []
     for i in range(pixel_data.shape[0]):
         # Load existing DICOM file
-        ds_i = ds.copy()
+        ds_i = copy.deepcopy(ds)
         ds_i.InstanceNumber = i + 1
         ds_i.ImagePositionPatient = [Sx, Sy, Sz + i * dz]
         # Create SOP Instance UID unique to slice
-        SOP_instance_UID_slice = f"{ds_i.SOPInstanceUID[:-3]}{i+1:03d}"
-        ds_i.SOPInstanceUID = SOP_instance_UID_slice
-        ds_i.file_meta.MediaStorageSOPInstanceUID = SOP_instance_UID_slice
+        ds_i.SOPInstanceUID = f"{ds.SOPInstanceUID[:-3]}{i+1:03d}"
+        ds_i.file_meta.MediaStorageSOPInstanceUID = ds_i.SOPInstanceUID
         # Set the pixel data
         ds_i.PixelData = pixel_data[i].tobytes()
         dss.append(ds_i)
