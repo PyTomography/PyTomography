@@ -621,7 +621,9 @@ def save_dcm(
     object: torch.Tensor,
     file_NM: str,
     recon_name: str = '',
-    return_ds: bool = False
+    return_ds: bool = False,
+    single_dicom_file: bool = False,
+    scale_by_number_projections: bool = False
     ) -> None:
     """Saves the reconstructed object `object` to a series of DICOM files in the folder given by `save_path`. Requires the filepath of the projection data `file_NM` to get Study information.
 
@@ -640,12 +642,21 @@ def save_dcm(
                 f"Folder {save_path} already exists; new folder name is required."
             )
     # Convert tensor image to numpy array
-    pixel_data = torch.permute(object.squeeze(),(2,1,0)).cpu().numpy()    
-    scale_factor = (2**16 - 1) / pixel_data.max()
-    pixel_data *= scale_factor #maximum dynamic range
-    pixel_data = pixel_data.astype(np.uint16)
-    # Get affine information
     ds_NM = pydicom.dcmread(file_NM)
+    SOP_instance_UID = generate_uid()
+    SOP_class_UID = "1.2.840.10008.5.1.4.1.1.128"  # SPECT storage
+    modality = 'NM' if single_dicom_file else 'PT'
+    ds = create_ds(ds_NM, SOP_instance_UID, SOP_class_UID, modality)
+    pixel_data = torch.permute(object.squeeze(),(2,1,0)).cpu().numpy()
+    if scale_by_number_projections:
+        scale_factor = get_metadata(file_NM)[1].num_projections
+        ds.RescaleSlope = 1
+    else:
+        scale_factor = (2**16 - 1) / pixel_data.max()
+        ds.RescaleSlope = 1/scale_factor
+    pixel_data *= scale_factor #maximum dynamic range
+    pixel_data = pixel_data.round().astype(np.uint16)
+    # Affine
     Sx, Sy, Sz = ds_NM.DetectorInformationSequence[0].ImagePositionPatient
     dx = dy = ds_NM.PixelSpacing[0]
     dz = ds_NM.PixelSpacing[1]
@@ -656,18 +667,16 @@ def save_dcm(
         Sy -= ds_NM.RotationInformationSequence[0].TableHeight
     # Sz now refers to location of lowest slice
     Sz -= (pixel_data.shape[0] - 1) * dz
-    SOP_instance_UID = generate_uid()
-    SOP_class_UID = "1.2.840.10008.5.1.4.1.1.128"  # SPECT storage
-    modality = "PT"  # SPECT storage
-    ds = create_ds(ds_NM, SOP_instance_UID, SOP_class_UID, modality)
     ds.Rows, ds.Columns = pixel_data.shape[1:]
     ds.SeriesNumber = 1
-    ds.NumberOfSlices = pixel_data.shape[0]
+    if single_dicom_file:
+        ds.NumberOfFrames = pixel_data.shape[0]
+    else:
+        ds.NumberOfSlices = pixel_data.shape[0]
     ds.PixelSpacing = [dx, dy]
     ds.SliceThickness = dz
     ds.SpacingBetweenSlices = dz
     ds.ImageOrientationPatient = [1,0,0,0,1,0]
-    ds.RescaleSlope = 1/scale_factor
     # Set other things
     ds.BitsAllocated = 16
     ds.BitsStored = 16
@@ -675,22 +684,38 @@ def save_dcm(
     ds.PhotometricInterpretation = "MONOCHROME2"
     ds.PixelRepresentation = 0
     ds.ReconstructionMethod = recon_name
+    if single_dicom_file:
+        ds.InstanceNumber = 1
+        ds.ImagePositionPatient = [Sx, Sy, Sz]
+        ds.PixelData = pixel_data.tobytes()
+    # Add all study data/time information if available
+    for attr in ['StudyDate', 'StudyTime', 'SeriesDate', 'SeriesTime', 'AcquisitionDate', 'AcquisitionTime', 'ContentDate', 'ContentTime', 'PatientSex', 'PatientAge', 'SeriesDescription', 'Manufacturer', 'PatientWeight', 'PatientHeight']:
+        if hasattr(ds_NM, attr):
+            ds[attr] = ds_NM[attr]
     # Create all slices
-    dss = []
-    for i in range(pixel_data.shape[0]):
-        # Load existing DICOM file
-        ds_i = copy.deepcopy(ds)
-        ds_i.InstanceNumber = i + 1
-        ds_i.ImagePositionPatient = [Sx, Sy, Sz + i * dz]
-        # Create SOP Instance UID unique to slice
-        ds_i.SOPInstanceUID = f"{ds.SOPInstanceUID[:-3]}{i+1:03d}"
-        ds_i.file_meta.MediaStorageSOPInstanceUID = ds_i.SOPInstanceUID
-        # Set the pixel data
-        ds_i.PixelData = pixel_data[i].tobytes()
-        dss.append(ds_i)
+    if not single_dicom_file:
+        dss = []
+        for i in range(pixel_data.shape[0]):
+            # Load existing DICOM file
+            ds_i = copy.deepcopy(ds)
+            ds_i.InstanceNumber = i + 1
+            ds_i.ImagePositionPatient = [Sx, Sy, Sz + i * dz]
+            # Create SOP Instance UID unique to slice
+            ds_i.SOPInstanceUID = f"{ds.SOPInstanceUID[:-3]}{i+1:03d}"
+            ds_i.file_meta.MediaStorageSOPInstanceUID = ds_i.SOPInstanceUID
+            # Set the pixel data
+            ds_i.PixelData = pixel_data[i].tobytes()
+            dss.append(ds_i)      
     if return_ds:
-        return dss
+        if single_dicom_file:
+            return ds
+        else:
+            return dss
     else:
-        for ds_i in dss:
-            ds_i.save_as(os.path.join(save_path, f'{ds_i.SOPInstanceUID}.dcm'))
+        if single_dicom_file:
+            # If single dicom file, will overwrite any file that is there
+            ds.save_as(os.path.join(save_path, f'{ds.SOPInstanceUID}.dcm'))
+        else:
+            for ds_i in dss:
+                ds_i.save_as(os.path.join(save_path, f'{ds_i.SOPInstanceUID}.dcm'))
         
