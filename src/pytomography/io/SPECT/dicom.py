@@ -476,10 +476,47 @@ def load_multibed_projections(
     # Return back in original order of files_NM
     return projectionss_combined[torch.argsort(order)]
 
+def load_multibed_projections(
+    files_NM: str,
+) -> torch.Tensor:
+    """This function loads projection data from each of the files in files_NM; for locations outside the FOV in each projection, it appends the data from the adjacent projection (it uses the midway point between the projection overlap).
+
+    Args:
+        files_NM (str): Filespaths for each of the projections
+
+    Returns:
+        torch.Tensor: Tensor of shape ``[N_bed_positions, N_energy_windows, Ltheta, Lr, Lz]``.
+    """
+    projectionss = torch.stack([get_projections(file_NM) for file_NM in files_NM])
+    dss = np.array([pydicom.read_file(file_NM) for file_NM in files_NM])
+    zs = torch.tensor(
+        [ds.DetectorInformationSequence[0].ImagePositionPatient[-1] for ds in dss]
+    )
+    # Sort by increasing z-position
+    order = torch.argsort(zs)
+    dss = dss[order.cpu().numpy()]
+    zs = zs[order]
+    zs = torch.round((zs - zs[0]) / dss[0].PixelSpacing[1]).to(torch.long)
+    projectionss = projectionss[order]
+    z_voxels = projectionss[0].shape[-1]
+    projectionss_combined = torch.stack([p for p in projectionss])
+    for i in range(len(projectionss)):
+        if i>0: # Set lower part
+            dz = zs[i] - zs[i-1]
+            index_midway = int((z_voxels - dz)/2)
+            # Assumes the projections overlap slightly
+            projectionss_combined[i][...,:index_midway] = projectionss[i-1][...,dz:dz+index_midway]
+        if i<len(projectionss)-1: # Set upper part
+            dz = zs[i+1] - zs[i]
+            index_midway = int((z_voxels - dz)/2)
+            # Assumes the projections overlap slightly
+            projectionss_combined[i][...,dz+index_midway:] = projectionss[i+1][...,index_midway:z_voxels-dz]
+    # Return back in original order of files_NM
+    return projectionss_combined[torch.argsort(order)]
+
 def stitch_multibed(
     recons: torch.Tensor,
     files_NM: Sequence[str],
-    method: str = "midslice",
     return_stitching_weights: bool = False
 ) -> torch.Tensor:
     """Stitches together multiple reconstructed objects corresponding to different bed positions.
@@ -487,7 +524,6 @@ def stitch_multibed(
     Args:
         recons (torch.Tensor[n_beds, Lx, Ly, Lz]): Reconstructed objects. The first index of the tensor corresponds to different bed positions
         files_NM (list): List of length ``n_beds`` corresponding to the DICOM file of each reconstruction
-        method (str, optional): Method to perform stitching (see https://doi.org/10.1117/12.2254096 for all methods described). Available methods include ``'midslice'`` and ``'TEM'`` (transition error minimization).
         return_stitching_weights (bool): If true, instead of returning stitched reconstruction, instead returns the stitching weights (and z location in the stitched image) for each bed position (this is used as a tool for uncertainty estimation in multi bed positions). Defaults to False
 
     Returns:
@@ -525,19 +561,10 @@ def stitch_multibed(
             overlap_lower = zs[i+1] - zs[i] + blank_below
             overlap_upper = blank_above
             delta = overlap_upper - overlap_lower
-            if method == "midslice":
-                half = round(delta / 2)
-                stitching_weights[i][:,:,:,overlap_lower+half:overlap_lower+delta] = 0
-                stitching_weights[i+1][:,:,:,blank_below:blank_below+half] = 0
-            elif method=='TEM':
-                r1 = recons[i][:, :, blank_above - delta : blank_above]
-                r2 = recons[i+1][:, :, blank_below : blank_below + delta]
-                stitch_index = torch.min(torch.abs(r1-r2)/(r1+r2), axis=2)[1]
-                range_tensor = torch.arange(delta).unsqueeze(0).unsqueeze(0).to(pytomography.device)
-                mask_tensor = range_tensor < stitch_index.unsqueeze(-1)
-                expanded_mask = mask_tensor.expand(*stitch_index.shape, delta)
-                stitching_weights[i][:,:,:,blank_above - delta : blank_above] = (expanded_mask).to(pytomography.dtype)
-                stitching_weights[i+1][:,:,:,blank_below : blank_below + delta] = (~expanded_mask).to(pytomography.dtype)
+            # Only offer midslice stitch now because TEM messes with uncertainty estimation
+            half = round(delta / 2)
+            stitching_weights[i][:,:,:,overlap_lower+half:overlap_lower+delta] = 0
+            stitching_weights[i+1][:,:,:,blank_below:blank_below+half] = 0
     for i in range(len(zs)):
         recon_aligned[:, :, :, zs[i] : zs[i] + original_z_height] += recons[i].unsqueeze(0)  * stitching_weights[i]
     if return_stitching_weights:

@@ -7,10 +7,16 @@ The tutorials use data that can be downloaded [here](https://drive.google.com/dr
 * {doc}`notebooks/t_dicommultibed`
 * {doc}`notebooks/t_uncertainty_spect`
 
+## PET (Sinogram)
+* {doc}`notebooks/t_PETGATE_SINO`
+
 ## PET (Listmode)
-* {doc}`notebooks/t_PETGATE`
+* {doc}`notebooks/t_PETGATE_LM`
 * {doc}`notebooks/t_PETSIRD`
 * Usage of Deep Image Prior Recon (DIPRecon): [this link](https://github.com/lukepolson/PyTomographyPETDIPExample)
+
+## Developer Guide
+* {doc}`notebooks/t_examplesystemmatrix`
 
 ## Misc
 * {doc}`notebooks/t_fbp`

@@ -76,8 +76,9 @@ class PETLMSystemMatrix(SystemMatrix):
             torch.Tensor: subsampled projections :math:`g_m`.
         """
         # Needs to consider cases where projection is simply a 1 element tensor in the numerator, but also cases of scatter where it is a longer tensor
-        subset_indices = self.subset_indices_array[subset_idx]
-        if (projections.shape[0]>1)*(subset_indices is not None):
+        
+        if (projections.shape[0]>1)*(subset_idx is not None):
+            subset_indices = self.subset_indices_array[subset_idx]
             proj_subset = projections[subset_indices]
         else:
             proj_subset = projections
@@ -95,7 +96,10 @@ class PETLMSystemMatrix(SystemMatrix):
         Returns:
             float: Weighting for the subset.
         """
-        return len(self.subset_indices_array[subset_idx]) / self.proj_meta.detector_ids.shape[0]
+        if subset_idx is None:
+            return 1
+        else:
+            return len(self.subset_indices_array[subset_idx]) / self.proj_meta.detector_ids.shape[0]
     
     def compute_atteunation_probability_projection(self, idx: torch.tensor) -> torch.tensor:
         """Computes probabilities of photons being detected along an LORs corresponding to ``idx``.

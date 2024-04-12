@@ -30,8 +30,8 @@ class NegativeMSELikelihood(Likelihood):
         Returns:
             torch.Tensor: The gradient of the Poisson likelihood.
         """
-        proj_subset = self.system_matrix.get_projection_subset(self.projections, subset_idx)
-        additive_term_subset = self.system_matrix.get_projection_subset(self.additive_term, subset_idx)
+        proj_subset = self._get_projection_subset(self.projections, subset_idx)
+        additive_term_subset = self._get_projection_subset(self.additive_term, subset_idx)
         self.projections_predicted = self.system_matrix.forward(object, subset_idx) + additive_term_subset
         return self.system_matrix.backward(proj_subset - self.projections_predicted , subset_idx) * self.scaling_constant
     
@@ -60,8 +60,8 @@ class SARTWeightedNegativeMSELikelihood(Likelihood):
         Returns:
             torch.Tensor: The gradient of the Poisson likelihood.
         """
-        proj_subset = self.system_matrix.get_projection_subset(self.projections, subset_idx)
-        additive_term_subset = self.system_matrix.get_projection_subset(self.additive_term, subset_idx)
+        proj_subset = self._get_projection_subset(self.projections, subset_idx)
+        additive_term_subset = self._get_projection_subset(self.additive_term, subset_idx)
         self.projections_predicted = self.system_matrix.forward(object, subset_idx) + additive_term_subset
         norm_FP = self.system_matrix.forward(object*0+1, subset_idx) # TODO: Slow implementation
         return self.system_matrix.backward((proj_subset - self.projections_predicted)/(norm_FP+pytomography.delta) , subset_idx)

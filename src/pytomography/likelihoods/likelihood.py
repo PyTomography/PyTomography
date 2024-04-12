@@ -40,12 +40,31 @@ class Likelihood:
             n_subsets (int): Number of subsets
         """
         self.n_subsets = n_subsets
-        self.system_matrix.set_n_subsets(n_subsets)
-        if self.n_subsets_previous!=self.n_subsets:
-            self.norm_BPs = []
-            for k in range(self.n_subsets):
-                self.norm_BPs.append(self.system_matrix.compute_normalization_factor(k))
+        if n_subsets < 2:
+            self.norm_BP = self.system_matrix.compute_normalization_factor()
+        else:
+            self.system_matrix.set_n_subsets(n_subsets)
+            if self.n_subsets_previous!=self.n_subsets:
+                self.norm_BPs = []
+                for k in range(self.n_subsets):
+                    self.norm_BPs.append(self.system_matrix.compute_normalization_factor(k))
         self.n_subsets_previous = n_subsets
+        
+    def _get_projection_subset(self, projections, subset_idx):
+        if subset_idx is None:
+            return projections
+        else:
+            return self.system_matrix.get_projection_subset(projections, subset_idx)
+        
+        
+    def _get_normBP(self, subset_idx, return_sum=False):
+        if subset_idx is None:
+            return self.norm_BP
+        else:
+            if return_sum:
+                return torch.stack(self.norm_BPs).sum(axis=0)
+            else:
+                return self.norm_BPs[subset_idx]
         
     def compute_gradient(self, *args, **kwargs):
         r"""Function used to compute the gradient of the likelihood :math:`\nabla_{f} L(g|f)`

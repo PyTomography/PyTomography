@@ -24,7 +24,7 @@ class FilteredBackProjection:
         ) -> None:
         self.proj = projections
         self.object_meta = SPECTObjectMeta(dr=(1,1,1),shape=(self.proj.shape[2], self.proj.shape[2], self.proj.shape[3]))
-        self.proj_meta = SPECTProjMeta(projection_shape=self.proj.shape[2:],angles=angles)
+        self.proj_meta = SPECTProjMeta(projection_shape=self.proj.shape[2:],angles=angles,dr=(1,1))
         self.filter = filter
         # Random transform equivalent to SPECT System matrix
         self.system_matrix = SPECTSystemMatrix(
