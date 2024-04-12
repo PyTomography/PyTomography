@@ -24,6 +24,7 @@ class PETTOFMeta():
         self.bin_width = bin_width
         self.sigma = torch.tensor([fwhm / 2.355], dtype=pytomography.dtype) 
         self.n_sigmas = n_sigmas
+        self.bin_positions = (torch.arange(-self.num_bins/2, self.num_bins/2) + 0.5) * self.bin_width
         if bin_type=='symmetric':
             if self.num_bins%2==0:
                 self.center_offset = -torch.tensor([self.bin_width/2], dtype=torch.float32)

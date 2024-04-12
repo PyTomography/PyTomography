@@ -28,14 +28,10 @@ class PoissonLogLikelihood(Likelihood):
         Returns:
             torch.Tensor: The gradient of the Poisson likelihood.
         """
-        proj_subset = self.system_matrix.get_projection_subset(self.projections, subset_idx)
-        additive_term_subset = self.system_matrix.get_projection_subset(self.additive_term, subset_idx)
+        proj_subset = self._get_projection_subset(self.projections, subset_idx)
+        additive_term_subset = self._get_projection_subset(self.additive_term, subset_idx)
         self.projections_predicted = self.system_matrix.forward(object, subset_idx) + additive_term_subset
-        if norm_BP_subset_method=='subset_specific':
-            norm_BP = self.norm_BPs[subset_idx]
-        elif norm_BP_subset_method=='average_of_subsets':
-            norm_BP = torch.stack(self.norm_BPs).sum(axis=0)
-            norm_BP *= self.system_matrix.get_weighting_subset(subset_idx)
+        norm_BP = self._get_normBP(subset_idx)
         return self.system_matrix.backward(proj_subset / (self.projections_predicted + pytomography.delta), subset_idx) - norm_BP
     
     def compute_gradient_ff(
@@ -58,7 +54,7 @@ class PoissonLogLikelihood(Likelihood):
             FP = self.system_matrix.forward(object, subset_idx)
         else:
             FP = precomputed_forward_projection
-        proj_subset = self.system_matrix.get_projection_subset(self.projections, subset_idx)
+        proj_subset = self._get_projection_subset(self.projections, subset_idx)
         def operator(input):
             input = self.system_matrix.forward(input, subset_idx)
             input = input * proj_subset / (FP**2 + pytomography.delta)
@@ -106,7 +102,7 @@ class PoissonLogLikelihood(Likelihood):
         Returns:
             Callable: The operator given by the second order derivative.
         """
-        proj_subset = self.system_matrix.get_projection_subset(self.projections, subset_idx)
+        proj_subset = self._get_projection_subset(self.projections, subset_idx)
         if precomputed_forward_projection is None:
             FP = self.system_matrix.forward(object, subset_idx)
         else:

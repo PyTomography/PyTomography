@@ -16,10 +16,10 @@ class SystemMatrix():
     """
     def __init__(
         self,
-        obj2obj_transforms: list[Transform],
-        proj2proj_transforms: list[Transform],
         object_meta: ObjectMeta,
         proj_meta: ProjMeta,
+        obj2obj_transforms: list[Transform] = [],
+        proj2proj_transforms: list[Transform] = [],
     ) -> None:
         self.obj2obj_transforms = obj2obj_transforms
         self.proj2proj_transforms = proj2proj_transforms
@@ -35,13 +35,15 @@ class SystemMatrix():
         for transform in self.proj2proj_transforms:
             transform.configure(self.object_meta, self.proj_meta)
             
-    def _get_object_initial(self):
+    def _get_object_initial(self, device=None):
         """Returns an initial object estimate used in reconstruction algorithms. By default, this is a tensor of ones with the same shape as the object metadata.
 
         Returns:
             torch.Tensor: Initial object used in image reconstruction algorithms.
         """
-        return torch.ones((1, *self.object_meta.shape)).to(pytomography.device)
+        if device is None:
+            device = pytomography.device
+        return torch.ones((1, *self.object_meta.shape)).to(device)
             
     @abc.abstractmethod
     def forward(self, object: torch.tensor, **kwargs):
