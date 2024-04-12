@@ -85,5 +85,5 @@ class DIPRecon:
             self.object_prediction = nn.ReLU()(x_network)
             # evaluate callback
             if self.callback is not None:
-                self._compute_callback(n_iter = _)
+                self._compute_callback(n_iter = _, n_subset=None)
         return self.object_prediction

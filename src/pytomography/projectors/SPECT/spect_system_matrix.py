@@ -34,24 +34,24 @@ class SPECTSystemMatrix(SystemMatrix):
         n_parallel = 1,
         object_initial_based_on_camera_path: bool = False
     ) -> None:
-        super(SPECTSystemMatrix, self).__init__(obj2obj_transforms, proj2proj_transforms, object_meta, proj_meta)
+        super(SPECTSystemMatrix, self).__init__(object_meta, proj_meta, obj2obj_transforms, proj2proj_transforms)
         self.n_parallel = n_parallel
         self.object_initial_based_on_camera_path = object_initial_based_on_camera_path
         self.rotation_transform = RotationTransform()
         
-    def _get_object_initial(self):
+    def _get_object_initial(self, device=None):
         """Returns an initial object estimate used in reconstruction algorithms. By default, this is a tensor of ones with the same shape as the object metadata.
 
         Returns:
             torch.Tensor: Initial object used in reconstruction algorithm.
         """
-        object_initial = torch.ones((1,*self.object_meta.shape)).to(pytomography.device)
+        object_initial = torch.ones((1,*self.object_meta.shape)).to(device)
         if self.object_initial_based_on_camera_path:
             for i in range(len(self.proj_meta.angles)):
                 cutoff_idx = int(np.ceil(self.object_meta.shape[0]/ 2 - self.proj_meta.radii[i]/self.object_meta.dr[0]))
                 if cutoff_idx<0:
                     continue
-                img_cutoff = torch.ones((1,*self.object_meta.shape)).to(pytomography.device)
+                img_cutoff = torch.ones((1,*self.object_meta.shape)).to(device)
                 img_cutoff[:, :cutoff_idx, :, :] = 0
                 img_cutoff = pad_object(img_cutoff, mode='replicate')
                 img_cutoff = rotate_detector_z(img_cutoff, -self.proj_meta.angles[i])
@@ -117,7 +117,10 @@ class SPECTSystemMatrix(SystemMatrix):
         Returns:
             float: Weighting for the subset.
         """
-        return len(self.subset_indices_array[subset_idx]) / self.proj_meta.num_projections
+        if subset_idx is None:
+            return 1
+        else:
+            return len(self.subset_indices_array[subset_idx]) / self.proj_meta.num_projections
 
     def forward(
         self,

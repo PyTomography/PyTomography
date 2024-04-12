@@ -28,7 +28,7 @@ class PreconditionedGradientAscentAlgorithm:
     ) -> None:
         self.likelihood = likelihood
         if object_initial is None:
-            self.object_prediction = self.likelihood.system_matrix._get_object_initial()
+            self.object_prediction = self.likelihood.system_matrix._get_object_initial(likelihood.projections.device)
         else:
             self.object_prediction = object_initial.to(pytomography.device).to(pytomography.dtype)
         self.prior = prior
@@ -78,7 +78,7 @@ class PreconditionedGradientAscentAlgorithm:
     def __call__(
         self,
         n_iters: int,
-        n_subsets: int,
+        n_subsets: int = 1,
         n_subset_specific: int | None = None,
         callback: Callback | None = None,
         ):
@@ -103,14 +103,18 @@ class PreconditionedGradientAscentAlgorithm:
                 if n_subset_specific is not None:
                     if n_subset_specific!=k:
                         continue
+                if n_subsets==1:
+                    subset_idx = None
+                else:
+                    subset_idx = k
                 if bool(self.prior):
                     self.prior.set_object(torch.clone(self.object_prediction).to(pytomography.device))
-                    self.prior.set_beta_scale(self.likelihood.system_matrix.get_weighting_subset(k))
+                    self.prior.set_beta_scale(self.likelihood.system_matrix.get_weighting_subset(subset_idx))
                     self.prior_gradient = self.prior(derivative_order=1)
                 else:
                     self.prior_gradient = 0
-                likelihood_gradient = self.likelihood.compute_gradient(self.object_prediction, k, self.norm_BP_subset_method)
-                preconditioner = self._compute_preconditioner(self.object_prediction, j, k)
+                likelihood_gradient = self.likelihood.compute_gradient(self.object_prediction, subset_idx, self.norm_BP_subset_method)
+                preconditioner = self._compute_preconditioner(self.object_prediction, j, subset_idx)
                 self.object_prediction += preconditioner * (likelihood_gradient - self.prior_gradient)
                 # Get rid of small negative values
                 self.object_prediction[self.object_prediction<0] = 0
@@ -213,7 +217,10 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
             else:
                 return torch.zeros((1, *self.likelihood.system_matrix.proj_meta.shape)).to(pytomography.device)
         else:
-            subset_idx = (n-1)%self.n_subsets
+            if self.n_subsets==1:
+                subset_idx = None
+            else:
+                subset_idx = (n-1)%self.n_subsets
             object_current_update = data_storage_callback.objects[n].to(pytomography.device)
             object_previous_update = data_storage_callback.objects[n-1].to(pytomography.device)
             FP_previous_update = data_storage_callback.projections_predicted[n-1].to(pytomography.device)
@@ -235,7 +242,8 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
             torch.cuda.empty_cache()
             term1 = self._compute_uncertainty_matrix(1*mask-term1, data_storage_callback, n-1, include_additive_term=include_additive_term)
             # Additive step after recursion (computation of B_sigma^k and B_n^k)
-            subset_indices_array = self.likelihood.system_matrix.subset_indices_array[subset_idx]
+            if subset_idx is not None:
+                subset_indices_array = self.likelihood.system_matrix.subset_indices_array[subset_idx]
             object_previous_update = data_storage_callback.objects[n-1].to(pytomography.device)
             FP_previous_update = data_storage_callback.projections_predicted[n-1].to(pytomography.device)
             term2 = mask * object_previous_update * self._linear_preconditioner_factor(None, subset_idx)
@@ -249,9 +257,15 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
                 term2 = likelihood_grad_gf(term2)
                 term_return = torch.zeros((1, *self.likelihood.system_matrix.proj_meta.shape)).to(pytomography.device)
             term_return += term1
-            term_return[0,subset_indices_array] += term2[0]
+            if subset_idx is not None:
+                term_return[0,subset_indices_array] += term2[0]
+            else:
+                term_return[0,:] += term2[0]
             if include_additive_term:
-                term_return[1,subset_indices_array] += term2_additive[0]
+                if subset_idx is not None:
+                    term_return[1,subset_indices_array] += term2_additive[0]
+                else:
+                    term_return[1,:] += term2_additive[0]
             # Delete to save memory
             del(term1)
             del(term2)
@@ -289,7 +303,7 @@ class OSEM(LinearPreconditionedGradientAscentAlgorithm):
         Returns:
            torch.Tensor: linear preconditioner factor
         """
-        return 1/(self.likelihood.norm_BPs[n_subset] + pytomography.delta)
+        return 1/(self.likelihood._get_normBP(n_subset) + pytomography.delta)
     
 class OSMAPOSL(PreconditionedGradientAscentAlgorithm):
     r"""Implementation of the ordered subset maximum a posteriori one step late algorithm :math:`f^{n+1} = f^{n} + \frac{f^n}{H_n^T+\nabla_f V(f^n)} \left[ \nabla_{f} L(g^n|f^{n}) - \nabla_f V(f^n) \right]`
@@ -322,7 +336,7 @@ class OSMAPOSL(PreconditionedGradientAscentAlgorithm):
         Returns:
             torch.Tensor: preconditioner factor.
         """
-        return object/(self.likelihood.norm_BPs[n_subset] + self.prior_gradient + pytomography.delta)
+        return object/(self.likelihood._get_normBP(n_subset) + self.prior_gradient + pytomography.delta)
     
 class RBIEM(LinearPreconditionedGradientAscentAlgorithm):
     r"""Implementation of the rescaled block iterative expectation maximum algorithm
@@ -355,8 +369,8 @@ class RBIEM(LinearPreconditionedGradientAscentAlgorithm):
         Returns:
             torch.Tensor: preconditioner factor.
         """
-        norm_BP = self.likelihood.norm_BPs[n_subset]
-        norm_BP_allsubsets = torch.stack(self.likelihood.norm_BPs).sum(axis=0)
+        norm_BP = self.likelihood._get_normBP(n_subset)
+        norm_BP_allsubsets = self.likelihood._get_normBP(n_subset, return_sum=True)
         rm = torch.max(norm_BP / (norm_BP_allsubsets + pytomography.delta))
         return object/(norm_BP_allsubsets*rm + pytomography.delta)
     
@@ -391,8 +405,8 @@ class RBIMAP(PreconditionedGradientAscentAlgorithm):
         Returns:
             torch.Tensor: preconditioner factor.
         """
-        norm_BP = self.likelihood.norm_BPs[n_subset]
-        norm_BP_allsubsets = torch.stack(self.likelihood.norm_BPs).sum(axis=0)
+        norm_BP = self.likelihood._get_normBP(n_subset)
+        norm_BP_allsubsets = self.likelihood._get_normBP(n_subset, return_sum=True)
         rm = torch.max((norm_BP + self.prior_gradient) / (norm_BP_allsubsets + self.prior_gradient + pytomography.delta))
         return object/(norm_BP_allsubsets*rm + self.prior_gradient + pytomography.delta)
     
@@ -429,7 +443,7 @@ class BSREM(LinearPreconditionedGradientAscentAlgorithm):
            torch.Tensor: linear preconditioner factor
         """
         relaxation_factor = self.relaxation_sequence(n_iter)
-        norm_BP = torch.stack(self.likelihood.norm_BPs).sum(axis=0)
+        norm_BP = self.likelihood._get_normBP(n_subset, return_sum=True)
         norm_BP_weight = self.likelihood.system_matrix.get_weighting_subset(n_subset)
         return relaxation_factor/(norm_BP_weight * norm_BP + pytomography.delta)
     
@@ -459,6 +473,9 @@ class KEM(OSEM):
         object_prediction = super(KEM, self).__call__(*args, **kwargs)
         return self.likelihood.system_matrix.kem_transform.forward(object_prediction)
     
+class MLEM(OSEM):
+    def __call__(self, n_iters, callback=None):
+        return super(MLEM, self).__call__(n_iters, n_subsets=1, callback=callback)
 
 class SART(OSEM):
     r"""Implementation of the SART algorithm (OSEM with SARTWeightedNegativeMSELikelihood)
@@ -500,7 +517,6 @@ class PGAAMultiBedSPECT(PreconditionedGradientAscentAlgorithm):
         n_iters: int,
         n_subsets: int,
         callback: Callback | Sequence[Callback] | None = None,
-        stitching_method: str = 'midslice'
         ) -> torch.Tensor:
         """Perform reconstruction of each bed position for specified iteraitons and subsets, and return the stitched image
 
@@ -520,8 +536,8 @@ class PGAAMultiBedSPECT(PreconditionedGradientAscentAlgorithm):
                     self.recons.append(recon_algo(1, n_subsets, n_subset_specific=j))
                 self.object_prediction = dicom.stitch_multibed(
                     recons=torch.cat(self.recons),
-                    files_NM = self.files_NM,
-                    method=stitching_method)
+                    files_NM = self.files_NM
+                )
                 self._compute_callback(i,j)
         return self.object_prediction
     
@@ -540,8 +556,7 @@ class PGAAMultiBedSPECT(PreconditionedGradientAscentAlgorithm):
             else:
                 self.object_prediction = dicom.stitch_multibed(
                     recons=torch.cat(self.recons),
-                    files_NM = self.files_NM,
-                    method='TEM')  
+                    files_NM = self.files_NM)  
                 super()._compute_callback(n_iter=n_iter, n_subset=n_subset)
     
     def _finalize_callback(self):
@@ -576,7 +591,7 @@ class PGAAMultiBedSPECT(PreconditionedGradientAscentAlgorithm):
             subiteration_number = len(data_storage_callbacks[0].objects) - 1
         # Crop mask to FOV region
         recons = [data_storage_callback.objects[subiteration_number].to(pytomography.device) for data_storage_callback in data_storage_callbacks]
-        stitching_weights, zs = dicom.stitch_multibed(torch.cat(recons), self.files_NM, method='TEM', return_stitching_weights=True)
+        stitching_weights, zs = dicom.stitch_multibed(torch.cat(recons), self.files_NM, return_stitching_weights=True)
         uncertainty_abs = []
         total_counts = 0
         for k in range(len(recons)):
