@@ -672,12 +672,14 @@ def save_dcm(
     ds_NM = pydicom.dcmread(file_NM)
     SOP_instance_UID = generate_uid()
     if single_dicom_file:
-        SOP_class_UID = 'Nuclear Medicine Image Storage'
+        SOP_class_UID = '1.2.840.10008.5.1.4.1.1.20'
         modality = 'NM'
+        imagetype = "['ORIGINAL', 'PRIMARY', 'RECON TOMO', 'EMISSION']"
     else:
         SOP_class_UID = "1.2.840.10008.5.1.4.1.1.128"  # SPECT storage
         modality = 'PT'
-    ds = create_ds(ds_NM, SOP_instance_UID, SOP_class_UID, modality)
+        imagetype = None
+    ds = create_ds(ds_NM, SOP_instance_UID, SOP_class_UID, modality, imagetype)
     pixel_data = torch.permute(object.squeeze(),(2,1,0)).cpu().numpy()
     if scale_by_number_projections:
         scale_factor = get_metadata(file_NM)[1].num_projections
