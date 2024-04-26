@@ -16,28 +16,27 @@ class PreconditionedGradientAscentAlgorithm:
         likelihood (Likelihood): Likelihood class that facilitates computation of :math:`L(g^n|f^{n})` and its associated derivatives.
         prior (Prior, optional): Prior class that faciliates the computation of function :math:`V(f)` and its associated derivatives. If None, then no prior is used Defaults to None.
         object_initial (torch.Tensor | None, optional): Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
-        norm_BP_subset_method (str, optional): Specifies how :math:`H^T 1` is calculated when subsets are used. If 'subset_specific', then uses :math:`H_n^T 1`. If `average_of_subsets`, then uses the average of all :math:`H_n^T 1`s for any given subset (scaled to the relative size of the subset if subsets are not equal size). Defaults to 'subset_specific'.
     """
     def __init__(
         self,
         likelihood: Likelihood,
         prior: Prior = None,
         object_initial: torch.Tensor | None = None,
-        norm_BP_subset_method: str = 'subset_specific',
+        addition_after_iteration = 0,
         **kwargs,
     ) -> None:
         self.likelihood = likelihood
         if object_initial is None:
-            self.object_prediction = self.likelihood.system_matrix._get_object_initial(likelihood.projections.device)
+            self.object_prediction = self.likelihood.system_matrix._get_object_initial(pytomography.device)
         else:
             self.object_prediction = object_initial.to(pytomography.device).to(pytomography.dtype)
         self.prior = prior
         if self.prior is not None:
             self.prior.set_object_meta(self.likelihood.system_matrix.object_meta)
-        self.norm_BP_subset_method = norm_BP_subset_method
         # These are if objects / FPS are stored during reconstruction for uncertainty analysis afterwards
         self.objects_stored = []
         self.projections_predicted_stored = []
+        self.addition_after_iteration = addition_after_iteration
                 
     def _set_n_subsets(self, n_subsets: int):
         """Sets the number of subsets used in the reconstruction algorithm.
@@ -100,6 +99,8 @@ class PreconditionedGradientAscentAlgorithm:
         # Perform reconstruction loop
         for j in range(n_iters):
             for k in range(n_subsets):
+                # Add to object for addition after iteration (dont want to add after last)
+                self.object_prediction += self.addition_after_iteration
                 if n_subset_specific is not None:
                     if n_subset_specific!=k:
                         continue
@@ -113,7 +114,7 @@ class PreconditionedGradientAscentAlgorithm:
                     self.prior_gradient = self.prior(derivative_order=1)
                 else:
                     self.prior_gradient = 0
-                likelihood_gradient = self.likelihood.compute_gradient(self.object_prediction, subset_idx, self.norm_BP_subset_method)
+                likelihood_gradient = self.likelihood.compute_gradient(self.object_prediction, subset_idx)
                 preconditioner = self._compute_preconditioner(self.object_prediction, j, subset_idx)
                 self.object_prediction += preconditioner * (likelihood_gradient - self.prior_gradient)
                 # Get rid of small negative values
@@ -131,7 +132,6 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
         likelihood (Likelihood): Likelihood class that facilitates computation of :math:`L(g^n|f^{n})` and its associated derivatives.
         prior (Prior, optional): Prior class that faciliates the computation of function :math:`V(f)` and its associated derivatives. If None, then no prior is used Defaults to None.
         object_initial (torch.Tensor | None, optional): Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
-        norm_BP_subset_method (str, optional): Specifies how :math:`H^T 1` is calculated when subsets are used. If 'subset_specific', then uses :math:`H_n^T 1`. If `average_of_subsets`, then uses the average of all :math:`H_n^T 1`s for any given subset (scaled to the relative size of the subset if subsets are not equal size). Defaults to 'subset_specific'.
     """
     def _linear_preconditioner_factor(self, n_iter: int, n_subset: int):
         r"""Implementation of object independent scaling factor :math:`D^{n}` in :math:`C^{n}(f^{n}) = D^{n} f^{n}`
@@ -258,14 +258,14 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
                 term_return = torch.zeros((1, *self.likelihood.system_matrix.proj_meta.shape)).to(pytomography.device)
             term_return += term1
             if subset_idx is not None:
-                term_return[0,subset_indices_array] += term2[0]
+                term_return[0,subset_indices_array] += term2 #[0]
             else:
-                term_return[0,:] += term2[0]
+                term_return[0,:] += term2 #[0]
             if include_additive_term:
                 if subset_idx is not None:
-                    term_return[1,subset_indices_array] += term2_additive[0]
+                    term_return[1,subset_indices_array] += term2_additive #[0]
                 else:
-                    term_return[1,:] += term2_additive[0]
+                    term_return[1,:] += term2_additive #[0]
             # Delete to save memory
             del(term1)
             del(term2)
@@ -425,12 +425,14 @@ class BSREM(LinearPreconditionedGradientAscentAlgorithm):
         object_initial: torch.tensor | None = None,
         prior: Prior | None = None,
         relaxation_sequence: Callable = lambda _: 1,
+        addition_after_iteration = 1e-4, # good for typical counts in Lu177 SPECT
     ):
         self.relaxation_sequence = relaxation_sequence
         super(BSREM, self).__init__(
             likelihood = likelihood,
             object_initial = object_initial,
             prior = prior,
+            addition_after_iteration = addition_after_iteration
             )
     def _linear_preconditioner_factor(self, n_iter: int, n_subset: int):
         """Computes the linear preconditioner factor :math:`D^n = 1/(\omega_n H^T 1)` where :math:`\omega_n` corresponds to the fraction of subsets at subiteration :math:`n`. 

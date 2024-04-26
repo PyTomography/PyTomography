@@ -14,7 +14,7 @@ class PETLMSystemMatrix(SystemMatrix):
 
         Args:
             object_meta (SPECTObjectMeta): Metadata of object space, containing information on voxel size and dimensions.
-            proj_meta (PETLMProjMeta): PET listmode projection space metadata. This information contains the detector ID pairs of all detected events, as well as a scanner lookup table and time-of-flight metadata. In addition, this meadata contains all information regarding event weights, typically corresponding to the effects of attenuation :math:`\mu` and :math:`\eta`. 
+            proj_meta (PETLMProjMeta): PET listmode projection space metadata. This information contains the detector ID pairs of all detected events, as well as a scanner lookup table and time-of-flight metadata. In addition, this metadata contains all information regarding event weights, typically corresponding to the effects of attenuation :math:`\mu` and :math:`\eta`. 
             obj2obj_transforms (Sequence[Transform]): Object to object space transforms applied before forward projection and after back projection. These are typically used for PSF modeling in PET imaging.
             attenuation_map (torch.tensor[float] | None, optional): Attenuation map used for attenuation modeling. If provided, all weights will be scaled by detection probabilities derived from this map. Note that this scales on top of any weights provided in ``proj_meta``, so if attenuation is already accounted for there, this is not needed. Defaults to None.
             N_splits (int): Splits up computation of forward/back projection to save GPU memory. Defaults to 1.
@@ -48,8 +48,13 @@ class PETLMSystemMatrix(SystemMatrix):
         self.proj_meta.scanner_lut = self.proj_meta.scanner_lut.cpu()
         self.attenuation_map = attenuation_map
         self.N_splits = N_splits
-        self.compute_sens_factor()
+        self.norm_BP = self.backward_full()
+        # replace zeros (outside FOV) with small value to avoid NaNs
+        self.norm_BP[self.norm_BP < 1e-7] = 1e-7
         
+    def _get_object_initial(self, device=pytomography.device):
+        return (self.norm_BP>1.1e-7).to(pytomography.dtype).to(device)
+    
     def set_n_subsets(self, n_subsets: int) -> list:
         """Returns a list where each element consists of an array of indices corresponding to a partitioned version of the projections. 
 
@@ -120,43 +125,63 @@ class PETLMSystemMatrix(SystemMatrix):
                 self.object_meta.dr,
                 num_chunks=4)).cpu()
             proj = torch.concatenate([proj, proj_i])
+        return proj.to(self.output_device)
+    
+    def compute_sensitivity_proj(self, all_ids=True):
+        # If detector_ids is None, use all detector ids
+        if all_ids:
+            if self.proj_meta.detector_ids_all is not None:
+                detector_ids = self.proj_meta.detector_ids_all
+            else:
+                # Assumes all possible pairs are used
+                idxs = torch.arange(self.proj_meta.scanner_lut.shape[0]).to(pytomography.device).to(torch.int32)
+                detector_ids = torch.combinations(idxs, 2).cpu()
+        else:
+            detector_ids = self.proj_meta.detector_ids
+        proj = torch.ones(detector_ids.shape[0])
+        # Load normalization weights for the specific detector IDs
+        if self.proj_meta.weights_sensitivity is not None:
+            # If using all detector IDs (assumes weights_sensitivity is same shape as detector_ids)
+            if all_ids:
+                proj *= self.proj_meta.weights_sensitivity.cpu()
+            # Otherwise need to grab norm factor specific to the detector_ids used
+            else: # otherwise grab specific IDs (maybe move this somewhere else)
+                ids_sorted, _ = torch.sort(detector_ids[:,:2], 1)
+                norm_factor_idxs = ((self.proj_meta.info['NrCrystalsPerRing'] * self.proj_meta.info['NrRings']-1)*ids_sorted[:,0] + ids_sorted[:,1] - ids_sorted[:,0]*(ids_sorted[:,0]+1)/2 - 1).to(torch.int)
+                proj *= self.proj_meta.weights_sensitivity.cpu()[norm_factor_idxs]    
+        # Scale the weights by attenuation image if its provided in the system matrix
+        if self.attenuation_map is not None:
+            proj *= self.compute_atteunation_probability_projection(detector_ids).cpu()
         return proj
         
-    def compute_sens_factor(self, N_splits: int = 10):
-        r"""Computes the normalization factor :math:`\tilde{H}^T w` where :math:`w` is the weighting specified in the projection metadata that accounts for attenuation/normalization correction.
+    def backward_full(self, N_splits: int = 10):
+        r"""Computes full back projection :math:`\tilde{H}^T w g` where :math:`w` is the weighting specified in the projection metadata that accounts for attenuation/normalization correction. If ``proj`` ($g$) is not provided, then uses a tensor of all ones (this is used to compute the normalization factor).
 
         Args:
             N_splits (int, optional): Optionally splits up computation to save memory on GPU. Defaults to 10.
         """
-        # Load all detector ids used to compute sensitivity image
-        if self.proj_meta.detector_ids_sensitivity is not None:
-            detector_ids_sensitivity = self.proj_meta.detector_ids_sensitivity
+        proj = self.compute_sensitivity_proj()
+        # All detector IDs
+        if self.proj_meta.detector_ids_all is not None:
+            detector_ids_sensitivity = self.proj_meta.detector_ids_all
         else:
-            idxs = torch.arange(self.proj_meta.scanner_lut.shape[0]).to(pytomography.device)
+            idxs = torch.arange(self.proj_meta.scanner_lut.shape[0]).to(pytomography.device).to(torch.int32)
             detector_ids_sensitivity = torch.combinations(idxs, 2).cpu()
-        if self.proj_meta.weights_sensitivity is not None:
-            weights_sensitivity = self.proj_meta.weights_sensitivity
-        else:
-            weights_sensitivity = torch.ones(detector_ids_sensitivity.shape[0]).cpu()
-        # Scale the weights by attenuation image if its provided in the system matrix
-        if self.attenuation_map is not None:
-            weights_sensitivity = weights_sensitivity * self.compute_atteunation_probability_projection(detector_ids_sensitivity)
-        # Compute norm image
-        self.norm_BP = 0
-        for weight_subset, detector_ids_sensitivity_subset in zip(torch.tensor_split(weights_sensitivity, N_splits), torch.tensor_split(detector_ids_sensitivity, N_splits)):
+        norm_BP = 0
+        for proj_subset, detector_ids_sensitivity_subset in zip(torch.tensor_split(proj, N_splits), torch.tensor_split(detector_ids_sensitivity, N_splits)):
             # Add tensors to PyTomography device for fast projection
-            self.norm_BP += parallelproj.joseph3d_back(
+            norm_BP += parallelproj.joseph3d_back(
                 self.proj_meta.scanner_lut[detector_ids_sensitivity_subset[:,0]].to(pytomography.device),
                 self.proj_meta.scanner_lut[detector_ids_sensitivity_subset[:,1]].to(pytomography.device),
                 self.object_meta.shape,
                 self.object_origin,
                 self.object_meta.dr,
-                weight_subset.to(pytomography.device) + pytomography.delta,
+                proj_subset.to(pytomography.device) + pytomography.delta,
                 num_chunks=4).unsqueeze(0)
         # Apply object transforms
         for transform in self.obj2obj_transforms[::-1]:
-            self.norm_BP  = transform.backward(self.norm_BP)
-        self.norm_BP = self.norm_BP.cpu()
+            norm_BP  = transform.backward(norm_BP)
+        return norm_BP.cpu()
 
     def compute_normalization_factor(self, subset_idx: int | None = None) -> torch.tensor:
         r"""Function called by reconstruction algorithms to get the sensitivty image :math:`\tilde{H}_m^T w`.

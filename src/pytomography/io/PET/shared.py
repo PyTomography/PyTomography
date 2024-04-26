@@ -1,6 +1,8 @@
 from __future__ import annotations
 import torch
 import numpy as np
+from torch.nn.functional import conv1d
+from torch.nn import Conv1d
 
 def sinogram_coordinates(info):
     nr_sectors_trans, nr_sectors_axial, nr_modules_axial, nr_modules_trans, nr_crystals_trans, nr_crystals_axial = info['rsectorTransNr'], info['rsectorAxialNr'], info['moduleAxialNr'], info['moduleTransNr'], info['crystalTransNr'], info['crystalAxialNr']
@@ -83,7 +85,8 @@ def sinogram_coordinates(info):
             sinogram_index[ring1-1, ring2-1] = current_sinogram_index - 1
     return torch.tensor(lor_coordinates).to(torch.long), torch.tensor(sinogram_index).to(torch.long)
 
-def sinogram_to_spatial(info, scanner_lut):
+def sinogram_to_spatial(info):
+    scanner_lut = get_scanner_LUT(info)
     nr_sectors_trans, nr_sectors_axial, nr_modules_axial, nr_modules_trans, nr_crystals_trans, nr_crystals_axial = info['rsectorTransNr'], info['rsectorAxialNr'], info['moduleAxialNr'], info['moduleTransNr'], info['crystalTransNr'], info['crystalAxialNr']
     nr_rings = nr_sectors_axial * nr_modules_axial * nr_crystals_axial
     nr_crystals_per_ring = nr_sectors_trans * nr_modules_trans * nr_crystals_trans
@@ -168,7 +171,9 @@ def sinogram_to_spatial(info, scanner_lut):
 
     return torch.tensor(detector_coordinates).to(torch.float32), torch.tensor(ring_coordinates).to(torch.float32)
 
-def listmode_to_sinogram(detector_ids, info, weights=None):
+def listmode_to_sinogram(detector_ids, info, weights=None, normalization=False, tof_meta=None):
+    if tof_meta is not None: # if tof_meta is provided
+        return listmodeTOF_to_sinogramTOF(detector_ids, info, tof_meta, weights=weights)
     lor_coordinates, sinogram_index = sinogram_coordinates(info)
     # Sort by decreasing detector ids
     detector_ids = detector_ids[:,:2] #.sort(axis=1, descending=True).values
@@ -195,7 +200,44 @@ def listmode_to_sinogram(detector_ids, info, weights=None):
             bin_edges,
             weight=weights
         )[0]
+    if normalization:
+        sinogram /= 2
     return sinogram
+
+def listmodeTOF_to_sinogramTOF(detector_ids, info, tof_meta, weights=None):
+    lor_coordinates, sinogram_index = sinogram_coordinates(info)
+    # Sort by decreasing detector ids
+    # Only consider events within TOF range
+    TOF_bins = detector_ids[:,2].clone()
+    detector_ids = detector_ids[:,:2].clone() #.sort(axis=1, descending=True).values
+    within_ring_id = (detector_ids % info['NrCrystalsPerRing']).to(torch.long)
+    ring_ids = (detector_ids // info['NrCrystalsPerRing']).to(torch.long)
+    # Sort by greatest value within ring (required for using various lookup tables)
+    within_ring_id, idx = within_ring_id.sort(axis=1, descending=True)
+    # Opposite detector order
+    TOF_bins[idx[:,0]==1] = tof_meta.num_bins - 1 - TOF_bins[idx[:,0]==1]
+    ring_ids = ring_ids.gather(index=idx, dim=1)
+    # Bin sinogram
+    bin_edges = [
+        torch.arange(int(info['NrCrystalsPerRing']/2)+1).to(torch.float32)-0.5,
+        torch.arange(int(info['NrCrystalsPerRing'])+2).to(torch.float32)-0.5,
+        torch.arange(int((info['moduleAxialNr']*info['crystalAxialNr'])**2)+1).to(torch.float32)-0.5,
+    ]
+    data = torch.concatenate([lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]], sinogram_index[ring_ids[:,0], ring_ids[:,1]].unsqueeze(1)], dim=-1).to(torch.float32)
+    # Need the loop to prevent memory errors in histogramdd for large dimensionality
+    sinogram = []
+    for bin in range(tof_meta.num_bins):
+        if weights is None:
+            weights_TOF_bin = None
+        else:
+            weights_TOF_bin = weights[TOF_bins==bin]
+        sinogram_TOF_bin = torch.histogramdd(
+            data[TOF_bins==bin],
+            bin_edges,
+            weight=weights_TOF_bin
+        )[0]
+        sinogram.append(sinogram_TOF_bin)
+    return torch.stack(sinogram, dim=-1)
 
 def get_detector_ids_from_trans_axial_ids(ids_trans_crystal, ids_trans_submodule, ids_trans_module, ids_trans_rsector, ids_axial_crystal, ids_axial_submodule, ids_axial_module, ids_axial_rsector, info):
     ids_ring = ids_axial_crystal +\
@@ -268,3 +310,60 @@ def get_scanner_LUT(info):
     # Now sort scanner LUT by ids_detector order
     XYZ_crystals = XYZ_crystals[torch.argsort(ids_detector)]
     return XYZ_crystals
+
+def get_kernel(sigma, kernel_size, padding_mode='zeros'):
+    x = torch.arange(-int(kernel_size//2), int(kernel_size//2)+1)
+    k = torch.exp(-x**2/(2*sigma**2)).reshape(1,1,-1)
+    k = k/k.sum()
+    layer = Conv1d(1,1,kernel_size, padding='same', padding_mode=padding_mode, bias=False)
+    layer.weight.data = k
+    return layer
+
+def sinogram_to_listmode(detector_ids, sinogram, info):
+    # TODO: multiple IDs map to same sinogram bin -> need to divide by number of LORs mapping to each sinogram bin
+    lor_coordinates, sinogram_index = sinogram_coordinates(info)
+    detector_ids_spatial = detector_ids[:,:2].clone()
+    within_ring_id = (detector_ids_spatial % info['NrCrystalsPerRing']).to(torch.long)
+    ring_ids = (detector_ids_spatial // info['NrCrystalsPerRing']).to(torch.long)
+    within_ring_id, idx = within_ring_id.sort(axis=1, descending=True)
+    ring_ids = ring_ids.gather(index=idx, dim=1)
+    ring_ids = ring_ids.gather(index=idx, dim=1)
+    lm_return = 0
+    idx0, idx1 = lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]].T
+    idx2 = sinogram_index[ring_ids[:,0], ring_ids[:,1]]
+    # If TOF
+    if len(sinogram.shape)>3:
+        idxTOF =  detector_ids[:,2].clone()
+        # Opposite detector order
+        idxTOF[idx[:,0]==1] = sinogram.shape[-1] - 1 - idxTOF[idx[:,0]==1]
+        lm_return += sinogram[idx0, idx1, idx2, idxTOF]
+    else:
+        lm_return += sinogram[idx0, idx1, idx2]
+    return lm_return
+
+@torch.no_grad()
+def smooth_randoms_sinogram(sinogram_random, info, sigma_r=4, sigma_theta=4, sigma_z=4, kernel_size_r=21, kernel_size_theta=21, kernel_size_z=21):
+    _, sinogram_index = sinogram_coordinates(info)
+    sino = sinogram_random[:,:,sinogram_index]
+    ktheta = get_kernel(sigma_theta, kernel_size_theta, 'circular')
+    kr = get_kernel(sigma_r, kernel_size_r, 'replicate')
+    kz = get_kernel(sigma_z, kernel_size_z, 'replicate')
+    for i, k in enumerate([ktheta,kr,kz,kz]):
+        sino = sino.swapaxes(i,3)
+        sino = k(sino.flatten(end_dim=-2).unsqueeze(1)).reshape(sino.shape)
+        sino = sino.swapaxes(i,3)
+    ii = torch.argsort(sinogram_index.ravel())
+    ix, iy = ii // sino.shape[-2], ii % sino.shape[-1]
+    sinogram_random_interp = sino[:,:,ix,iy]
+    return sinogram_random_interp
+
+def randoms_sinogram_to_sinogramTOF(
+    sinogram_random,
+    tof_meta,
+    coincidence_timing_width,
+):
+    sinogram_random *= tof_meta.bin_width / (2 * coincidence_timing_width * 0.3 / 2) # multiply by 2 b/c -4300ps->4300ps is total range, multiply by 0.3/2 to convert to distance
+    sinogram_random = sinogram_random.unsqueeze(-1).repeat(1,1,1,tof_meta.num_bins)
+    return sinogram_random
+    
+
