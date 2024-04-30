@@ -4,14 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pytomography"
-version = "2.1.1"
+version = "3.0.0"
 
 authors = [
   { name="Luke Polson", email="lukepolson@outlook.com" },
 ]
 description = "Package to perform tomographic image reconstruction"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -29,6 +29,8 @@ dependencies = [
   "uproot>=5.2.1",
   "rt_utils>=1.2.0",
   "nibabel>=5.1.0",
+  "h5py>=3.11.0",
+  "torchrbf",
 ]
 
 [tool.hatch.metadata]

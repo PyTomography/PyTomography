@@ -5,10 +5,18 @@ from .likelihood import Likelihood
 from pytomography.projectors import SystemMatrix
 
 class NegativeMSELikelihood(Likelihood):
+    r"""Negative mean squared error likelihood function :math:`L(g|f) = -\frac{1}{2} \alpha \sum_i \left(g_i-(Hf)_i\right)^2` where :math:`g` is the acquired data, :math:`H` is the system matrix, :math:`f` is the object being reconstructed, and :math:`\alpha` is the scaling constant. The negative is taken so that the it works in gradient ascent (as opposed to descent) algorithms
+
+    Args:
+        system_matrix (SystemMatrix): The system matrix modeling the particular system whereby the projections were obtained
+        projections (torch.Tensor): Acquired data
+        additive_term (torch.Tensor, optional): Additional term added after forward projection by the system matrix. This term might include things like scatter and randoms. Defaults to None.
+        additive_term_variance_estimate (torch.tensor, optional): Variance estimate of the additive term. If none, then uncertainty estimation does not include contribution from the additive term. Defaults to None.
+    """
     def __init__(
         self,
         system_matrix: SystemMatrix,
-        projections: torch.Tensor,
+        projections: torch.Tensor | None = None,
         additive_term: torch.Tensor = None,
         scaling_constant: float = 1.0
         ) -> None:

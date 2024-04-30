@@ -27,9 +27,9 @@ def rotate_detector_z(
     """
     phi = 270 - angles
     if not negative:
-        x = rotate(x.permute(0,3,1,2), -phi, mode=mode).permute(0,2,3,1)
+        x = rotate(x.permute(2,0,1).unsqueeze(0), -phi, mode=mode).squeeze().permute(1,2,0)
     else:
-        x = rotate(x.permute(0,3,1,2), phi, mode=mode).permute(0,2,3,1)
+        x = rotate(x.permute(2,0,1).unsqueeze(0), phi, mode=mode).squeeze().permute(1,2,0)
     return x
 
 def compute_pad_size(width: int):
@@ -73,7 +73,7 @@ def pad_object(object: torch.Tensor, mode='constant'):
     pad_size = compute_pad_size(object.shape[-2]) 
     if mode=='back_project':
         # replicate along back projected dimension (x)
-        object = pad(object, [0,0,0,0,pad_size,pad_size], mode='replicate')
+        object = pad(object.unsqueeze(0), [0,0,0,0,pad_size,pad_size], mode='replicate').squeeze()
         object = pad(object, [0,0,pad_size,pad_size], mode='constant')
         return object
     else:
@@ -89,7 +89,7 @@ def unpad_object(object: torch.Tensor):
         torch.Tensor[batch_size, Lx, Ly, Lz]: Object tensor back to it's original dimensions.
     """
     pad_size = compute_pad_size_padded(object.shape[-2])
-    return object[:,pad_size:-pad_size,pad_size:-pad_size,:]
+    return object[pad_size:-pad_size,pad_size:-pad_size,:]
 
 def pad_proj(proj: torch.Tensor, mode: str = 'constant', value: float = 0):
     """Pads projections along the Lr axis
@@ -115,7 +115,7 @@ def unpad_proj(proj: torch.Tensor):
         torch.Tensor[batch_size, Ltheta, Lr, Lz]: Unpadded projections tensor
     """
     pad_size = compute_pad_size_padded(proj.shape[-2])
-    return proj[:,:,pad_size:-pad_size,:]
+    return proj[:,pad_size:-pad_size,:]
 
 def pad_object_z(object: torch.Tensor, pad_size: int, mode='constant'):
     """Pads an object tensor along z. Useful for PSF modeling 
@@ -141,4 +141,4 @@ def unpad_object_z(object: torch.Tensor, pad_size: int):
         torch.Tensor[batch_size, Lx, Ly, Lz]:Unpadded object tensor.
     """
     
-    return object[:,:,:,pad_size:-pad_size]
+    return object[:,:,pad_size:-pad_size]

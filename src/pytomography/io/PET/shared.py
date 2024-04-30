@@ -1,10 +1,18 @@
 from __future__ import annotations
+from collections.abc import Sequence
 import torch
 import numpy as np
-from torch.nn.functional import conv1d
-from torch.nn import Conv1d
+from pytomography.utils import get_1d_gaussian_kernel
 
-def sinogram_coordinates(info):
+def sinogram_coordinates(info: dict) -> Sequence[torch.Tensor]:
+    """Obtains two tensors: the first yields the sinogram coordinates (r/theta) given two crystal IDs (shape [N_crystals_per_ring, N_crystals_per_ring, 2]), the second yields the sinogram index given two ring IDs (shape [Nrings, Nrings])
+
+    Args:
+        info (dict): PET geometry information dictionary    
+
+    Returns:
+        Sequence[torch.Tensor]: LOR coordinates and sinogram index lookup tensors
+    """
     nr_sectors_trans, nr_sectors_axial, nr_modules_axial, nr_modules_trans, nr_crystals_trans, nr_crystals_axial = info['rsectorTransNr'], info['rsectorAxialNr'], info['moduleAxialNr'], info['moduleTransNr'], info['crystalTransNr'], info['crystalAxialNr']
     nr_rings = info['NrRings']
     nr_crystals_per_ring = info['NrCrystalsPerRing']
@@ -24,7 +32,6 @@ def sinogram_coordinates(info):
             crystal_id_2 = (full_ring_crystal_id_2 % nr_crystals_per_ring) - distance_crystal_id_0_to_first_sector_center
             if crystal_id_2 < 0:
                 crystal_id_2 += nr_crystals_per_ring
-
             id_a = 0
             id_b = 0
             if crystal_id_1 < crystal_id_2:
@@ -33,7 +40,6 @@ def sinogram_coordinates(info):
             else:
                 id_a = crystal_id_2
                 id_b = crystal_id_1
-
             radial = 0
             angular = 0
             if id_b - id_a < min_crystal_difference:
@@ -59,12 +65,9 @@ def sinogram_coordinates(info):
                         angular = (2 * id_a - nr_crystals_per_ring + radial) / 2
                     else:
                         angular = (2 * id_a - radial) / 2
-
                 lor_coordinates[full_ring_crystal_id_1, full_ring_crystal_id_2, 0] = np.floor(angular)
                 lor_coordinates[full_ring_crystal_id_1, full_ring_crystal_id_2, 1] = np.floor(radial + radial_size / 2)
-
     sinogram_index = np.zeros((nr_rings, nr_rings))
-
     for ring1 in range(1, nr_rings+1):
         for ring2 in range(1, nr_rings+1):
             ring_difference = abs(ring2 - ring1)
@@ -85,22 +88,25 @@ def sinogram_coordinates(info):
             sinogram_index[ring1-1, ring2-1] = current_sinogram_index - 1
     return torch.tensor(lor_coordinates).to(torch.long), torch.tensor(sinogram_index).to(torch.long)
 
-def sinogram_to_spatial(info):
+def sinogram_to_spatial(info: dict) -> Sequence[torch.Tensor]:
+    """Returns two tensors: the first yields the detector coordinates (x1/y1/x2/y2) of each of the two crystals given the element of the sinogram (shape [N_crystals_per_ring, N_crystals_per_ring, 2, 2]), the second yields the ring coordinates (z1/z2) given two ring IDs (shape [Nrings*Nrings, 2])
+
+    Args:
+        info (dict): PET geometry information dictionary
+
+    Returns:
+        Sequence[torch.Tensor]: Two tensors yielding spatial coordinates
+    """
     scanner_lut = get_scanner_LUT(info)
     nr_sectors_trans, nr_sectors_axial, nr_modules_axial, nr_modules_trans, nr_crystals_trans, nr_crystals_axial = info['rsectorTransNr'], info['rsectorAxialNr'], info['moduleAxialNr'], info['moduleTransNr'], info['crystalTransNr'], info['crystalAxialNr']
     nr_rings = nr_sectors_axial * nr_modules_axial * nr_crystals_axial
     nr_crystals_per_ring = nr_sectors_trans * nr_modules_trans * nr_crystals_trans
-
     min_sector_difference = 0
     min_crystal_difference = min_sector_difference * nr_modules_trans * nr_crystals_trans
-
     radial_size = int(nr_crystals_per_ring - 2 * (min_crystal_difference - 1) - 1)
     angular_size = int(nr_crystals_per_ring / 2)
-    nr_sinograms = nr_rings * nr_rings
     distance_crystal_id_0_to_first_sector_center = (nr_modules_trans * nr_crystals_trans) / 2
-    
     detector_coordinates = np.zeros((angular_size, radial_size, 2, 2), dtype=np.float32)
-
     # Generates first the coordinates on each sinogram
     for full_ring_crystal_id_1 in range(nr_crystals_per_ring):
         crystal_id_1 = full_ring_crystal_id_1 % nr_crystals_per_ring - distance_crystal_id_0_to_first_sector_center
@@ -141,13 +147,10 @@ def sinogram_to_spatial(info):
                         angular = (2 * id_a - nr_crystals_per_ring + radial) / 2
                     else:
                         angular = (2 * id_a - radial) / 2
-                
                 if full_ring_crystal_id_1 >= full_ring_crystal_id_2:
                     detector_coordinates[int(np.floor(angular)), int(np.floor(radial + radial_size / 2)), 0, :] = scanner_lut[full_ring_crystal_id_1, 0:2]
                     detector_coordinates[int(np.floor(angular)), int(np.floor(radial + radial_size / 2)), 1, :] = scanner_lut[full_ring_crystal_id_2, 0:2]
-
     ring_coordinates = np.zeros((nr_rings * nr_rings, 2), dtype=np.float32)
-
     for ring1 in range(1, nr_rings+1):
         for ring2 in range(1, nr_rings+1):
             ring_difference = abs(ring2 - ring1)
@@ -165,21 +168,36 @@ def sinogram_to_spatial(info):
                         for ring_distance in range(1, ring_difference):
                             current_sinogram_index += 2 * (nr_rings - ring_distance)
                     current_sinogram_index += nr_rings - ring_difference + ring1 - ring_difference
-            
             ring_coordinates[current_sinogram_index-1, 0] = scanner_lut[info['NrCrystalsPerRing']*(ring1-1), 2]
             ring_coordinates[current_sinogram_index-1, 1] = scanner_lut[info['NrCrystalsPerRing']*(ring2-1), 2]
-
     return torch.tensor(detector_coordinates).to(torch.float32), torch.tensor(ring_coordinates).to(torch.float32)
 
-def listmode_to_sinogram(detector_ids, info, weights=None, normalization=False, tof_meta=None):
+def listmode_to_sinogram(
+    detector_ids: torch.Tensor,
+    info: dict,
+    weights: torch.Tensor = None,
+    normalization: bool = False,
+    tof_meta: PETTOFMeta = None
+    ) -> torch.Tensor:
+    """Converts PET listmode data to sinogram
+
+    Args:
+        detector_ids (torch.Tensor): Listmode detector ID data
+        info (dict): PET geometry information dictionary
+        weights (torch.Tensor, optional): Binning weights for each listmode event. Defaults to None.
+        normalization (bool, optional): Whether or not this is a normalization sinogram (need to do some extra steps). Defaults to False.
+        tof_meta (PETTOFMeta, optional): PET TOF metadata. Defaults to None.
+
+    Returns:
+        torch.Tensor: PET sinogram
+    """
     if tof_meta is not None: # if tof_meta is provided
-        return listmodeTOF_to_sinogramTOF(detector_ids, info, tof_meta, weights=weights)
+        return _listmodeTOF_to_sinogramTOF(detector_ids, info, tof_meta, weights=weights)
     lor_coordinates, sinogram_index = sinogram_coordinates(info)
-    # Sort by decreasing detector ids
-    detector_ids = detector_ids[:,:2] #.sort(axis=1, descending=True).values
+    detector_ids = detector_ids[:,:2] 
     within_ring_id = (detector_ids % info['NrCrystalsPerRing']).to(torch.long)
     ring_ids = (detector_ids // info['NrCrystalsPerRing']).to(torch.long)
-    # Sort by greatest value within ring (required for using various lookup tables)
+    # Need to bin by largest "within_ring_id" first (for use with the "ring_coordinates" function yielding spatial coordinates for each ID-pair at each sinogram coordinate)
     within_ring_id, idx = within_ring_id.sort(axis=1, descending=True)
     ring_ids = ring_ids.gather(index=idx, dim=1)
     # Bin sinogram
@@ -193,18 +211,33 @@ def listmode_to_sinogram(detector_ids, info, weights=None, normalization=False, 
         bin_edges,
         weight=weights
     )[0]
-    # Opposite binning for normalization sinogram, which always considers detector IDs in order (so a bunch are zero if this is not done)
-    if weights is not None:
+    # Opposite binning for normalization sinogram, which always considers "ring_id"s in order (this only works because of +/- z symmetry of normalization factors)
+    if normalization:
         sinogram += torch.histogramdd(
             torch.concatenate([lor_coordinates[within_ring_id[:,1], within_ring_id[:,0]], sinogram_index[ring_ids[:,1], ring_ids[:,0]].unsqueeze(1)], dim=-1).to(torch.float32),
             bin_edges,
             weight=weights
         )[0]
-    if normalization:
         sinogram /= 2
     return sinogram
 
-def listmodeTOF_to_sinogramTOF(detector_ids, info, tof_meta, weights=None):
+def _listmodeTOF_to_sinogramTOF(
+    detector_ids: torch.Tensor,
+    info: dict,
+    tof_meta: PETTOFMeta,
+    weights: torch.Tensor | None = None
+    ) -> torch.Tensor:
+    """Helper function to ``listmode_to_sinogram`` for TOF data
+
+    Args:
+        detector_ids (torch.Tensor): Listmode detector ID data
+        info (dict): PET geometry information dictionary
+        weights (torch.Tensor, optional): Binning weights for each listmode event. Defaults to None.
+        tof_meta (PETTOFMeta, optional): PET TOF metadata. Defaults to None.
+
+    Returns:
+        torch.Tensor: PET TOF sinogram
+    """
     lor_coordinates, sinogram_index = sinogram_coordinates(info)
     # Sort by decreasing detector ids
     # Only consider events within TOF range
@@ -239,7 +272,33 @@ def listmodeTOF_to_sinogramTOF(detector_ids, info, tof_meta, weights=None):
         sinogram.append(sinogram_TOF_bin)
     return torch.stack(sinogram, dim=-1)
 
-def get_detector_ids_from_trans_axial_ids(ids_trans_crystal, ids_trans_submodule, ids_trans_module, ids_trans_rsector, ids_axial_crystal, ids_axial_submodule, ids_axial_module, ids_axial_rsector, info):
+def get_detector_ids_from_trans_axial_ids(
+    ids_trans_crystal: torch.Tensor,
+    ids_trans_submodule: torch.Tensor,
+    ids_trans_module: torch.Tensor,
+    ids_trans_rsector: torch.Tensor,
+    ids_axial_crystal: torch.Tensor,
+    ids_axial_submodule: torch.Tensor,
+    ids_axial_module: torch.Tensor,
+    ids_axial_rsector: torch.Tensor,
+    info: dict
+    ) -> torch.Tensor:
+    """Obtain detector IDs from individual part IDs
+
+    Args:
+        ids_trans_crystal (torch.Tensor): Transaxial crystal IDs
+        ids_trans_submodule (torch.Tensor): Transaxial submodule IDs
+        ids_trans_module (torch.Tensor): Transaxial module IDs
+        ids_trans_rsector (torch.Tensor): Transaxial rsector IDs
+        ids_axial_crystal (torch.Tensor): Axial crystal IDs
+        ids_axial_submodule (torch.Tensor): Axial submodule IDs 
+        ids_axial_module (torch.Tensor): Axial module IDs
+        ids_axial_rsector (torch.Tensor): Axial rsector IDs 
+        info (dict): PET geometry information dictionary
+
+    Returns:
+        torch.Tensor: Tensor containing (spatial) detector IDs
+    """
     ids_ring = ids_axial_crystal +\
         ids_axial_submodule * info['crystalAxialNr'] +\
         ids_axial_module * info['crystalAxialNr'] * info['submoduleAxialNr'] +\
@@ -252,7 +311,21 @@ def get_detector_ids_from_trans_axial_ids(ids_trans_crystal, ids_trans_submodule
     ids_detector = ids_ring * nb_crystal_per_ring + ids_within_ring
     return ids_detector
 
-def get_axial_trans_ids_from_info(info, return_combinations=False, sort_by_detector_ids=False):
+def get_axial_trans_ids_from_info(
+    info: dict,
+    return_combinations: bool = False,
+    sort_by_detector_ids: bool = False
+    ):
+    """Get axial and transaxial IDs corresponding to each crystal in the scanner
+
+    Args:
+        info (dict): PET geometry information dictionary
+        return_combinations (bool, optional): Whether or not to return all possible combinations (crystal pairs). Defaults to False.
+        sort_by_detector_ids (bool, optional): Whether or not to sort by increasing detector IDs. Defaults to False.
+
+    Returns:
+        Sequence[torch.Tensor]: IDs corresponding to axial/transaxial components of each part
+    """
     ids_trans_crystal = torch.arange(0, info['crystalTransNr'])
     ids_axial_crystal = torch.arange(0, info['crystalAxialNr'])
     ids_trans_submodule = torch.arange(0, info['submoduleTransNr'])
@@ -284,7 +357,15 @@ def get_axial_trans_ids_from_info(info, return_combinations=False, sort_by_detec
         ids_axial_rsector = torch.combinations(ids_axial_rsector, 2)
     return ids_trans_crystal, ids_axial_crystal, ids_trans_submodule, ids_axial_submodule, ids_trans_module, ids_axial_module, ids_trans_rsector, ids_axial_rsector
 
-def get_scanner_LUT(info):
+def get_scanner_LUT(info: dict):
+    """Obtains scanner lookup table (gives x/y/z coordinates for each detector ID)
+
+    Args:
+        info (dict): PET geometry information dictionary
+
+    Returns:
+        torch.Tensor[N_detectors, 3]: Lookup table
+    """
     ids_trans_crystal, ids_axial_crystal, ids_trans_submodule, ids_axial_submodule, ids_trans_module, ids_axial_module, ids_trans_rsector, ids_axial_rsector = get_axial_trans_ids_from_info(info)
     ids_detector = get_detector_ids_from_trans_axial_ids(ids_trans_crystal, ids_trans_submodule, ids_trans_module, ids_trans_rsector, ids_axial_crystal, ids_axial_submodule, ids_axial_module, ids_axial_rsector, info)
     Z_modules = ids_axial_module * info['moduleAxialSpacing'] - (info['moduleAxialNr']-1) * info['moduleAxialSpacing'] / 2
@@ -305,21 +386,26 @@ def get_scanner_LUT(info):
         torch.cos(angle_rsector)], dim=1).view(-1, 2, 2)
     XY_crystals = torch.vstack([X_crystals, Y_crystals])
     XY_crystals = torch.einsum('ijk,ki->ij', rotation_matrices, XY_crystals)
+    if info['firstCrystalAxis'] == 0: # crystal with index 0 along x axis
+        XY_crystals = XY_crystals.flip(dims=(1,))
     # Stack all together (for some reason Z needs to be negative?)
     XYZ_crystals = torch.vstack([XY_crystals.T, -Z_crystals.unsqueeze(0)]).T
     # Now sort scanner LUT by ids_detector order
     XYZ_crystals = XYZ_crystals[torch.argsort(ids_detector)]
+    
     return XYZ_crystals
 
-def get_kernel(sigma, kernel_size, padding_mode='zeros'):
-    x = torch.arange(-int(kernel_size//2), int(kernel_size//2)+1)
-    k = torch.exp(-x**2/(2*sigma**2)).reshape(1,1,-1)
-    k = k/k.sum()
-    layer = Conv1d(1,1,kernel_size, padding='same', padding_mode=padding_mode, bias=False)
-    layer.weight.data = k
-    return layer
+def sinogram_to_listmode(detector_ids: torch.Tensor, sinogram: torch.Tensor, info: dict) -> torch.Tensor:
+    """Obtains listmode data from a sinogram at the given detector IDs
 
-def sinogram_to_listmode(detector_ids, sinogram, info):
+    Args:
+        detector_ids (torch.Tensor): Detector IDs at which to obtain listmode data
+        sinogram (torch.Tensor): PET sinogram
+        info (dict): PET geometry information dictionary
+
+    Returns:
+        torch.Tensor: Listmode data
+    """     
     # TODO: multiple IDs map to same sinogram bin -> need to divide by number of LORs mapping to each sinogram bin
     lor_coordinates, sinogram_index = sinogram_coordinates(info)
     detector_ids_spatial = detector_ids[:,:2].clone()
@@ -331,23 +417,46 @@ def sinogram_to_listmode(detector_ids, sinogram, info):
     lm_return = 0
     idx0, idx1 = lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]].T
     idx2 = sinogram_index[ring_ids[:,0], ring_ids[:,1]]
-    # If TOF
-    if len(sinogram.shape)>3:
+    if len(sinogram.shape)>3: # If TOF
         idxTOF =  detector_ids[:,2].clone()
         # Opposite detector order
-        idxTOF[idx[:,0]==1] = sinogram.shape[-1] - 1 - idxTOF[idx[:,0]==1]
+        #idxTOF[idx[:,0]==1] = sinogram.shape[-1] - 1 - idxTOF[idx[:,0]==1]
         lm_return += sinogram[idx0, idx1, idx2, idxTOF]
     else:
         lm_return += sinogram[idx0, idx1, idx2]
     return lm_return
 
 @torch.no_grad()
-def smooth_randoms_sinogram(sinogram_random, info, sigma_r=4, sigma_theta=4, sigma_z=4, kernel_size_r=21, kernel_size_theta=21, kernel_size_z=21):
+def smooth_randoms_sinogram(
+    sinogram_random: torch.Tensor,
+    info: dict,
+    sigma_r: float = 4,
+    sigma_theta: float = 4,
+    sigma_z: float = 4,
+    kernel_size_r: int = 21,
+    kernel_size_theta: int = 21,
+    kernel_size_z: int = 21
+    ) -> torch.Tensor:
+    """Smooths a PET randoms sinogram using a Gaussian filter in the r, theta, and z direction. Rebins the sinogram into (r,theta,z1,z2) before blurring (same blurring applied to z1 and z2)
+
+    Args:
+        sinogram_random (torch.Tensor): PET sinogram of randoms
+        info (dict): PET geometry information dictionary
+        sigma_r (float, optional): Blurring (in pixel size) in r direction. Defaults to 4.
+        sigma_theta (float, optional): Blurring (in pixel size) in r direction. Defaults to 4.
+        sigma_z (float, optional): Blurring (in pixel size) in z direction. Defaults to 4.
+        kernel_size_r (int, optional): Kernel size in r direction. Defaults to 21.
+        kernel_size_theta (int, optional): Kernel size in theta direction. Defaults to 21.
+        kernel_size_z (int, optional): Kernel size in z1/z2 diretions. Defaults to 21.
+
+    Returns:
+        torch.Tensor: Smoothed randoms sinogram
+    """
     _, sinogram_index = sinogram_coordinates(info)
     sino = sinogram_random[:,:,sinogram_index]
-    ktheta = get_kernel(sigma_theta, kernel_size_theta, 'circular')
-    kr = get_kernel(sigma_r, kernel_size_r, 'replicate')
-    kz = get_kernel(sigma_z, kernel_size_z, 'replicate')
+    ktheta = get_1d_gaussian_kernel(sigma_theta, kernel_size_theta, 'circular')
+    kr = get_1d_gaussian_kernel(sigma_r, kernel_size_r, 'replicate')
+    kz = get_1d_gaussian_kernel(sigma_z, kernel_size_z, 'replicate')
     for i, k in enumerate([ktheta,kr,kz,kz]):
         sino = sino.swapaxes(i,3)
         sino = k(sino.flatten(end_dim=-2).unsqueeze(1)).reshape(sino.shape)
@@ -358,10 +467,20 @@ def smooth_randoms_sinogram(sinogram_random, info, sigma_r=4, sigma_theta=4, sig
     return sinogram_random_interp
 
 def randoms_sinogram_to_sinogramTOF(
-    sinogram_random,
-    tof_meta,
-    coincidence_timing_width,
-):
+    sinogram_random: torch.Tenor,
+    tof_meta: PETTOFMeta,
+    coincidence_timing_width: float,
+) -> torch.Tensor:
+    """Converts a non-TOF randoms sinogram to a TOF randoms sinogram.
+
+    Args:
+        sinogram_random (torch.Tenor): Randoms sinogram (non-TOF)
+        tof_meta (PETTOFMeta): PET TOF metadata
+        coincidence_timing_width (float): Coincidence timing width used for the acceptance of coincidence events
+
+    Returns:
+        torch.Tensor: Randoms sinogram (TOF)
+    """
     sinogram_random *= tof_meta.bin_width / (2 * coincidence_timing_width * 0.3 / 2) # multiply by 2 b/c -4300ps->4300ps is total range, multiply by 0.3/2 to convert to distance
     sinogram_random = sinogram_random.unsqueeze(-1).repeat(1,1,1,tof_meta.num_bins)
     return sinogram_random

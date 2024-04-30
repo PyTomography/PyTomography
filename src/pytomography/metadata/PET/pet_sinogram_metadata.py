@@ -1,11 +1,19 @@
+from __future__ import annotations
 import pytomography
 from pytomography.io.PET import shared
+from .pet_tof_metadata import PETTOFMeta
 
 class PETSinogramPolygonProjMeta():
+    """PET Sinogram metadata class for polygonal scanner geometry
+
+    Args:
+        info (dict): PET geometry information dictionary
+        tof_meta (PETTOFMeta | None, optional): PET time of flight metadata. If None, then assumes no time of flight. Defaults to None.
+    """
     def __init__(
         self,
-        info,
-        tof_meta = None
+        info: dict,
+        tof_meta: PETTOFMeta | None = None
     ):  
         self.info = info
         scanner_LUT = shared.get_scanner_LUT(info)

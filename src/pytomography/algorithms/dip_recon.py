@@ -1,39 +1,24 @@
 from __future__ import annotations
 import torch
 import torch.nn as nn
-import numpy as np
-from pytomography.projectors import SystemMatrix
-import abc
-import pytomography
-from pytomography.priors import Prior
 from pytomography.likelihoods import Likelihood
-from pytomography.callbacks import Callback
-from pytomography.transforms.shared import KEMTransform
-from pytomography.transforms.SPECT import CutOffTransform
-from pytomography.projectors.shared import KEMSystemMatrix
-from pytomography.utils import check_if_class_contains_method
-from collections.abc import Callable
 from .preconditioned_gradient_ascent import OSEM
 
 class DIPRecon:
     r"""Implementation of the Deep Image Prior reconstruction technique (see https://ieeexplore.ieee.org/document/8581448). This reconstruction technique requires an instance of a user-defined ``prior_network`` that implements two functions: (i) a ``fit`` method that takes in an ``object`` (:math:`x`) which the network ``f(z;\theta)`` is subsequently fit to, and (ii) a ``predict`` function that returns the current network prediction :math:`f(z;\theta)`. For more details, see the Deep Image Prior tutorial.
 
         Args:
-            projections (torch.tensor): projection data :math:`g` to be reconstructed
-            system_matrix (SystemMatrix): System matrix :math:`H` used in :math:`g=Hf`.
-            prior_network (nn.Module): User defined prior network that implements the neural network ``f(z;\theta)``
-            rho (float, optional): Value of :math:`\rho` used in the optimization procedure. Defaults to 1.
-            scatter (torch.tensor | float, optional): Projection space scatter estimate. Defaults to 0.
-            precompute_normalization_factors (bool, optional): Whether to precompute :math:`H_m^T 1` and store on GPU in the OSEM network before reconstruction. Defaults to True.
+            likelihood (Likelihood): Initialized likelihood function for the imaging system considered
+            prior_network (nn.Module): User defined prior network that implements the neural network :math:`f(z;\theta)` that predicts an object given a prior image :math:`z`. This network also implements a ``fit`` method that takes in an object and fits the network to the object (for a specified number of iterations: SubIt2 in the paper).
+            rho (float, optional): Value of :math:`\rho` used in the optimization procedure. Larger values of :math:`rho` give larger weight to the neural network, while smaller values of :math:`rho` give larger weight to the EM updates. Defaults to 1.
         """
     def __init__(
         self,
         likelihood: Likelihood,
         prior_network: nn.Module,
         rho: float = 3e-3,
-        EM_algorithm = OSEM,
     ) -> None:
-        self.EM_algorithm = EM_algorithm(
+        self.EM_algorithm = OSEM(
             likelihood,
             object_initial = nn.ReLU()(prior_network.predict().clone())
             )
@@ -48,7 +33,7 @@ class DIPRecon:
             n_iter (int): Number of iterations
             n_subset (int): Number of subsets
         """
-        self.callback.run(self.object_prediction, n_iter, n_subset)
+        self.object_prediction = self.callback.run(self.object_prediction, n_iter, n_subset)
         
     def __call__(
         self,

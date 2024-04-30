@@ -2,7 +2,6 @@ from __future__ import annotations
 import torch
 from .pet_tof_metadata import PETTOFMeta
 from pytomography.io.PET import shared
-import pytomography
 
 class PETLMProjMeta():
     r"""Metadata required for PET listmode modeling. PET listmode projection actually requires two different projectors: the system matrix that projects to all detected crystal pair LORs (which is denoted as :math:`H`) and the system matrix that projects to all valid LORs (denoted as :math:`\tilde{H}`). The system matrix :math:`H` is used for forward/back projection in reconstruction algorithms, while :math:`\tilde{H}` is used for computing the normalization image :math:`\tilde{H}^T 1`. 
@@ -21,21 +20,21 @@ class PETLMProjMeta():
         info: dict | None = None,
         scanner_LUT: torch.Tensor | None = None,
         tof_meta: PETTOFMeta | None = None,
-        detector_ids_all: torch.Tensor | None = None,
         weights: torch.tensor | None = None,
+        detector_ids_sensitivity: torch.Tensor | None = None,
         weights_sensitivity: torch.tensor | None = None,
     ):
         self.shape = (detector_ids.shape[0],)
         self.info = info
         self.detector_ids = detector_ids.cpu()
-        if detector_ids_all is not None:
-            self.detector_ids_all = detector_ids_all.cpu()
+        if detector_ids_sensitivity is not None:
+            self.detector_ids_sensitivity = detector_ids_sensitivity.cpu()
         else:
-            self.detector_ids_all = None
+            self.detector_ids_sensitivity = None
         if scanner_LUT is None:
             self.scanner_lut = shared.get_scanner_LUT(info).cpu()
         else:
             self.scanner_lut = scanner_LUT
         self.tof_meta = tof_meta
         self.weights = weights
-        self.weights_sensitivity = weights_sensitivity  
+        self.weights_sensitivity = weights_sensitivity 
