@@ -3,7 +3,6 @@ r"""The code here is implementation of priors that depend on summation over near
 from __future__ import annotations
 import abc
 import torch
-import torch.nn as nn
 import numpy as np
 from .prior import Prior
 from collections.abc import Callable
@@ -284,7 +283,7 @@ class TopNAnatomyNeighbourWeight(NeighbourWeight):
         self.eucliden_neighbour_weight.set_object_meta(object_meta)
         
     def compute_inclusion_tensor(self):
-        shape = self.anatomy_image.shape[1:]
+        shape = self.anatomy_image.shape
         self.inclusion_image = torch.zeros((3, 3, 3, *shape))
         anatomy_cpu = self.anatomy_image.cpu()
         for i in [-1,0,1]:

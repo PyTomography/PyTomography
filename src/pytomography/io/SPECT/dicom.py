@@ -15,11 +15,10 @@ from pydicom.dataset import Dataset
 from pydicom.uid import generate_uid
 import pytomography
 from rt_utils import RTStructBuilder
-from pytomography.metadata import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
+from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
 import nibabel as nib
 from pytomography.utils import (
-    get_blank_below_above,
-    compute_TEW,
+    compute_EW_scatter,
     get_mu_from_spectrum_interp,
 )
 from ..CT import (
@@ -170,9 +169,6 @@ def get_projections(
         dimension_list = ["N_energywindows"] + dimension_list
         if pytomography.verbose:
             print("Multiple energy windows found")
-    if len(dimension_list) == 3:
-        dimension_list = ["1"] + dimension_list
-        projections = projections.unsqueeze(dim=0)
     if pytomography.verbose:
         print(f'Returned projections have dimensions ({" ".join(dimension_list)})')
     return projections
@@ -193,28 +189,42 @@ def get_window_width(ds: Dataset, index: int) -> float:
     window_range2 = energy_window.EnergyWindowRangeSequence[0].EnergyWindowUpperLimit
     return window_range2 - window_range1
 
-
-def get_scatter_from_TEW(
-    file: str, index_peak: int, index_lower: int, index_upper: int, return_scatter_variance_estimate=False
+def get_energy_window_scatter_estimate(
+    file: str,
+    index_peak: int,
+    index_lower: int,
+    index_upper: int | None = None,
+    weighting_lower: float = 0.5,
+    weighting_upper: float = 0.5,
+    return_scatter_variance_estimate: bool = False
 ) -> torch.Tensor:
-    """Gets an estimate of scatter projection data from a DICOM file using the triple energy window method.
+    """Gets an estimate of scatter projection data from a DICOM file using either the dual energy window (`index_upper=None`) or triple energy window method.
 
     Args:
         file (str): Filepath of the DICOM file
         index_peak (int): Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to the photopeak.
         index_lower (int): Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to lower scatter window.
-        index_upper (int): Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to upper scatter window.
-
+        index_upper (int): Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to upper scatter window. Defaults to None (dual energy window).
+        weighting_lower (float): Weighting of the lower scatter window. Defaults to 0.5.
+        weighting_upper (float): Weighting of the upper scatter window. Defaults to 0.5.
+        return_scatter_variance_estimate (bool): If true, then also return the variance estimate of the scatter. Defaults to False.
     Returns:
-        torch.Tensor[1,Ltheta,Lr,Lz]: Tensor corresponding to the scatter estimate.
+        torch.Tensor[Ltheta,Lr,Lz]: Tensor corresponding to the scatter estimate.
     """
     projections_all = get_projections(file).to(pytomography.device)
-    return get_scatter_from_TEW_projections(file, projections_all, index_peak, index_lower, index_upper, return_scatter_variance_estimate)
+    return get_energy_window_scatter_estimate_projections(file, projections_all, index_peak, index_lower, index_upper, weighting_lower, weighting_upper, return_scatter_variance_estimate)
 
-def get_scatter_from_TEW_projections(
-    file: str, projections: torch.Tensor, index_peak: int, index_lower: int, index_upper: int, return_scatter_variance_estimate=False
+def get_energy_window_scatter_estimate_projections(
+    file: str,
+    projections: torch.Tensor,
+    index_peak: int,
+    index_lower: int,
+    index_upper: int | None = None,
+    weighting_lower: float = 0.5,
+    weighting_upper: float = 0.5,
+    return_scatter_variance_estimate: bool = False
 ) -> torch.Tensor:
-    """Gets an estimate of scatter projection data from a DICOM file using the triple energy window method. This is seperate from ``get_scatter_from_TEW`` as it allows a user to input projecitons that are already loaded/modified. This is useful for reconstructing multiple bed positions.
+    """Gets an estimate of scatter projection data from a DICOM file using either the dual energy window (`index_upper=None`) or triple energy window method. This is seperate from ``get_energy_window_scatter_estimate`` as it allows a user to input projecitons that are already loaded/modified. This is useful for when projection data gets mixed for reconstructing multiple bed positions.
 
     Args:
         file (str): Filepath of the DICOM file
@@ -222,24 +232,29 @@ def get_scatter_from_TEW_projections(
         index_peak (int): Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to the photopeak.
         index_lower (int): Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to lower scatter window.
         index_upper (int): Index of the ``EnergyWindowInformationSequence`` DICOM attribute corresponding to upper scatter window.
-
+        weighting_lower (float): Weighting of the lower scatter window. Defaults to 0.5.
+        weighting_upper (float): Weighting of the upper scatter window. Defaults to 0.5.
+        return_scatter_variance_estimate (bool): If true, then also return the variance estimate of the scatter. Defaults to False.
     Returns:
-        torch.Tensor[1,Ltheta,Lr,Lz]: Tensor corresponding to the scatter estimate.
+        torch.Tensor[Ltheta,Lr,Lz]: Tensor corresponding to the scatter estimate.
     """
     ds = pydicom.read_file(file, force=True)
     ww_peak = get_window_width(ds, index_peak)
     ww_lower = get_window_width(ds, index_lower)
-    ww_upper = get_window_width(ds, index_upper)
-    scatter = compute_TEW(
-        projections[index_lower].unsqueeze(0),
-        projections[index_upper].unsqueeze(0),
+    ww_upper = get_window_width(ds, index_upper) if index_upper is not None else None
+    projections_lower = projections[index_lower]
+    projections_upper = projections[index_upper] if index_upper is not None else None
+    scatter = compute_EW_scatter(
+        projections_lower,
+        projections_upper,
         ww_lower,
         ww_upper,
         ww_peak,
+        weighting_lower,
+        weighting_upper,
         return_scatter_variance_estimate
     )
     return scatter
-
 
 def get_attenuation_map_from_file(file_AM: str) -> torch.Tensor:
     """Gets an attenuation map from a DICOM file. This data is usually provided by the manufacturer of the SPECT scanner.
@@ -257,13 +272,7 @@ def get_attenuation_map_from_file(file_AM: str) -> torch.Tensor:
     else:
         scale_factor = 1
     attenuation_map = ds.pixel_array * scale_factor
-
-    return (
-        torch.tensor(np.transpose(attenuation_map, (2, 1, 0)))
-        .unsqueeze(dim=0)
-        .to(pytomography.dtype)
-        .to(pytomography.device)
-    )
+    return torch.tensor(np.transpose(attenuation_map, (2, 1, 0))).to(pytomography.dtype).to(pytomography.device)
 
 
 def get_psfmeta_from_scanner_params(
@@ -376,12 +385,7 @@ def get_attenuation_map_from_CT_slices(
     CT_HU = open_multifile(files_CT)
 
     if file_NM is None:
-        return (
-            torch.tensor(CT_HU.copy())
-            .unsqueeze(dim=0)
-            .to(pytomography.dtype)
-            .to(pytomography.device)
-        )
+        return torch.tensor(CT_HU.copy().to(pytomography.dtype).to(pytomography.device))
     ds_NM = pydicom.read_file(file_NM)
     # When doing affine transform, fill outside with point below -1000HU so it automatically gets converted to mu=0 after bilinear transform
     if CT_output_shape is None:
@@ -399,12 +403,7 @@ def get_attenuation_map_from_CT_slices(
         CT = CT_HU
     else:
         CT = CT_to_mumap(CT_HU, files_CT, file_NM, index_peak)
-    CT = (
-        torch.tensor(CT[:, :, ::-1].copy())
-        .unsqueeze(dim=0)
-        .to(pytomography.dtype)
-        .to(pytomography.device)
-    )
+    CT = torch.tensor(CT[:, :, ::-1].copy()).to(pytomography.dtype).to(pytomography.device)
     return CT
 
 
@@ -527,7 +526,7 @@ def stitch_multibed(
         return_stitching_weights (bool): If true, instead of returning stitched reconstruction, instead returns the stitching weights (and z location in the stitched image) for each bed position (this is used as a tool for uncertainty estimation in multi bed positions). Defaults to False
 
     Returns:
-        torch.Tensor[1, Lx, Ly, Lz']: Stitched together DICOM file. Note the new z-dimension size :math:`L_z'`.
+        torch.Tensor[Lx, Ly, Lz']: Stitched together DICOM file. Note the new z-dimension size :math:`L_z'`.
     """
     dss = np.array([pydicom.read_file(file_NM) for file_NM in files_NM])
     zs = np.array(
@@ -542,18 +541,15 @@ def stitch_multibed(
     zs = np.round((zs - zs[0]) / dss[0].PixelSpacing[1]).astype(int)
     original_z_height = recons.shape[-1]
     new_z_height = zs[-1] + original_z_height
-    recon_aligned = torch.zeros((1, dss[0].Rows, dss[0].Rows, new_z_height)).to(
+    recon_aligned = torch.zeros((dss[0].Rows, dss[0].Rows, new_z_height)).to(
         pytomography.device
     )
-    blank_below, blank_above = get_blank_below_above(get_projections(files_NM[0]))
-    # Ignore first two slices
-    blank_below +=1
-    blank_above -=1
+    blank_below, blank_above = 1, recons.shape[-1]-1
     # Apply stitching method
     stitching_weights = []
     for i in range(len(recons)):
-        stitching_weights_i = torch.zeros(1,*recons.shape[1:]).to(pytomography.device)
-        stitching_weights_i[:,:,:,blank_below:blank_above] = 1
+        stitching_weights_i = torch.zeros(recons.shape[1:]).to(pytomography.device)
+        stitching_weights_i[:,:,blank_below:blank_above] = 1
         stitching_weights.append(stitching_weights_i)
     for i in range(len(recons)):
         # stitching from above
@@ -563,10 +559,10 @@ def stitch_multibed(
             delta = overlap_upper - overlap_lower
             # Only offer midslice stitch now because TEM messes with uncertainty estimation
             half = round(delta / 2)
-            stitching_weights[i][:,:,:,overlap_lower+half:overlap_lower+delta] = 0
-            stitching_weights[i+1][:,:,:,blank_below:blank_below+half] = 0
+            stitching_weights[i][:,:,overlap_lower+half:overlap_lower+delta] = 0
+            stitching_weights[i+1][:,:,blank_below:blank_below+half] = 0
     for i in range(len(zs)):
-        recon_aligned[:, :, :, zs[i] : zs[i] + original_z_height] += recons[i].unsqueeze(0)  * stitching_weights[i]
+        recon_aligned[:, :, zs[i] : zs[i] + original_z_height] += recons[i]  * stitching_weights[i]
     if return_stitching_weights:
         # put back in original order
         return torch.cat(stitching_weights)[np.argsort(order)], zs[np.argsort(order)]
@@ -607,9 +603,9 @@ def get_aligned_rtstruct(
     M = npl.inv(M_CT) @ M_NM
     mask_aligned = affine_transform(mask.transpose((1,0,2))[:,:,::-1], M, output_shape=shape, mode='constant', cval=0, order=1)[:,:,::-1]
     if cutoff_value is None:
-        return torch.tensor(mask_aligned.copy()).to(pytomography.device).unsqueeze(0)
+        return torch.tensor(mask_aligned.copy()).to(pytomography.device)
     else:
-        return torch.tensor(mask_aligned>cutoff_value).to(pytomography.device).unsqueeze(0)
+        return torch.tensor(mask_aligned>cutoff_value).to(pytomography.device)
 
 def get_aligned_nifti_mask(
     file_nifti: str,
@@ -640,7 +636,7 @@ def get_aligned_nifti_mask(
     M_NM = _get_affine_spect_projections(file_NM)
     M = npl.inv(M_CT) @ M_NM
     mask_aligned = affine_transform(mask.transpose((1,0,2))[:,:,::-1], M, output_shape=shape, mode='constant', cval=0, order=1)[:,:,::-1]
-    return torch.tensor(mask_aligned>cutoff_value).to(pytomography.device).unsqueeze(0)
+    return torch.tensor(mask_aligned>cutoff_value).to(pytomography.device)
 
 
 def save_dcm(
@@ -655,7 +651,7 @@ def save_dcm(
     """Saves the reconstructed object `object` to a series of DICOM files in the folder given by `save_path`. Requires the filepath of the projection data `file_NM` to get Study information.
 
     Args:
-        object (torch.Tensor): Reconstructed object of shape [1,Lx,Ly,Lz].
+        object (torch.Tensor): Reconstructed object of shape [Lx,Ly,Lz].
         save_path (str): Location of folder where to save the DICOM output files.
         file_NM (str): File path of the projection data corresponding to the reconstruction.
         recon_name (str): Type of reconstruction performed. Obtained from the `recon_method_str` attribute of a reconstruction algorithm class.
@@ -672,13 +668,15 @@ def save_dcm(
     ds_NM = pydicom.dcmread(file_NM)
     SOP_instance_UID = generate_uid()
     if single_dicom_file:
-        SOP_class_UID = 'Nuclear Medicine Image Storage'
+        SOP_class_UID = '1.2.840.10008.5.1.4.1.1.20'
         modality = 'NM'
+        imagetype = "['ORIGINAL', 'PRIMARY', 'RECON TOMO', 'EMISSION']"
     else:
         SOP_class_UID = "1.2.840.10008.5.1.4.1.1.128"  # SPECT storage
         modality = 'PT'
-    ds = create_ds(ds_NM, SOP_instance_UID, SOP_class_UID, modality)
-    pixel_data = torch.permute(object.squeeze(),(2,1,0)).cpu().numpy()
+        imagetype = None
+    ds = create_ds(ds_NM, SOP_instance_UID, SOP_class_UID, modality, imagetype)
+    pixel_data = torch.permute(object,(2,1,0)).cpu().numpy()
     if scale_by_number_projections:
         scale_factor = get_metadata(file_NM)[1].num_projections
         ds.RescaleSlope = 1

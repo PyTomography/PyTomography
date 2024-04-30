@@ -1,3 +1,4 @@
+from __future__ import annotations
 import pytomography
 import torch
 import numpy as np
@@ -23,3 +24,4 @@ class HammingFilter:
         [np.abs(w)<=self.wl, (self.wl<np.abs(w))*(self.wh>=np.abs(w)), np.abs(w)>self.wh],
         [lambda w: 1, lambda w: 1/2*(1+np.cos(np.pi*(np.abs(w)-self.wl)/(self.wh-self.wl))), lambda w: 0])
         return torch.tensor(filter).to(pytomography.device)
+    

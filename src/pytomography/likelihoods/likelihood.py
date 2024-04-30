@@ -4,28 +4,32 @@ from pytomography.projectors import SystemMatrix
 import torch
 
 class Likelihood:
+    """Generic likelihood class in PyTomography. Subclasses may implement specific likelihoods with methods to compute the likelihood itself as well as particular gradients of the likelihood 
+
+    Args:
+        system_matrix (SystemMatrix): The system matrix modeling the particular system whereby the projections were obtained
+        projections (torch.Tensor | None): Acquired data. If listmode, then this argument need not be provided, and it is set to a tensor of ones. Defaults to None.
+        additive_term (torch.Tensor, optional): Additional term added after forward projection by the system matrix. This term might include things like scatter and randoms. Defaults to None.
+        additive_term_variance_estimate (torch.tensor, optional): Variance estimate of the additive term. If none, then uncertainty estimation does not include contribution from the additive term. Defaults to None.
+    """
     def __init__(
         self,
         system_matrix: SystemMatrix,
-        projections: torch.Tensor,
+        projections: torch.Tensor | None = None,
         additive_term: torch.Tensor = None,
-        additive_term_variance_estimate: torch.tensor = None
+        additive_term_variance_estimate: torch.tensor | None = None
         ) -> None:
-        """Generic likelihood class in PyTomography. Subclasses may implement specific likelihoods with methods to compute the likelihood itself as well as particular gradients of the likelihood 
-
-        Args:
-            system_matrix (SystemMatrix): The system matrix modeling the particular system whereby the projections were obtained
-            projections (torch.Tensor): Acquired data
-            additive_term (torch.Tensor, optional): Additional term added after forward projection by the system matrix. This term might include things like scatter and randoms. Defaults to None.
-        """
         self.system_matrix = system_matrix
-        self.projections = projections
+        if projections is None: # listmode reconstruction
+            self.projections = torch.tensor([1.]).to(pytomography.device)
+        else:
+            self.projections = projections
         self.FP = None # stores current state of forward projection
         if type(additive_term) is torch.Tensor:
-            self.additive_term = additive_term.to(projections.device).to(pytomography.dtype)
+            self.additive_term = additive_term.to(self.projections.device).to(pytomography.dtype)
             self.exists_additive_term = True
         else:
-            self.additive_term = torch.zeros(projections.shape).to(projections.device).to(pytomography.dtype)
+            self.additive_term = torch.zeros(self.projections.shape).to(self.projections.device).to(pytomography.dtype)
             self.exists_additive_term = False
         self.n_subsets_previous = -1
         self.additive_term_variance_estimate = additive_term_variance_estimate
@@ -50,14 +54,32 @@ class Likelihood:
                     self.norm_BPs.append(self.system_matrix.compute_normalization_factor(k))
         self.n_subsets_previous = n_subsets
         
-    def _get_projection_subset(self, projections, subset_idx):
+    def _get_projection_subset(self, projections: torch.Tensor, subset_idx: int | None = None) -> torch.Tensor:
+        """Method for getting projection subset corresponding to given subset index
+
+        Args:
+            projections (torch.Tensor): Projection data
+            subset_idx (int): Subset index
+
+        Returns:
+            torch.Tensor: Subset projection data
+        """
         if subset_idx is None:
             return projections
         else:
             return self.system_matrix.get_projection_subset(projections, subset_idx)
         
         
-    def _get_normBP(self, subset_idx, return_sum=False):
+    def _get_normBP(self, subset_idx: int, return_sum: bool = False):
+        """Gets normalization factor (back projection of ones)
+
+        Args:
+            subset_idx (int): Subset index
+            return_sum (bool, optional): Sum normalization factor from all subsets. Defaults to False.
+
+        Returns:
+            torch.Tensor: Normalization factor
+        """
         if subset_idx is None:
             return self.norm_BP
         else:

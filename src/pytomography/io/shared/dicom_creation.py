@@ -1,3 +1,4 @@
+from __future__ import annotations
 import datetime
 import pytomography
 from pydicom.uid import generate_uid
@@ -98,7 +99,7 @@ def add_patient_information(ds: FileDataset, reference_ds):
     ds.PatientSize = getattr(reference_ds, "PatientSize", "")
     ds.PatientWeight = getattr(reference_ds, "PatientWeight", "")
     
-def create_ds(reference_ds: FileDataset, SOP_instance_UID: str, SOP_class_UID: str, modality: str):
+def create_ds(reference_ds: FileDataset, SOP_instance_UID: str, SOP_class_UID: str, modality: str, imagetype: str):
     """Creates a new DICOM dataset based on a reference dataset with all required headers. Because this is potentially used to save images corresponding to different modalities, the UIDs must be input arguments to this function. In addition, since some modalities require saving multiple slices whereby ``SOP_instance_UIDs`` may use some convention to specify slice number, these are also input arguments.
 
     Args:
@@ -106,6 +107,7 @@ def create_ds(reference_ds: FileDataset, SOP_instance_UID: str, SOP_class_UID: s
         SOP_instance_UID (str): Unique identifier for the particular instance (this is different for every DICOM file created)
         SOP_class_UID (str): Unique identifier for the imaging modality
         modality (str): String specifying imaging modality
+        imagetype (str): String specifying image type
 
     Returns:
         _type_: _description_
@@ -114,4 +116,5 @@ def create_ds(reference_ds: FileDataset, SOP_instance_UID: str, SOP_class_UID: s
     add_study_and_series_information(ds, reference_ds)
     add_patient_information(ds, reference_ds)
     ds.Modality = modality
+    ds.ImageType = imagetype
     return ds

@@ -27,13 +27,13 @@ class RotationTransform(Transform):
 		r"""Rotates an object to angle :math:`\beta` in the DICOM reference frame. Note that the scanner angle :math:`\beta` is related to :math:`\phi` (azimuthal angle) by :math:`\phi = 3\pi/2 - \beta`. 
 
 		Args:
-			object (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being rotated.
-			angles (torch.Tensor):  Tensor of size [batch_size] corresponding to the rotation angles.
+			object (torch.tensor): Tensor of size [Lx, Ly, Lz] being rotated.
+			angles (torch.Tensor):  Tensor of size 1 corresponding to the rotation angle.
 
 		Returns:
-			torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] where each element in the batch dimension is rotated by the corresponding angle.
+			torch.tensor: Tensor of size [Lx, Ly, Lz] which is rotated
 		"""
-		return rotate(object.permute(0,3,1,2), angles, mode=self.mode).permute(0,2,3,1)
+		return rotate(object.permute(2,0,1).unsqueeze(0), angles, mode=self.mode).squeeze().permute(1,2,0)
 
 	@torch.no_grad()
 	def backward(
@@ -44,10 +44,10 @@ class RotationTransform(Transform):
 		r"""Forward projection :math:`A:\mathbb{U} \to \mathbb{U}` of attenuation correction.
 
 		Args:
-			object (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being rotated.
-			angles (torch.Tensor):  Tensor of size [batch_size] corresponding to the rotation angles.
+			object (torch.tensor): Tensor of size [Lx, Ly, Lz] being rotated.
+			angles (torch.Tensor):  Tensor of size 1 corresponding to the rotation angle.
 
 		Returns:
-			torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] where each element in the batch dimension is rotated by the corresponding angle.
+			torch.tensor: Tensor of size [Lx, Ly, Lz] which is rotated.
 		"""
-		return rotate(object.permute(0,3,1,2), -angles, mode=self.mode).permute(0,2,3,1)
+		return rotate(object.permute(2,0,1).unsqueeze(0), -angles, mode=self.mode).squeeze().permute(1,2,0)

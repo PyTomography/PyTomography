@@ -3,18 +3,19 @@ import torch
 from torch.nn.functional import pad
 import numpy as np
 import os
+from torch.nn import Conv1d
 
 def rev_cumsum(x: torch.Tensor):
-    """Reverse cumulative sum along the first axis of a tensor of shape [batch_size, Lx, Ly, Lz].
+    """Reverse cumulative sum along the first axis of a tensor of shape [Lx, Ly, Lz].
     since this is used with SPECT attenuation correction, the initial voxel only contributes 1/2.
 
     Args:
-        x (torch.tensor[batch_size,Lx,Ly,Lz]): Tensor to be summed
+        x (torch.tensor[Lx,Ly,Lz]): Tensor to be summed
 
     Returns:
-        torch.tensor[batch_size, Lx, Ly, Lz]: The cumulatively summed tensor.
+        torch.tensor[Lx, Ly, Lz]: The cumulatively summed tensor.
     """
-    return torch.cumsum(x.flip(dims=(1,)), dim=1).flip(dims=(1,)) - x/2
+    return torch.cumsum(x.flip(dims=(0,)), dim=0).flip(dims=(0,)) - x/2
 
 
 def get_distance(Lx: int, r: float, dx: float):
@@ -52,22 +53,8 @@ def get_object_nearest_neighbour(object: torch.Tensor, shifts: list[int]):
     else:
         shifts = [-shift for shift in shifts]
         neighbour = pad(object, 6*[shift_max])
-        neighbour = torch.roll(neighbour, shifts=shifts, dims=(1,2,3)) 
-        return neighbour[:,shift_max:-shift_max,shift_max:-shift_max,shift_max:-shift_max]
-
-def get_blank_below_above(proj: torch.tensor):
-    """Obtains the number of blank z-slices at the sup (``blank_above``) and inf (``blank_below``) of the projection data. This method is entirely empircal, and looks for z slices where there are zero detected counts.
-
-    Args:
-        proj (torch.tensor): Projection data from a scanner
-
-    Returns:
-        Sequence[int]: A tuple of two elements corresponding to the number of blank slices at the inf, and the number of blank slices at the sup.
-    """
-    greater_than_zero = (proj.cpu().numpy() > 0).sum(axis=(0,1,2))>0
-    blank_below = np.argmax(greater_than_zero)
-    blank_above = proj.cpu().numpy().shape[-1] - np.argmax(greater_than_zero[::-1])
-    return blank_below, blank_above
+        neighbour = torch.roll(neighbour, shifts=shifts, dims=(0,1,2)) 
+        return neighbour[shift_max:-shift_max,shift_max:-shift_max,shift_max:-shift_max]
 
 def print_collimator_parameters():
     """Prints all the available SPECT collimator parameters
@@ -88,6 +75,23 @@ def check_if_class_contains_method(instance, method_name):
     if not (hasattr(instance, method_name) and callable(getattr(instance, method_name))):
         raise Exception(f'"{instance.__class__.__name__}" must implement "{method_name}"')
 
+def get_1d_gaussian_kernel(sigma: float, kernel_size: int, padding_mode='zeros') -> Conv1d:
+    """Returns a 1D gaussian blurring kernel
+
+    Args:
+        sigma (float): Sigma (in pixels) of blurring pixels
+        kernel_size (int): Size of kernel used
+        padding_mode (str, optional): Type of padding. Defaults to 'zeros'.
+
+    Returns:
+        Conv1d: Torch Conv1d layer corresponding to the gaussian kernel
+    """
+    x = torch.arange(-int(kernel_size//2), int(kernel_size//2)+1)
+    k = torch.exp(-x**2/(2*sigma**2)).reshape(1,1,-1)
+    k = k/k.sum()
+    layer = Conv1d(1,1,kernel_size, padding='same', padding_mode=padding_mode, bias=False)
+    layer.weight.data = k
+    return layer
 
 
 

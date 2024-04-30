@@ -21,16 +21,20 @@ class PETLMProjMeta():
         scanner_LUT: torch.Tensor | None = None,
         tof_meta: PETTOFMeta | None = None,
         weights: torch.tensor | None = None,
-        detector_ids_sensitivity: torch.tensor | None = None,
+        detector_ids_sensitivity: torch.Tensor | None = None,
         weights_sensitivity: torch.tensor | None = None,
     ):
-        
+        self.shape = (detector_ids.shape[0],)
+        self.info = info
         self.detector_ids = detector_ids.cpu()
+        if detector_ids_sensitivity is not None:
+            self.detector_ids_sensitivity = detector_ids_sensitivity.cpu()
+        else:
+            self.detector_ids_sensitivity = None
         if scanner_LUT is None:
             self.scanner_lut = shared.get_scanner_LUT(info).cpu()
         else:
             self.scanner_lut = scanner_LUT
         self.tof_meta = tof_meta
         self.weights = weights
-        self.detector_ids_sensitivity = detector_ids_sensitivity
-        self.weights_sensitivity = weights_sensitivity  
+        self.weights_sensitivity = weights_sensitivity 

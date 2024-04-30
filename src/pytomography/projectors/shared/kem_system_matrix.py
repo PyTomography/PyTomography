@@ -1,6 +1,5 @@
 from __future__ import annotations
 from ..system_matrix import SystemMatrix
-import torch
 
 class KEMSystemMatrix(SystemMatrix):
     """Given a KEM transform :math:`K` and a system matrix :math:`H`, implements the transform :math:`HK` (and backward transform :math:`K^T H^T`)
@@ -44,7 +43,8 @@ class KEMSystemMatrix(SystemMatrix):
         """
         object = self.kem_transform.forward(object)
         return self.system_matrix.forward(object, subset_idx)
-    def backward(self, proj, subset_idx=None, return_norm_constant = False):
+    
+    def backward(self, proj, subset_idx=None):
         r"""Backward transform :math:`K^T H^T`
 
         Args:
@@ -55,11 +55,6 @@ class KEMSystemMatrix(SystemMatrix):
         Returns:
             torch.tensor: Corresponding object generated from back projection.
         """
-        if return_norm_constant:
-            object, norm_constant = self.system_matrix.backward(proj, subset_idx, return_norm_constant)
-            object, norm_constant = self.kem_transform.backward(object, norm_constant)
-            return object, norm_constant
-        else:
-            object = self.system_matrix.backward(proj, subset_idx, return_norm_constant)
-            return self.kem_transform.backward(object)
+        object = self.system_matrix.backward(proj, subset_idx)
+        return self.kem_transform.backward(object)
         

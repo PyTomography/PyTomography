@@ -6,9 +6,10 @@ import torch
 import numpy as np
 import numpy.linalg as npl
 import uproot
+import nibabel as nib
 from scipy.ndimage import affine_transform
 from ..shared import get_header_value, get_attenuation_map_interfile
-from .shared import listmode_to_sinogram,  get_detector_ids_from_trans_axial_ids, get_axial_trans_ids_from_info, get_scanner_LUT
+from .shared import listmode_to_sinogram, sinogram_to_listmode, get_detector_ids_from_trans_axial_ids, get_axial_trans_ids_from_info, get_scanner_LUT, smooth_randoms_sinogram, randoms_sinogram_to_sinogramTOF
 
 def get_aligned_attenuation_map(
     headerfile: str,
@@ -50,16 +51,26 @@ def get_aligned_attenuation_map(
         [0,0,0,1]
     ])
     amap = affine_transform(amap, npl.inv(M_CT)@M_PET, output_shape = shape, order=1)
-    amap = torch.tensor(amap, device=pytomography.device).unsqueeze(0) / 10 # to mm^-1
+    amap = torch.tensor(amap, device=pytomography.device) / 10 # to mm^-1
     return amap
 
 def get_detector_info(
     path: str,
     init_volume_name: str = 'crystal',
-    final_volume_name: str = 'world',
-    mean_interaction_depth = 0,
-    min_rsector_difference = 0
-    ) -> np.array:
+    mean_interaction_depth: float = 0,
+    min_rsector_difference: int = 0
+    ) -> dict:
+    """Generates detector geometry information dictionary from GATE macro file
+
+    Args:
+        path (str): Path to GATE macro file that defines geometry: should end in ".mac"
+        init_volume_name (str, optional): Initial volume name in the GATE file. Defaults to 'crystal'.
+        mean_interaction_depth (float, optional): Mean interaction depth of photons within crystal. Defaults to 0.
+        min_rsector_difference (int, optional): Minimum r_sector difference for retained events. Defaults to 0.
+
+    Returns:
+        dict: PET geometry information dictionary
+    """
     with open(path) as f:
         headerdata = f.readlines()
     headerdata = np.array(headerdata)
@@ -114,15 +125,33 @@ def get_detector_info(
                 info[f'{parent}AxialNr'] = 1
     info['NrCrystalsPerRing'] = info['crystalTransNr'] * info['moduleTransNr'] * info['submoduleTransNr'] * info['rsectorTransNr']
     info['NrRings'] = info['crystalAxialNr'] * info['submoduleAxialNr'] * info['moduleAxialNr'] * info['rsectorAxialNr']
+    info['firstCrystalAxis'] = 1
     return info
 
+def get_axial_trans_ids_from_ROOT(
+    f: object,
+    info: dict,
+    j: int = None,
+    substr: str = 'Coincidences') -> Sequence[torch.Tensor]:
+    """Obtain transaxial and axial IDS (for crystals, submodules, modules, and rsectors) corresponding to each listmode event in an opened ROOT file
 
+    Args:
+        f (object): Opened ROOT file    
+        info (dict): PET geometry information dictionary
+        j (int, optional): Which of the detectors to consider in a coincidence event OR which detector to consider for a single (None). Defaults to None.
+        substr (str, optional): Whether to consider coincidences or singles. Defaults to 'Coincidences'.
 
-def get_axial_trans_ids_from_ROOT(f, j, info, substr: str = 'Coincidences', sort_by_detector_ids=False):
-    ids_rsector = torch.tensor(f[substr][f'rsectorID{j+1}'].array(library="np"))
-    ids_module = torch.tensor(f[substr][f'moduleID{j+1}'].array(library="np"))
-    ids_submodule = torch.tensor(f[substr][f'submoduleID{j+1}'].array(library="np"))
-    ids_crystal = torch.tensor(f[substr][f'crystalID{j+1}'].array(library="np"))
+    Returns:
+        Sequence[torch.Tensor]: Sequence of IDs (transaxial/axial) for all components (crystals, submodules, modules, and rsectors)
+    """
+    if j is None:
+        idx_str = ''
+    else:
+        idx_str = f'{j+1}'
+    ids_rsector = torch.tensor(f[substr][f'rsectorID{idx_str}'].array(library="np"))
+    ids_module = torch.tensor(f[substr][f'moduleID{idx_str}'].array(library="np"))
+    ids_submodule = torch.tensor(f[substr][f'submoduleID{idx_str}'].array(library="np"))
+    ids_crystal = torch.tensor(f[substr][f'crystalID{idx_str}'].array(library="np"))
     ids_trans_rsector = ids_rsector % info['rsectorTransNr']
     ids_axial_rsector = ids_rsector // info['rsectorTransNr']
     ids_trans_module = ids_module % info['moduleTransNr']
@@ -134,24 +163,36 @@ def get_axial_trans_ids_from_ROOT(f, j, info, substr: str = 'Coincidences', sort
     return ids_trans_crystal, ids_axial_crystal, ids_trans_submodule, ids_axial_submodule, ids_trans_module, ids_axial_module, ids_trans_rsector, ids_axial_rsector
 
 def get_detector_ids_from_root(
-    paths,
-    mac_file: str,
-    TOF: bool = False,
-    TOF_bin_edges: np.array = None,
+    paths: Sequence[str],
+    info: dict,
+    tof_meta = None,
     substr: str = 'Coincidences',
     include_randoms: bool = True,
     include_scatters: bool = True,
     randoms_only: bool = False,
     scatters_only: bool = False
-    ) -> np.array:
-    if TOF:
-        if TOF_bin_edges is None:
-            Exception('If using TOF, must provide TOF bin edges for binning')
-    info = get_detector_info(mac_file)
+    ) -> torch.Tensor:
+    """Obtain detector IDs corresponding to each listmode event in a set of ROOT files
+
+    Args:
+        paths (Sequence[str]): List of ROOT files to consider
+        info (dict): PET geometry information dictionary
+        tof_meta (PETTOFMeta, optional): PET time of flight metadata for binning. If none, then TOF is not considered Defaults to None.
+        substr (str, optional): Name of events to consider in the ROOT file. Defaults to 'Coincidences'.
+        include_randoms (bool, optional): Whether or not to include random events in the returned listmode events. Defaults to True.
+        include_scatters (bool, optional): Whether or not to include scatter events in the returned listmode events. Defaults to True.
+        randoms_only (bool, optional): Flag to return only random events. Defaults to False.
+        scatters_only (bool, optional): Flag to return only scatter events. Defaults to False.
+
+    Returns:
+        torch.Tensor: Tensor of shape [N_events,2] (non-TOF) or [N_events,3] (TOF)
+    """
+    if tof_meta is not None:
+        TOF_bin_edges = tof_meta.bin_edges
     detector_ids_trio = [[],[],[]]
     for i,path in enumerate(paths):
         with uproot.open(path) as f:
-            N_events = f['Coincidences']['sourcePosX1'].array(library='np').shape[0]
+            N_events = f[substr]['sourcePosX1'].array(library='np').shape[0]
             valid_indices = torch.ones(N_events).to(torch.bool)
             if not(include_randoms) or randoms_only or not(include_scatters) or scatters_only:
                 xs1 = torch.tensor(f[substr]['sourcePosX1'].array(library='np'))
@@ -180,11 +221,11 @@ def get_detector_ids_from_root(
                 if not(include_scatters):
                     valid_indices *= ~scatter_indices
             for j in range(2):
-                ids_trans_crystal, ids_axial_crystal, ids_trans_submodule, ids_axial_submodule, ids_trans_module, ids_axial_module, ids_trans_rsector, ids_axial_rsector = get_axial_trans_ids_from_ROOT(f, j, info, substr)
+                ids_trans_crystal, ids_axial_crystal, ids_trans_submodule, ids_axial_submodule, ids_trans_module, ids_axial_module, ids_trans_rsector, ids_axial_rsector = get_axial_trans_ids_from_ROOT(f, info, j, substr)
                 detector_ids = get_detector_ids_from_trans_axial_ids(ids_trans_crystal, ids_trans_submodule, ids_trans_module, ids_trans_rsector, ids_axial_crystal, ids_axial_submodule, ids_axial_module, ids_axial_rsector, info)
                 detector_ids = detector_ids[valid_indices]
-                detector_ids_trio[j].append(detector_ids.to(torch.int16))
-            if TOF:
+                detector_ids_trio[j].append(detector_ids.to(torch.int32))
+            if tof_meta is not None:
                 t1 = f[substr]['time1'].array(library='np')
                 t2 = f[substr]['time2'].array(library='np')
                 tof_pos = 1e12*(t2 - t1) * 0.15 # ps to mm
@@ -193,7 +234,7 @@ def get_detector_ids_from_root(
                 detector_id = detector_id[valid_indices]
                 detector_ids_trio[2].append(torch.tensor(detector_id))
     
-    if TOF:
+    if tof_meta is not None:
         return torch.vstack([
             torch.concatenate(detector_ids_trio[0]),
             torch.concatenate(detector_ids_trio[1]),
@@ -203,9 +244,25 @@ def get_detector_ids_from_root(
             torch.concatenate(detector_ids_trio[0]),
             torch.concatenate(detector_ids_trio[1])]).T
         
-def get_symmetry_histogram_from_ROOTfile(f, info, substr='Coincidences', include_randoms=True) -> torch.tensor:
-    ids1_trans_crystal, ids1_axial_crystal, ids1_trans_submodule, ids1_axial_submodule, ids1_trans_module, ids1_axial_module, ids1_trans_rsector, ids1_axial_rsector = get_axial_trans_ids_from_ROOT(f, 0, info, substr= substr)
-    ids2_trans_crystal, ids2_axial_crystal, ids2_trans_submodule, ids2_axial_submodule, ids2_trans_module, ids2_axial_module, ids2_trans_rsector, ids2_axial_rsector = get_axial_trans_ids_from_ROOT(f, 1, info, substr= substr)
+def get_symmetry_histogram_from_ROOTfile(
+    f: object,
+    info: dict,
+    substr: str = 'Coincidences',
+    include_randoms: bool = True
+    ) -> torch.Tensor:
+    """Obtains a histogram that exploits symmetries when computing normalization factors from calibration ROOT scans
+
+    Args:
+        f (object): Opened ROOT file
+        info (dict): PET geometry information dictionary
+        substr (str, optional): Name of events to consider in ROOT file. Defaults to 'Coincidences'.
+        include_randoms (bool, optional): Whether or not to include random events from data. Defaults to True.
+
+    Returns:
+        torch.Tensor: Symmetry histogram
+    """
+    ids1_trans_crystal, ids1_axial_crystal, ids1_trans_submodule, ids1_axial_submodule, ids1_trans_module, ids1_axial_module, ids1_trans_rsector, ids1_axial_rsector = get_axial_trans_ids_from_ROOT(f, info, 0, substr= substr)
+    ids2_trans_crystal, ids2_axial_crystal, ids2_trans_submodule, ids2_axial_submodule, ids2_trans_module, ids2_axial_module, ids2_trans_rsector, ids2_axial_rsector = get_axial_trans_ids_from_ROOT(f, info, 1, substr= substr)
     ids_trans_crystal = torch.vstack([ids1_trans_crystal, ids2_trans_crystal])
     ids_axial_crystal = torch.vstack([ids1_axial_crystal, ids2_axial_crystal])
     ids_axial_submodule = torch.vstack([ids1_axial_submodule, ids2_axial_submodule])
@@ -251,23 +308,41 @@ def get_symmetry_histogram_from_ROOTfile(f, info, substr='Coincidences', include
     else:
         return histo
 
-def get_symmetry_histogram_all_combos(info) -> torch.tensor:
+def get_symmetry_histogram_all_combos(info: dict) -> torch.Tensor:
+    """Obtains the symmetry histogram for detector sensitivity corresponding to all possible detector pair combinations
+
+    Args:
+        info (dict): PET geometry information dictionary
+
+    Returns:
+        torch.Tensor: Histogram corresponding to all possible detector pair combinations. This simply counts the number of detector pairs in each bin of the histogram.
+    """
     ids_trans_crystal, ids_axial_crystal, ids_trans_submodule, ids_axial_submodule, ids_trans_module, ids_axial_module, ids_trans_rsector, ids_axial_rsector = get_axial_trans_ids_from_info(info, return_combinations=True, sort_by_detector_ids=True)
     ids_delta_axial_submodule = (ids_axial_submodule[:,1] - ids_axial_submodule[:,0]) + (info['submoduleAxialNr'] - 1)
     ids_delta_axial_module = (ids_axial_module[:,1] - ids_axial_module[:,0]) + (info['moduleAxialNr'] - 1)
     ids_delta_trans_rsector = (ids_trans_rsector[:,1] - ids_trans_rsector[:,0]) % info['rsectorTransNr'] # because of circle
     return torch.vstack([ids_axial_crystal[:,0], ids_axial_crystal[:,1], ids_trans_crystal[:,0], ids_trans_crystal[:,1], ids_delta_axial_submodule, ids_delta_axial_module, ids_delta_trans_rsector]).T
 
-def get_eta_cylinder_calibration(
-    paths,
-    mac_file: str,
+def get_normalization_weights_cylinder_calibration(
+    paths: Sequence[str],
+    info: dict,
     cylinder_radius: float,
     include_randoms: bool = True,
-    mean_interaction_depth: float = 0
     ) -> torch.tensor:
-    info = get_detector_info(mac_file, mean_interaction_depth=mean_interaction_depth)
+    """Function to get sensitivty factor from a cylindrical calibration phantom
+
+    Args:
+        paths (Sequence[str]): List of paths corresponding to calibration scan
+        info (dict): PET geometry information dictionary
+        cylinder_radius (float): Radius of cylindrical phantom used in scan
+        include_randoms (bool, optional): Whether or not to include random events from the cylinder calibration. Defaults to True.
+
+
+    Returns:
+        torch.tensor: Sensitivty factor for all possible detector combinations
+    """
     # Part 1: Geometry correction factor for non-unform exposure from cylindrical shell
-    scanner_LUT = torch.tensor(get_scanner_LUT(info))
+    scanner_LUT = get_scanner_LUT(info)
     all_LOR_ids = torch.combinations(torch.arange(scanner_LUT.shape[0]).to(torch.int32), 2)
     geometric_correction_factor = 1/(torch.sqrt(1-(torch.abs(get_radius(all_LOR_ids, scanner_LUT)) / cylinder_radius )**2) + pytomography.delta)
     # Part 2: Detector sensitivity correction factor (exploits symmetries)
@@ -288,49 +363,78 @@ def get_eta_cylinder_calibration(
     return (histo/N_bins)[vals_all_pairs[:,0], vals_all_pairs[:,1], vals_all_pairs[:,2], vals_all_pairs[:,3], vals_all_pairs[:,4], vals_all_pairs[:,5], vals_all_pairs[:,6]] * geometric_correction_factor
 
 def get_norm_sinogram_from_listmode_data(
-    weights_sensitivity,
-    macro_path
-):
-    info = get_detector_info(macro_path)
-    scanner_LUT = torch.tensor(get_scanner_LUT(info))
+    weights_sensitivity: torch.Tensor,
+    info: dict
+) -> torch.Tensor:
+    """Obtains normalization "sensitivty" sinogram from listmode data
+
+    Args:
+        weights_sensitivity (torch.Tensor): Sensitivty weight corresponding to all possible detector pairs
+        info (dict): PET geometry information dictionary
+
+    Returns:
+        torch.Tensor: PET sinogram
+    """
+    scanner_LUT = get_scanner_LUT(info)
     all_LOR_ids = torch.combinations(torch.arange(scanner_LUT.shape[0]).to(torch.int32), 2)
-    return listmode_to_sinogram(all_LOR_ids, info, weights=weights_sensitivity)
+    return listmode_to_sinogram(all_LOR_ids, info, weights=weights_sensitivity, normalization=True)
 
 def get_norm_sinogram_from_root_data(
-    normalization_paths,
-    macro_path,
-    cylinder_radius,
-    include_randoms=True,
-    mean_interaction_depth=0
-):
+    normalization_paths: Sequence[str],
+    info: dict,
+    cylinder_radius: float,
+    include_randoms: bool =True,
+) -> torch.Tensor:
+    """Obtain normalization "sensitivity" sinogram directly from ROOT files
+
+    Args:
+        normalization_paths (Sequence[str]): Paths to all ROOT files corresponding to calibration scan
+        info (dict): PET geometry information dictionary
+        cylinder_radius (float): Radius of cylinder used in calibration scan
+        include_randoms (bool, optional): Whether or not to include randoms in loaded data. Defaults to True.
+
+    Returns:
+        torch.Tensor: PET sinogram
+    """
     eta = get_eta_cylinder_calibration(
         normalization_paths,
-        macro_path,
-        cylinder_radius,
+        info,
         include_randoms=include_randoms,
-        mean_interaction_depth=mean_interaction_depth
+        cylinder_radius = cylinder_radius
     )
-    return get_norm_sinogram_from_listmode_data(eta, macro_path)
+    return get_norm_sinogram_from_listmode_data(eta, info)
 
-def get_sinogram_from_listmode_data(
-    detector_ids,
-    macro_path
-):
-    # Gate specific function
-    info = get_detector_info(macro_path)
-    return listmode_to_sinogram(detector_ids, info)
 
 def get_sinogram_from_root_data(
-    paths,
-    macro_path,
-    include_randoms=True
-):
+    paths: Sequence[str],
+    info: dict,
+    include_randoms: bool = True,
+    include_scatters: bool = True,
+    randoms_only: bool = False,
+    scatters_only: bool = False
+) -> torch.Tensor:
+    """Get PET sinogram directly from ROOT data
+
+    Args:
+        paths (Sequence[str]): GATE generated ROOT files
+        info (dict): PET geometry information dictionary
+        include_randoms (bool, optional): Whether or not to include random events in the sinogram. Defaults to True.
+        include_scatters (bool, optional): Whether or not to include scatter events in the sinogram. Defaults to True.
+        randoms_only (bool, optional): Flag for only binning randoms. Defaults to False.
+        scatters_only (bool, optional): Flag for only binning scatters. Defaults to False.
+
+    Returns:
+        torch.Tensor: PET sinogram
+    """
     detector_ids = get_detector_ids_from_root(
         paths,
-        macro_path,
+        info,
         include_randoms=include_randoms,
+        include_scatters=include_scatters,
+        randoms_only=randoms_only,
+        scatters_only=scatters_only,
         TOF=False)
-    return get_sinogram_from_listmode_data(detector_ids, macro_path)
+    return listmode_to_sinogram(detector_ids, info)
 
 def get_radius(detector_ids: torch.tensor, scanner_LUT: torch.tensor) -> torch.tensor:
     """Gets the radial position of all LORs
@@ -401,3 +505,26 @@ def remove_events_out_of_bounds(
     )
     intersect = (t1[:,0]>t2[:,1])+(t1[:,1]>t2[:,0])+((t1[:,0]>t2[:,2]))+(t1[:,2]>t2[:,0])
     return detector_ids[~intersect]
+
+def get_attenuation_map_nifti(path, object_meta):
+    # If img is none, extract data from path
+    data = nib.load(path)
+    img = data.get_fdata()
+    Sx, Sy, Sz = -(np.array(img.shape)-1) / 2
+    dx, dy, dz = data.header['pixdim'][1:4]
+    # Convert from RAS to LPS space for DICOM
+    dx*=-1; dy*=-1
+    M_highres = np.zeros((4,4))
+    M_highres[0] = np.array([dx, 0, 0, Sx*dx])
+    M_highres[1] = np.array([0, dy, 0, Sy*dy])
+    M_highres[2] = np.array([0, 0, dz, Sz*dz])
+    M_highres[3] = np.array([0, 0, 0, 1])
+    dx, dy, dz = object_meta.dr
+    Sx, Sy, Sz = -(np.array(object_meta.shape)-1) / 2
+    M_pet = np.zeros((4,4))
+    M_pet[0] = np.array([dx, 0, 0, Sx*dx])
+    M_pet[1] = np.array([0, dy, 0, Sy*dy])
+    M_pet[2] = np.array([0, 0, dz, Sz*dz])
+    M_pet[3] = np.array([0, 0, 0, 1])
+    M = npl.inv(M_highres) @ M_pet
+    return torch.tensor(affine_transform(img, M, output_shape=object_meta.shape, mode='constant', order=1)) / 10

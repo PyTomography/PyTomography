@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath('../../src'))
 # -- Project information -----------------------------------------------------
 
 project = 'PyTomography'
-copyright = '2023, Luke Polson'
+copyright = '2024, Luke Polson'
 author = 'Luke Polson'
 
 # The full version, including alpha/beta/rc tags

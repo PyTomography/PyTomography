@@ -1,24 +1,10 @@
 from __future__ import annotations
-import warnings
-import os
-import collections.abc
 from collections.abc import Sequence
-from pathlib import Path
 from typing import Sequence
 import numpy as np
 import numpy.linalg as npl
 from scipy.ndimage import affine_transform
-import torch
 import pydicom
-from pydicom.dataset import Dataset
-from pydicom.uid import generate_uid
-import pytomography
-from pytomography.metadata import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
-from pytomography.utils import (
-    get_blank_below_above,
-    compute_TEW,
-    get_mu_from_spectrum_interp,
-)
 
 def _get_affine_multifile(files: Sequence[str]):
     """Computes an affine matrix corresponding the coordinate system of a CT DICOM file. Note that since CT scans consist of many independent DICOM files, ds corresponds to an individual one of these files. This is why the maximum z value is also required (across all seperate independent DICOM files).
