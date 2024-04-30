@@ -43,7 +43,7 @@ class SystemMatrix():
         """
         if device is None:
             device = pytomography.device
-        return torch.ones((1, *self.object_meta.shape)).to(device)
+        return torch.ones(self.object_meta.shape).to(device)
             
     @abc.abstractmethod
     def forward(self, object: torch.tensor, **kwargs):

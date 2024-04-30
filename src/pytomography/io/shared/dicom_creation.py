@@ -1,3 +1,4 @@
+from __future__ import annotations
 import datetime
 import pytomography
 from pydicom.uid import generate_uid

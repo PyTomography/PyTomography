@@ -11,19 +11,22 @@ class Callback():
         """
         ...
     @abc.abstractmethod
-    def run(self, obj: torch.tensor, n_iter: int):
+    def run(self, object: torch.Tensor, n_iter: int):
         """Abstract method for ``run``.
 
         Args:
-            obj (torch.tensor[batch_size, Lx, Ly, Lz]): An object which one can compute various statistics from.
+            object (torch.Tensor[Lx, Ly, Lz]): Object at current iteration/subset in the reconstruction algorithm
             n_iter (int): The iteration number
+            
+        Returns:
+            torch.Tensor: Modified object from callback. This must be returned by all callbacks (if the callback doesn't change the object, then the passed object is returned)
         """
-        ...
-    def finalize(self, obj: torch.tensor):
+        return object
+    def finalize(self, object: torch.Tensor):
         """Abstract method for ``run``.
 
         Args:
-            obj (torch.tensor[batch_size, Lx, Ly, Lz]): An object which one can compute various statistics from.
+            object (torch.Tensor[Lx, Ly, Lz]): Reconstructed object (all iterations/subsets completed)
         """
         return None
         

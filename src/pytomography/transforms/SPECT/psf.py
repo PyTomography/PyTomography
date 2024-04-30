@@ -10,7 +10,7 @@ import copy
 import pytomography
 from pytomography.utils import get_distance, compute_pad_size
 from pytomography.transforms import Transform
-from pytomography.metadata import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
+from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
     
 class GaussianBlurNet(nn.Module):
     """Network used to apply Gaussian blurring to each plane parallel to the detector head. The typical network used for low/medium energy SPECT PSF modeling.
@@ -33,12 +33,12 @@ class GaussianBlurNet(nn.Module):
         Returns:
             torch.tensor: Blurred object, adjusted such that subsequent summation along the x-axis models the CDR
         """
-        output = self.layer_r(torch.permute(input[0],(2,0,1)))
+        output = self.layer_r(torch.permute(input,(2,0,1)))
         # If 2D blurring
         if self.layer_z:
             output = self.layer_z(torch.permute(output,(2,1,0)))
             output = torch.permute(output,(2,1,0))
-        return torch.permute(output,(1,2,0)).unsqueeze(0)
+        return torch.permute(output,(1,2,0))
     
 class ArbitraryPSFNet(nn.Module):
     """Network used to apply an arbitrary PSF based on the `kernel_f` function, which should be a function of parallel directions :math:`x` and :math:`y` and perpendicular direction :math:`d` to the detector head
@@ -58,7 +58,7 @@ class ArbitraryPSFNet(nn.Module):
         ) -> None:
         super(ArbitraryPSFNet, self).__init__()
         self.kernel_f = kernel_f
-        self.kernel_size = 240#kernel_size
+        self.kernel_size = kernel_size
         self.distances = distances
         self.x_eval = torch.arange(-(self.kernel_size-1)/2, (self.kernel_size+1)/2, 1).to(pytomography.device) * dr[0]
         self.y_eval = torch.arange(-(self.kernel_size-1)/2, (self.kernel_size+1)/2, 1).to(pytomography.device) * dr[1]
@@ -73,11 +73,11 @@ class ArbitraryPSFNet(nn.Module):
         Returns:
             torch.tensor: Blurred object, adjusted such that subsequent summation along the x-axis models the CDR
         """
-        groups = input.shape[1]
+        groups = input.shape[0]
         kernel = torch.vstack([self.kernel_f(self.x_eval, self.y_eval, d) for d in self.distances]).unsqueeze(1).to(pytomography.device).to(pytomography.dtype)
         net = FFTConv2d(groups, groups, self.kernel_size, padding='same', groups=groups, bias=False).to(pytomography.device)
         net.weight = torch.nn.Parameter(kernel)
-        return net(input)
+        return net(input.unsqueeze(0)).squeeze()
 
 def get_1D_PSF_layer(
     sigmas: np.array,
@@ -212,64 +212,36 @@ class SPECTPSFTransform(Transform):
         sigma = self.psf_meta.sigma_fit(distances, *self.psf_meta.sigma_fit_params)
         return sigma
     
-    def _apply_psf(
-        self,
-        object: torch.tensor,
-        ang_idx: Sequence[int]
-        ) -> torch.tensor:
-        """Applies PSF modeling to an object with corresponding angle indices
-
-        Args:
-            object (torch.tensor): Tensor of shape ``[batch_size, Lx, Ly, Lz]`` corresponding to object rotated at different angles
-            ang_idx (Sequence[int]): List of length ``batch_size`` corresponding to angle of each object in the batch
-
-        Returns:
-            torch.tensor: Object with PSF modeling applied
-        """
-        object_return = []
-        for i in range(len(ang_idx)):
-            object_temp = object[i].unsqueeze(0)
-            object_temp = self.layers[self.proj_meta.radii[ang_idx[i].item()]](object_temp) 
-            object_return.append(object_temp)
-        return torch.vstack(object_return)
-    
     @torch.no_grad()
     def forward(
 		self,
-		object_i: torch.Tensor,
+		object: torch.Tensor,
 		ang_idx: Sequence[int], 
 	) -> torch.tensor:
         r"""Applies the PSF transform :math:`A:\mathbb{U} \to \mathbb{U}` for the situation where an object is being detector by a detector at the :math:`+x` axis.
 
         Args:
-            object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
+            object_i (torch.tensor): Tensor of size [Lx, Ly, Lz] being projected along its first axis
             ang_idx (int): The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.
 
         Returns:
-            torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.
+            torch.tensor: Tensor of size [Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.
         """
-        return self._apply_psf(object_i, ang_idx)
+        return self.layers[self.proj_meta.radii[ang_idx]](object) 
         
     @torch.no_grad()
     def backward(
 		self,
-		object_i: torch.Tensor,
-		ang_idx: Sequence[int], 
-		norm_constant: torch.Tensor | None = None,
+		object: torch.Tensor,
+		ang_idx: Sequence[int],
 	) -> torch.tensor:
         r"""Applies the transpose of the PSF transform :math:`A^T:\mathbb{U} \to \mathbb{U}` for the situation where an object is being detector by a detector at the :math:`+x` axis. Since the PSF transform is a symmetric matrix, its implemtation is the same as the ``forward`` method.
 
         Args:
-            object_i (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] being projected along its first axis
-            ang_idx (int): The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.
-            norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
+            object_i (torch.tensor): Tensor of size [Lx, Ly, Lz] being projected along its first axis
+            ang_idx (int): The projection index
 
         Returns:
-            torch.tensor: Tensor of size [batch_size, Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.
+            torch.tensor: Tensor of size [Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.
         """
-        if norm_constant is not None:
-            object_i = self._apply_psf(object_i, ang_idx)
-            norm_constant = self._apply_psf(norm_constant, ang_idx)
-            return object_i, norm_constant
-        else:
-            return self._apply_psf(object_i, ang_idx)
+        return self.layers[self.proj_meta.radii[ang_idx]](object) 

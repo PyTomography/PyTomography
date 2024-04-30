@@ -6,8 +6,8 @@ import torch
 import torch.nn as nn
 import os
 import pytomography
-from pytomography.metadata import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
-from pytomography.utils import get_mu_from_spectrum_interp, compute_TEW
+from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
+from pytomography.utils import get_mu_from_spectrum_interp, compute_EW_scatter
 from ..shared import get_header_value
 
 relation_dict = {'unsignedinteger': 'int',
@@ -78,7 +78,7 @@ def _get_projections_from_single_file(headerfile: str):
     dtype = eval(f'np.{number_format}{num_bytes_per_pixel*8}')
     projections = np.fromfile(os.path.join(str(Path(headerfile).parent), imagefile), dtype=dtype)
     projections = np.transpose(projections.reshape((num_proj,proj_dim2,proj_dim1))[:,::-1], (0,2,1))
-    projections = torch.tensor(projections.copy()).unsqueeze(dim=0).to(pytomography.device)
+    projections = torch.tensor(projections.copy()).to(pytomography.device)
     return projections
 
 def get_projections(headerfiles: str | Sequence[str], weights: float = None):
@@ -103,58 +103,30 @@ def get_projections(headerfiles: str | Sequence[str], weights: float = None):
                 projections_window_i.append(projections_window_i_organ_j)
             projections_window_i = torch.sum(torch.stack(projections_window_i), dim=0)
             projections.append(projections_window_i)
-        projections = torch.cat(projections, dim=0)
-        return projections
+        projections = torch.stack(projections)
+        return projections.squeeze()
     else:
         projections = []
         for i, headerfile in enumerate(headerfiles):
             projections.append(get_projections(headerfile))
-        projections = torch.cat(projections, dim=0)
-    return projections
+        projections = torch.stack(projections)
+    return projections.squeeze()
 
-def get_energy_window_width(headerfile: str):
+def get_energy_window_width(headerfile: str) -> float:
+    """Computes the energy window width from a SIMIND header file
+
+    Args:
+        headerfile (str): Headerfile corresponding to SIMIND data
+
+    Returns:
+        float: Energy window width
+    """
     with open(headerfile) as f:
         headerdata = f.readlines()
     headerdata = np.array(headerdata)
     lwr = get_header_value(headerdata, 'energy window lower level', np.float32)
     upr = get_header_value(headerdata, 'energy window upper level', np.float32)
     return upr - lwr
-    
-
-def get_scatter_from_TEW(
-    headerfile_peak: str,
-    headerfile_lower: str,
-    headerfile_upper: str,
-    activity_time = None,
-    ):
-    """Obtains a triple energy window scatter estimate from corresponding photopeak, lower, and upper energy windows.
-
-    Args:
-        headerfile_peak: Headerfile corresponding to the photopeak
-        headerfile_lower: Headerfile corresponding to the lower energy window
-        headerfile_upper: Headerfile corresponding to the upper energy window
-        activity_time: Product of activity and time corresponding to the projections. If this argument is provided, then projections are first scaled by activity and time, and then the poisson noise is taken. If the argument is not provided, then poisson noise is not taken.
-
-    Returns:
-        torch.Tensor[1, Ltheta, Lr, Lz]: Estimated scatter from the triple energy window.
-    """
-    
-    # assumes all three energy windows have same metadata
-    projectionss = []
-    window_widths = []
-    for headerfile in [headerfile_peak, headerfile_lower, headerfile_upper]:
-        projections = get_projections(headerfile)
-        with open(headerfile) as f:
-            headerdata = f.readlines()
-        headerdata = np.array(headerdata)
-        lwr_window = get_header_value(headerdata, 'energy window lower level', np.float32)
-        upr_window = get_header_value(headerdata, 'energy window upper level', np.float32)
-        window_widths.append(upr_window - lwr_window)
-        if activity_time is not None:
-            projections = torch.poisson(projections*activity_time)
-        projectionss.append(projections)
-    projections_scatter = compute_TEW(projectionss[1], projectionss[2], window_widths[1], window_widths[2], window_widths[0])
-    return projections_scatter
 
 def combine_projection_data(
     headerfiles: Sequence[str],
@@ -174,30 +146,6 @@ def combine_projection_data(
         projections_i = get_projections(headerfile)
         projections += projections_i * weight
     return projections
-
-def combine_scatter_data_TEW(
-    headerfiles_peak: Sequence[str],
-    headerfiles_lower: Sequence[str],
-    headerfiles_upper: Sequence[str],
-    weights: Sequence[float],
-    ):
-    """Computes the triple energy window scatter estimate of the sequence of projection data weighted by `weights`. See `combine_projection_data` for more details.
-
-    Args:
-        headerfiles_peak (Sequence[str]): List of headerfiles corresponding to the photopeak
-        headerfiles_lower (Sequence[str]): List of headerfiles corresponding to the lower scatter window
-        headerfiles_upper (Sequence[str]): List of headerfiles corresponding to the upper scatter window
-        weights (Sequence[float]): Amount by which to weight each set of projection data by.
-
-    Returns:
-        _type_: _description_
-    """
-    scatter = 0 
-    for headerfile_peak, headerfile_lower, headerfile_upper, weight in zip(headerfiles_peak, headerfiles_lower, headerfiles_upper, weights):
-        scatter_i = get_scatter_from_TEW(headerfile_peak, headerfile_lower, headerfile_upper)
-        scatter+= weight * scatter_i
-    
-    return scatter   
 
 def get_attenuation_map(headerfile: str):
     """Opens attenuation data from SIMIND output
@@ -220,7 +168,7 @@ def get_attenuation_map(headerfile: str):
     # Flip "Z" ("X" in SIMIND) b/c "first density image located at +X" according to SIMIND manual
     # Flip "Y" ("Z" in SIMIND) b/c axis convention is opposite for x22,5x (mu-castor format)
     CT = np.transpose(CT.reshape(shape), (2,1,0))[:,::-1,::-1]
-    CT = torch.tensor(CT.copy()).unsqueeze(dim=0)
+    CT = torch.tensor(CT.copy())
     return CT.to(pytomography.device)
 
 def get_psfmeta_from_header(headerfile: str):

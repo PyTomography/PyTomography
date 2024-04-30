@@ -61,7 +61,9 @@ class KEMTransform(Transform):
         
     
     def compute_kernel(self):
-        shape = self.support_objects[0].shape[1:]
+        """Computes the kernel required for the KEM transform and stores internally
+        """
+        shape = self.support_objects[0].shape
         # Keep kernel on CPU until its used (its too big for GPU)
         self.kernel = torch.ones((self.size, self.size, self.size, *shape)).to(pytomography.dtype)
         for i in self.idxs:
@@ -125,7 +127,6 @@ class KEMTransform(Transform):
     def backward(
 		self,
 		object: torch.Tensor,
-		norm_constant: torch.Tensor | None = None,
 	) -> torch.tensor:
         r"""Backward transform corresponding to :math:`K^T\alpha`. Since the matrix is symmetric, the implementation is the same as forward.
 
@@ -135,9 +136,4 @@ class KEMTransform(Transform):
         Returns:
             torch.tensor: Image :math:`K^T\alpha`
         """
-        object = self.forward(object)
-        if norm_constant is not None:
-            norm_constant = self.forward(norm_constant)
-            return object, norm_constant
-        else:
-            return object
+        return self.forward(object)

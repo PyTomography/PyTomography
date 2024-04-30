@@ -3,9 +3,6 @@
 The PyTomography team highly encourages contributions from the community. We believe that such contributions will allow PyTomography to reach it's full potential as a multimodal, open-source, reconstruction framework. If you want to contribute:
 
 1. Create an issue on the [PyTomography Github Issues page](https://github.com/qurit/PyTomography/issues). Describe what it is you intend to implement/fix. 
-2. Once you create the issue, create a corresponding branch for the issue (you should be able to do so on your issue page under "Development" on the right hand side)
-3. On your local computer, clone the github repository, Then use the commands `git fetch origin` followed by `git checkout <branchname>` where `<branchname>` is replaced by the corresponding name of the branch on GitHub.
-4. Make any changes corresponding to the issue you created. If these changes modify essential functionality, please be sure to test them before proceeding.
-5. Once the changes are made, use `git add --all` followed by `git commit -m <message>` where `<message>` is replaced by a *present tense* statement about the changes you made. For example, if you changed the name of a function from `do_this()` to `do_that()`, the message would be something along the lines of `rename do_this() to do_that()`. Then use `git push` to push the changes from your branch to GitHub.
-6. Create a pull request for your changes. Do this by going to [the pull request page](https://github.com/qurit/PyTomography/pulls) and choosing "New Pull Request". **This is important**: make sure you request to merge from your branch to **the development branch**. This means that the "head ref" (right hand side) should be your branch, and the "base ref" (left hand side) should be the development branch.
-7. Someone at the PyTomography team will then review the changes and be in contact via comments on the GitHub page. If the changes are accepted, they'll be merged into the development branch, and then eventually included in the next release of PyTomography!
+2. Fork the repository to your own GitHub account
+3. Fix issue, and push changes to your own fork of the repository on GitHub
+4. Create a pull request from your fork (whatever branch you worked on) to the development branch in the main repository

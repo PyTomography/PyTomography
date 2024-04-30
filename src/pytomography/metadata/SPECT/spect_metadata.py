@@ -6,7 +6,7 @@ import torch
 from..metadata import ObjectMeta, ProjMeta
 
 class SPECTObjectMeta(ObjectMeta):
-    """Metadata for object space in SPECT imaging
+    """Metadata for object space in SPECT imaging. Required for padding of object space during the rotate+sum method
 
     Args:
         dr (list[float]): List of 3 elements specifying voxel dimensions in cm.
@@ -31,14 +31,14 @@ class SPECTObjectMeta(ObjectMeta):
         z_padded = self.shape[2]
         self.padded_shape = (int(x_padded), int(y_padded), int(z_padded)) 
 
-
 class SPECTProjMeta(ProjMeta):
     """Metadata for projection space in SPECT imaging
 
     Args:
         projection_shape (Sequence): 2D shape of each projection
+        dr (Sequence): Pixel dimensions of projection data in cm
         angles (Sequence): The angles for each 2D projection
-        radii (Sequence, optional): Specifies the radial distance of the detector corresponding to each angle in `angles`; only required in certain cases (i.e. PSF correction). Defaults to None.
+        radii (Sequence, optional): Specifies the radial distance (in cm) of the detector corresponding to each angle in `angles`; only required in certain cases (i.e. PSF correction). Defaults to None.
     """
     def __init__(
         self,
@@ -62,7 +62,6 @@ class SPECTProjMeta(ProjMeta):
         r_padded = self.shape[1] + 2*self.pad_size
         z_padded = self.shape[2]
         self.padded_shape =  (int(theta_padded), int(r_padded), int(z_padded)) 
-
 
 class SPECTPSFMeta():
     r"""Metadata for PSF correction. PSF blurring is implemented using Gaussian blurring with :math:`\sigma(r) = f(r,p)` where :math:`r` is the distance from the detector, :math:`\sigma` is the width of the Gaussian blurring at that location, and :math:`f(r,p)` is the ``sigma_fit`` function which takes in additional parameters :math:`p` called ``sigma_fit_params``. (By default, ``sigma_fit`` is a linear curve). As such, :math:`\frac{1}{\sigma\sqrt{2\pi}}e^{-r^2/(2\sigma(r)^2)}` is the point spread function. Blurring is implemented using convolutions with a specified kernel size. 

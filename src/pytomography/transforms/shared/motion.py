@@ -75,7 +75,7 @@ class DVFMotionTransform(Transform):
         old_coordinates = self._get_old_coordinates()
         new_coordinates = self._get_new_coordinates(old_coordinates, DVF)
         # Adjust for strecthcing of object
-        return torch.nn.functional.grid_sample(object_i.unsqueeze(0), new_coordinates.unsqueeze(0).flip(dims=[-1]), align_corners=True)[0] * vol_ratio
+        return torch.nn.functional.grid_sample(object_i.unsqueeze(0).unsqueeze(0), new_coordinates.unsqueeze(0).flip(dims=[-1]), align_corners=True).squeeze() * vol_ratio
 
     def forward( 
         self,
