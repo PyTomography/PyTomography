@@ -6,10 +6,8 @@ from pytomography.metadata import ObjectMeta
 from pytomography.metadata.PET import PETLMProjMeta
 from pytomography.projectors import SystemMatrix
 import numpy as np
-try:
-    import parallelproj
-except:
-    Exception('The PETLMSystemMatrix requires the parallelproj package to be installed. Please install it at https://parallelproj.readthedocs.io/en/stable/')
+import parallelproj
+
 class PETLMSystemMatrix(SystemMatrix):
     r"""System matrix of PET list mode data. Forward projections corresponds to computing the expected counts along all LORs specified: in particular it approximates :math:`g_i = \int_{\text{LOR}_i} h(r) f(r) dr` where index :math:`i` corresponds to a particular detector pair and :math:`h(r)` is a Gaussian function that incorporates time-of-flight information (:math:`h(r)=1` for non-time-of-flight). The integral is approximated in the discrete object space using Joseph3D projections. In general, the system matrix implements two different projections, the quantity :math:`H` which projects to LORs corresponding to all detected events, and the quantity :math:`\tilde{H}` which projects to all valid LORs. The quantity :math:`H` is used for standard forward/back projection, while :math:`\tilde{H}` is used to compute the sensitivity image.
 
