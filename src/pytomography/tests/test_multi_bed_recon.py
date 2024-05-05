@@ -36,13 +36,18 @@ def test_multi_bed_recon():
     recon_stitched = dicom.stitch_multibed(
         recons=torch.stack([recon_upper, recon_lower]),
         files_NM = files_NM)
+    recon_save_path = Path.joinpath(save_path, 'dicom_multibed_tutorial', 'pytomo_recon')
     dicom.save_dcm(
-        save_path = Path.joinpath(save_path, 'dicom_multibed_tutorial', 'pytomo_recon'),
+        save_path = recon_save_path,
         object = recon_stitched,
         file_NM = files_NM[0],
         recon_name = 'OSEM_4it_8ss',
         scale_by_number_projections=True,
         single_dicom_file=True)
+    files_recon = list (recon_save_path.glob('**/*.dcm'))
+    assert(len(files_recon) == 1)
+    ds = pydicom.dcmread(files_recon[0],force=True)
+    assert ("RECON TOMO" in ds.ImageType)
     
 def reconstruct_singlebed(i, projectionss, files_NM, files_CT):
     # Change these depending on your file:
