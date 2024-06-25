@@ -15,9 +15,10 @@ PyTomography is a python library for medical image reconstruction. It uses the f
 * Positron Emission Tomography (PET) 
     - Support for sinogram/listmode and time-of-flight reconstruction with attenuation, normalization, random, and scatter correction (time-of-flight based single scatter simulation)
     - Support for GATE, HDF5, and PETSIRD data formats
+* Computed Tomography (CT)
+    - Support for 3rd generation CT systems and reading of data in the DICOM-CT-PD format.
 
 **Reconstruction Algorithms**
-* Filtered Back Projection (FBP)
 * Statistical Iterative Algorithms
     - Standard clinical algorithms such as OSEM / MLEM
     - Regularized algorithms such as OSMAPOSL (see [here](https://ieeexplore.ieee.org/document/52985)) and BSREM (see [here](https://ieeexplore.ieee.org/document/1207396))

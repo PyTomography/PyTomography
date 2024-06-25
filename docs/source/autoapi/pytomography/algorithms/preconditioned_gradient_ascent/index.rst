@@ -159,20 +159,35 @@ Classes
       :rtype: float | Sequence[float]
 
 
-   .. py:method:: _compute_uncertainty_matrix(mask, data_storage_callback, n, include_additive_term)
+   .. py:method:: _compute_Q(input, data_storage_callback, n)
 
-      Computes the quantity :math:`V^{n+1}\chi = V^{n} Q^{n} \chi + B^{n}\chi` where :math:`Q^{n} = \left[\nabla_{ff} L(g^n|f^n) -  \nabla_{ff} U(f^n)\right] D^{n} \text{diag}\left(f^{n}\right) + \text{diag}\left(f^{n+1}/f^n\right)` and :math:`B^{n}=\nabla_{gf} L(g^n|f^n) D^n \text{diag}\left(f^{n}\right)` and :math:`V^{0} = 0 . This function is meant to be called recursively.
+      Computes the operation of :math:`Q` on an input object; this is a helper function for ``compute_uncertainty``. For more details, see the uncertainty paper.
 
-      :param mask: Masked region :math:`\chi`.
-      :type mask: torch.Tensor
-      :param data_storage_callback: Callback that has been used in a reconstruction algorithm.
-      :type data_storage_callback: DataStorageCallback
-      :param n: Subiteration number.
+      :param input: Object on which Q operates
+      :type input: torch.Tensor
+      :param data_storage_callback: Data storage callback containing all objects and forward projections at each subiteration
+      :type data_storage_callback: Callback
+      :param n: Subiteration number
       :type n: int
-      :param include_additive_term: Whether or not to include uncertainty contribution from the additive term. This requires the ``additive_term_variance_estimate`` as an argument to the initialized likelihood.
-      :type include_additive_term: bool
 
-      :returns: the quantity :math:`V^{n+1}\chi`
+      :returns: Resulting output object from the operation of :math:`Q` on the input object
+      :rtype: torch.Tensor
+
+
+   .. py:method:: _compute_B(input, data_storage_callback, n, include_additive_term = False)
+
+      Computes the operation of :math:`B` on an input object; this is a helper function for ``compute_uncertainty``. For more details, see the uncertainty paper.
+
+      :param input: Object on which B operates
+      :type input: torch.Tensor
+      :param data_storage_callback: Data storage callback containing all objects and forward projections at each subiteration
+      :type data_storage_callback: Callback
+      :param n: Subiteration number
+      :type n: int
+      :param include_additive_term: Whether or not to include uncertainty estimation for the additive term. Defaults to False.
+      :type include_additive_term: bool, optional
+
+      :returns: Resulting output projections from the operation of :math:`B` on the input object
       :rtype: torch.Tensor
 
 
@@ -380,11 +395,11 @@ Classes
 
 
 
-.. py:class:: SART(system_matrix, projections, additive_term = None, object_initial = None)
+.. py:class:: SART(system_matrix, projections, additive_term = None, object_initial = None, relaxation_sequence = lambda _: 1)
 
-   Bases: :py:obj:`OSEM`
+   Bases: :py:obj:`PreconditionedGradientAscentAlgorithm`
 
-   Implementation of the SART algorithm (OSEM with SARTWeightedNegativeMSELikelihood). This algorithm takes as input the system matrix and projections (as opposed to a likelihood) since SART is OSEM with a negative MSE likelihood.
+   Implementation of the SART algorithm. This algorithm takes as input the system matrix and projections (as opposed to a likelihood). This is an implementation of equation 3 of https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8506772/
 
    :param system_matrix: System matrix for the imaging system.
    :type system_matrix: SystemMatrix
@@ -394,6 +409,21 @@ Classes
    :type additive_term: torch.Tensor | None, optional
    :param object_initial: Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
    :type object_initial: torch.Tensor | None, optional
+
+   .. py:method:: _compute_preconditioner(object, n_iter, n_subset)
+
+      Computes the preconditioner factor :math:`C^n(f^n) = \frac{1}{H_n^T+\nabla_f V(f^n)}`
+
+      :param object: Object estimate :math:`f^n`
+      :type object: torch.Tensor
+      :param n_iter: iteration number
+      :type n_iter: int
+      :param n_subset: subset number
+      :type n_subset: int
+
+      :returns: preconditioner factor.
+      :rtype: torch.Tensor
+
 
 
 .. py:class:: PGAAMultiBedSPECT(files_NM, reconstruction_algorithms)

@@ -1,4 +1,4 @@
-"""This module is used to create attenuation maps from CT images required for SPECT/PET attenuation correction.
+"""This module is used to create attenuation maps from CT images required for SPECT/PET attenuation correction using cortical bone peaks. For typical radionuclides, the standard table should be used.
 """
 from __future__ import annotations
 from typing import Sequence
@@ -131,7 +131,7 @@ def get_HU_corticalbone(
     Returns:
         float | None: Hounsfield unit of bone. If not found, then returns ``None``.
     """
-    HU_from_CT_slices = open_multifile(files_CT)
+    HU_from_CT_slices = open_multifile(files_CT).cpu().numpy()
     x = HU_from_CT_slices.ravel()
     N, bin_edges = np.histogram(x[(x>1200)*(x<1600)], bins=10, density=True)
     bins = bin_edges[:-1] + np.diff(bin_edges)[0]/2

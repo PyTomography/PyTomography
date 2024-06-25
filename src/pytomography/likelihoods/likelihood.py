@@ -86,7 +86,8 @@ class Likelihood:
             if return_sum:
                 return torch.stack(self.norm_BPs).sum(axis=0)
             else:
-                return self.norm_BPs[subset_idx]
+                # Put on PyTomography device in case stored on CPU
+                return self.norm_BPs[subset_idx].to(pytomography.device)
         
     def compute_gradient(self, *args, **kwargs):
         r"""Function used to compute the gradient of the likelihood :math:`\nabla_{f} L(g|f)`

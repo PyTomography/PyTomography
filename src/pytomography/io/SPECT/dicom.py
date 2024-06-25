@@ -2,8 +2,9 @@ from __future__ import annotations
 import warnings
 import copy
 import os
+from functools import partial
 import collections.abc
-from collections.abc import Sequence
+from collections.abc import Sequence, Callable
 from pathlib import Path
 from typing import Sequence
 import numpy as np
@@ -17,18 +18,18 @@ import pytomography
 from rt_utils import RTStructBuilder
 from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
 import nibabel as nib
+import pandas as pd
 from pytomography.utils import (
     compute_EW_scatter,
     get_mu_from_spectrum_interp,
 )
-from ..CT import (
-    get_HU2mu_conversion
-)
 from ..shared import (
     open_multifile,
     _get_affine_multifile,
-    create_ds
+    create_ds,
+    align_images_affine
 )
+from .attenuation_map import get_HU2mu_conversion as get_HU2mu_conversion_old
 
 def parse_projection_dataset(
     ds: Dataset,
@@ -327,9 +328,12 @@ def get_psfmeta_from_scanner_params(
         min_sigmas=min_sigmas
         )
 
-
 def CT_to_mumap(
-    CT: torch.tensor, files_CT: Sequence[str], file_NM: str, index_peak=0
+    CT: torch.tensor,
+    files_CT: Sequence[str],
+    file_NM: str,
+    index_peak: int = 0,
+    technique: str | Callable ='from_table'
 ) -> torch.tensor:
     """Converts a CT image to a mu-map given SPECT projection data. The CT data must be aligned with the projection data already; this is a helper function for ``get_attenuation_map_from_CT_slices``.
 
@@ -338,6 +342,7 @@ def CT_to_mumap(
         files_CT (Sequence[str]): Filepaths of all CT slices
         file_NM (str): Filepath of SPECT projectio ndata
         index_peak (int, optional): Index of EnergyInformationSequence corresponding to the photopeak. Defaults to 0.
+        technique (str, optional): Technique to convert HU to attenuation coefficients. The default, 'from_table', uses a table of coefficients for bilinear curves obtained for a variety of common radionuclides. The technique 'from_cortical_bone_fit' looks for a cortical bone peak in the scan and uses that to obtain the bilinear coefficients. For phantom scans where the attenuation coefficient is always significantly less than bone, the cortical bone technique will still work, since the first part of the bilinear curve (in the air to water range) does not depend on the cortical bone fit. Alternatively, one can provide an arbitrary function here which takes in a 3D scan with units of HU and converts to mu.
 
     Returns:
         torch.tensor: Attenuation map in units of 1/cm
@@ -353,20 +358,83 @@ def CT_to_mumap(
         .EnergyWindowRangeSequence[0]
         .EnergyWindowLowerLimit
     )
-    E_SPECT = (window_lower + window_upper) / 2
-    KVP = pydicom.read_file(files_CT[0]).KVP
-    HU2mu_conversion = get_HU2mu_conversion(files_CT, KVP, E_SPECT)
-    return HU2mu_conversion(CT)
+    E_SPECT = (window_lower + window_upper) / 2 # assumes in center
+    if technique=='from_table':
+        HU2mu_conversion = get_HU2mu_conversion(files_CT, E_SPECT)
+        return HU2mu_conversion(CT)
+    elif technique=='from_cortical_bone_fit':
+        KVP = pydicom.read_file(files_CT[0]).KVP
+        HU2mu_conversion = get_HU2mu_conversion_old(files_CT, KVP, E_SPECT)
+        return HU2mu_conversion(CT)
+    elif callable(technique):
+        return technique(CT)
+    else:
+        print('Invalid technique')
 
+
+def bilinear_transform(
+    HU: float,
+    a1: float,
+    a2: float,
+    b1: float,
+    b2: float
+    ) -> float:
+    """Function used to convert between Hounsfield Units at an effective CT energy and linear attenuation coefficient at a given SPECT radionuclide energy. It consists of two distinct linear curves in regions :math:`HU<0` and :math:`HU \geq 0`.
+
+    Args:
+        HU (float): Hounsfield units at CT energy
+        a1 (float): Fit parameter 1
+        a2 (float): Fit parameter 2
+        b1 (float): Fit parameter 3
+        b2 (float): Fit parameter 4
+
+    Returns:
+        float: Linear attenuation coefficient at SPECT energy
+    """
+    output =  np.piecewise(
+        HU,
+        [HU < 0, HU >= 0],
+        [lambda x: a1*x + b1,
+        lambda x: a2*x + b2])
+    output[output<0] = 0
+    return output
+
+def get_HU2mu_conversion(
+    files_CT: Sequence[str],
+    E_SPECT: float
+    ) -> function:
+    """Obtains the HU to mu conversion function that converts CT data to the required linear attenuation value in units of 1/cm required for attenuation correction in SPECT/PET imaging.
+
+    Args:
+        files_CT (Sequence[str]): CT data files
+        CT_kvp (float): kVp value for CT scan
+        E_SPECT (float): Energy of photopeak in SPECT scan
+
+    Returns:
+        function: Conversion function from HU to mu.
+    """
+    module_path = os.path.dirname(os.path.abspath(__file__))
+    E_CT = pydicom.read_file(files_CT[0]).KVP
+    model_name = pydicom.read_file(files_CT[0]).ManufacturerModelName.replace(' ','').replace('-', '').lower()
+    df = pd.read_csv(os.path.join(module_path, f'../../data/ct_table.csv'))
+    df['Model Name'] = df['Model Name'].apply(lambda s: s.replace(' ','').replace('-', ''))
+    if model_name in df['Model Name'].values:
+        df = df[df['Model Name'] == model_name]
+    else:
+        Warning('Scanner model not found in database. Using scanner with similar parameters instead')
+    df['abs_diff_1'] = (df['Energy'] - E_SPECT).abs()
+    df['abs_diff_2'] = (df['CT Energy'] - E_CT).abs()
+    df_sorted = df.sort_values(by=['abs_diff_1', 'abs_diff_2'])
+    print(f'Given photopeak energy {E_SPECT} keV and CT energy {E_CT} keV from the CT DICOM header, the HU->mu conversion from the following configuration is used: {df_sorted.iloc[0].Energy} keV SPECT energy, {df_sorted.iloc[0]["CT Energy"]} keV CT energy, and scanner model {df_sorted.iloc[0]["Model Name"]}')
+    a1opt, b1opt, a2opt, b2opt = df_sorted.iloc[0,[3,4,5,6]].values
+    return partial(bilinear_transform, a1=a1opt, a2=a2opt, b1=b1opt, b2=b2opt)
 
 def get_attenuation_map_from_CT_slices(
     files_CT: Sequence[str],
     file_NM: str | None = None,
     index_peak: int = 0,
-    keep_as_HU: bool = False,
     mode: str = "constant",
-    CT_output_shape: Sequence[int] | None = None,
-    apply_affine: bool = True,
+    HU2mu_technique: str | Callable = "from_table"
 ) -> torch.Tensor:
     """Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography.
 
@@ -374,38 +442,27 @@ def get_attenuation_map_from_CT_slices(
         files_CT (Sequence[str]): List of all files corresponding to an individual CT scan
         file_NM (str): File corresponding to raw PET/SPECT data (required to align CT with projections). If None, then no alignment is done. Defaults to None.
         index_peak (int, optional): Index corresponding to photopeak in projection data. Defaults to 0.
-        keep_as_HU (bool): If True, then don't convert to linear attenuation coefficient and keep as Hounsfield units. Defaults to False
-        CT_output_shape (Sequence, optional): If not None, then the CT is returned with the desired dimensions. Otherwise, it defaults to the shape in the file_NM data.
-        apply_affine (bool): Whether or not to align CT with NM.
+        mode (str): Mode for affine transformation interpolation
+        HU2mu_technique (str): Technique to convert HU to attenuation coefficients. The default, 'from_table', uses a table of coefficients for bilinear curves obtained for a variety of common radionuclides. The technique 'from_cortical_bone_fit' looks for a cortical bone peak in the scan and uses that to obtain the bilinear coefficients. For phantom scans where the attenuation coefficient is always significantly less than bone, the cortical bone technique will still work, since the first part of the bilinear curve (in the air to water range) does not depend on the cortical bone fit. Alternatively, one can provide an arbitrary function here which takes in a 3D scan with units of HU and converts to mu.
 
     Returns:
         torch.Tensor: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.
     """
 
-    CT_HU = open_multifile(files_CT)
-
-    if file_NM is None:
-        return torch.tensor(CT_HU.copy().to(pytomography.dtype).to(pytomography.device))
+    CT = open_multifile(files_CT).cpu().numpy()
+    CT = CT_to_mumap(CT, files_CT, file_NM, index_peak, technique=HU2mu_technique)
+    # Get affine matrix for alignment:
+    M_CT = _get_affine_multifile(files_CT)
+    M_NM = _get_affine_spect_projections(file_NM)
+    M = npl.inv(M_CT) @ M_NM
+    # Apply affine
     ds_NM = pydicom.read_file(file_NM)
-    # When doing affine transform, fill outside with point below -1000HU so it automatically gets converted to mu=0 after bilinear transform
-    if CT_output_shape is None:
-        CT_output_shape = (ds_NM.Rows, ds_NM.Rows, ds_NM.Columns)
-    if apply_affine:
-        # Align with SPECT:
-        M_CT = _get_affine_multifile(files_CT)
-        M_NM = _get_affine_spect_projections(file_NM)
-        # Resample CT and convert to mu at 208keV and save
-        M = npl.inv(M_CT) @ M_NM
-        CT_HU = affine_transform(
-            CT_HU[:,:,::-1], M, output_shape=CT_output_shape, mode=mode, cval=-1500
-        )
-    if keep_as_HU:
-        CT = CT_HU
-    else:
-        CT = CT_to_mumap(CT_HU, files_CT, file_NM, index_peak)
-    CT = torch.tensor(CT[:, :, ::-1].copy()).to(pytomography.dtype).to(pytomography.device)
+    output_shape = (ds_NM.Rows, ds_NM.Rows, ds_NM.Columns)
+    CT = affine_transform(
+        CT, M, output_shape=output_shape, mode=mode, cval=0
+    )
+    CT = torch.tensor(CT).to(pytomography.dtype).to(pytomography.device)
     return CT
-
 
 def _get_affine_spect_projections(filename: str) -> np.array:
     """Computes an affine matrix corresponding the coordinate system of a SPECT DICOM file of projections.
@@ -422,58 +479,19 @@ def _get_affine_spect_projections(filename: str) -> np.array:
     dx = dy = ds.PixelSpacing[0]
     dz = ds.PixelSpacing[1]
     if Sy == 0:
-        Sx -= ds.Rows / 2 * dx
-        Sy -= ds.Rows / 2 * dy
+        Sx -= (ds.Rows-1) / 2 * dx
+        Sy -= (ds.Rows-2) / 2 * dy
         Sy -= ds.RotationInformationSequence[0].TableHeight
+    Sz -= (ds.Rows-1) * dz # location of bottom pixel
     # Difference between Siemens and GE
     # if ds.Manufacturer=='GE MEDICAL SYSTEMS':
     #Sz -= ds.RotationInformationSequence[0].TableTraverse
     M = np.zeros((4, 4))
     M[0] = np.array([dx, 0, 0, Sx])
     M[1] = np.array([0, dy, 0, Sy])
-    M[2] = np.array([0, 0, -dz, Sz])
+    M[2] = np.array([0, 0, dz, Sz])
     M[3] = np.array([0, 0, 0, 1])
     return M
-
-def load_multibed_projections(
-    files_NM: str,
-    index_lower: int = 20,
-    index_upper: int = 106,
-) -> torch.Tensor:
-    """This function loads projection data from each of the files in files_NM; for locations outside the FOV in each projection, it appends the data from the adjacent projection. The field of view (in z) is specified by ``index_lower`` and ``index_upper``. The default values of 20 and 106 seem to be sufficient for most scanners.
-
-    Args:
-        files_NM (str): Filespaths for each of the projections
-        index_lower (int, optional): Z-pixel index specifying the lower boundary of the FOV. Defaults to 20.
-        index_upper (int, optional): Z-pixel index specifying the upper boundary of the FOV. Defaults to 106.
-
-    Returns:
-        torch.Tensor: Tensor of shape ``[N_bed_positions, N_energy_windows, Ltheta, Lr, Lz]``.
-    """
-    projectionss = torch.stack([get_projections(file_NM) for file_NM in files_NM])
-    dss = np.array([pydicom.read_file(file_NM) for file_NM in files_NM])
-    zs = torch.tensor(
-        [ds.DetectorInformationSequence[0].ImagePositionPatient[-1] for ds in dss]
-    )
-    # Sort by increasing z-position
-    order = torch.argsort(zs)
-    dss = dss[order.cpu().numpy()]
-    zs = zs[order]
-    zs = torch.round((zs - zs[0]) / dss[0].PixelSpacing[1]).to(torch.long)
-    projectionss = projectionss[order]
-    z_voxels = projectionss[0].shape[-1]
-    projectionss_combined = torch.stack([p for p in projectionss])
-    for i in range(len(projectionss)):
-        if i>0:
-            diff = zs[i] - zs[i-1]
-            # Assumes the projections overlap slightly
-            projectionss_combined[i][...,:index_lower] = projectionss[i-1][...,diff:diff+index_lower]
-        if i<len(projectionss)-1:
-            diff = zs[i+1] - zs[i]
-            # Assumes the projections overlap slightly
-            projectionss_combined[i][...,index_upper:z_voxels] = projectionss[i+1][...,index_upper-diff:z_voxels-diff]
-    # Return back in original order of files_NM
-    return projectionss_combined[torch.argsort(order)]
 
 def load_multibed_projections(
     files_NM: str,
@@ -601,7 +619,7 @@ def get_aligned_rtstruct(
     M_CT = _get_affine_multifile(files_CT)
     M_NM = _get_affine_spect_projections(file_NM)
     M = npl.inv(M_CT) @ M_NM
-    mask_aligned = affine_transform(mask.transpose((1,0,2))[:,:,::-1], M, output_shape=shape, mode='constant', cval=0, order=1)[:,:,::-1]
+    mask_aligned = affine_transform(mask.transpose((1,0,2)), M, output_shape=shape, mode='constant', cval=0, order=1)
     if cutoff_value is None:
         return torch.tensor(mask_aligned.copy()).to(pytomography.device)
     else:
@@ -690,8 +708,8 @@ def save_dcm(
     dx = dy = ds_NM.PixelSpacing[0]
     dz = ds_NM.PixelSpacing[1]
     if Sy == 0:
-        Sx -= ds_NM.Rows / 2 * dx
-        Sy -= ds_NM.Rows / 2 * dy
+        Sx -= (ds_NM.Rows-1) / 2 * dx
+        Sy -= (ds_NM.Rows-1) / 2 * dy
         # Y-Origin point at tableheight=0
         Sy -= ds_NM.RotationInformationSequence[0].TableHeight
     # Sz now refers to location of lowest slice

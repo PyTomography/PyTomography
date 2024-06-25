@@ -115,11 +115,19 @@ Classes
 
 
 
-.. py:class:: SPECTCompleteSystemMatrix(object_meta, proj_meta, attenuation_map, object_meta_amap, psf_kernel, store_system_matrix=None, mask_based_on_attenuation=False, photopeak=None, n_parallel=1)
+.. py:class:: SPECTCompleteSystemMatrix(object_meta, proj_meta, attenuation_map, psf_kernel, store_system_matrix=None, object_mask=None, projections_mask=None)
 
    Bases: :py:obj:`SPECTSystemMatrix`
 
    Class presently under construction.
+
+
+   .. py:method:: _get_object_initial(device=None)
+
+      Returns an initial object estimate used in reconstruction algorithms. By default, this is a tensor of ones with the same shape as the object metadata.
+
+      :returns: Initial object used in reconstruction algorithm.
+      :rtype: torch.Tensor
 
 
    .. py:method:: _get_proj_positions(idx)
@@ -131,7 +139,15 @@ Classes
    .. py:method:: _compute_system_matrix_components(idx)
 
 
-   .. py:method:: _compute_projections_mask(photopeak)
+   .. py:method:: compute_normalization_factor(subset_idx = None)
+
+      Function used to get normalization factor :math:`H^T_m 1` corresponding to projection subset :math:`m`.
+
+      :param subset_idx: Index of subset. If none, then considers all projections. Defaults to None.
+      :type subset_idx: int | None, optional
+
+      :returns: normalization factor :math:`H^T_m 1`
+      :rtype: torch.Tensor
 
 
    .. py:method:: forward(object, subset_idx = None)

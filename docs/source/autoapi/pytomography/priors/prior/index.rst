@@ -42,6 +42,14 @@ Classes
       :type factor: float
 
 
+   .. py:method:: set_FOV_scale(FOV_scale)
+
+      Sets a positionally dependent scaling factor within the FOV for the prior.
+
+      :param torch.Tensor: Scaling factor
+      :type torch.Tensor: float
+
+
    .. py:method:: set_object(object)
 
       Sets the object :math:`f_r` used to compute :math:`\frac{\partial V}{\partial f_r}`

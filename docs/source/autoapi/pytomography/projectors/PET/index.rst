@@ -65,6 +65,14 @@ Functions
       :rtype: torch.Tensor
 
 
+   .. py:method:: _get_prior_FOV_scale()
+
+      Sets scaling for the prior within the FOV.
+
+      :returns: Prior scaling
+      :rtype: torch.Tensor
+
+
    .. py:method:: _compute_attenuation_probability_projection(idx)
 
       Computes probabilities of photons being detected along an LORs corresponding to ``idx``.

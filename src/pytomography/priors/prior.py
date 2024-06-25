@@ -33,6 +33,14 @@ class Prior():
             factor (float): Value by which to scale :math:`\beta` 
         """
         self.beta_scale_factor = factor
+        
+    def set_FOV_scale(self, FOV_scale: torch.Tensor) -> None:
+        r"""Sets a positionally dependent scaling factor within the FOV for the prior.
+
+        Args:
+            torch.Tensor (float): Scaling factor
+        """
+        self.FOV_scale = FOV_scale
                 
 
     def set_object(self, object: torch.Tensor) -> None:
@@ -41,7 +49,7 @@ class Prior():
         Args:
             object (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] representing :math:`f_r`.
         """
-        self.object = object
+        self.object = object.clone()
 
     @abc.abstractmethod
     def __call__(self):

@@ -11,7 +11,7 @@ authors = [
 ]
 description = "Package to perform tomographic image reconstruction"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
