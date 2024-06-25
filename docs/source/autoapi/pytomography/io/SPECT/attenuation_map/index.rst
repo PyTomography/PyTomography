@@ -1,11 +1,11 @@
-:py:mod:`pytomography.io.CT.attenuation_map`
-============================================
+:py:mod:`pytomography.io.SPECT.attenuation_map`
+===============================================
 
-.. py:module:: pytomography.io.CT.attenuation_map
+.. py:module:: pytomography.io.SPECT.attenuation_map
 
 .. autoapi-nested-parse::
 
-   This module is used to create attenuation maps from CT images required for SPECT/PET attenuation correction.
+   This module is used to create attenuation maps from CT images required for SPECT/PET attenuation correction using cortical bone peaks. For typical radionuclides, the standard table should be used.
 
 
 
@@ -18,13 +18,13 @@ Functions
 
 .. autoapisummary::
 
-   pytomography.io.CT.attenuation_map.bilinear_transform
-   pytomography.io.CT.attenuation_map.get_HU_from_spectrum_interp
-   pytomography.io.CT.attenuation_map.get_HU_mu_curve
-   pytomography.io.CT.attenuation_map.HU_to_mu
-   pytomography.io.CT.attenuation_map.get_HU_corticalbone
-   pytomography.io.CT.attenuation_map.get_ECT_from_corticalbone_HU
-   pytomography.io.CT.attenuation_map.get_HU2mu_conversion
+   pytomography.io.SPECT.attenuation_map.bilinear_transform
+   pytomography.io.SPECT.attenuation_map.get_HU_from_spectrum_interp
+   pytomography.io.SPECT.attenuation_map.get_HU_mu_curve
+   pytomography.io.SPECT.attenuation_map.HU_to_mu
+   pytomography.io.SPECT.attenuation_map.get_HU_corticalbone
+   pytomography.io.SPECT.attenuation_map.get_ECT_from_corticalbone_HU
+   pytomography.io.SPECT.attenuation_map.get_HU2mu_conversion
 
 
 
@@ -33,11 +33,11 @@ Attributes
 
 .. autoapisummary::
 
-   pytomography.io.CT.attenuation_map.module_path
-   pytomography.io.CT.attenuation_map.DATADIR
-   pytomography.io.CT.attenuation_map.FILE_WATER
-   pytomography.io.CT.attenuation_map.FILE_AIR
-   pytomography.io.CT.attenuation_map.FILE_CBONE
+   pytomography.io.SPECT.attenuation_map.module_path
+   pytomography.io.SPECT.attenuation_map.DATADIR
+   pytomography.io.SPECT.attenuation_map.FILE_WATER
+   pytomography.io.SPECT.attenuation_map.FILE_AIR
+   pytomography.io.SPECT.attenuation_map.FILE_CBONE
 
 
 .. py:data:: module_path

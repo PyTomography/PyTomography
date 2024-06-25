@@ -191,6 +191,7 @@ def get_detector_ids_from_root(
         TOF_bin_edges = tof_meta.bin_edges
     detector_ids_trio = [[],[],[]]
     for i,path in enumerate(paths):
+        print(i)
         with uproot.open(path) as f:
             N_events = f[substr]['sourcePosX1'].array(library='np').shape[0]
             valid_indices = torch.ones(N_events).to(torch.bool)
@@ -396,7 +397,7 @@ def get_norm_sinogram_from_root_data(
     Returns:
         torch.Tensor: PET sinogram
     """
-    eta = get_eta_cylinder_calibration(
+    eta = get_normalization_weights_cylinder_calibration(
         normalization_paths,
         info,
         include_randoms=include_randoms,

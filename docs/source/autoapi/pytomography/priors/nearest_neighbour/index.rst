@@ -48,7 +48,7 @@ Classes
       :type object_meta: ObjectMeta
 
 
-   .. py:method:: _pair_contribution(phi, beta_scale=False, second_order_derivative_object = None, swap_object_and_neighbour = False)
+   .. py:method:: _pair_contribution(phi, beta_scale=False, second_order_derivative_object = None)
 
       Helper function used to compute prior and associated gradients
 
@@ -126,7 +126,7 @@ Classes
 
 
 
-.. py:class:: RelativeDifferencePrior(beta, weight = None, gamma = 1)
+.. py:class:: RelativeDifferencePrior(beta, weight = None, gamma = 1, delta=pytomography.delta)
 
    Bases: :py:obj:`NearestNeighbourPrior`
 

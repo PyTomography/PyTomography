@@ -83,12 +83,14 @@ Functions
    :rtype: torch.Tensor[batch_size, Lx, Ly, Lz]
 
 
-.. py:function:: open_multifile(files)
+.. py:function:: open_multifile(files, return_object_meta = False)
 
    Given a list of seperate DICOM files, opens them up and stacks them together into a single CT image.
 
    :param files: List of CT DICOM filepaths corresponding to different z slices of the same scan.
    :type files: Sequence[str]
+   :param return_object_meta: Whether or not to return object metadata corresponding to opened file
+   :type return_object_meta: bool
 
    :returns: CT scan in units of Hounsfield Units at the effective CT energy.
    :rtype: np.array

@@ -7,10 +7,7 @@ import numpy as np
 from pytomography.projectors import SystemMatrix
 from pytomography.transforms import Transform
 from pytomography.io.PET.shared import listmode_to_sinogram
-try:
-    import parallelproj
-except:
-    Exception('The PETSinogramSystemMatrix requires the parallelproj package to be installed. Please install it at https://parallelproj.readthedocs.io/en/stable/')
+import parallelproj
 
 class PETSinogramSystemMatrix(SystemMatrix):
     r"""System matrix for sinogram-based PET reconstruction. 

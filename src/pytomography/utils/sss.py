@@ -350,18 +350,21 @@ def interpolate_sparse_sinogram(
     lor_coordinates, sinogram_index = sinogram_coordinates(proj_meta.info)
     _, ring_coordinates = sinogram_to_spatial(proj_meta.info)
     # First interpolate r/theta in all seperate oblique planes
-    angular_radial_idx = lor_coordinates[*torch.combinations(torch.arange(proj_meta.info['NrCrystalsPerRing']),2).T].to(torch.float32)
-    angular_radial_idx_sparse = lor_coordinates[*torch.combinations(idx_intraring,2).T]
-    sinogram_plane_idx_sparse = sinogram_index[*torch.cartesian_prod(idx_ring, idx_ring).T]
+    intra_crystal_index_pairs_sparse = torch.combinations(torch.arange(proj_meta.info['NrCrystalsPerRing']),2).T
+    intra_crystal_index_pairs = torch.combinations(idx_intraring,2).T
+    inter_crystal_index_pairs = torch.cartesian_prod(idx_ring, idx_ring).T
+    angular_radial_idx = lor_coordinates[intra_crystal_index_pairs_sparse[0], intra_crystal_index_pairs_sparse[1]]
+    angular_radial_idx_sparse = lor_coordinates[intra_crystal_index_pairs[0], intra_crystal_index_pairs[1]]
+    sinogram_plane_idx_sparse = sinogram_index[inter_crystal_index_pairs[0], inter_crystal_index_pairs[1]]
     interpolator = RBFInterpolator(
         angular_radial_idx_sparse.to(torch.float32).to(pytomography.device),
-        scatter_sinogram_sparse[*angular_radial_idx_sparse.T][:,sinogram_plane_idx_sparse].to(pytomography.device),
+        scatter_sinogram_sparse[angular_radial_idx_sparse.T[0], angular_radial_idx_sparse.T[1]][:,sinogram_plane_idx_sparse].to(pytomography.device),
         kernel='linear',
         device=pytomography.device
     )
-    interp_vals = interpolator(angular_radial_idx.to(pytomography.device))
+    interp_vals = interpolator(angular_radial_idx.to(torch.float32).to(pytomography.device))
     scatter_sinogram_interp_rtheta = torch.zeros(*scatter_sinogram_sparse.shape[:2], sinogram_plane_idx_sparse.shape[0]).to(pytomography.device)
-    scatter_sinogram_interp_rtheta[*angular_radial_idx.to(torch.long).T] = interp_vals
+    scatter_sinogram_interp_rtheta[angular_radial_idx.T[0], angular_radial_idx.T[1]] = interp_vals
     scatter_sinogram_interp_rtheta = scatter_sinogram_interp_rtheta.reshape(scatter_sinogram_interp_rtheta.shape[0], scatter_sinogram_interp_rtheta.shape[1], len(idx_ring), len(idx_ring))
     # Now interpolate Z using grid_sample
     z1_sparse = z2_sparse = ring_coordinates[idx_ring][:,0].cpu().numpy().astype(np.float32)
@@ -462,6 +465,7 @@ def get_sss_scatter_estimate(
         # Get sparse sinogram
         scatter_sinogram_sparse_unscaled = compute_sss_sparse_sinogram(object_meta, proj_meta, pet_image, attenuation_image, image_stepsize, attenuation_cutoff, sinogram_interring_stepsize, sinogram_intraring_stepsize)
         # Interpolate sparse sinogram
+        
         scatter_sinogram_unscaled  = interpolate_sparse_sinogram(scatter_sinogram_sparse_unscaled, proj_meta, *get_sample_detector_ids(proj_meta, sinogram_interring_stepsize, sinogram_intraring_stepsize)[:2])
     else:
         # Get sparse sinogram

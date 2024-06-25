@@ -37,7 +37,7 @@ def get_distance(Lx: int, r: float, dx: float):
     d[d<0] = 0
     return d
 
-def get_object_nearest_neighbour(object: torch.Tensor, shifts: list[int]):
+def get_object_nearest_neighbour(object: torch.Tensor, shifts: list[int], mode='replicate'):
     """Given an object tensor, finds the nearest neighbour (corresponding to ``shifts``) for each voxel (done by shifting object by i,j,k)
 
     Args:
@@ -52,7 +52,7 @@ def get_object_nearest_neighbour(object: torch.Tensor, shifts: list[int]):
         return object
     else:
         shifts = [-shift for shift in shifts]
-        neighbour = pad(object, 6*[shift_max])
+        neighbour = pad(object.unsqueeze(0), 6*[shift_max], mode=mode).squeeze()
         neighbour = torch.roll(neighbour, shifts=shifts, dims=(0,1,2)) 
         return neighbour[shift_max:-shift_max,shift_max:-shift_max,shift_max:-shift_max]
 

@@ -15,8 +15,8 @@ The tutorials use data that can be downloaded [here](https://drive.google.com/dr
 * {doc}`notebooks/t_PETGATE_DIP`
 * {doc}`notebooks/t_GE_HDF5`
 
+## CT
+* {doc}`notebooks/t_CT_GEN3`
+
 ## Developer Guide
 * {doc}`notebooks/t_examplesystemmatrix`
-
-## Misc
-* {doc}`notebooks/t_fbp`
