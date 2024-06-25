@@ -28,6 +28,5 @@ Submodules
    gate/index.rst
    petsird/index.rst
    shared/index.rst
-   shared copy/index.rst
 
 

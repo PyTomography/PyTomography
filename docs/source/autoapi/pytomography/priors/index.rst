@@ -65,6 +65,14 @@ Classes
       :type factor: float
 
 
+   .. py:method:: set_FOV_scale(FOV_scale)
+
+      Sets a positionally dependent scaling factor within the FOV for the prior.
+
+      :param torch.Tensor: Scaling factor
+      :type torch.Tensor: float
+
+
    .. py:method:: set_object(object)
 
       Sets the object :math:`f_r` used to compute :math:`\frac{\partial V}{\partial f_r}`
@@ -100,7 +108,7 @@ Classes
       :type object_meta: ObjectMeta
 
 
-   .. py:method:: _pair_contribution(phi, beta_scale=False, second_order_derivative_object = None, swap_object_and_neighbour = False)
+   .. py:method:: _pair_contribution(phi, beta_scale=False, second_order_derivative_object = None)
 
       Helper function used to compute prior and associated gradients
 
@@ -178,7 +186,7 @@ Classes
 
 
 
-.. py:class:: RelativeDifferencePrior(beta, weight = None, gamma = 1)
+.. py:class:: RelativeDifferencePrior(beta, weight = None, gamma = 1, delta=pytomography.delta)
 
    Bases: :py:obj:`NearestNeighbourPrior`
 

@@ -55,6 +55,7 @@ class GaussianFilter(Transform):
             object = object.swapaxes(i,2)
             new_shape = object.shape
             object = object.reshape(-1,1,object.shape[i])
+            # TODO: why is this i-1??
             object = conv1d(object, self.kernels[i-1], padding='same')
             object = object.reshape(new_shape)
             object= object.swapaxes(i,2)

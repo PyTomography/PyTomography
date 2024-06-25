@@ -22,9 +22,10 @@ Functions
    pytomography.io.SPECT.dicom.get_attenuation_map_from_file
    pytomography.io.SPECT.dicom.get_psfmeta_from_scanner_params
    pytomography.io.SPECT.dicom.CT_to_mumap
+   pytomography.io.SPECT.dicom.bilinear_transform
+   pytomography.io.SPECT.dicom.get_HU2mu_conversion
    pytomography.io.SPECT.dicom.get_attenuation_map_from_CT_slices
    pytomography.io.SPECT.dicom._get_affine_spect_projections
-   pytomography.io.SPECT.dicom.load_multibed_projections
    pytomography.io.SPECT.dicom.load_multibed_projections
    pytomography.io.SPECT.dicom.stitch_multibed
    pytomography.io.SPECT.dicom.get_aligned_rtstruct
@@ -162,7 +163,7 @@ Functions
    :rtype: SPECTPSFMeta
 
 
-.. py:function:: CT_to_mumap(CT, files_CT, file_NM, index_peak=0)
+.. py:function:: CT_to_mumap(CT, files_CT, file_NM, index_peak = 0, technique = 'from_table')
 
    Converts a CT image to a mu-map given SPECT projection data. The CT data must be aligned with the projection data already; this is a helper function for ``get_attenuation_map_from_CT_slices``.
 
@@ -174,12 +175,48 @@ Functions
    :type file_NM: str
    :param index_peak: Index of EnergyInformationSequence corresponding to the photopeak. Defaults to 0.
    :type index_peak: int, optional
+   :param technique: Technique to convert HU to attenuation coefficients. The default, 'from_table', uses a table of coefficients for bilinear curves obtained for a variety of common radionuclides. The technique 'from_cortical_bone_fit' looks for a cortical bone peak in the scan and uses that to obtain the bilinear coefficients. For phantom scans where the attenuation coefficient is always significantly less than bone, the cortical bone technique will still work, since the first part of the bilinear curve (in the air to water range) does not depend on the cortical bone fit. Alternatively, one can provide an arbitrary function here which takes in a 3D scan with units of HU and converts to mu.
+   :type technique: str, optional
 
    :returns: Attenuation map in units of 1/cm
    :rtype: torch.tensor
 
 
-.. py:function:: get_attenuation_map_from_CT_slices(files_CT, file_NM = None, index_peak = 0, keep_as_HU = False, mode = 'constant', CT_output_shape = None, apply_affine = True)
+.. py:function:: bilinear_transform(HU, a1, a2, b1, b2)
+
+   Function used to convert between Hounsfield Units at an effective CT energy and linear attenuation coefficient at a given SPECT radionuclide energy. It consists of two distinct linear curves in regions :math:`HU<0` and :math:`HU \geq 0`.
+
+   :param HU: Hounsfield units at CT energy
+   :type HU: float
+   :param a1: Fit parameter 1
+   :type a1: float
+   :param a2: Fit parameter 2
+   :type a2: float
+   :param b1: Fit parameter 3
+   :type b1: float
+   :param b2: Fit parameter 4
+   :type b2: float
+
+   :returns: Linear attenuation coefficient at SPECT energy
+   :rtype: float
+
+
+.. py:function:: get_HU2mu_conversion(files_CT, E_SPECT)
+
+   Obtains the HU to mu conversion function that converts CT data to the required linear attenuation value in units of 1/cm required for attenuation correction in SPECT/PET imaging.
+
+   :param files_CT: CT data files
+   :type files_CT: Sequence[str]
+   :param CT_kvp: kVp value for CT scan
+   :type CT_kvp: float
+   :param E_SPECT: Energy of photopeak in SPECT scan
+   :type E_SPECT: float
+
+   :returns: Conversion function from HU to mu.
+   :rtype: function
+
+
+.. py:function:: get_attenuation_map_from_CT_slices(files_CT, file_NM = None, index_peak = 0, mode = 'constant', HU2mu_technique = 'from_table')
 
    Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography.
 
@@ -189,12 +226,10 @@ Functions
    :type file_NM: str
    :param index_peak: Index corresponding to photopeak in projection data. Defaults to 0.
    :type index_peak: int, optional
-   :param keep_as_HU: If True, then don't convert to linear attenuation coefficient and keep as Hounsfield units. Defaults to False
-   :type keep_as_HU: bool
-   :param CT_output_shape: If not None, then the CT is returned with the desired dimensions. Otherwise, it defaults to the shape in the file_NM data.
-   :type CT_output_shape: Sequence, optional
-   :param apply_affine: Whether or not to align CT with NM.
-   :type apply_affine: bool
+   :param mode: Mode for affine transformation interpolation
+   :type mode: str
+   :param HU2mu_technique: Technique to convert HU to attenuation coefficients. The default, 'from_table', uses a table of coefficients for bilinear curves obtained for a variety of common radionuclides. The technique 'from_cortical_bone_fit' looks for a cortical bone peak in the scan and uses that to obtain the bilinear coefficients. For phantom scans where the attenuation coefficient is always significantly less than bone, the cortical bone technique will still work, since the first part of the bilinear curve (in the air to water range) does not depend on the cortical bone fit. Alternatively, one can provide an arbitrary function here which takes in a 3D scan with units of HU and converts to mu.
+   :type HU2mu_technique: str
 
    :returns: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.
    :rtype: torch.Tensor
@@ -209,21 +244,6 @@ Functions
 
    :returns: Affine matrix
    :rtype: np.array
-
-
-.. py:function:: load_multibed_projections(files_NM, index_lower = 20, index_upper = 106)
-
-   This function loads projection data from each of the files in files_NM; for locations outside the FOV in each projection, it appends the data from the adjacent projection. The field of view (in z) is specified by ``index_lower`` and ``index_upper``. The default values of 20 and 106 seem to be sufficient for most scanners.
-
-   :param files_NM: Filespaths for each of the projections
-   :type files_NM: str
-   :param index_lower: Z-pixel index specifying the lower boundary of the FOV. Defaults to 20.
-   :type index_lower: int, optional
-   :param index_upper: Z-pixel index specifying the upper boundary of the FOV. Defaults to 106.
-   :type index_upper: int, optional
-
-   :returns: Tensor of shape ``[N_bed_positions, N_energy_windows, Ltheta, Lr, Lz]``.
-   :rtype: torch.Tensor
 
 
 .. py:function:: load_multibed_projections(files_NM)

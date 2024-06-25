@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Sequence
+from typing import Sequence, Callable
 import torch
 import pytomography
 from pytomography.utils import rotate_detector_z, rev_cumsum, pad_object, unpad_object
@@ -28,6 +28,7 @@ class SPECTAttenuationTransform(Transform):
 		filepath (Sequence[str]): Folder location of CT scan; all .dcm files must correspond to different slices of the same scan.
 		mode (str): Mode used for extrapolation of CT beyond edges when aligning DICOM SPECT/CT data. Defaults to `'constant'`, which means the image is padded with zeros.
 		assume_padded (bool): Assumes objects and projections fed into forward and backward methods are padded, as they will be in reconstruction algorithms
+		HU2mu_technique (str): Technique to convert HU to attenuation coefficients. The default, 'from_table', uses a table of coefficients for bilinear curves obtained for a variety of common radionuclides. The technique 'from_cortical_bone_fit' looks for a cortical bone peak in the scan and uses that to obtain the bilinear coefficients. For phantom scans where the attenuation coefficient is always significantly less than bone, the corticol bone technique will still work, since the first part of the bilinear curve (in the air to water range) does not depend on the cortical bone fit. Alternatively, one can provide an arbitrary function here which takes in a 3D scan with units of HU and converts to mu.
 	"""
 	def __init__(
 		self,
@@ -35,6 +36,7 @@ class SPECTAttenuationTransform(Transform):
 		filepath: Sequence[str] | None = None,
 		mode: str = 'constant',
 		assume_padded: bool = True,
+		HU2mu_technique: str | Callable = 'from_table'
 		)-> None:
 		super(SPECTAttenuationTransform, self).__init__()
 		self.filepath = filepath
@@ -49,6 +51,7 @@ class SPECTAttenuationTransform(Transform):
 			self.CT_unaligned_numpy = open_multifile(filepath)
 			# Will then get aligned with projections when configured
 		self.assume_padded = assume_padded
+		self.HU2mu_technique = HU2mu_technique
 	 
 	def configure(
 		self,
@@ -64,7 +67,7 @@ class SPECTAttenuationTransform(Transform):
 		super(SPECTAttenuationTransform, self).configure(object_meta, proj_meta)
 		# Align CT with SPECT and rescale units TODO: If CT extends beyond boundaries
 		if self.filepath is not None:
-			self.attenuation_map = get_attenuation_map_from_CT_slices(self.filepath, proj_meta.filepath, proj_meta.index_peak, mode=self.mode)
+			self.attenuation_map = get_attenuation_map_from_CT_slices(self.filepath, proj_meta.filepath, proj_meta.index_peak, mode=self.mode, HU2mu_technique=self.HU2mu_technique)
 				
 	@torch.no_grad()
 	def forward(

@@ -45,6 +45,14 @@ Classes
       :rtype: torch.Tensor
 
 
+   .. py:method:: _get_prior_FOV_scale()
+
+      Sets scaling for the prior within the FOV.
+
+      :returns: Prior scaling
+      :rtype: torch.Tensor
+
+
    .. py:method:: forward(object, **kwargs)
       :abstractmethod:
 

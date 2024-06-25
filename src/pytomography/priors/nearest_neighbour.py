@@ -38,38 +38,41 @@ class NearestNeighbourPrior(Prior):
         """
         self.weight.set_object_meta(object_meta)
         self.object_meta = object_meta
+        # Set to ones, but possibly updated by recon algorithm in reconstruction
+        self.FOV_scale = torch.ones(self.object_meta.shape).to(pytomography.device)
         
     @torch.no_grad()
-    def _pair_contribution(self, phi: Callable, beta_scale=False, second_order_derivative_object: torch.Tensor | None = None, swap_object_and_neighbour: bool = False) -> torch.tensor:
+    def _pair_contribution(self, phi: Callable, beta_scale=False, second_order_derivative_object: torch.Tensor | None = None) -> torch.tensor:
         r"""Helper function used to compute prior and associated gradients
 
         Returns:
             torch.tensor: Tensor of shape [batch_size, Lx, Ly, Lz].
         """
         object_return = torch.zeros(self.object.shape).to(self.device)
+        valid_points = torch.ones(self.object.shape).to(pytomography.device)
+        total_weight = torch.zeros(self.object.shape).to(pytomography.device)
         for i in [-1,0,1]:
             for j in [-1,0,1]:
                 for k in [-1,0,1]:
                     if (i==0)*(j==0)*(k==0):
                         continue
+                    valid_points_ijk = get_object_nearest_neighbour(valid_points, (i,j,k))
+                    total_weight += valid_points*valid_points_ijk * self.weight((i,j,k))
                     neighbour = get_object_nearest_neighbour(self.object, (i,j,k))
                     # Only done when computing higher order derivatives for error computation
                     if second_order_derivative_object is not None:
-                        if swap_object_and_neighbour:
-                            second_order_derivative_object_neighbour = get_object_nearest_neighbour(second_order_derivative_object, (i,j,k))
-                            object_return += phi(neighbour, self.object) * second_order_derivative_object_neighbour * self.weight((i,j,k))
-                        else:
-                            object_return += phi(self.object, neighbour) * second_order_derivative_object * self.weight((i,j,k))
+                        second_order_derivative_object_neighbour = get_object_nearest_neighbour(second_order_derivative_object, (i,j,k))
+                        object_return += phi(self.object, neighbour) * second_order_derivative_object_neighbour * self.weight((i,j,k)) * valid_points_ijk * valid_points
                     # Done for regular computation of priors
                     else:
-                        object_return += phi(self.object, neighbour) * self.weight((i,j,k))
+                        object_return += phi(self.object, neighbour) * self.weight((i,j,k)) * valid_points_ijk * valid_points
         for transform in self.obj2obj_transforms:
             object_return = transform.forward(object_return)
         if beta_scale:
             scale_factor = self.beta_scale_factor
         else:
             scale_factor = 1
-        return self.beta * scale_factor * object_return
+        return self.beta * scale_factor * object_return * self.FOV_scale
     
     def phi0(self, fr, fs):
         raise NotImplementedError(f"Prior evaluation not implemented")
@@ -100,8 +103,8 @@ class NearestNeighbourPrior(Prior):
         elif derivative_order==1:
             return self._pair_contribution(self.phi1, beta_scale=True)
         elif derivative_order==2:
-            diagonal_component = self._pair_contribution(self.phi2_1, second_order_derivative_object=torch.ones(self.object.shape).to(pytomography.device), beta_scale=True)
-            blur_component = lambda input: self._pair_contribution(self.phi2_2, second_order_derivative_object = input, swap_object_and_neighbour=True, beta_scale=True)
+            diagonal_component = self._pair_contribution(self.phi2_1, beta_scale=True)
+            blur_component = lambda input: self._pair_contribution(self.phi2_2, second_order_derivative_object = input, beta_scale=True)
             return lambda input: diagonal_component * input + blur_component(input)
         else:
             raise NotImplementedError(f"Prior not implemented for derivative order >2")
@@ -165,20 +168,21 @@ class RelativeDifferencePrior(NearestNeighbourPrior):
         beta: float,
         weight: NeighbourWeight | None = None,
         gamma: float = 1,
+        delta = pytomography.delta
     ) -> None:
-        super(RelativeDifferencePrior, self).__init__(beta, weight=weight, gamma = gamma)
+        super(RelativeDifferencePrior, self).__init__(beta, weight=weight, gamma = gamma, delta=delta)
         
     def phi0(self, fr, fs):
-        return (fr-fs)**2 / (fr + fs + self.gamma*torch.abs(fr-fs) + pytomography.delta)
+        return (fr-fs)**2 / (fr + fs + self.gamma*torch.abs(fr-fs) + self.delta)
     
     def phi1(self, fr, fs):
-        return (2*(fr-fs)*(self.gamma*torch.abs(fr-fs)+3*fs+fr) + pytomography.delta) / ((fr + fs + self.gamma*torch.abs(fr-fs))**2 + pytomography.delta)
+        return ((fr-fs)*(self.gamma*torch.abs(fr-fs)+3*fs+fr + 2*self.delta)) / ((fr + fs + self.gamma*torch.abs(fr-fs)+ self.delta)**2)
     
     def phi2_1(self, fr, fs):
-        return 16*fs**2 / ((self.gamma*torch.abs(fr-fs) + fr + fs)**3 + pytomography.delta)
+        return (2*(2*fs+self.delta)**2) / ((self.gamma*torch.abs(fr-fs) + fr + fs + self.delta)**3)
     
     def phi2_2(self, fr, fs):
-        return -16*fr*fs / ((self.gamma*torch.abs(fr-fs) + fr + fs)**3 + pytomography.delta)
+        return -(2*(2*fr+self.delta)*(2*fs+self.delta)) / ((self.gamma*torch.abs(fr-fs) + fr + fs + self.delta)**3)
         
 class NeighbourWeight():
     r"""Abstract class for assigning weight :math:`w_{r,s}` in nearest neighbour priors. 

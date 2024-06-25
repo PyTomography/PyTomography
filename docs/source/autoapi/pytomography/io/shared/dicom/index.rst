@@ -16,6 +16,7 @@ Functions
    pytomography.io.shared.dicom._get_affine_multifile
    pytomography.io.shared.dicom.open_multifile
    pytomography.io.shared.dicom.compute_max_slice_loc_multifile
+   pytomography.io.shared.dicom.compute_min_slice_loc_multifile
    pytomography.io.shared.dicom.compute_slice_thickness_multifile
    pytomography.io.shared.dicom.align_images_affine
 
@@ -34,12 +35,14 @@ Functions
    :rtype: np.array
 
 
-.. py:function:: open_multifile(files)
+.. py:function:: open_multifile(files, return_object_meta = False)
 
    Given a list of seperate DICOM files, opens them up and stacks them together into a single CT image.
 
    :param files: List of CT DICOM filepaths corresponding to different z slices of the same scan.
    :type files: Sequence[str]
+   :param return_object_meta: Whether or not to return object metadata corresponding to opened file
+   :type return_object_meta: bool
 
    :returns: CT scan in units of Hounsfield Units at the effective CT energy.
    :rtype: np.array
@@ -53,6 +56,17 @@ Functions
    :type files: Sequence[str]
 
    :returns: Maximum z location
+   :rtype: float
+
+
+.. py:function:: compute_min_slice_loc_multifile(files)
+
+   Obtains the minimum z-location from a list of DICOM slice files
+
+   :param files: List of DICOM filepaths corresponding to different z slices of the same scan.
+   :type files: Sequence[str]
+
+   :returns: Minimum location
    :rtype: float
 
 
