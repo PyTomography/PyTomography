@@ -96,7 +96,7 @@ def get_1D_PSF_layer(
     layer = nn.Conv1d(N, N, kernel_size, groups=N, padding='same',
                     padding_mode='zeros', bias=0, device=pytomography.device)
     x = torch.arange(-int(kernel_size//2), int(kernel_size//2)+1).to(pytomography.device).unsqueeze(0).unsqueeze(0).repeat((N,1,1))
-    sigmas = torch.tensor(sigmas).to(pytomography.device).to(pytomography.dtype).reshape((N,1,1))
+    sigmas = torch.tensor(sigmas).to(pytomography.dtype).to(pytomography.device).reshape((N,1,1))
     kernel = torch.exp(-x**2 / (2*sigmas**2 + pytomography.delta))
     kernel = kernel / kernel.sum(axis=-1).unsqueeze(-1)
     layer.weight.data = kernel.to(pytomography.dtype)
