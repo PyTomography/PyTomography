@@ -15,6 +15,7 @@ Subpackages
    :titlesonly:
    :maxdepth: 3
 
+   CT/index.rst
    PET/index.rst
    SPECT/index.rst
 

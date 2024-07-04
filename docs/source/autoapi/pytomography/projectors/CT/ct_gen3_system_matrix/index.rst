@@ -1,0 +1,107 @@
+:py:mod:`pytomography.projectors.CT.ct_gen3_system_matrix`
+==========================================================
+
+.. py:module:: pytomography.projectors.CT.ct_gen3_system_matrix
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pytomography.projectors.CT.ct_gen3_system_matrix.CTGen3SystemMatrix
+
+
+
+
+.. py:class:: CTGen3SystemMatrix(object_meta, proj_meta, N_splits = 1, device = pytomography.device)
+
+   Bases: :py:obj:`pytomography.projectors.SystemMatrix`
+
+   System matrix for 3rd generation clinical DICOM scanners with cylindrical detector panels. For more information, see the DICOM-CTPD user manual.
+
+   :param object_meta: Metadata for object space
+   :type object_meta: ObjectMeta
+   :param proj_meta: Projection metadata for the CT system
+   :type proj_meta: CTConeBeamFlatPanelProjMeta
+   :param N_splits: Splits up computation of forward/back projection to save GPU memory. Defaults to 1.
+   :type N_splits: int, optional
+   :param device: Device on which projections are output. Defaults to pytomography.device.
+   :type device: str, optional
+
+   .. py:method:: get_weighting_subset(subset_idx)
+
+      Computes the relative weighting of a given subset (given that the projection space is reduced). This is used for scaling parameters relative to :math:`\tilde{H}_m^T 1` in reconstruction algorithms, such as prior weighting :math:`\beta`
+
+      :param subset_idx: Subset index
+      :type subset_idx: int
+
+      :returns: Weighting for the subset.
+      :rtype: float
+
+
+   .. py:method:: get_projection_subset(projections, subset_idx)
+
+      Obtains subsampled projections :math:`g_m` corresponding to subset index :math:`m`. CT conebeam flat panel partitions projections based on angle.
+
+      :param projections: total projections :math:`g`
+      :type projections: torch.Tensor
+      :param subset_idx: subset index :math:`m`
+      :type subset_idx: int
+
+      :returns: subsampled projections :math:`g_m`.
+      :rtype: torch.Tensor
+
+
+   .. py:method:: set_n_subsets(n_subsets)
+
+      Returns a list where each element consists of an array of indices corresponding to a partitioned version of the projections.
+
+      :param n_subsets: Number of subsets to partition the projections into
+      :type n_subsets: int
+
+      :returns: List of arrays where each array corresponds to the projection indices of a particular subset.
+      :rtype: list
+
+
+   .. py:method:: compute_normalization_factor(subset_idx)
+
+      Computes the normalization factor :math:`H^T 1`
+
+      :param subset_idx: Subset index for ths sinogram. If None, considers all elements. Defaults to None..
+      :type subset_idx: int, optional
+
+      :returns: Normalization factor.
+      :rtype: torch.Tensor
+
+
+   .. py:method:: forward(object, subset_idx=None, *args, **kwargs)
+
+      Computes forward projection
+
+      :param object: Object to be forward projected
+      :type object: torch.Tensor
+      :param subset_idx: Subset index :math:`m` of the projection. If None, then projects to entire projection space. Defaults to None.
+      :type subset_idx: int | None, optional
+
+      :returns: Projections corresponding to :math:`\int \mu dx` along all LORs.
+      :rtype: torch.Tensor
+
+
+   .. py:method:: backward(proj, subset_idx=None, *args, **kwargs)
+
+      Computes back projection
+
+      :param object: Object to be forward projected
+      :type object: torch.Tensor
+      :param subset_idx: Subset index :math:`m` of the projection. If None, then projects to entire projection space. Defaults to None.
+      :type subset_idx: int | None, optional
+
+      :returns: Projections corresponding to :math:`\int \mu dx` along all LORs.
+      :rtype: torch.Tensor
+
+
+

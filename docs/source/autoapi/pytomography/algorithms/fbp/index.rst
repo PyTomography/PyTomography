@@ -22,7 +22,7 @@ Classes
 
 
 
-.. py:class:: FilteredBackProjection(projections, system_matrix, filter=None)
+.. py:class:: FilteredBackProjection(projections, system_matrix, filter=RampFilter)
 
    Implementation of filtered back projection reconstruction :math:`\hat{f} = \frac{\pi}{N_{\text{proj}}} \mathcal{R}^{-1}\mathcal{F}^{-1}\Pi\mathcal{F} g` where :math:`N_{\text{proj}}` is the number of projections, :math:`\mathcal{R}` is the 3D radon transform, :math:`\mathcal{F}` is the 2D Fourier transform (applied to each projection seperately), and :math:`\Pi` is the filter applied in Fourier space, which is by default the ramp filter.
 
@@ -33,7 +33,7 @@ Classes
    :param filter: Additional Fourier space filter (applied after Ramp Filter) used during reconstruction.
    :type filter: Callable, optional
 
-   .. py:method:: __call__()
+   .. py:method:: __call__(projections)
 
       Applies reconstruction
 

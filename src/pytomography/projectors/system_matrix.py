@@ -44,7 +44,15 @@ class SystemMatrix():
         if device is None:
             device = pytomography.device
         return torch.ones(self.object_meta.shape).to(device)
-            
+    
+    def _get_prior_FOV_scale(self):
+        """Sets scaling for the prior within the FOV.
+
+        Returns:
+            torch.Tensor: Prior scaling
+        """
+        return torch.ones(self.object_meta.shape).to(pytomography.device)
+    
     @abc.abstractmethod
     def forward(self, object: torch.tensor, **kwargs):
         r"""Implements forward projection :math:`Hf` on an object :math:`f`.

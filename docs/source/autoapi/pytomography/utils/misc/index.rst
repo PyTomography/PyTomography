@@ -49,7 +49,7 @@ Functions
    :rtype: np.array[Lx]
 
 
-.. py:function:: get_object_nearest_neighbour(object, shifts)
+.. py:function:: get_object_nearest_neighbour(object, shifts, mode='replicate')
 
    Given an object tensor, finds the nearest neighbour (corresponding to ``shifts``) for each voxel (done by shifting object by i,j,k)
 

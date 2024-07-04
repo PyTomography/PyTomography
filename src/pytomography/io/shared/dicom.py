@@ -2,8 +2,11 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Sequence
 import numpy as np
+import torch
 import numpy.linalg as npl
 from scipy.ndimage import affine_transform
+import pytomography
+from pytomography.metadata import ObjectMeta
 import pydicom
 
 def _get_affine_multifile(files: Sequence[str]):
@@ -18,24 +21,30 @@ def _get_affine_multifile(files: Sequence[str]):
     """
     # Note: per DICOM convention z actually decreases as the z-index increases (initial z slices start with the head)
     ds = pydicom.read_file(files[0])
+    dx, dy = ds.PixelSpacing
     dz = compute_slice_thickness_multifile(files)
-    max_z = compute_max_slice_loc_multifile(files)
+    orientation = ds.ImageOrientationPatient
+    Xxyz = orientation[:3]
+    Yxyz = orientation[3:]
+    Zxyz = np.cross(Xxyz, Yxyz)
+    Sx, Sy = ds.ImagePositionPatient[:2]
+    Sz = compute_min_slice_loc_multifile(files)
     M = np.zeros((4, 4))
-    M[0:3, 0] = np.array(ds.ImageOrientationPatient[0:3]) * ds.PixelSpacing[0]
-    M[0:3, 1] = np.array(ds.ImageOrientationPatient[3:]) * ds.PixelSpacing[1]
-    M[0:3, 2] = -np.array([0, 0, 1]) * dz
-    M[0:2, 3] = np.array(ds.ImagePositionPatient)[0:2]
-    M[2, 3] = max_z
-    M[3, 3] = 1
+    M[0] = np.array([dx*Xxyz[0], dy*Yxyz[0], dz*Zxyz[0], Sx])
+    M[1] = np.array([dx*Xxyz[1], dy*Yxyz[1], dz*Zxyz[1], Sy])
+    M[2] = np.array([dx*Xxyz[2], dy*Yxyz[2], dz*Zxyz[2], Sz])
+    M[3] = np.array([0, 0, 0, 1])
     return M
 
 def open_multifile(
     files: Sequence[str],
-    ) -> np.array:
+    return_object_meta: bool = False
+    ) -> torch.Tensor:
     """Given a list of seperate DICOM files, opens them up and stacks them together into a single CT image. 
 
     Args:
         files (Sequence[str]): List of CT DICOM filepaths corresponding to different z slices of the same scan.
+        return_object_meta (bool): Whether or not to return object metadata corresponding to opened file
 
     Returns:
         np.array: CT scan in units of Hounsfield Units at the effective CT energy.
@@ -46,8 +55,17 @@ def open_multifile(
         ds = pydicom.read_file(file)
         array.append(ds.RescaleSlope*ds.pixel_array+ ds.RescaleIntercept)
         slice_locs.append(float(ds.ImagePositionPatient[2]))
-    array = np.transpose(np.array(array)[np.argsort(slice_locs)[::-1]], (2,1,0)).astype(np.float32)
-    return array[:,:,::-1].copy()
+    array = np.transpose(np.array(array)[np.argsort(slice_locs)], (2,1,0)).astype(np.float32)
+    array = torch.tensor(array).to(pytomography.device)
+    if not return_object_meta:
+        return array
+    else:
+        dx, dy = ds.PixelSpacing
+        dz = compute_slice_thickness_multifile(files)
+        shape = array.shape
+        object_meta = ObjectMeta(dr=(dx,dy,dz), shape=shape)
+        object_meta.affine_matrix = _get_affine_multifile(file)
+        return array, object_meta
 
 def compute_max_slice_loc_multifile(files: Sequence[str]) -> float:
     """Obtains the maximum z-location from a list of DICOM slice files
@@ -63,6 +81,21 @@ def compute_max_slice_loc_multifile(files: Sequence[str]) -> float:
         ds = pydicom.read_file(file)
         slice_locs.append(float(ds.ImagePositionPatient[2]))
     return np.max(slice_locs)
+
+def compute_min_slice_loc_multifile(files: Sequence[str]) -> float:
+    """Obtains the minimum z-location from a list of DICOM slice files
+
+    Args:
+        files (Sequence[str]): List of DICOM filepaths corresponding to different z slices of the same scan.
+
+    Returns:
+        float: Minimum location
+    """
+    slice_locs = []
+    for file in files:
+        ds = pydicom.read_file(file)
+        slice_locs.append(float(ds.ImagePositionPatient[2]))
+    return np.min(slice_locs)
 
 def compute_slice_thickness_multifile(files: Sequence[str]) -> float:
     """Compute the slice thickness for files that make up a scan. Though this information is often contained in the DICOM file, it is sometimes inconsistent with the ImagePositionPatient attribute, which gives the true location of the slices.
@@ -84,12 +117,12 @@ def align_images_affine(im_fixed, im_moving, affine_fixed, affine_moving, cval =
     # Note: must flip along Z to match affine 
     affine = npl.inv(affine_moving) @ affine_fixed
     im_moving_adjusted = affine_transform(
-        im_moving[:,:,::-1],
+        im_moving,
         affine,
         output_shape=im_fixed.shape,
         mode='constant',
         order=1,
         cval=cval
-    )[:,:,::-1]
+    )
     return im_moving_adjusted
     

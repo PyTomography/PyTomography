@@ -15,6 +15,7 @@ Subpackages
    :titlesonly:
    :maxdepth: 3
 
+   CT/index.rst
    PET/index.rst
    SPECT/index.rst
    shared/index.rst
@@ -67,6 +68,14 @@ Classes
       Returns an initial object estimate used in reconstruction algorithms. By default, this is a tensor of ones with the same shape as the object metadata.
 
       :returns: Initial object used in image reconstruction algorithms.
+      :rtype: torch.Tensor
+
+
+   .. py:method:: _get_prior_FOV_scale()
+
+      Sets scaling for the prior within the FOV.
+
+      :returns: Prior scaling
       :rtype: torch.Tensor
 
 

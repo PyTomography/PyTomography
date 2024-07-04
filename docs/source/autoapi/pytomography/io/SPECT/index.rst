@@ -15,6 +15,7 @@ Submodules
    :titlesonly:
    :maxdepth: 1
 
+   attenuation_map/index.rst
    dicom/index.rst
    shared/index.rst
    simind/index.rst
@@ -77,7 +78,7 @@ Functions
    :rtype: torch.Tensor
 
 
-.. py:function:: get_attenuation_map_from_CT_slices(files_CT, file_NM = None, index_peak = 0, keep_as_HU = False, mode = 'constant', CT_output_shape = None, apply_affine = True)
+.. py:function:: get_attenuation_map_from_CT_slices(files_CT, file_NM = None, index_peak = 0, mode = 'constant', HU2mu_technique = 'from_table')
 
    Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography.
 
@@ -87,12 +88,10 @@ Functions
    :type file_NM: str
    :param index_peak: Index corresponding to photopeak in projection data. Defaults to 0.
    :type index_peak: int, optional
-   :param keep_as_HU: If True, then don't convert to linear attenuation coefficient and keep as Hounsfield units. Defaults to False
-   :type keep_as_HU: bool
-   :param CT_output_shape: If not None, then the CT is returned with the desired dimensions. Otherwise, it defaults to the shape in the file_NM data.
-   :type CT_output_shape: Sequence, optional
-   :param apply_affine: Whether or not to align CT with NM.
-   :type apply_affine: bool
+   :param mode: Mode for affine transformation interpolation
+   :type mode: str
+   :param HU2mu_technique: Technique to convert HU to attenuation coefficients. The default, 'from_table', uses a table of coefficients for bilinear curves obtained for a variety of common radionuclides. The technique 'from_cortical_bone_fit' looks for a cortical bone peak in the scan and uses that to obtain the bilinear coefficients. For phantom scans where the attenuation coefficient is always significantly less than bone, the cortical bone technique will still work, since the first part of the bilinear curve (in the air to water range) does not depend on the cortical bone fit. Alternatively, one can provide an arbitrary function here which takes in a 3D scan with units of HU and converts to mu.
+   :type HU2mu_technique: str
 
    :returns: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.
    :rtype: torch.Tensor
@@ -140,7 +139,7 @@ Functions
    :rtype: SPECTPSFMeta
 
 
-.. py:function:: CT_to_mumap(CT, files_CT, file_NM, index_peak=0)
+.. py:function:: CT_to_mumap(CT, files_CT, file_NM, index_peak = 0, technique = 'from_table')
 
    Converts a CT image to a mu-map given SPECT projection data. The CT data must be aligned with the projection data already; this is a helper function for ``get_attenuation_map_from_CT_slices``.
 
@@ -152,6 +151,8 @@ Functions
    :type file_NM: str
    :param index_peak: Index of EnergyInformationSequence corresponding to the photopeak. Defaults to 0.
    :type index_peak: int, optional
+   :param technique: Technique to convert HU to attenuation coefficients. The default, 'from_table', uses a table of coefficients for bilinear curves obtained for a variety of common radionuclides. The technique 'from_cortical_bone_fit' looks for a cortical bone peak in the scan and uses that to obtain the bilinear coefficients. For phantom scans where the attenuation coefficient is always significantly less than bone, the cortical bone technique will still work, since the first part of the bilinear curve (in the air to water range) does not depend on the cortical bone fit. Alternatively, one can provide an arbitrary function here which takes in a 3D scan with units of HU and converts to mu.
+   :type technique: str, optional
 
    :returns: Attenuation map in units of 1/cm
    :rtype: torch.tensor
