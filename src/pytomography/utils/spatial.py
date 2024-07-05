@@ -159,7 +159,7 @@ def euler_angle_transform(object: torch.Tensor, tx: float, ty: float, tz: float,
     Returns:
         torch.Tensor[batch_size, Lx, Ly, Lz]: Reoriented object
     """
-    object = object.numpy() if isinstance(object, torch.Tensor) else object 
+    object = object.cpu().numpy() if isinstance(object, torch.Tensor) else object 
     object = object.squeeze() 
     
     beta, alpha, gamma = np.deg2rad(beta), np.deg2rad(alpha), np.deg2rad(gamma)
@@ -185,4 +185,4 @@ def euler_angle_transform(object: torch.Tensor, tx: float, ty: float, tz: float,
     reoriented_object = affine_transform(object, affine_matrix, offset=translation, order=1)
     reoriented_object = np.expand_dims(reoriented_object, axis=0)
     
-    return torch.tensor(reoriented_object)
+    return torch.tensor(reoriented_object).to(pytomography.dtype).to(pytomography.device)
