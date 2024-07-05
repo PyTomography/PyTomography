@@ -2,6 +2,7 @@ from __future__ import annotations
 import torch
 from torch.nn.functional import pad
 from kornia.geometry.transform import rotate
+from scipy.ndimage import affine_transform
 import numpy as np
 
 def rotate_detector_z(
@@ -143,76 +144,45 @@ def unpad_object_z(object: torch.Tensor, pad_size: int):
     
     return object[:,:,pad_size:-pad_size]
 
-def plot_slices(volume, title, batch_idx=0):
-    print(f"Volume shape: {volume.shape}")  # Debugging print
-    batch_volume = volume[batch_idx]
-    print(f"Batch volume shape: {batch_volume.shape}")  # Debugging print
+def euler_angle_transform(object: torch.Tensor, tx: float, ty: float, tz: float, beta: float, alpha: float, gamma: float):
+    """Reorient the object based on the given translation and rotation parameters.
     
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-    slices = [
-        np.flip(batch_volume[batch_volume.shape[0] // 2, :, :].T, axis=1),  # Mirrored Sagittal
-        # batch_volume[batch_volume.shape[0] // 2, :, :].T,  # Mirrored Sagittal
-        batch_volume[:, batch_volume.shape[1] // 2, :].T,   # Coronal
-        batch_volume[:, :, batch_volume.shape[2] // 2].T    # Axial
-    ]
-    
-    for ax, slice_img, label in zip(axes, slices, ['HLA', 'SA', 'VLA']):
-        print(f"{label} slice shape: {slice_img.shape}")  # Debugging print
-        ax.imshow(slice_img, cmap='jet')
-        ax.set_title(label)
-        ax.axis('on')
-    
-    plt.suptitle(title)
-    plt.tight_layout()
-    plt.show()
-
-
-
-def object_reorient(volume, tx, ty, tz, beta, alpha, gamma):
-    """
-    Reorient the 3D volume based on the given translation and rotation parameters.
-    
-    Parameters:
-        volume (numpy.ndarray): Input 3D volume.
-        tx (float): Translation in x direction (voxels).
-        ty (float): Translation in y direction (voxels).
-        tz (float): Translation in z direction (voxels).
-        beta (float): Rotation around x-axis (radians).
-        alpha (float): Rotation around y-axis (radians).
-        gamma (float): Rotation around z-axis (radians).
+    Args:
+        object: torch.Tensor[batch_size, Lx, Ly, Lz']
+        tx: Translation in x direction (voxels)
+        ty: Translation in y direction (voxels)
+        tz: Translation in z direction (voxels)
+        beta: Rotation around x-axis (radians)
+        alpha: Rotation around y-axis (radians)
+        gamma: Rotation around z-axis (radians)
     
     Returns:
-        numpy.ndarray: Reoriented 3D volume.
+        torch.Tensor[batch_size, Lx, Ly, Lz]: Reoriented object
     """
-    volume = volume.squeeze() 
+    object = object.numpy() if isinstance(object, torch.Tensor) else object 
+    object = object.squeeze() 
     
-    beta, alpha, gamma = np.deg2rad(beta), np.deg2rad(alpha), np.deg2rad(gamma)  # Example rotation values in radians
+    beta, alpha, gamma = np.deg2rad(beta), np.deg2rad(alpha), np.deg2rad(gamma)
     
     translation = [tx, ty, tz]
     
     Rx = np.array([[1, 0, 0],
                    [0, np.cos(beta), -np.sin(beta)],
                    [0, np.sin(beta), np.cos(beta)]])
-    
     Ry = np.array([[np.cos(alpha), 0, np.sin(alpha)],
                    [0, 1, 0],
                    [-np.sin(alpha), 0, np.cos(alpha)]])
-    
     Rz = np.array([[np.cos(gamma), -np.sin(gamma), 0],
                    [np.sin(gamma), np.cos(gamma), 0],
                    [0, 0, 1]])
-    
     R = Rz@Ry@Rx
     
     transform_matrix = np.eye(4)
     transform_matrix[:3, :3] = R
     transform_matrix[:3, 3] = translation
-    
     affine_matrix = transform_matrix[:3, :4]
     
-    reoriented_volume = affine_transform(volume, affine_matrix, offset=translation, order=3)
+    reoriented_object = affine_transform(object, affine_matrix, offset=translation, order=1)
+    reoriented_object = np.expand_dims(reoriented_object, axis=0)
     
-    # Add a batch dimension
-    reoriented_volume = np.expand_dims(reoriented_volume, axis=0)
-    
-    return reoriented_volume
+    return torch.tensor(reoriented_object)
