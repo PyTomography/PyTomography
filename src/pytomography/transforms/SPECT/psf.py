@@ -40,41 +40,27 @@ class GaussianBlurNet(nn.Module):
             output = torch.permute(output,(2,1,0))
         return torch.permute(output,(1,2,0))
     
-class ArbitraryPSFNet(nn.Module):
-    """Network used to apply an arbitrary PSF based on the `kernel_f` function, which should be a function of parallel directions :math:`x` and :math:`y` and perpendicular direction :math:`d` to the detector head
-
-        Args:
-            kernel_f (Callable): PSF kernel
-            distances (Sequence[float]): Distances corresponding to each plane parallel to the detector
-            kernel_size (int): Size of kernel used for blurring. Should be large enough to encapsulate the entire PSF at all distances
-            dr (Sequence[float]): The :math:`x` and :math:`y` voxel spacing in the object
-    """
+class Arbitrary2DPSF:
     def __init__(
         self,
-        kernel_f: Callable,
-        distances: Sequence[float],
-        kernel_size: int,
-        dr: Sequence[float]
+        psf_kernel,
+        distances,
+        kernel_size,
+        dr,
         ) -> None:
-        super(ArbitraryPSFNet, self).__init__()
-        self.kernel_f = kernel_f
+        self.psf_kernel = psf_kernel
         self.kernel_size = kernel_size
-        self.distances = distances
-        self.x_eval = torch.arange(-(self.kernel_size-1)/2, (self.kernel_size+1)/2, 1).to(pytomography.device) * dr[0]
-        self.y_eval = torch.arange(-(self.kernel_size-1)/2, (self.kernel_size+1)/2, 1).to(pytomography.device) * dr[1]
+        self.distances = torch.tensor(distances).to(pytomography.device).to(pytomography.dtype)
+        x = torch.arange(-(self.kernel_size-1)/2, (self.kernel_size+1)/2, 1).to(pytomography.device).to(pytomography.dtype) * dr[0]
+        y = torch.arange(-(self.kernel_size-1)/2, (self.kernel_size+1)/2, 1).to(pytomography.device).to(pytomography.dtype) * dr[1]
+        self.yv, self.xv = torch.meshgrid(x, y, indexing='ij')
+        
 
     @torch.no_grad()
-    def forward(self, input):
-        """Applies PSF blurring to `input`. Each X-plane gets a different blurring kernel applied, depending on detector distance.
-
-        Args:
-            input (torch.tensor): Object to apply blurring to
-
-        Returns:
-            torch.tensor: Blurred object, adjusted such that subsequent summation along the x-axis models the CDR
-        """
+    def __call__(self, input):
         groups = input.shape[0]
-        kernel = torch.vstack([self.kernel_f(self.x_eval, self.y_eval, d) for d in self.distances]).unsqueeze(1).to(pytomography.device).to(pytomography.dtype)
+        kernel = self.psf_kernel(self.xv, self.yv, self.distances).unsqueeze(1)
+        #kernel = kernel.swapaxes(2,3)
         net = FFTConv2d(groups, groups, self.kernel_size, padding='same', groups=groups, bias=False).to(pytomography.device)
         net.weight = torch.nn.Parameter(kernel)
         return net(input.unsqueeze(0)).squeeze()
@@ -103,27 +89,25 @@ def get_1D_PSF_layer(
     return layer
 
 class SPECTPSFTransform(Transform):
-    r"""obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``SPECTPSFMeta`` parameter. There are a few potential arguments to initialize this transform (i) `psf_meta`, which contains relevant collimator information to obtain a Gaussian PSF model that works for low/medium energy SPECT (ii) `kernel_f`, an callable function that gives the kernel at any source-detector distance :math:`d`, or (iii) `psf_net`, a network configured to automatically apply full PSF modeling to a given object :math:`f` at all source-detector distances. Only one of the arguments should be given.
+    r"""obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``SPECTPSFMeta`` parameter. There are a few potential arguments to initialize this transform (i) `psf_meta`, which contains relevant collimator information to obtain a Gaussian PSF model that works for low/medium energy SPECT (ii) `kernel_f`, an callable function that gives the kernel at any source-detector distance :math:`d`, or (iii) `psf_kernel`, a network configured to automatically apply full PSF modeling to a given object :math:`f` at all source-detector distances. Only one of the arguments should be given.
 
     Args:
         psf_meta (SPECTPSFMeta): Metadata corresponding to the parameters of PSF blurring. In most cases (low/medium energy SPECT), this should be the only given argument.
         kernel_f (Callable): Function :math:`PSF(x,y,d)` that gives PSF at every source-detector distance :math:`d`. It should be able to take in 1D numpy arrays as its first two arguments, and a single argument for the final argument :math:`d`. The function should return a corresponding 2D PSF kernel.
-        psf_net (Callable): Network that takes in an object :math:`f` and applies all necessary PSF correction to return a new object :math:`\tilde{f}` that is PSF corrected, such that subsequent summation along the x-axis accurately models the collimator detector response.
+        psf_kernel (Callable): Network that takes in an object :math:`f` and applies all necessary PSF correction to return a new object :math:`\tilde{f}` that is PSF corrected, such that subsequent summation along the x-axis accurately models the collimator detector response.
     """
     def __init__(
         self,
         psf_meta: SPECTPSFMeta | None = None,
-        kernel_f: Callable | None = None,
-        psf_net: Callable | None = None,
+        psf_kernel: Callable | None = None,
         assume_padded: bool = True,
     ) -> None:
         """Initializer that sets corresponding psf parameters"""
         super(SPECTPSFTransform, self).__init__()
-        if sum(arg is not None for arg in [psf_meta, kernel_f, psf_net]) != 1:
+        if sum(arg is not None for arg in [psf_meta, psf_kernel]) != 1:
             Exception(f'Exactly one of the arguments for initialization should be given.')
         self.psf_meta = psf_meta
-        self.kernel_f = kernel_f
-        self.psf_net = psf_net
+        self.psf_kernel = psf_kernel
         self.assume_padded = assume_padded
         
     def _configure_gaussian_model(self):
@@ -142,27 +126,16 @@ class SPECTPSFTransform(Transform):
                 self.layers[radius] = GaussianBlurNet(layer_r, layer_z)
             else: # 1D blurring
                 self.layers[radius] = GaussianBlurNet(layer_r)
-                
-    def _configure_kernel_model(self):
-        """Internal function to configure arbitrary kernel modeling. This is called when `kernel_f` is given in initialization
-        """
-        self.layers = {}
-        kernel_size = 2*self.object_meta.shape[0]
-        for radius in np.unique(self.proj_meta.radii):
-            dim = self.object_meta.shape[0] + 2*compute_pad_size(self.object_meta.shape[0])
-            distances = get_distance(dim, radius, self.object_meta.dx)
-            self.layers[radius] = ArbitraryPSFNet(self.kernel_f, distances, kernel_size, (self.object_meta.dx, self.object_meta.dz))
             
     def _configure_manual_net(self):
-        """Internal function to configure the PSF net. This is called when `psf_net` is given in initialization
+        """Internal function to configure the PSF net. This is called when `psf_kernel` is given in initialization
         """
         self.layers = {}
         for radius in np.unique(self.proj_meta.radii):
             dim = self.object_meta.shape[0] + 2*compute_pad_size(self.object_meta.shape[0])
             distances = get_distance(dim, radius, self.object_meta.dx)
-            psf_net_i = copy.deepcopy(self.psf_net)
-            psf_net_i.configure(distances, self.object_meta.dx)
-            self.layers[radius] = psf_net_i
+            psf_kernel_i = copy.deepcopy(self.psf_kernel)
+            self.layers[radius] = Arbitrary2DPSF(psf_kernel_i, distances, self.object_meta.shape[0]-1, self.object_meta.dr)
         
     def configure(
         self,
@@ -176,9 +149,7 @@ class SPECTPSFTransform(Transform):
             proj_meta (SPECTProjMeta): Projections metadata.
         """
         super(SPECTPSFTransform, self).configure(object_meta, proj_meta)
-        if self.kernel_f is not None:
-            self._configure_kernel_model()
-        elif self.psf_net is not None:
+        if self.psf_kernel is not None:
             self._configure_manual_net()
         else:
             self._configure_gaussian_model()
