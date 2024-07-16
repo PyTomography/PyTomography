@@ -197,6 +197,11 @@ def get_energy_window_scatter_estimate(
     index_upper: int | None = None,
     weighting_lower: float = 0.5,
     weighting_upper: float = 0.5,
+    proj_meta = None,
+    sigma_theta: float = 0,
+    sigma_r: float = 0,
+    sigma_z: float = 0,
+    N_sigmas: int = 3,
     return_scatter_variance_estimate: bool = False
 ) -> torch.Tensor:
     """Gets an estimate of scatter projection data from a DICOM file using either the dual energy window (`index_upper=None`) or triple energy window method.
@@ -213,7 +218,7 @@ def get_energy_window_scatter_estimate(
         torch.Tensor[Ltheta,Lr,Lz]: Tensor corresponding to the scatter estimate.
     """
     projections_all = get_projections(file).to(pytomography.device)
-    return get_energy_window_scatter_estimate_projections(file, projections_all, index_peak, index_lower, index_upper, weighting_lower, weighting_upper, return_scatter_variance_estimate)
+    return get_energy_window_scatter_estimate_projections(file, projections_all, index_peak, index_lower, index_upper, weighting_lower, weighting_upper, proj_meta, sigma_theta, sigma_r, sigma_z, N_sigmas, return_scatter_variance_estimate)
 
 def get_energy_window_scatter_estimate_projections(
     file: str,
@@ -223,6 +228,11 @@ def get_energy_window_scatter_estimate_projections(
     index_upper: int | None = None,
     weighting_lower: float = 0.5,
     weighting_upper: float = 0.5,
+    proj_meta = None,
+    sigma_theta: float = 0,
+    sigma_r: float = 0,
+    sigma_z: float = 0,
+    N_sigmas: int = 3,
     return_scatter_variance_estimate: bool = False
 ) -> torch.Tensor:
     """Gets an estimate of scatter projection data from a DICOM file using either the dual energy window (`index_upper=None`) or triple energy window method. This is seperate from ``get_energy_window_scatter_estimate`` as it allows a user to input projecitons that are already loaded/modified. This is useful for when projection data gets mixed for reconstructing multiple bed positions.
@@ -253,6 +263,11 @@ def get_energy_window_scatter_estimate_projections(
         ww_peak,
         weighting_lower,
         weighting_upper,
+        proj_meta,
+        sigma_theta,
+        sigma_r,
+        sigma_z,
+        N_sigmas,
         return_scatter_variance_estimate
     )
     return scatter
@@ -333,7 +348,8 @@ def CT_to_mumap(
     files_CT: Sequence[str],
     file_NM: str,
     index_peak: int = 0,
-    technique: str | Callable ='from_table'
+    technique: str | Callable ='from_table',
+    E_SPECT: float | None = None
 ) -> torch.tensor:
     """Converts a CT image to a mu-map given SPECT projection data. The CT data must be aligned with the projection data already; this is a helper function for ``get_attenuation_map_from_CT_slices``.
 
@@ -343,6 +359,7 @@ def CT_to_mumap(
         file_NM (str): Filepath of SPECT projectio ndata
         index_peak (int, optional): Index of EnergyInformationSequence corresponding to the photopeak. Defaults to 0.
         technique (str, optional): Technique to convert HU to attenuation coefficients. The default, 'from_table', uses a table of coefficients for bilinear curves obtained for a variety of common radionuclides. The technique 'from_cortical_bone_fit' looks for a cortical bone peak in the scan and uses that to obtain the bilinear coefficients. For phantom scans where the attenuation coefficient is always significantly less than bone, the cortical bone technique will still work, since the first part of the bilinear curve (in the air to water range) does not depend on the cortical bone fit. Alternatively, one can provide an arbitrary function here which takes in a 3D scan with units of HU and converts to mu.
+        E_SPECT (float): Energy of the photopeak in SPECT scan; this overrides the energy in the DICOM file, so should only be used if the DICOM file is incorrect. If None, then the energy is obtained from the DICOM file.
 
     Returns:
         torch.tensor: Attenuation map in units of 1/cm
@@ -358,7 +375,8 @@ def CT_to_mumap(
         .EnergyWindowRangeSequence[0]
         .EnergyWindowLowerLimit
     )
-    E_SPECT = (window_lower + window_upper) / 2 # assumes in center
+    if E_SPECT is None:
+        E_SPECT = (window_lower + window_upper) / 2 # assumes in center
     if technique=='from_table':
         HU2mu_conversion = get_HU2mu_conversion(files_CT, E_SPECT)
         return HU2mu_conversion(CT)
@@ -434,7 +452,8 @@ def get_attenuation_map_from_CT_slices(
     file_NM: str | None = None,
     index_peak: int = 0,
     mode: str = "constant",
-    HU2mu_technique: str | Callable = "from_table"
+    HU2mu_technique: str | Callable = "from_table",
+    E_SPECT: float | None = None
 ) -> torch.Tensor:
     """Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography.
 
@@ -444,13 +463,14 @@ def get_attenuation_map_from_CT_slices(
         index_peak (int, optional): Index corresponding to photopeak in projection data. Defaults to 0.
         mode (str): Mode for affine transformation interpolation
         HU2mu_technique (str): Technique to convert HU to attenuation coefficients. The default, 'from_table', uses a table of coefficients for bilinear curves obtained for a variety of common radionuclides. The technique 'from_cortical_bone_fit' looks for a cortical bone peak in the scan and uses that to obtain the bilinear coefficients. For phantom scans where the attenuation coefficient is always significantly less than bone, the cortical bone technique will still work, since the first part of the bilinear curve (in the air to water range) does not depend on the cortical bone fit. Alternatively, one can provide an arbitrary function here which takes in a 3D scan with units of HU and converts to mu.
+        E_SPECT (float): Energy of the photopeak in SPECT scan; this overrides the energy in the DICOM file, so should only be used if the DICOM file is incorrect. Defaults to None.
 
     Returns:
         torch.Tensor: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.
     """
 
     CT = open_multifile(files_CT).cpu().numpy()
-    CT = CT_to_mumap(CT, files_CT, file_NM, index_peak, technique=HU2mu_technique)
+    CT = CT_to_mumap(CT, files_CT, file_NM, index_peak, technique=HU2mu_technique, E_SPECT=E_SPECT)
     # Get affine matrix for alignment:
     M_CT = _get_affine_multifile(files_CT)
     M_NM = _get_affine_spect_projections(file_NM)
@@ -459,7 +479,7 @@ def get_attenuation_map_from_CT_slices(
     ds_NM = pydicom.read_file(file_NM)
     output_shape = (ds_NM.Rows, ds_NM.Rows, ds_NM.Columns)
     CT = affine_transform(
-        CT, M, output_shape=output_shape, mode=mode, cval=0
+        CT, M, output_shape=output_shape, mode=mode, cval=0, order=1
     )
     CT = torch.tensor(CT).to(pytomography.dtype).to(pytomography.device)
     return CT
