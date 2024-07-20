@@ -47,7 +47,7 @@ class SPECTProjMeta(ProjMeta):
         angles: Sequence,
         radii=None
     ) -> None:
-        self.angles = torch.tensor(angles).to(pytomography.device).to(pytomography.dtype)
+        self.angles = torch.tensor(angles).to(pytomography.dtype).to(pytomography.device)
         self.dr = dr
         self.radii = radii
         self.num_projections = len(angles)
