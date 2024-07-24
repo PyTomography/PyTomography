@@ -7,7 +7,7 @@ import pytomography
 import torch
 from pytomography.utils import get_1d_gaussian_kernel
 
-@torch.no_grad
+@torch.no_grad()
 def get_smoothed_scatter(
     scatter: torch.Tensor,
     proj_meta: ProjMeta,
