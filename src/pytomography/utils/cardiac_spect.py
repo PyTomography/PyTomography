@@ -1,3 +1,4 @@
+import math
 import torch
 import torch.nn.functional as F
 import pytomography
@@ -5,7 +6,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import center_of_mass, shift, affine_transform
 from matplotlib.patches import FancyArrowPatch
-import math
 from scipy.ndimage import rotate
 
 
@@ -48,7 +48,7 @@ def rotate_object(object: torch.Tensor, transaxial_angle: float, transsagittal_a
 
     return torch.tensor(rotated_object).to(pytomography.dtype).to(pytomography.device)
 
-def create_mask(object: torch.Tensor, lowerThreshold: float, upperThreshold: float) -> torch.Tensor:
+def get_mask(object: torch.Tensor, lowerThreshold: float, upperThreshold: float) -> torch.Tensor:
     """
     Segment the object based on the given thresholds.
     
@@ -63,7 +63,7 @@ def create_mask(object: torch.Tensor, lowerThreshold: float, upperThreshold: flo
     
     return torch.tensor(mask).to(pytomography.dtype).to(pytomography.device)
 
-def calculate_shift_values(slice: torch.Tensor) -> torch.Tensor:
+def get_shift_values(slice: torch.Tensor) -> torch.Tensor:
     """
     Calculate the shift values for the given object based on the center of mass.
 
