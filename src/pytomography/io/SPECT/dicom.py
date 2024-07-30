@@ -285,9 +285,11 @@ def get_attenuation_map_from_file(file_AM: str) -> torch.Tensor:
     # DICOM header for scale factor that shows up sometimes
     if (0x033, 0x1038) in ds:
         scale_factor = 1 / ds[0x033, 0x1038].value
+    elif (0x0028, 0x1053) in ds:
+        scale_factor = ds[0x0028, 0x1053].value
     else:
-        scale_factor = 1
-    attenuation_map = ds.pixel_array * scale_factor
+        scale_factor = 1.0
+    attenuation_map = ds.pixel_array.astype(np.float32) * scale_factor
     return torch.tensor(np.transpose(attenuation_map, (2, 1, 0))).to(pytomography.dtype).to(pytomography.device)
 
 
