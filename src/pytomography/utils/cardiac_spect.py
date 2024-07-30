@@ -152,3 +152,34 @@ def plot_arrow(image, angle_degrees, fontsize=10):
     ax.set_ylim(image.shape[0], 0) 
     ax.set_aspect('equal')
     plt.show()
+    
+def create_circular_mask(height, width, radius):
+    """
+    Create a circular mask.
+    """
+    
+    Y, X = torch.meshgrid(torch.arange(height), torch.arange(width), indexing='ij')
+    center_y, center_x = height // 2, width // 2
+    dist_from_center = torch.sqrt((X - center_x)**2 + (Y - center_y)**2)
+    mask = dist_from_center <= radius
+    return mask
+
+def masking(object: torch.Tensor, radius: int) -> torch.Tensor:
+    """
+    Apply a circular mask to the object in all three views.
+    """
+    
+    depth, height, width = object.shape
+    mask_axial = create_circular_mask(height, width, radius)
+    mask_coronal = create_circular_mask(depth, width, radius)
+    mask_sagittal = create_circular_mask(depth, height, radius)
+    
+    masked_object = object.clone()
+    for i in range(depth):
+        masked_object[i, ~mask_axial] = 0
+    for j in range(height):
+        masked_object[:, j, :][~mask_coronal] = 0
+    for k in range(width):
+        masked_object[:, :, k][~mask_sagittal] = 0
+    
+    return torch.tensor(masked_object).to(pytomography.dtype).to(pytomography.device)
