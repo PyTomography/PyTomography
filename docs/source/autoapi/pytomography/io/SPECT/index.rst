@@ -78,7 +78,7 @@ Functions
    :rtype: torch.Tensor
 
 
-.. py:function:: get_attenuation_map_from_CT_slices(files_CT, file_NM = None, index_peak = 0, mode = 'constant', HU2mu_technique = 'from_table')
+.. py:function:: get_attenuation_map_from_CT_slices(files_CT, file_NM = None, index_peak = 0, mode = 'constant', HU2mu_technique = 'from_table', E_SPECT = None)
 
    Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography.
 
@@ -92,12 +92,14 @@ Functions
    :type mode: str
    :param HU2mu_technique: Technique to convert HU to attenuation coefficients. The default, 'from_table', uses a table of coefficients for bilinear curves obtained for a variety of common radionuclides. The technique 'from_cortical_bone_fit' looks for a cortical bone peak in the scan and uses that to obtain the bilinear coefficients. For phantom scans where the attenuation coefficient is always significantly less than bone, the cortical bone technique will still work, since the first part of the bilinear curve (in the air to water range) does not depend on the cortical bone fit. Alternatively, one can provide an arbitrary function here which takes in a 3D scan with units of HU and converts to mu.
    :type HU2mu_technique: str
+   :param E_SPECT: Energy of the photopeak in SPECT scan; this overrides the energy in the DICOM file, so should only be used if the DICOM file is incorrect. Defaults to None.
+   :type E_SPECT: float
 
    :returns: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.
    :rtype: torch.Tensor
 
 
-.. py:function:: get_energy_window_scatter_estimate(file, index_peak, index_lower, index_upper = None, weighting_lower = 0.5, weighting_upper = 0.5, return_scatter_variance_estimate = False)
+.. py:function:: get_energy_window_scatter_estimate(file, index_peak, index_lower, index_upper = None, weighting_lower = 0.5, weighting_upper = 0.5, proj_meta=None, sigma_theta = 0, sigma_r = 0, sigma_z = 0, N_sigmas = 3, return_scatter_variance_estimate = False)
 
    Gets an estimate of scatter projection data from a DICOM file using either the dual energy window (`index_upper=None`) or triple energy window method.
 
@@ -120,7 +122,7 @@ Functions
    :rtype: torch.Tensor[Ltheta,Lr,Lz]
 
 
-.. py:function:: get_psfmeta_from_scanner_params(collimator_name, energy_keV, min_sigmas = 3, material = 'lead', intrinsic_resolution = 0)
+.. py:function:: get_psfmeta_from_scanner_params(collimator_name, energy_keV, min_sigmas = 3, material = 'lead', intrinsic_resolution = 0, intrinsic_resolution_140keV = None)
 
    Obtains SPECT PSF metadata given a unique collimator code and photopeak energy of radionuclide. For more information on collimator codes, see the "external data" section of the readthedocs page.
 
@@ -132,14 +134,16 @@ Functions
    :type min_sigmas: float
    :param material: Material of the collimator.
    :type material: str
-   :param intrinsic_resolution: Intrinsic resolution (FWHM) of the scintillator crystals. Defaults to 0.
+   :param intrinsic_resolution: Intrinsic resolution (FWHM) of the scintillator crystals. Note that most scanners provide the intrinsic resolution at 140keV only; if you only have access to this, you should use the ``intrinsic_resolution_140keV`` argument of this function. Defaults to 0.
    :type intrinsic_resolution: float
+   :param intrinsic_resolution_140keV: Intrinsic resolution (FWHM) of the scintillator crystals at an energy of 140keV. The true intrinsic resolution is calculated assuming the resolution is proportional to E^(-1/2). If provided, then ``intrinsic_resolution`` is ignored. Defaults to None.
+   :type intrinsic_resolution_140keV: float | None
 
    :returns: PSF metadata.
    :rtype: SPECTPSFMeta
 
 
-.. py:function:: CT_to_mumap(CT, files_CT, file_NM, index_peak = 0, technique = 'from_table')
+.. py:function:: CT_to_mumap(CT, files_CT, file_NM, index_peak = 0, technique = 'from_table', E_SPECT = None)
 
    Converts a CT image to a mu-map given SPECT projection data. The CT data must be aligned with the projection data already; this is a helper function for ``get_attenuation_map_from_CT_slices``.
 
@@ -153,6 +157,8 @@ Functions
    :type index_peak: int, optional
    :param technique: Technique to convert HU to attenuation coefficients. The default, 'from_table', uses a table of coefficients for bilinear curves obtained for a variety of common radionuclides. The technique 'from_cortical_bone_fit' looks for a cortical bone peak in the scan and uses that to obtain the bilinear coefficients. For phantom scans where the attenuation coefficient is always significantly less than bone, the cortical bone technique will still work, since the first part of the bilinear curve (in the air to water range) does not depend on the cortical bone fit. Alternatively, one can provide an arbitrary function here which takes in a 3D scan with units of HU and converts to mu.
    :type technique: str, optional
+   :param E_SPECT: Energy of the photopeak in SPECT scan; this overrides the energy in the DICOM file, so should only be used if the DICOM file is incorrect. If None, then the energy is obtained from the DICOM file.
+   :type E_SPECT: float
 
    :returns: Attenuation map in units of 1/cm
    :rtype: torch.tensor

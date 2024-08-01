@@ -74,8 +74,8 @@ Classes
    :type projections: torch.Tensor | None
    :param additive_term: Additional term added after forward projection by the system matrix. This term might include things like scatter and randoms. Defaults to None.
    :type additive_term: torch.Tensor, optional
-   :param additive_term_variance_estimate: Variance estimate of the additive term. If none, then uncertainty estimation does not include contribution from the additive term. Defaults to None.
-   :type additive_term_variance_estimate: torch.tensor, optional
+   :param additive_term_variance_estimate: Operator for variance estimate of additive term. If none, then uncertainty estimation does not include contribution from the additive term. Defaults to None.
+   :type additive_term_variance_estimate: Callable, optional
 
    .. py:method:: compute_gradient(object, subset_idx = None, norm_BP_subset_method = 'subset_specific')
 
@@ -177,8 +177,8 @@ Classes
    :type projections: torch.Tensor | None
    :param additive_term: Additional term added after forward projection by the system matrix. This term might include things like scatter and randoms. Defaults to None.
    :type additive_term: torch.Tensor, optional
-   :param additive_term_variance_estimate: Variance estimate of the additive term. If none, then uncertainty estimation does not include contribution from the additive term. Defaults to None.
-   :type additive_term_variance_estimate: torch.tensor, optional
+   :param additive_term_variance_estimate: Operator for variance estimate of additive term. If none, then uncertainty estimation does not include contribution from the additive term. Defaults to None.
+   :type additive_term_variance_estimate: Callable, optional
 
    .. py:method:: _set_n_subsets(n_subsets)
 

@@ -171,7 +171,7 @@ def get_attenuation_map(headerfile: str):
     CT = torch.tensor(CT.copy())
     return CT.to(pytomography.device)
 
-def get_psfmeta_from_header(headerfile: str):
+def get_psfmeta_from_header(headerfile: str, min_sigmas=3):
     """Obtains the SPECTPSFMeta data corresponding to a SIMIND simulation scan from the headerfile
 
     Args:
@@ -180,6 +180,7 @@ def get_psfmeta_from_header(headerfile: str):
     Returns:
         SPECTPSFMeta: SPECT PSF metadata required for PSF modeling in reconstruction.
     """
+    FWHM2sigma = 1/(2*np.sqrt(2*np.log(2)))
     module_path = os.path.dirname(os.path.abspath(__file__))
     with open(headerfile) as f:
         headerdata = f.readlines()
@@ -189,5 +190,15 @@ def get_psfmeta_from_header(headerfile: str):
     energy_keV = get_header_value(headerdata, 'Photon Energy', np.float32)
     lead_attenuation = get_mu_from_spectrum_interp(os.path.join(module_path, '../../data/NIST_attenuation_data/lead.csv'), energy_keV)
     collimator_slope = hole_diameter/(hole_length - (2/lead_attenuation)) * 1/(2*np.sqrt(2*np.log(2)))
-    collimator_intercept = hole_diameter * 1/(2*np.sqrt(2*np.log(2)))
-    return SPECTPSFMeta((collimator_slope, collimator_intercept))
+    try:
+        intrinsic_resolution_140keV = get_header_value(headerdata, 'Intrinsic FWHM for the camera', np.float32) * FWHM2sigma
+        intrinsic_resolution = intrinsic_resolution_140keV * (140/energy_keV)**0.5
+    except:
+        intrinsic_resolution = 0
+    collimator_intercept = hole_diameter * FWHM2sigma
+    sigma_fit = lambda r, a, b, c: np.sqrt((a*r+b)**2+c**2)
+    sigma_fit_params = [collimator_slope, collimator_intercept, intrinsic_resolution]
+    return SPECTPSFMeta(
+        sigma_fit_params=sigma_fit_params,
+        sigma_fit=sigma_fit,
+        min_sigmas=min_sigmas)

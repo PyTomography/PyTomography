@@ -72,3 +72,15 @@ html_static_path = ['_static']
 # typehints
 autodoc_typehints = "description"
 autodoc_inherit_docstrings=True
+
+# Add link to github
+html_theme_options = {
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/qurit/PyTomography",
+            "icon": "fa-brands fa-github",
+            "type": "fontawesome",
+        },
+    ],
+}

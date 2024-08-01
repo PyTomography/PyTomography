@@ -87,18 +87,18 @@ Classes
 
 
 
-.. py:class:: SPECTPSFTransform(psf_meta = None, kernel_f = None, psf_net = None, assume_padded = True)
+.. py:class:: SPECTPSFTransform(psf_meta = None, psf_operator = None, assume_padded = True)
 
    Bases: :py:obj:`pytomography.transforms.Transform`
 
-   obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``SPECTPSFMeta`` parameter. There are a few potential arguments to initialize this transform (i) `psf_meta`, which contains relevant collimator information to obtain a Gaussian PSF model that works for low/medium energy SPECT (ii) `kernel_f`, an callable function that gives the kernel at any source-detector distance :math:`d`, or (iii) `psf_net`, a network configured to automatically apply full PSF modeling to a given object :math:`f` at all source-detector distances. Only one of the arguments should be given.
+   obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``SPECTPSFMeta`` parameter. There are a few potential arguments to initialize this transform (i) `psf_meta`, which contains relevant collimator information to obtain a Gaussian PSF model that works for low/medium energy SPECT (ii) `kernel_f`, an callable function that gives the kernel at any source-detector distance :math:`d`, or (iii) `psf_operator`, a network configured to automatically apply full PSF modeling to a given object :math:`f` at all source-detector distances. Only one of the arguments should be given.
 
    :param psf_meta: Metadata corresponding to the parameters of PSF blurring. In most cases (low/medium energy SPECT), this should be the only given argument.
    :type psf_meta: SPECTPSFMeta
    :param kernel_f: Function :math:`PSF(x,y,d)` that gives PSF at every source-detector distance :math:`d`. It should be able to take in 1D numpy arrays as its first two arguments, and a single argument for the final argument :math:`d`. The function should return a corresponding 2D PSF kernel.
    :type kernel_f: Callable
-   :param psf_net: Network that takes in an object :math:`f` and applies all necessary PSF correction to return a new object :math:`\tilde{f}` that is PSF corrected, such that subsequent summation along the x-axis accurately models the collimator detector response.
-   :type psf_net: Callable
+   :param psf_operator: Network that takes in an object :math:`f` and applies all necessary PSF correction to return a new object :math:`\tilde{f}` that is PSF corrected, such that subsequent summation along the x-axis accurately models the collimator detector response.
+   :type psf_operator: Callable
 
    .. py:method:: _configure_gaussian_model()
 
@@ -106,15 +106,9 @@ Classes
 
 
 
-   .. py:method:: _configure_kernel_model()
-
-      Internal function to configure arbitrary kernel modeling. This is called when `kernel_f` is given in initialization
-
-
-
    .. py:method:: _configure_manual_net()
 
-      Internal function to configure the PSF net. This is called when `psf_net` is given in initialization
+      Internal function to configure the PSF net. This is called when `psf_operator` is given in initialization
 
 
 
