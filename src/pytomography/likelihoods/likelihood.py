@@ -45,10 +45,10 @@ class Likelihood:
             n_subsets (int): Number of subsets
         """
         self.n_subsets = n_subsets
-        self.system_matrix.set_n_subsets(n_subsets)
         if n_subsets < 2:
             self.norm_BP = self.system_matrix.compute_normalization_factor()
         else:
+            self.system_matrix.set_n_subsets(n_subsets)
             if self.n_subsets_previous!=self.n_subsets:
                 self.norm_BPs = []
                 for k in range(self.n_subsets):
