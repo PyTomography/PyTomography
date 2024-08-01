@@ -291,7 +291,7 @@ Functions
    :rtype: np.array
 
 
-.. py:function:: compute_EW_scatter(projection_lower, projection_upper, width_lower, width_upper, width_peak, weighting_lower = 0.5, weighting_upper = 0.5, return_scatter_variance_estimate = False)
+.. py:function:: compute_EW_scatter(projection_lower, projection_upper, width_lower, width_upper, width_peak, weighting_lower = 0.5, weighting_upper = 0.5, proj_meta=None, sigma_theta = 0, sigma_r = 0, sigma_z = 0, N_sigmas = 3, return_scatter_variance_estimate = False)
 
    Computes triple energy window estimate from lower and upper scatter projections as well as window widths
 

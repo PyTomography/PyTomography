@@ -146,7 +146,7 @@ class ExtendedSystemMatrix(SystemMatrix):
                 if self.proj2proj_transforms[i] is not None:
                     proj_i = self.proj2proj_transforms[i].forward(proj_i)
             projs.append(proj_i.clone())
-        return torch.vstack(projs)
+        return torch.stack(projs)
     
     def backward(self, proj, subset_idx: int | None =None):
         r"""Back projection :math:`H' = \sum_n v_n^T \otimes A_n^T H_n^T B_n^T`. This maps an extended projection back to the original object space.
@@ -160,7 +160,7 @@ class ExtendedSystemMatrix(SystemMatrix):
         """
         objects = []
         for i in range(len(self.system_matrices)):
-            proj_i = proj[i].unsqueeze(0)
+            proj_i = proj[i]
             if self.proj2proj_transforms is not None:
                 if self.proj2proj_transforms[i] is not None:
                     proj_i = self.proj2proj_transforms[i].backward(proj_i)
@@ -169,7 +169,7 @@ class ExtendedSystemMatrix(SystemMatrix):
                 if self.obj2obj_transforms[i] is not None:
                     object_i = self.obj2obj_transforms[i].backward(object_i)
             objects.append(object_i.clone())
-        return torch.vstack(objects).sum(axis=0).unsqueeze(0)
+        return torch.stack(objects).sum(axis=0)
     
     def set_n_subsets(
         self,

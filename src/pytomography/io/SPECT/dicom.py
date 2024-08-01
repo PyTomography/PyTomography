@@ -299,6 +299,7 @@ def get_psfmeta_from_scanner_params(
     min_sigmas: float = 3,
     material: str = 'lead',
     intrinsic_resolution: float = 0,
+    intrinsic_resolution_140keV: float | None = None
     ) -> SPECTPSFMeta:
     """Obtains SPECT PSF metadata given a unique collimator code and photopeak energy of radionuclide. For more information on collimator codes, see the "external data" section of the readthedocs page.
 
@@ -307,7 +308,8 @@ def get_psfmeta_from_scanner_params(
         energy_keV (float): Energy of the photopeak
         min_sigmas (float): Minimum size of the blurring kernel used. Fixes the convolutional kernel size so that all locations have at least ``min_sigmas`` in dimensions (some will be greater)
         material (str): Material of the collimator.
-        intrinsic_resolution (float): Intrinsic resolution (FWHM) of the scintillator crystals. Defaults to 0.
+        intrinsic_resolution (float): Intrinsic resolution (FWHM) of the scintillator crystals. Note that most scanners provide the intrinsic resolution at 140keV only; if you only have access to this, you should use the ``intrinsic_resolution_140keV`` argument of this function. Defaults to 0.
+        intrinsic_resolution_140keV (float | None): Intrinsic resolution (FWHM) of the scintillator crystals at an energy of 140keV. The true intrinsic resolution is calculated assuming the resolution is proportional to E^(-1/2). If provided, then ``intrinsic_resolution`` is ignored. Defaults to None.
 
     Returns:
         SPECTPSFMeta: PSF metadata.
@@ -334,8 +336,10 @@ def get_psfmeta_from_scanner_params(
     FWHM2sigma = 1/(2*np.sqrt(2*np.log(2)))
     collimator_slope = hole_diameter/(hole_length - (2/lead_attenuation)) * FWHM2sigma
     collimator_intercept = hole_diameter * FWHM2sigma
-    intrinsic_resolution = intrinsic_resolution * FWHM2sigma
-    
+    if intrinsic_resolution_140keV is not None:
+        intrinsic_resolution = intrinsic_resolution_140keV * (energy_keV/140)**(-1/2) * FWHM2sigma
+    else:
+        intrinsic_resolution = intrinsic_resolution * FWHM2sigma
     sigma_fit = lambda r, a, b, c: np.sqrt((a*r+b)**2+c**2)
     sigma_fit_params = [collimator_slope, collimator_intercept, intrinsic_resolution]
     
