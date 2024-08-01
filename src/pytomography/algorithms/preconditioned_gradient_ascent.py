@@ -195,12 +195,9 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
             V += self._compute_B(Q_sequence_current, data_storage_callback, n-1, include_additive_term=include_additive_term)
             if n>1:
                 Q_sequence_current = self._compute_Q(Q_sequence_current, data_storage_callback, n-1)
-                #torch.save( Q_sequence_current, f'/disk1/uncertainty_Q_testing/Q{n}')
-            #print(f'V Iter {n}: {V.sum().item()}')
-            #print(f'Q Iter {n}: {Q_sequence_current.sum().item()}')
-        uncertainty_abs2 = torch.sum(V[0].unsqueeze(0) * self.likelihood.projections * V[0].unsqueeze(0))
+        uncertainty_abs2 = torch.sum(V[0] * self.likelihood.projections * V[0])
         if include_additive_term:
-            uncertainty_abs2 += torch.sum(V[1].unsqueeze(0) * self.likelihood.additive_term_variance_estimate * V[1].unsqueeze(0))
+            uncertainty_abs2 += torch.sum(V[1] * self.likelihood.additive_term_variance_estimate(V[1]))
         uncertainty_abs = torch.sqrt(uncertainty_abs2).item()
         if not(return_pct):
             return uncertainty_abs
@@ -263,11 +260,11 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
         """
         if self.n_subsets==1:
             subset_idx = None
+            subset_indices_array = self.likelihood.system_matrix.subset_indices_array[0]
         else:
             subset_idx = n%self.n_subsets
             subset_indices_array = self.likelihood.system_matrix.subset_indices_array[subset_idx]
         object_current_update = data_storage_callback.objects[n].to(pytomography.device)
-        object_future_update = data_storage_callback.objects[n+1].to(pytomography.device)
         FP_current_update = data_storage_callback.projections_predicted[n].to(pytomography.device)
         output = input * object_current_update * self._linear_preconditioner_factor(None, subset_idx)
         output_primary = self.likelihood.compute_gradient_gf(object_current_update, FP_current_update, subset_idx)(output)

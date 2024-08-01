@@ -13,11 +13,33 @@ Functions
 
 .. autoapisummary::
 
+   pytomography.utils.scatter.get_smoothed_scatter
    pytomography.utils.scatter.compute_EW_scatter
 
 
 
-.. py:function:: compute_EW_scatter(projection_lower, projection_upper, width_lower, width_upper, width_peak, weighting_lower = 0.5, weighting_upper = 0.5, return_scatter_variance_estimate = False)
+.. py:function:: get_smoothed_scatter(scatter, proj_meta, sigma_theta = 0, sigma_r = 0, sigma_z = 0, N_sigmas = 3)
+
+   Smooths SPECT projection metadata
+
+   :param scatter: Input projection data
+   :type scatter: torch.Tensor
+   :param proj_meta: Projection metadata
+   :type proj_meta: ProjMeta
+   :param sigma_theta: Smoothing in theta (specified in degrees). Defaults to 0.
+   :type sigma_theta: float, optional
+   :param sigma_r: Smoothing in r (specified in cm). Defaults to 0.
+   :type sigma_r: float, optional
+   :param sigma_z: Smoothing in z (specified in cm). Defaults to 0.
+   :type sigma_z: float, optional
+   :param N_sigmas: Number of sigmas to include in the smoothing kernel. Defaults to 3.
+   :type N_sigmas: int, optional
+
+   :returns: Smoothed projections
+   :rtype: torch.Tensor
+
+
+.. py:function:: compute_EW_scatter(projection_lower, projection_upper, width_lower, width_upper, width_peak, weighting_lower = 0.5, weighting_upper = 0.5, proj_meta=None, sigma_theta = 0, sigma_r = 0, sigma_z = 0, N_sigmas = 3, return_scatter_variance_estimate = False)
 
    Computes triple energy window estimate from lower and upper scatter projections as well as window widths
 

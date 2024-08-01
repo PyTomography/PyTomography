@@ -29,6 +29,7 @@ class PETLMSystemMatrix(SystemMatrix):
         attenuation_map: torch.tensor[float] | None = None,
         scale_projection_by_sensitivity: bool = False,
         N_splits: int = 1,
+        FOV_scale_enabled: bool = True,
         device: str = pytomography.device,
     ) -> None:
         super(PETLMSystemMatrix, self).__init__(
@@ -53,6 +54,7 @@ class PETLMSystemMatrix(SystemMatrix):
         self.norm_BP = self._backward_full()
         # replace zeros (outside FOV) with small value to avoid NaNs
         self.norm_BP[self.norm_BP < 1e-7] = 1e7
+        self.FOV_scale_enabled = FOV_scale_enabled
         
     def _get_object_initial(self, device=pytomography.device):
         # Only consider the space within the FOV
@@ -71,16 +73,19 @@ class PETLMSystemMatrix(SystemMatrix):
         Returns:
             torch.Tensor: Prior scaling
         """
-        zmin = (self.object_meta.shape[-1]-1)/2 + self.proj_meta.scanner_lut[:,2].min() /self.object_meta.dr[-1]
-        zmax = (self.object_meta.shape[-1]-1)/2 + self.proj_meta.scanner_lut[:,2].max() /self.object_meta.dr[-1]
-        zmid = (zmin + zmax) / 2
-        zmin = max(0, zmin)
-        zmax = max(0,zmax)
-        # Set axial FOV scaling
-        z = torch.arange(self.object_meta.shape[-1]).to(pytomography.device)
-        FOV_scale = (zmid - torch.abs(z - zmid)) / zmid
-        FOV_scale[FOV_scale<0] = 0
-        FOV_scale = torch.ones(self.object_meta.shape).to(pytomography.device) * FOV_scale
+        if self.FOV_scale_enabled:
+            zmin = (self.object_meta.shape[-1]-1)/2 + self.proj_meta.scanner_lut[:,2].min() /self.object_meta.dr[-1]
+            zmax = (self.object_meta.shape[-1]-1)/2 + self.proj_meta.scanner_lut[:,2].max() /self.object_meta.dr[-1]
+            zmid = (zmin + zmax) / 2
+            zmin = max(0, zmin)
+            zmax = max(0,zmax)
+            # Set axial FOV scaling
+            z = torch.arange(self.object_meta.shape[-1]).to(pytomography.device)
+            FOV_scale = (zmid - torch.abs(z - zmid)) / zmid
+            FOV_scale[FOV_scale<0] = 0
+            FOV_scale = torch.ones(self.object_meta.shape).to(pytomography.device) * FOV_scale
+        else:
+            FOV_scale = torch.ones(self.object_meta.shape).to(pytomography.device)
         return FOV_scale
     
     def _compute_attenuation_probability_projection(self, idx: torch.tensor) -> torch.tensor:
@@ -286,7 +291,7 @@ class PETLMSystemMatrix(SystemMatrix):
             
         if self.scale_projection_by_sensitivity:
             if self.proj_meta.weights is None:
-                Exception('If scaling by sensitivity, then `weights` must be provided in the projection metadata')
+                raise Exception('If scaling by sensitivity, then `weights` must be provided in the projection metadata')
             else:
                 proj = proj * self.get_projection_subset(self.proj_meta.weights, subset_idx).to(proj.device)
         return proj.to(self.output_device)
@@ -315,9 +320,9 @@ class PETLMSystemMatrix(SystemMatrix):
         # Normalization/attenuation scaling (if needed)
         if self.scale_projection_by_sensitivity:
             if self.proj_meta.weights is None:
-                Exception('If scaling by sensitivity, then `weights` must be provided in the projection metadata')
+                raise Exception('If scaling by sensitivity, then `weights` must be provided in the projection metadata')
             else:
-                proj*=self.get_projection_subset(self.proj_meta.weights, subset_idx).to(proj.device)
+                proj = proj * self.get_projection_subset(self.proj_meta.weights, subset_idx).to(proj.device)
         BP = 0
         for proj_i, idx_partial in zip(torch.tensor_split(proj, self.N_splits), torch.tensor_split(idx, self.N_splits)):
             proj_i = proj_i.to(pytomography.device)

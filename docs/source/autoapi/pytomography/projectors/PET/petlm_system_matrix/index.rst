@@ -17,7 +17,7 @@ Classes
 
 
 
-.. py:class:: PETLMSystemMatrix(object_meta, proj_meta, obj2obj_transforms = [], attenuation_map = None, scale_projection_by_sensitivity = False, N_splits = 1, device = pytomography.device)
+.. py:class:: PETLMSystemMatrix(object_meta, proj_meta, obj2obj_transforms = [], attenuation_map = None, scale_projection_by_sensitivity = False, N_splits = 1, FOV_scale_enabled = True, device = pytomography.device)
 
    Bases: :py:obj:`pytomography.projectors.SystemMatrix`
 

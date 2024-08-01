@@ -111,7 +111,7 @@ Attributes
    :rtype: torch.Tensor[batch_size, Lx, Ly, Lz]
 
 
-.. py:function:: get_psfmeta_from_header(headerfile)
+.. py:function:: get_psfmeta_from_header(headerfile, min_sigmas=3)
 
    Obtains the SPECTPSFMeta data corresponding to a SIMIND simulation scan from the headerfile
 
