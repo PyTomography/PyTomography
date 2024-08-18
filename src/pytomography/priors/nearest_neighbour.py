@@ -145,12 +145,10 @@ class LogCoshPrior(NearestNeighbourPrior):
         delta: float = 1,
         weight: NeighbourWeight | None = None,
     ) -> None:
-        gradient = lambda object, nearest, delta: torch.tanh((object-nearest) / delta)
-        Vr = lambda object, nearest, delta: torch.log(torch.cosh((object-nearest) / delta))
-        super(LogCoshPrior, self).__init__(beta, gradient, Vr=Vr, weight=weight, delta=delta)
+        super(LogCoshPrior, self).__init__(beta, weight=weight, delta=delta)
         
     def phi0(self, fr, fs):
-        return torch.tanh((fr - fs) / self.delta)
+        return torch.log(torch.cosh((fr-fs)/self.delta))
     
     def phi1(self, fr, fs):
         return torch.tanh((fr - fs) / self.delta)
