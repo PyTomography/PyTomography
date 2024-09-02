@@ -762,7 +762,7 @@ def save_dcm(
         ds.ImagePositionPatient = [Sx, Sy, Sz]
         ds.PixelData = pixel_data.tobytes()
     # Add all study data/time information if available
-    for attr in ['StudyDate', 'StudyTime', 'SeriesDate', 'SeriesTime', 'AcquisitionDate', 'AcquisitionTime', 'ContentDate', 'ContentTime', 'PatientSex', 'PatientAge', 'SeriesDescription', 'Manufacturer', 'PatientWeight', 'PatientHeight']:
+    for attr in ['StudyDate', 'StudyTime', 'SeriesDate', 'SeriesTime', 'AcquisitionDate', 'AcquisitionTime', 'ContentDate', 'ContentTime', 'PatientSex', 'PatientAge', 'SeriesDescription', 'Manufacturer', 'PatientWeight', 'PatientHeight', 'RotationInformationSequence']:
         if hasattr(ds_NM, attr):
             ds[attr] = ds_NM[attr]
     # Create all slices
