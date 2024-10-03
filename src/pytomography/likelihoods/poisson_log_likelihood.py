@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Callable
 import pytomography
 import torch
 from .likelihood import Likelihood

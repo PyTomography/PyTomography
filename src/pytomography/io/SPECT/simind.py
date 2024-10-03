@@ -41,7 +41,7 @@ def get_metadata(headerfile: str, distance: str = 'cm', corrfile: str | None = N
     number_of_projections = get_header_value(headerdata, 'number of projections', int)
     start_angle = get_header_value(headerdata, 'start angle', np.float32)
     direction = get_header_value(headerdata, 'direction of rotation', str)
-    angles = np.linspace(start_angle, extent_of_rotation, number_of_projections, endpoint=False)
+    angles = np.linspace(-start_angle, -start_angle+extent_of_rotation, number_of_projections, endpoint=False)
     if direction=='CW':
         angles = -angles % 360
     # Get radial positions
@@ -112,6 +112,22 @@ def get_projections(headerfiles: str | Sequence[str], weights: float = None):
         projections = torch.stack(projections)
     return projections.squeeze()
 
+def get_energy_window_bounds(headerfile: str) -> tuple[float, float]:
+    """Computes the lower and upper bounds of the energy window from a SIMIND header file
+
+    Args:
+        headerfile (str): SIMIND header file
+
+    Returns:
+        tuple[float, float]: Lower and upper energies
+    """
+    with open(headerfile) as f:
+        headerdata = f.readlines()
+    headerdata = np.array(headerdata)
+    lwr = get_header_value(headerdata, 'energy window lower level', np.float32)
+    upr = get_header_value(headerdata, 'energy window upper level', np.float32)
+    return lwr, upr
+
 def get_energy_window_width(headerfile: str) -> float:
     """Computes the energy window width from a SIMIND header file
 
@@ -147,11 +163,12 @@ def combine_projection_data(
         projections += projections_i * weight
     return projections
 
-def get_attenuation_map(headerfile: str):
+def get_attenuation_map(headerfile: str, smi_index_22: int = 3):
     """Opens attenuation data from SIMIND output
 
     Args:
         headerfile (str): Path to header file
+        smi_index_22 (int, optional): Value of provided in the simind simulation tag: " in:x22,<idx>x " where <idx> is 3 (mu) or 5 (mu-castor). You can check what value this is by default (if you did not provide it) by looking at simind.ini in the simind/smc_dir folder. Defaults to 3.
 
     Returns:
         torch.Tensor[batch_size, Lx, Ly, Lz]: Tensor containing attenuation map required for attenuation correction in SPECT/PET imaging.
@@ -167,7 +184,11 @@ def get_attenuation_map(headerfile: str):
     CT = np.fromfile(os.path.join(str(Path(headerfile).parent), imagefile), dtype=np.float32)
     # Flip "Z" ("X" in SIMIND) b/c "first density image located at +X" according to SIMIND manual
     # Flip "Y" ("Z" in SIMIND) b/c axis convention is opposite for x22,5x (mu-castor format)
-    CT = np.transpose(CT.reshape(shape), (2,1,0))[:,::-1,::-1]
+    CT = np.transpose(CT.reshape(shape), (2,1,0))
+    if smi_index_22==5: # mu-castor format
+        CT = CT[:,::-1,::-1]
+    elif smi_index_22==3: # mu format
+        CT = CT[:,:,::-1]
     CT = torch.tensor(CT.copy())
     return CT.to(pytomography.device)
 
@@ -180,18 +201,27 @@ def get_psfmeta_from_header(headerfile: str, min_sigmas=3):
     Returns:
         SPECTPSFMeta: SPECT PSF metadata required for PSF modeling in reconstruction.
     """
+    # Newer version of simind have collimator dimensions in mm
+    with open(headerfile) as f:
+        headerdata = f.readlines()
+    headerdata = np.array(headerdata)
+    if float(get_header_value(headerdata, 'program version ', str)[1:2])>=8:
+        to_cm = 0.1
+    else:
+        to_cm = 1
+    
     FWHM2sigma = 1/(2*np.sqrt(2*np.log(2)))
     module_path = os.path.dirname(os.path.abspath(__file__))
     with open(headerfile) as f:
         headerdata = f.readlines()
     headerdata = np.array(headerdata)
-    hole_diameter = get_header_value(headerdata, 'Collimator hole diameter', np.float32)
-    hole_length = get_header_value(headerdata, 'Collimator thickness', np.float32)
+    hole_diameter = get_header_value(headerdata, 'Collimator hole diameter', np.float32) * to_cm
+    hole_length = get_header_value(headerdata, 'Collimator thickness', np.float32) * to_cm
     energy_keV = get_header_value(headerdata, 'Photon Energy', np.float32)
     lead_attenuation = get_mu_from_spectrum_interp(os.path.join(module_path, '../../data/NIST_attenuation_data/lead.csv'), energy_keV)
     collimator_slope = hole_diameter/(hole_length - (2/lead_attenuation)) * 1/(2*np.sqrt(2*np.log(2)))
     try:
-        intrinsic_resolution_140keV = get_header_value(headerdata, 'Intrinsic FWHM for the camera', np.float32) * FWHM2sigma
+        intrinsic_resolution_140keV = get_header_value(headerdata, 'Intrinsic FWHM for the camera', np.float32) * FWHM2sigma * to_cm
         intrinsic_resolution = intrinsic_resolution_140keV * (140/energy_keV)**0.5
     except:
         intrinsic_resolution = 0

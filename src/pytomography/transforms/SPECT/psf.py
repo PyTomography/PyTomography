@@ -135,7 +135,7 @@ class SPECTPSFTransform(Transform):
         object_meta: SPECTObjectMeta,
         proj_meta: SPECTProjMeta
     ) -> None:
-        """Function used to initalize the transform using corresponding object and projection metadata
+        r"""Function used to initalize the transform using corresponding object and projection metadata
 
         Args:
             object_meta (SPECTObjectMeta): Object metadata.
@@ -148,7 +148,7 @@ class SPECTPSFTransform(Transform):
             self._configure_gaussian_model()
         
     def _compute_kernel_size(self, radius, axis) -> int:
-        """Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``SPECTPSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object. 
+        r"""Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``SPECTPSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object. 
 
         Returns:
             int: The corresponding kernel size used for PSF blurring.
@@ -161,7 +161,7 @@ class SPECTPSFTransform(Transform):
         self,
         radius: float,
     ) -> np.array:
-        """Uses PSF Meta data information to get blurring :math:`\sigma` as a function of distance from detector.
+        r"""Uses PSF Meta data information to get blurring :math:`\sigma` as a function of distance from detector.
 
         Args:
             radius (float): The distance from the detector.

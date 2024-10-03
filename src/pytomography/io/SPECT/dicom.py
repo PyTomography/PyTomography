@@ -88,6 +88,13 @@ def parse_projection_dataset(
         if not isinstance(radial_positions_detector, collections.abc.Sequence):
             radial_positions_detector = n_angles * [radial_positions_detector]
         radii = np.concatenate([radii, radial_positions_detector])
+    radii /= 10 # convert to cm
+    # Try to access GE Xeleris information if it exists
+    try:
+        radii_offset = np.array(ds[0x0055,0x1022][0][0x0013,0x101e].value).reshape(-1,3)[:,-1] / 10
+        radii += radii_offset
+    except:
+        pass
     projections = []
     for energy_window in np.unique(energy_window_vector):
         t_slot_projections = []
@@ -108,7 +115,7 @@ def parse_projection_dataset(
     projections = (
         torch.tensor(projections.copy()).to(pytomography.dtype).to(pytomography.device)
     )
-    return (projections, angles[sorted_idxs], radii[sorted_idxs] / 10, flags)
+    return (projections, angles[sorted_idxs], radii[sorted_idxs], flags)
 
 
 def get_metadata(
@@ -123,7 +130,7 @@ def get_metadata(
     Returns:
         (ObjectMeta, ProjMeta): Required metadata information for reconstruction in PyTomography.
     """
-    ds = pydicom.read_file(file, force=True)
+    ds = pydicom.dcmread(file, force=True)
     dx = ds.PixelSpacing[0] / 10
     dz = ds.PixelSpacing[1] / 10
     dr = (dx, dx, dz)
@@ -152,7 +159,7 @@ def get_projections(
     Returns:
         (SPECTObjectMeta, SPECTProjMeta, torch.Tensor[..., Ltheta, Lr, Lz]) where ... depends on if time slots are considered.
     """
-    ds = pydicom.read_file(file, force=True)
+    ds = pydicom.dcmread(file, force=True)
     projections, _, _, flags = parse_projection_dataset(ds)
     if index_peak is not None:
         projections = projections[index_peak].unsqueeze(dim=0)
@@ -174,6 +181,21 @@ def get_projections(
         print(f'Returned projections have dimensions ({" ".join(dimension_list)})')
     return projections
 
+def get_energy_window_bounds(file_NM: str, idx: int) -> tuple[float, float]:
+    """Get the energy window bounds from a DICOM file corresponding to energy window index idx.
+
+    Args:
+        file_NM (str): File to get energy window bounds from.
+        idx (int): Index of the energy window
+
+    Returns:
+        tuple[float, float]: Lower and upper bounds
+    """
+    ds = pydicom.dcmread(file_NM)
+    energy_window = ds.EnergyWindowInformationSequence[idx]
+    window_lower = energy_window.EnergyWindowRangeSequence[0].EnergyWindowLowerLimit
+    window_upper = energy_window.EnergyWindowRangeSequence[0].EnergyWindowUpperLimit
+    return window_lower, window_upper
 
 def get_window_width(ds: Dataset, index: int) -> float:
     """Computes the width of an energy window corresponding to a particular index in the DetectorInformationSequence DICOM attribute.
@@ -249,7 +271,7 @@ def get_energy_window_scatter_estimate_projections(
     Returns:
         torch.Tensor[Ltheta,Lr,Lz]: Tensor corresponding to the scatter estimate.
     """
-    ds = pydicom.read_file(file, force=True)
+    ds = pydicom.dcmread(file, force=True)
     ww_peak = get_window_width(ds, index_peak)
     ww_lower = get_window_width(ds, index_lower)
     ww_upper = get_window_width(ds, index_upper) if index_upper is not None else None
@@ -281,7 +303,7 @@ def get_attenuation_map_from_file(file_AM: str) -> torch.Tensor:
     Returns:
         torch.Tensor: Tensor of shape [batch_size, Lx, Ly, Lz] corresponding to the atteunation map in units of cm:math:`^{-1}`
     """
-    ds = pydicom.read_file(file_AM, force=True)
+    ds = pydicom.dcmread(file_AM, force=True)
     # DICOM header for scale factor that shows up sometimes
     if (0x033, 0x1038) in ds:
         scale_factor = 1 / ds[0x033, 0x1038].value
@@ -370,7 +392,7 @@ def CT_to_mumap(
     Returns:
         torch.tensor: Attenuation map in units of 1/cm
     """
-    ds_NM = pydicom.read_file(file_NM)
+    ds_NM = pydicom.dcmread(file_NM)
     window_upper = (
         ds_NM.EnergyWindowInformationSequence[index_peak]
         .EnergyWindowRangeSequence[0]
@@ -387,7 +409,7 @@ def CT_to_mumap(
         HU2mu_conversion = get_HU2mu_conversion(files_CT, E_SPECT)
         return HU2mu_conversion(CT)
     elif technique=='from_cortical_bone_fit':
-        KVP = pydicom.read_file(files_CT[0]).KVP
+        KVP = pydicom.dcmread(files_CT[0]).KVP
         HU2mu_conversion = get_HU2mu_conversion_old(files_CT, KVP, E_SPECT)
         return HU2mu_conversion(CT)
     elif callable(technique):
@@ -403,7 +425,7 @@ def bilinear_transform(
     b1: float,
     b2: float
     ) -> float:
-    """Function used to convert between Hounsfield Units at an effective CT energy and linear attenuation coefficient at a given SPECT radionuclide energy. It consists of two distinct linear curves in regions :math:`HU<0` and :math:`HU \geq 0`.
+    r"""Function used to convert between Hounsfield Units at an effective CT energy and linear attenuation coefficient at a given SPECT radionuclide energy. It consists of two distinct linear curves in regions :math:`HU<0` and :math:`HU \geq 0`.
 
     Args:
         HU (float): Hounsfield units at CT energy
@@ -438,8 +460,8 @@ def get_HU2mu_conversion(
         function: Conversion function from HU to mu.
     """
     module_path = os.path.dirname(os.path.abspath(__file__))
-    E_CT = pydicom.read_file(files_CT[0]).KVP
-    model_name = pydicom.read_file(files_CT[0]).ManufacturerModelName.replace(' ','').replace('-', '').lower()
+    E_CT = pydicom.dcmread(files_CT[0]).KVP
+    model_name = pydicom.dcmread(files_CT[0]).ManufacturerModelName.replace(' ','').replace('-', '').lower()
     df = pd.read_csv(os.path.join(module_path, f'../../data/ct_table.csv'))
     df['Model Name'] = df['Model Name'].apply(lambda s: s.replace(' ','').replace('-', ''))
     if model_name in df['Model Name'].values:
@@ -459,7 +481,8 @@ def get_attenuation_map_from_CT_slices(
     index_peak: int = 0,
     mode: str = "constant",
     HU2mu_technique: str | Callable = "from_table",
-    E_SPECT: float | None = None
+    E_SPECT: float | None = None,
+    output_shape = None,
 ) -> torch.Tensor:
     """Converts a sequence of DICOM CT files (corresponding to a single scan) into a torch.Tensor object usable as an attenuation map in PyTomography.
 
@@ -470,6 +493,7 @@ def get_attenuation_map_from_CT_slices(
         mode (str): Mode for affine transformation interpolation
         HU2mu_technique (str): Technique to convert HU to attenuation coefficients. The default, 'from_table', uses a table of coefficients for bilinear curves obtained for a variety of common radionuclides. The technique 'from_cortical_bone_fit' looks for a cortical bone peak in the scan and uses that to obtain the bilinear coefficients. For phantom scans where the attenuation coefficient is always significantly less than bone, the cortical bone technique will still work, since the first part of the bilinear curve (in the air to water range) does not depend on the cortical bone fit. Alternatively, one can provide an arbitrary function here which takes in a 3D scan with units of HU and converts to mu.
         E_SPECT (float): Energy of the photopeak in SPECT scan; this overrides the energy in the DICOM file, so should only be used if the DICOM file is incorrect. Defaults to None.
+        output_shape (tuple): Shape of the output attenuation map. If None, then the shape is determined by the NM file.
 
     Returns:
         torch.Tensor: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.
@@ -482,8 +506,9 @@ def get_attenuation_map_from_CT_slices(
     M_NM = _get_affine_spect_projections(file_NM)
     M = npl.inv(M_CT) @ M_NM
     # Apply affine
-    ds_NM = pydicom.read_file(file_NM)
-    output_shape = (ds_NM.Rows, ds_NM.Rows, ds_NM.Columns)
+    ds_NM = pydicom.dcmread(file_NM)
+    if output_shape is None:
+        output_shape = (ds_NM.Rows, ds_NM.Rows, ds_NM.Columns)
     CT = affine_transform(
         CT, M, output_shape=output_shape, mode=mode, cval=0, order=1
     )
@@ -500,7 +525,7 @@ def _get_affine_spect_projections(filename: str) -> np.array:
         np.array: Affine matrix
     """
     # Note: per DICOM convention z actually decreases as the z-index increases (initial z slices start with the head)
-    ds = pydicom.read_file(filename)
+    ds = pydicom.dcmread(filename)
     Sx, Sy, Sz = ds.DetectorInformationSequence[0].ImagePositionPatient
     dx = dy = ds.PixelSpacing[0]
     dz = ds.PixelSpacing[1]
@@ -531,7 +556,7 @@ def load_multibed_projections(
         torch.Tensor: Tensor of shape ``[N_bed_positions, N_energy_windows, Ltheta, Lr, Lz]``.
     """
     projectionss = torch.stack([get_projections(file_NM) for file_NM in files_NM])
-    dss = np.array([pydicom.read_file(file_NM) for file_NM in files_NM])
+    dss = np.array([pydicom.dcmread(file_NM) for file_NM in files_NM])
     zs = torch.tensor(
         [ds.DetectorInformationSequence[0].ImagePositionPatient[-1] for ds in dss]
     )
@@ -572,7 +597,7 @@ def stitch_multibed(
     Returns:
         torch.Tensor[Lx, Ly, Lz']: Stitched together DICOM file. Note the new z-dimension size :math:`L_z'`.
     """
-    dss = np.array([pydicom.read_file(file_NM) for file_NM in files_NM])
+    dss = np.array([pydicom.dcmread(file_NM) for file_NM in files_NM])
     zs = np.array(
         [ds.DetectorInformationSequence[0].ImagePositionPatient[-1] for ds in dss]
     )
@@ -682,12 +707,54 @@ def get_aligned_nifti_mask(
     mask_aligned = affine_transform(mask.transpose((1,0,2))[:,:,::-1], M, output_shape=shape, mode='constant', cval=0, order=1)[:,:,::-1]
     return torch.tensor(mask_aligned>cutoff_value).to(pytomography.device)
 
+def get_FOV_mask_from_projections(file_NM, contraction=1):
+    projections = get_projections(file_NM)
+    dims = len(projections.shape)
+    x = projections.sum(dim=tuple([i for i in range(dims-2)]))
+    r_valid = (x.sum(dim=1)>0).to(torch.int)
+    z_valid = (x.sum(dim=0)>0).to(torch.int)
+    r_min = r_valid.argmax()
+    r_max = r_valid.shape[0] - r_valid.flip(dims=(0,)).argmax() - 1
+    z_min = z_valid.argmax()
+    z_max = z_valid.shape[0] - z_valid.flip(dims=(0,)).argmax() - 1
+    # Adjust to ignore outer boundaries in case less sensitivity
+    r_min +=contraction; z_min +=contraction; r_max -=contraction; z_max -=contraction
+    blank_mask = torch.zeros_like(x)
+    blank_mask[r_min:r_max+1, z_min:z_max+1] = 1
+    return blank_mask
 
+def get_mean_stray_radiation_counts(file_blank, file_NM, index_peak=None):
+    ds_blank = pydicom.dcmread(file_blank)
+    # Get acquisition times
+    ds_NM = pydicom.dcmread(file_NM)
+    dT_blank = ds_blank.RotationInformationSequence[0].ActualFrameDuration / 1000
+    dT_NM = ds_NM.RotationInformationSequence[0].ActualFrameDuration / 1000
+    # Get mask
+    projections_blank = get_projections(file_blank)
+    blank_mask = get_FOV_mask_from_projections(file_blank)
+    N_angles = projections_blank.shape[-3]
+    # Get mean stray radiation counts
+    mean_stray_counts = (projections_blank*blank_mask).sum(dim=(-3,-2,-1)) / (N_angles * blank_mask.sum()) * dT_NM / dT_blank
+    if index_peak is None:
+        return mean_stray_counts
+    else:
+        return mean_stray_counts[index_peak].item()
+
+def get_mean_stray_radiation_counts_MEW_scatter(file_blank, file_NM, index_peak, index_lower, index_upper=None, weighting_lower=0.5, weighting_upper=0.5):
+    mean_stray_counts = get_mean_stray_radiation_counts(file_blank, file_NM)
+    ds_NM = pydicom.dcmread(file_NM)
+    stray_lower = mean_stray_counts[index_lower]
+    stray_upper = mean_stray_counts[index_upper] if index_upper is not None else 0
+    width_peak = get_window_width(ds_NM, index_peak)
+    width_lower = get_window_width(ds_NM, index_lower)
+    width_upper = get_window_width(ds_NM, index_upper) if index_upper is not None else None
+    return compute_EW_scatter(stray_lower, stray_upper, width_lower, width_upper, width_peak, weighting_lower, weighting_upper).item()
+        
 def save_dcm(
     save_path: str,
     object: torch.Tensor,
     file_NM: str,
-    recon_name: str = '',
+    recon_name: str = 'pytomo_recon',
     return_ds: bool = False,
     single_dicom_file: bool = False,
     scale_by_number_projections: bool = False
@@ -762,9 +829,10 @@ def save_dcm(
         ds.ImagePositionPatient = [Sx, Sy, Sz]
         ds.PixelData = pixel_data.tobytes()
     # Add all study data/time information if available
-    for attr in ['StudyDate', 'StudyTime', 'SeriesDate', 'SeriesTime', 'AcquisitionDate', 'AcquisitionTime', 'ContentDate', 'ContentTime', 'PatientSex', 'PatientAge', 'SeriesDescription', 'Manufacturer', 'PatientWeight', 'PatientHeight']:
+    for attr in ['StudyDate', 'StudyTime', 'SeriesDate', 'SeriesTime', 'AcquisitionDate', 'AcquisitionTime', 'ContentDate', 'ContentTime', 'PatientSex', 'PatientAge', 'Manufacturer', 'PatientWeight', 'PatientHeight']:
         if hasattr(ds_NM, attr):
             ds[attr] = ds_NM[attr]
+    ds.SeriesDescription = f'{ds_NM.SeriesDescription}: {recon_name}'
     # Create all slices
     if not single_dicom_file:
         dss = []

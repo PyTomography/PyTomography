@@ -38,11 +38,12 @@ def get_smoothed_scatter(
     kernel_size_r = 2 * int(np.ceil(N_sigmas * sigma_r / dr)) + 1
     kernel_size_z = 2 * int(np.ceil(N_sigmas * sigma_z / dz)) + 1
     ksize = [kernel_size_theta, kernel_size_r, kernel_size_z]
+    sigmas = [sigma_theta, sigma_r, sigma_z]
     # modes
     modes = ['circular', 'replicate', 'replicate']
     for i in range(3):
-        if ksize[i]>0:
-            k = get_1d_gaussian_kernel(ksize[i]/dS[i], ksize[i], modes[i]).to(pytomography.device)
+        if sigmas[i]>pytomography.delta:
+            k = get_1d_gaussian_kernel(sigmas[i]/dS[i], ksize[i], modes[i]).to(pytomography.device)
             scatter = scatter.swapaxes(i,2)
             scatter = k(scatter.flatten(end_dim=-2).unsqueeze(1)).reshape(scatter.shape)
             scatter = scatter.swapaxes(i,2)
@@ -89,16 +90,11 @@ def compute_EW_scatter(
         scatter_variance_estimate_diag = (width_peak / width_lower * weighting_lower) ** 2 * projection_lower + (width_peak / width_upper *weighting_upper) ** 2 * projection_upper
         # Returns an operator F^TsF where F is the scatter blurring kernel
         if (sigma_r>0)+(sigma_theta>0)+(sigma_z>0):
-            scatter_variance_estimate = lambda x: get_smoothed_scatter(
-                scatter_variance_estimate_diag * get_smoothed_scatter(x, proj_meta, sigma_theta, sigma_r, sigma_z, N_sigmas),
-                proj_meta,
-                sigma_theta,
-                sigma_r,
-                sigma_z,
-                N_sigmas
-            )
+            def scatter_variance_estimate(x):
+                x_smoothed = get_smoothed_scatter(x, proj_meta, sigma_theta, sigma_r, sigma_z, N_sigmas)
+                return x_smoothed * scatter_variance_estimate_diag * x_smoothed
         else:
-            scatter_variance_estimate = lambda x: scatter_variance_estimate_diag * x
+            scatter_variance_estimate = lambda x: x * scatter_variance_estimate_diag * x
         return scatter_estimate, scatter_variance_estimate
     else:
         return scatter_estimate

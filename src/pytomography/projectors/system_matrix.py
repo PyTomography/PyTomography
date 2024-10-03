@@ -4,6 +4,7 @@ import torch
 import pytomography
 from pytomography.transforms import Transform
 from pytomography.metadata import ObjectMeta, ProjMeta
+from copy import copy
 
 class SystemMatrix():
     r"""Abstract class for a general system matrix :math:`H:\mathbb{U} \to \mathbb{V}` which takes in an object :math:`f \in \mathbb{U}` and maps it to corresponding projections :math:`g \in \mathbb{V}` that would be produced by the imaging system. A system matrix consists of sequences of object-to-object and proj-to-proj transforms that model various characteristics of the imaging system, such as attenuation and blurring. While the class implements the operator :math:`H:\mathbb{U} \to \mathbb{V}` through the ``forward`` method, it also implements :math:`H^T:\mathbb{V} \to \mathbb{U}` through the `backward` method, required during iterative reconstruction algorithms such as OSEM.
@@ -26,6 +27,20 @@ class SystemMatrix():
         self.object_meta = object_meta
         self.proj_meta = proj_meta
         self.initialize_transforms()
+             
+    def __mul__(self, scalar):
+        old_forward = copy(self.forward)
+        old_backward = copy(self.backward)
+        def new_forward(*args, **kwargs):
+            return old_forward(*args, **kwargs) * scalar
+        def new_backward(*args, **kwargs):
+            return old_backward(*args, **kwargs) * scalar
+        self.forward = new_forward
+        self.backward = new_backward
+        return self
+    
+    def __rmul__(self, scalar):
+        return self.__mul__(scalar)
 
     def initialize_transforms(self):
         """Initializes all transforms used to build the system matrix
