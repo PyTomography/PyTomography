@@ -40,6 +40,20 @@ The tutorials use data that can be downloaded `here <https://drive.google.com/dr
 
         :material-outlined:`psychology;4em;sd-text-secondary`
 
+There are also some additional tutorials for other useful functionality
+
+.. grid:: 1 2 4 4
+    :gutter: 2
+    
+    .. grid-item-card:: Plotting Utilities
+        :link: ../notebooks/t_plotting
+        :link-type: doc
+        :link-alt: plotting
+        :text-align: center
+
+        :material-outlined:`photo;4em;sd-text-secondary`
+
+
 .. toctree::
     :maxdepth: 2
     :hidden:
@@ -48,3 +62,4 @@ The tutorials use data that can be downloaded `here <https://drive.google.com/dr
     usage_pet
     usage_ct
     usage_dev
+    ../notebooks/t_plotting
