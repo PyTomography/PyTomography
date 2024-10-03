@@ -1,7 +1,16 @@
 import torch
+import os
+import sys
 from importlib.metadata import version
 
 __version__: str = version('pytomography')
+
+# Silence parallelproj import
+os.environ['PARALLELPROJ_SILENT_IMPORT'] = '1'
+
+if not sys.warnoptions:
+    import warnings
+    warnings.simplefilter("ignore")
 
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 if device == "cpu":
@@ -11,6 +20,8 @@ elif str(device).strip() == "mps":
 dtype = torch.float32
 delta = 1e-11
 verbose = False
+
+
 
 def set_dtype(dt: float):
     global dtype

@@ -25,7 +25,7 @@ def get_header_value(
     Returns:
         float|str|int: The value corresponding to the header (header).
     """
-    header = header.replace('[', '\[').replace(']','\]').replace('(', '\(').replace(')', '\)')
+    header = header.replace('[', r'\[').replace(']',r'\]').replace('(', r'\(').replace(')', r'\)')
     y = np.vectorize(lambda y, x: bool(re.compile(x).search(y)))
     selection = y(list_of_attributes, header).astype(bool)
     lines = list_of_attributes[selection]

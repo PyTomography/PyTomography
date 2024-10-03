@@ -84,7 +84,7 @@ class SPECTSystemMatrix(SystemMatrix):
         Returns:
             torch.tensor: subsampled projections :math:`g_m`
         """
-        return projections[self.subset_indices_array[subset_idx]]
+        return projections[...,self.subset_indices_array[subset_idx],:,:]
     
     def get_weighting_subset(
         self,
@@ -115,7 +115,7 @@ class SPECTSystemMatrix(SystemMatrix):
         
         norm_proj = torch.ones(self.proj_meta.shape).to(pytomography.device)
         if subset_idx is not None:
-            norm_proj = norm_proj[self.subset_indices_array[subset_idx]]
+            norm_proj = self.get_projection_subset(norm_proj, subset_idx)
         return self.backward(norm_proj, subset_idx)
     
     def forward(
@@ -144,7 +144,6 @@ class SPECTSystemMatrix(SystemMatrix):
             ).to(pytomography.device)
         # Loop through all angles (or groups of angles in parallel)
         for i in range(0, len(angle_indices)):
-            # Get angle indices
             angle_indices_i = angle_indices[i]
             # Format Object
             object_i = pad_object(object)
