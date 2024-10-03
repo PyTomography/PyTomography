@@ -36,6 +36,28 @@ def _get_affine_multifile(files: Sequence[str]):
     M[3] = np.array([0, 0, 0, 1])
     return M
 
+def _get_affine_single_file(filename: str) -> np.array:
+    """Obtain the affine matrix from a 3D medical image stored in a single file.
+
+    Args:
+        filename (str): Path of file
+
+    Returns:
+        np.array: Affine matrix
+    """
+    ds = pydicom.dcmread(filename)
+    Sx, Sy, Sz = ds.ImagePositionPatient
+    dx, dy = ds.PixelSpacing
+    dz = ds.SliceThickness # assumption
+    M = np.zeros((4, 4))
+    M[0] = np.array([dx, 0, 0, Sx])
+    M[1] = np.array([0, dy, 0, Sy])
+    M[2] = np.array([0, 0, dz, Sz])
+    M[3] = np.array([0, 0, 0, 1])
+    return M
+
+
+
 def open_multifile(
     files: Sequence[str],
     return_object_meta: bool = False
@@ -66,6 +88,25 @@ def open_multifile(
         object_meta = ObjectMeta(dr=(dx,dy,dz), shape=shape)
         object_meta.affine_matrix = _get_affine_multifile(file)
         return array, object_meta
+    
+def open_singlefile(file: str) -> torch.Tensor:
+    """Opens data from a single DICOM file.
+
+    Args:
+        file (str): Filepath
+
+    Returns:
+        torch.Tensor: 3D Image
+    """
+    ds = pydicom.dcmread(file)
+    if 'RescaleIntercept' in ds.dir():
+        intercept = ds.RescaleIntercept
+    else:
+        intercept = 0
+    array = ds.RescaleSlope*ds.pixel_array+ intercept
+    array = np.transpose(array, (2,1,0)).astype(np.float32)
+    array = torch.tensor(array).to(pytomography.device)
+    return array
 
 def compute_max_slice_loc_multifile(files: Sequence[str]) -> float:
     """Obtains the maximum z-location from a list of DICOM slice files
