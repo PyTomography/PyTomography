@@ -17,7 +17,7 @@ def get_geometry_info_from_datasets_gen3(paths):
     detector_centers_phi_idx = []
     detector_centers_z_idx = []
     for path in paths:
-        ds = pydicom.read_file(path)
+        ds = pydicom.dcmread(path)
         source_phis.append(struct.unpack('<f', ds[0x7031,0x1001].value)[0])
         source_zs.append(struct.unpack('<f', ds[0x7031,0x1002].value)[0])
         source_rhos.append(struct.unpack('<f', ds[0x7031,0x1003].value)[0])
@@ -43,7 +43,7 @@ def get_geometry_info_from_datasets_gen3(paths):
 def get_projections_and_metadata_gen3(paths):
     projections, source_phis, source_rhos, source_zs, source_phi_offsets, source_rho_offsets, source_z_offsets, detector_centers_phi_idx, detector_centers_z_idx = get_geometry_info_from_datasets_gen3(paths)
     # assumes all files have same spacing
-    ds = pydicom.read_file(paths[0])
+    ds = pydicom.dcmread(paths[0])
     detector_tranverse_spacing = struct.unpack('<f', ds[0x7029,0x1002].value)[0]
     DSD = struct.unpack('<f', ds[0x7031,0x1031].value)[0]
     phi_det_spacing = np.arcsin(detector_tranverse_spacing/DSD)

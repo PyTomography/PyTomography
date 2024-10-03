@@ -173,7 +173,8 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
         data_storage_callback: DataStorageCallback,
         subiteration_number : int | None = None,
         return_pct: bool = False,
-        include_additive_term: bool = False
+        include_additive_term: bool = False,
+        post_recon_filter: Transform | None = None
         ) -> float | Sequence[float]:
         """Estimates the uncertainty of the sum of voxels in a reconstructed image. Calling this method requires a masked region `mask` as well as an instance of `DataStorageCallback` that has been used in a reconstruction algorithm: this data storage contains the estimated object and associated forward projection at each subiteration number.
 
@@ -189,20 +190,28 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
         """
         if subiteration_number is None:
             subiteration_number = len(data_storage_callback.objects) - 1
-        Q_sequence_current = mask.clone()
+        # Get final reconstruciton
+        final_recon = data_storage_callback.objects[subiteration_number].to(pytomography.device)
+        # Apply filter if provided
+        if post_recon_filter is not None:
+            Q_sequence_current = post_recon_filter(mask)
+            final_recon = post_recon_filter(final_recon)
+        else:
+            Q_sequence_current = mask.clone()
         V = 0
         for n in range(subiteration_number, 0, -1):
             V += self._compute_B(Q_sequence_current, data_storage_callback, n-1, include_additive_term=include_additive_term)
             if n>1:
                 Q_sequence_current = self._compute_Q(Q_sequence_current, data_storage_callback, n-1)
         uncertainty_abs2 = torch.sum(V[0] * self.likelihood.projections * V[0])
+        # If uncertainty estimated in the additive term
         if include_additive_term:
-            uncertainty_abs2 += torch.sum(V[1] * self.likelihood.additive_term_variance_estimate(V[1]))
+            uncertainty_abs2 += torch.sum(self.likelihood.additive_term_variance_estimate(V[1]))
         uncertainty_abs = torch.sqrt(uncertainty_abs2).item()
         if not(return_pct):
             return uncertainty_abs
         else:
-            uncertainty_rel = uncertainty_abs / (data_storage_callback.objects[subiteration_number].to(pytomography.device)*mask).sum().item() * 100
+            uncertainty_rel = uncertainty_abs / (final_recon*mask).sum().item() * 100
             return uncertainty_abs, uncertainty_rel
         
     def _compute_Q(
@@ -260,7 +269,7 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
         """
         if self.n_subsets==1:
             subset_idx = None
-            subset_indices_array = self.likelihood.system_matrix.subset_indices_array[0]
+            subset_indices_array = torch.arange(self.likelihood.system_matrix.proj_meta.shape[0]).to(torch.long).to(pytomography.device)
         else:
             subset_idx = n%self.n_subsets
             subset_indices_array = self.likelihood.system_matrix.subset_indices_array[subset_idx]
@@ -268,15 +277,25 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
         FP_current_update = data_storage_callback.projections_predicted[n].to(pytomography.device)
         output = input * object_current_update * self._linear_preconditioner_factor(None, subset_idx)
         output_primary = self.likelihood.compute_gradient_gf(object_current_update, FP_current_update, subset_idx)(output)
+        
         if include_additive_term:
             output_additive = self.likelihood.compute_gradient_sf(object_current_update, FP_current_update, subset_idx)(output)
-            output_total = torch.zeros((2, *self.likelihood.system_matrix.proj_meta.shape)).to(pytomography.device)
-            output_total[0,subset_indices_array] = output_primary
-            output_total[1,subset_indices_array] = output_additive
+            # This is weird because sometimes dual peak reconstruction is used and this dimenion needs to be obtained from the current FP update if it exists
+            output_total = torch.zeros((
+                2,
+                *FP_current_update.shape[:-3],
+                *self.likelihood.system_matrix.proj_meta.shape[-3:]
+            )).to(pytomography.device)
+            output_total[0,...,subset_indices_array,:,:] = output_primary
+            output_total[1,...,subset_indices_array,:,:] = output_additive
             return output_total
         else:
-            output_total = torch.zeros((1, *self.likelihood.system_matrix.proj_meta.shape)).to(pytomography.device)
-            output_total[0,subset_indices_array] = output_primary
+            output_total = torch.zeros((
+                1,
+                *FP_current_update.shape[:-3],
+                *self.likelihood.system_matrix.proj_meta.shape[-3:]
+            )).to(pytomography.device)
+            output_total[0,...,subset_indices_array,:,:] = output_primary
         return output_total
         
 class OSEM(LinearPreconditionedGradientAscentAlgorithm):
@@ -440,7 +459,7 @@ class BSREM(LinearPreconditionedGradientAscentAlgorithm):
             addition_after_iteration = addition_after_iteration
             )
     def _linear_preconditioner_factor(self, n_iter: int, n_subset: int):
-        """Computes the linear preconditioner factor :math:`D^n = 1/(\omega_n H^T 1)` where :math:`\omega_n` corresponds to the fraction of subsets at subiteration :math:`n`. 
+        r"""Computes the linear preconditioner factor :math:`D^n = 1/(\omega_n H^T 1)` where :math:`\omega_n` corresponds to the fraction of subsets at subiteration :math:`n`. 
 
         Args:
             n_iter (int): iteration number
@@ -594,12 +613,13 @@ class PGAAMultiBedSPECT(PreconditionedGradientAscentAlgorithm):
     def _finalize_callback(self):
         """Finalizes callbacks after reconstruction. This method is called after the reconstruction algorithm has finished.
         """
-        if type(self.callback) is list:
-            for recon_algo_k, callback_k in zip(self.reconstruction_algorithms, self.callback):
-                recon_algo_k.callback = callback_k
-                recon_algo_k.callback.finalize(recon_algo_k.object_prediction)
-        else:
-            self.callback.finalize(self.object_prediction)
+        if self.callback is not None:
+            if type(self.callback) is list:
+                for recon_algo_k, callback_k in zip(self.reconstruction_algorithms, self.callback):
+                    recon_algo_k.callback = callback_k
+                    recon_algo_k.callback.finalize(recon_algo_k.object_prediction)
+            else:
+                self.callback.finalize(self.object_prediction)
     
     def compute_uncertainty(
         self,

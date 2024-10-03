@@ -20,7 +20,7 @@ def _get_affine_multifile(files: Sequence[str]):
         np.array: Affine matrix corresponding to CT scan.
     """
     # Note: per DICOM convention z actually decreases as the z-index increases (initial z slices start with the head)
-    ds = pydicom.read_file(files[0])
+    ds = pydicom.dcmread(files[0])
     dx, dy = ds.PixelSpacing
     dz = compute_slice_thickness_multifile(files)
     orientation = ds.ImageOrientationPatient
@@ -52,7 +52,7 @@ def open_multifile(
     array = []
     slice_locs = []
     for file in files:
-        ds = pydicom.read_file(file)
+        ds = pydicom.dcmread(file)
         array.append(ds.RescaleSlope*ds.pixel_array+ ds.RescaleIntercept)
         slice_locs.append(float(ds.ImagePositionPatient[2]))
     array = np.transpose(np.array(array)[np.argsort(slice_locs)], (2,1,0)).astype(np.float32)
@@ -78,7 +78,7 @@ def compute_max_slice_loc_multifile(files: Sequence[str]) -> float:
     """
     slice_locs = []
     for file in files:
-        ds = pydicom.read_file(file)
+        ds = pydicom.dcmread(file)
         slice_locs.append(float(ds.ImagePositionPatient[2]))
     return np.max(slice_locs)
 
@@ -93,7 +93,7 @@ def compute_min_slice_loc_multifile(files: Sequence[str]) -> float:
     """
     slice_locs = []
     for file in files:
-        ds = pydicom.read_file(file)
+        ds = pydicom.dcmread(file)
         slice_locs.append(float(ds.ImagePositionPatient[2]))
     return np.min(slice_locs)
 
@@ -108,7 +108,7 @@ def compute_slice_thickness_multifile(files: Sequence[str]) -> float:
     """
     slice_locs = []
     for file in files:
-        ds = pydicom.read_file(file)
+        ds = pydicom.dcmread(file)
         slice_locs.append(float(ds.ImagePositionPatient[2]))
     slice_locs = np.array(slice_locs)[np.argsort(slice_locs)]
     return slice_locs[1] - slice_locs[0]

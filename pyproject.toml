@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pytomography"
-version = "3.2.2"
+version = "3.2.3"
 
 
 authors = [
@@ -52,6 +52,7 @@ doc = [
   "sphinx-autoapi~=3.0.0",
   "ipykernel",
   "pydata-sphinx-theme",
-  "sphinx-design"
+  "sphinx-design",
+  "sphinx-copybutton",
 ]
 
