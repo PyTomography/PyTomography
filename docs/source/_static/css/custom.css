@@ -1,0 +1,12 @@
+html {
+    --pst-font-size-base: 22px;
+}
+
+html[data-theme="dark"] .bd-content img:not(.only-dark):not(.dark-light) {
+    background: unset;
+    filter: brightness(1.0) contrast(1.0);
+}
+
+pre {
+    white-space: pre-wrap;
+}

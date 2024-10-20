@@ -40,30 +40,24 @@ class GaussianBlurNet(nn.Module):
             output = torch.permute(output,(2,1,0))
         return torch.permute(output,(1,2,0))
     
-class Arbitrary2DPSF:
+class PSF2D:
     def __init__(
         self,
-        psf_kernel,
+        psf_operator,
         distances,
         kernel_size,
         dr,
         ) -> None:
-        self.psf_kernel = psf_kernel
+        self.psf_operator = psf_operator
         self.kernel_size = kernel_size
-        self.distances = torch.tensor(distances).to(pytomography.device).to(pytomography.dtype)
-        x = torch.arange(-(self.kernel_size-1)/2, (self.kernel_size+1)/2, 1).to(pytomography.device).to(pytomography.dtype) * dr[0]
-        y = torch.arange(-(self.kernel_size-1)/2, (self.kernel_size+1)/2, 1).to(pytomography.device).to(pytomography.dtype) * dr[1]
-        self.yv, self.xv = torch.meshgrid(x, y, indexing='ij')
+        self.distances = torch.tensor(distances).to(pytomography.dtype).to(pytomography.device)
+        x = torch.arange(-(self.kernel_size-1)/2, (self.kernel_size+1)/2, 1).to(pytomography.device) * dr[0]
+        y = torch.arange(-(self.kernel_size-1)/2, (self.kernel_size+1)/2, 1).to(pytomography.device) * dr[1]
+        self.xv, self.yv = torch.meshgrid(x, y, indexing='xy')
         
-
     @torch.no_grad()
     def __call__(self, input):
-        groups = input.shape[0]
-        kernel = self.psf_kernel(self.xv, self.yv, self.distances).unsqueeze(1)
-        #kernel = kernel.swapaxes(2,3)
-        net = FFTConv2d(groups, groups, self.kernel_size, padding='same', groups=groups, bias=False).to(pytomography.device)
-        net.weight = torch.nn.Parameter(kernel)
-        return net(input.unsqueeze(0)).squeeze()
+        return self.psf_operator(input,self.xv,self.yv,self.distances,normalize=True)
 
 def get_1D_PSF_layer(
     sigmas: np.array,
@@ -89,25 +83,25 @@ def get_1D_PSF_layer(
     return layer
 
 class SPECTPSFTransform(Transform):
-    r"""obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``SPECTPSFMeta`` parameter. There are a few potential arguments to initialize this transform (i) `psf_meta`, which contains relevant collimator information to obtain a Gaussian PSF model that works for low/medium energy SPECT (ii) `kernel_f`, an callable function that gives the kernel at any source-detector distance :math:`d`, or (iii) `psf_kernel`, a network configured to automatically apply full PSF modeling to a given object :math:`f` at all source-detector distances. Only one of the arguments should be given.
+    r"""obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``SPECTPSFMeta`` parameter. There are a few potential arguments to initialize this transform (i) `psf_meta`, which contains relevant collimator information to obtain a Gaussian PSF model that works for low/medium energy SPECT (ii) `kernel_f`, an callable function that gives the kernel at any source-detector distance :math:`d`, or (iii) `psf_operator`, a network configured to automatically apply full PSF modeling to a given object :math:`f` at all source-detector distances. Only one of the arguments should be given.
 
     Args:
         psf_meta (SPECTPSFMeta): Metadata corresponding to the parameters of PSF blurring. In most cases (low/medium energy SPECT), this should be the only given argument.
         kernel_f (Callable): Function :math:`PSF(x,y,d)` that gives PSF at every source-detector distance :math:`d`. It should be able to take in 1D numpy arrays as its first two arguments, and a single argument for the final argument :math:`d`. The function should return a corresponding 2D PSF kernel.
-        psf_kernel (Callable): Network that takes in an object :math:`f` and applies all necessary PSF correction to return a new object :math:`\tilde{f}` that is PSF corrected, such that subsequent summation along the x-axis accurately models the collimator detector response.
+        psf_operator (Callable): Network that takes in an object :math:`f` and applies all necessary PSF correction to return a new object :math:`\tilde{f}` that is PSF corrected, such that subsequent summation along the x-axis accurately models the collimator detector response.
     """
     def __init__(
         self,
         psf_meta: SPECTPSFMeta | None = None,
-        psf_kernel: Callable | None = None,
+        psf_operator: Callable | None = None,
         assume_padded: bool = True,
     ) -> None:
         """Initializer that sets corresponding psf parameters"""
         super(SPECTPSFTransform, self).__init__()
-        if sum(arg is not None for arg in [psf_meta, psf_kernel]) != 1:
+        if sum(arg is not None for arg in [psf_meta, psf_operator]) != 1:
             Exception(f'Exactly one of the arguments for initialization should be given.')
         self.psf_meta = psf_meta
-        self.psf_kernel = psf_kernel
+        self.psf_operator = psf_operator
         self.assume_padded = assume_padded
         
     def _configure_gaussian_model(self):
@@ -128,34 +122,33 @@ class SPECTPSFTransform(Transform):
                 self.layers[radius] = GaussianBlurNet(layer_r)
             
     def _configure_manual_net(self):
-        """Internal function to configure the PSF net. This is called when `psf_kernel` is given in initialization
+        """Internal function to configure the PSF net. This is called when `psf_operator` is given in initialization
         """
         self.layers = {}
         for radius in np.unique(self.proj_meta.radii):
             dim = self.object_meta.shape[0] + 2*compute_pad_size(self.object_meta.shape[0])
             distances = get_distance(dim, radius, self.object_meta.dx)
-            psf_kernel_i = copy.deepcopy(self.psf_kernel)
-            self.layers[radius] = Arbitrary2DPSF(psf_kernel_i, distances, self.object_meta.shape[0]-1, self.object_meta.dr)
+            self.layers[radius] = PSF2D(self.psf_operator, distances, self.object_meta.shape[0]-1, self.object_meta.dr)
         
     def configure(
         self,
         object_meta: SPECTObjectMeta,
         proj_meta: SPECTProjMeta
     ) -> None:
-        """Function used to initalize the transform using corresponding object and projection metadata
+        r"""Function used to initalize the transform using corresponding object and projection metadata
 
         Args:
             object_meta (SPECTObjectMeta): Object metadata.
             proj_meta (SPECTProjMeta): Projections metadata.
         """
         super(SPECTPSFTransform, self).configure(object_meta, proj_meta)
-        if self.psf_kernel is not None:
+        if self.psf_operator is not None:
             self._configure_manual_net()
         else:
             self._configure_gaussian_model()
         
     def _compute_kernel_size(self, radius, axis) -> int:
-        """Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``SPECTPSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object. 
+        r"""Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``SPECTPSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object. 
 
         Returns:
             int: The corresponding kernel size used for PSF blurring.
@@ -168,7 +161,7 @@ class SPECTPSFTransform(Transform):
         self,
         radius: float,
     ) -> np.array:
-        """Uses PSF Meta data information to get blurring :math:`\sigma` as a function of distance from detector.
+        r"""Uses PSF Meta data information to get blurring :math:`\sigma` as a function of distance from detector.
 
         Args:
             radius (float): The distance from the detector.

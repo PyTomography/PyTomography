@@ -1,6 +1,7 @@
 from __future__ import annotations
 import pytomography
 from pytomography.projectors import SystemMatrix
+from collections.abc import Callable
 import torch
 
 class Likelihood:
@@ -10,14 +11,14 @@ class Likelihood:
         system_matrix (SystemMatrix): The system matrix modeling the particular system whereby the projections were obtained
         projections (torch.Tensor | None): Acquired data. If listmode, then this argument need not be provided, and it is set to a tensor of ones. Defaults to None.
         additive_term (torch.Tensor, optional): Additional term added after forward projection by the system matrix. This term might include things like scatter and randoms. Defaults to None.
-        additive_term_variance_estimate (torch.tensor, optional): Variance estimate of the additive term. If none, then uncertainty estimation does not include contribution from the additive term. Defaults to None.
+        additive_term_variance_estimate (Callable, optional): Operator for variance estimate of additive term. If none, then uncertainty estimation does not include contribution from the additive term. Defaults to None.
     """
     def __init__(
         self,
         system_matrix: SystemMatrix,
         projections: torch.Tensor | None = None,
         additive_term: torch.Tensor = None,
-        additive_term_variance_estimate: torch.tensor | None = None
+        additive_term_variance_estimate: Callable | None = None
         ) -> None:
         self.system_matrix = system_matrix
         if projections is None: # listmode reconstruction
