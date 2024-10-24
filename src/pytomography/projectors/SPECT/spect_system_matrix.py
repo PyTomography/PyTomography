@@ -84,7 +84,7 @@ class SPECTSystemMatrix(SystemMatrix):
         Returns:
             torch.tensor: subsampled projections :math:`g_m`
         """
-        return projections[self.subset_indices_array[subset_idx]]
+        return projections[...,self.subset_indices_array[subset_idx],:,:]
     
     def get_weighting_subset(
         self,
@@ -115,7 +115,7 @@ class SPECTSystemMatrix(SystemMatrix):
         
         norm_proj = torch.ones(self.proj_meta.shape).to(pytomography.device)
         if subset_idx is not None:
-            norm_proj = norm_proj[self.subset_indices_array[subset_idx]]
+            norm_proj = self.get_projection_subset(norm_proj, subset_idx)
         return self.backward(norm_proj, subset_idx)
     
     def forward(
@@ -144,7 +144,6 @@ class SPECTSystemMatrix(SystemMatrix):
             ).to(pytomography.device)
         # Loop through all angles (or groups of angles in parallel)
         for i in range(0, len(angle_indices)):
-            # Get angle indices
             angle_indices_i = angle_indices[i]
             # Format Object
             object_i = pad_object(object)
@@ -224,6 +223,8 @@ class SPECTCompleteSystemMatrix(SPECTSystemMatrix):
         self.system_matrices = None
         if store_system_matrix is not None:
             self.system_matrix_device = store_system_matrix
+        else:
+            self.system_matrix_device = pytomography.device
         self.system_matrix_dtype = torch.float16
         self.origin_amap = -(torch.tensor(object_meta.shape).to(pytomography.device)/2-0.5) * torch.tensor(object_meta.dr).to(pytomography.dtype).to(pytomography.device)
         self.voxel_size_amap = torch.tensor(object_meta.dr).to(pytomography.dtype).to(pytomography.device)
@@ -231,7 +232,7 @@ class SPECTCompleteSystemMatrix(SPECTSystemMatrix):
             self.projections_mask = projections_mask
         else:
             self.projections_mask = torch.ones(self.proj_meta.shape).to(pytomography.device).to(torch.bool)
-        self.valid_proj_pixel_mask = self.projections_mask.reshape(96,-1)
+        self.valid_proj_pixel_mask = self.projections_mask.reshape(self.proj_meta.num_projections,-1)
         if object_mask is not None:
             self.object_mask = object_mask
             self.valid_obj_voxel_mask= object_mask.ravel()
@@ -303,7 +304,7 @@ class SPECTCompleteSystemMatrix(SPECTSystemMatrix):
                 self.origin_amap,
                 self.voxel_size_amap # TODO: adjust for CT,
             )).reshape(X_proj_sub.shape[0], X_obj.shape[0])
-        return system_matrix_proj_i
+        return system_matrix_proj_i.to(torch.float16)
         
     def compute_normalization_factor(self, subset_idx : int | None = None) -> torch.tensor:
         norm_proj = self.projections_mask.to(self.system_matrix_dtype)

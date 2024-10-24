@@ -37,22 +37,23 @@ extensions = [
     "sphinx.ext.autodoc",
     'sphinx.ext.viewcode',
     "sphinx.ext.napoleon",
+    "sphinx_design",
     "nbsphinx",
     "autoapi.extension",
+    "sphinx_copybutton",
     "IPython.sphinxext.ipython_console_highlighting"
 ]
 
 # Where to autogen API
 autoapi_dirs = ['../../src/pytomography']
-autoapi_options = [ 'members', 'undoc-members', 'private-members', 'show-inheritance', 'show-module-summary', 'special-members', 'imported-members', 'recursive']
-autoapi_template_dir = "_templates/autoapi"
+def skip_util_classes(app, what, name, obj, skip, options):
+    if what == "attribute":
+       skip = True
+    return skip
 
-# Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
-
-# List of patterns, relative to source directory, that match files and
-# directories to ignore when looking for source files.
-# This pattern also affects html_static_path and html_extra_path.
+def setup(sphinx):
+   sphinx.connect("autoapi-skip-member", skip_util_classes)
+   
 exclude_patterns = []
 
 
@@ -68,7 +69,28 @@ html_logo = 'images/PT1.png'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+html_css_files = [
+    'css/custom.css',
+    'css/code_toggle.css'
+]
+html_js_files = [
+    'code_toggle.js'
+]
 
 # typehints
 autodoc_typehints = "description"
 autodoc_inherit_docstrings=True
+
+# Add link to github
+html_theme_options = {
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/qurit/PyTomography",
+            "icon": "fa-brands fa-github",
+            "type": "fontawesome",
+        },
+    ],    
+}
+
+pygments_style = 'sphinx'
