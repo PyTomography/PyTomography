@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Sequence
 import abc
 import torch
 import pytomography
@@ -201,6 +202,12 @@ class ExtendedSystemMatrix(SystemMatrix):
         subset_idx: int
     ) -> torch.tensor: 
         return self.system_matrices[0].get_projection_subset(projections, subset_idx)
+    
+    def get_weighting_subset(
+        self,
+        subset_idx: int
+    ) -> torch.tensor:
+        return self.system_matrices[0].get_weighting_subset(subset_idx)
     
     def compute_normalization_factor(self, subset_idx: int | None = None):
         r"""Function called by reconstruction algorithms to get the normalization factor :math:`H' = \sum_n v_n^T \otimes A_n^T H_n^T B_n^T` 1.
