@@ -258,7 +258,7 @@ def _listmodeTOF_to_sinogramTOF(
     ]
     data = torch.concatenate([lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]], sinogram_index[ring_ids[:,0], ring_ids[:,1]].unsqueeze(1)], dim=-1).to(torch.float32)
     # Need the loop to prevent memory errors in histogramdd for large dimensionality
-    sinogram = []
+    sinogram = torch.empty((len(bin_edges[0])-1, len(bin_edges[1])-1, len(bin_edges[2])-1, tof_meta.num_bins), dtype=torch.float32)
     for bin in range(tof_meta.num_bins):
         if weights is None:
             weights_TOF_bin = None
@@ -269,8 +269,8 @@ def _listmodeTOF_to_sinogramTOF(
             bin_edges,
             weight=weights_TOF_bin
         )[0]
-        sinogram.append(sinogram_TOF_bin)
-    return torch.stack(sinogram, dim=-1)
+        sinogram[...,bin] = sinogram_TOF_bin
+    return sinogram
 
 def get_detector_ids_from_trans_axial_ids(
     ids_trans_crystal: torch.Tensor,
@@ -419,9 +419,7 @@ def sinogram_to_listmode(detector_ids: torch.Tensor, sinogram: torch.Tensor, inf
     idx2 = sinogram_index[ring_ids[:,0], ring_ids[:,1]]
     if len(sinogram.shape)>3: # If TOF
         idxTOF =  detector_ids[:,2].clone()
-        # Opposite detector order
-        #idxTOF[idx[:,0]==1] = sinogram.shape[-1] - 1 - idxTOF[idx[:,0]==1]
-        lm_return += sinogram[idx0, idx1, idx2, idxTOF]
+        lm_return += sinogram[idx0, idx1, idx2, idxTOF] # randoms same for all TOF bins
     else:
         lm_return += sinogram[idx0, idx1, idx2]
     return lm_return
@@ -481,8 +479,7 @@ def randoms_sinogram_to_sinogramTOF(
     Returns:
         torch.Tensor: Randoms sinogram (TOF)
     """
-    sinogram_random *= tof_meta.bin_width / (2 * coincidence_timing_width * 0.3 / 2) # multiply by 2 b/c -4300ps->4300ps is total range, multiply by 0.3/2 to convert to distance
-    sinogram_random = sinogram_random.unsqueeze(-1).repeat(1,1,1,tof_meta.num_bins)
+    sinogram_random *= tof_meta.bin_width / (2 * coincidence_timing_width * 0.3 / 2) # 
     return sinogram_random
     
 

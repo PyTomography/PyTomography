@@ -12,7 +12,7 @@ from pytomography.utils import get_distance, compute_pad_size
 from pytomography.transforms import Transform
 from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
     
-class GaussianBlurNet(nn.Module):
+class Seperable1DBlurNet(nn.Module):
     """Network used to apply Gaussian blurring to each plane parallel to the detector head. The typical network used for low/medium energy SPECT PSF modeling.
 
     Args:
@@ -20,7 +20,7 @@ class GaussianBlurNet(nn.Module):
         layer_z (nn.Conv1d | None): Kernel used for blurring in sup/inf direction.
     """
     def __init__(self, layer_r: Conv1d, layer_z: Conv1d | None = None):
-        super(GaussianBlurNet, self).__init__()
+        super(Seperable1DBlurNet, self).__init__()
         self.layer_r = layer_r
         self.layer_z = layer_z
 
@@ -59,7 +59,7 @@ class PSF2D:
     def __call__(self, input):
         return self.psf_operator(input,self.xv,self.yv,self.distances,normalize=True)
 
-def get_1D_PSF_layer(
+def get_1D_PSF_layer_gaussian(
     sigmas: np.array,
     kernel_size: int,
     ) -> torch.nn.Conv1d:
@@ -78,6 +78,22 @@ def get_1D_PSF_layer(
     x = torch.arange(-int(kernel_size//2), int(kernel_size//2)+1).to(pytomography.device).unsqueeze(0).unsqueeze(0).repeat((N,1,1))
     sigmas = torch.tensor(sigmas).to(pytomography.dtype).to(pytomography.device).reshape((N,1,1))
     kernel = torch.exp(-x**2 / (2*sigmas**2 + pytomography.delta))
+    kernel = kernel / kernel.sum(axis=-1).unsqueeze(-1)
+    layer.weight.data = kernel.to(pytomography.dtype)
+    return layer
+
+def get_1D_PSF_layer_square(
+    sigmas: np.array,
+    kernel_size: int,
+    ) -> torch.nn.Conv1d:
+    
+    N = len(sigmas)
+    layer = nn.Conv1d(N, N, kernel_size, groups=N, padding='same',
+                    padding_mode='zeros', bias=0, device=pytomography.device)
+    x = torch.arange(-int(kernel_size//2), int(kernel_size//2)+1).to(pytomography.device).unsqueeze(0).unsqueeze(0).repeat((N,1,1))
+    sigmas = torch.tensor(sigmas).to(pytomography.dtype).to(pytomography.device).reshape((N,1,1))
+    kernel = 1 - torch.abs(x) / sigmas
+    kernel[kernel < 0] = 0
     kernel = kernel / kernel.sum(axis=-1).unsqueeze(-1)
     layer.weight.data = kernel.to(pytomography.dtype)
     return layer
@@ -104,7 +120,7 @@ class SPECTPSFTransform(Transform):
         self.psf_operator = psf_operator
         self.assume_padded = assume_padded
         
-    def _configure_gaussian_model(self):
+    def _configure_simple_model(self):
         """Internal function to configure Gaussian modeling. This is called when `psf_meta` is given in initialization
         """
         self.layers = {}
@@ -114,12 +130,16 @@ class SPECTPSFTransform(Transform):
             # Compute sigmas and normalize to pixel units
             sigma_r = self._get_sigma(radius)/self.object_meta.dx
             sigma_z = self._get_sigma(radius)/self.object_meta.dz
-            layer_r = get_1D_PSF_layer(sigma_r, kernel_size_r)
-            layer_z = get_1D_PSF_layer(sigma_z, kernel_size_z)
+            if self.psf_meta.shape=='gaussian':
+                layer_r = get_1D_PSF_layer_gaussian(sigma_r, kernel_size_r)
+                layer_z = get_1D_PSF_layer_gaussian(sigma_z, kernel_size_z)
+            elif self.psf_meta.shape=='square':
+                layer_r = get_1D_PSF_layer_square(sigma_r, kernel_size_r)
+                layer_z = get_1D_PSF_layer_square(sigma_z, kernel_size_z)
             if self.psf_meta.kernel_dimensions=='2D':
-                self.layers[radius] = GaussianBlurNet(layer_r, layer_z)
+                self.layers[radius] = Seperable1DBlurNet(layer_r, layer_z)
             else: # 1D blurring
-                self.layers[radius] = GaussianBlurNet(layer_r)
+                self.layers[radius] = Seperable1DBlurNet(layer_r)
             
     def _configure_manual_net(self):
         """Internal function to configure the PSF net. This is called when `psf_operator` is given in initialization
@@ -145,7 +165,7 @@ class SPECTPSFTransform(Transform):
         if self.psf_operator is not None:
             self._configure_manual_net()
         else:
-            self._configure_gaussian_model()
+            self._configure_simple_model()
         
     def _compute_kernel_size(self, radius, axis) -> int:
         r"""Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``SPECTPSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object. 

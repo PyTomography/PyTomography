@@ -233,7 +233,8 @@ def compute_sss_sparse_sinogram_TOF(
     attenuation_cutoff: float = 0.004,
     sinogram_interring_stepsize: int = 4,
     sinogram_intraring_stepsize: int = 4,
-    num_dense_tof_bins: int = 25
+    num_dense_tof_bins: int = 25,
+    N_splits: int = 1
     )->torch.Tensor:
     """Generates a sparse single scatter simulation sinogram for TOF PET data. 
 
@@ -269,9 +270,10 @@ def compute_sss_sparse_sinogram_TOF(
     rA = scanner_LUT.to(pytomography.device)[idxA]
     rB = scanner_LUT.to(pytomography.device)[idxB]
     # Now loop over scatter points
-    probability = 0
-    counts = 0
+    probability = torch.zeros([tof_meta.num_bins, detector_ids_scatter.shape[0]]).to(pytomography.device)
+    tof_bin_idxs = torch.arange(tof_meta.num_bins)
     tof_bin_positions = tof_meta.bin_positions.to(pytomography.device)
+    counts = 0
     for scatter_point in range(coords.shape[1]):
         scatter_point_position = coords_position[:,scatter_point] + ((torch.rand(3) - 0.5) * dr).to(pytomography.device)
         # Compute value of attenuation coefficient at scatter point
@@ -305,22 +307,23 @@ def compute_sss_sparse_sinogram_TOF(
         rSB_norm = torch.norm(rSB, dim=1) # distance between S and B
         offset_SA = - ((rSB_norm-rSA_norm).unsqueeze(0)/2 + tof_bin_positions.unsqueeze(1)) # first dim TOFbin
         offset_SB = -offset_SA
-        prob_SA = tof_efficiency(offset_SA, bin_centers_distance_along_LOR[idxA], tof_meta) # first dim TOFbin
-        prob_SB = tof_efficiency(offset_SB, bin_centers_distance_along_LOR[idxB], tof_meta) # first dim TOFbin
-        # Compute emission integrals
-        emission_integralsA = (prob_SA*emission_integrals[idxA].unsqueeze(0)).sum(dim=-1)
-        emission_integralsB = (prob_SB*emission_integrals[idxB].unsqueeze(0)).sum(dim=-1)
-        cos_theta = - (rSA*rSB).sum(axis=1) / rSA_norm / rSB_norm
-        E_new = photon_energy_after_compton_scatter_511kev(cos_theta) 
-        energy_efficiency = detector_efficiency(E_new)
-        # Angle of impingement upon detectors (assumes circle, maybe fix later)
-        cos_thetaA_incidence = (rSA[:,:2]*rA[:,:2]).sum(axis=1) / rSA_norm / torch.norm(rA[:,:2], dim=1)
-        cos_thetaB_incidence = (rSB[:,:2]*rB[:,:2]).sum(axis=1) / rSB_norm / torch.norm(rB[:,:2], dim=1)
-        compton_cross_section_ratio = total_compton_cross_section(E_new) / total_compton_cross_section_511keV
-        # Compute probability without considering TOF information
-        probability += 1/(rSB_norm**2 * rSA_norm**2) *\
-        (emission_integralsA * transmission_integrals_exp[idxB] ** (compton_cross_section_ratio - 1) + emission_integralsB * transmission_integrals_exp[idxA] ** (compton_cross_section_ratio - 1)) *\
-        transmission_integrals_exp[idxB] * transmission_integrals_exp[idxA] * mu_value * energy_efficiency * cos_thetaA_incidence * cos_thetaB_incidence * diff_compton_cross_section(cos_theta, E_PET) / total_compton_cross_section_511keV * np.prod(object_meta.dr)
+        # Loop over split TOF bins
+        for tof_bin_idxs_partial in torch.tensor_split(tof_bin_idxs, N_splits):
+            prob_SA = tof_efficiency(offset_SA[tof_bin_idxs_partial], bin_centers_distance_along_LOR[idxA], tof_meta) # first dim TOFbin
+            prob_SB = tof_efficiency(offset_SB[tof_bin_idxs_partial], bin_centers_distance_along_LOR[idxB], tof_meta) # first dim TOFbin
+            # Compute emission integrals
+            emission_integralsA = (prob_SA*emission_integrals[idxA].unsqueeze(0)).sum(dim=-1)
+            emission_integralsB = (prob_SB*emission_integrals[idxB].unsqueeze(0)).sum(dim=-1)
+            cos_theta = - (rSA*rSB).sum(axis=1) / rSA_norm / rSB_norm
+            E_new = photon_energy_after_compton_scatter_511kev(cos_theta) 
+            energy_efficiency = detector_efficiency(E_new)
+            # Angle of impingement upon detectors (assumes circle, maybe fix later)
+            cos_thetaA_incidence = (rSA[:,:2]*rA[:,:2]).sum(axis=1) / rSA_norm / torch.norm(rA[:,:2], dim=1)
+            cos_thetaB_incidence = (rSB[:,:2]*rB[:,:2]).sum(axis=1) / rSB_norm / torch.norm(rB[:,:2], dim=1)
+            compton_cross_section_ratio = total_compton_cross_section(E_new) / total_compton_cross_section_511keV
+            probability[tof_bin_idxs_partial] += 1/(rSB_norm**2 * rSA_norm**2) *\
+            (emission_integralsA * transmission_integrals_exp[idxB] ** (compton_cross_section_ratio - 1) + emission_integralsB * transmission_integrals_exp[idxA] ** (compton_cross_section_ratio - 1)) *\
+            transmission_integrals_exp[idxB] * transmission_integrals_exp[idxA] * mu_value * energy_efficiency * cos_thetaA_incidence * cos_thetaB_incidence * diff_compton_cross_section(cos_theta, E_PET) / total_compton_cross_section_511keV * np.prod(object_meta.dr)
         counts+=1
     probability = probability.ravel()
     # Get TOF bins
@@ -407,17 +410,32 @@ def scale_estimated_scatter(
     Returns:
         torch.Tensor: Scaled SSS projection data (sinogram/listmode).
     """
-    proj_data_mask = system_matrix.forward((attenuation_image>attenuation_image_cutoff).to(torch.float32))>0
+    system_matrix.TOF = False
     norm_BP = system_matrix.compute_normalization_factor()
-    # Scatter
-    BP_scatter_mask = system_matrix.backward(~proj_data_mask*proj_scatter.to(system_matrix.output_device)) / norm_BP
+    proj_data_mask = system_matrix.forward((attenuation_image>attenuation_image_cutoff).to(torch.float32))>0
     # Random
     if sinogram_random is not None:
         BP_random_mask = system_matrix.backward(~proj_data_mask*sinogram_random.to(system_matrix.output_device)) / norm_BP
     else:
         BP_random_mask = 0
-    # Total
-    BP_total_mask = system_matrix.backward(~proj_data_mask*proj_data.to(system_matrix.output_device)) / norm_BP
+    if len(proj_data.shape)>3: # TOF dimension added
+        system_matrix.TOF = True
+        proj_data_mask = proj_data_mask.unsqueeze(-1)
+    else:
+        system_matrix.TOF = False
+    # Scatter
+    # Need to get back projecgion of masked scatter and masked totall;
+    # we'll split into subsets to preserve memory since this requires
+    # making copies of potentially very large sinogram tensors
+    N_SUBSETS = 20
+    system_matrix.set_n_subsets(N_SUBSETS)
+    BP_scatter_mask = 0
+    BP_total_mask = 0 
+    for subset_idx in range(N_SUBSETS):
+        proj_scatter_masked = system_matrix.get_projection_subset(proj_scatter, subset_idx) * system_matrix.get_projection_subset(~proj_data_mask, subset_idx)
+        proj_total_masked = system_matrix.get_projection_subset(proj_data, subset_idx) * system_matrix.get_projection_subset(~proj_data_mask, subset_idx)
+        BP_scatter_mask += system_matrix.backward(proj_scatter_masked, subset_idx = subset_idx) / norm_BP
+        BP_total_mask += system_matrix.backward(proj_total_masked, subset_idx=subset_idx) / norm_BP
     BP_scatter_estimated_mask = BP_total_mask - BP_random_mask
     BP_scatter_estimated_mask[BP_scatter_estimated_mask<0] = 0
     scale_factor = ((BP_scatter_mask*BP_scatter_estimated_mask).sum() / (BP_scatter_mask**2).sum()).item()
@@ -436,7 +454,9 @@ def get_sss_scatter_estimate(
     sinogram_intraring_stepsize: int = 4,
     sinogram_random: torch.Tensor | None = None,
     tof_meta: PETTOFMeta = None,
-    num_dense_tof_bins: int = 25) -> torch.Tensor:
+    num_dense_tof_bins: int = 25,
+    N_splits: int = 1
+) -> torch.Tensor:
     """Main function used to get SSS scatter estimation during PET reconstruction
 
     Args:
@@ -453,6 +473,7 @@ def get_sss_scatter_estimate(
         sinogram_random (torch.Tensor | None, optional): Estimated randoms. Defaults to None.
         tof_meta (PETTOFMeta, optional): TOFMetadata corresponding to ``proj_data`` (if TOF is considered). Defaults to None.
         num_dense_tof_bins (int, optional): Number of dense TOF bins to use for partioning emission integrals when performing a TOF estimate. This is seperate from TOF bins used in the PET data. Defaults to 25.
+        N_splits (int, optional): Splits the TOF bins into subsets and loops over them sequentially (as opposed to parallel) for scatter estimation. Defaults to 1.
 
     Returns:
         torch.Tensor: Estimated SSS projection data (sinogram/listmode)
@@ -465,16 +486,14 @@ def get_sss_scatter_estimate(
         # Get sparse sinogram
         scatter_sinogram_sparse_unscaled = compute_sss_sparse_sinogram(object_meta, proj_meta, pet_image, attenuation_image, image_stepsize, attenuation_cutoff, sinogram_interring_stepsize, sinogram_intraring_stepsize)
         # Interpolate sparse sinogram
-        
         scatter_sinogram_unscaled  = interpolate_sparse_sinogram(scatter_sinogram_sparse_unscaled, proj_meta, *get_sample_detector_ids(proj_meta, sinogram_interring_stepsize, sinogram_intraring_stepsize)[:2])
     else:
         # Get sparse sinogram
-        scatter_sinogram_sparse_unscaled = compute_sss_sparse_sinogram_TOF(object_meta, proj_meta, pet_image, attenuation_image, tof_meta, image_stepsize, attenuation_cutoff, sinogram_interring_stepsize, sinogram_intraring_stepsize, num_dense_tof_bins)
-        scatter_sinogram_unscaled = []
+        scatter_sinogram_sparse_unscaled = compute_sss_sparse_sinogram_TOF(object_meta, proj_meta, pet_image, attenuation_image, tof_meta, image_stepsize, attenuation_cutoff, sinogram_interring_stepsize, sinogram_intraring_stepsize, num_dense_tof_bins, N_splits)
+        scatter_sinogram_unscaled = torch.empty(scatter_sinogram_sparse_unscaled.shape, dtype=torch.float32)
         # Interpolate sparse sinogram (loop over TOF bins)
         for i in range(scatter_sinogram_sparse_unscaled.shape[-1]):
-            scatter_sinogram_unscaled.append(interpolate_sparse_sinogram(scatter_sinogram_sparse_unscaled[:,:,:,i], proj_meta, *get_sample_detector_ids(proj_meta, sinogram_interring_stepsize, sinogram_intraring_stepsize)[:2]))
-        scatter_sinogram_unscaled = torch.stack(scatter_sinogram_unscaled, dim=-1)
+            scatter_sinogram_unscaled[...,i] = interpolate_sparse_sinogram(scatter_sinogram_sparse_unscaled[:,:,:,i], proj_meta, *get_sample_detector_ids(proj_meta, sinogram_interring_stepsize, sinogram_intraring_stepsize)[:2])
     del(scatter_sinogram_sparse_unscaled) # save memory for next step
     # Need to create a sinogram system matrix for scaling
     if listmode:

@@ -24,7 +24,7 @@ def get_aligned_attenuation_map(
     Returns:
         torch.Tensor: Aligned attenuation map
     """
-    amap = get_attenuation_map_interfile(headerfile)[0].cpu().numpy()
+    amap = get_attenuation_map_interfile(headerfile).cpu().numpy()
     # Load metadata
     with open(headerfile) as f:
         headerdata = f.readlines()

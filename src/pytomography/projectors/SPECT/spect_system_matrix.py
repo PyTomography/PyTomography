@@ -112,7 +112,6 @@ class SPECTSystemMatrix(SystemMatrix):
         Returns:
             torch.Tensor: normalization factor :math:`H^T_m 1`
         """
-        
         norm_proj = torch.ones(self.proj_meta.shape).to(pytomography.device)
         if subset_idx is not None:
             norm_proj = self.get_projection_subset(norm_proj, subset_idx)

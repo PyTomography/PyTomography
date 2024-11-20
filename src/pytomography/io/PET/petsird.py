@@ -2,7 +2,8 @@ from __future__ import annotations
 import pytomography
 import torch
 from . import prd
-from pytomography.metadata import PETTOFMeta
+# import petsird as prd
+from pytomography.metadata.PET import PETTOFMeta
 from typing import Sequence
 
 def get_detector_ids(
@@ -33,25 +34,16 @@ def get_detector_ids(
         PRD listmode file header, 2D array containing all event attributes
     """
     with prd.BinaryPrdExperimentReader(petsird_file) as reader:
-        # Read header and build lookup table
         header = reader.read_header()
-        # bool that decides whether the scanner has TOF and whether it is
-        # meaningful to read TOF
         if read_tof is None:
             r_tof: bool = len(header.scanner.tof_bin_edges) > 1
         else:
             r_tof = read_tof
-
-        # bool that decides whether the scanner has energy and whether it is
-        # meaningful to read energy
         if read_energy is None:
             r_energy: bool = len(header.scanner.energy_bin_edges) > 1
         else:
             r_energy = read_energy
-
-        # loop over all time blocks and read all meaningful event attributes
         event_attribute_list = []
-
         for time_block in reader.read_time_blocks():
             if (time_block_ids is None) or time_block.id in time_block_ids:
                 if r_tof and r_energy:
@@ -129,6 +121,11 @@ def get_TOF_meta_from_header(header: prd.Header, n_sigmas: float = 3.) -> PETTOF
         PETTOFMeta: Time of flight metadata.
     """
     num_tof_bins = header.scanner.tof_bin_edges.shape[0] - 1
-    tofbin_width = (header.scanner.tof_bin_edges[1] - header.scanner.tof_bin_edges[0])
+    tof_range = (header.scanner.tof_bin_edges[-1] - header.scanner.tof_bin_edges[0])
     fwhm_tof = header.scanner.tof_resolution 
-    return PETTOFMeta(num_tof_bins, tofbin_width, fwhm_tof, n_sigmas)
+    return PETTOFMeta(
+        num_bins = num_tof_bins,
+        tof_range = tof_range,
+        fwhm = fwhm_tof,
+        n_sigmas = n_sigmas
+    )
