@@ -2,7 +2,7 @@
 PyTomography
 ************************
 
-**Useful links:** `Installation <install.html>`_ | `Tutorials <usage.html>`_ | `API Reference <autoapi/index.html>`_ 
+**Useful links:** `Installation <install.html>`_ | `Tutorials <usage/usage.html>`_ | `API Reference <autoapi/index.html>`_ 
 
 ``PyTomography`` is a python library for tomographic reconstruction of medical imaging data. It provides a modularized framework for the construction and development of system matrices, likelihoods, and reconstruction algorithms.
 

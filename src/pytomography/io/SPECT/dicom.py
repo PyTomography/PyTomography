@@ -16,7 +16,7 @@ from pydicom.dataset import Dataset
 from pydicom.uid import generate_uid
 import pytomography
 from rt_utils import RTStructBuilder
-from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
+from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta, StarGuideProjMeta
 import nibabel as nib
 import pandas as pd
 from pytomography.utils import (
@@ -323,7 +323,8 @@ def get_psfmeta_from_scanner_params(
     min_sigmas: float = 3,
     material: str = 'lead',
     intrinsic_resolution: float = 0,
-    intrinsic_resolution_140keV: float | None = None
+    intrinsic_resolution_140keV: float | None = None,
+    shape: str = 'gaussian'
     ) -> SPECTPSFMeta:
     """Obtains SPECT PSF metadata given a unique collimator code and photopeak energy of radionuclide. For more information on collimator codes, see the "external data" section of the readthedocs page.
 
@@ -334,6 +335,7 @@ def get_psfmeta_from_scanner_params(
         material (str): Material of the collimator.
         intrinsic_resolution (float): Intrinsic resolution (FWHM) of the scintillator crystals. Note that most scanners provide the intrinsic resolution at 140keV only; if you only have access to this, you should use the ``intrinsic_resolution_140keV`` argument of this function. Defaults to 0.
         intrinsic_resolution_140keV (float | None): Intrinsic resolution (FWHM) of the scintillator crystals at an energy of 140keV. The true intrinsic resolution is calculated assuming the resolution is proportional to E^(-1/2). If provided, then ``intrinsic_resolution`` is ignored. Defaults to None.
+        shape (str, optional): Shape of the PSF. Defaults to 'gaussian', in which case sigma is the sigma of the Gaussian. Can also be 'square' for square collimators, in this case sigma is half the diameter of the bore.
 
     Returns:
         SPECTPSFMeta: PSF metadata.
@@ -350,28 +352,32 @@ def get_psfmeta_from_scanner_params(
         Exception(
             f"Cannot find data for collimator name {collimator_name}. For a list of available collimator names, run `from pytomography.utils import print_collimator_parameters` and then `print_collimator_parameters()`."
         )
-
-    # TODO: Support for other collimator types. Right now just parallel hole
     hole_length = float(line.split()[3])
     hole_diameter = float(line.split()[1])
-
     lead_attenuation = get_mu_from_spectrum_interp(os.path.join(module_path, f'../../data/NIST_attenuation_data/{material}.csv'), energy_keV)
-    
-    FWHM2sigma = 1/(2*np.sqrt(2*np.log(2)))
-    collimator_slope = hole_diameter/(hole_length - (2/lead_attenuation)) * FWHM2sigma
-    collimator_intercept = hole_diameter * FWHM2sigma
-    if intrinsic_resolution_140keV is not None:
-        intrinsic_resolution = intrinsic_resolution_140keV * (energy_keV/140)**(-1/2) * FWHM2sigma
-    else:
-        intrinsic_resolution = intrinsic_resolution * FWHM2sigma
+    collimator_slope = hole_diameter/(hole_length - (2/lead_attenuation))
+    collimator_intercept = hole_diameter
+    if shape=='gaussian':
+        FWHM2sigma = 1/(2*np.sqrt(2*np.log(2)))
+        collimator_slope *= FWHM2sigma
+        collimator_intercept *= FWHM2sigma
+        if intrinsic_resolution_140keV is not None:
+            intrinsic_resolution = intrinsic_resolution_140keV * (energy_keV/140)**(-1/2) * FWHM2sigma
+        else:
+            intrinsic_resolution = intrinsic_resolution * FWHM2sigma
+    elif shape=='box':
+        collimator_slope /= 2 # half the diameter
+        collimator_intercept /= 2
+        intrinsic_resolution = 0 # dont include for square
     sigma_fit = lambda r, a, b, c: np.sqrt((a*r+b)**2+c**2)
     sigma_fit_params = [collimator_slope, collimator_intercept, intrinsic_resolution]
     
     return SPECTPSFMeta(
         sigma_fit_params=sigma_fit_params,
         sigma_fit=sigma_fit,
-        min_sigmas=min_sigmas
-        )
+        min_sigmas=min_sigmas,
+        shape=shape
+    )
 
 def CT_to_mumap(
     CT: torch.tensor,
@@ -530,7 +536,7 @@ def _get_affine_spect_projections(filename: str) -> np.array:
     ds = pydicom.dcmread(filename)
     Sx, Sy, Sz = ds.DetectorInformationSequence[0].ImagePositionPatient
     dx = dy = ds.PixelSpacing[0]
-    dz = ds.PixelSpacing[1]
+    dz = float(ds.PixelSpacing[1])
     if Sy == 0:
         Sx -= (ds.Rows-1) / 2 * dx
         Sy -= (ds.Rows-2) / 2 * dy
@@ -861,4 +867,156 @@ def save_dcm(
         else:
             for ds_i in dss:
                 ds_i.save_as(os.path.join(save_path, f'{ds_i.SOPInstanceUID}.dcm'))
-        
+                   
+# ---------------------------------------
+# Imaging System Specific Functions
+# ---------------------------------------
+
+def get_starguide_projections(files_NM: Sequence[str], index_peak: int | None = None):
+    """Obtain projections from the sequence of files corresponding to a single starguide acquisition; there should be 12 files (one for each head position). The projections are sorted by energy window.
+
+    Args:
+        files_NM (Sequence[str]): Sequence of files corresponding to the acquisition (one file for each head)
+        index_peak (int | None, optional): Photopeak index; if None then returns all energy peaks. Defaults to None.
+
+    Returns:
+        torch.Tensor: StarGuide projeciton data
+    """
+    projections = []
+    energy_window_vector = []
+    for file in files_NM:
+        try:
+            ds = pydicom.dcmread(file)
+            energy_window_vector += ds.EnergyWindowVector
+            projections += list(ds.pixel_array * ds[0x0011, 0x103b].value)
+        except:
+            continue
+    energy_window_vector = torch.tensor(energy_window_vector)
+    unique_idxs = torch.unique(energy_window_vector)
+    projections_all = []
+    for idx in unique_idxs:
+        idx = energy_window_vector==idx
+        projections_all.append(torch.tensor(projections)[idx].swapaxes(1,2).to(pytomography.dtype).to(pytomography.device))
+    if index_peak is not None:
+        return projections_all[index_peak]
+    else:
+        return torch.stack(projections_all)
+    
+def get_starguide_metadata(files_NM: Sequence[str], index_peak: int = 0, nearest_theta: float = 1.0):
+    """Obtains the metadata for a Starguide SPECT acquisition.
+
+    Args:
+        files_NM (Sequence[str]): Sequence of NM files for a StarGuide acqusition
+        index_peak (int, optional): Photopeak index for reconstruction. Defaults to 0.
+        nearest_theta (float, optional): Nearest theta to round angles to. Defaults to 1.0.
+
+    Returns:
+        Sequence: Object meta and projection data for the acquisition.
+    """
+    angles = []
+    radii = []
+    offsets = []
+    times = []
+    energy_window_vector = []
+    for i, file in enumerate(files_NM):
+        try:
+            ds = pydicom.dcmread(file)
+            t = np.array(ds[0x0009,0x1003].value)
+            x = np.array(ds[0x0099,0x01051].value)
+            y = np.array(ds[0x0099,0x01052].value)
+            thetas = np.array(ds[0x0099,0x01053].value)
+            r = x*np.sin(thetas*np.pi/180) + y * np.cos(thetas*np.pi/180)
+            l = x*np.cos(thetas*np.pi/180) - y * np.sin(thetas*np.pi/180)
+            angle = np.round(thetas/nearest_theta) * nearest_theta # round to nearest degrree if nearest_theta=1.0
+            angles += list(angle)
+            radii += list(r)
+            offsets += list(l)
+            times += list(t)
+            energy_window_vector += ds.EnergyWindowVector
+        except:
+            print(f'File at index {i} failed')
+            continue
+    idx = torch.tensor(energy_window_vector)== index_peak + 1
+    radii = np.array(radii)[idx]
+    offsets = torch.tensor(offsets)[idx].to(pytomography.dtype).to(pytomography.device)
+    times = torch.tensor(times)[idx].to(pytomography.dtype).to(pytomography.device)
+    angles = torch.tensor(angles)[idx].to(pytomography.dtype).to(pytomography.device)
+    projections = get_starguide_projections(files_NM, index_peak)
+    dx = ds.PixelSpacing[0] / 10 # to cm
+    proj_meta = StarGuideProjMeta(projections.shape, angles, times, offsets, radii)
+    object_meta = SPECTObjectMeta(dr=(dx, dx, dx), shape=(196,196,112)) # 196 is what GE uses
+    return object_meta, proj_meta
+
+def get_starguide_affine_CT(files_CT: Sequence[str]):
+    """Obtain the affine matrix for a Starguide CT acquisition.
+
+    Args:
+        files_CT (Sequence[str]): Files corresponding to the CT acquisition
+
+    Returns:
+        np.array: Affine matrix for the CT acquisition
+    """
+    ds = pydicom.dcmread(files_CT[0])
+    dx = dy = ds.PixelSpacing[0] / 10
+    dz = ds.SliceThickness / 10
+    shape = [*ds.pixel_array.shape, len(files_CT)]
+    Sx_CT = - (shape[0]-1) * dx / 2
+    Sy_CT = - (shape[1]-1) * dy / 2
+    Sz_CT = - (shape[2]-1) * dz / 2
+    affine_CT = np.array([[dx, 0, 0, Sx_CT],
+                        [0, dy, 0, Sy_CT],
+                        [0, 0, dz, Sz_CT],
+                        [0, 0, 0, 1]])
+    return affine_CT
+
+def get_starguide_affine_NM(files_NM: Sequence[str]):
+    """Obtain the affine matrix for a Starguide NM acquisition.
+
+    Args:
+        files_NM (Sequence[str]): Files corresponding to the NM acquisition
+
+    Returns:
+        np.array: Affine matrix for the NM acquisition
+    """
+    object_meta, _ = get_starguide_metadata(files_NM)
+    dx_NM = dy_NM = dz_NM = object_meta.dr[0]
+    Sx_NM = - (object_meta.shape[0]-1) * dx_NM / 2
+    Sy_NM = - (object_meta.shape[1]-1) * dy_NM / 2
+    Sz_NM = - (object_meta.shape[2]-1) * dz_NM / 2
+    affine_NM = np.array([[dx_NM, 0,0,Sx_NM],
+                         [0, dy_NM, 0, Sy_NM],
+                         [0, 0, dz_NM, Sz_NM],
+                         [0, 0, 0, 1]])
+    return affine_NM
+
+def get_starguide_attenuation_map_from_CT_slices(
+    files_CT: Sequence[str],
+    files_NM: Sequence[str],
+    index_peak: int = 0,
+    mode: str = "constant",
+    E_SPECT: float | None = None,
+):  
+    """Obtain the attenuation map for a Starguide SPECT acquisition from a sequence of CT files.
+
+    Args:
+        files_CT (Sequence[str]): CT files corresponding to the acquisition
+        files_NM (Sequence[str]): NM files corresponding to the acquisition
+        index_peak (int, optional): Index corresponding to photopeak. Defaults to 0.
+        mode (str, optional): Mode for the affine matrix. Defaults to "constant".
+        E_SPECT (float | None, optional): Energy of SPECT; this overrights the energy from index_peak if provided. Defaults to None.
+
+    Returns:
+       torch.Tensor: Attenuation map in units of 1/cm
+    """
+    object_meta, _ = get_starguide_metadata(files_NM, index_peak)
+    CT = open_multifile(files_CT).cpu().numpy()
+    CT = CT_to_mumap(CT, files_CT, files_NM[0], index_peak=index_peak, technique='from_cortical_bone_fit', E_SPECT=E_SPECT)
+    affine_CT = get_starguide_affine_CT(files_CT)
+    affine_NM = get_starguide_affine_NM(files_NM)
+    M = npl.inv(affine_CT) @ affine_NM
+    CT = affine_transform(
+            CT, M, output_shape=object_meta.shape, mode=mode, cval=0, order=1
+    )
+    CT = torch.tensor(CT).to(pytomography.dtype).to(pytomography.device)
+    CT = torch.flip(CT, [2])
+    return CT

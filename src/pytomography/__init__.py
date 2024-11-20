@@ -21,8 +21,6 @@ dtype = torch.float32
 delta = 1e-11
 verbose = False
 
-
-
 def set_dtype(dt: float):
     global dtype
     global delta
