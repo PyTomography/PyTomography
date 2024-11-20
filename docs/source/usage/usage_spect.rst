@@ -138,6 +138,23 @@ The tutorials below demonstrate how to use PSF models obtained via the `SPECTPSF
         :material-outlined:`offline_bolt;4em;sd-text-secondary`
 
 +++++++++++++++
+Cardiac Functionality
++++++++++++++++
+
+The tutorials below demonstrate reconstruction and reorientation of cardiac SPECT data.
+
+.. grid:: 1 2 3 3
+    :gutter: 2
+
+    .. grid-item-card:: Cardiac Reconstruction and Reorientation
+        :link: ../notebooks/t_CardiacReorientation
+        :link-type: doc
+        :link-alt: cardiac
+        :text-align: center
+
+        :material-outlined:`offline_bolt;4em;sd-text-secondary`
+
++++++++++++++++
 Useful Code Snippets
 +++++++++++++++
 

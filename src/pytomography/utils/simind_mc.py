@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Sequence
+import time
 import subprocess
 import tempfile
 import numpy as np
@@ -260,6 +261,7 @@ def run_scatter_simulation(
     procs = [subprocess.Popen([f'simind', 'simind', simind_command, 'radii_corfile.cor'], stdout=subprocess.DEVNULL, cwd=temp_dir.name) for simind_command in simind_commands]
     for p in procs:
         p.wait()
+    time.sleep(0.1) # sometimes the last file is not written yet
     # Add together projection data from all seperate processes
     add_together(n_parallel, len(primary_window_idxs), temp_dir.name)
     proj_simind_scatter = simind.get_projections([f'{temp_dir.name}/sca_w{i+1}.h00' for i in range(len(primary_window_idxs))])

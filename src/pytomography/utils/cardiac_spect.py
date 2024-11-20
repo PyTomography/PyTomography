@@ -8,8 +8,6 @@ from scipy.ndimage import center_of_mass, shift, affine_transform
 from matplotlib.patches import FancyArrowPatch
 from scipy.ndimage import rotate
 
-
-
 def shift_object(object: torch.Tensor, tx: float, ty: float, tz: float) -> torch.Tensor:
     """
     Shift the 3D volume based on the given translation parameters.
@@ -23,7 +21,7 @@ def shift_object(object: torch.Tensor, tx: float, ty: float, tz: float) -> torch
         Shifted 3D volume: The shifted object (torch.Tensor[Lx, Ly, Lz]).
     """
     
-    object = object.numpy() if isinstance(object, torch.Tensor) else object 
+    object = object.cpu().numpy() if isinstance(object, torch.Tensor) else object 
     translation = [ty, tx, tz]
     identity_matrix = np.eye(3)
     shifted_object = affine_transform(object, identity_matrix, offset=translation, order=1)
@@ -43,7 +41,7 @@ def rotate_object(object: torch.Tensor, transaxial_angle: float, transsagittal_a
         The reoriented object (torch.Tensor[Lx, Ly, Lz]).
     """
     
-    rotated_object = rotate(object, transaxial_angle, axes=(1, 0), reshape=False)
+    rotated_object = rotate(object.cpu(), transaxial_angle, axes=(1, 0), reshape=False)
     rotated_object = rotate(rotated_object, transsagittal_angle, axes=(2, 0), reshape=False)
 
     return torch.tensor(rotated_object).to(pytomography.dtype).to(pytomography.device)
@@ -78,7 +76,7 @@ def get_shift_values(slice: torch.Tensor) -> torch.Tensor:
     com = center_of_mass(slice.cpu().numpy())
     center_of_image = torch.tensor(slice.shape, dtype=torch.float32) / 2
     shift_values = center_of_image - torch.tensor(com, dtype=torch.float32)
-    shifted_image = shift(slice.cpu().numpy().astype(float), shift=shift_values.numpy(), order=0)
+    shifted_image = shift(slice.cpu().numpy().astype(float), shift=shift_values.cpu().numpy(), order=0)
     # shifted_image = torch.from_numpy(shifted_image)
     shifted_image = torch.tensor(shifted_image).to(pytomography.dtype).to(pytomography.device)
     
@@ -129,7 +127,7 @@ def plot_arrow(image, angle_degrees, fontsize=10):
     end_y = center_y - length * np.cos(angle_radians)  # Note the subtraction for y
     
     fig, ax = plt.subplots(figsize=(5, 5))
-    ax.imshow(image, cmap='gray')
+    ax.imshow(image.cpu().numpy(), cmap='gray')
     ax.add_patch(FancyArrowPatch(
         (center_x, center_y),
         (end_x, end_y),
