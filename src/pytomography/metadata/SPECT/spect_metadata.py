@@ -71,18 +71,24 @@ class SPECTPSFMeta():
         sigma_fit (function): Function used to model blurring as a function of radial distance. Defaults to a 2 parameter linear model.
         kernel_dimensions (str): If '1D', blurring is done seperately in each axial plane (so only a 1 dimensional convolution is used). If '2D', blurring is mixed between axial planes (so a 2D convolution is used). Defaults to '2D'.
         min_sigmas (float, optional): This is the number of sigmas to consider in PSF correction. PSF are modelled by Gaussian functions whose extension is infinite, so we need to crop the Gaussian when computing this operation numerically. Note that the blurring width is depth dependent, but the kernel size used for PSF blurring is constant. As such, this parameter is used to fix the kernel size such that all locations have at least ``min_sigmas`` of a kernel size.
+        shape (str, optional): Shape of the PSF. Defaults to 'gaussian', in which case sigma is the sigma of the Gaussian. Can also be 'square' for square collimators, in this case sigma is half the diameter of the bore.
     """
     def __init__(
         self,
         sigma_fit_params: Sequence[float, float],
         sigma_fit : function = lambda r, a, b: a*r+b,
         kernel_dimensions: str = '2D',
-        min_sigmas: float = 3
+        min_sigmas: float | None = 3,
+        shape: str = 'gaussian'
     ) -> None:
         self.sigma_fit_params = sigma_fit_params
         self.sigma_fit = sigma_fit
         self.kernel_dimensions = kernel_dimensions
-        self.min_sigmas = min_sigmas
+        if shape is 'square':
+            self.min_sigmas = 1 # will include whole PSF
+        else:
+            self.min_sigmas = min_sigmas 
+        self.shape = shape
         
     def __repr__(self):
         attributes = [f"{attr} = {getattr(self, attr)}\n" for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]
