@@ -77,6 +77,40 @@ The tutorials below demonstrate some additional use cases for SPECT reconstructi
 
         :material-outlined:`question_mark;4em;sd-text-secondary`
 
+    .. grid-item-card:: Monte Carlo Scatter Correction (Lu-177)
+        :link: ../notebooks/t_spect_mc
+        :link-type: doc
+        :link-alt: uncertainty spect
+        :text-align: center
+
+        :material-outlined:`swipe_right_alt;4em;sd-text-secondary`
+
+    .. grid-item-card:: Monte Carlo Scatter Correction (Er-165)
+        :link: ../notebooks/t_spect_mc2
+        :link-type: doc
+        :link-alt: uncertainty spect 2
+        :text-align: center
+
+        :material-outlined:`swipe_right_alt;4em;sd-text-secondary`
+
++++++++++++++++
+Unique Systems
++++++++++++++++
+
+Some SPECT systems have unique properties that require special handling. The tutorials below demonstrate how to handle these systems.
+
+.. grid:: 1 2 3 3
+    :gutter: 2
+
+    .. grid-item-card:: StarGuide
+        :link: ../notebooks/t_starguide
+        :link-type: doc
+        :link-alt: multi bed
+        :text-align: center
+
+        :material-outlined:`star;4em;sd-text-secondary`
+
+
 +++++++++++++++
 Advanced PSF Models
 +++++++++++++++
@@ -89,7 +123,7 @@ The tutorials below demonstrate how to use PSF models obtained via the `SPECTPSF
     .. grid-item-card:: Ac225 SIMIND
         :link: ../notebooks/t_ac225_simind_recon
         :link-type: doc
-        :link-alt: Ac225 SIMIND
+        :link-alt: simind
         :text-align: center
 
         :material-outlined:`offline_bolt;4em;sd-text-secondary`
