@@ -255,12 +255,16 @@ def run_scatter_simulation(
     # Move simind.smc and energy_resolution.erf to TEMP directory
     module_path = os.path.dirname(os.path.abspath(__file__))
     smc_filepath = os.path.join(module_path, "../data/simind.smc")
-    subprocess.Popen(['cp', smc_filepath, f'{temp_dir.name}/simind.smc']) 
+    p = subprocess.Popen(['cp', smc_filepath, f'{temp_dir.name}/simind.smc']) 
+    p.wait() # wait for copy to complete
     # Create simind commands and run simind in parallel
     simind_commands = [create_simind_command(simind_index_dict, i) for i in range(n_parallel)]
-    procs = [subprocess.Popen([f'simind', 'simind', simind_command, 'radii_corfile.cor'], stdout=subprocess.DEVNULL, cwd=temp_dir.name) for simind_command in simind_commands]
+    procs = [subprocess.Popen([f'simind', 'simind', simind_command, 'radii_corfile.cor'], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, cwd=temp_dir.name) for simind_command in simind_commands]
     for p in procs:
         p.wait()
+        if p.returncode != 0:  # Check if the process exited with an error
+            error_output = p.stderr.read().decode('utf-8')
+            print(f"Error in process {p.args}:\n{error_output}")
     time.sleep(0.1) # sometimes the last file is not written yet
     # Add together projection data from all seperate processes
     add_together(n_parallel, len(primary_window_idxs), temp_dir.name)
