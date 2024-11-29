@@ -204,13 +204,6 @@ def add_together(n_parallel: int, n_windows: int, temp_path: str):
         # REMOVE THESE LATER >
         subprocess.run(['mv', f'temp_output0_tot_w{i+1}.h00', f'tot_w{i+1}.h00'], cwd=temp_path)
         subprocess.run(['sed', '-i', f's/temp_output0_tot_w{i+1}.a00/tot_w{i+1}.a00/g', f'tot_w{i+1}.h00'], cwd=temp_path)
-        # TODO: REMOVE THESE
-        # ---------------
-        # ---------------
-        # ---------------
-        subprocess.run(['cp', f'temp_output0.hct', f'/disk1/er165/lu177_SYME_jaszak_lowres/temp_output0.hct'], cwd=temp_path)
-        subprocess.run(['cp', f'temp_output0.ict', f'/disk1/er165/lu177_SYME_jaszak_lowres/temp_output0.ict'], cwd=temp_path)
-        subprocess.run(['cp', f'temp_output0.res', f'/disk1/er165/lu177_SYME_jaszak_lowres/temp_output0.res'], cwd=temp_path)
                                    
 def run_scatter_simulation(
     source_map: torch.Tensor,
