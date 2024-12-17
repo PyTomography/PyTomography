@@ -267,7 +267,7 @@ def run_scatter_simulation(
     temp_dir.cleanup()
     # Return data
     if return_total:
-        return proj_simind_scatter, proj_simind_tot
+        return proj_simind_tot
     else:
         return proj_simind_scatter
 
@@ -306,6 +306,8 @@ class MonteCarloScatterCallback(Callback):
         final_iter: int = np.inf, # when to stop updating scatter
         post_smoothing_sigma_r: float = 0,
         post_smoothing_sigma_z: float = 0,
+        return_total: bool = False,
+        add_to_additive_term: bool = False
     ):
         self.likelihood = likelihood
         self.object_initial = object_initial
@@ -321,6 +323,8 @@ class MonteCarloScatterCallback(Callback):
         self.final_iter = final_iter
         self.post_smoothing_sigma_r = post_smoothing_sigma_r
         self.post_smoothing_sigma_z = post_smoothing_sigma_z
+        self.add_to_additive_term = add_to_additive_term
+        self.return_total = return_total
         self.run_scatter_simulation(object_initial)
         
     def run_scatter_simulation(self, object: torch.Tensor):
@@ -339,6 +343,7 @@ class MonteCarloScatterCallback(Callback):
             simind_index_dict = self.index_dict,
             n_events = self.n_events,   
             n_parallel = self.n_parallel,
+            return_total = self.return_total
         ) / self.calibration_factor * object.sum()
         # Smooth scatter if sigmas are given
         self.scatter_MC = get_smoothed_scatter(
@@ -348,7 +353,10 @@ class MonteCarloScatterCallback(Callback):
             sigma_z = self.post_smoothing_sigma_z
         )
         # Update likelihood
-        self.likelihood.additive_term = self.scatter_MC
+        if self.add_to_additive_term:
+            self.likelihood.additive_term += self.scatter_MC
+        else:
+            self.likelihood.additive_term = self.scatter_MC
         #print(f'Object sum: {object.sum().item()}')
         #print(f'Scatter sum: {self.scatter_MC.sum().item()}')
         #print('-----------------------------------')
