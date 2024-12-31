@@ -49,8 +49,8 @@ class SPECTSystemMatrix(SystemMatrix):
                     continue
                 img_cutoff = torch.ones(self.object_meta.shape).to(device)
                 img_cutoff[:cutoff_idx, :, :] = 0
-                img_cutoff = pad_object(img_cutoff, mode='replicate')
-                img_cutoff = rotate_detector_z(img_cutoff, -self.proj_meta.angles[i])
+                img_cutoff = pad_object(img_cutoff)
+                img_cutoff = self.rotation_transform.backward(img_cutoff, 270-self.proj_meta.angles[i])
                 img_cutoff = unpad_object(img_cutoff)
                 object_initial *= img_cutoff
         return object_initial
