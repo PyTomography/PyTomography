@@ -29,6 +29,12 @@ def _get_affine_multifile(files: Sequence[str]):
     Zxyz = np.cross(Xxyz, Yxyz)
     Sx, Sy = ds.ImagePositionPatient[:2]
     Sz = compute_min_slice_loc_multifile(files)
+    # Adjust by table height for Mediso
+    try:
+        if ds.Manufacturer=='Mediso':
+            Sy = Sy - ds.TableHeight
+    except:
+        pass
     M = np.zeros((4, 4))
     M[0] = np.array([dx*Xxyz[0], dy*Yxyz[0], dz*Zxyz[0], Sx])
     M[1] = np.array([dx*Xxyz[1], dy*Yxyz[1], dz*Zxyz[1], Sy])

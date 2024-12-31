@@ -79,14 +79,17 @@ def parse_projection_dataset(
             angles = np.concatenate(
                 [angles, start_angle - delta_angle * np.arange(n_angles)]
             )
-        try:
-            radial_positions_detector = ds.DetectorInformationSequence[
-                detector - 1
-            ].RadialPosition
-        except AttributeError:
-            radial_positions_detector = ds.RotationInformationSequence[
-                detector - 1
-            ].RadialPosition
+        if ds.Manufacturer=='Mediso':
+            radial_positions_detector = ds.RotationInformationSequence[detector - 1].RadialPosition
+        else:
+            try:
+                radial_positions_detector = ds.DetectorInformationSequence[
+                    detector - 1
+                ].RadialPosition
+            except AttributeError:
+                radial_positions_detector = ds.RotationInformationSequence[
+                    detector - 1
+                ].RadialPosition
         if not isinstance(radial_positions_detector, collections.abc.Sequence):
             radial_positions_detector = n_angles * [radial_positions_detector]
         radii = np.concatenate([radii, radial_positions_detector])
@@ -539,8 +542,11 @@ def _get_affine_spect_projections(filename: str) -> np.array:
     dz = float(ds.PixelSpacing[1])
     if Sy == 0:
         Sx -= (ds.Rows-1) / 2 * dx
-        Sy -= (ds.Rows-2) / 2 * dy
+        Sy -= (ds.Rows-1) / 2 * dy
         Sy -= ds.RotationInformationSequence[0].TableHeight
+    elif ds.Manufacturer=='Mediso':
+        Sy = -(ds.Rows-1) / 2 * dy
+        #Sy = Sx
     Sz -= (ds.Rows-1) * dz # location of bottom pixel
     # Difference between Siemens and GE
     # if ds.Manufacturer=='GE MEDICAL SYSTEMS':

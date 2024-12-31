@@ -204,13 +204,6 @@ def add_together(n_parallel: int, n_windows: int, temp_path: str):
         # REMOVE THESE LATER >
         subprocess.run(['mv', f'temp_output0_tot_w{i+1}.h00', f'tot_w{i+1}.h00'], cwd=temp_path)
         subprocess.run(['sed', '-i', f's/temp_output0_tot_w{i+1}.a00/tot_w{i+1}.a00/g', f'tot_w{i+1}.h00'], cwd=temp_path)
-        # TODO: REMOVE THESE
-        # ---------------
-        # ---------------
-        # ---------------
-        subprocess.run(['cp', f'temp_output0.hct', f'/disk1/er165/lu177_SYME_jaszak_lowres/temp_output0.hct'], cwd=temp_path)
-        subprocess.run(['cp', f'temp_output0.ict', f'/disk1/er165/lu177_SYME_jaszak_lowres/temp_output0.ict'], cwd=temp_path)
-        subprocess.run(['cp', f'temp_output0.res', f'/disk1/er165/lu177_SYME_jaszak_lowres/temp_output0.res'], cwd=temp_path)
                                    
 def run_scatter_simulation(
     source_map: torch.Tensor,
@@ -255,12 +248,16 @@ def run_scatter_simulation(
     # Move simind.smc and energy_resolution.erf to TEMP directory
     module_path = os.path.dirname(os.path.abspath(__file__))
     smc_filepath = os.path.join(module_path, "../data/simind.smc")
-    subprocess.Popen(['cp', smc_filepath, f'{temp_dir.name}/simind.smc']) 
+    p = subprocess.Popen(['cp', smc_filepath, f'{temp_dir.name}/simind.smc']) 
+    p.wait() # wait for copy to complete
     # Create simind commands and run simind in parallel
     simind_commands = [create_simind_command(simind_index_dict, i) for i in range(n_parallel)]
-    procs = [subprocess.Popen([f'simind', 'simind', simind_command, 'radii_corfile.cor'], stdout=subprocess.DEVNULL, cwd=temp_dir.name) for simind_command in simind_commands]
+    procs = [subprocess.Popen([f'simind', 'simind', simind_command, 'radii_corfile.cor'], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, cwd=temp_dir.name) for simind_command in simind_commands]
     for p in procs:
         p.wait()
+        if p.returncode != 0:  # Check if the process exited with an error
+            error_output = p.stderr.read().decode('utf-8')
+            print(f"Error in process {p.args}:\n{error_output}")
     time.sleep(0.1) # sometimes the last file is not written yet
     # Add together projection data from all seperate processes
     add_together(n_parallel, len(primary_window_idxs), temp_dir.name)
@@ -270,7 +267,7 @@ def run_scatter_simulation(
     temp_dir.cleanup()
     # Return data
     if return_total:
-        return proj_simind_scatter, proj_simind_tot
+        return proj_simind_tot
     else:
         return proj_simind_scatter
 
@@ -309,6 +306,8 @@ class MonteCarloScatterCallback(Callback):
         final_iter: int = np.inf, # when to stop updating scatter
         post_smoothing_sigma_r: float = 0,
         post_smoothing_sigma_z: float = 0,
+        return_total: bool = False,
+        add_to_additive_term: bool = False
     ):
         self.likelihood = likelihood
         self.object_initial = object_initial
@@ -324,6 +323,8 @@ class MonteCarloScatterCallback(Callback):
         self.final_iter = final_iter
         self.post_smoothing_sigma_r = post_smoothing_sigma_r
         self.post_smoothing_sigma_z = post_smoothing_sigma_z
+        self.add_to_additive_term = add_to_additive_term
+        self.return_total = return_total
         self.run_scatter_simulation(object_initial)
         
     def run_scatter_simulation(self, object: torch.Tensor):
@@ -342,6 +343,7 @@ class MonteCarloScatterCallback(Callback):
             simind_index_dict = self.index_dict,
             n_events = self.n_events,   
             n_parallel = self.n_parallel,
+            return_total = self.return_total
         ) / self.calibration_factor * object.sum()
         # Smooth scatter if sigmas are given
         self.scatter_MC = get_smoothed_scatter(
@@ -351,7 +353,10 @@ class MonteCarloScatterCallback(Callback):
             sigma_z = self.post_smoothing_sigma_z
         )
         # Update likelihood
-        self.likelihood.additive_term = self.scatter_MC
+        if self.add_to_additive_term:
+            self.likelihood.additive_term += self.scatter_MC
+        else:
+            self.likelihood.additive_term = self.scatter_MC
         #print(f'Object sum: {object.sum().item()}')
         #print(f'Scatter sum: {self.scatter_MC.sum().item()}')
         #print('-----------------------------------')
