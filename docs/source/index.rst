@@ -7,7 +7,7 @@ PyTomography
 ``PyTomography`` is a python library for tomographic reconstruction of medical imaging data. It provides a modularized framework for the construction and development of system matrices, likelihoods, and reconstruction algorithms.
 
 .. note::
-     If you use PyTomography in your research, please cite `the corresponding research paper <https://arxiv.org/abs/2309.01977>`_.
+     If you use PyTomography in your research, please cite `the corresponding research paper <https://www.sciencedirect.com/science/article/pii/S235271102400390X>`_.
 
 ++++++++++++++++
 Getting Started
