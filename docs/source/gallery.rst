@@ -43,7 +43,7 @@ Reconstruction of GATE Monte Carlo PET data of a brain phantom using PyTomograph
 Figure 4: Clinical CT Reconstruction
 ++++++++++++++++++++
 
-Reconstruction of clinical CT data (in DICOM-CT-PD format) from a 3rd generation system. Yhe data was reconstructed using OS-SART for 3 iterations with 40 subsets. 
+Reconstruction of clinical CT data (in DICOM-CT-PD format) from a 3rd generation system. The data was reconstructed using OS-SART for 3 iterations with 40 subsets. 
 
 .. image:: images/CT_slice.png
   :width: 500
