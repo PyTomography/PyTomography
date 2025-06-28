@@ -291,7 +291,10 @@ class PETLMSystemMatrix(SystemMatrix):
             
         if self.scale_projection_by_sensitivity:
             if self.proj_meta.weights is None:
-                raise Exception('If scaling by sensitivity, then `weights` must be provided in the projection metadata')
+                if self.attenuation_map is not None:
+                    proj *= self._compute_attenuation_probability_projection(idx).cpu()
+                else:
+                    raise Exception('If scaling by sensitivity, then `weights` must be provided in the projection metadata')
             else:
                 proj = proj * self.get_projection_subset(self.proj_meta.weights, subset_idx).to(proj.device)
         return proj.to(self.output_device)
