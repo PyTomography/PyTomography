@@ -2,6 +2,8 @@
 PET
 ************************
 
+The tutorials use data that can be downloaded `here <https://drive.google.com/drive/folders/1dUBC1EbUgEH-Cug-oWIS7Yy_tpAqhe4j?usp=sharing>`_.
+
 +++++++++++++
 GATE Data
 +++++++++++++
@@ -59,6 +61,14 @@ This tutorial demonstrates how to reconstruct data exported from the GE software
         :text-align: center
 
         :material-outlined:`camera;4em;sd-text-secondary`
+    
+    .. grid-item-card:: Uncertainty Estimation 
+        :link: ../notebooks/t_uncertainty_pet
+        :link-type: doc
+        :link-alt: GE HDF5 tutorial
+        :text-align: center
+
+        :material-outlined:`question_mark;4em;sd-text-secondary`
 
 
 +++++++++++++++++++
@@ -89,4 +99,5 @@ This tutorial demonstrates how to use the Deep Image Prior (DIP) reconstruction 
     ../notebooks/t_PETGATE_scat_lm
     ../notebooks/t_PETGATE_scat_lmTOF
     ../notebooks/t_GE_HDF5
+    ../notebooks/t_uncertainty_pet
     ../notebooks/t_PETGATE_DIP

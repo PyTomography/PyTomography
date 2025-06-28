@@ -154,6 +154,7 @@ def get_projections(
     file: str,
     index_peak: None | int = None,
     index_time: None | int = None,
+    use_FOV_mask: bool = False,
 ) -> Sequence[SPECTObjectMeta, SPECTProjMeta, torch.Tensor]:
     """Gets projections from a .dcm file.
 
@@ -161,6 +162,7 @@ def get_projections(
         file (str): Path to the .dcm file of SPECT projection data.
         index_peak (int): If not none, then the returned projections correspond to the index of this energy window. Otherwise returns all energy windows. Defaults to None.
         index_time (int): If not none, then the returned projections correspond to the index of the time slot in gated SPECT. Otherwise returns all time slots. Defaults to None
+        use_FOV_mask (bool): If true, then use ta field of view mask obtained from DICOM file. Defaults to False.
     Returns:
         (SPECTObjectMeta, SPECTProjMeta, torch.Tensor[..., Ltheta, Lr, Lz]) where ... depends on if time slots are considered.
     """
@@ -184,6 +186,9 @@ def get_projections(
             print("Multiple energy windows found")
     if pytomography.verbose:
         print(f'Returned projections have dimensions ({" ".join(dimension_list)})')
+    if use_FOV_mask:
+        fov_mask = get_FOV_mask_from_projections(file)
+        projections = projections * fov_mask
     return projections
 
 def get_energy_window_bounds(file_NM: str, idx: int) -> tuple[float, float]:
@@ -229,7 +234,8 @@ def get_energy_window_scatter_estimate(
     sigma_r: float = 0,
     sigma_z: float = 0,
     N_sigmas: int = 3,
-    return_scatter_variance_estimate: bool = False
+    return_scatter_variance_estimate: bool = False,
+    use_FOV_mask: bool = False,
 ) -> torch.Tensor:
     """Gets an estimate of scatter projection data from a DICOM file using either the dual energy window (`index_upper=None`) or triple energy window method.
 
@@ -241,11 +247,12 @@ def get_energy_window_scatter_estimate(
         weighting_lower (float): Weighting of the lower scatter window. Defaults to 0.5.
         weighting_upper (float): Weighting of the upper scatter window. Defaults to 0.5.
         return_scatter_variance_estimate (bool): If true, then also return the variance estimate of the scatter. Defaults to False.
+        use_FOV_mask (bool): If true, then use ta field of view mask obtained from DICOM file. Defaults to False.
     Returns:
         torch.Tensor[Ltheta,Lr,Lz]: Tensor corresponding to the scatter estimate.
     """
     projections_all = get_projections(file).to(pytomography.device)
-    return get_energy_window_scatter_estimate_projections(file, projections_all, index_peak, index_lower, index_upper, weighting_lower, weighting_upper, proj_meta, sigma_theta, sigma_r, sigma_z, N_sigmas, return_scatter_variance_estimate)
+    return get_energy_window_scatter_estimate_projections(file, projections_all, index_peak, index_lower, index_upper, weighting_lower, weighting_upper, proj_meta, sigma_theta, sigma_r, sigma_z, N_sigmas, return_scatter_variance_estimate, use_FOV_mask)
 
 def get_energy_window_scatter_estimate_projections(
     file: str,
@@ -260,7 +267,8 @@ def get_energy_window_scatter_estimate_projections(
     sigma_r: float = 0,
     sigma_z: float = 0,
     N_sigmas: int = 3,
-    return_scatter_variance_estimate: bool = False
+    return_scatter_variance_estimate: bool = False,
+    use_FOV_mask: bool = False,
 ) -> torch.Tensor:
     """Gets an estimate of scatter projection data from a DICOM file using either the dual energy window (`index_upper=None`) or triple energy window method. This is seperate from ``get_energy_window_scatter_estimate`` as it allows a user to input projecitons that are already loaded/modified. This is useful for when projection data gets mixed for reconstructing multiple bed positions.
 
@@ -273,6 +281,7 @@ def get_energy_window_scatter_estimate_projections(
         weighting_lower (float): Weighting of the lower scatter window. Defaults to 0.5.
         weighting_upper (float): Weighting of the upper scatter window. Defaults to 0.5.
         return_scatter_variance_estimate (bool): If true, then also return the variance estimate of the scatter. Defaults to False.
+        use_FOV_mask (bool): If true, then use ta field of view mask obtained from DICOM file.
     Returns:
         torch.Tensor[Ltheta,Lr,Lz]: Tensor corresponding to the scatter estimate.
     """
@@ -282,6 +291,11 @@ def get_energy_window_scatter_estimate_projections(
     ww_upper = get_window_width(ds, index_upper) if index_upper is not None else None
     projections_lower = projections[index_lower]
     projections_upper = projections[index_upper] if index_upper is not None else None
+    if use_FOV_mask:
+        fov_mask = get_FOV_mask_from_projections(file)
+    else:
+        fov_mask = None
+        
     scatter = compute_EW_scatter(
         projections_lower,
         projections_upper,
@@ -295,7 +309,8 @@ def get_energy_window_scatter_estimate_projections(
         sigma_r,
         sigma_z,
         N_sigmas,
-        return_scatter_variance_estimate
+        return_scatter_variance_estimate,
+        fov_mask
     )
     return scatter
 
@@ -721,8 +736,9 @@ def get_aligned_nifti_mask(
     mask_aligned = affine_transform(mask.transpose((1,0,2))[:,:,::-1], M, output_shape=shape, mode='constant', cval=0, order=1)[:,:,::-1]
     return torch.tensor(mask_aligned>cutoff_value).to(pytomography.device)
 
-def get_FOV_mask_from_projections(file_NM, contraction=1):
-    projections = get_projections(file_NM)
+def get_FOV_mask_from_projections(file_NM, projections=None, contraction=1):
+    if projections is None:
+        projections = get_projections(file_NM)
     dims = len(projections.shape)
     x = projections.sum(dim=tuple([i for i in range(dims-2)]))
     r_valid = (x.sum(dim=1)>0).to(torch.int)
@@ -846,7 +862,10 @@ def save_dcm(
     for attr in ['StudyDate', 'StudyTime', 'SeriesDate', 'SeriesTime', 'AcquisitionDate', 'AcquisitionTime', 'ContentDate', 'ContentTime', 'PatientSex', 'PatientAge', 'Manufacturer', 'PatientWeight', 'PatientHeight']:
         if hasattr(ds_NM, attr):
             ds[attr] = ds_NM[attr]
-    ds.SeriesDescription = f'{ds_NM.SeriesDescription}: {recon_name}'
+    try:
+        ds.SeriesDescription = f'{ds_NM.SeriesDescription}: {recon_name}'
+    except:
+        None
     # Create all slices
     if not single_dicom_file:
         dss = []
@@ -869,10 +888,10 @@ def save_dcm(
     else:
         if single_dicom_file:
             # If single dicom file, will overwrite any file that is there
-            ds.save_as(os.path.join(save_path, f'{ds.SOPInstanceUID}.dcm'))
+            ds.save_as(os.path.join(save_path, f'{ds.SOPInstanceUID}.dcm'), little_endian=True, implicit_vr=True)
         else:
             for ds_i in dss:
-                ds_i.save_as(os.path.join(save_path, f'{ds_i.SOPInstanceUID}.dcm'))
+                ds_i.save_as(os.path.join(save_path, f'{ds_i.SOPInstanceUID}.dcm'), little_endian=True, implicit_vr=True)
                    
 # ---------------------------------------
 # Imaging System Specific Functions
@@ -1026,3 +1045,26 @@ def get_starguide_attenuation_map_from_CT_slices(
     CT = torch.tensor(CT).to(pytomography.dtype).to(pytomography.device)
     CT = torch.flip(CT, [2])
     return CT
+
+def print_energy_window_info(file_NM: str):
+    """A helper function to trints the energy window information for a given NM file.
+    Args:
+        file_NM (str): Filepath of the NM file
+    """
+    strs = []
+    windows = pydicom.dcmread(file_NM).EnergyWindowInformationSequence
+    for i, window in enumerate(windows):
+        if hasattr(window, 'EnergyWindowName'):
+            window_name = window.EnergyWindowName
+        else:
+            window_name = 'NoName'
+        range_sequences = window.EnergyWindowRangeSequence
+        range_sequence_strs = []
+        for range_sequence in range_sequences:
+            min_energy = range_sequence.EnergyWindowLowerLimit
+            max_energy = range_sequence.EnergyWindowUpperLimit
+            range_sequence_strs.append(f'[{min_energy}keV, {max_energy}keV]')
+        range_sequence_str = ', '.join(range_sequence_strs)
+        strs.append(f'Index {i}:   Name: "{window_name}", Energies: {range_sequence_str}')
+    for window_str in strs:
+        print(window_str)

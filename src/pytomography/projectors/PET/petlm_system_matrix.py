@@ -125,7 +125,7 @@ class PETLMSystemMatrix(SystemMatrix):
             else:
                 # Assumes all possible pairs are used
                 idxs = torch.arange(self.proj_meta.scanner_lut.shape[0]).to(pytomography.device).to(torch.int32)
-                detector_ids = torch.combinations(idxs, 2).cpu()
+                detector_ids = torch.combinations(idxs.cpu(), 2)
         else:
             detector_ids = self.proj_meta.detector_ids
         proj = torch.ones(detector_ids.shape[0])
@@ -144,7 +144,7 @@ class PETLMSystemMatrix(SystemMatrix):
             proj *= self._compute_attenuation_probability_projection(detector_ids).cpu()
         return proj
         
-    def _backward_full(self, N_splits: int = 10):
+    def _backward_full(self, N_splits: int = 20):
         r"""Computes full back projection :math:`\tilde{H}^T w g` where :math:`w` is the weighting specified in the projection metadata that accounts for attenuation/normalization correction. If ``proj`` ($g$) is not provided, then uses a tensor of all ones (this is used to compute the normalization factor).
 
         Args:
@@ -156,7 +156,7 @@ class PETLMSystemMatrix(SystemMatrix):
             detector_ids_sensitivity = self.proj_meta.detector_ids_sensitivity
         else:
             idxs = torch.arange(self.proj_meta.scanner_lut.shape[0]).to(pytomography.device).to(torch.int32)
-            detector_ids_sensitivity = torch.combinations(idxs, 2).cpu()
+            detector_ids_sensitivity = torch.combinations(idxs.cpu(), 2)
         norm_BP = 0
         for proj_subset, detector_ids_sensitivity_subset in zip(torch.tensor_split(proj, N_splits), torch.tensor_split(detector_ids_sensitivity, N_splits)):
             # Add tensors to PyTomography device for fast projection

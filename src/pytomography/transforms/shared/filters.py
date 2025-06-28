@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 import numpy as np
 from torch.nn.functional import conv1d
@@ -12,8 +13,11 @@ class GaussianFilter(Transform):
         FWHM (float): Specifies the width of the gaussian
         n_sigmas (float): Number of sigmas to include before truncating the kernel.
     """
-    def __init__(self, FWHM: float, n_sigmas: float = 3):
-        self.sigma = FWHM / (2*np.sqrt(2*np.log(2))) 
+    def __init__(self, FWHM: float | list, n_sigmas: float = 3):
+        if type(FWHM) == list:
+            self.sigma = [FWHM[i] / (2*np.sqrt(2*np.log(2))) for i in range(3)]
+        else:
+            self.sigma = [FWHM / (2*np.sqrt(2*np.log(2))) for i in range(3)]
         self.n_sigmas = n_sigmas
         
     def configure(self, object_meta: ObjectMeta, proj_meta: ProjMeta) -> None:
@@ -32,10 +36,11 @@ class GaussianFilter(Transform):
         """
         self.kernels = []
         for i in range(3):
+            sigma = self.sigma[i]
             dx = self.object_meta.dr[i]
-            kernel_size = int(2*np.ceil(self.n_sigmas*self.sigma/dx)+1)
+            kernel_size = int(2*np.ceil(self.n_sigmas*sigma/dx)+1)
             x = torch.arange(-int(kernel_size//2), int(kernel_size//2)+1).to(pytomography.device)*dx
-            k = torch.exp(-x**2/(2*self.sigma**2)).reshape(1,1,-1)
+            k = torch.exp(-x**2/(2*sigma**2)).reshape(1,1,-1)
             self.kernels.append(k/k.sum())
             
     def __call__(self, object):

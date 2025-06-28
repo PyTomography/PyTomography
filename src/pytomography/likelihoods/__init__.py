@@ -1,3 +1,3 @@
 from .mse_objective import NegativeMSELikelihood, SARTWeightedNegativeMSELikelihood
-from .poisson_log_likelihood import PoissonLogLikelihood
+from .poisson_log_likelihood import PoissonLogLikelihood, MonteCarloHybridSPECTPoissonLogLikelihood
 from .likelihood import Likelihood

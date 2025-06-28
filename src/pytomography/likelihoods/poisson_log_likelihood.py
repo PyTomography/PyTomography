@@ -3,6 +3,7 @@ from typing import Callable
 import pytomography
 import torch
 from .likelihood import Likelihood
+from pytomography.transforms.SPECT import AdditiveTermTransform
 
 class PoissonLogLikelihood(Likelihood):
     r"""The log-likelihood function for Poisson random variables. The likelihood is given by :math:`L(g|f) = \sum_i g_i [\ln(Hf)]_i - [Hf]_i - ...`. The :math:`...` contains terms that are not dependent on :math:`f`.
@@ -112,6 +113,37 @@ class PoissonLogLikelihood(Likelihood):
             input = self.system_matrix.forward(input, subset_idx)
             return -input * proj_subset / (FP + pytomography.delta)**2
         return operator
+    
+class MonteCarloHybridSPECTPoissonLogLikelihood(PoissonLogLikelihood):
+    """Adapated Poisson log likelihood for Monte Carlo hybrid SPECT system matrix.
+    """
+    def compute_gradient(
+        self,
+        object: torch.Tensor,
+        subset_idx: int | None = None,
+        norm_BP_subset_method: str = 'subset_specific'
+        ) -> torch.Tensor:
+        """Returns the gradient of the log likelihood with respect to the object.
+        Args:
+            object (torch.Tensor): Object to simulate
+            subset_idx (int | None, optional): Index of the subset to use. If None, then all projections are used. Defaults to None.
+            norm_BP_subset_method (str, optional): Method to use for normalizing the back projection. Defaults to 'subset_specific'.
+        Returns:
+            torch.Tensor: Gradient of the log likelihood with respect to the object
+        """
+        proj_subset = self._get_projection_subset(self.projections, subset_idx)
+        additive_term_subset = self._get_projection_subset(self.additive_term, subset_idx)
+        self.projections_predicted = self.system_matrix.forward(object, subset_idx) + additive_term_subset
+        mask_bad = (self.projections_predicted < pytomography.delta)*(proj_subset > pytomography.delta)
+        ratio = (~mask_bad * proj_subset + pytomography.delta) / (self.projections_predicted + pytomography.delta)
+        ratio[ratio>1000] = 1000 # clip to prevent MC noise causing instability
+        norm_BP = self._get_normBP(subset_idx)
+        # Look for AdditiveTermTransform in System Matrix proj2proj transforms and update self.additive_term within that transform if estimate_background is true
+        for transform in self.system_matrix.proj2proj_transforms:
+            if isinstance(transform, AdditiveTermTransform):
+                transform.additive_term = transform.additive_term * ratio.sum() / (ratio*0+1).sum() 
+                print(f'Updated additive term to {transform.additive_term}')
+        return self.system_matrix.backward(ratio, subset_idx) - norm_BP
     
             
         

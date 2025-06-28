@@ -277,25 +277,25 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
         FP_current_update = data_storage_callback.projections_predicted[n].to(pytomography.device)
         output = input * object_current_update * self._linear_preconditioner_factor(None, subset_idx)
         output_primary = self.likelihood.compute_gradient_gf(object_current_update, FP_current_update, subset_idx)(output)
-        
+        dim_idx = len(FP_current_update.shape) - len(self.likelihood.system_matrix.proj_meta.shape) # the subset dimension is always 0 unless dual photopeak is used, in which case it may be dimension 1
+        extra_dims = [FP_current_update.shape[i] for i in range(dim_idx)]
         if include_additive_term:
             output_additive = self.likelihood.compute_gradient_sf(object_current_update, FP_current_update, subset_idx)(output)
-            # This is weird because sometimes dual peak reconstruction is used and this dimenion needs to be obtained from the current FP update if it exists
             output_total = torch.zeros((
                 2,
-                *FP_current_update.shape[:-3],
-                *self.likelihood.system_matrix.proj_meta.shape[-3:]
-            )).to(pytomography.device)
-            output_total[0,...,subset_indices_array,:,:] = output_primary
-            output_total[1,...,subset_indices_array,:,:] = output_additive
+                *extra_dims,
+                *self.likelihood.system_matrix.proj_meta.shape,
+            )).to(pytomography.device)            
+            output_total[0].index_copy_(dim_idx, subset_indices_array.to(pytomography.device), output_primary)
+            output_total[1].index_copy_(dim_idx, subset_indices_array.to(pytomography.device), output_additive)
             return output_total
         else:
             output_total = torch.zeros((
                 1,
-                *FP_current_update.shape[:-3],
-                *self.likelihood.system_matrix.proj_meta.shape[-3:]
+                *extra_dims,
+                *self.likelihood.system_matrix.proj_meta.shape,
             )).to(pytomography.device)
-            output_total[0,...,subset_indices_array,:,:] = output_primary
+            output_total[0].index_copy_(dim_idx, subset_indices_array.to(pytomography.device), output_primary)
         return output_total
         
 class OSEM(LinearPreconditionedGradientAscentAlgorithm):

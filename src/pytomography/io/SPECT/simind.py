@@ -14,24 +14,24 @@ relation_dict = {'unsignedinteger': 'int',
                  'shortfloat': 'float',
                  'int': 'int'}
 
-def get_metadata(headerfile: str, distance: str = 'cm', corrfile: str | None = None):
+def get_metadata(headerfile: str, corrfile: str | None = None):
     """Obtains required metadata from a SIMIND header file.
 
     Args:
         headerfile (str): Path to the header file
-        distance (str, optional): The units of measurements in the SIMIND file (this is required as input, since SIMIND uses mm/cm but doesn't specify). Defaults to 'cm'.
         corrfile (str, optional): .cor file used in SIMIND to specify radial positions for non-circular orbits. This needs to be provided for non-standard orbits.
 
     Returns:
         (SPECTObjectMeta, SPECTProjMeta, torch.Tensor[1, Ltheta, Lr, Lz]): Required information for reconstruction in PyTomography.
     """
-    if distance=='mm':
-        scale_factor = 1/10
-    elif distance=='cm':
-        scale_factor = 1    
     with open(headerfile) as f:
         headerdata = f.readlines()
     headerdata = np.array(headerdata)
+    simind_version = get_header_value(headerdata, 'program version ', str)
+    if float(simind_version[1:2])>=8:
+        scale_factor = 1/10 # convert all mm to cm
+    else:
+        scale_factor = 1
     proj_dim1 = get_header_value(headerdata, 'matrix size [1]', int)
     proj_dim2 = get_header_value(headerdata, 'matrix size [2]', int)
     dx = get_header_value(headerdata, 'scaling factor (mm/pixel) [1]', np.float32) / 10 # to mm
@@ -46,7 +46,7 @@ def get_metadata(headerfile: str, distance: str = 'cm', corrfile: str | None = N
         angles = -angles % 360
     # Get radial positions
     if corrfile is not None:
-        radii = np.loadtxt(corrfile) * scale_factor
+        radii = np.loadtxt(corrfile)
     else:
         radius = get_header_value(headerdata, 'Radius', np.float32) * scale_factor
         radii = np.ones(len(angles))*radius
