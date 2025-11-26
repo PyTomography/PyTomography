@@ -351,8 +351,8 @@ def get_psfmeta_from_scanner_params(
         energy_keV (float): Energy of the photopeak
         min_sigmas (float): Minimum size of the blurring kernel used. Fixes the convolutional kernel size so that all locations have at least ``min_sigmas`` in dimensions (some will be greater)
         material (str): Material of the collimator.
-        intrinsic_resolution (float): Intrinsic resolution (FWHM) of the scintillator crystals. Note that most scanners provide the intrinsic resolution at 140keV only; if you only have access to this, you should use the ``intrinsic_resolution_140keV`` argument of this function. Defaults to 0.
-        intrinsic_resolution_140keV (float | None): Intrinsic resolution (FWHM) of the scintillator crystals at an energy of 140keV. The true intrinsic resolution is calculated assuming the resolution is proportional to E^(-1/2). If provided, then ``intrinsic_resolution`` is ignored. Defaults to None.
+        intrinsic_resolution (float): Intrinsic resolution (FWHM) of the scintillator crystals in cm. Note that most scanners provide the intrinsic resolution at 140keV only; if you only have access to this, you should use the ``intrinsic_resolution_140keV`` argument of this function. Defaults to 0.
+        intrinsic_resolution_140keV (float | None): Intrinsic resolution (FWHM) of the scintillator crystals in cm at an energy of 140keV. The true intrinsic resolution is calculated assuming the resolution is proportional to E^(-1/2). If provided, then ``intrinsic_resolution`` is ignored. Defaults to None.
         shape (str, optional): Shape of the PSF. Defaults to 'gaussian', in which case sigma is the sigma of the Gaussian. Can also be 'square' for square collimators, in this case sigma is half the diameter of the bore.
 
     Returns:
