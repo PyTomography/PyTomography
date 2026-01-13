@@ -102,7 +102,7 @@ class PETLMSystemMatrix(SystemMatrix):
             proj_i = torch.exp(-parallelproj.joseph3d_fwd(
                 self.proj_meta.scanner_lut[idx_partial[:,0]].to(pytomography.device),
                 self.proj_meta.scanner_lut[idx_partial[:,1]].to(pytomography.device),
-                self.attenuation_map,
+                self.attenuation_map.to(pytomography.device),
                 self.object_origin,
                 self.object_meta.dr,
                 num_chunks=4)).cpu()
