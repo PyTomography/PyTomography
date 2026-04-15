@@ -31,10 +31,10 @@ class FilteredBackProjection:
         """
         freq_fft = torch.fft.fftfreq(projections.shape[-2]).reshape((-1,1)).to(pytomography.device) # only works for SPECT
         filter_total = self.filter()(freq_fft)
-        proj_fft = torch.fft.fft(self.proj, axis=-2)
+        proj_fft = torch.fft.fft(projections, axis=-2)
         proj_fft = proj_fft* filter_total
         proj_filtered = torch.fft.ifft(proj_fft, axis=-2).real
-        object_prediction = self.system_matrix.backward(proj_filtered) * torch.pi / len(self.system_matrix.proj_meta.shape[0]) # assumes the "angle" index is the first of the system matrix
+        object_prediction = self.system_matrix.backward(proj_filtered) * torch.pi / self.system_matrix.proj_meta.shape[0] # assumes the "angle" index is the first of the system matrix
         return object_prediction
             
     

@@ -115,7 +115,7 @@ class SPECTPSFTransform(Transform):
         """Initializer that sets corresponding psf parameters"""
         super(SPECTPSFTransform, self).__init__()
         if sum(arg is not None for arg in [psf_meta, psf_operator]) != 1:
-            Exception(f'Exactly one of the arguments for initialization should be given.')
+            raise Exception(f'Exactly one of the arguments for initialization should be given.')
         self.psf_meta = psf_meta
         self.psf_operator = psf_operator
         self.assume_padded = assume_padded

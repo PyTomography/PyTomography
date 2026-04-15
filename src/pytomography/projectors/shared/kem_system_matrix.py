@@ -17,7 +17,7 @@ class KEMSystemMatrix(SystemMatrix):
         # Inherit required functions from system matrix
         self.set_n_subsets = self.system_matrix.set_n_subsets
         self.get_projection_subset = self.system_matrix.get_projection_subset
-        self.get_weighting_subset = self.system_matrix.get_projection_subset
+        self.get_weighting_subset = self.system_matrix.get_weighting_subset
         
     def compute_normalization_factor(self, subset_idx : int | None = None):
         """Function used to get normalization factor :math:`K^T H^T_m 1` corresponding to projection subset :math:`m`.

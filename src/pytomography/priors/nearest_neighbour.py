@@ -132,7 +132,7 @@ class QuadraticPrior(NearestNeighbourPrior):
         return (fr - fs) / self.delta
 
 class LogCoshPrior(NearestNeighbourPrior):
-    r"""Subclass of ``NearestNeighbourPrior`` corresponding to a logcosh prior: namely :math:`\phi_0(f_r, f_s) = \tanh((f_r-f_s)/\delta)` and where the gradient is determined by :math:`\phi_1(f_r, f_s) = \log \cosh \left[(f_r-f_s)/\delta\right]`
+    r"""Subclass of ``NearestNeighbourPrior`` corresponding to a logcosh prior: namely :math:`\phi_0(f_r, f_s) = \log \cosh \left[(f_r-f_s)/\delta\right]` and where the gradient is determined by :math:`\phi_1(f_r, f_s) = \tanh((f_r-f_s)/\delta)`
     
     Args:
             beta (float): Used to scale the weight of the prior

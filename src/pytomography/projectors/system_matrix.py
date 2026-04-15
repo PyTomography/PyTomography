@@ -156,7 +156,7 @@ class ExtendedSystemMatrix(SystemMatrix):
             object_i = object.clone()
             if self.obj2obj_transforms is not None:
                 if self.obj2obj_transforms[i] is not None:
-                    object_i = self.obj2obj_transforms[i].forward(object)
+                    object_i = self.obj2obj_transforms[i].forward(object_i)
             proj_i = self.system_matrices[i].forward(object_i, subset_idx)
             if self.proj2proj_transforms is not None:
                 if self.proj2proj_transforms[i] is not None:

@@ -15,7 +15,7 @@ class Prior():
     @abc.abstractmethod
     def __init__(self, beta: float, obj2obj_transforms: list[Transform] = []):
         self.beta = beta
-        self.obj2obj_transforms = []
+        self.obj2obj_transforms = obj2obj_transforms
         self.device = pytomography.device
 
     def set_object_meta(self, object_meta: ObjectMeta) -> None:
