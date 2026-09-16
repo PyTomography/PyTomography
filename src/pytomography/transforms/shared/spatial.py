@@ -2,7 +2,7 @@ from __future__ import annotations
 import torch
 from torch.nn.functional import pad
 from pytomography.transforms import Transform
-from kornia.geometry.transform import rotate
+from pytomography.utils.spatial import rotate_cached
 import numpy as np
 
 class RotationTransform(Transform):
@@ -33,7 +33,7 @@ class RotationTransform(Transform):
 		Returns:
 			torch.tensor: Tensor of size [Lx, Ly, Lz] which is rotated
 		"""
-		return rotate(object.permute(2,0,1).unsqueeze(0), angles, mode=self.mode).squeeze().permute(1,2,0)
+		return rotate_cached(object.permute(2,0,1).unsqueeze(0), angles, mode=self.mode).squeeze().permute(1,2,0)
 
 	@torch.no_grad()
 	def backward(
@@ -50,4 +50,4 @@ class RotationTransform(Transform):
 		Returns:
 			torch.tensor: Tensor of size [Lx, Ly, Lz] which is rotated.
 		"""
-		return rotate(object.permute(2,0,1).unsqueeze(0), -angles, mode=self.mode).squeeze().permute(1,2,0)
+		return rotate_cached(object.permute(2,0,1).unsqueeze(0), -angles, mode=self.mode).squeeze().permute(1,2,0)
