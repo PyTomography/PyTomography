@@ -1,9 +1,27 @@
 from __future__ import annotations
 from collections.abc import Sequence
+import functools
 import torch
 import numpy as np
 from pytomography.utils import get_1d_gaussian_kernel
 
+_GEOMETRY_CACHE: dict = {}
+
+def _memoize_by_info(fn):
+    """Caches the sinogram lookup tables per geometry ``info`` dictionary. They are built by pure-Python loops over all crystal pairs (seconds for a clinical scanner) and were rebuilt on every call, e.g. once per TOF bin during scatter estimation. The cached tensors are shared between callers and must not be modified in place."""
+    @functools.wraps(fn)
+    def wrapper(info: dict):
+        try:
+            key = (fn.__name__, tuple(sorted((k, v.item() if hasattr(v, 'item') else v) for k, v in info.items())))
+            hash(key)
+        except TypeError:
+            return fn(info)
+        if key not in _GEOMETRY_CACHE:
+            _GEOMETRY_CACHE[key] = fn(info)
+        return _GEOMETRY_CACHE[key]
+    return wrapper
+
+@_memoize_by_info
 def sinogram_coordinates(info: dict) -> Sequence[torch.Tensor]:
     """Obtains two tensors: the first yields the sinogram coordinates (r/theta) given two crystal IDs (shape [N_crystals_per_ring, N_crystals_per_ring, 2]), the second yields the sinogram index given two ring IDs (shape [Nrings, Nrings])
 
@@ -88,6 +106,7 @@ def sinogram_coordinates(info: dict) -> Sequence[torch.Tensor]:
             sinogram_index[ring1-1, ring2-1] = current_sinogram_index - 1
     return torch.tensor(lor_coordinates).to(torch.long), torch.tensor(sinogram_index).to(torch.long)
 
+@_memoize_by_info
 def sinogram_to_spatial(info: dict) -> Sequence[torch.Tensor]:
     """Returns two tensors: the first yields the detector coordinates (x1/y1/x2/y2) of each of the two crystals given the element of the sinogram (shape [N_crystals_per_ring, N_crystals_per_ring, 2, 2]), the second yields the ring coordinates (z1/z2) given two ring IDs (shape [Nrings*Nrings, 2])
 
