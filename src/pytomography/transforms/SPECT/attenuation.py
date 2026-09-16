@@ -106,10 +106,19 @@ class SPECTAttenuationTransform(Transform):
 			attenuation_map = pad_object(self.attenuation_map)
 		else:
 			attenuation_map = self.attenuation_map.clone()
-		norm_factor = get_prob_of_detection_matrix(rotate_detector_z(attenuation_map, self.proj_meta.angles[ang_idx]), self.object_meta.dx)
+		# CPU copy of the angle: converting a 0-d device tensor to a Python float inside the rotation would synchronise with the device
+		norm_factor = get_prob_of_detection_matrix(rotate_detector_z(attenuation_map, self._host_angles()[int(ang_idx)]), self.object_meta.dx)
 		if self.cache_probabilities:
 			self._prob_cache[key] = norm_factor
 		return norm_factor
+
+	def _host_angles(self) -> torch.Tensor:
+		"""CPU copy of ``proj_meta.angles`` (made once per ``angles`` tensor, same dtype so the rotation angle ``270 - angle`` is computed exactly as before)."""
+		angles = self.proj_meta.angles
+		if getattr(self, '_host_angles_src', None) is not angles:
+			self._host_angles_cache = angles.cpu()
+			self._host_angles_src = angles
+		return self._host_angles_cache
 
 	@torch.no_grad()
 	def backward(
