@@ -367,7 +367,7 @@ def get_psfmeta_from_scanner_params(
     try:
         line = collimator_data[np.char.find(collimator_data, collimator_name) >= 0][0]
     except:
-        Exception(
+        raise Exception(
             f"Cannot find data for collimator name {collimator_name}. For a list of available collimator names, run `from pytomography.utils import print_collimator_parameters` and then `print_collimator_parameters()`."
         )
     hole_length = float(line.split()[3])
