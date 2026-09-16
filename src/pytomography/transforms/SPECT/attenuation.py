@@ -29,7 +29,7 @@ class SPECTAttenuationTransform(Transform):
 		mode (str): Mode used for extrapolation of CT beyond edges when aligning DICOM SPECT/CT data. Defaults to `'constant'`, which means the image is padded with zeros.
 		assume_padded (bool): Assumes objects and projections fed into forward and backward methods are padded, as they will be in reconstruction algorithms
 		HU2mu_technique (str): Technique to convert HU to attenuation coefficients. The default, 'from_table', uses a table of coefficients for bilinear curves obtained for a variety of common radionuclides. The technique 'from_cortical_bone_fit' looks for a cortical bone peak in the scan and uses that to obtain the bilinear coefficients. For phantom scans where the attenuation coefficient is always significantly less than bone, the corticol bone technique will still work, since the first part of the bilinear curve (in the air to water range) does not depend on the cortical bone fit. Alternatively, one can provide an arbitrary function here which takes in a 3D scan with units of HU and converts to mu.
-		cache_probabilities (bool): If True, the rotated probability-of-detection map of each projection angle is computed once and kept on the device (memory: one padded object per angle, e.g. 0.2 GB for a 64x64x64 object and 96 angles, 1.6 GB for 128x128x128), instead of being recomputed from ``attenuation_map`` at every forward/backward call. The cache is discarded whenever a new tensor is assigned to ``attenuation_map`` (in-place modification of the tensor is not detected). Defaults to False.
+		cache_probabilities (bool): If True, the rotated probability-of-detection map of each projection angle is computed once and kept on the device (memory: one padded object per angle, e.g. 0.2 GB for a 64x64x64 object and 96 angles, 1.6 GB for 128x128x128), instead of being recomputed from ``attenuation_map`` at every forward/backward call. The cache is discarded whenever a new tensor is assigned to ``attenuation_map`` or to ``proj_meta.angles`` (in-place modification of either tensor is not detected). Defaults to False.
 	"""
 	def __init__(
 		self,
@@ -45,7 +45,7 @@ class SPECTAttenuationTransform(Transform):
 		self.mode = mode
 		self.cache_probabilities = cache_probabilities
 		self._prob_cache = {}
-		self._prob_cache_map = None
+		self._prob_cache_src = (None, None)   # (attenuation_map, proj_meta.angles) the cache was built from
 		if attenuation_map is None and filepath is None:
 			raise Exception("Please supply only one of `attenuation_map` or `filepath` as arguments")
 		elif filepath is None:
@@ -92,11 +92,12 @@ class SPECTAttenuationTransform(Transform):
 		return object_i*self._prob_of_detection(ang_idx)
 
 	def _prob_of_detection(self, ang_idx: torch.Tensor) -> torch.Tensor:
-		"""Probability-of-detection map in the frame rotated to angle ``ang_idx`` (scanner at +x), from the cache when ``cache_probabilities`` is set and ``attenuation_map`` is the tensor the cache was built from."""
+		"""Probability-of-detection map in the frame rotated to angle ``ang_idx`` (scanner at +x), from the cache when ``cache_probabilities`` is set and ``attenuation_map`` and ``proj_meta.angles`` are the tensors the cache was built from."""
 		if self.cache_probabilities:
-			if self._prob_cache_map is not self.attenuation_map:
+			src_map, src_angles = self._prob_cache_src
+			if src_map is not self.attenuation_map or src_angles is not self.proj_meta.angles:
 				self._prob_cache = {}
-				self._prob_cache_map = self.attenuation_map
+				self._prob_cache_src = (self.attenuation_map, self.proj_meta.angles)
 			key = int(ang_idx)
 			norm_factor = self._prob_cache.get(key)
 			if norm_factor is not None:
