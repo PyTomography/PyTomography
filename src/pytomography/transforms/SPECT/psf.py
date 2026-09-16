@@ -6,6 +6,7 @@ import torch.nn as nn
 import numpy as np
 from fft_conv_pytorch import FFTConv2d
 from torch.nn import Conv2d, Conv1d
+from torch.nn.functional import pad
 import copy
 import pytomography
 from pytomography.utils import get_distance, compute_pad_size
@@ -41,12 +42,24 @@ class Seperable1DBlurNet(nn.Module):
         return torch.permute(output,(1,2,0))
     
 class PSF2D:
+    r"""Applies a 2D PSF operator (e.g. from the SPECTPSFToolbox) to each plane of an object.
+
+    The operator provides the 2D kernel of every plane; this class convolves the object with it. When the operator exposes its kernel (a ``_get_kernel`` method), the convolution is performed here as a depthwise FFT convolution: each plane is blurred by its own kernel, so in Fourier space this is an elementwise product of the object and kernel spectra. Operators otherwise convolve through ``fft_conv_pytorch``, whose grouped ``complex_matmul`` expresses that product as a batched matrix multiplication of one-by-one matrices, one per plane and frequency, which costs far more than the transforms themselves. The kernel is obtained from the operator either way, so the modeled PSF is unchanged; the fast path is used only after its output has been checked against the operator's own output on the first call.
+
+    Args:
+        psf_operator (Callable): Operator that models the collimator detector response.
+        distances (Sequence): Source-detector distance of each plane of the object.
+        kernel_size (int): Size of the (square) kernel of each plane.
+        dr (Sequence[float]): Voxel spacing.
+        cache_kernel (bool, optional): If True, the Fourier transform of the kernel is computed once and kept on the device, instead of being recomputed at every projection angle. The kernel is the same for every angle at a given radius, so this saves time (a further ~1.5x on top of the depthwise convolution) at the cost of memory: one complex spectrum per distinct radius in ``proj_meta.radii``, e.g. 57 MB for a 128x128x128 object with a 127x127 kernel. Defaults to False.
+    """
     def __init__(
         self,
         psf_operator,
         distances,
         kernel_size,
         dr,
+        cache_kernel: bool = False,
         ) -> None:
         self.psf_operator = psf_operator
         self.kernel_size = kernel_size
@@ -54,9 +67,73 @@ class PSF2D:
         x = torch.arange(-(self.kernel_size-1)/2, (self.kernel_size+1)/2, 1).to(pytomography.device) * dr[0]
         y = torch.arange(-(self.kernel_size-1)/2, (self.kernel_size+1)/2, 1).to(pytomography.device) * dr[1]
         self.xv, self.yv = torch.meshgrid(x, y, indexing='xy')
-        
+        self.cache_kernel = cache_kernel
+        self._use_fast_conv = None      # None until checked against the operator on the first call
+        self._conv_geometry = None
+        self._kernel_spectrum = None
+
+    def _geometry(self, kernel_shape: Sequence[int], input_shape: Sequence[int]) -> tuple:
+        """Padded sizes and crop used to convolve an object of shape ``input_shape`` with kernels of shape ``kernel_shape``, matching the ``padding='same'`` convention of ``fft_conv_pytorch``."""
+        kernel_height, kernel_width = kernel_shape[-2], kernel_shape[-1]
+        pad_height, pad_width = (kernel_height-1)/2, (kernel_width-1)/2
+        pad_top, pad_bottom = int(np.floor(pad_height)), int(np.ceil(pad_height))
+        pad_left, pad_right = int(np.floor(pad_width)), int(np.ceil(pad_width))
+        height = input_shape[1] + pad_top + pad_bottom
+        width = input_shape[2] + pad_left + pad_right
+        # the one sided FFT requires an even final dimension
+        width_fft = width + width % 2
+        return (tuple(input_shape), height, width, width_fft, kernel_height, kernel_width, pad_top, pad_bottom, pad_left, pad_right)
+
+    def _get_kernel_spectrum(self, geometry: tuple) -> torch.Tensor:
+        """Conjugated Fourier transform of the zero padded kernel of every plane, computed once per ``geometry`` when ``cache_kernel`` is set."""
+        if self._kernel_spectrum is not None:
+            return self._kernel_spectrum
+        _, height, _, width_fft, kernel_height, kernel_width = geometry[:6]
+        kernel = self.psf_operator._get_kernel(self.xv, self.yv, self.distances)
+        kernel = pad(kernel.unsqueeze(1), [0, width_fft-kernel_width, 0, height-kernel_height])
+        spectrum = torch.fft.rfftn(kernel.to(torch.float32), dim=(2,3)).conj().squeeze(1).unsqueeze(0)
+        if self.cache_kernel:
+            self._kernel_spectrum = spectrum
+        return spectrum
+
+    def _fast_convolution(self, input: torch.Tensor, geometry: tuple) -> torch.Tensor:
+        """Convolves each plane of ``input`` with the kernel of that plane, as an elementwise product of spectra."""
+        _, height, width, _, kernel_height, kernel_width, pad_top, pad_bottom, pad_left, pad_right = geometry
+        signal = pad(input.unsqueeze(0), [pad_left, pad_right, pad_top, pad_bottom])
+        if signal.shape[-1] % 2:
+            signal = pad(signal, [0,1])
+        signal = torch.fft.rfftn(signal.to(torch.float32), dim=(2,3))
+        output = torch.fft.irfftn(signal * self._get_kernel_spectrum(geometry), dim=(2,3))
+        return output[:,:,0:(height-kernel_height+1),0:(width-kernel_width+1)].squeeze()
+
+    def _configure_fast_conv(self, input: torch.Tensor) -> None:
+        """Enables the fast convolution only if the operator exposes its kernel and the result agrees with the operator's own output."""
+        self._use_fast_conv = False
+        self._kernel_spectrum = None
+        if not hasattr(self.psf_operator, '_get_kernel'):
+            return
+        try:
+            kernel = self.psf_operator._get_kernel(self.xv, self.yv, self.distances)
+            geometry = self._geometry(kernel.shape, input.shape)
+            output = self._fast_convolution(input, geometry)
+            reference = self.psf_operator(input, self.xv, self.yv, self.distances, normalize=True)
+            scale = reference.abs().max()
+            agrees = bool(scale == 0) or bool((output-reference).abs().max() <= 1e-4*scale)
+        except Exception:
+            agrees = False
+        if agrees:
+            self._use_fast_conv = True
+            self._conv_geometry = geometry
+        else:
+            self._conv_geometry = None
+
     @torch.no_grad()
     def __call__(self, input):
+        if self._use_fast_conv is None or (self._use_fast_conv and self._conv_geometry[0] != tuple(input.shape)):
+            self._kernel_spectrum = None
+            self._configure_fast_conv(input)
+        if self._use_fast_conv:
+            return self._fast_convolution(input, self._conv_geometry)
         return self.psf_operator(input,self.xv,self.yv,self.distances,normalize=True)
 
 def get_1D_PSF_layer_gaussian(
@@ -105,12 +182,14 @@ class SPECTPSFTransform(Transform):
         psf_meta (SPECTPSFMeta): Metadata corresponding to the parameters of PSF blurring. In most cases (low/medium energy SPECT), this should be the only given argument.
         kernel_f (Callable): Function :math:`PSF(x,y,d)` that gives PSF at every source-detector distance :math:`d`. It should be able to take in 1D numpy arrays as its first two arguments, and a single argument for the final argument :math:`d`. The function should return a corresponding 2D PSF kernel.
         psf_operator (Callable): Network that takes in an object :math:`f` and applies all necessary PSF correction to return a new object :math:`\tilde{f}` that is PSF corrected, such that subsequent summation along the x-axis accurately models the collimator detector response.
+        cache_kernel (bool): Only used with ``psf_operator``. If True, the Fourier transform of the operator's kernel is computed once per distinct radius and kept on the device, rather than being recomputed at every projection angle. See :class:`PSF2D` for the memory this uses. Defaults to False.
     """
     def __init__(
         self,
         psf_meta: SPECTPSFMeta | None = None,
         psf_operator: Callable | None = None,
         assume_padded: bool = True,
+        cache_kernel: bool = False,
     ) -> None:
         """Initializer that sets corresponding psf parameters"""
         super(SPECTPSFTransform, self).__init__()
@@ -119,6 +198,7 @@ class SPECTPSFTransform(Transform):
         self.psf_meta = psf_meta
         self.psf_operator = psf_operator
         self.assume_padded = assume_padded
+        self.cache_kernel = cache_kernel
         
     def _configure_simple_model(self):
         """Internal function to configure Gaussian modeling. This is called when `psf_meta` is given in initialization
@@ -148,7 +228,7 @@ class SPECTPSFTransform(Transform):
         for radius in np.unique(self.proj_meta.radii):
             dim = self.object_meta.shape[0] + 2*compute_pad_size(self.object_meta.shape[0])
             distances = get_distance(dim, radius, self.object_meta.dx)
-            self.layers[radius] = PSF2D(self.psf_operator, distances, self.object_meta.shape[0]-1, self.object_meta.dr)
+            self.layers[radius] = PSF2D(self.psf_operator, distances, self.object_meta.shape[0]-1, self.object_meta.dr, cache_kernel=self.cache_kernel)
         
     def configure(
         self,
