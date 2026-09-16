@@ -83,3 +83,9 @@ def test_attenuation_probability_cache_is_exact_and_invalidates():
     sm0.obj2obj_transforms[0].attenuation_map = 0.5 * mu
     assert torch.equal(sm0.forward(f), sm1.forward(f))
     assert torch.equal(sm0.backward(g), sm1.backward(g))
+    # so must new projection angles
+    sm1.proj_meta.angles = sm1.proj_meta.angles + 7.0
+    sm0.proj_meta.angles = sm0.proj_meta.angles + 7.0
+    assert torch.equal(sm0.forward(f), sm1.forward(f))
+    assert torch.equal(sm0.backward(g), sm1.backward(g))
+    assert len(att1._prob_cache) == 12
