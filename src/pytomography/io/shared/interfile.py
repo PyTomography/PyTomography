@@ -25,7 +25,7 @@ def get_header_value(
     Returns:
         float|str|int: The value corresponding to the header (header).
     """
-    header = header.replace('[', '\[').replace(']','\]').replace('(', '\(').replace(')', '\)')
+    header = header.replace('[', r'\[').replace(']',r'\]').replace('(', r'\(').replace(')', r'\)')
     y = np.vectorize(lambda y, x: bool(re.compile(x).search(y)))
     selection = y(list_of_attributes, header).astype(bool)
     lines = list_of_attributes[selection]
@@ -64,5 +64,5 @@ def get_attenuation_map_interfile(headerfile: str):
     # Flip "Z" ("X" in SIMIND) b/c "first density image located at +X" according to SIMIND manual
     # Flip "Y" ("Z" in SIMIND) b/c axis convention is opposite for x22,5x (mu-castor format)
     amap = np.transpose(amap.reshape(shape), (2,1,0))[:,::-1,::-1]
-    amap = torch.tensor(amap.copy()).unsqueeze(dim=0)
+    amap = torch.tensor(amap.copy())
     return amap.to(pytomography.device)

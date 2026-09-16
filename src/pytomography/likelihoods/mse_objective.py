@@ -72,4 +72,5 @@ class SARTWeightedNegativeMSELikelihood(Likelihood):
         additive_term_subset = self._get_projection_subset(self.additive_term, subset_idx)
         self.projections_predicted = self.system_matrix.forward(object, subset_idx) + additive_term_subset
         norm_FP = self.system_matrix.forward(object*0+1, subset_idx) # TODO: Slow implementation
+        norm_BP = self._get_normBP(subset_idx)
         return self.system_matrix.backward((proj_subset - self.projections_predicted)/(norm_FP+pytomography.delta) , subset_idx)

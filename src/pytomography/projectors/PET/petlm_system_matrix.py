@@ -6,10 +6,8 @@ from pytomography.metadata import ObjectMeta
 from pytomography.metadata.PET import PETLMProjMeta
 from pytomography.projectors import SystemMatrix
 import numpy as np
-try:
-    import parallelproj
-except:
-    Exception('The PETLMSystemMatrix requires the parallelproj package to be installed. Please install it at https://parallelproj.readthedocs.io/en/stable/')
+import parallelproj
+
 class PETLMSystemMatrix(SystemMatrix):
     r"""System matrix of PET list mode data. Forward projections corresponds to computing the expected counts along all LORs specified: in particular it approximates :math:`g_i = \int_{\text{LOR}_i} h(r) f(r) dr` where index :math:`i` corresponds to a particular detector pair and :math:`h(r)` is a Gaussian function that incorporates time-of-flight information (:math:`h(r)=1` for non-time-of-flight). The integral is approximated in the discrete object space using Joseph3D projections. In general, the system matrix implements two different projections, the quantity :math:`H` which projects to LORs corresponding to all detected events, and the quantity :math:`\tilde{H}` which projects to all valid LORs. The quantity :math:`H` is used for standard forward/back projection, while :math:`\tilde{H}` is used to compute the sensitivity image.
 
@@ -31,6 +29,7 @@ class PETLMSystemMatrix(SystemMatrix):
         attenuation_map: torch.tensor[float] | None = None,
         scale_projection_by_sensitivity: bool = False,
         N_splits: int = 1,
+        FOV_scale_enabled: bool = True,
         device: str = pytomography.device,
     ) -> None:
         super(PETLMSystemMatrix, self).__init__(
@@ -40,7 +39,7 @@ class PETLMSystemMatrix(SystemMatrix):
             proj_meta=proj_meta
             )
         self.output_device = device
-        if self.proj_meta.detector_ids.shape[1]==3:
+        if self.proj_meta.tof_meta is not None:
             self.TOF = True
         else:
             self.TOF = False
@@ -54,10 +53,40 @@ class PETLMSystemMatrix(SystemMatrix):
         self.scale_projection_by_sensitivity = scale_projection_by_sensitivity
         self.norm_BP = self._backward_full()
         # replace zeros (outside FOV) with small value to avoid NaNs
-        self.norm_BP[self.norm_BP < 1e-7] = 1e-7
+        self.norm_BP[self.norm_BP < 1e-7] = 1e7
+        self.FOV_scale_enabled = FOV_scale_enabled
         
     def _get_object_initial(self, device=pytomography.device):
-        return (self.norm_BP>1.1e-7).to(pytomography.dtype).to(device)
+        # Only consider the space within the FOV
+        zmin = (self.object_meta.shape[-1]-1)/2 + self.proj_meta.scanner_lut[:,2].min() /self.object_meta.dr[-1]
+        zmax = (self.object_meta.shape[-1]-1)/2 + self.proj_meta.scanner_lut[:,2].max() /self.object_meta.dr[-1]
+        zmin = max(0, zmin)
+        zmax = max(0,zmax)
+        object_initial = torch.ones(self.object_meta.shape).to(device)
+        object_initial[:,:,:int(np.ceil(zmin))] = 0
+        object_initial[:,:,int(np.floor(zmax)):] = 0
+        return object_initial
+    
+    def _get_prior_FOV_scale(self):
+        """Sets scaling for the prior within the FOV.
+
+        Returns:
+            torch.Tensor: Prior scaling
+        """
+        if self.FOV_scale_enabled:
+            zmin = (self.object_meta.shape[-1]-1)/2 + self.proj_meta.scanner_lut[:,2].min() /self.object_meta.dr[-1]
+            zmax = (self.object_meta.shape[-1]-1)/2 + self.proj_meta.scanner_lut[:,2].max() /self.object_meta.dr[-1]
+            zmid = (zmin + zmax) / 2
+            zmin = max(0, zmin)
+            zmax = max(0,zmax)
+            # Set axial FOV scaling
+            z = torch.arange(self.object_meta.shape[-1]).to(pytomography.device)
+            FOV_scale = (zmid - torch.abs(z - zmid)) / zmid
+            FOV_scale[FOV_scale<0] = 0
+            FOV_scale = torch.ones(self.object_meta.shape).to(pytomography.device) * FOV_scale
+        else:
+            FOV_scale = torch.ones(self.object_meta.shape).to(pytomography.device)
+        return FOV_scale
     
     def _compute_attenuation_probability_projection(self, idx: torch.tensor) -> torch.tensor:
         """Computes probabilities of photons being detected along an LORs corresponding to ``idx``.
@@ -96,7 +125,7 @@ class PETLMSystemMatrix(SystemMatrix):
             else:
                 # Assumes all possible pairs are used
                 idxs = torch.arange(self.proj_meta.scanner_lut.shape[0]).to(pytomography.device).to(torch.int32)
-                detector_ids = torch.combinations(idxs, 2).cpu()
+                detector_ids = torch.combinations(idxs.cpu(), 2)
         else:
             detector_ids = self.proj_meta.detector_ids
         proj = torch.ones(detector_ids.shape[0])
@@ -115,7 +144,7 @@ class PETLMSystemMatrix(SystemMatrix):
             proj *= self._compute_attenuation_probability_projection(detector_ids).cpu()
         return proj
         
-    def _backward_full(self, N_splits: int = 10):
+    def _backward_full(self, N_splits: int = 20):
         r"""Computes full back projection :math:`\tilde{H}^T w g` where :math:`w` is the weighting specified in the projection metadata that accounts for attenuation/normalization correction. If ``proj`` ($g$) is not provided, then uses a tensor of all ones (this is used to compute the normalization factor).
 
         Args:
@@ -127,7 +156,7 @@ class PETLMSystemMatrix(SystemMatrix):
             detector_ids_sensitivity = self.proj_meta.detector_ids_sensitivity
         else:
             idxs = torch.arange(self.proj_meta.scanner_lut.shape[0]).to(pytomography.device).to(torch.int32)
-            detector_ids_sensitivity = torch.combinations(idxs, 2).cpu()
+            detector_ids_sensitivity = torch.combinations(idxs.cpu(), 2)
         norm_BP = 0
         for proj_subset, detector_ids_sensitivity_subset in zip(torch.tensor_split(proj, N_splits), torch.tensor_split(detector_ids_sensitivity, N_splits)):
             # Add tensors to PyTomography device for fast projection
@@ -153,7 +182,7 @@ class PETLMSystemMatrix(SystemMatrix):
         Returns:
             list: List of arrays where each array corresponds to the projection indices of a particular subset.
         """
-        indices = torch.arange(self.proj_meta.detector_ids.shape[0]).to(torch.long).to(self.output_device)
+        indices = torch.arange(self.proj_meta.detector_ids.shape[0]).to(torch.long).cpu()
         subset_indices_array = []
         for i in range(n_subsets):
             subset_indices_array.append(indices[i::n_subsets])
@@ -262,9 +291,9 @@ class PETLMSystemMatrix(SystemMatrix):
             
         if self.scale_projection_by_sensitivity:
             if self.proj_meta.weights is None:
-                Exception('If scaling by sensitivity, then `weights` must be provided in the projection metadata')
+                raise Exception('If scaling by sensitivity, then `weights` must be provided in the projection metadata')
             else:
-                proj*=self.get_projection_subset(self.proj_meta.weights, subset_idx).cpu()
+                proj = proj * self.get_projection_subset(self.proj_meta.weights, subset_idx).to(proj.device)
         return proj.to(self.output_device)
             
     def backward(
@@ -291,9 +320,9 @@ class PETLMSystemMatrix(SystemMatrix):
         # Normalization/attenuation scaling (if needed)
         if self.scale_projection_by_sensitivity:
             if self.proj_meta.weights is None:
-                Exception('If scaling by sensitivity, then `weights` must be provided in the projection metadata')
+                raise Exception('If scaling by sensitivity, then `weights` must be provided in the projection metadata')
             else:
-                proj*=self.get_projection_subset(self.proj_meta.weights, subset_idx).cpu()
+                proj = proj * self.get_projection_subset(self.proj_meta.weights, subset_idx).to(proj.device)
         BP = 0
         for proj_i, idx_partial in zip(torch.tensor_split(proj, self.N_splits), torch.tensor_split(idx, self.N_splits)):
             proj_i = proj_i.to(pytomography.device)

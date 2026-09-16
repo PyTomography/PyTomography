@@ -18,22 +18,19 @@ class FilteredBackProjection:
         self,
         projections: torch.Tensor,
         system_matrix: SystemMatrix,
-        filter=None
+        filter=RampFilter
         ) -> None:
-        self.proj = projections
         self.system_matrix = system_matrix
         self.filter = filter
         # Random transform equivalent to SPECT System matrix
-    def __call__(self):
+    def __call__(self, projections):
         """Applies reconstruction
 
         Returns:
             torch.tensor: Reconstructed object prediction
         """
-        freq_fft = torch.fft.fftfreq(self.proj.shape[-2]).reshape((-1,1)).to(pytomography.device)
-        filter_total = RampFilter()(freq_fft)
-        if self.filter is not None:
-            filter_total *= self.filter(freq_fft)
+        freq_fft = torch.fft.fftfreq(projections.shape[-2]).reshape((-1,1)).to(pytomography.device) # only works for SPECT
+        filter_total = self.filter()(freq_fft)
         proj_fft = torch.fft.fft(self.proj, axis=-2)
         proj_fft = proj_fft* filter_total
         proj_filtered = torch.fft.ifft(proj_fft, axis=-2).real

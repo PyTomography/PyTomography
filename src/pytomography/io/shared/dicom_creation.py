@@ -57,9 +57,6 @@ def add_required_elements_to_ds(ds: FileDataset) -> None:
     ds.Manufacturer = "Qurit"
     ds.ManufacturerModelName = f"PyTomography {pytomography.__version__}"
     ds.InstitutionName = "Qurit"
-    # Set the transfer syntax
-    ds.is_little_endian = True
-    ds.is_implicit_VR = True
     # Set values already defined in the file meta
     ds.SOPClassUID = ds.file_meta.MediaStorageSOPClassUID
     ds.SOPInstanceUID = ds.file_meta.MediaStorageSOPInstanceUID

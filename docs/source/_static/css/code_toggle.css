@@ -1,0 +1,16 @@
+.code-block {
+    display: none;
+}
+
+.code-block.active {
+    display: block;
+}
+
+.toggle-button {
+    margin: 10px 0;
+    cursor: pointer;
+    padding: 5px 10px;
+    background-color: #ddd;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}

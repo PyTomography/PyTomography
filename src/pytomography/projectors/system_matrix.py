@@ -1,9 +1,11 @@
 from __future__ import annotations
+from typing import Sequence
 import abc
 import torch
 import pytomography
 from pytomography.transforms import Transform
 from pytomography.metadata import ObjectMeta, ProjMeta
+from copy import copy
 
 class SystemMatrix():
     r"""Abstract class for a general system matrix :math:`H:\mathbb{U} \to \mathbb{V}` which takes in an object :math:`f \in \mathbb{U}` and maps it to corresponding projections :math:`g \in \mathbb{V}` that would be produced by the imaging system. A system matrix consists of sequences of object-to-object and proj-to-proj transforms that model various characteristics of the imaging system, such as attenuation and blurring. While the class implements the operator :math:`H:\mathbb{U} \to \mathbb{V}` through the ``forward`` method, it also implements :math:`H^T:\mathbb{V} \to \mathbb{U}` through the `backward` method, required during iterative reconstruction algorithms such as OSEM.
@@ -26,6 +28,20 @@ class SystemMatrix():
         self.object_meta = object_meta
         self.proj_meta = proj_meta
         self.initialize_transforms()
+             
+    def __mul__(self, scalar):
+        old_forward = copy(self.forward)
+        old_backward = copy(self.backward)
+        def new_forward(*args, **kwargs):
+            return old_forward(*args, **kwargs) * scalar
+        def new_backward(*args, **kwargs):
+            return old_backward(*args, **kwargs) * scalar
+        self.forward = new_forward
+        self.backward = new_backward
+        return self
+    
+    def __rmul__(self, scalar):
+        return self.__mul__(scalar)
 
     def initialize_transforms(self):
         """Initializes all transforms used to build the system matrix
@@ -44,7 +60,15 @@ class SystemMatrix():
         if device is None:
             device = pytomography.device
         return torch.ones(self.object_meta.shape).to(device)
-            
+    
+    def _get_prior_FOV_scale(self):
+        """Sets scaling for the prior within the FOV.
+
+        Returns:
+            torch.Tensor: Prior scaling
+        """
+        return torch.ones(self.object_meta.shape).to(pytomography.device)
+    
     @abc.abstractmethod
     def forward(self, object: torch.tensor, **kwargs):
         r"""Implements forward projection :math:`Hf` on an object :math:`f`.
@@ -138,7 +162,7 @@ class ExtendedSystemMatrix(SystemMatrix):
                 if self.proj2proj_transforms[i] is not None:
                     proj_i = self.proj2proj_transforms[i].forward(proj_i)
             projs.append(proj_i.clone())
-        return torch.vstack(projs)
+        return torch.stack(projs)
     
     def backward(self, proj, subset_idx: int | None =None):
         r"""Back projection :math:`H' = \sum_n v_n^T \otimes A_n^T H_n^T B_n^T`. This maps an extended projection back to the original object space.
@@ -152,7 +176,7 @@ class ExtendedSystemMatrix(SystemMatrix):
         """
         objects = []
         for i in range(len(self.system_matrices)):
-            proj_i = proj[i].unsqueeze(0)
+            proj_i = proj[i]
             if self.proj2proj_transforms is not None:
                 if self.proj2proj_transforms[i] is not None:
                     proj_i = self.proj2proj_transforms[i].backward(proj_i)
@@ -161,7 +185,7 @@ class ExtendedSystemMatrix(SystemMatrix):
                 if self.obj2obj_transforms[i] is not None:
                     object_i = self.obj2obj_transforms[i].backward(object_i)
             objects.append(object_i.clone())
-        return torch.vstack(objects).sum(axis=0).unsqueeze(0)
+        return torch.stack(objects).sum(axis=0)
     
     def set_n_subsets(
         self,
@@ -178,6 +202,12 @@ class ExtendedSystemMatrix(SystemMatrix):
         subset_idx: int
     ) -> torch.tensor: 
         return self.system_matrices[0].get_projection_subset(projections, subset_idx)
+    
+    def get_weighting_subset(
+        self,
+        subset_idx: int
+    ) -> torch.tensor:
+        return self.system_matrices[0].get_weighting_subset(subset_idx)
     
     def compute_normalization_factor(self, subset_idx: int | None = None):
         r"""Function called by reconstruction algorithms to get the normalization factor :math:`H' = \sum_n v_n^T \otimes A_n^T H_n^T B_n^T` 1.

@@ -2,6 +2,7 @@ from __future__ import annotations
 import torch
 from torch.nn.functional import pad
 from kornia.geometry.transform import rotate
+from scipy.ndimage import affine_transform
 import numpy as np
 
 def rotate_detector_z(

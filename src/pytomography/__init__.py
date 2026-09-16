@@ -1,11 +1,22 @@
 import torch
+import os
+import sys
 from importlib.metadata import version
 
 __version__: str = version('pytomography')
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# Silence parallelproj import
+os.environ['PARALLELPROJ_SILENT_IMPORT'] = '1'
+
+if not sys.warnoptions:
+    import warnings
+    warnings.simplefilter("ignore")
+
+device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 if device == "cpu":
     print("PyTomography did not find a GPU available on this machine. If this is not expected, please check your CUDA installation.")
+elif str(device).strip() == "mps":
+    print("PyTomography found Apple Silicon GPUs, this is experimental")
 dtype = torch.float32
 delta = 1e-11
 verbose = False
