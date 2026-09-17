@@ -7,7 +7,8 @@ import numpy as np
 from pytomography.projectors import SystemMatrix
 from pytomography.transforms import Transform
 from pytomography.io.PET.shared import listmode_to_sinogram
-import parallelproj
+import parallelproj_core
+from .petlm_system_matrix import _float32
 
 class PETSinogramSystemMatrix(SystemMatrix):
     r"""System matrix for sinogram-based PET reconstruction. 
@@ -40,7 +41,9 @@ class PETSinogramSystemMatrix(SystemMatrix):
             proj_meta=proj_meta
             )
         self.output_device = device
-        self.object_origin = (- np.array(object_meta.shape) / 2 + 0.5) * (np.array(object_meta.dr))
+        # the geometry every kernel call needs, in the form it needs (float32, on the projection device)
+        self.object_origin = _float32((- np.array(object_meta.shape) / 2 + 0.5) * (np.array(object_meta.dr)), pytomography.device)
+        self.voxel_size = _float32(np.array(object_meta.dr), pytomography.device)
         self.obj2obj_transforms = obj2obj_transforms
         self.proj_meta = proj_meta
         # In case they get put on another device
@@ -51,6 +54,14 @@ class PETSinogramSystemMatrix(SystemMatrix):
             self.sinogram_sensitivity = self.sinogram_sensitivity.to(self.output_device)
         self.N_splits = N_splits
         self.TOF = self.proj_meta.tof_meta is not None
+
+    def _tof_arguments(self) -> tuple:
+        """Time of flight arguments in the form parallelproj expects: the resolution and the bin offset as float32 arrays."""
+        tof_meta = self.proj_meta.tof_meta
+        return (float(tof_meta.bin_width),
+                _float32(tof_meta.sigma, pytomography.device).reshape(-1),
+                _float32(tof_meta.center_offset, pytomography.device).reshape(-1),
+                int(tof_meta.num_bins), float(tof_meta.n_sigmas))
     
     def _get_xyz_sinogram_coordinates(self, subset_idx: int = None):
         """Get the XYZ coordinates corresponding to the pair of crystals of the projection angle
@@ -122,15 +133,12 @@ class PETSinogramSystemMatrix(SystemMatrix):
         """
         N = self._N_sinogram(subset_idx)
         proj = torch.zeros(N, device=self.output_device)
+        attenuation_map = _float32(self.attenuation_map, pytomography.device)
         for start, end in self._chunk_bounds(N):
             xyz1, xyz2 = self._xyz_chunk(start, end, subset_idx)
-            proj[start:end] += torch.exp(-parallelproj.joseph3d_fwd(
-                xyz1,
-                xyz2,
-                self.attenuation_map.to(pytomography.device),
-                self.object_origin,
-                self.object_meta.dr
-            )).to(self.output_device)
+            chunk = torch.zeros(end - start, dtype=torch.float32, device=pytomography.device)
+            parallelproj_core.joseph3d_fwd(xyz1, xyz2, attenuation_map, self.object_origin, self.voxel_size, chunk)
+            proj[start:end] += torch.exp(-chunk).to(self.output_device)
         N_angles = self.proj_meta.N_angles if subset_idx is None else self.subset_indices_array[subset_idx].shape[0]
         proj = proj.reshape((N_angles, *self.proj_meta.shape[1:]))
         return proj
@@ -233,9 +241,10 @@ class PETSinogramSystemMatrix(SystemMatrix):
             torch.tensor: Forward projection
         """
         # Apply object space transforms
-        object = object.to(pytomography.device)
+        object = _float32(object, pytomography.device)
         for transform in self.obj2obj_transforms:
             object = transform.forward(object)
+        object = _float32(object, pytomography.device)
         # Project chunk by chunk; the crystal coordinates of each chunk are generated on the device
         N = self._N_sinogram(subset_idx)
         if self.TOF:
@@ -245,26 +254,15 @@ class PETSinogramSystemMatrix(SystemMatrix):
         for start, end in self._chunk_bounds(N):
             xyz1, xyz2 = self._xyz_chunk(start, end, subset_idx)
             if self.TOF:
-                proj[start:end] += parallelproj.joseph3d_fwd_tof_sino(
-                    xyz1,
-                    xyz2,
-                    object.to(pytomography.device),
-                    self.object_origin,
-                    self.object_meta.dr,
-                    self.proj_meta.tof_meta.bin_width,
-                    self.proj_meta.tof_meta.sigma,
-                    self.proj_meta.tof_meta.center_offset,
-                    self.proj_meta.tof_meta.n_sigmas,
-                    self.proj_meta.tof_meta.num_bins
-                ).to(self.output_device)
+                bin_width, sigma, center_offset, num_bins, n_sigmas = self._tof_arguments()
+                chunk = torch.zeros((end - start, num_bins), dtype=torch.float32, device=pytomography.device)
+                parallelproj_core.joseph3d_tof_sino_fwd(xyz1, xyz2, object, self.object_origin, self.voxel_size,
+                                                        chunk, bin_width, sigma, center_offset, num_bins, n_sigmas)
+                proj[start:end] += chunk.to(self.output_device)
             else:
-                proj[start:end] += parallelproj.joseph3d_fwd(
-                    xyz1,
-                    xyz2,
-                    object.to(pytomography.device),
-                    self.object_origin,
-                    self.object_meta.dr
-                ).to(self.output_device)
+                chunk = torch.zeros(end - start, dtype=torch.float32, device=pytomography.device)
+                parallelproj_core.joseph3d_fwd(xyz1, xyz2, object, self.object_origin, self.voxel_size, chunk)
+                proj[start:end] += chunk.to(self.output_device)
         N_angles = self.proj_meta.N_angles if subset_idx is None else self.subset_indices_array[subset_idx].shape[0]
         proj = proj.reshape((N_angles, *self.proj_meta.shape[1:], -1))
         if self.scale_projection_by_sensitivity:
@@ -296,32 +294,17 @@ class PETSinogramSystemMatrix(SystemMatrix):
         # Project
         N = self._N_sinogram(subset_idx)
         proj_flat = proj.flatten(end_dim=-2) if self.TOF*(not force_nonTOF) else proj.flatten()   # a view: (theta, r, plane)[, TOF]
-        BP = 0
+        # parallelproj adds into the image it is given, so every chunk accumulates into one buffer
+        BP = torch.zeros(tuple(self.object_meta.shape), dtype=torch.float32, device=pytomography.device)
         for start, end in self._chunk_bounds(N):
             xyz1, xyz2 = self._xyz_chunk(start, end, subset_idx)
+            values = _float32(proj_flat[start:end], pytomography.device)
             if self.TOF*(not force_nonTOF):
-                BP += parallelproj.joseph3d_back_tof_sino(
-                    xyz1,
-                    xyz2,
-                    self.object_meta.shape,
-                    self.object_origin,
-                    self.object_meta.dr,
-                    proj_flat[start:end].to(pytomography.device),
-                    self.proj_meta.tof_meta.bin_width,
-                    self.proj_meta.tof_meta.sigma,
-                    self.proj_meta.tof_meta.center_offset,
-                    self.proj_meta.tof_meta.n_sigmas,
-                    self.proj_meta.tof_meta.num_bins
-                )
+                bin_width, sigma, center_offset, num_bins, n_sigmas = self._tof_arguments()
+                parallelproj_core.joseph3d_tof_sino_back(xyz1, xyz2, BP, self.object_origin, self.voxel_size,
+                                                         values, bin_width, sigma, center_offset, num_bins, n_sigmas)
             else:
-                BP += parallelproj.joseph3d_back(
-                    xyz1,
-                    xyz2,
-                    self.object_meta.shape,
-                    self.object_origin,
-                    self.object_meta.dr,
-                    proj_flat[start:end].to(pytomography.device),
-                )
+                parallelproj_core.joseph3d_back(xyz1, xyz2, BP, self.object_origin, self.voxel_size, values)
         # Apply object transforms
         for transform in self.obj2obj_transforms[::-1]:
             BP  = transform.backward(BP)
