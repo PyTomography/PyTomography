@@ -14,7 +14,7 @@ SPECT/SIMIND-Jaszak:
   title: SIMIND simulations of a Jaszczak phantom (Lu-177 and the Ac-225 decay chain)
   source: PyTomography SPECT tutorial data (Zenodo)
   url: https://doi.org/10.5281/zenodo.15314460
-  download: Download SPECT.zip from the record and unzip it into PYTOMOGRAPHY_DATA. It creates the SPECT folder with every SPECT dataset.
+  download: Download SPECT.zip from the record and unzip it into PYTOMOGRAPHY_DATA. It creates the SPECT folder with every SPECT dataset. The Ac-225 tutorial also needs the fitted PSF model ac225_psf_model.json from the PyTomography repository (examples/data); put a copy in SPECT/SIMIND-Jaszak.
   size: 1.4 GB (SPECT.zip, all SPECT datasets)
   licence: CC BY 4.0
 SPECT/Lu177-NEMA-SymT2:
@@ -28,7 +28,7 @@ SPECT/Ac225-NEMA-SymT2:
   title: Ac-225 NEMA IQ phantom on a Siemens Symbia T2, with CT
   source: PyTomography SPECT tutorial data (Zenodo)
   url: https://doi.org/10.5281/zenodo.15314460
-  download: Included in SPECT.zip (see SPECT/SIMIND-Jaszak).
+  download: Included in SPECT.zip (see SPECT/SIMIND-Jaszak), apart from the fitted PSF model ac225_psf_model.json, which is in the PyTomography repository (examples/data); put a copy in SPECT/Ac225-NEMA-SymT2.
   size: included in SPECT.zip
   licence: CC BY 4.0
 SPECT/Lu177-PSMA-GEDisc:

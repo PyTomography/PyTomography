@@ -29,8 +29,10 @@ from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.transforms.shared import GaussianFilter
 from pytomography.io.SPECT.shared import subsample_projections_and_modify_metadata
-import dill
+import json
 import os
+from spectpsftoolbox.kernel1d import ArbitraryKernel1D, FunctionKernel1D
+from spectpsftoolbox.operator2d import GaussianOperator, Rotate1DConvOperator, RotateSeperable2DConvOperator
 from pytomography.utils import plot_utils
 
 path = DATA / 'SPECT'
@@ -39,10 +41,22 @@ pathCT = os.path.join(path, 'Ac225-NEMA-SymT2', 'CT')
 files_CT = [os.path.join(pathCT, file) for file in os.listdir(pathCT)]
 file_NM = os.path.join(path, 'Ac225-NEMA-SymT2', 'projection_data.IMA')
 
-with open(os.path.join(path, 'Ac225-NEMA-SymT2', 'ac225_psf_operator.pkl'), 'rb') as f:
-    psf_operator = dill.load(f)
-    psf_operator.set_device(pytomography.device)
-    # Note that you may need to create this operator yourself with the SPECTPSFToolbox to match your GPU architecture
+with open(os.path.join(path, 'Ac225-NEMA-SymT2', 'ac225_psf_model.json')) as f:
+    fit = {k: torch.tensor(v) if isinstance(v, list) else v for k, v in json.load(f).items()}
+two_exponentials = lambda a, b: b[0] * torch.exp(-a * b[1]) + b[2] * torch.exp(-a * b[3])
+width = lambda a, b: b[0] + b[1] * (torch.sqrt(a**2 + b[2]**2) - torch.abs(b[2]))
+tail_width = lambda a, b: 1 + b[0] * (torch.sqrt((a - fit['tail_sigma_a_min'])**2 + b[1]**2) - torch.abs(b[1]))
+gaussian = GaussianOperator(two_exponentials, width, fit['gaussian_amplitude'], fit['gaussian_sigma'])
+tails = Rotate1DConvOperator(
+    ArbitraryKernel1D(fit['tail_kernel'], two_exponentials, tail_width, fit['tail_amplitude'], fit['tail_sigma'],
+                      fit['tail_kernel_spacing'], grid_sample_mode='bicubic'),
+    N_angles=3, additive=True, rot=90)
+background = RotateSeperable2DConvOperator(
+    FunctionKernel1D(lambda x: torch.exp(-torch.abs(x)), two_exponentials, width, fit['background_amplitude'],
+                     fit['background_sigma'], a_min=fit['background_a_min'], a_max=fit['background_a_max']),
+    N_angles=1, additive=False)
+psf_operator = (tails + background) * gaussian + gaussian
+psf_operator.set_device(pytomography.device)
 
 index_peak = 3
 index_lower = 4

@@ -20,8 +20,8 @@ OUTPUT = Path(os.environ.get("PYTOMOGRAPHY_OUTPUT", "pytomography_outputs")).exp
 OUTPUT.mkdir(parents=True, exist_ok=True)
 
 import os
+import json
 import torch
-import dill
 import pytomography
 from pytomography.io.SPECT import simind
 from pytomography.projectors.SPECT import SPECTSystemMatrix
@@ -29,6 +29,8 @@ from pytomography.transforms.SPECT  import SPECTAttenuationTransform, SPECTPSFTr
 from pytomography.algorithms import OSEM
 from pytomography.io.SPECT.shared import subsample_projections_and_modify_metadata, subsample_amap
 from pytomography.likelihoods import PoissonLogLikelihood
+from spectpsftoolbox.kernel1d import ArbitraryKernel1D, FunctionKernel1D
+from spectpsftoolbox.operator2d import GaussianOperator, Rotate1DConvOperator, RotateSeperable2DConvOperator
 import matplotlib.pyplot as plt
 
 # change to where you saved the data
@@ -77,9 +79,21 @@ def perform_reconstruction(psf_transform):
     algorithm = OSEM(likelihood)
     return algorithm(n_iters=50, n_subsets=4)
 
-# Note that you may need to create this operator yourself with the SPECTPSFToolbox to match your GPU architecture
-with open(os.path.join(PATH, 'ac225_psf_operator.pkl'), 'rb') as f:
-    psf_operator = dill.load(f)
+with open(os.path.join(PATH, 'ac225_psf_model.json')) as f:
+    fit = {k: torch.tensor(v) if isinstance(v, list) else v for k, v in json.load(f).items()}
+two_exponentials = lambda a, b: b[0] * torch.exp(-a * b[1]) + b[2] * torch.exp(-a * b[3])
+width = lambda a, b: b[0] + b[1] * (torch.sqrt(a**2 + b[2]**2) - torch.abs(b[2]))
+tail_width = lambda a, b: 1 + b[0] * (torch.sqrt((a - fit['tail_sigma_a_min'])**2 + b[1]**2) - torch.abs(b[1]))
+gaussian = GaussianOperator(two_exponentials, width, fit['gaussian_amplitude'], fit['gaussian_sigma'])
+tails = Rotate1DConvOperator(
+    ArbitraryKernel1D(fit['tail_kernel'], two_exponentials, tail_width, fit['tail_amplitude'], fit['tail_sigma'],
+                      fit['tail_kernel_spacing'], grid_sample_mode='bicubic'),
+    N_angles=3, additive=True, rot=90)
+background = RotateSeperable2DConvOperator(
+    FunctionKernel1D(lambda x: torch.exp(-torch.abs(x)), two_exponentials, width, fit['background_amplitude'],
+                     fit['background_sigma'], a_min=fit['background_a_min'], a_max=fit['background_a_max']),
+    N_angles=1, additive=False)
+psf_operator = (tails + background) * gaussian + gaussian
 psf_operator.set_device(pytomography.device)
 psf_transform = SPECTPSFTransform(psf_operator=psf_operator)
 recon_1Dfit = perform_reconstruction(psf_transform)
