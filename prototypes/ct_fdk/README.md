@@ -30,7 +30,14 @@ memory free when the stage starts (`gpu_budget`). Projections stay on the CPU:
 
 The output volume is the only full-size array on the GPU. Measured peaks on C145, on the scanner grid
 (512 x 512 x 40 slices): rebinning 0.32 GB, filtering 0.97 GB, back projection 1.23 GB (`nvidia-smi` shows about
-0.7 GB more for the CUDA context and PyTorch's cache). The synthetic test peaks at 0.65 GB.
+0.7 GB more for the CUDA context and PyTorch's cache). The whole scan (512 x 512 x 316) peaks at 1.27 GB and takes
+81 s to back project (305 s with 1.25 mm slices). The synthetic test peaks at 0.65 GB.
+
+A bigger budget does not make it faster. On the 40-slice block, budgets of 1.5, 3 and 6 GB with 4, 16 or 32 views per
+batch all took 10.0 to 11.1 s and gave the same image (the 6 GB runs held up to 4.8 GB). The time goes into the
+arithmetic of the per-voxel weights (about 40 bytes of temporaries per voxel and view), with the GPU already 96% busy,
+so the speed-up has to come from a fused kernel. `torch.compile` would need Triton, which on Windows comes only as the
+unofficial `triton-windows` package.
 
 ## Method
 
@@ -69,7 +76,8 @@ is over the body.
 | 5. scanner kernel estimated from the images | 54 | -128 | -843 | 1048 | +24 / -16 | 113 | 27 |
 | 6. 1.25 mm slices | 54 | -128 | -843 | 1046 | +24 / -16 | 112 | 24 |
 
-(HU; noise is the SD of the high-pass image in soft tissue. Back projection 10 to 37 s per step.)
+(HU; noise is the SD of the high-pass image in soft tissue. Back projection 10 to 37 s per step.) Over the whole
+316-slice scan, the RMS difference goes from 139 HU (step 2) to 108 HU (step 6).
 
 - **Step 1** removes the fan-beam shading: fat moves from -158 to -128 HU, and the edge of the body from -40 to -16 HU.
 - **Step 3** is a geometry correction (see the audit below). It cuts the difference from the scanner by 17% and brings
@@ -90,6 +98,11 @@ is over the body.
   reconstruction.
 - A 0.36, 0.25 mm in-plane shift (about half a scanner pixel, 0.33 mm; a half-pixel convention is one candidate).
 - The scanner's high-frequency noise texture (43 HU against our 24 HU), and its inverted response above 0.4 cycles/mm.
+- Streaks at the shoulders: ours shows the shoulder-to-shoulder streaks of photon starvation, which the scanner's
+  processing suppresses. The RMS difference over the top 5 cm is 143 HU, against 100 HU for the rest of the scan. It
+  is not the end of the helix (the images stop 23 mm inside it at both ends; the streaks are as strong 60 mm in).
+- Faint z banding: our soft-tissue slice means vary by 2.5 HU from slice to slice (the scanner's by 1.5 HU), most
+  strongly at periods near the half-turn table feed (20 mm). The WFBP row weighting is the likely source.
 
 ## Geometry audit
 
