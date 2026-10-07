@@ -426,8 +426,10 @@ def sinogram_to_listmode(detector_ids: torch.Tensor, sinogram: torch.Tensor, inf
         torch.Tensor: Listmode data
     """     
     # TODO: multiple IDs map to same sinogram bin -> need to divide by number of LORs mapping to each sinogram bin
-    lor_coordinates, sinogram_index = sinogram_coordinates(info)
-    detector_ids_spatial = detector_ids[:,:2].clone()
+    # Look the events up where the sinogram is (a list mode system matrix keeps its events' detector IDs on its lor_device)
+    device = sinogram.device
+    lor_coordinates, sinogram_index = (table.to(device) for table in sinogram_coordinates(info))
+    detector_ids_spatial = detector_ids[:,:2].to(device)
     within_ring_id = (detector_ids_spatial % info['NrCrystalsPerRing']).to(torch.long)
     ring_ids = (detector_ids_spatial // info['NrCrystalsPerRing']).to(torch.long)
     within_ring_id, idx = within_ring_id.sort(axis=1, descending=True)
@@ -437,7 +439,7 @@ def sinogram_to_listmode(detector_ids: torch.Tensor, sinogram: torch.Tensor, inf
     idx0, idx1 = lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]].T
     idx2 = sinogram_index[ring_ids[:,0], ring_ids[:,1]]
     if len(sinogram.shape)>3: # If TOF
-        idxTOF =  detector_ids[:,2].clone()
+        idxTOF =  detector_ids[:,2].to(device)
         lm_return += sinogram[idx0, idx1, idx2, idxTOF] # randoms same for all TOF bins
     else:
         lm_return += sinogram[idx0, idx1, idx2]
