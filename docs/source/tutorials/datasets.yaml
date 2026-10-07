@@ -82,10 +82,10 @@ PET/PETSIRD-mIEC:
   size: 2.3 GB
   licence: to be confirmed with ETSI
 CT/ldct-c145:
-  title: Full-dose projections of a chest CT (case C145) from a GE LightSpeed VCT, in DICOM-CT-PD format
+  title: Chest CT (case C145) from a GE LightSpeed VCT, with the full-dose projections in DICOM-CT-PD format and the scanner's reconstruction
   source: The Cancer Imaging Archive, LDCT-and-Projection-data, served by the NCI Imaging Data Commons
   url: https://doi.org/10.7937/9npb-2637
-  download: "pip install idc-index, then run: idc download 1.2.840.113713.4.100.1.2.234724616712334404725906500152169 --download-dir PYTOMOGRAPHY_DATA/CT/ldct-c145/full_dose_projections --dir-template \"\" (no login needed)."
-  size: 1.07 GB
+  download: "pip install idc-index, then download the projections and the scanner's reconstruction (no login needed): idc download 1.2.840.113713.4.100.1.2.234724616712334404725906500152169 --download-dir PYTOMOGRAPHY_DATA/CT/ldct-c145/full_dose_projections --dir-template \"\" and idc download 1.2.840.113713.4.100.1.2.332029262210606042701376029452792 --download-dir PYTOMOGRAPHY_DATA/CT/ldct-c145/full_dose_images --dir-template \"\""
+  size: 1.23 GB (1.07 GB of projections, 0.16 GB of images)
   licence: CC BY 4.0. Use is also subject to the TCIA data usage policy.
   cite: "McCollough C, Chen B, Holmes D III, Duan X, Yu Z, Yu L, Leng S, Fletcher J. Low Dose CT Image and Projection Data (LDCT-and-Projection-data), version 7. The Cancer Imaging Archive (2020). doi:10.7937/9npb-2637. Supported by NIBIB grants EB017095 and EB017185."
