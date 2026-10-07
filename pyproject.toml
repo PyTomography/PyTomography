@@ -44,15 +44,13 @@ allow-direct-references = true
 
 [project.optional-dependencies]
 doc = [
-  "toml",
-  "sphinx~=6.2.1",
-  "myst-parser",
-  "furo",
-  "nbsphinx",
-  "sphinx-autoapi~=3.0.0",
-  "ipykernel",
-  "pydata-sphinx-theme",
+  "sphinx>=8,<9",
+  "pydata-sphinx-theme>=0.16",
+  "myst-nb>=1.1",
   "sphinx-design",
   "sphinx-copybutton",
+  "sphinx-autoapi>=3.3",
+  "sphinx-autobuild",
+  "pyyaml",
 ]
 

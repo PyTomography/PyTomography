@@ -1,0 +1,159 @@
+# Every tutorial on the site is listed here, once. The tutorial gallery, its filters,
+# the thumbnails and the sidebar are all generated from this file, so a new tutorial
+# only needs an entry below.
+#
+#   notebook:  file name in docs/source/notebooks, without .ipynb
+#   modality:  SPECT | PET | CT | Any
+#   data:      where the input data comes from (SIMIND, GATE, DICOM, Vendor, None)
+#   topic:     Basics | Corrections | Algorithms | Clinical workflow | Systems | Physics | Uncertainty | Development
+#   summary:   one sentence shown on the card
+#   thumbnail: optional, index of the image output to use (default: the last one)
+
+sections:
+- title: SPECT
+  tutorials:
+  - notebook: t_siminddata
+    title: SIMIND introduction
+    modality: SPECT
+    data: SIMIND
+    topic: Basics
+    summary: A complete OSEM pipeline on Monte Carlo data, from projections to a reconstructed image.
+  - notebook: t_dicomdata
+    title: DICOM introduction
+    modality: SPECT
+    data: DICOM
+    topic: Basics
+    summary: Reconstruct a phantom exported from a clinical scanner and compare with the vendor image.
+  - notebook: t_algorithms
+    title: Reconstruction algorithms
+    modality: SPECT
+    data: SIMIND
+    topic: Algorithms
+    summary: OSEM, BSREM, OSMAPOSL and KEM side by side on the same data.
+  - notebook: t_dicommultibed
+    title: Multiple bed positions
+    modality: SPECT
+    data: DICOM
+    topic: Clinical workflow
+    summary: Reconstruct several bed positions and stitch them into one volume.
+  - notebook: t_dualpeak
+    title: Multiple photopeaks
+    modality: SPECT
+    data: DICOM
+    topic: Clinical workflow
+    summary: Joint reconstruction over two photopeaks of the same isotope.
+  - notebook: t_uncertainty_spect
+    title: Uncertainty estimation
+    modality: SPECT
+    data: DICOM
+    topic: Uncertainty
+    summary: Voxel and region uncertainty that comes out of the reconstruction itself.
+  - notebook: t_spect_mc
+    title: Hybrid Monte Carlo (simulated)
+    modality: SPECT
+    data: SIMIND
+    topic: Corrections
+    summary: Monte Carlo scatter estimated inside the reconstruction loop with SIMIND.
+  - notebook: t_spect_mc2
+    title: Hybrid Monte Carlo (measured)
+    modality: SPECT
+    data: DICOM
+    topic: Corrections
+    summary: The same hybrid approach on measured data.
+  - notebook: t_starguide
+    title: GE StarGuide
+    modality: SPECT
+    data: DICOM
+    topic: Systems
+    summary: A 12-head CZT system with body-contour sweeps.
+  - notebook: t_ac225_simind_recon
+    title: Ac-225 PSF modelling (SIMIND)
+    modality: SPECT
+    data: SIMIND
+    topic: Physics
+    summary: Alpha-emitter imaging with a Monte Carlo collimator response, including penetration.
+  - notebook: t_ac225_dicom_recon
+    title: Ac-225 PSF modelling (DICOM)
+    modality: SPECT
+    data: DICOM
+    topic: Physics
+    summary: The Ac-225 PSF model applied to measured data.
+  - notebook: t_CardiacReorientation
+    title: Cardiac reorientation
+    modality: SPECT
+    data: DICOM
+    topic: Clinical workflow
+    summary: Reconstruct myocardial perfusion data and reorient it to the short axis.
+- title: PET
+  tutorials:
+  - notebook: t_PETGATE_scat_sino
+    title: GATE sinogram
+    modality: PET
+    data: GATE
+    topic: Basics
+    summary: Non-TOF sinogram reconstruction of a simulated brain phantom with scatter and randoms.
+  - notebook: t_PETGATE_scat_sinoTOF
+    title: GATE TOF sinogram
+    modality: PET
+    data: GATE
+    topic: Corrections
+    summary: Time-of-flight sinogram reconstruction with TOF scatter estimation.
+  - notebook: t_PETGATE_scat_lm
+    title: GATE list mode
+    modality: PET
+    data: GATE
+    topic: Corrections
+    summary: List-mode reconstruction with scatter and randoms correction.
+  - notebook: t_PETGATE_scat_lmTOF
+    title: GATE TOF list mode
+    modality: PET
+    data: GATE
+    topic: Corrections
+    summary: Time-of-flight list-mode reconstruction with TOF scatter.
+  - notebook: t_GE_HDF5
+    title: GE Discovery MI
+    modality: PET
+    data: Vendor
+    topic: Systems
+    summary: Clinical list mode exported from GE Duetto, with time of flight.
+  - notebook: t_uncertainty_pet
+    title: PET uncertainty estimation
+    modality: PET
+    data: Vendor
+    topic: Uncertainty
+    summary: Uncertainty estimates for a clinical PET reconstruction.
+  - notebook: t_PETSIRD
+    title: PETSIRD list mode
+    modality: PET
+    data: Vendor
+    topic: Systems
+    summary: Read list-mode data in the open PETSIRD format.
+  - notebook: t_PETGATE_DIP
+    title: Deep Image Prior
+    modality: PET
+    data: GATE
+    topic: Algorithms
+    summary: Build a PyTorch network and use it as the image model inside the reconstruction.
+- title: CT
+  tutorials:
+  - notebook: t_CT_GEN3
+    title: DICOM-CT-PD
+    modality: CT
+    data: DICOM
+    topic: Basics
+    summary: OS-SART on raw projections from a 3rd-generation clinical CT scanner.
+- title: Building with PyTomography
+  folder: development
+  tutorials:
+  - notebook: t_examplesystemmatrix
+    title: Implementing a new system matrix
+    modality: Any
+    data: None
+    topic: Development
+    summary: Write your own forward and back projector and reuse every algorithm in the library.
+  - notebook: t_plotting
+    title: Plotting utilities
+    modality: Any
+    data: None
+    topic: Development
+    summary: Fused SPECT/CT views and other figure helpers.

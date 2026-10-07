@@ -1,8 +1,8 @@
 .. _collimator-data-index:
 
-++++++++++++
+================
 Collimator Codes
-++++++++++++
+================
 
 Collimator data for SPECT imaging was obtained from the ``collim.col`` file of the SIMIND Monte Carlo program. The values in the "Code" column are used for the ``collimator_name`` argument of the ``get_psfmeta_from_scanner_params`` function from ``pytomography.io.SPECT``. The supported collimators/codes are listed below.
 

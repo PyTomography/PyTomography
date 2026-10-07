@@ -1,96 +1,113 @@
-# Configuration file for the Sphinx documentation builder.
-#
-# This file only contains a selection of the most common options. For a full
-# list see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
-
-# -- Path setup --------------------------------------------------------------
-
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#
+# Sphinx configuration for the PyTomography documentation.
+# Build locally with:  sphinx-autobuild docs/source docs/build/html
 import os
 import sys
-import toml
-sys.path.insert(0, os.path.abspath('../../src'))
 
+sys.path.insert(0, os.path.abspath("../../src"))
+sys.path.insert(0, os.path.abspath("_ext"))
 
 # -- Project information -----------------------------------------------------
 
-project = 'PyTomography'
-copyright = '2024, Luke Polson'
-author = 'Luke Polson'
+project = "PyTomography"
+author = "Luke Polson and the PyTomography contributors"
+copyright = "2023-2026, the PyTomography contributors"
 
-# The full version, including alpha/beta/rc tags
-with open('../../pyproject.toml', 'r') as f:
-    release = toml.load(f)['project']['version']
+# The site documents the upcoming 4.0 release; the release workflow will set this
+# from the git tag once pyproject.toml is bumped.
+release = os.environ.get("PYTOMOGRAPHY_DOCS_VERSION", "4.0 preview")
+version = release
 
 # -- General configuration ---------------------------------------------------
 
-# Add any Sphinx extension module names here, as strings. They can be
-# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
-# ones.
 extensions = [
-    "myst_parser",
-    "sphinx.ext.autosectionlabel",
-    "sphinx.ext.autodoc",
-    'sphinx.ext.viewcode',
+    "myst_nb",                      # Markdown and notebooks (includes myst_parser)
     "sphinx.ext.napoleon",
+    "sphinx.ext.mathjax",
     "sphinx_design",
-    "nbsphinx",
-    "autoapi.extension",
     "sphinx_copybutton",
-    "IPython.sphinxext.ipython_console_highlighting"
+    "autoapi.extension",
+    "pytomo_docs",                  # _ext/pytomo_docs.py: gallery, launch bars, llms.txt
 ]
 
-# Where to autogen API
-autoapi_dirs = ['../../src/pytomography']
-def skip_util_classes(app, what, name, obj, skip, options):
-    if what == "attribute":
-       skip = True
-    return skip
+source_suffix = {".rst": "restructuredtext", ".md": "myst-nb", ".ipynb": "myst-nb"}
 
-def setup(sphinx):
-   sphinx.connect("autoapi-skip-member", skip_util_classes)
-   
-exclude_patterns = []
-
-
-# -- Options for HTML output -------------------------------------------------
-
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
-#
-html_theme = 'pydata_sphinx_theme'
-html_logo = 'images/PT1.png'
-
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
-html_css_files = [
-    'css/custom.css',
-    'css/code_toggle.css'
-]
-html_js_files = [
-    'code_toggle.js'
+exclude_patterns = [
+    "_build", "_generated", "**.ipynb_checkpoints",
+    "index2.md",
+    # Notebooks not yet listed in tutorials/tutorials.yaml
+    "notebooks/conventions.ipynb",
+    "notebooks/t_CT_microct.ipynb",
+    "notebooks/t_PETGATE_LM.ipynb",
+    "notebooks/t_PETGATE_SINO.ipynb",
+    "notebooks/t_dicom_algorithms.ipynb",
+    "notebooks/t_fbp.ipynb",
+    "notebooks/t_quantitative.ipynb",
+    "notebooks/t_siminddata_multiorgan.ipynb",
 ]
 
-# typehints
+# Notebooks are rendered with their stored outputs; CI executes them separately.
+nb_execution_mode = "off"
+nb_merge_streams = True
+myst_enable_extensions = ["dollarmath", "amsmath", "colon_fence", "deflist", "html_image", "attrs_inline"]
+myst_heading_anchors = 3
+
+# -- API reference -----------------------------------------------------------
+
+autoapi_dirs = ["../../src/pytomography"]
+autoapi_ignore = ["*/tests/*"]
+autoapi_root = "api"
+autoapi_add_toctree_entry = False
+# Keep the generated pages: deleting them at the end of a build races with live-reload rebuilds
+autoapi_keep_files = True
+autoapi_options = ["members", "undoc-members", "show-inheritance", "show-module-summary"]
 autodoc_typehints = "description"
-autodoc_inherit_docstrings=True
+suppress_warnings = ["autoapi.python_import_resolution", "myst.header", "misc.highlighting_failure", "mystnb.unknown_mime_type"]
 
-# Add link to github
-html_theme_options = {
-    "icon_links": [
-        {
-            "name": "GitHub",
-            "url": "https://github.com/qurit/PyTomography",
-            "icon": "fa-brands fa-github",
-            "type": "fontawesome",
-        },
-    ],    
+
+def _skip_attributes(app, what, name, obj, skip, options):
+    return True if what == "attribute" else skip
+
+
+def setup(app):
+    app.connect("autoapi-skip-member", _skip_attributes)
+
+
+# -- HTML output -------------------------------------------------------------
+
+html_theme = "pydata_sphinx_theme"
+html_title = "PyTomography"
+html_logo = "images/PT1.png"
+html_favicon = "images/PT1.png"
+html_static_path = ["_static", "_generated"]
+html_css_files = [
+    "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap",
+    "css/pytomo.css",
+]
+html_js_files = ["js/pytomo.js"]
+html_sidebars = {"index": [], "install": [], "migration": [], "ai": []}
+html_context = {
+    "github_user": "PyTomography",
+    "github_repo": "PyTomography",
+    "github_version": "main",
+    "doc_path": "docs/source",
+    "default_mode": "auto",
 }
-
-pygments_style = 'sphinx'
+html_theme_options = {
+    "logo": {"text": "PyTomography"},
+    "navbar_align": "left",
+    "header_links_before_dropdown": 7,
+    "navbar_end": ["theme-switcher", "navbar-icon-links"],
+    "icon_links": [
+        {"name": "GitHub", "url": "https://github.com/PyTomography/PyTomography", "icon": "fa-brands fa-github"},
+        {"name": "Discourse", "url": "https://pytomography.discourse.group/", "icon": "fa-solid fa-comments"},
+        {"name": "PyPI", "url": "https://pypi.org/project/pytomography/", "icon": "fa-brands fa-python"},
+    ],
+    "announcement": "You are reading the preview of the PyTomography 4.0 documentation. Release target: 30 October 2026.",
+    "use_edit_page_button": True,
+    "show_toc_level": 2,
+    "secondary_sidebar_items": ["page-toc", "edit-this-page"],
+    "footer_start": ["copyright"],
+    "footer_end": [],
+    "pygments_light_style": "friendly",
+    "pygments_dark_style": "github-dark",
+}
