@@ -3,12 +3,14 @@
     python docs/tools/run_tutorials.py                       # every tutorial in tutorials.yaml
     python docs/tools/run_tutorials.py --only t_dicomdata,t_siminddata
     python docs/tools/run_tutorials.py --section SPECT --write-back
+    python docs/tools/run_tutorials.py --write-back-from docs/build/tutorial_runs/20261007-091700
 
 Notebooks are executed into a run folder (docs/build/tutorial_runs/<timestamp>/), never in place.
 Each run records pass/fail, the failing cell and error, wall time, peak GPU memory and the versions
 used, in report.md and report.json. With --write-back, notebooks that pass are copied back into
 docs/source/notebooks with their new outputs and a "pytomography_run" stamp in their metadata,
-which the docs show on the tutorial page.
+which the docs show on the tutorial page. --write-back-from does the same for an earlier run without
+running anything, and skips any notebook whose cells have been edited since that run.
 
 The kernel runs with:
   --python       the interpreter that has PyTomography and its dependencies
@@ -65,7 +67,7 @@ def run_one(name: str, run_dir: Path, timeout: int) -> dict:
     cwd = run_dir / "cwd" / name
     cwd.mkdir(parents=True, exist_ok=True)
     client = NotebookClient(nb, timeout=timeout, kernel_name="pytomography-run", resources={"metadata": {"path": str(cwd)}})
-    result = {"notebook": name, "status": "passed", "cell": None, "error": None}
+    result = {"notebook": name, "status": "passed", "cell": None, "error": None, "date": dt.date.today().isoformat()}
     t0 = time.time()
     try:
         client.execute()
@@ -88,15 +90,30 @@ def run_one(name: str, run_dir: Path, timeout: int) -> dict:
     return result
 
 
-def write_back(name: str, run_dir: Path, result: dict) -> None:
-    nb = nbformat.read(run_dir / f"{name}.ipynb", as_version=4)
-    nb.cells = [c for c in nb.cells if "run-info" not in c.get("metadata", {}).get("tags", [])]
-    info = result.get("info", {})
-    nb.metadata["pytomography_run"] = {
-        "date": dt.date.today().isoformat(), "pytomography": info.get("pytomography"), "torch": info.get("torch"),
-        "gpu": info.get("gpu"), "wall_time_s": result["wall_time_s"], "peak_gpu_gb": info.get("peak_gpu_gb")}
+def cell_sources(nb) -> list:
+    return [(c.cell_type, c.source) for c in nb.cells if "run-info" not in c.get("metadata", {}).get("tags", [])]
+
+
+def write_back(name: str, run_dir: Path, result: dict) -> bool:
+    executed = run_dir / f"{name}.ipynb"
+    nb = nbformat.read(executed, as_version=4)
     path = SRCDIR / "notebooks" / f"{name}.ipynb"
-    path.write_text(json.dumps(nb, indent=1, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf8", newline="\n")
+    # Never overwrite edits made to the notebook after it was run
+    if cell_sources(nb) != cell_sources(nbformat.read(path, as_version=4)):
+        print(f"  not written back: {path.name} has changed since this run, so run it again")
+        return False
+    nb.cells = [c for c in nb.cells if "run-info" not in c.get("metadata", {}).get("tags", [])]
+    for c in nb.cells:
+        c.metadata.pop("execution", None)  # nbclient's per-cell timestamps would change on every run
+    info = result.get("info", {})
+    date = result.get("date") or dt.date.fromtimestamp(executed.stat().st_mtime).isoformat()
+    nb.metadata["pytomography_run"] = {
+        "date": date, "pytomography": info.get("pytomography"), "torch": info.get("torch"),
+        "gpu": info.get("gpu"), "wall_time_s": result["wall_time_s"], "peak_gpu_gb": info.get("peak_gpu_gb")}
+    # nbformat.writes gives the layout Jupyter saves (sources as lists of lines), so diffs stay readable
+    text = nbformat.writes(nb)
+    path.write_text(text if text.endswith("\n") else text + "\n", encoding="utf8", newline="\n")
+    return True
 
 
 def main() -> int:
@@ -108,15 +125,26 @@ def main() -> int:
     ap.add_argument("--path-prefix", default=os.environ.get("PYTOMOGRAPHY_TUTORIAL_PATH_PREFIX", ""))
     ap.add_argument("--out", type=Path, default=None)
     ap.add_argument("--write-back", action="store_true", help="copy passing notebooks back with their outputs")
+    ap.add_argument("--write-back-from", type=Path, metavar="RUN_DIR",
+                    help="copy the passing notebooks of an earlier run back, without running anything")
     args = ap.parse_args()
 
-    if "PYTOMOGRAPHY_DATA" not in os.environ:
-        sys.exit("Set PYTOMOGRAPHY_DATA to the tutorial data folder first.")
     sections = yaml.safe_load(open(SRCDIR / "tutorials" / "tutorials.yaml", encoding="utf8"))["sections"]
     names = [t["notebook"] for s in sections if not args.section or s["title"] == args.section for t in s["tutorials"]]
     if args.only:
         wanted = args.only.split(",")
         names = [n for n in names if n in wanted] + [n for n in wanted if n not in names]
+
+    if args.write_back_from:
+        run_dir = args.write_back_from.resolve()
+        report = json.loads((run_dir / "report.json").read_text(encoding="utf8"))
+        for r in report:
+            if r["notebook"] in names and r["status"] == "passed" and write_back(r["notebook"], run_dir, r):
+                print(f"wrote back {r['notebook']} (run {r.get('date', '?')}, {r['wall_time_s']} s)")
+        return 0
+
+    if "PYTOMOGRAPHY_DATA" not in os.environ:
+        sys.exit("Set PYTOMOGRAPHY_DATA to the tutorial data folder first.")
 
     # Absolute, and short: DICOM outputs are named by UID, and Windows limits paths to 260 characters
     default_root = Path(os.environ.get("PYTOMOGRAPHY_TUTORIAL_RUNS", SRCDIR.parent / "build" / "tutorial_runs"))
