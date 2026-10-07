@@ -66,8 +66,8 @@ is over the body.
 | 2. reconstructed on the scanner grid | 54 | -128 | -844 | 985 | +24 / -16 | 144 | 31 |
 | 3. GE central column 444.33 (tag 444.75) | 54 | -128 | -843 | 1023 | +24 / -16 | **119** | 31 |
 | 4. focal spot angle offset +0.161 deg | 54 | -128 | -843 | 1025 | +24 / -15 | 116 | 31 |
-| 5. scanner kernel estimated from the images | 54 | -127 | -843 | 1039 | +24 / -15 | 113 | 25 |
-| 6. 1.25 mm slices | 55 | -127 | -843 | 1037 | +24 / -15 | 112 | 22 |
+| 5. scanner kernel estimated from the images | 54 | -128 | -843 | 1048 | +24 / -16 | 113 | 27 |
+| 6. 1.25 mm slices | 54 | -128 | -843 | 1046 | +24 / -16 | 112 | 24 |
 
 (HU; noise is the SD of the high-pass image in soft tissue. Back projection 10 to 37 s per step.)
 
@@ -76,17 +76,20 @@ is over the body.
   bone onto the scanner's value.
 - **Step 4**: our image was rotated by 0.161 deg relative to the scanner's (0.234 deg before step 3). A rotation of
   the whole geometry leaves the data consistent, so only the comparison with the scanner can find it.
-- **Step 5**: the scanner's kernel relative to Ram-Lak, estimated as cross spectrum over power, follows a smooth
-  low-pass to 0.35 cycles/mm. The coherence of the two images falls below 0.4 beyond 0.3 cycles/mm, so the scanner's
-  fine texture is not a linear filter of ours (vendor noise processing, most likely).
+- **Step 5**: the scanner's kernel relative to Ram-Lak, estimated as cross spectrum over power after removing the
+  residual 0.44 mm shift (a shift d scales the radially averaged cross spectrum by J0(2 pi f d), 20% at 0.35 cycles/mm;
+  it is removed with a phase ramp, whose sign is checked on the data). It is flat to 0.2 cycles/mm, 0.70 at 0.3 and
+  zero at 0.4. Above 0.4 cycles/mm the scanner image follows ours with the sign inverted (-0.25 at 0.55 cycles/mm,
+  coherence 0.36 to 0.39), which no smooth reconstruction window does. The prototype applies the estimate clipped at
+  zero.
 
 **Still different:**
 
-- A smooth radial trend in soft tissue: +24 HU at the centre, -15 HU at 140 to 180 mm. OS-SART shows the same, with
+- A smooth radial trend in soft tissue: +24 HU at the centre, -16 HU at 140 to 180 mm. OS-SART shows the same, with
   the same geometry and any number of iterations, so it lies in the data or the vendor's processing, not in the
   reconstruction.
-- A 0.36, 0.25 mm in-plane shift.
-- The scanner's high-frequency noise texture.
+- A 0.36, 0.25 mm in-plane shift (about half a scanner pixel, 0.33 mm; a half-pixel convention is one candidate).
+- The scanner's high-frequency noise texture (43 HU against our 24 HU), and its inverted response above 0.4 cycles/mm.
 
 ## Geometry audit
 
@@ -99,16 +102,17 @@ Every geometric tag of every view was read for both vendors:
 | views per rotation (tag / angles) | 984 / 984.0 | 2304 / 2304.0 |
 
 Nothing that varies from view to view is ignored. The conventions were then tested by data consistency (OS-SART
-2 x 20, residual |Hf - g| / |g| x 1000):
+2 x 20 on 1 mm voxels unless noted, residual |Hf - g| / |g| x 1000):
 
-| variant | C145 (GE, 1 mm) | C001 (GE, 1 mm) | Siemens (1 mm) |
+| variant | C145 (GE) | C001 (GE) | Siemens |
 |---|---|---|---|
 | as read | 86.70 | 87.57 | 83.35 |
-| columns reversed | 213 (2 mm) | | 146.17 |
-| rows reversed | 175 (2 mm, 2 x 40) | | |
 | no focal spot shifts | | | 83.69 |
 | z / radial / angular shift sign flipped | | | 85.15 / 84.00 / 83.51 |
-| central column -0.75 / -0.5 / -0.25 | 86.20 / **85.98** / 86.09 | 87.46 / **87.12** / 87.14 | |
+| columns reversed | 213.2 (2 mm voxels; as read 89.7) | | 146.17 |
+| rows reversed | 174.9 (2 x 40 subsets; as read 71.7) | | |
+| central column -1.0 / -0.75 / -0.5 / -0.25 | 86.76 / 86.20 / **85.98** / 86.09 | - / 87.46 / **87.12** / 87.14 | |
+| central column -0.5 / +0.5 | 89.05 / 91.07 (2 mm voxels; as read 89.72) | | 83.11 / 83.08 |
 | central column -2.25 (counted from the other end) | | | 91.54 |
 | central row +0.25 / +0.5 / +0.75 / +1.0 | 86.59 / 86.53 / 86.50 / 86.71 | | |
 
@@ -116,7 +120,9 @@ Nothing that varies from view to view is ignored. The conventions were then test
   of them raises it.
 - **Column and row directions are right.**
 - **GE central column:** both GE scans fit best with the central column about 0.4 channels below the tag (fitted
-  -0.46 for C145, -0.39 for C001: 444.3 instead of 444.75). The scanner comparison confirms it (step 3 above). Counting
-  the tag from the other end of the detector would give 444.25; for the Siemens scan that rule is clearly wrong.
-  Until this is confirmed against GE's documentation, both scripts take `--central-column-offset`.
+  -0.46 for C145, -0.39 for C001: 444.3 instead of 444.75), and half a channel above it fits worse. The scanner
+  comparison confirms it (step 3 above). Counting the tag from the other end of the detector would give 444.25; for
+  the Siemens scan that rule is clearly wrong, and half a channel either way changes its residual by 0.3%, the same
+  both ways, so the Siemens tag stands. Until this is confirmed against GE's documentation, both scripts take
+  `--central-column-offset`.
 - **Central row:** a weak preference for +0.5 to +0.7 rows (0.2%). Not conclusive.

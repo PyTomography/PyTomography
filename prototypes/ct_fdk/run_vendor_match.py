@@ -30,7 +30,8 @@ parser.add_argument('--block', default='-200,-160', help='patient z range (mm) o
 parser.add_argument('--all-slices', action='store_true')
 parser.add_argument('--budget-gb', type=float, default=1.5)
 parser.add_argument('--start-at', type=int, default=1, help='first step to run; earlier results are read from --out')
-parser.add_argument('--angle-offset-deg', type=float, default=None, help='with --start-at 4 or later: the offset step 3 found')
+parser.add_argument('--angle-offset-deg', type=float, default=None, help='with --start-at 4 or later: the offset step 3 found '
+                    '(default: read from --out)')
 parser.add_argument('--central-column-offset', type=float, default=0.0, help='channels added to the DetectorCentralElement column')
 parser.add_argument('--out', default='vendor_match.json')
 parser.add_argument('--save-dir', default='.')
@@ -127,13 +128,18 @@ def register(img_mu):
 
 to_grid = lambda vol: vol.permute(2, 1, 0).cpu().numpy()                 # (Nx, Ny, Nz) -> (slices, rows, cols)
 save = lambda name, img: np.save(os.path.join(args.save_dir, f'vendor_match_{name}.npy'), img)
-if args.start_at > 1:
-    results = json.load(open(args.out))['results']
+step_of = lambda r: 4 if 'Ram-Lak' in r['step'] else (int(r['step'].split()[0]) if r['step'].split()[0].isdigit() else 0)
+if args.start_at > 1:                                    # keep the earlier steps; steps 2 and 3 run together
+    results = [r for r in json.load(open(args.out))['results'] if step_of(r) < (2 if args.start_at <= 3 else args.start_at)]
 else:
     results = [dict(step='scanner', **{f'{n} HU': float(hu_v[m].mean()) for n, m in masks.items()},
                     **{'noise (soft, high-pass SD)': float(hp(hu_v)[soft].std())})]
     print(json.dumps({k: (round(v, 3) if isinstance(v, float) else v) for k, v in results[0].items()}), flush=True)
 angle_offset = np.radians(args.angle_offset_deg) if args.angle_offset_deg is not None else 0.0
+step3 = [r for r in results if step_of(r) == 3]
+if args.angle_offset_deg is None and args.start_at >= 4 and step3:
+    angle_offset = np.radians(step3[-1]['angle_offset_deg'])
+reg_final = {k[4:]: v for k, v in step3[-1].items() if k.startswith('reg ')} if step3 else None
 dump = lambda: json.dump(dict(slices=[float(z) for z in zs], angle_offset_deg=float(np.degrees(angle_offset)), results=results), open(args.out, 'w'), indent=1)
 
 
@@ -176,6 +182,7 @@ if args.start_at <= 3:
             best = (abs(reg_o['rotation_deg']), float(offset), img_o, reg_o)
     angle_offset = best[1]
     img = best[2]
+    reg_final = best[3]
     save('angle', img)
     results.append(metrics(img, f'3 + focal spot angle offset {np.degrees(angle_offset):+.3f} deg', dict(t, **{f'reg {k}': v for k, v in best[3].items()}, angle_offset_deg=float(np.degrees(angle_offset)))))
     dump()
@@ -187,19 +194,41 @@ Fv = np.fft.fft2(mu_v * taper)
 Fr = np.fft.fft2(ramlak * taper)
 fy, fx = np.meshgrid(np.fft.fftfreq(mu_v.shape[1], ps[0]), np.fft.fftfreq(mu_v.shape[2], ps[1]), indexing='ij')
 which = np.digitize(np.hypot(fx, fy), np.arange(0, 1.2, 0.01)) - 1
-cs = (Fv * np.conj(Fr)).sum(0).ravel()
-cross = np.bincount(which.ravel(), cs.real, minlength=120)
-cross_im = np.bincount(which.ravel(), cs.imag, minlength=120)
-power = np.bincount(which.ravel(), (np.abs(Fr) ** 2).sum(0).ravel(), minlength=120)
-coherence = np.hypot(cross, cross_im) / np.sqrt(
-    np.maximum(power, 1e-30) * np.maximum(np.bincount(which.ravel(), (np.abs(Fv) ** 2).sum(0).ravel(), minlength=120), 1e-30))
-ok = power > 0
 f_mid = np.arange(0, 1.2, 0.01)[:120] + 0.005
-H = cross / np.maximum(power, 1e-30)
-H = H / np.mean(H[ok][:4])
+power_v = np.bincount(which.ravel(), (np.abs(Fv) ** 2).sum(0).ravel(), minlength=120)
+
+
+def spectra(Fr):
+    """Radially averaged cross spectrum (real part), our power, and the coherence of the two images."""
+    cs = (Fv * np.conj(Fr)).sum(0).ravel()
+    cross = np.bincount(which.ravel(), cs.real, minlength=120)
+    cross_im = np.bincount(which.ravel(), cs.imag, minlength=120)
+    power = np.bincount(which.ravel(), (np.abs(Fr) ** 2).sum(0).ravel(), minlength=120)
+    return cross, power, np.hypot(cross, cross_im) / np.sqrt(np.maximum(power, 1e-30) * np.maximum(power_v, 1e-30))
+
+
+# The registration leaves our image shifted against the scanner's (0.44 mm on C145). Averaged over directions, a shift d
+# scales the cross spectrum by J0(2 pi f d), 20% at 0.35 cycles/mm, so remove it first: a phase ramp, which unlike
+# resampling does not blur. The sign is checked on the data (expected +1: scanner(x) = ours(x + d)).
+cross0, power, coherence0 = spectra(Fr)
+cross, coherence = cross0, coherence0
+if reg_final is not None:
+    ramp = np.exp(2j * np.pi * (fx * reg_final['shift_x_mm'] + fy * reg_final['shift_y_mm']))
+    band = (f_mid > 0.15) & (f_mid < 0.4)
+    trials = {sign: spectra(Fr * (ramp if sign > 0 else np.conj(ramp))) for sign in (1, -1)}
+    sign = max(trials, key=lambda k: trials[k][2][band].mean())
+    cross, _, coherence = trials[sign]
+    print(f"kernel estimate: removed the shift ({reg_final['shift_x_mm']:.3f}, {reg_final['shift_y_mm']:.3f}) mm with sign "
+          f"{sign:+d}; coherence at 0.15-0.4 cycles/mm {coherence0[band].mean():.3f} -> {coherence[band].mean():.3f} "
+          f"(other sign {trials[-sign][2][band].mean():.3f}); rotation {reg_final['rotation_deg']:.4f} deg and scale "
+          f"{reg_final['scale']:.5f} left as they are", flush=True)
+ok = power > 0
+H, H0 = (c / np.maximum(power, 1e-30) for c in (cross, cross0))
+H, H0 = H / np.mean(H[ok][:4]), H0 / np.mean(H0[ok][:4])
 kernel = (f_mid[ok], np.clip(ndimage.uniform_filter1d(H, 3)[ok], 0, 2))
-np.savetxt(os.path.join(args.save_dir, 'vendor_kernel.txt'), np.stack([f_mid[ok], H[ok], coherence[ok]], 1),
-           header='spatial frequency (cycles/mm), scanner image / Ram-Lak image (cross spectrum / power), coherence')
+np.savetxt(os.path.join(args.save_dir, 'vendor_kernel.txt'), np.stack([f_mid[ok], H[ok], coherence[ok], H0[ok], coherence0[ok]], 1),
+           header='spatial frequency (cycles/mm), scanner image / Ram-Lak image (cross spectrum / power), coherence, '
+                  'and the same two without removing the residual shift')
 print('scanner kernel / Ram-Lak at 0.1 ... 0.7 cycles/mm:', np.round(np.interp(np.arange(0.1, 0.71, 0.1), *kernel), 3).tolist(),
       '| coherence:', np.round(np.interp(np.arange(0.1, 0.71, 0.1), f_mid[ok], coherence[ok]), 3).tolist(), flush=True)
 f_nyq = 0.5 / ps[0]
