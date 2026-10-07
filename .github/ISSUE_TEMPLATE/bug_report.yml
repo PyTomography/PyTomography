@@ -1,0 +1,37 @@
+name: Bug report
+description: Something gives an error or a wrong result
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for reporting this. A maintainer will reply within five working days.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you got instead.
+    validations:
+      required: true
+  - type: textarea
+    id: code
+    attributes:
+      label: Code to reproduce it
+      description: The smallest piece of code that shows the problem. If it needs data, say which tutorial dataset or describe your own.
+      render: python
+  - type: textarea
+    id: error
+    attributes:
+      label: Error message or output
+      render: text
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: "Output of: python -c \"import pytomography, torch; print(pytomography.__version__, torch.__version__, torch.cuda.is_available())\""
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Operating system and GPU
+      placeholder: e.g. Ubuntu 24.04, RTX 4090

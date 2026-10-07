@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a question
+    url: https://pytomography.discourse.group/
+    about: Questions about using PyTomography are answered on Discourse.
+  - name: Feature board
+    url: https://pytomography.readthedocs.io/en/latest/contributing/feature-board.html
+    about: Work we would like contributors to take on, each item with data and a starting point.

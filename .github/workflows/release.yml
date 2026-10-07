@@ -1,0 +1,38 @@
+name: Release
+
+# Publishes to PyPI when a version tag (e.g. v4.0.0) is pushed.
+# Uses PyPI trusted publishing: on pypi.org, under the pytomography project's Publishing settings, add a
+# GitHub publisher for PyTomography/PyTomography with workflow "release.yml" and environment "pypi".
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build the sdist and wheel
+        run: |
+          pip install build
+          python -m build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
