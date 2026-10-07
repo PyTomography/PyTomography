@@ -46,7 +46,8 @@ def get_projections_and_metadata_gen3(paths):
     ds = pydicom.dcmread(paths[0])
     detector_tranverse_spacing = struct.unpack('<f', ds[0x7029,0x1002].value)[0]
     DSD = struct.unpack('<f', ds[0x7031,0x1031].value)[0]
-    phi_det_spacing = np.arcsin(detector_tranverse_spacing/DSD)
+    # the transverse spacing is an arc length on the cylindrical detector, which subtends spacing / DSD radians
+    phi_det_spacing = detector_tranverse_spacing/DSD
     z_det_spacing = struct.unpack('<f', ds[0x7029,0x1006].value)[0]
-    proj_meta = CTGen3ProjMeta(source_phis, source_rhos, source_zs, source_phi_offsets, source_rho_offsets, source_z_offsets, detector_centers_phi_idx, detector_centers_z_idx, phi_det_spacing, z_det_spacing, DSD, shape=projections.shape[1:])
+    proj_meta = CTGen3ProjMeta(source_phis, source_rhos, source_zs, source_phi_offsets, source_rho_offsets, source_z_offsets, detector_centers_phi_idx, detector_centers_z_idx, phi_det_spacing, z_det_spacing, DSD, shape=projections.shape[1:], patient_position=ds.get('PatientPosition'))
     return projections, proj_meta
