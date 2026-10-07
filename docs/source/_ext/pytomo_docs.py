@@ -241,9 +241,12 @@ def add_notebook_header(app, doctree):
     run = json.loads(app.env.doc2path(docname).read_text(encoding="utf8")).get("metadata", {}).get("pytomography_run")
     if run:
         minutes = (run.get("wall_time_s") or 0) / 60
+        # Peak memory tells readers whether their machine can run it
+        memory = ", ".join(f"{run[k]:g} GB {label}" for k, label in (("peak_ram_gb", "RAM"), ("peak_gpu_gb", "GPU memory"))
+                           if run.get(k))
         stamp = " · ".join(str(x) for x in (
             run.get("date"), f"PyTomography {run.get('pytomography')}", run.get("gpu"),
-            f"{minutes:.0f} min" if minutes >= 1 else "under a minute") if x)
+            f"{minutes:.0f} min" if minutes >= 1 else "under a minute", memory and f"peak {memory}") if x)
         facts += f'<span class="pt-fact"><small>Last run</small>{html.escape(stamp)}</span>'
     # The plain-Python version of this tutorial, generated into examples/ by docs/tools/export_scripts.py
     script_rel = tutorial_scripts.script_paths(Path(app.srcdir)).get(docname)
