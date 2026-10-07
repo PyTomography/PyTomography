@@ -6,10 +6,8 @@ from pytomography.projectors import SystemMatrix
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.CT import CTConeBeamFlatPanelProjMeta
 from torch.nn.functional import pad
-try:
-    import parallelproj
-except:
-    pass
+import parallelproj_core
+from .ct_gen3_system_matrix import _float32, _pad, _crop
 
 # TODO:Place these functions in a utilities file and support more filter types
 def get_discrete_ramp_FFT(n):
@@ -46,9 +44,10 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         device: str = pytomography.device
     ) -> None:
         super(CTConeBeamFlatPanelSystemMatrix, self).__init__(object_meta, proj_meta)
-        # Used for parallelproj projectors
-        self.origin = -(torch.tensor(object_meta.shape).to(pytomography.device)/2-0.5) * torch.tensor(object_meta.dr).to(pytomography.dtype).to(pytomography.device) # + proj_meta.COR
-        self.voxel_size = torch.tensor(object_meta.dr).to(pytomography.dtype).to(pytomography.device)
+        # the geometry every kernel call needs, in the form it needs (float32, on the projection device). The object is
+        # projected with one voxel of zeros on every face (see CTGen3SystemMatrix); origin is that of the padded grid.
+        self.origin = _float32(-(torch.tensor(object_meta.shape)/2+0.5) * torch.tensor(object_meta.dr), pytomography.device) # + proj_meta.COR
+        self.voxel_size = _float32(object_meta.dr, pytomography.device)
         self.N_splits = N_splits
         self.device = device
         self._FBP_postweight_component1 = None
@@ -146,7 +145,8 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         Returns:
             torch.Tensor: Normalization factor.
         """
-        return self.backward(torch.ones(self.proj_meta.N_angles, *self.proj_meta.shape).to(self.device), subset_idx)
+        n_views = self.proj_meta.N_angles if subset_idx is None else len(self.subset_indices_array[subset_idx])
+        return self.backward(torch.ones(n_views, *self.proj_meta.shape, device=self.device), subset_idx)
     
     def forward(
         self, object: torch.Tensor,
@@ -168,24 +168,27 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         if subset_idx is not None:
             angle_subset = self.subset_indices_array[subset_idx]
         angle_indices = torch.arange(self.proj_meta.N_angles).to(pytomography.device) if subset_idx is None else angle_subset
-        proj_total = []
+        if FBP_post_weight is None:
+            object_i = _pad(_float32(object, pytomography.device))
+        else:
+            object_i = _pad(_float32(object * FBP_post_weight, pytomography.device))
+        # Project into one buffer: parallelproj writes the line integrals of each angle into the array it is given
+        proj = torch.zeros((len(angle_indices), *self.proj_meta.shape), dtype=torch.float32, device=self.device)
         for i in range(len(angle_indices)):
             idx = angle_indices[i] # index of angle
-            detector_coordinates = self.proj_meta._get_detector_coordinates(idx).flatten(end_dim=1)
-            beam_coordinate = self.proj_meta.beam_locations[idx].unsqueeze(0).repeat(detector_coordinates.shape[0], 1)
-            if FBP_post_weight is None:
-                object_i = object
-            else:
-                object_i = object * FBP_post_weight
-            proj = parallelproj.joseph3d_fwd(
+            detector_coordinates = _float32(self.proj_meta._get_detector_coordinates(idx), pytomography.device)
+            beam_coordinate = _float32(self.proj_meta.beam_locations[idx], pytomography.device).expand(detector_coordinates.shape).contiguous()
+            proj_i = torch.zeros(self.proj_meta.shape, dtype=torch.float32, device=pytomography.device)
+            parallelproj_core.joseph3d_fwd(
                 beam_coordinate,
                 detector_coordinates,
                 object_i,
                 self.origin,
-                self.voxel_size
-            ).reshape(self.proj_meta.shape)
-            proj_total.append(proj.to(self.device))
-        return torch.stack(proj_total)
+                self.voxel_size,
+                proj_i
+            )
+            proj[i] = proj_i.to(self.device)
+        return proj
     
     def backward(
         self,
@@ -206,29 +209,30 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         if subset_idx is not None:
             angle_subset = self.subset_indices_array[subset_idx]
         angle_indices = torch.arange(self.proj_meta.N_angles).to(pytomography.device) if subset_idx is None else angle_subset
-        BP = 0
+        # parallelproj adds into the image it is given, so every angle accumulates into one (padded) buffer
+        BP = torch.zeros(tuple(n + 2 for n in self.object_meta.shape), dtype=torch.float32, device=pytomography.device)
         for i in range(len(angle_indices)):
             idx = angle_indices[i]
-            detector_coordinates_i = self.proj_meta._get_detector_coordinates(idx).flatten(end_dim=1)
-            beam_coordinate_i = self.proj_meta.beam_locations[idx].unsqueeze(0).repeat(detector_coordinates_i.shape[0], 1)
+            detector_coordinates_i = _float32(self.proj_meta._get_detector_coordinates(idx), pytomography.device).flatten(end_dim=1)
+            beam_coordinate_i = _float32(self.proj_meta.beam_locations[idx], pytomography.device).expand(detector_coordinates_i.shape).contiguous()
             proj_i = proj[i]
             # If FBP projection, preweight using FBP weighting and filter
             if projection_type=='FBP':
                 proj_i = proj_i * self._get_FBP_preweight(idx)
                 proj_i = FBP_filter(proj_i, self.device)
             # Now back project
-            proj_i = proj_i.flatten().to(pytomography.device)
-            BP_i = 0
+            proj_i = _float32(proj_i.flatten(), pytomography.device)
+            # FBP weights the back projection of each angle, so that one is accumulated on its own first
+            BP_i = BP if projection_type!='FBP' else torch.zeros_like(BP)
             for detector_coordinates_i_s, beam_coordinate_i_s, proj_i_s in zip(torch.tensor_split(detector_coordinates_i, self.N_splits), torch.tensor_split(beam_coordinate_i, self.N_splits), torch.tensor_split(proj_i, self.N_splits)):
-                BP_i = BP_i + parallelproj.joseph3d_back(
+                parallelproj_core.joseph3d_back(
                     beam_coordinate_i_s,
                     detector_coordinates_i_s,
-                    self.object_meta.shape,
+                    BP_i,
                     self.origin,
                     self.voxel_size,
                     proj_i_s
                 )
             if projection_type=='FBP':
-                BP_i = BP_i * self._get_FBP_postweight(idx) * self._get_FBP_scale()
-            BP += BP_i
-        return BP
+                BP[1:-1, 1:-1, 1:-1] += _crop(BP_i) * self._get_FBP_postweight(idx) * self._get_FBP_scale()
+        return _crop(BP)
