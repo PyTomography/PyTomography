@@ -16,7 +16,23 @@ pytest
 ```
 
 A GPU is not needed: tests that need one are skipped, and so are tests that need the tutorial data unless
-`PYTOMOGRAPHY_DATA` points at it.
+`PYTOMOGRAPHY_DATA` points at it. The PET and CT projector tests need parallelproj 2, which comes from conda-forge:
+
+```bash
+conda env create -f .github/ci-environment.yml
+conda activate pytomography-ci
+pip install -e ".[test]"
+pytest
+```
+
+## What runs on your pull request
+
+Every push runs every test that doesn't need a GPU, on GitHub's runners: with pip on Linux, macOS and Windows and
+Python 3.10 to 3.13; with parallelproj 2 from conda on all three systems; the regression tests on tutorial data; and a
+check that the scripts in `examples/` match the tutorial notebooks.
+
+When a maintainer approves your pull request, they add it to the merge queue. The queue runs those checks again on the
+exact commit that would land on `main`, together with the whole suite on a GPU, and merges only if everything passes.
 
 ## How changes get in
 
