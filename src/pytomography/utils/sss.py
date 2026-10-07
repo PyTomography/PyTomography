@@ -614,10 +614,11 @@ def get_sss_scatter_estimate(
     # Need to create a sinogram system matrix for scaling
     if listmode:
         system_matrix = create_sinogramSM_from_LMSM(system_matrix)
+        # binned where the system matrix keeps the events (its lor_device), without copying them to the host
         if tof_meta is None:
-            proj_data = listmode_to_sinogram(proj_meta.detector_ids.cpu(), proj_meta.info)
+            proj_data = listmode_to_sinogram(proj_meta.detector_ids, proj_meta.info)
         else:
-            proj_data = listmode_to_sinogram(proj_meta.detector_ids.cpu(), proj_meta.info, tof_meta=tof_meta)
+            proj_data = listmode_to_sinogram(proj_meta.detector_ids, proj_meta.info, tof_meta=tof_meta)
     # Scale sinogram
     proj_scatter = scale_estimated_scatter(scatter_sinogram_unscaled, system_matrix, proj_data, attenuation_image, attenuation_cutoff, sinogram_random = sinogram_random)
     return proj_scatter
