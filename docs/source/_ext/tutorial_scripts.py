@@ -145,6 +145,13 @@ def export_all(srcdir: Path, docs_base: str = "https://pytomography.readthedocs.
                 if not check:
                     target.parent.mkdir(parents=True, exist_ok=True)
                     target.write_text(text, encoding="utf8", newline="\n")
+    # Scripts left behind when a tutorial is renamed, renumbered or removed
+    expected = {(root / p).resolve() for p in paths.values()}
+    for stale in sorted((root / "examples").glob("*/*.py")):
+        if stale.resolve() not in expected:
+            changed.append(stale.relative_to(root).as_posix() + " (stale)")
+            if not check:
+                stale.unlink()
     target = root / "examples" / "README.md"
     text = readme(srcdir, docs_base)
     if not target.exists() or target.read_text(encoding="utf8") != text:
