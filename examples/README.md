@@ -43,6 +43,7 @@ Edit the notebook, then run that script; CI checks the two match.
 | Script | What it does |
 |---|---|
 | [`ct/01_dicom_ct_pd.py`](ct/01_dicom_ct_pd.py) | OS-SART on raw projections from a 3rd-generation clinical CT scanner. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_CT_GEN3.html) |
+| [`ct/02_cone_beam_micro_ct.py`](ct/02_cone_beam_micro_ct.py) | FDK and OS-SART on a laboratory micro-CT scan of glass beads, with the centre of rotation found from the data. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_CT_microct.html) |
 
 ## Building with PyTomography
 

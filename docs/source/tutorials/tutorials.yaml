@@ -202,6 +202,14 @@ sections:
     summary: OS-SART on raw projections from a 3rd-generation clinical CT scanner.
     datasets:
     - CT/ldct-c145
+  - notebook: t_CT_microct
+    title: Cone-beam micro-CT
+    modality: CT
+    data: Vendor
+    topic: Systems
+    summary: FDK and OS-SART on a laboratory micro-CT scan of glass beads, with the centre of rotation found from the data.
+    datasets:
+    - CT/SophiaBeads-256
 - title: Building with PyTomography
   folder: development
   tutorials:

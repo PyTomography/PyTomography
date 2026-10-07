@@ -35,7 +35,6 @@ exclude_patterns = [
     "_build", "_generated", "**.ipynb_checkpoints",
     "index2.md",
     # Notebooks not yet listed in tutorials/tutorials.yaml
-    "notebooks/t_CT_microct.ipynb",
     "notebooks/t_dicom_algorithms.ipynb",
     "notebooks/t_fbp.ipynb",
 ]

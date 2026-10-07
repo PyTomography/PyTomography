@@ -39,7 +39,7 @@ The layout is:
 pytomography_data/
 ├── SPECT/   SIMIND-Jaszak, Lu177-NEMA-SymT2, Ac225-NEMA-SymT2, Lu177-PSMA-GEDisc, Tc99m-Cardiac, Tc99m-NEMA-Starguide
 ├── PET/     GATE-mMR-Brain, GE-DMI-NEMA, PETSIRD-mIEC
-└── CT/      ldct-c145
+└── CT/      ldct-c145, SophiaBeads-256
 ```
 
 You only need the datasets of the tutorials you run.

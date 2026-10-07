@@ -89,3 +89,11 @@ CT/ldct-c145:
   size: 1.23 GB (1.07 GB of projections, 0.16 GB of images)
   licence: CC BY 4.0. Use is also subject to the TCIA data usage policy.
   cite: "McCollough C, Chen B, Holmes D III, Duan X, Yu Z, Yu L, Leng S, Fletcher J. Low Dose CT Image and Projection Data (LDCT-and-Projection-data), version 7. The Cancer Imaging Archive (2020). doi:10.7937/9npb-2637. Supported by NIBIB grants EB017095 and EB017185."
+CT/SophiaBeads-256:
+  title: Cone-beam micro-CT of glass beads in a plastic tube (Nikon XT H 225), 255 projections
+  source: SophiaBeads Dataset Project, University of Manchester (Zenodo)
+  url: https://doi.org/10.5281/zenodo.16474
+  download: Download SophiaBeads_256_averaged.zip from the record and unzip it into CT/SophiaBeads-256, which gives the folder CT/SophiaBeads-256/SophiaBeads_256_averaged.
+  size: 1.92 GB
+  licence: CC BY-SA 4.0
+  cite: "Coban SB, McDonald SA. SophiaBeads Dataset Project. Zenodo (2015). doi:10.5281/zenodo.16474"
