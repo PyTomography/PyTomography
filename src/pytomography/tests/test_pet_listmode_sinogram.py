@@ -51,12 +51,17 @@ def test_events_are_read_from_the_bin_they_are_binned_in(tof):
 
 @pytest.mark.parametrize("tof", [False, True])
 def test_device_of_the_events_does_not_matter(tof):
+    """Events and sinogram on either device give the same values. That includes the pairs whose two crystals have the
+    same within-ring index (in different rings), which an unstable sort orders differently on the GPU."""
     if not torch.cuda.is_available():
         pytest.skip("needs CUDA")
     tof_meta = PETTOFMeta(5, 300.0, 60.0, n_sigmas=3) if tof else None
     events = _events(2000, tof_meta, seed=2)
-    sinogram = shared.listmode_to_sinogram(events, INFO, tof_meta=tof_meta)
-    assert torch.equal(shared.sinogram_to_listmode(events.cuda(), sinogram, INFO), shared.sinogram_to_listmode(events, sinogram, INFO))
+    assert ((events[:, 0] - events[:, 1]) % INFO['NrCrystalsPerRing'] == 0).any()      # such pairs are included
+    sinogram = torch.rand(shared.listmode_to_sinogram(events, INFO, tof_meta=tof_meta).shape, generator=torch.Generator().manual_seed(3))
+    expected = shared.sinogram_to_listmode(events, sinogram, INFO)
+    assert torch.equal(shared.sinogram_to_listmode(events.cuda(), sinogram, INFO), expected)
+    assert torch.equal(shared.sinogram_to_listmode(events.cuda(), sinogram.cuda(), INFO).cpu(), expected)
 
 
 def test_listmode_to_sinogram_follows_the_sinogram_geometry():

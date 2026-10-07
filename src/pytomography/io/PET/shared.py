@@ -433,7 +433,7 @@ def sinogram_to_listmode(detector_ids: torch.Tensor, sinogram: torch.Tensor, inf
     within_ring_id = (detector_ids_spatial % info['NrCrystalsPerRing']).to(torch.long)
     ring_ids = (detector_ids_spatial // info['NrCrystalsPerRing']).to(torch.long)
     # Same bin as listmode_to_sinogram: crystals ordered by descending within-ring index, ring IDs reordered with them
-    within_ring_id, idx = within_ring_id.sort(axis=1, descending=True)
+    within_ring_id, idx = within_ring_id.sort(axis=1, descending=True, stable=True)   # stable: a pair with equal within-ring IDs keeps its order on any device
     ring_ids = ring_ids.gather(index=idx, dim=1)
     lm_return = 0
     idx0, idx1 = lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]].T
