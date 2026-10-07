@@ -70,7 +70,7 @@ class CTGen3ProjMeta(ProjMeta):
         self.phis_det, self.zs_det = torch.meshgrid(phis_det, zs_det, indexing='ij')
         
     def get_detector_coordinates(self, idxs: torch.Tensor[int]) -> torch.Tensor:
-        """Obtain detector coordinates and the angles corresponding to idxs
+        """Obtain detector coordinates and the angles corresponding to idxs. They are computed on the device ``idxs`` is on, so a projector running on the GPU need not build them on the host and copy them across.
 
         Args:
             idxs (torch.Tensor[int]): Angle indices
@@ -78,9 +78,12 @@ class CTGen3ProjMeta(ProjMeta):
         Returns:
             torch.Tensor: Detector coordinates (in XYZ) at all angle indices.
         """
+        device = idxs.device
+        source_phis = self.source_phis.to(device)[idxs][:,None,None]
+        phis_det, zs_det = self.phis_det.to(device), self.zs_det.to(device)
         return torch.stack([
-            -self.DSD*torch.cos(self.source_phis[idxs][:,None,None] + self.phis_det[None]),
-            -self.DSD*torch.sin(self.source_phis[idxs][:,None,None] + self.phis_det[None]),
-            0*self.source_zs[idxs][:,None,None] + self.zs_det[None]
-        ], dim=-1) + self.source_focal_centers[idxs,None,None]
+            -self.DSD*torch.cos(source_phis + phis_det[None]),
+            -self.DSD*torch.sin(source_phis + phis_det[None]),
+            0*source_phis + zs_det[None]
+        ], dim=-1) + self.source_focal_centers.to(device)[idxs,None,None]
         
