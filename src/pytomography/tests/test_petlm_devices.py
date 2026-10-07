@@ -99,6 +99,10 @@ def test_memory_report_is_not_optimistic(capsys, sort_events):
     """The reported peak must not be below what a projection actually uses."""
     if not str(DEV).startswith('cuda'):
         pytest.skip("needs CUDA to measure memory")
+    # Memory the process holds before this system matrix exists is not part of what the report estimates. The cuBLAS
+    # workspace (8.5 MB), which the first GPU matrix product of any earlier test allocates for the life of the process,
+    # made this test fail whenever it ran after one.
+    baseline = torch.cuda.memory_allocated()
     sm = _system(tof=True, sort_events=sort_events, n_subsets=2)
     obj = _object()
     sm.forward(obj, 0)                                  # build any ordering first
@@ -111,7 +115,7 @@ def test_memory_report_is_not_optimistic(capsys, sort_events):
     torch.cuda.synchronize(); torch.cuda.reset_peak_memory_stats()
     g = sm.forward(obj); sm.backward(g)
     torch.cuda.synchronize()
-    measured = torch.cuda.max_memory_allocated() / 1e9
+    measured = (torch.cuda.max_memory_allocated() - baseline) / 1e9
     # the report is printed to 3 decimals, so allow a rounding unit on top of it
     assert max(estimates) + 1e-3 >= measured, f"reported {max(estimates):.3f} GB but a projection used {measured:.3f} GB"
 
