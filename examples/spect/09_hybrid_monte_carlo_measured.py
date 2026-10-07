@@ -72,9 +72,10 @@ advanced_energy_resolution_model='siemens'
 energy_resolution_140keV = 10 # %
 crystal_thickness = 0.9525 # thickness in crystal in cm (NaI)
 
-# this takes around 20min to run with 90 CPU cores
+# 200 million events take about 20 minutes on 90 CPU cores, and 45 minutes on 24. Fewer events run faster
+# but give a noisier Monte Carlo estimate.
 n_events = 200e6
-n_parallel = 90
+n_parallel = os.cpu_count()  # SIMIND processes run at once, one per CPU core
 
 system_matrix = MonteCarloHybridSPECTSystemMatrix(
     object_meta,

@@ -115,9 +115,10 @@ crystal_thickness = 0.9525  # assumed to be NaI
 energy_window_params = simind_mc.get_energy_window_params_simind(files_NM[1])
 energy_window_params
 
-# this configuration takes around 20min; you can try lowering the number of events
+# 200 million events take about 20 minutes on 90 CPU cores, and 45 minutes on 24. Fewer events run faster
+# but give a noisier Monte Carlo estimate.
 n_events = 200e6
-n_parallel = 90
+n_parallel = os.cpu_count()  # SIMIND processes run at once, one per CPU core
 
 system_matrix = MonteCarloHybridSPECTSystemMatrix(
         object_meta,
