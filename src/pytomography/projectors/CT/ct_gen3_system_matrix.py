@@ -33,13 +33,15 @@ class CTGen3SystemMatrix(SystemMatrix):
             proj_meta (CTConeBeamFlatPanelProjMeta): Projection metadata for the CT system
             N_splits (int, optional): Splits up computation of forward/back projection to save GPU memory. A projection is also split whenever needed to keep below ``_MAX_RAYS_PER_CALL`` (2**25) rays per call. Defaults to 1.
             device (str, optional): Device on which projections are output. Defaults to pytomography.device.
+            fov_mask (bool, optional): Model only the voxels inside the scan field of view, the cylinder (radius ``fov_radius``) that the fan of every view covers. Voxels outside it are seen by some views only; a reconstruction cannot determine them, and left in the model they come out as large spurious values. With the mask they are kept at zero. Turn it off to forward project an object that extends past the field of view. Defaults to True.
     """
     def __init__(
         self,
         object_meta: ObjectMeta,
         proj_meta: CTGen3ProjMeta,
         N_splits: int = 1,
-        device: str = pytomography.device
+        device: str = pytomography.device,
+        fov_mask: bool = True
     ) -> None:
         super(CTGen3SystemMatrix, self).__init__(object_meta, proj_meta)
         # the geometry every kernel call needs, in the form it needs (float32, on the projection device).
@@ -52,7 +54,17 @@ class CTGen3SystemMatrix(SystemMatrix):
         self.voxel_size = _float32(object_meta.dr, pytomography.device)
         self.N_splits = N_splits
         self.device = device
-        
+        # the scan field of view: the cylinder covered by the fan of every view (its outermost channels, from the focal
+        # spot path's smallest radius)
+        fan = proj_meta.phis_det[:, 0]
+        self.fov_radius = float(proj_meta.source_rhos.min()) * float(torch.sin(torch.minimum(fan[0].abs(), fan[-1].abs())))
+        self._fov = None
+        if fov_mask:
+            (Nx, Ny, _), (dx, dy, _) = object_meta.shape, object_meta.dr
+            x = (torch.arange(Nx) - (Nx - 1) / 2) * dx
+            y = (torch.arange(Ny) - (Ny - 1) / 2) * dy
+            self._fov = _float32((x[:, None] ** 2 + y[None, :] ** 2 <= self.fov_radius ** 2)[:, :, None], pytomography.device)
+
     def get_weighting_subset(
         self,
         subset_idx: int
@@ -138,7 +150,23 @@ class CTGen3SystemMatrix(SystemMatrix):
         n_views = self._angle_indices(subset_idx).shape[0]
         # Put BP on cpu since we could potentially have a lot of them
         return self.backward(torch.ones(n_views, *self.proj_meta.shape, device=self.device), subset_idx).cpu()
-        
+
+    def _coverage(self) -> torch.Tensor:
+        r""":math:`H^T 1` over every view, back projected one group of views at a time (without forming the projections of ones of every view, 2 GB for a clinical scan)."""
+        BP = torch.zeros(tuple(n + 2 for n in self.object_meta.shape), dtype=torch.float32, device=pytomography.device)
+        for start, end, idxs in self._splits(self._angle_indices(None)):
+            xstart, xend = self._ray_coordinates(idxs)
+            ones = torch.ones(xend.shape[:-1], dtype=torch.float32, device=pytomography.device)
+            parallelproj_core.joseph3d_back(xstart, xend, BP, self.origin, self.voxel_size, ones)
+        BP = _crop(BP)
+        return BP if self._fov is None else BP * self._fov
+
+    def _get_object_initial(self, device=None) -> torch.Tensor:
+        """Initial object of reconstruction algorithms: ones where rays reach and zeros elsewhere (outside the field of view, and in end slices beyond the axial reach of the scan). Voxels no ray reaches are never updated, so they used to keep the value 1."""
+        if device is None:
+            device = pytomography.device
+        return (self._coverage() > 0).to(torch.float32).to(device)
+
     def forward(self, object, subset_idx=None, *args, **kwargs):
         """Computes forward projection
 
@@ -150,7 +178,10 @@ class CTGen3SystemMatrix(SystemMatrix):
             torch.Tensor: Projections corresponding to :math:`\int \mu dx` along all LORs.
         """
         angle_indices = self._angle_indices(subset_idx)
-        object = _pad(_float32(object, pytomography.device))
+        object = _float32(object, pytomography.device)
+        if self._fov is not None:
+            object = object * self._fov
+        object = _pad(object)
         # Project into one buffer: parallelproj writes the line integrals of each split into the array it is given
         proj = torch.zeros((angle_indices.shape[0], *self.proj_meta.shape), dtype=torch.float32, device=self.device)
         for start, end, idxs in self._splits(angle_indices):
@@ -177,4 +208,5 @@ class CTGen3SystemMatrix(SystemMatrix):
             xstart, xend = self._ray_coordinates(idxs)
             proj_i = _float32(proj[start:end], pytomography.device)
             parallelproj_core.joseph3d_back(xstart, xend, BP, self.origin, self.voxel_size, proj_i)
-        return _crop(BP)
+        BP = _crop(BP)
+        return BP if self._fov is None else BP * self._fov
