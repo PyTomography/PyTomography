@@ -27,6 +27,7 @@ from pytomography.metadata.PET import PETLMProjMeta, PETSinogramPolygonProjMeta
 from pytomography.projectors.PET import PETLMSystemMatrix, PETSinogramSystemMatrix
 from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.algorithms import OSEM
+from pytomography.transforms.shared import GaussianFilter
 from pytomography.io.PET import gate
 
 # %% 1. The scanner
@@ -52,14 +53,16 @@ if not os.path.exists(ids_file):
 detector_ids = torch.load(ids_file)
 print(f"{detector_ids.shape[0] / 1e6:.1f} million true coincidences")
 
-# %% 4. Object space and attenuation
+# %% 4. Object space, attenuation and resolution
 object_meta = ObjectMeta(dr=(2, 2, 2), shape=(128, 128, 96))  # mm, voxels
 atten_map = gate.get_attenuation_map_nifti(os.path.join(path, 'fdg_pet_phantom_umap.nii.gz'), object_meta)
 atten_map = atten_map.to(pytomography.dtype).to(pytomography.device)
+psf_transform = GaussianFilter(3.)  # mm
 
 # %% 5. List-mode reconstruction
 proj_meta_lm = PETLMProjMeta(detector_ids=detector_ids[:, :2], info=info, weights_sensitivity=normalization_weights)
-system_matrix_lm = PETLMSystemMatrix(object_meta, proj_meta_lm, N_splits=10, attenuation_map=atten_map)
+system_matrix_lm = PETLMSystemMatrix(object_meta, proj_meta_lm, obj2obj_transforms=[psf_transform],
+                                     N_splits=10, attenuation_map=atten_map)
 likelihood_lm = PoissonLogLikelihood(system_matrix_lm)
 
 t0 = time.time()
@@ -74,6 +77,7 @@ print(f"sinogram {tuple(sinogram.shape)}: {sinogram.numel() / 1e6:.0f} million b
 proj_meta_sino = PETSinogramPolygonProjMeta(info)
 system_matrix_sino = PETSinogramSystemMatrix(
     object_meta, proj_meta_sino,
+    obj2obj_transforms=[psf_transform],
     sinogram_sensitivity=normalization_sinogram,
     attenuation_map=atten_map,
     N_splits=10,
@@ -85,5 +89,13 @@ recon_sino = OSEM(likelihood_sino)(n_iters=4, n_subsets=14)
 print(f"sinogram: {time.time() - t0:.1f} s")
 
 # %% 7. Comparison
-difference = (recon_lm - recon_sino).abs().sum() / recon_lm.abs().sum()
-print(f"relative difference between the two reconstructions: {100 * difference.item():.1f}%")
+def difference(a, b):
+    return 100 * float((a - b).abs().sum() / a.abs().sum())
+
+print(f"OSEM 4 × 14: the images differ by {difference(recon_lm, recon_sino):.1f}% voxel by voxel, "
+      f"and their totals by {100 * float(recon_sino.sum() / recon_lm.sum() - 1):+.2f}%")
+
+t0 = time.time()
+mlem_lm = OSEM(likelihood_lm)(n_iters=40, n_subsets=1)
+mlem_sino = OSEM(likelihood_sino)(n_iters=40, n_subsets=1)
+print(f"MLEM, 40 iterations ({time.time() - t0:.0f} s): the images differ by {difference(mlem_lm, mlem_sino):.1f}%")
