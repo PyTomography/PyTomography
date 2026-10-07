@@ -55,17 +55,19 @@ tof_meta = PETTOFMeta(num_tof_bins, TOF_range, fwhm_tof_resolution, n_sigmas=3)
 
 # %% Normalization Correction
 if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'normalization_sinogram.pt')):
-    normalization_paths = [os.path.join(path, f'normalization_scan/mMR_Norm_{i}.root') for i in range(1,37)]
-
-    # Get eta in listmode format
-    normalization_weights = gate.get_normalization_weights_cylinder_calibration(
-        normalization_paths,
-        info,
-        cylinder_radius = 318, # mm (radius of calibration cylindrical shell,
-        include_randoms=False 
-    )
-
-    normalization_sinogram = gate.get_norm_sinogram_from_listmode_data(normalization_weights, macro_path)
+    # The weights of every crystal pair are shared with the list mode tutorials, so reuse them if one of those has run
+    if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'normalization_weights.pt')):
+        normalization_paths = [os.path.join(path, f'normalization_scan/mMR_Norm_{i}.root') for i in range(1,37)]
+        # Get eta in listmode format
+        normalization_weights = gate.get_normalization_weights_cylinder_calibration(
+            normalization_paths,
+            info,
+            cylinder_radius = 318, # mm (radius of calibration cylindrical shell,
+            include_randoms=False 
+        )
+        torch.save(normalization_weights, os.path.join(OUTPUT, 'normalization_weights.pt'))
+    normalization_weights = torch.load(os.path.join(OUTPUT, 'normalization_weights.pt'))
+    normalization_sinogram = gate.get_norm_sinogram_from_listmode_data(normalization_weights, info)
     torch.save(normalization_sinogram, os.path.join(OUTPUT, 'normalization_sinogram.pt'))
 normalization_sinogram = torch.load(os.path.join(OUTPUT, 'normalization_sinogram.pt'))
 
