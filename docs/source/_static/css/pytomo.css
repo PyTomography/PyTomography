@@ -208,3 +208,16 @@ section#pytomography > h1 {
 .pt-mode-script .bd-article > section > *:not(h1):not(.pt-launch):not(.pt-script-view):not(.pt-copy-md) { display: none !important; }
 .pt-mode-script .bd-article > section ~ section { display: none !important; }
 .pt-script-note { font-size: 0.88rem; color: var(--pt-muted); margin: 0 0 10px; }
+
+/* ---------- tutorial data page ---------- */
+.pt-datasets { display: grid; gap: 14px; margin-top: 18px; }
+.pt-dataset { border: 1px solid var(--pt-line); border-radius: 12px; padding: 16px 18px; background: var(--pt-surface); scroll-margin-top: calc(var(--pst-header-height) + 16px); }
+.pt-dataset:target { border-color: var(--pt-purple); box-shadow: 0 0 0 3px var(--pt-wash); }
+.pt-dataset h3 { margin: 0 0 4px; font-size: 1.05rem; }
+.pt-dataset h3 code { font-size: 0.95em; }
+.pt-dataset p { margin: 0 0 10px; color: var(--pt-ink-2); }
+.pt-dataset dl { display: grid; grid-template-columns: 6rem minmax(0, 1fr); gap: 6px 14px; margin: 0; font-size: 0.9rem; }
+.pt-dataset dt { font: 500 0.66rem/1.9 var(--pst-font-family-monospace); text-transform: uppercase; letter-spacing: 0.07em; color: var(--pt-muted); }
+.pt-dataset dd { margin: 0; color: var(--pt-ink-2); overflow-wrap: anywhere; }
+@media (max-width: 600px) { .pt-dataset dl { grid-template-columns: 1fr; gap: 0; } .pt-dataset dd { margin-bottom: 8px; } }
+.pt-launch .pt-badge code { font-size: 0.78rem; background: none; border: 0; padding: 0; }

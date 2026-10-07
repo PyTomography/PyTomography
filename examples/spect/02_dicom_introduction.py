@@ -10,6 +10,15 @@ import matplotlib
 matplotlib.use("Agg")  # no figure windows when run as a script
 
 import os
+from pathlib import Path
+
+# Tutorial data: the folder set by the PYTOMOGRAPHY_DATA environment variable (see Tutorial data in the docs)
+DATA = Path(os.environ.get("PYTOMOGRAPHY_DATA", "~/pytomography_data")).expanduser()
+# Results go here, never into the data folder
+OUTPUT = Path(os.environ.get("PYTOMOGRAPHY_OUTPUT", "pytomography_outputs")).expanduser() / "SPECT/Lu177-NEMA-SymT2"
+OUTPUT.mkdir(parents=True, exist_ok=True)
+
+import os
 import numpy as np
 from pytomography.io.SPECT import dicom
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
@@ -21,8 +30,8 @@ import matplotlib.pyplot as plt
 import pydicom
 import shutil
 
-# change this to where you downloaded the SPECT tutorial data
-PATH = '/mnt/mydisk2/pytomo_tutorial_data/SPECT'
+# Paths are set in the data cell at the top of this tutorial
+PATH = DATA / 'SPECT'
 PATH = os.path.join(PATH, 'Lu177-NEMA-SymT2')
 
 # %% Part 1: Opening Data
@@ -87,8 +96,8 @@ slice_pytomography = reconstructed_object.cpu()[:,:,idx_z].T
 slice_vendor = recon_vendor[:,:,idx_z].T
 
 # %% Saving Data
-# Modify the path below to a location on your computer where you want to save the data
-save_path = os.path.join(PATH, 'SPECT', 'Pytomo-Recon')
+# Paths are set in the data cell at the top of this tutorial
+save_path = OUTPUT / 'Pytomo-Recon'
 # Code only works if folder doesnt exist, so delete it if present
 if os.path.exists(save_path) and os.path.isdir(save_path):
     shutil.rmtree(save_path)

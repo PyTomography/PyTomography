@@ -131,6 +131,7 @@ recon = OSEM(likelihood)(n_iters=4, n_subsets=8)
 
 install
 tutorials/index
+concepts
 gallery
 API <api/pytomography/index>
 Contribute <contributing/index>

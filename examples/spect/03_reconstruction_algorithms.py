@@ -10,6 +10,15 @@ import matplotlib
 matplotlib.use("Agg")  # no figure windows when run as a script
 
 # %% Algorithms
+import os
+from pathlib import Path
+
+# Tutorial data: the folder set by the PYTOMOGRAPHY_DATA environment variable (see Tutorial data in the docs)
+DATA = Path(os.environ.get("PYTOMOGRAPHY_DATA", "~/pytomography_data")).expanduser()
+# Results go here, never into the data folder
+OUTPUT = Path(os.environ.get("PYTOMOGRAPHY_OUTPUT", "pytomography_outputs")).expanduser() / "SPECT/SIMIND-Jaszak"
+OUTPUT.mkdir(parents=True, exist_ok=True)
+
 import inspect
 import matplotlib.pyplot as plt
 import torch
@@ -28,8 +37,8 @@ from pytomography.transforms.shared import KEMTransform
 from pytomography.projectors.shared import KEMSystemMatrix
 import os
 
-# CHANGE THIS TO WHERE YOU DOWNLOADED THE TUTORIAL DATA
-PATH = '/mnt/mydisk2/pytomo_tutorial_data/SPECT'
+# Paths are set in the data cell at the top of this tutorial
+PATH = DATA / 'SPECT'
 
 TYPE = 'DICOM' # DICOM or SIMIND
 

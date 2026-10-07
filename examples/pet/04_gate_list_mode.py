@@ -1,15 +1,15 @@
-"""GATE sinogram
+"""GATE list mode
 
-Non-TOF sinogram reconstruction of a simulated brain phantom with scatter and randoms.
+List-mode reconstruction with scatter and randoms correction.
 
-Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_PETGATE_scat_sino.html
+Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_PETGATE_scat_lm.html
 It keeps the computation and leaves out the plots and explanations.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
 import matplotlib
 matplotlib.use("Agg")  # no figure windows when run as a script
 
-# %% GATE (Sinogram Reconstruction; No Time of Flight)
+# %% GATE (Listmode Reconstruction; Without Time of Flight)
 import os
 from pathlib import Path
 
@@ -23,17 +23,19 @@ from __future__ import annotations
 import torch
 import pytomography
 from pytomography.metadata import ObjectMeta
-from pytomography.metadata.PET import PETSinogramPolygonProjMeta
-from pytomography.projectors.PET import PETSinogramSystemMatrix
+from pytomography.metadata.PET import PETLMProjMeta
+from pytomography.projectors.PET import PETLMSystemMatrix
 from pytomography.algorithms import OSEM
 from pytomography.io.PET import gate, shared
 from pytomography.likelihoods import PoissonLogLikelihood
-from pytomography.utils import sss
 import os
 from pytomography.transforms.shared import GaussianFilter
 import matplotlib.pyplot as plt
+from pytomography.utils import sss
 
-LOAD_FROM_ROOT = False # Set to true if .pt files not generated
+# The first run reads the ROOT files and caches each result in OUTPUT; later runs load the cache.
+# Set this to True to recompute everything.
+LOAD_FROM_ROOT = False
 
 path = DATA / 'PET' / 'GATE-mMR-Brain'
 # Macro path where PET scanner geometry file is defined
@@ -47,10 +49,10 @@ paths = [os.path.join(path, f'all_physics/mMR_voxBrain_{i}.root') for i in range
 info
 
 # %% Normalization Correction
-if LOAD_FROM_ROOT:
+if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'normalization_weights.pt')):
     normalization_paths = [os.path.join(path, f'normalization_scan/mMR_Norm_{i}.root') for i in range(1,37)]
 
-    # Get eta in listmode format
+    # Get normalization weights for all possible detector ID pairs
     normalization_weights = gate.get_normalization_weights_cylinder_calibration(
         normalization_paths,
         info,
@@ -58,12 +60,11 @@ if LOAD_FROM_ROOT:
         include_randoms=False 
     )
 
-    normalization_sinogram = gate.get_norm_sinogram_from_listmode_data(normalization_weights, macro_path)
-    torch.save(normalization_sinogram, os.path.join(OUTPUT, 'normalization_sinogram.pt'))
-normalization_sinogram = torch.load(os.path.join(OUTPUT, 'normalization_sinogram.pt'))
+    torch.save(normalization_weights, os.path.join(OUTPUT, 'normalization_weights.pt'))
+normalization_weights = torch.load(os.path.join(OUTPUT, 'normalization_weights.pt'))
 
 # %% Primary-Only Reconstruction
-if LOAD_FROM_ROOT:
+if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'detector_ids_primary_only.pt')):
     detector_ids = gate.get_detector_ids_from_root(
         paths,
         info,
@@ -72,7 +73,7 @@ if LOAD_FROM_ROOT:
     torch.save(detector_ids, os.path.join(OUTPUT, 'detector_ids_primary_only.pt'))
 detector_ids = torch.load(os.path.join(OUTPUT, 'detector_ids_primary_only.pt'))
 
-if LOAD_FROM_ROOT:
+if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'detector_ids_scatters_true.pt')):
     detector_ids_randoms_true = gate.get_detector_ids_from_root(
         paths,
         info,
@@ -86,50 +87,48 @@ if LOAD_FROM_ROOT:
 detector_ids_randoms_true = torch.load(os.path.join(OUTPUT, 'detector_ids_randoms_true.pt'))
 detector_ids_scatters_true = torch.load(os.path.join(OUTPUT, 'detector_ids_scatters_true.pt'))
 
-sinogram = gate.listmode_to_sinogram(detector_ids, info)
-
+# Specify object space for reconstruction
 # Specify object space for reconstruction
 object_meta = ObjectMeta(
     dr=(2,2,2), #mm
     shape=(128,128,96) #voxels
 )
 # Get projection space metadata from PET geometry information dictionary
-proj_meta = PETSinogramPolygonProjMeta(info)
+proj_meta = PETLMProjMeta(
+    detector_ids = detector_ids, # list of all detected event detector ID pairs
+    info = info,
+    weights_sensitivity=normalization_weights
+    )
 # Get attenuation map and PSF transform from the associated phantom
 atten_map = gate.get_attenuation_map_nifti(os.path.join(path, 'fdg_pet_phantom_umap.nii.gz'), object_meta).to(pytomography.dtype).to(pytomography.device)
-psf_transform = GaussianFilter(3) # 3mm gaussian blurring
+psf_transform = GaussianFilter(3.) # 3mm gaussian blurring
 # Create system matrix
-system_matrix = PETSinogramSystemMatrix(
-       object_meta,
-       proj_meta,
-       obj2obj_transforms = [psf_transform],
-       sinogram_sensitivity = normalization_sinogram,
-       N_splits=10, # Split FP/BP into 10 loops to save memory
-       attenuation_map=atten_map,
-       device='cpu' # projections are output on the CPU, but internal computation is on GPU
+system_matrix = PETLMSystemMatrix(
+    object_meta,
+    proj_meta,
+    obj2obj_transforms = [psf_transform],
+    attenuation_map = atten_map,
+    N_splits=8,
 )
-# Create likelihood 
+# Create likelihood. For listmode reconstruction, projections don't need to be provided, since all detection events are stored in proj_meta
 likelihood = PoissonLogLikelihood(
-    system_matrix,
-    sinogram,
+    system_matrix
 )
 # Initialize reconstruction algorithm
 recon_algorithm = OSEM(likelihood)
 # Reconstruct
-recon_primaryonly = recon_algorithm(n_iters=2, n_subsets=24)
+recon_primaryonly = recon_algorithm(n_iters=4, n_subsets=14)
 
-# %% Reconstruction Correcting For Randoms + Scatters
-if LOAD_FROM_ROOT:
+# %% Reconstructing With Random/Scatter Estimation
+if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'detector_ids_all_events.pt')):
     detector_ids = gate.get_detector_ids_from_root(
         paths,
         info)
     torch.save(detector_ids, os.path.join(OUTPUT, 'detector_ids_all_events.pt'))
 detector_ids = torch.load(os.path.join(OUTPUT, 'detector_ids_all_events.pt'))
 
-sinogram = gate.listmode_to_sinogram(detector_ids, info)
-
 # %% Randoms
-if LOAD_FROM_ROOT:
+if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'detector_ids_delays.pt')):
     detector_ids_delays = gate.get_detector_ids_from_root(
         paths,
         info,
@@ -137,34 +136,38 @@ if LOAD_FROM_ROOT:
     torch.save(detector_ids_delays, os.path.join(OUTPUT, 'detector_ids_delays.pt'))
 detector_ids_delays= torch.load(os.path.join(OUTPUT, 'detector_ids_delays.pt'))
 
-sinogram_delays = gate.listmode_to_sinogram(detector_ids_delays, info)
-
-sinogram_randoms_estimate = gate.smooth_randoms_sinogram(sinogram_delays, info, sigma_r=4, sigma_theta=4, sigma_z=4)
+sinogram_delays  = gate.listmode_to_sinogram(detector_ids_delays , info)
+sinogram_delays  = gate.smooth_randoms_sinogram(sinogram_delays , info, sigma_r=4, sigma_theta=4, sigma_z=4)
+lm_delays = shared.sinogram_to_listmode(detector_ids, sinogram_delays , info)
 
 # %% Scatters
 atten_map = gate.get_attenuation_map_nifti(os.path.join(path, 'fdg_pet_phantom_umap.nii.gz'), object_meta).to(pytomography.dtype).to(pytomography.device)
-normalization_sinogram = torch.load(os.path.join(OUTPUT, 'normalization_sinogram.pt')) # assumes this has been saved from the intro tutorial
-proj_meta = PETSinogramPolygonProjMeta(info)
-psf_transform = GaussianFilter(3)
-system_matrix = PETSinogramSystemMatrix(
+normalization_weights = torch.load(os.path.join(OUTPUT, 'normalization_weights.pt'))
+proj_meta = PETLMProjMeta(
+    detector_ids[:,:2],
+    info,
+    weights_sensitivity=normalization_weights
+    )
+psf_transform = GaussianFilter(3.)
+system_matrix = PETLMSystemMatrix(
        object_meta,
        proj_meta,
        obj2obj_transforms = [psf_transform],
-       sinogram_sensitivity = normalization_sinogram,
        N_splits=10,
-       attenuation_map=atten_map,
-       device='cpu' # projections output on cpu, rest is GPU
+       attenuation_map=atten_map.to(pytomography.device),
 )
 
-additive_term = sinogram_randoms_estimate / system_matrix._compute_sensitivity_sinogram().cpu()
+# Get additive term (without scatter term):
+lm_sensitivity = system_matrix._compute_sensitivity_projection(all_ids=False)
+additive_term = lm_delays / lm_sensitivity
+additive_term[additive_term.isnan()] = 0 # remove NaN values
+# Recon
 likelihood = PoissonLogLikelihood(
         system_matrix,
-        sinogram,
         additive_term = additive_term
     )
-
 recon_algorithm = OSEM(likelihood)
-recon_without_scatter_estimation = recon_algorithm(2,24)
+recon_without_scatter_estimation = recon_algorithm(4,14)
 
 sinogram_scatter = sss.get_sss_scatter_estimate(
     object_meta = object_meta,
@@ -172,19 +175,21 @@ sinogram_scatter = sss.get_sss_scatter_estimate(
     pet_image = recon_without_scatter_estimation,
     attenuation_image = atten_map,
     system_matrix = system_matrix,
-    proj_data = sinogram,
+    proj_data = None, # assumes listmode
     image_stepsize = 4,
     attenuation_cutoff = 0.004,
     sinogram_interring_stepsize = 4,
     sinogram_intraring_stepsize = 4,
-    sinogram_random = sinogram_randoms_estimate
+    sinogram_random = sinogram_delays
     )
+# Now convert to listmode
+lm_scatter = shared.sinogram_to_listmode(proj_meta.detector_ids, sinogram_scatter, proj_meta.info)
 
-additive_term = (sinogram_randoms_estimate + sinogram_scatter) / system_matrix._compute_sensitivity_sinogram().cpu()
+additive_term = (lm_scatter + lm_delays) / lm_sensitivity
+additive_term[additive_term.isnan()] = 0
 likelihood = PoissonLogLikelihood(
         system_matrix,
-        sinogram,
         additive_term = additive_term
     )
 recon_algorithm = OSEM(likelihood)
-recon_sinogram_noTOF = recon_algorithm(2,24)
+recon_lm_nontof = recon_algorithm(4,14)

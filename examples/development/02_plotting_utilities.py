@@ -11,17 +11,26 @@ matplotlib.use("Agg")  # no figure windows when run as a script
 
 # %% Plotting Functionality
 import os
+from pathlib import Path
+
+# Tutorial data: the folder set by the PYTOMOGRAPHY_DATA environment variable (see Tutorial data in the docs)
+DATA = Path(os.environ.get("PYTOMOGRAPHY_DATA", "~/pytomography_data")).expanduser()
+# Results go here, never into the data folder
+OUTPUT = Path(os.environ.get("PYTOMOGRAPHY_OUTPUT", "pytomography_outputs")).expanduser() / "SPECT/Lu177-PSMA-GEDisc"
+OUTPUT.mkdir(parents=True, exist_ok=True)
+
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from pytomography.io.SPECT import dicom
 from pytomography.utils import plot_utils
 
-save_path = '/disk1/pytomography_tutorial_data'
+save_path = DATA / 'SPECT'
 
-path_CT = os.path.join(save_path, 'dicom_multibed_tutorial', 'CT')
+path_CT = os.path.join(save_path, 'Lu177-PSMA-GEDisc', 'CT')
 files_CT = [os.path.join(path_CT, file) for file in os.listdir(path_CT)]
-path_SPECT = os.path.join(save_path, 'dicom_multibed_tutorial', 'pytomo_recon')
+path_SPECT = os.path.join(save_path, 'Lu177-PSMA-GEDisc', 'pytomo_recon')
 file_SPECT = os.path.join(path_SPECT, os.listdir(path_SPECT)[0])
 
 affine_SPECT = dicom._get_affine_single_file(file_SPECT)

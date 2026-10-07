@@ -34,7 +34,9 @@ import matplotlib.pyplot as plt
 from pytomography.utils import sss
 import gc
 
-LOAD_FROM_ROOT = False # Set to true if .pt files not generated
+# The first run reads the ROOT files and caches each result in OUTPUT; later runs load the cache.
+# Set this to True to recompute everything.
+LOAD_FROM_ROOT = False
 
 path = DATA / 'PET' / 'GATE-mMR-Brain'
 # Macro path where PET scanner geometry file is defined
@@ -52,7 +54,7 @@ num_tof_bins = 21
 tof_meta = PETTOFMeta(num_tof_bins, TOF_range, fwhm_tof_resolution, n_sigmas=3)
 
 # %% Normalization Correction
-if LOAD_FROM_ROOT:
+if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'normalization_weights.pt')):
     normalization_paths = [os.path.join(path, f'normalization_scan/mMR_Norm_{i}.root') for i in range(1,37)]
 
     # Get normalization weights for all possible detector ID pairs
@@ -67,7 +69,7 @@ if LOAD_FROM_ROOT:
 normalization_weights = torch.load(os.path.join(OUTPUT, 'normalization_weights.pt'))
 
 # %% Primary-Only Reconstruction
-if LOAD_FROM_ROOT:
+if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'detector_ids_tof21bin_primary_only.pt')):
     detector_ids = gate.get_detector_ids_from_root(
         paths,
         info,
@@ -111,7 +113,7 @@ recon_algorithm = OSEM(likelihood)
 recon_primaryonly = recon_algorithm(n_iters=4, n_subsets=14)
 
 # %% Reconstruction With Random/Scatter Estimation
-if LOAD_FROM_ROOT:
+if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'detector_ids_tof21bin_all_events.pt')):
     detector_ids = gate.get_detector_ids_from_root(
         paths,
         info,
@@ -122,7 +124,7 @@ if LOAD_FROM_ROOT:
 detector_ids = torch.load(os.path.join(OUTPUT, 'detector_ids_tof21bin_all_events.pt'))
 
 # %% Randoms
-if LOAD_FROM_ROOT:
+if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'detector_ids_delays.pt')):
     detector_ids_delays = gate.get_detector_ids_from_root(
         paths,
         info,

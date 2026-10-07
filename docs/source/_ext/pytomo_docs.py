@@ -3,8 +3,10 @@
 * ``tutorials/tutorials.yaml`` is the single list of tutorials. From it this extension
   builds the filterable gallery (``.. tutorial-gallery::``), the sidebar toctree, and
   a thumbnail for every tutorial taken from the notebook's own image outputs.
-* Every notebook page gets a header bar: Open in Colab, view on GitHub, the tutorial
-  data, and the tutorial's modality, data source and topic.
+* ``tutorials/datasets.yaml`` lists every dataset the tutorials read. It renders the
+  "Tutorial data" page (``.. tutorial-datasets::``) and the data links on each tutorial.
+* Every notebook page gets a header bar: Notebook / Script toggle, Open in Colab, view on
+  GitHub, links to its data, and the tutorial's modality, data source and topic.
 * Every page is also written as Markdown to ``_md/<page>.md``, and ``llms.txt`` and
   ``llms-full.txt`` are built from those copies for AI agents. A ``pt-source`` meta tag
   points "Copy page as Markdown" at the copy.
@@ -27,7 +29,6 @@ import tutorial_scripts
 REPO = "PyTomography/PyTomography"
 BRANCH = "main"
 NOTEBOOK_DIR = "docs/source/notebooks"
-DATA_URL = "https://zenodo.org/records/15314460"
 THUMB_DIR = "_generated/thumbs"  # relative to srcdir, listed in html_static_path
 
 
@@ -58,8 +59,18 @@ def _write_thumbnails(app) -> None:
             target.write_bytes(base64.b64decode(png))
 
 
+def _load_datasets(srcdir: Path) -> dict:
+    with open(srcdir / "tutorials" / "datasets.yaml", encoding="utf8") as f:
+        return yaml.safe_load(f)
+
+
+def dataset_anchor(key: str) -> str:
+    return "data-" + "".join(c if c.isalnum() else "-" for c in key.lower())
+
+
 def builder_inited(app):
     app.env.pytomo_tutorials = _load_tutorials(Path(app.srcdir))
+    app.env.pytomo_datasets = _load_datasets(Path(app.srcdir))
     app.env.pytomo_by_notebook = {
         f"notebooks/{t['notebook']}": t
         for s in app.env.pytomo_tutorials for t in s["tutorials"]
@@ -173,6 +184,39 @@ class FeatureBoard(Directive):
         return [nodes.raw("", "".join(parts), format="html")]
 
 
+class TutorialDatasets(Directive):
+    """One entry per dataset in tutorials/datasets.yaml, with the tutorials that use it."""
+
+    has_content = False
+
+    def run(self):
+        env = self.state.document.settings.env
+        env.note_dependency(str(Path(env.srcdir) / "tutorials" / "datasets.yaml"))
+        here = posixpath.dirname(env.docname)
+        users = {}
+        for section in env.pytomo_tutorials:
+            for t in section["tutorials"]:
+                for k in t.get("datasets", []):
+                    users.setdefault(k, []).append(t)
+        esc = lambda v: html.escape(str(v))
+        parts = ['<div class="pt-datasets">']
+        for key, d in env.pytomo_datasets.items():
+            used = ", ".join(
+                f'<a href="{posixpath.relpath("notebooks/" + t["notebook"], here)}.html">{esc(t["title"])}</a>'
+                for t in users.get(key, [])) or "not used by a tutorial yet"
+            rows = [("Download", esc(d.get("download", ""))), ("Size", esc(d.get("size", ""))),
+                    ("Licence", esc(d.get("licence", ""))), ("Used by", used)]
+            if d.get("cite"):
+                rows.append(("Cite", esc(d["cite"])))
+            parts.append(
+                f'<article class="pt-dataset" id="{dataset_anchor(key)}">'
+                f'<h3><code>{esc(key)}</code></h3><p>{esc(d["title"])}. '
+                f'<a href="{esc(d["url"])}">{esc(d["source"])}</a></p><dl>'
+                + "".join(f"<dt>{k}</dt><dd>{v}</dd>" for k, v in rows) + "</dl></article>")
+        parts.append("</div>")
+        return [nodes.raw("", "".join(parts), format="html")]
+
+
 def add_notebook_header(app, doctree):
     """Insert the launch bar under the title of every tutorial notebook page."""
     docname = app.env.docname
@@ -182,11 +226,25 @@ def add_notebook_header(app, doctree):
     t = app.env.pytomo_by_notebook.get(docname, {})
     colab = f"https://colab.research.google.com/github/{REPO}/blob/{BRANCH}/{NOTEBOOK_DIR}/{nb}.ipynb"
     github = f"https://github.com/{REPO}/blob/{BRANCH}/{NOTEBOOK_DIR}/{nb}.ipynb"
+    here = posixpath.dirname(docname)
+    data_links = "".join(
+        f'<a class="pt-badge" href="{posixpath.relpath("tutorials/data", here)}.html#{dataset_anchor(k)}">'
+        f'Data: <code>{html.escape(k)}</code></a>'
+        for k in t.get("datasets", [])
+    )
     facts = "".join(
         f'<span class="pt-fact"><small>{label}</small>{html.escape(t[key])}</span>'
         for label, key in (("Modality", "modality"), ("Data", "data"), ("Topic", "topic"))
         if t.get(key) and t[key] not in ("None", "Any")
     )
+    # Written by docs/tools/run_tutorials.py --write-back when the notebook last ran end to end
+    run = json.loads(app.env.doc2path(docname).read_text(encoding="utf8")).get("metadata", {}).get("pytomography_run")
+    if run:
+        minutes = (run.get("wall_time_s") or 0) / 60
+        stamp = " · ".join(str(x) for x in (
+            run.get("date"), f"PyTomography {run.get('pytomography')}", run.get("gpu"),
+            f"{minutes:.0f} min" if minutes >= 1 else "under a minute") if x)
+        facts += f'<span class="pt-fact"><small>Last run</small>{html.escape(stamp)}</span>'
     # The plain-Python version of this tutorial, generated into examples/ by docs/tools/export_scripts.py
     script_rel = tutorial_scripts.script_paths(Path(app.srcdir)).get(docname)
     script_file = tutorial_scripts.repo_root(Path(app.srcdir)) / script_rel if script_rel else None
@@ -201,7 +259,7 @@ def add_notebook_header(app, doctree):
         f'<div class="pt-launch">{switch}'
         f'<a class="pt-badge pt-badge-go" href="{colab}">Open in Colab</a>'
         f'<a class="pt-badge" href="{github}">View on GitHub</a>'
-        f'<a class="pt-badge" href="{DATA_URL}">Tutorial data</a>'
+        f'{data_links}'
         f'{facts}</div>'
     )
     section = next(iter(doctree.findall(nodes.section)), None)
@@ -315,6 +373,7 @@ def write_markdown(app, exception):
 def setup(app):
     app.add_directive("tutorial-gallery", TutorialGallery)
     app.add_directive("feature-board", FeatureBoard)
+    app.add_directive("tutorial-datasets", TutorialDatasets)
     app.connect("builder-inited", builder_inited)
     app.connect("doctree-read", add_notebook_header)
     app.connect("html-page-context", add_source_meta)

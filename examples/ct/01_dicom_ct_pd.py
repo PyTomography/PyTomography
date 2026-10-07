@@ -10,6 +10,15 @@ import matplotlib
 matplotlib.use("Agg")  # no figure windows when run as a script
 
 # %% DICOM-CT-PD (3rd Generation CT)
+import os
+from pathlib import Path
+
+# Tutorial data: the folder set by the PYTOMOGRAPHY_DATA environment variable (see Tutorial data in the docs)
+DATA = Path(os.environ.get("PYTOMOGRAPHY_DATA", "~/pytomography_data")).expanduser()
+# Results go here, never into the data folder
+OUTPUT = Path(os.environ.get("PYTOMOGRAPHY_OUTPUT", "pytomography_outputs")).expanduser() / "CT/ldct-c145"
+OUTPUT.mkdir(parents=True, exist_ok=True)
+
 from __future__ import annotations
 from pytomography.metadata import ObjectMeta
 from pytomography.algorithms import SART
@@ -18,7 +27,7 @@ from pytomography.projectors.CT import CTGen3SystemMatrix
 import matplotlib.pyplot as plt
 import os
 
-save_path = '/disk1/ct_proj/DICOM-CT-PD_FD' # Path where you downloaded the CT-PD data
+save_path = DATA / 'CT' / 'ldct-c145' / 'full_dose_projections'
 paths = [os.path.join(save_path, file) for file in os.listdir(save_path) if '.dcm' in file]
 
 proj, proj_meta = dicom_ct_pd.get_projections_and_metadata_gen3(paths)

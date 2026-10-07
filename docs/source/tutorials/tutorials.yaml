@@ -8,6 +8,7 @@
 #   topic:     Basics | Corrections | Algorithms | Clinical workflow | Systems | Physics | Uncertainty | Development
 #   summary:   one sentence shown on the card
 #   thumbnail: optional, index of the image output to use (default: the last one)
+#   datasets:  folders under PYTOMOGRAPHY_DATA that the tutorial reads (keys of datasets.yaml)
 
 sections:
 - title: SPECT
@@ -18,122 +19,179 @@ sections:
     data: SIMIND
     topic: Basics
     summary: A complete OSEM pipeline on Monte Carlo data, from projections to a reconstructed image.
+    datasets:
+    - SPECT/SIMIND-Jaszak
   - notebook: t_dicomdata
     title: DICOM introduction
     modality: SPECT
     data: DICOM
     topic: Basics
     summary: Reconstruct a phantom exported from a clinical scanner and compare with the vendor image.
+    datasets:
+    - SPECT/Lu177-NEMA-SymT2
   - notebook: t_algorithms
     title: Reconstruction algorithms
     modality: SPECT
     data: SIMIND
     topic: Algorithms
     summary: OSEM, BSREM, OSMAPOSL and KEM side by side on the same data.
+    datasets:
+    - SPECT/SIMIND-Jaszak
+    - SPECT/Lu177-NEMA-SymT2
+  - notebook: t_accuracy_known_truth
+    title: Accuracy against known truth
+    modality: SPECT
+    data: SIMIND
+    topic: Quantification
+    summary: Measure bias and noise in every organ of a simulated patient, with OSEM and BSREM.
+    datasets:
+    - SPECT/SIMIND-MultiOrgan
   - notebook: t_dicommultibed
     title: Multiple bed positions
     modality: SPECT
     data: DICOM
     topic: Clinical workflow
     summary: Reconstruct several bed positions and stitch them into one volume.
+    datasets:
+    - SPECT/Lu177-PSMA-GEDisc
   - notebook: t_dualpeak
     title: Multiple photopeaks
     modality: SPECT
     data: DICOM
     topic: Clinical workflow
     summary: Joint reconstruction over two photopeaks of the same isotope.
+    datasets:
+    - SPECT/Lu177-NEMA-SymT2
   - notebook: t_uncertainty_spect
     title: Uncertainty estimation
     modality: SPECT
     data: DICOM
     topic: Uncertainty
     summary: Voxel and region uncertainty that comes out of the reconstruction itself.
+    datasets:
+    - SPECT/Lu177-PSMA-GEDisc
   - notebook: t_spect_mc
     title: Hybrid Monte Carlo (simulated)
     modality: SPECT
     data: SIMIND
     topic: Corrections
     summary: Monte Carlo scatter estimated inside the reconstruction loop with SIMIND.
+    datasets:
+    - SPECT/SIMIND-Jaszak
   - notebook: t_spect_mc2
     title: Hybrid Monte Carlo (measured)
     modality: SPECT
     data: DICOM
     topic: Corrections
     summary: The same hybrid approach on measured data.
+    datasets:
+    - SPECT/Lu177-NEMA-SymT2
   - notebook: t_starguide
     title: GE StarGuide
     modality: SPECT
     data: DICOM
     topic: Systems
     summary: A 12-head CZT system with body-contour sweeps.
+    datasets:
+    - SPECT/Tc99m-NEMA-Starguide
   - notebook: t_ac225_simind_recon
     title: Ac-225 PSF modelling (SIMIND)
     modality: SPECT
     data: SIMIND
     topic: Physics
     summary: Alpha-emitter imaging with a Monte Carlo collimator response, including penetration.
+    datasets:
+    - SPECT/SIMIND-Jaszak
   - notebook: t_ac225_dicom_recon
     title: Ac-225 PSF modelling (DICOM)
     modality: SPECT
     data: DICOM
     topic: Physics
     summary: The Ac-225 PSF model applied to measured data.
+    datasets:
+    - SPECT/Ac225-NEMA-SymT2
   - notebook: t_CardiacReorientation
     title: Cardiac reorientation
     modality: SPECT
     data: DICOM
     topic: Clinical workflow
     summary: Reconstruct myocardial perfusion data and reorient it to the short axis.
+    datasets:
+    - SPECT/Tc99m-Cardiac
 - title: PET
   tutorials:
+  - notebook: t_pet_introduction
+    title: 'PET introduction: list mode and sinograms'
+    modality: PET
+    data: GATE
+    topic: Basics
+    summary: Reconstruct the same true coincidences as list mode and as sinograms, with normalisation and attenuation.
+    datasets:
+    - PET/GATE-mMR-Brain
   - notebook: t_PETGATE_scat_sino
     title: GATE sinogram
     modality: PET
     data: GATE
     topic: Basics
     summary: Non-TOF sinogram reconstruction of a simulated brain phantom with scatter and randoms.
+    datasets:
+    - PET/GATE-mMR-Brain
   - notebook: t_PETGATE_scat_sinoTOF
     title: GATE TOF sinogram
     modality: PET
     data: GATE
     topic: Corrections
     summary: Time-of-flight sinogram reconstruction with TOF scatter estimation.
+    datasets:
+    - PET/GATE-mMR-Brain
   - notebook: t_PETGATE_scat_lm
     title: GATE list mode
     modality: PET
     data: GATE
     topic: Corrections
     summary: List-mode reconstruction with scatter and randoms correction.
+    datasets:
+    - PET/GATE-mMR-Brain
   - notebook: t_PETGATE_scat_lmTOF
     title: GATE TOF list mode
     modality: PET
     data: GATE
     topic: Corrections
     summary: Time-of-flight list-mode reconstruction with TOF scatter.
+    datasets:
+    - PET/GATE-mMR-Brain
   - notebook: t_GE_HDF5
     title: GE Discovery MI
     modality: PET
     data: Vendor
     topic: Systems
     summary: Clinical list mode exported from GE Duetto, with time of flight.
+    datasets:
+    - PET/GE-DMI-NEMA
   - notebook: t_uncertainty_pet
     title: PET uncertainty estimation
     modality: PET
     data: Vendor
     topic: Uncertainty
     summary: Uncertainty estimates for a clinical PET reconstruction.
+    datasets:
+    - PET/GE-DMI-NEMA
   - notebook: t_PETSIRD
     title: PETSIRD list mode
     modality: PET
     data: Vendor
     topic: Systems
     summary: Read list-mode data in the open PETSIRD format.
+    datasets:
+    - PET/PETSIRD-mIEC
   - notebook: t_PETGATE_DIP
     title: Deep Image Prior
     modality: PET
     data: GATE
     topic: Algorithms
     summary: Build a PyTorch network and use it as the image model inside the reconstruction.
+    datasets:
+    - PET/GATE-mMR-Brain
 - title: CT
   tutorials:
   - notebook: t_CT_GEN3
@@ -142,6 +200,8 @@ sections:
     data: DICOM
     topic: Basics
     summary: OS-SART on raw projections from a 3rd-generation clinical CT scanner.
+    datasets:
+    - CT/ldct-c145
 - title: Building with PyTomography
   folder: development
   tutorials:
@@ -151,9 +211,12 @@ sections:
     data: None
     topic: Development
     summary: Write your own forward and back projector and reuse every algorithm in the library.
+    datasets: []
   - notebook: t_plotting
     title: Plotting utilities
     modality: Any
     data: None
     topic: Development
     summary: Fused SPECT/CT views and other figure helpers.
+    datasets:
+    - SPECT/Lu177-PSMA-GEDisc

@@ -10,6 +10,15 @@ import matplotlib
 matplotlib.use("Agg")  # no figure windows when run as a script
 
 # %% GATE (Listmode Reconstruction; Without Time of Flight)
+import os
+from pathlib import Path
+
+# Tutorial data: the folder set by the PYTOMOGRAPHY_DATA environment variable (see Tutorial data in the docs)
+DATA = Path(os.environ.get("PYTOMOGRAPHY_DATA", "~/pytomography_data")).expanduser()
+# Results go here, never into the data folder
+OUTPUT = Path(os.environ.get("PYTOMOGRAPHY_OUTPUT", "pytomography_outputs")).expanduser() / "PET/GATE-mMR-Brain"
+OUTPUT.mkdir(parents=True, exist_ok=True)
+
 from __future__ import annotations
 import torch
 import pytomography
@@ -26,14 +35,14 @@ from pytomography.utils import sss
 
 LOAD_FROM_ROOT = False  # Set to true if .pt files not generated
 
-path = '/disk1/pet_mri_scan/'
+path = DATA / 'PET' / 'GATE-mMR-Brain'
 # Macro path where PET scanner geometry file is defined
 macro_path = os.path.join(path, 'mMR_Geometry.mac')
 # Get information dictionary about the scanner
 info = gate.get_detector_info(path = macro_path,
     mean_interaction_depth=9, min_rsector_difference=0)
 # Paths to all ROOT files containing data
-paths = [os.path.join(path, f'gate_simulation/simple_phantom/mMR_voxBrain_withSimplePhantom_{i}.root') for i in range(1, 55)]
+paths = [os.path.join(path, f'all_physics/mMR_voxBrain_{i}.root') for i in range(1, 55) if i != 24]  # file 24 is empty
 
 info
 
@@ -49,8 +58,8 @@ if LOAD_FROM_ROOT:
         include_randoms=False 
     )
 
-    torch.save(normalization_weights, os.path.join(path, 'normalization_weights.pt'))
-normalization_weights = torch.load(os.path.join(path, 'normalization_weights.pt'))
+    torch.save(normalization_weights, os.path.join(OUTPUT, 'normalization_weights.pt'))
+normalization_weights = torch.load(os.path.join(OUTPUT, 'normalization_weights.pt'))
 
 # %% Primary-Only Reconstruction
 if LOAD_FROM_ROOT:
@@ -59,8 +68,8 @@ if LOAD_FROM_ROOT:
         info,
         include_randoms=False,
         include_scatters=False)
-    torch.save(detector_ids, os.path.join(path, 'detector_ids_primary_only.pt'))
-detector_ids = torch.load(os.path.join(path, 'detector_ids_primary_only.pt'))
+    torch.save(detector_ids, os.path.join(OUTPUT, 'detector_ids_primary_only.pt'))
+detector_ids = torch.load(os.path.join(OUTPUT, 'detector_ids_primary_only.pt'))
 
 if LOAD_FROM_ROOT:
     detector_ids_randoms_true = gate.get_detector_ids_from_root(
@@ -71,10 +80,10 @@ if LOAD_FROM_ROOT:
         paths,
         info,
         scatters_only=True)
-    torch.save(detector_ids_randoms_true, os.path.join(path, 'detector_ids_randoms_true.pt'))
-    torch.save(detector_ids_scatters_true, os.path.join(path, 'detector_ids_scatters_true.pt'))
-detector_ids_randoms_true = torch.load(os.path.join(path, 'detector_ids_randoms_true.pt'))
-detector_ids_scatters_true = torch.load(os.path.join(path, 'detector_ids_scatters_true.pt'))
+    torch.save(detector_ids_randoms_true, os.path.join(OUTPUT, 'detector_ids_randoms_true.pt'))
+    torch.save(detector_ids_scatters_true, os.path.join(OUTPUT, 'detector_ids_scatters_true.pt'))
+detector_ids_randoms_true = torch.load(os.path.join(OUTPUT, 'detector_ids_randoms_true.pt'))
+detector_ids_scatters_true = torch.load(os.path.join(OUTPUT, 'detector_ids_scatters_true.pt'))
 
 # Specify object space for reconstruction
 # Specify object space for reconstruction
@@ -89,7 +98,7 @@ proj_meta = PETLMProjMeta(
     weights_sensitivity=normalization_weights
     )
 # Get attenuation map and PSF transform from the associated phantom
-atten_map = gate.get_aligned_attenuation_map(os.path.join(path, 'gate_simulation/simple_phantom/umap_mMR_brainSimplePhantom.hv'), object_meta).to(pytomography.device)
+atten_map = gate.get_attenuation_map_nifti(os.path.join(path, 'fdg_pet_phantom_umap.nii.gz'), object_meta).to(pytomography.dtype).to(pytomography.device)
 psf_transform = GaussianFilter(3.) # 3mm gaussian blurring
 # Create system matrix
 system_matrix = PETLMSystemMatrix(
@@ -113,8 +122,8 @@ if LOAD_FROM_ROOT:
     detector_ids = gate.get_detector_ids_from_root(
         paths,
         info)
-    torch.save(detector_ids, os.path.join(path, 'detector_ids_all_events.pt'))
-detector_ids = torch.load(os.path.join(path, 'detector_ids_all_events.pt'))
+    torch.save(detector_ids, os.path.join(OUTPUT, 'detector_ids_all_events.pt'))
+detector_ids = torch.load(os.path.join(OUTPUT, 'detector_ids_all_events.pt'))
 
 # %% Randoms
 if LOAD_FROM_ROOT:
@@ -122,16 +131,16 @@ if LOAD_FROM_ROOT:
         paths,
         info,
         substr = 'delay')
-    torch.save(detector_ids_delays, os.path.join(path, 'detector_ids_delays.pt'))
-detector_ids_delays= torch.load(os.path.join(path, 'detector_ids_delays.pt'))
+    torch.save(detector_ids_delays, os.path.join(OUTPUT, 'detector_ids_delays.pt'))
+detector_ids_delays= torch.load(os.path.join(OUTPUT, 'detector_ids_delays.pt'))
 
 sinogram_delays  = gate.listmode_to_sinogram(detector_ids_delays , info)
 sinogram_delays  = gate.smooth_randoms_sinogram(sinogram_delays , info, sigma_r=4, sigma_theta=4, sigma_z=4)
 lm_delays = shared.sinogram_to_listmode(detector_ids, sinogram_delays , info)
 
 # %% Scatters
-atten_map = gate.get_aligned_attenuation_map(os.path.join(path, 'gate_simulation/simple_phantom/umap_mMR_brainSimplePhantom.hv'), object_meta).to(pytomography.device)
-normalization_weights = torch.load(os.path.join(path, 'normalization_weights.pt'))
+atten_map = gate.get_attenuation_map_nifti(os.path.join(path, 'fdg_pet_phantom_umap.nii.gz'), object_meta).to(pytomography.dtype).to(pytomography.device)
+normalization_weights = torch.load(os.path.join(OUTPUT, 'normalization_weights.pt'))
 proj_meta = PETLMProjMeta(
     detector_ids[:,:2],
     info,

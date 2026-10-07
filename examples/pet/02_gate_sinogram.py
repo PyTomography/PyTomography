@@ -33,7 +33,9 @@ import os
 from pytomography.transforms.shared import GaussianFilter
 import matplotlib.pyplot as plt
 
-LOAD_FROM_ROOT = False # Set to true if .pt files not generated
+# The first run reads the ROOT files and caches each result in OUTPUT; later runs load the cache.
+# Set this to True to recompute everything.
+LOAD_FROM_ROOT = False
 
 path = DATA / 'PET' / 'GATE-mMR-Brain'
 # Macro path where PET scanner geometry file is defined
@@ -47,7 +49,7 @@ paths = [os.path.join(path, f'all_physics/mMR_voxBrain_{i}.root') for i in range
 info
 
 # %% Normalization Correction
-if LOAD_FROM_ROOT:
+if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'normalization_sinogram.pt')):
     normalization_paths = [os.path.join(path, f'normalization_scan/mMR_Norm_{i}.root') for i in range(1,37)]
 
     # Get eta in listmode format
@@ -63,7 +65,7 @@ if LOAD_FROM_ROOT:
 normalization_sinogram = torch.load(os.path.join(OUTPUT, 'normalization_sinogram.pt'))
 
 # %% Primary-Only Reconstruction
-if LOAD_FROM_ROOT:
+if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'detector_ids_primary_only.pt')):
     detector_ids = gate.get_detector_ids_from_root(
         paths,
         info,
@@ -72,7 +74,7 @@ if LOAD_FROM_ROOT:
     torch.save(detector_ids, os.path.join(OUTPUT, 'detector_ids_primary_only.pt'))
 detector_ids = torch.load(os.path.join(OUTPUT, 'detector_ids_primary_only.pt'))
 
-if LOAD_FROM_ROOT:
+if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'detector_ids_scatters_true.pt')):
     detector_ids_randoms_true = gate.get_detector_ids_from_root(
         paths,
         info,
@@ -119,7 +121,7 @@ recon_algorithm = OSEM(likelihood)
 recon_primaryonly = recon_algorithm(n_iters=2, n_subsets=24)
 
 # %% Reconstruction Correcting For Randoms + Scatters
-if LOAD_FROM_ROOT:
+if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'detector_ids_all_events.pt')):
     detector_ids = gate.get_detector_ids_from_root(
         paths,
         info)
@@ -129,7 +131,7 @@ detector_ids = torch.load(os.path.join(OUTPUT, 'detector_ids_all_events.pt'))
 sinogram = gate.listmode_to_sinogram(detector_ids, info)
 
 # %% Randoms
-if LOAD_FROM_ROOT:
+if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'detector_ids_delays.pt')):
     detector_ids_delays = gate.get_detector_ids_from_root(
         paths,
         info,

@@ -35,14 +35,9 @@ exclude_patterns = [
     "_build", "_generated", "**.ipynb_checkpoints",
     "index2.md",
     # Notebooks not yet listed in tutorials/tutorials.yaml
-    "notebooks/conventions.ipynb",
     "notebooks/t_CT_microct.ipynb",
-    "notebooks/t_PETGATE_LM.ipynb",
-    "notebooks/t_PETGATE_SINO.ipynb",
     "notebooks/t_dicom_algorithms.ipynb",
     "notebooks/t_fbp.ipynb",
-    "notebooks/t_quantitative.ipynb",
-    "notebooks/t_siminddata_multiorgan.ipynb",
 ]
 
 # Notebooks are rendered with their stored outputs; CI executes them separately.
