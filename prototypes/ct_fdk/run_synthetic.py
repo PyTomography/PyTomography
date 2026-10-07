@@ -19,8 +19,9 @@ import fdk_prototype
 parser = argparse.ArgumentParser()
 parser.add_argument('--rotations', type=int, default=3)
 parser.add_argument('--pitch', type=float, default=1.0)
-parser.add_argument('--taper', type=int, default=4, help='detector rows over which the row window rises')
 parser.add_argument('--apodization', default='hann', choices=['ram-lak', 'shepp-logan', 'hann'])
+parser.add_argument('--Q', type=float, default=0.6, help='WFBP: flat part of the row weight')
+parser.add_argument('--budget-gb', type=float, default=1.0, help='GPU memory budget')
 parser.add_argument('--save', default=None, help='save the reconstruction and the phantom to this .npz')
 args = parser.parse_args()
 
@@ -40,13 +41,18 @@ phantom += mu_w * 1.0 * (((X - 40) ** 2 + Y ** 2) <= 15 ** 2).float()           
 phantom -= mu_w * 0.5 * (((X + 40) ** 2 + (Y - 20) ** 2) <= 15 ** 2).float()              # -500 HU insert
 phantom += mu_w * 0.1 * ((X ** 2 + (Y + 50) ** 2 + Z ** 2) <= 10 ** 2).float()             # +100 HU sphere, 20 mm
 projections = CTGen3SystemMatrix(ObjectMeta(dr=dr, shape=shape), meta).forward(phantom.to(pytomography.device)).cpu()
-recon, t = fdk_prototype.fdk(projections, meta, shape, dr, taper_rows=args.taper, apodization=args.apodization, fov_radius=127.0)
+torch.cuda.empty_cache()
+Xg, Yg = torch.meshgrid(x.double(), x.double(), indexing='ij')
+recon, t = fdk_prototype.wfbp(projections, meta, Xg.float(), Yg.float(), z.numpy().astype(np.float64), apodization=args.apodization,
+                              Q_weight=args.Q, budget=args.budget_gb * 1e9)
+recon = recon * ((X[:, :, :1] ** 2 + Y[:, :, :1] ** 2) <= 127.0 ** 2).to(recon.device)
 recon = recon.cpu()
 hu = lambda a: 1000 * (a / mu_w - 1)
 k = 32
 x2, y2 = X[:, :, k], Y[:, :, k]
 background = ((x2 ** 2 + y2 ** 2) <= 90 ** 2) & (((x2 - 40) ** 2 + y2 ** 2) > 22 ** 2) & (((x2 + 40) ** 2 + (y2 - 20) ** 2) > 22 ** 2) & ((x2 ** 2 + (y2 + 50) ** 2) > 15 ** 2)
-print(f'{args.rotations} rotation(s), pitch {args.pitch}, {N} views; filter {t["filter_s"]:.2f} s, back projection {t["backproject_s"]:.2f} s')
+print(f'{args.rotations} rotation(s), pitch {args.pitch}, {N} views; rebin {t["rebin_s"]:.2f} s, filter {t["filter_s"]:.2f} s, back projection {t["backproject_s"]:.2f} s; '
+      f'GPU peak {max(t["rebin_peak_GB"], t["filter_peak_GB"], t["backproject_peak_GB"]):.2f} GB (budget {t["budget_GB"]:.2f} GB)')
 print(f'{"central slice":22s} {"FDK":>9s} {"truth":>9s} {"SD":>7s}')
 for name, m in (('water background', background), ('+1000 HU insert', ((x2 - 40) ** 2 + y2 ** 2) <= 10 ** 2),
                 ('-500 HU insert', ((x2 + 40) ** 2 + (y2 - 20) ** 2) <= 10 ** 2), ('+100 HU sphere', (x2 ** 2 + (y2 + 50) ** 2) <= 5 ** 2)):
