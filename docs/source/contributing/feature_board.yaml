@@ -105,15 +105,6 @@ items:
     start: io/shared/dicom_creation.py, and dicom.save_dcm for SPECT as a model.
     done: A saved reconstruction opens in 3D Slicer at the right position with correct Hounsfield units, checked by a read-back test.
 
-  - title: Filtered back projection for helical CT
-    issue: new
-    area: CT
-    level: research
-    why: A fast analytic image of a helical scan, both on its own and as a starting point for OS-SART.
-    data: TCIA case C145 and the ACR phantom from the same collection.
-    start: projectors/CT/ct_gen3_system_matrix.py and the FBP filters; helical scans need rebinning or a weighted cone-beam method.
-    done: Agrees with the scanner reconstruction of C145 in position and Hounsfield units, with a tutorial section.
-
   - title: Conjugate-gradient reconstruction
     issue: new
     area: Algorithms
