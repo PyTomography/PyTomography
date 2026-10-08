@@ -16,7 +16,7 @@ This guide describes v4.0 as planned for the 30 October 2026 release. The SPECT,
 | GATE list-mode TOF PET, 50.8 M events, OSEM 2×14 | 3.6 s | 1.3 s |
 | Peak host memory, PET single scatter simulation | 44 GB | 10.5 GB |
 
-Timings are from an RTX 5090. Reconstructions agree with v3.4 to within 1e-5 of their maximum, apart from the PET edge-of-field change described below.
+Timings are from an RTX 5090. Reconstructions agree with v3.4 to within 1e-5 of their maximum.
 
 ## Requirements
 
@@ -27,6 +27,7 @@ Timings are from an RTX 5090. Reconstructions agree with v3.4 to within 1e-5 of 
 | parallelproj (PET, CT) | 1.x | 2.x, from conda-forge |
 | pydicom | 3.0 or newer | 3.0 or newer |
 | SPECTPSFToolbox | optional | deprecated; replaced by ARF-based PSFs |
+| CuPy | not used | optional, for fast helical CT filtered back projection |
 
 ## PET: parallelproj 2 (in review)
 
@@ -37,8 +38,8 @@ Install parallelproj 2 from conda-forge as described in [Installation](install.m
 
 `system_matrix.print_memory_usage()` reports what stays on the device and the expected peak memory per subset.
 
-```{warning}
-parallelproj 2 changed how rays are clipped at the boundary of the image. With identical inputs, about a quarter of list-mode LORs differ from parallelproj 1.x, all of them rays that cross the edge of the field of view. On a GATE TOF list-mode scan the reconstruction changes by 3.9% RMS while the total activity stays within 0.2%. This has been reported upstream. Check it if your activity of interest lies near the edge of the field of view.
+```{note}
+parallelproj 2 clips rays at the faces of the image, where 1.x integrated out to one voxel beyond the outermost voxel centres. On its own that changes a GATE TOF list-mode reconstruction by 3.9% RMS. The PET system matrices therefore pad the object with one voxel of zeros, as the CT ones do, so the line integrals at the faces are those of 1.x again: the non-TOF reconstruction agrees with 1.x to 0.002% ([#251](https://github.com/PyTomography/PyTomography/pull/251), in review).
 ```
 
 ## SPECT: faster projectors, opt-in caches
@@ -56,13 +57,35 @@ If you wrote a custom `obj2obj` transform, note that the projection loops now pa
 
 ## SPECT: PSFs from ARF tables (experimental)
 
-v4 introduces PSFs built from angular response function (ARF) tables: one function takes an ARF and returns a PSF kernel at every source-detector distance the reconstruction needs. Kernels can have any shape, and the transform uses a true adjoint. In v4.0 this interface is experimental and may change. The [spectarf](https://github.com/PyTomography) generator, which builds ARF tables with GPU Monte Carlo, ships with v4.1.
+v4 introduces PSFs built from angular response function (ARF) tables: one function takes an ARF and returns a PSF kernel at every source-detector distance the reconstruction needs. Kernels can have any shape, and the transform uses a true adjoint. In v4.0 this interface is experimental and may change. The [spectarf](https://github.com/PyTomography) generator, which builds ARF tables with GPU Monte Carlo, ships with v4.0 as its own package.
 
 The Gaussian PSF from `get_psfmeta_from_scanner_params` still works. SPECTPSFToolbox operators still work in v4.0 but are deprecated and will be removed in v4.1.
 
+## Filtered back projection: one class for SPECT and CT (in review)
+
+`FilteredBackProjection` works again ([#227](https://github.com/PyTomography/PyTomography/issues/227)), now for SPECT with parallel-hole collimators, for 3rd-generation helical CT (weighted FBP, with or without a flying focal spot) and for cone-beam CT (FDK) ([#263](https://github.com/PyTomography/PyTomography/pull/263)). Give it the projections and the system matrix, then call it:
+
+```python
+from pytomography.algorithms import FilteredBackProjection
+
+image = FilteredBackProjection(projections, system_matrix, filter='hann')()
+```
+
+It ignores the system matrix's transforms, so there is no attenuation, PSF or scatter correction. `filter` is one of `'ram-lak'`, `'shepp-logan'`, `'hann'`, `'hamming'` and `'cosine'`, a window with a cut-off such as `HannFilter(cutoff=0.8)`, or any function of frequency in cycles per mm. For example, a SPECT Butterworth filter with a cut-off of 0.5 cycles/cm and order 5 is `lambda f: 1 / torch.sqrt(1 + (f / 0.05) ** 10)`. With CuPy installed, the helical CT back projection runs as a fused CUDA kernel, which is much faster.
+
+The old FBP interface is removed:
+
+| v3.4 | v4.0 |
+|---|---|
+| `FilteredBackProjection(proj, angles)(...)` | `FilteredBackProjection(proj, system_matrix, filter='ram-lak')()` |
+| `utils.RampFilter()` | `filter='ram-lak'` |
+| `utils.HammingFilter(...)` | `filter='hamming'` |
+| `system_matrix.backward(proj, projection_type='FBP')` (cone beam) | `FilteredBackProjection(proj, system_matrix, filter='ram-lak')()` |
+| `system_matrix.forward(..., FBP_post_weight=..., projection_type=...)` (cone beam) | removed |
+
 ## Fixes planned for v4.0
 
-- `FilteredBackProjection` no longer crashes ([#227](https://github.com/PyTomography/PyTomography/issues/227)).
+- `FilteredBackProjection` works again, for SPECT and CT ([#227](https://github.com/PyTomography/PyTomography/issues/227), see above).
 - `save_dcm(..., scale_by_number_projections=True)` no longer writes values N<sub>proj</sub> times too large ([#230](https://github.com/PyTomography/PyTomography/issues/230)). **If you saved DICOM files this way with v3.4, check their values.**
 - SPECT DICOM rescale tags are applied when reading projections ([#232](https://github.com/PyTomography/PyTomography/issues/232)).
 - Multi-bed reading works with pydicom 3.

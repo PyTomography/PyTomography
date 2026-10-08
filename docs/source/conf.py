@@ -36,7 +36,6 @@ exclude_patterns = [
     "index2.md",
     # Notebooks not yet listed in tutorials/tutorials.yaml
     "notebooks/t_dicom_algorithms.ipynb",
-    "notebooks/t_fbp.ipynb",
 ]
 
 # Notebooks are rendered with their stored outputs; CI executes them separately.

@@ -42,15 +42,6 @@ items:
     start: io/SPECT/simind.py
     done: Both columns are read, and a test checks them against a sample .cor file.
 
-  - title: Filtered back projection for SPECT
-    issue: 227
-    area: SPECT
-    level: intermediate
-    why: FilteredBackProjection hands the work to each system matrix's own filtered back projection (pull request 263). CT has one; SPECT doesn't yet, so FBP on SPECT data stops with a "not implemented" error.
-    data: A phantom forward projected in the test, then SPECT/SIMIND-Jaszak.
-    start: algorithms/fbp.py and the CT system matrices' _fbp in pull request 263 as the model, and projectors/SPECT/spect_system_matrix.py.
-    done: SPECTSystemMatrix._fbp ramp-filters the projections along the radial axis, back projects without attenuation or PSF transforms and scales by pi over the number of projections, with a test on a forward-projected phantom that checks values and resolution.
-
   - title: Restore the motion Jacobian correction
     issue: 229
     area: Algorithms
