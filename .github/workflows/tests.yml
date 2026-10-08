@@ -5,7 +5,8 @@ name: Tests
 #   conda     adds parallelproj 2 (only on conda-forge), so the PET, CT and scatter projector tests run too
 #   data      the regression tests on tutorial data, downloaded from Zenodo once and then cached
 #   examples  the plain-script versions in examples/ match the tutorial notebooks
-# Tests that need CUDA skip themselves here; gpu.yml runs everything on a GPU before a pull request merges.
+# Tests that need CUDA skip themselves here, so merges never wait for a GPU. gpu.yml runs everything on a GPU, once a
+# GPU runner is set up.
 
 on:
   pull_request:

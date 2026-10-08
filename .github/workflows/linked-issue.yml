@@ -1,0 +1,34 @@
+name: Linked issue
+
+# Every pull request closes an issue, so each change has a recorded reason that can be discussed before the code.
+# The description must say "Closes #123" (or Fixes / Resolves, or the issue's full URL). For a trivial change a
+# maintainer can waive this with the "no-issue" label. See CONTRIBUTING.md.
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize, labeled, unlabeled]
+  merge_group:  # already checked on the pull request; passes here so the merge queue never waits on it
+
+jobs:
+  linked-issue:
+    name: Pull request closes an issue
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the description names the issue it closes
+        if: github.event_name == 'pull_request'
+        env:
+          # passed through the environment, never pasted into the script, so a description can't inject commands
+          BODY: ${{ github.event.pull_request.body }}
+          LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: |
+          if printf '%s' "$LABELS" | grep -q '"no-issue"'; then
+            echo "Waived by a maintainer with the no-issue label."
+            exit 0
+          fi
+          pattern='\b(close[sd]?|fix(e[sd])?|resolve[sd]?):?[[:space:]]+(#[0-9]+|https://github\.com/[^/[:space:]]+/[^/[:space:]]+/issues/[0-9]+)'
+          if printf '%s' "$BODY" | grep -Eiq "$pattern"; then
+            echo "The description closes: $(printf '%s' "$BODY" | grep -Eio "$pattern" | head -3 | tr '\n' ' ')"
+          else
+            echo "::error::Add the issue this pull request closes to its description, e.g. 'Closes #123'. If there is no issue yet, open one first."
+            exit 1
+          fi
