@@ -1,0 +1,250 @@
+# The images each tutorial exports for the docs' 3D viewer. After a tutorial runs, docs/tools/run_tutorials.py runs
+# one more cell in the same kernel (docs/tools/viewer_export.py), which evaluates the expressions below in the
+# notebook's own namespace, so no notebook is changed. A tutorial missing here gets no viewer.
+#
+#   title, description:  shown above the viewer
+#   credit:              the data's source and licence, shown with the images
+#   setup:               optional Python run first, for imports the expressions need
+#   max_mb:              optional size budget (default 15 MB); larger CTs are averaged down to fit
+#   layers:              the images, drawn bottom to top. The first SPECT or PET layer is shown first; the others
+#                        can be picked in the viewer. Each layer has:
+#     name:       short name ("CT", "OSEM"), also the file name
+#     label:      optional longer name, shown in the picker and the readout
+#     kind:       ct (HU) | mr | mu (attenuation map) | spect | pet
+#     array:      expression for the 3D image (torch or numpy, axes x, y, z as PyTomography stores them), or for a
+#                 tuple (image, affine)
+#     affine:     expression for its 4 x 4 voxel-to-scanner matrix in mm, in DICOM's LPS axes as PyTomography uses
+#                 (`space: ras` for NIfTI's). `affine_scale: 10` converts one in cm.
+#     units:      shown in the readout
+#     colormap, range, opacity, window (ct: phantom | soft | bone | lung | full): display defaults. SPECT and PET
+#                 default to inferno from 0 to their hottest voxel.
+#     crop:       body (CT default: where the image is above -500 HU, else 2% of its maximum) | base (SPECT and PET
+#                 default: the anatomy's extent) | none
+#     voxel_mm:   average down to about this voxel size (downsample: an integer factor instead);
+#     slices:     per-axis "a:b", to keep part of the array
+#
+# Helpers in expressions: vx.ct_dicom(files) gives (HU, affine); vx.spect_affine(file_NM); vx.centred(dr_mm, shape);
+# vx.object_affine(object_meta) (PET, CT: dr in mm); vx.simind_affine(object_meta) (dr in cm); vx.flip_axis(A, n, axis); vx.nifti_centred(path, step_mm). See viewer_export.py.
+
+tutorials:
+
+  # ---------- SPECT ----------
+  t_siminddata:
+    title: SIMIND Jaszczak phantom
+    description: Lu-177, OSEM with attenuation, PSF and scatter
+    credit: Monte Carlo data simulated with SIMIND (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
+    layers:
+    - {name: Attenuation, kind: mu, array: amap, affine: vx.simind_affine(object_meta), units: 1/cm}
+    - {name: OSEM, kind: spect, array: reconstructed_image, affine: vx.simind_affine(object_meta), units: counts}
+
+  t_dicomdata:
+    title: Lu-177 NEMA phantom
+    description: OSEM 4 × 8 with attenuation, PSF and scatter, next to the scanner's reconstruction
+    credit: Siemens Symbia T2 scan of a NEMA IQ phantom (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
+    layers:
+    - {name: CT, kind: ct, array: vx.ct_dicom(files_CT), window: phantom, units: HU}
+    - {name: OSEM, label: PyTomography OSEM 4 × 8, kind: spect, array: reconstructed_object, affine: object_meta.affine_matrix, units: counts}
+    - {name: Vendor, label: Scanner's reconstruction, kind: spect, array: recon_vendor, affine: object_meta.affine_matrix, units: counts}
+
+  t_algorithms:
+    title: Lu-177 NEMA phantom, four algorithms
+    description: BSREM, OSEM, OSMAPOSL and KEM on the same projections
+    credit: Siemens Symbia T2 scan of a NEMA IQ phantom (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
+    layers:
+    - {name: CT, kind: ct, array: vx.ct_dicom(files_CT), window: phantom, units: HU}
+    - {name: BSREM, kind: spect, array: recon_bsrem, affine: object_meta.affine_matrix, units: counts}
+    - {name: OSEM, kind: spect, array: recon_OSEM, affine: object_meta.affine_matrix, units: counts}
+    - {name: OSMAPOSL, kind: spect, array: recon_osmaposl, affine: object_meta.affine_matrix, units: counts}
+    - {name: KEM, kind: spect, array: recon_kem, affine: object_meta.affine_matrix, units: counts}
+
+  t_dicommultibed:
+    title: Lu-177-PSMA patient, two bed positions
+    description: Both beds reconstructed and stitched into one volume
+    credit: GE Discovery patient scan (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
+    layers:
+    - {name: CT, kind: ct, array: vx.ct_dicom(files_CT), window: soft, units: HU, voxel_mm: 2}
+    - {name: SPECT, label: Stitched OSEM, kind: spect, array: recon_stitched, affine: "vx.spect_affine(files_NM[1])", units: counts}
+
+  t_dualpeak:
+    title: Lu-177 NEMA phantom, two photopeaks
+    description: One reconstruction from the 113 keV and 208 keV windows together
+    credit: Siemens Symbia T2 scan of a NEMA IQ phantom (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
+    layers:
+    - {name: CT, kind: ct, array: vx.ct_dicom(files_CT), window: phantom, units: HU}
+    - {name: OSEM, label: "OSEM, both photopeaks", kind: spect, array: recon_OSEM, affine: object_meta.affine_matrix, units: MBq·s}
+
+  t_uncertainty_spect:
+    title: Lu-177-PSMA patient
+    description: The two-bed reconstruction whose uncertainty the tutorial estimates
+    credit: GE Discovery patient scan (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
+    layers:
+    - {name: CT, kind: ct, array: vx.ct_dicom(files_CT), window: soft, units: HU, voxel_mm: 2}
+    - {name: SPECT, label: Stitched OSEM, kind: spect, array: reconstructed_image_multibed, affine: "vx.spect_affine(files_NM[1])", units: counts}
+
+  t_spect_mc:
+    title: SIMIND Jaszczak phantom, Monte Carlo scatter
+    description: Scatter estimated by SIMIND inside the reconstruction, next to the analytical model
+    credit: Monte Carlo data simulated with SIMIND (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
+    layers:
+    - {name: Attenuation, kind: mu, array: amapIsotopeEnergy, affine: vx.simind_affine(object_meta), units: 1/cm}
+    - {name: MC, label: Monte Carlo scatter, kind: spect, array: recon_MC, affine: vx.simind_affine(object_meta), units: counts}
+    - {name: Analytical, label: Analytical scatter, kind: spect, array: recon_analytical, affine: vx.simind_affine(object_meta), units: counts}
+
+  t_spect_mc2:
+    title: Lu-177 NEMA phantom, Monte Carlo scatter
+    description: Scatter estimated by SIMIND inside the reconstruction of a measured scan
+    credit: Siemens Symbia T2 scan of a NEMA IQ phantom (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
+    layers:
+    - {name: CT, kind: ct, array: vx.ct_dicom(files_CT), window: phantom, units: HU}
+    - {name: MC, label: Monte Carlo scatter, kind: spect, array: recon_MC, affine: object_meta.affine_matrix, units: MBq·s}
+
+  t_starguide:
+    title: Tc-99m NEMA phantom, GE StarGuide
+    description: PyTomography's reconstruction next to the scanner's
+    credit: GE StarGuide scan of a NEMA IQ phantom (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
+    setup: from pytomography.io.SPECT import dicom
+    layers:
+    # StarGuide's frame is centred on the scan, in cm; the reconstruction runs head to foot
+    - {name: CT, kind: ct, array: dicom.open_multifile(files_CT), affine: dicom.get_starguide_affine_CT(files_CT), affine_scale: 10, window: phantom, units: HU}
+    - {name: OSEM, label: PyTomography OSEM, kind: spect, array: recon_pytomography, units: counts/s,
+       affine: "vx.flip_axis(vx.centred([10 * d for d in object_meta.dr], object_meta.shape), object_meta.shape[2], 2)"}
+    - {name: Vendor, label: Scanner's reconstruction, kind: spect, array: recon_vendor, units: counts/s,
+       affine: "vx.flip_axis(vx.centred([10 * d for d in object_meta.dr], object_meta.shape), object_meta.shape[2], 2)"}
+
+  t_ac225_simind_recon:
+    title: Ac-225 Jaszczak phantom (SIMIND)
+    description: The full PSF model, with penetration and scatter in the collimator, next to a Gaussian PSF
+    credit: Monte Carlo data simulated with SIMIND (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
+    layers:
+    - {name: Attenuation, kind: mu, array: amap, affine: vx.simind_affine(object_meta), units: 1/cm}
+    - {name: Full PSF, kind: spect, array: recon_1Dfit, affine: vx.simind_affine(object_meta), units: counts}
+    - {name: Gaussian PSF, kind: spect, array: reconbad, affine: vx.simind_affine(object_meta), units: counts}
+
+  t_ac225_dicom_recon:
+    title: Ac-225 NEMA phantom
+    description: The full PSF model on a measured scan, smoothed with a 2 cm Gaussian, and unsmoothed
+    credit: Siemens Symbia T2 scan of a NEMA IQ phantom (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
+    layers:
+    - {name: CT, kind: ct, array: CT, affine: affine_CT, window: phantom, units: HU}
+    - {name: Smoothed, label: Smoothed (2 cm FWHM), kind: spect, array: recon_smoothed, affine: affine_SPECT, units: counts}
+    - {name: Unsmoothed, kind: spect, array: recon, affine: affine_SPECT, units: counts}
+
+  t_CardiacReorientation:
+    title: Tc-99m myocardial perfusion
+    description: The reconstruction before it is turned to the short axis (no CT; no attenuation correction)
+    credit: Patient scan (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
+    layers:
+    - {name: SPECT, label: OSEM, kind: spect, array: recon, affine: object_meta.affine_matrix, units: counts}
+
+  # ---------- PET ----------
+  t_pet_introduction:
+    title: FDG brain phantom (GATE, Siemens mMR)
+    description: The same true coincidences reconstructed as list mode and as sinograms, over the phantom's MR
+    credit: GATE simulation of the BigBrain FDG phantom (Belzunce and Reader 2020, Zenodo 8045458, CC BY 4.0)
+    setup: import os
+    layers:
+    - {name: MR, kind: mr, array: "vx.nifti_centred(os.path.join(path, 'fdg_pet_phantom_mri.nii.gz'), 2.0)", crop: body, units: a.u.}
+    - {name: List mode, kind: pet, array: recon_lm, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: Sinogram, kind: pet, array: recon_sino, affine: vx.object_affine(object_meta), units: a.u.}
+
+  t_PETGATE_scat_sino:
+    title: FDG brain phantom, sinogram with scatter
+    description: Non-TOF sinogram reconstruction with scatter and randoms correction, next to the true coincidences only
+    credit: GATE simulation of the BigBrain FDG phantom (Belzunce and Reader 2020, Zenodo 8045458, CC BY 4.0)
+    setup: import os
+    layers:
+    - {name: MR, kind: mr, array: "vx.nifti_centred(os.path.join(path, 'fdg_pet_phantom_mri.nii.gz'), 2.0)", crop: body, units: a.u.}
+    - {name: Corrected, label: Scatter and randoms corrected, kind: pet, array: recon_sinogram_noTOF, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: Trues, label: True coincidences only, kind: pet, array: recon_primaryonly, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: Uncorrected, label: No scatter correction, kind: pet, array: recon_without_scatter_estimation, affine: vx.object_affine(object_meta), units: a.u.}
+
+  t_PETGATE_scat_sinoTOF:
+    title: FDG brain phantom, TOF sinogram with scatter
+    description: Time-of-flight sinogram reconstruction with TOF scatter estimation
+    credit: GATE simulation of the BigBrain FDG phantom (Belzunce and Reader 2020, Zenodo 8045458, CC BY 4.0)
+    setup: import os
+    layers:
+    - {name: MR, kind: mr, array: "vx.nifti_centred(os.path.join(path, 'fdg_pet_phantom_mri.nii.gz'), 2.0)", crop: body, units: a.u.}
+    - {name: Corrected, label: Scatter and randoms corrected, kind: pet, array: recon_sinogram_TOF, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: Trues, label: True coincidences only, kind: pet, array: recon_primaryonly, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: Uncorrected, label: No scatter correction, kind: pet, array: recon_without_scatter_estimation, affine: vx.object_affine(object_meta), units: a.u.}
+
+  t_PETGATE_scat_lm:
+    title: FDG brain phantom, list mode with scatter
+    description: Non-TOF list-mode reconstruction with scatter and randoms correction
+    credit: GATE simulation of the BigBrain FDG phantom (Belzunce and Reader 2020, Zenodo 8045458, CC BY 4.0)
+    setup: import os
+    layers:
+    - {name: MR, kind: mr, array: "vx.nifti_centred(os.path.join(path, 'fdg_pet_phantom_mri.nii.gz'), 2.0)", crop: body, units: a.u.}
+    - {name: Corrected, label: Scatter and randoms corrected, kind: pet, array: recon_lm_nontof, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: Trues, label: True coincidences only, kind: pet, array: recon_primaryonly, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: Uncorrected, label: No scatter correction, kind: pet, array: recon_without_scatter_estimation, affine: vx.object_affine(object_meta), units: a.u.}
+
+  t_PETGATE_scat_lmTOF:
+    title: FDG brain phantom, TOF list mode with scatter
+    description: Time-of-flight list-mode reconstruction with TOF scatter estimation
+    credit: GATE simulation of the BigBrain FDG phantom (Belzunce and Reader 2020, Zenodo 8045458, CC BY 4.0)
+    setup: import os
+    layers:
+    - {name: MR, kind: mr, array: "vx.nifti_centred(os.path.join(path, 'fdg_pet_phantom_mri.nii.gz'), 2.0)", crop: body, units: a.u.}
+    - {name: Corrected, label: Scatter and randoms corrected, kind: pet, array: recon_lm_tof, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: Trues, label: True coincidences only, kind: pet, array: recon_primaryonly, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: Uncorrected, label: No scatter correction, kind: pet, array: recon_without_scatter_estimation, affine: vx.object_affine(object_meta), units: a.u.}
+
+  t_GE_HDF5:
+    title: NEMA IQ phantom, GE Discovery MI
+    description: BSREM and OSEM from the scanner's list mode, with time of flight
+    credit: GE Discovery MI NEMA scan (Schramm, Zenodo 8404015, CC BY 4.0)
+    layers:
+    - {name: BSREM, kind: pet, array: recon_BSREM, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: OSEM, kind: pet, array: recon_OSEM, affine: vx.object_affine(object_meta), units: a.u.}
+
+  t_uncertainty_pet:
+    title: NEMA IQ phantom, GE Discovery MI
+    description: The OSEM reconstruction whose uncertainty the tutorial estimates
+    credit: GE Discovery MI NEMA scan (Schramm, Zenodo 8404015, CC BY 4.0)
+    layers:
+    - {name: OSEM, kind: pet, array: recon_OSEM, affine: vx.object_affine(object_meta), units: a.u.}
+
+  t_PETGATE_DIP:
+    title: FDG brain phantom, Deep Image Prior
+    description: The network's image next to TOF list-mode OSEM, over the MR it was conditioned on
+    credit: GATE simulation of the BigBrain FDG phantom (Belzunce and Reader 2020, Zenodo 8045458, CC BY 4.0)
+    layers:
+    - {name: MR, kind: mr, array: mri_aligned, affine: vx.object_affine(object_meta), crop: body, units: a.u.}
+    - {name: DIP, label: Deep Image Prior, kind: pet, array: recon_DIP, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: OSEM, label: TOF list-mode OSEM, kind: pet, array: recon_lm_tof, affine: vx.object_affine(object_meta), units: a.u.}
+
+  # ---------- CT ----------
+  t_CT_GEN3:
+    title: Chest CT from raw projections
+    description: OS-SART on the scanner's raw projections, in HU
+    credit: TCIA LDCT-and-Projection-data, case C145 (CC BY 4.0; see TCIA's data usage policy)
+    credit_url: https://www.cancerimagingarchive.net/collection/ldct-and-projection-data/
+    layers:
+    # the reconstruction runs head to foot from the mean table position; the first and last 12 slices lack coverage
+    - name: CT
+      label: OS-SART
+      kind: ct
+      array: hu
+      affine: "np.array([[object_meta.dr[0], 0, 0, -(Nx - 1) / 2 * object_meta.dr[0]], [0, object_meta.dr[1], 0, -(Ny - 1) / 2 * object_meta.dr[1]], [0, 0, -object_meta.dr[2], source_z_mean + (Nz - 1) / 2 * object_meta.dr[2]], [0, 0, 0, 1]])"
+      slices: [":", ":", "12:-12"]
+      window: soft
+      voxel_mm: 2
+      units: HU
+
+  t_CT_microct:
+    title: Glass beads, cone-beam micro-CT
+    description: OS-SART started from FDK, as attenuation per mm
+    credit: SophiaBeads Dataset Project (Coban and McDonald 2015, Zenodo 16474, CC BY-SA 4.0); these images are CC BY-SA 4.0 too
+    layers:
+    - {name: SART, label: OS-SART, kind: mu, array: recon_sart, affine: "vx.centred(system_matrix.object_meta.dr, recon_sart.shape)", units: 1/mm, downsample: 3}
+
+  # ---------- Building with PyTomography ----------
+  t_plotting:
+    title: Lu-177-PSMA patient
+    description: The stitched two-bed reconstruction that the plotting examples draw
+    credit: GE Discovery patient scan (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
+    layers:
+    - {name: CT, kind: ct, array: CT, affine: affine_CT, window: soft, units: HU, voxel_mm: 2}
+    - {name: SPECT, kind: spect, array: SPECT, affine: affine_SPECT, units: counts}

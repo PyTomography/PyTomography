@@ -27,6 +27,7 @@ extensions = [
     "sphinx_copybutton",
     "autoapi.extension",
     "pytomo_docs",                  # _ext/pytomo_docs.py: gallery, launch bars, llms.txt
+    "pytomo_viewer",                # _ext/pytomo_viewer.py: the 3D image viewer on tutorial pages and cards
 ]
 
 source_suffix = {".rst": "restructuredtext", ".md": "myst-nb", ".ipynb": "myst-nb"}
