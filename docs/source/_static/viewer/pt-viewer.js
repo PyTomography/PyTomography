@@ -214,7 +214,7 @@
       `<label class="ptv-check"><input type="checkbox" id="${id('interp')}" checked> Smooth display (Gaussian interpolation)</label>` +
       `<button type="button" class="ptv-btn ptv-reset" id="${id('reset')}">Reset</button>` +
       `<p class="ptv-note">Smooth display draws each SPECT or PET image as matplotlib's <code>interpolation="gaussian"</code> does (σ = half a voxel); ` +
-      `CT is drawn bilinearly. Smoothing is a separate 3D Gaussian, with this full width at half maximum, applied to that image's data. ` +
+      `CT is drawn bilinearly. Smoothing is a separate 3D Gaussian, with this full width at half maximum, applied to that image's data; the upper limit follows the smoothed image until you set it yourself. ` +
       `Values at or below the lower limit of the colour image are see-through.</p>` +
       `<p class="ptv-err" id="${id('err')}" role="status" aria-live="polite"></p></aside></div>`;
     const $ = s => document.getElementById(id(s));
@@ -295,7 +295,7 @@
       const w = m.kind === 'ct' && CT_WINDOWS.find(x => x[0] === m.window);
       if (w) range = [w[2], w[3]];
       return {cmap: LUT[m.colormap] ? m.colormap : over ? 'inferno' : 'gray', lo: range[0], hi: range[1],
-        op: m.opacity != null ? m.opacity : over ? (hasBase ? 0.5 : 1) : 1, fwhm: 0};
+        op: m.opacity != null ? m.opacity : over ? (hasBase ? 0.5 : 1) : 1, fwhm: 0, hiAuto: true};
     }
     // images in one scale group (the same units, as the export decides) share their settings, so switching between
     // them keeps the colour scale, and the same colour means the same value
@@ -526,18 +526,64 @@
     });
 
     // ---------- Smoothing (FWHM in mm) of a layer, in a worker, from the unsmoothed data ----------
+    // One job at a time: while the worker is busy, only the newest request waits, so dragging the slider over a
+    // large CT doesn't queue a job for every step.
     const gWorker = mkWorker(SMOOTH_SRC), pending = LAY.map(() => 0), asked = LAY.map(() => 0);
+    let gBusy = false, gNext = null;
     function smooth(li, fwhm) {
       const L = LAY[li], tag = ++pending[li];
       L.set.fwhm = fwhm; asked[li] = fwhm;
-      if (!(fwhm > 0) || !gWorker) { L.smoothed = 0; if (L.base !== L.img) { L.base = L.img; L.ver++; invalidate(); mipData(li); } return; }
-      gWorker.postMessage({tag: li * 65536 + tag, data: L.img.slice(), dims: L.dims, sig: L.pd.map(p => fwhm / 2.3548 / p)});
+      if (!(fwhm > 0) || !gWorker) {
+        L.smoothed = 0;
+        if (gNext && gNext.li === li) gNext = null;
+        if (L.base !== L.img) { L.base = L.img; L.ver++; followHi(li); invalidate(); mipData(li); }
+        return;
+      }
+      const job = {tag: li * 65536 + tag, li, dims: L.dims, sig: L.pd.map(p => fwhm / 2.3548 / p)};
+      if (gBusy) { gNext = job; return; }
+      runJob(job);
+    }
+    function runJob(job) {
+      gBusy = true;
+      gWorker.postMessage({tag: job.tag, data: LAY[job.li].img.slice(), dims: job.dims, sig: job.sig});
     }
     if (gWorker) gWorker.onmessage = e => {
       const {tag, data} = e.data, li = Math.floor(tag / 65536);
+      gBusy = false;
+      if (gNext && alive) { const j = gNext; gNext = null; runJob(j); }
       if (!alive || !LAY[li] || tag % 65536 !== pending[li]) return;
-      LAY[li].base = data; LAY[li].smoothed = asked[li]; LAY[li].ver++; invalidate(); mipData(li);
+      LAY[li].base = data; LAY[li].smoothed = asked[li]; LAY[li].ver++; followHi(li); invalidate(); mipData(li);
     };
+    // Smoothing lowers peaks. While the reader hasn't set the upper limit, it follows: scaled by how much the hottest
+    // spot (the starting point, or this image's hottest voxel) drops, so smoothed spheres keep their brightness and
+    // visibly spread, instead of only dimming.
+    function hotMm(L) {
+      if (!L.hot) { let k = 0; for (let i = 1; i < L.img.length; i++) if (L.img[i] > L.img[k]) k = i;
+        const d = L.dims, ijk = [k % d[0], Math.floor(k / d[0]) % d[1], Math.floor(k / (d[0] * d[1]))];
+        L.hot = [0, 1, 2].map(a => L.aff[a][a] * ijk[a] + L.aff[a][3]); }
+      return L.hot;
+    }
+    function meanAt(arr, L, mm) {   // the mean over the 3 x 3 x 3 voxels around a point
+      const a = L.aff, d = L.dims, c = [0, 1, 2].map(ax => Math.round((mm[ax] - a[ax][3]) / a[ax][ax]));
+      let s = 0, n = 0;
+      for (let k = c[2] - 1; k <= c[2] + 1; k++) for (let j = c[1] - 1; j <= c[1] + 1; j++) for (let i = c[0] - 1; i <= c[0] + 1; i++) {
+        if (i < 0 || j < 0 || k < 0 || i >= d[0] || j >= d[1] || k >= d[2]) continue;
+        s += arr[i + d[0] * (j + d[1] * k)]; n++;
+      }
+      return n ? s / n : NaN;
+    }
+    function followHi(li) {
+      const L = LAY[li];
+      if (L.role !== 'overlay' || !L.set.hiAuto) return;
+      const start = Array.isArray(man.start_mm) && Number.isFinite(meanAt(L.img, L, man.start_mm)) ? man.start_mm : hotMm(L);
+      const before = meanAt(L.img, L, start), after = meanAt(L.base, L, start);
+      const r = L.base === L.img || !(before > 0) ? 1 : after / before;
+      L.set.hi = defaults(L).hi * r;
+      LAY.forEach(M => { if (M.set === L.set) M.ver++; });
+      const c = cardO;
+      if (c && sel.overlay === li) c.show();
+      drawStatus(); requestMip();
+    }
 
     // ---------- 3D view ----------
     const mWorker = mkWorker(MIP_SRC), mipCv = $('mip'), mipOff = document.createElement('canvas');
@@ -677,7 +723,7 @@
         const L = cur(), ok = Number.isFinite(lo) && Number.isFinite(hi) && lo < hi;
         ['Lo', 'Hi'].forEach(k => E(k).setAttribute('aria-invalid', String(!ok)));
         if (!ok) { err('The lower limit must be below the upper limit.'); return; }
-        err(''); L.set.lo = lo; L.set.hi = hi; changed(L);
+        err(''); L.set.lo = lo; L.set.hi = hi; L.set.hiAuto = false; changed(L);
         if (E('Win')) { const hit = windows(L).find(w => w[2] === lo && w[3] === hi); E('Win').value = hit ? hit[0] : 'custom'; }
       }
       on(E('LoR'), 'input', () => { E('Lo').value = String(+(+E('LoR').value).toPrecision(6)); limits(+E('LoR').value, parseFloat(E('Hi').value)); });
