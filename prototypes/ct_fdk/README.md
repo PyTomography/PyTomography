@@ -18,10 +18,33 @@ pull request that adds this folder holds the implementation plan.
 cd prototypes/ct_fdk
 python run_synthetic.py --rotations 3 --pitch 1
 python audit_geometry.py <projections> "as read" "central column -0.5" "z shift sign flipped" --cache scan.pt
-python run_vendor_match.py <C145 projections> <C145 full dose images> --cache c145.pt --central-column-offset -0.42
+python run_vendor_match.py <C145 projections> <C145 full dose images> --cache c145.pt --central-column-offset -1.5
 python channel_correction.py <volume on the scanner grid, every slice> <C145 full dose images> --mu-water 0.0186 --exclude=-215,-145 --out c145_fit.json
-python run_vendor_match.py <C145 projections> <C145 full dose images> --cache c145.pt --central-column-offset -0.42 --low-signal 30 --channel-correction c145_fit.json
+python run_vendor_match.py <C145 projections> <C145 full dose images> --cache c145.pt --central-column-offset -1.5 --low-signal 30 --channel-correction c145_fit.json
 ```
+
+## Update, 8 Oct: the GE central column is 888 - tag
+
+The GE central column is **443.25 = 888 - DetectorCentralElement** (the tag counted from the other end of the
+detector, from zero), not 444.33 as the geometry audit below concluded. Reconstructing the views with the focal spot in
+either half of the turn separately gives two complete images, one from each side; they coincide only with the right
+column. With 444.33 they lie 1.4 mm apart (C145, C001), which blurs every edge; with 443.25 they agree to 0.06 mm on
+both scans, and a Siemens scan agrees with its tag as stored. The test needs no scanner image and reads 0.07 mm on exact
+simulated projections. The audit's residual moves by a few tenths of a percent and was never scanned below -1.
+
+With 443.25:
+
+- the 0.16 deg rotation (step 4) disappears: it compensated for the column error (-0.007 deg without it);
+- the "inverted response above 0.4 cycles/mm" (step 5) was the same error: the scanner's window relative to our
+  Ram-Lak is a smooth roll-off (1 up to 0.39 cycles/mm, 0.78 at 0.52, 0.25 at 0.71);
+- with that window our noise is the scanner's own noise (correlated at +0.93 to +0.6 across frequencies), noise SD
+  38 HU (scanner 41), skin edge 1.58 mm (scanner 1.63; 2.40 before), RMS difference 29 HU over the body (74 to 88
+  before), 5 to 8 HU after a 2 mm blur;
+- the per-channel scale (step 8) is still needed, and C145's coefficients take C001's radial trend from +34 / -27 HU
+  to within 10 HU (C001's own fit: -0.0169, +0.0223).
+
+The package (#263) reads the GE column this way automatically. The steps below are recorded as they were made, with
+444.33 and 0.161 deg; with this prototype use `--central-column-offset -1.5` and no angle offset.
 
 ## GPU memory
 
@@ -97,7 +120,7 @@ is over the body.
   it is removed with a phase ramp, whose sign is checked on the data). It is flat to 0.2 cycles/mm, 0.70 at 0.3 and
   zero at 0.4. Above 0.4 cycles/mm the scanner image follows ours with the sign inverted (-0.25 at 0.55 cycles/mm,
   coherence 0.36 to 0.39), which no smooth reconstruction window does. The prototype applies the estimate clipped at
-  zero.
+  zero. (8 Oct: the inversion was the central column error; see the update above.)
 - **Step 7** (`low_signal.py`) removes most of the streaks between the shoulders; see below.
 - **Step 8** (`channel_correction.py`) removes the radial trend: the soft-tissue difference from the scanner goes from
   +25 HU at the centre and -25 HU at 160 to 180 mm to within +-7 HU (one 20 mm band at -12 HU), and fat, lung and soft
@@ -110,6 +133,8 @@ is over the body.
 - A small difference in sharpness: ours is slightly softer in-plane (delta sigma^2 = +0.39 mm^2) and slightly sharper in
   z (-0.37 mm^2), which leaves a rim at the skin and fine texture on edges; and a 0.02 deg rotation.
 - The scanner's high-frequency noise texture (43 HU against our 24 HU), and its inverted response above 0.4 cycles/mm.
+  (8 Oct: the sharpness and the inverted response were the central column, the texture the clipped kernel estimate;
+  see the update above.)
 - Faint z banding: our soft-tissue slice means vary by 2.5 HU from slice to slice (the scanner's by 1.5 HU), most
   strongly at periods near the half-turn table feed (20 mm). The WFBP row weighting is the likely source.
 
@@ -212,5 +237,6 @@ Nothing that varies from view to view is ignored. The conventions were then test
   comparison confirms it (step 3 above). Counting the tag from the other end of the detector would give 444.25; for
   the Siemens scan that rule is clearly wrong, and half a channel either way changes its residual by 0.3%, the same
   both ways, so the Siemens tag stands. Until this is confirmed against GE's documentation, both scripts take
-  `--central-column-offset`.
+  `--central-column-offset`. **Corrected 8 Oct:** the column is 888 - tag (offset -1.5), zero-based from the other
+  end; this residual was too shallow to place it (see the update above).
 - **Central row:** a weak preference for +0.5 to +0.7 rows (0.2%). Not conclusive.

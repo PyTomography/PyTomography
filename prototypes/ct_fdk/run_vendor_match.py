@@ -5,7 +5,8 @@ each measured against it on the scanner's grid. GPU memory stays within --budget
 
 Steps (each adds one correction): WFBP on a 1 mm grid; on the scanner grid; the in-plane registration to the scanner
 image (scale, rotation, shift) and a focal spot angle offset that removes the rotation; the scanner's kernel estimated
-from the images; 1.25 mm slices. Reports tissue class means, the radial trend in soft tissue, the RMS difference from
+from the images; 1.25 mm slices. With the GE central column (-1.5) the rotation, and so the angle offset, is about
+zero. Reports tissue class means, the radial trend in soft tissue, the RMS difference from
 the scanner image, noise, timings and the measured GPU peak.
 """
 import argparse
@@ -34,7 +35,7 @@ parser.add_argument('--budget-gb', type=float, default=1.5)
 parser.add_argument('--start-at', type=int, default=1, help='first step to run; earlier results are read from --out')
 parser.add_argument('--angle-offset-deg', type=float, default=None, help='with --start-at 4 or later: the offset step 3 found '
                     '(default: read from --out)')
-parser.add_argument('--central-column-offset', type=float, default=0.0, help='channels added to the DetectorCentralElement column')
+parser.add_argument('--central-column-offset', type=float, default=0.0, help='channels added to the DetectorCentralElement column (GE: -1.5, that is 888 - tag; see README)')
 parser.add_argument('--low-signal', type=float, default=0.0, help='filter photon-starved rays to about this many photons (0: off)')
 parser.add_argument('--channel-correction', default=None, help='JSON written by channel_correction.py (applied after the central column)')
 parser.add_argument('--pixel-centre-offset', type=float, default=0.0, help="pixels added to the scanner's ImagePositionPatient (0.5 for C145)")

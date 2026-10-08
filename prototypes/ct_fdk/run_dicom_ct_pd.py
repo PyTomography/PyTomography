@@ -1,7 +1,7 @@
 """Reconstruct a DICOM-CT-PD scan (no flying focal spot) with the WFBP prototype on a 1 mm grid, within a GPU budget.
 
     python run_dicom_ct_pd.py <projection folder> [--cache scan.pt] [--out wfbp.npy] [--budget-gb 1.5]
-        [--central-column-offset -0.42]          # GE scanners, see README
+        [--central-column-offset -1.5]           # GE scanners: the column is 888 - tag, see README
         [--low-signal 30]                         # filter photon-starved rays, see low_signal.py
         [--channel-correction fit.json]           # per-channel scale fitted by channel_correction.py
         [--table-feed-from-pitch]                 # focal spot z on the scanner's nominal table feed, see README
