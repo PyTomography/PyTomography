@@ -140,6 +140,8 @@
     self.postMessage({tag,data:a},[a.buffer]);};`;
   // 3D view: the overlay's maximum intensity over a line integral of the base image (a DRR), on a coarse grid,
   // turned about the scanner's z axis. With no overlay it is the DRR alone; at 0 degrees it is an anterior view.
+  // Under a colour image the DRR is drawn at about half brightness, and the colour's opacity rises with intensity
+  // (opacity x sqrt of its place between the limits), so hot spots stand out and cold background stays clear.
   const MIP_SRC = `let G=null,ov=null,mu=null,dmax=1;
   function resample(img,dims,aff,map){const[nx,ny,nz]=dims,out=new Float32Array(G.gx*G.gy*G.gz);let n=0;
     for(let k=0;k<G.gz;k++){const fk=(G.z0+k*G.h-aff[2][3])/aff[2][2];for(let j=0;j<G.gy;j++){const fj=(G.y0+j*G.h-aff[1][3])/aff[1][1];
@@ -161,8 +163,8 @@
           if(useOv){const v=(ov[a]*(1-fx)+ov[b]*fx)*(1-fy)+(ov[e]*(1-fx)+ov[f]*fx)*fy;if(v>m)m=v;}
           if(useMu)d+=(mu[a]*(1-fx)+mu[b]*fx)*(1-fy)+(mu[e]*(1-fx)+mu[f]*fx)*fy;}
         else{const q=off+Math.round(x)+gx*Math.round(y);if(useOv&&ov[q]>m)m=ov[q];if(useMu)d+=mu[q];}}
-      const g=useMu?Math.pow(Math.min(1,d/dmax),0.7)*255*p.ctw:0,o=(r*W+u)*4;let R=g,Gc=g,B=g;
-      if(useOv&&m>p.lo){const li=Math.round(Math.min(1,(m-p.lo)/span)*255)*3,a=p.op;R=(1-a)*R+a*lut[li];Gc=(1-a)*Gc+a*lut[li+1];B=(1-a)*B+a*lut[li+2];}
+      const g=useMu?Math.pow(Math.min(1,d/dmax),0.7)*255*p.ctw*(useOv?0.55:1):0,o=(r*W+u)*4;let R=g,Gc=g,B=g;
+      if(useOv&&m>p.lo){const tt=Math.min(1,(m-p.lo)/span),li=Math.round(tt*255)*3,a=p.op*Math.sqrt(tt);R=(1-a)*R+a*lut[li];Gc=(1-a)*Gc+a*lut[li+1];B=(1-a)*B+a*lut[li+2];}
       out[o]=R;out[o+1]=Gc;out[o+2]=B;out[o+3]=255;}}
     return {W,H,rgba:out};}
   self.onmessage=e=>{const d=e.data;
@@ -539,16 +541,17 @@
     function mipAll() {
       if (!mWorker) return;
       mWorker.postMessage({cmd: 'grid', grid: mipGrid()});
-      if (sel.base >= 0) mipData(sel.base); else mWorker.postMessage({cmd: 'nobase'});
-      if (sel.overlay >= 0) mipData(sel.overlay); else mWorker.postMessage({cmd: 'noov'});
+      // both images first, then one frame, so the first frame already has its colour image
+      if (sel.base >= 0) mipData(sel.base, true); else mWorker.postMessage({cmd: 'nobase'});
+      if (sel.overlay >= 0) mipData(sel.overlay, true); else mWorker.postMessage({cmd: 'noov'});
       requestMip();
     }
-    function mipData(li) {
+    function mipData(li, quiet) {
       if (!mWorker || (li !== sel.base && li !== sel.overlay)) return;
       const L = LAY[li];
       if (L.role === 'overlay') mWorker.postMessage({cmd: 'ov', img: L.base, dims: L.dims, aff: L.aff});
       else mWorker.postMessage({cmd: 'base', img: L.base, dims: L.dims, aff: L.aff, kind: L.m.kind, scale: L.m.kind === 'ct' ? 1 : Math.max(1e-12, L.max)});
-      requestMip();
+      if (!quiet) requestMip();
     }
     function requestMip() {
       if (!mWorker || !mipShown() || !alive) return;
@@ -556,7 +559,7 @@
       mipBusy = true;
       const O = sel.overlay >= 0 ? LAY[sel.overlay].set : null, B = sel.base >= 0 ? LAY[sel.base].set : null;
       mWorker.postMessage({cmd: 'render', p: {th: mipTheta * Math.PI / 180, lut: LUT[O ? O.cmap : 'gray'] || LUT.gray, lo: O ? O.lo : 0, hi: O ? O.hi : 1,
-        op: O ? (B ? O.op : 1) : 0, ctw: B ? B.op : 0, smooth: S.smooth}});
+        op: O ? (B ? Math.min(1, 0.4 + O.op) : 1) : 0, ctw: B ? B.op : 0, smooth: S.smooth}});
     }
     if (mWorker) mWorker.onmessage = e => {
       const d = e.data;

@@ -6,6 +6,8 @@
 #   credit:              the data's source and licence, shown with the images
 #   setup:               optional Python run first, for imports the expressions need
 #   max_mb:              optional size budget (default 15 MB); larger CTs are averaged down to fit
+#   start_voxel:         optional [i, j, k] of the first SPECT or PET layer, as the tutorial indexes its array, where
+#                        the viewer opens (default: the hottest spot inside the anatomy)
 #   layers:              the images, drawn bottom to top. The first SPECT or PET layer is shown first; the others
 #                        can be picked in the viewer. Each layer has:
 #     name:       short name ("CT", "OSEM"), also the file name
@@ -17,7 +19,8 @@
 #                 (`space: ras` for NIfTI's). `affine_scale: 10` converts one in cm.
 #     units:      shown in the readout
 #     colormap, range, opacity, window (ct: phantom | soft | bone | lung | full): display defaults. SPECT and PET
-#                 default to inferno from 0 to their hottest voxel.
+#                 default to inferno from 0 to their hottest voxel inside the anatomy (CT above -500 HU), so a hot
+#                 voxel at the edge of the field of view doesn't set the scale.
 #     crop:       body (CT default: where the image is above -500 HU, else 2% of its maximum) | base (SPECT and PET
 #                 default: the anatomy's extent) | none
 #     voxel_mm:   average down to about this voxel size (downsample: an integer factor instead);
@@ -133,8 +136,10 @@ tutorials:
     title: Tc-99m myocardial perfusion
     description: The reconstruction before it is turned to the short axis (no CT; no attenuation correction)
     credit: Patient scan (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
+    # open on the heart, with the tutorial's own scale (vmax=10): a hot spot outside the heart is the hottest voxel
+    start_voxel: [40, 40, 37]
     layers:
-    - {name: SPECT, label: OSEM, kind: spect, array: recon, affine: object_meta.affine_matrix, units: counts}
+    - {name: SPECT, label: OSEM, kind: spect, array: recon, affine: object_meta.affine_matrix, units: counts, range: [0, 10]}
 
   # ---------- PET ----------
   t_pet_introduction:

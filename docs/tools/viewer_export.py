@@ -190,6 +190,24 @@ def _nifti_bytes(q: np.ndarray, A: np.ndarray, slope: float, inter: float, descr
     return gzip.compress(raw, compresslevel=9, mtime=0)
 
 
+def _inside(over: dict, base: dict | None):
+    """Which of an overlay's voxels lie inside the anatomy: CT above -500 HU, other images above 2% of their maximum.
+    Reconstructions can have hot voxels at the edge of their field of view, outside the patient or phantom; they
+    shouldn't set the colour scale or the starting point. Both images are axis-aligned, so the lookup is per axis."""
+    if base is None:
+        return None
+    thr = -500 if base["kind"] == "ct" else 0.02 * float(base["arr"].max())
+    body = base["arr"] > thr
+    idx, ok = [], []
+    for j in range(3):
+        mm = over["A"][j, 3] + over["A"][j, j] * np.arange(over["arr"].shape[j])
+        k = np.round((mm - base["A"][j, 3]) / base["A"][j, j]).astype(int)
+        ok.append((k >= 0) & (k < body.shape[j]))
+        idx.append(np.clip(k, 0, body.shape[j] - 1))
+    mask = body[np.ix_(*idx)] & ok[0][:, None, None] & ok[1][None, :, None] & ok[2][None, None, :]
+    return mask if mask.any() else None
+
+
 def _density(arr, kind):
     return np.maximum(0, (arr + 1000) / 1000) if kind == "ct" else np.maximum(0, arr / max(float(arr.max()), 1e-12))
 
@@ -215,12 +233,16 @@ def _thumbnail(layers, path: Path, height_px: int = 320) -> None:
     if base is not None:
         drr = _density(base["arr"], base["kind"]).sum(axis=1)
         drr = (drr / max(float(drr.max()), 1e-12)) ** 0.7
-        ax.imshow(drr.T, origin="lower", extent=ext(base), cmap="gray", vmin=0, vmax=1, interpolation="bilinear")
+        ax.imshow(drr.T * (0.55 if over is not None else 1.0), origin="lower", extent=ext(base), cmap="gray", vmin=0, vmax=1,
+                  interpolation="bilinear")
     if over is not None:
-        mip = over["arr"].max(axis=1).astype(np.float32)
+        # as the viewer's 3D view draws it: colour opacity rises with intensity, so cold background stays clear
+        mip = over["arr"].max(axis=1).astype(np.float32).T
         lo, hi = over["range"]
-        ax.imshow(np.ma.masked_less_equal(mip.T, lo), origin="lower", extent=ext(over), cmap=colormaps[over["colormap"]],
-                  vmin=lo, vmax=hi, interpolation="gaussian", alpha=0.65 if base is not None else 1.0)
+        t = np.clip((mip - lo) / max(hi - lo, 1e-12), 0, 1)
+        rgba = colormaps[over["colormap"]](t)
+        rgba[..., 3] = np.where(mip > lo, (0.9 if base is not None else 1.0) * np.sqrt(t), 0)
+        ax.imshow(rgba, origin="lower", extent=ext(over), interpolation="bilinear")
     ax.set_xlim(e[0], e[1])
     ax.set_ylim(e[2], e[3])
     ax.set_aspect("auto")
@@ -264,15 +286,17 @@ def export(name: str, out_dir, namespace: dict, spec: dict) -> dict:
             raise ValueError(f"layer {ls['name']}: expected a 3D image, got shape {arr.shape}")
         if ls.get("slices"):
             sl = _parse_slices(ls["slices"])
-            start = [s.indices(n)[0] for s, n in zip(sl, arr.shape)]
+            first = [s.indices(n)[0] for s, n in zip(sl, arr.shape)]
             arr = arr[sl]
             T = np.eye(4)
-            T[:3, 3] = start
+            T[:3, 3] = first
             A = A @ T
         if space == "lps":                              # DICOM LPS to NIfTI RAS
             A = np.diag([-1.0, -1.0, 1.0, 1.0]) @ A
+        A_in = A.copy()                                 # the tutorial's own voxel indices, for start_voxel
         arr, A = _canonical(arr, A)
-        layers.append({"spec": ls, "kind": kind, "role": ls.get("role", ROLE.get(kind, "base")), "arr": arr, "A": A})
+        layers.append({"spec": ls, "kind": kind, "role": ls.get("role", ROLE.get(kind, "base")), "arr": arr, "A": A,
+                       "A_in": A_in})
 
     base = next((L for L in layers if L["role"] == "base"), None)
     for L in layers:
@@ -317,15 +341,20 @@ def export(name: str, out_dir, namespace: dict, spec: dict) -> dict:
         if big["kind"] == "ct":
             big["arr"] = np.round(big["arr"])
 
+    base = next((L for L in layers if L["role"] == "base"), None)
     man_layers = []
     for L in layers:
         ls, arr = L["spec"], L["arr"]
         (out / L["file"]).write_bytes(L["blob"])
         mn, mx = float(arr.min()), float(arr.max())
+        if L["role"] == "overlay":
+            L["inside"] = _inside(L, base)
         if ls.get("range"):
             rng = [float(v) for v in ls["range"]]
-        elif L["role"] == "overlay" or L["kind"] == "mu":
-            rng = [0.0, mx]                               # absolute: 0 to the hottest voxel
+        elif L["role"] == "overlay":                      # absolute: 0 to the hottest voxel inside the anatomy
+            rng = [0.0, float(arr[L["inside"]].max()) if L["inside"] is not None else mx]
+        elif L["kind"] == "mu":
+            rng = [0.0, mx]
         elif L["kind"] == "mr":
             rng = [float(np.percentile(arr, 0.5)), float(np.percentile(arr, 99.5))]
         else:
@@ -345,9 +374,15 @@ def export(name: str, out_dir, namespace: dict, spec: dict) -> dict:
 
     start = None
     over = next((L for L in layers if L["role"] == "overlay"), None)
-    if over is not None:
+    if spec.get("start_voxel") is not None:             # a voxel of the first layer that has one, as the tutorial indexes it
+        L = over or layers[0]
+        start = [round(float(v), 1) for v in (L["A_in"] @ np.array([*map(float, spec["start_voxel"]), 1.0]))[:3]]
+    elif over is not None:                              # the hottest spot inside the anatomy
         from scipy.ndimage import uniform_filter
-        ijk = np.unravel_index(int(np.argmax(uniform_filter(over["arr"], 3))), over["arr"].shape)
+        hot = uniform_filter(over["arr"], 3)
+        if over.get("inside") is not None:
+            hot = np.where(over["inside"], hot, -np.inf)
+        ijk = np.unravel_index(int(np.argmax(hot)), over["arr"].shape)
         start = [round(float(v), 1) for v in (over["A"] @ np.array([*ijk, 1.0]))[:3]]
     _thumbnail(layers, out / "thumb.png")
     import pytomography
