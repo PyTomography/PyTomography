@@ -43,6 +43,16 @@ allow-direct-references = true
 "Bug Tracker" = "https://github.com/qurit/PyTomography/issues"
 
 [project.optional-dependencies]
+test = [
+  "pytest>=8",
+  "pytest-xdist",
+  "pyyaml",
+]
+dev = [
+  "pytomography[test,doc]",
+  "pre-commit",
+  "ruff",
+]
 doc = [
   "toml",
   "sphinx~=6.2.1",
@@ -56,3 +66,9 @@ doc = [
   "sphinx-copybutton",
 ]
 
+[tool.pytest.ini_options]
+testpaths = ["src/pytomography/tests"]
+markers = [
+  "gpu: needs a CUDA device (skipped without one)",
+  "data: needs the tutorial data in PYTOMOGRAPHY_DATA (skipped without it)",
+]

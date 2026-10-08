@@ -1,0 +1,41 @@
+name: GPU
+
+# Every test on an NVIDIA GPU, on a machine of our own (a self-hosted runner labelled "gpu").
+#
+# Not started automatically yet: there is no GPU runner. Until there is, the tests that need CUDA skip themselves on
+# GitHub's runners (tests.yml), so pull requests never wait for a GPU. This workflow can only be started by hand.
+# To turn it on, register the runner, then add these triggers, which only ever run code a maintainer has already
+# approved and merged:
+#   push: branches: [development, main]   after every merge
+#   schedule: [cron: "0 9 * * *"]          every night on the default branch (development)
+# Never trigger it on a pull request's own pushes, so unreviewed code from a fork never reaches the GPU machine.
+#
+# One-time setup on the GPU machine: a conda environment with PyTorch (CUDA) and parallelproj 2 from conda-forge,
+# the tutorial data with PYTOMOGRAPHY_DATA pointing at it, and the GitHub runner registered with the label "gpu",
+# running as its own low-privilege user. The runner takes one job at a time.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  gpu:
+    name: Full test suite on a GPU
+    runs-on: [self-hosted, gpu]
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: A fresh environment for this commit, on top of the runner's CUDA environment
+        run: |
+          python -m venv --system-site-packages .ci-venv
+          PY=.ci-venv/bin/python; [ -x "$PY" ] || PY=.ci-venv/Scripts/python.exe
+          echo "PY=$PY" >> "$GITHUB_ENV"
+          "$PY" -m pip install -e ".[test]" psutil
+      - name: Check the GPU and parallelproj 2 are there, so nothing skips silently
+        run: |
+          "$PY" -c "import torch, parallelproj_core; assert torch.cuda.is_available(), 'no CUDA'; print(torch.cuda.get_device_name(0))"
+      - name: Every test, including the CUDA and data tests, without taking the machine's memory
+        run: |
+          "$PY" .github/run_capped.py --max-gb 24 --min-free-gb 16 -- "$PY" -m pytest -ra
