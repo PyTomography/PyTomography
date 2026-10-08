@@ -11,12 +11,16 @@ pull request that adds this folder holds the implementation plan.
 | `run_dicom_ct_pd.py` | reconstruct a DICOM-CT-PD scan on a 1 mm grid |
 | `run_vendor_match.py` | the corrections towards the scanner's reconstruction, one at a time, each measured on the scanner's grid |
 | `audit_geometry.py` | data-consistency test of how the DICOM-CT-PD geometry is read (flying focal spot, detector centre, column direction) |
+| `low_signal.py` | adaptive filtering of photon-starved rays, from the photons per detector column that DICOM-CT-PD stores (7033,1065) |
+| `channel_correction.py` | fit and apply the per-channel scale of the line integrals that matches the scanner (a bowtie-type beam hardening calibration) |
 
 ```
 cd prototypes/ct_fdk
 python run_synthetic.py --rotations 3 --pitch 1
 python audit_geometry.py <projections> "as read" "central column -0.5" "z shift sign flipped" --cache scan.pt
 python run_vendor_match.py <C145 projections> <C145 full dose images> --cache c145.pt --central-column-offset -0.42
+python channel_correction.py <volume on the scanner grid, every slice> <C145 full dose images> --mu-water 0.0186 --exclude=-215,-145 --out c145_fit.json
+python run_vendor_match.py <C145 projections> <C145 full dose images> --cache c145.pt --central-column-offset -0.42 --low-signal 30 --channel-correction c145_fit.json
 ```
 
 ## GPU memory
@@ -75,9 +79,12 @@ is over the body.
 | 4. focal spot angle offset +0.161 deg | 54 | -128 | -843 | 1025 | +24 / -15 | 116 | 31 |
 | 5. scanner kernel estimated from the images | 54 | -128 | -843 | 1048 | +24 / -16 | 113 | 27 |
 | 6. 1.25 mm slices | 54 | -128 | -843 | 1046 | +24 / -16 | 112 | 24 |
+| 7. photon-starved rays filtered to about 30 photons | 54 | -128 | -843 | 1046 | +24 / -16 | 112 | 24 |
+| 8. **per-channel scale of the line integrals** (fitted outside this block) | **39** | **-110** | **-855** | 1028 | **-6 / +1** | 111 | 24 |
 
 (HU; noise is the SD of the high-pass image in soft tissue. Back projection 10 to 37 s per step.) Over the whole
-316-slice scan, the RMS difference goes from 139 HU (step 2) to 108 HU (step 6).
+316-slice scan, the RMS difference goes from 139 HU (step 2) to 108 HU (step 6), 102 HU (step 7) and 101 HU (step 8);
+step 7 acts where rays are starved (the shoulders, the arms beside the abdomen), not in this block.
 
 - **Step 1** removes the fan-beam shading: fat moves from -158 to -128 HU, and the edge of the body from -40 to -16 HU.
 - **Step 3** is a geometry correction (see the audit below). It cuts the difference from the scanner by 17% and brings
@@ -90,19 +97,65 @@ is over the body.
   zero at 0.4. Above 0.4 cycles/mm the scanner image follows ours with the sign inverted (-0.25 at 0.55 cycles/mm,
   coherence 0.36 to 0.39), which no smooth reconstruction window does. The prototype applies the estimate clipped at
   zero.
+- **Step 7** (`low_signal.py`) removes most of the streaks between the shoulders; see below.
+- **Step 8** (`channel_correction.py`) removes the radial trend: the soft-tissue difference from the scanner goes from
+  +25 HU at the centre and -25 HU at 160 to 180 mm to within +-7 HU (one 20 mm band at -12 HU), and fat, lung and soft
+  tissue land within 3 HU of the scanner. See below.
 
 **Still different:**
 
-- A smooth radial trend in soft tissue: +24 HU at the centre, -16 HU at 140 to 180 mm. OS-SART shows the same, with
-  the same geometry and any number of iterations, so it lies in the data or the vendor's processing, not in the
-  reconstruction.
 - A 0.36, 0.25 mm in-plane shift (about half a scanner pixel, 0.33 mm; a half-pixel convention is one candidate).
 - The scanner's high-frequency noise texture (43 HU against our 24 HU), and its inverted response above 0.4 cycles/mm.
-- Streaks at the shoulders: ours shows the shoulder-to-shoulder streaks of photon starvation, which the scanner's
-  processing suppresses. The RMS difference over the top 5 cm is 143 HU, against 100 HU for the rest of the scan. It
-  is not the end of the helix (the images stop 23 mm inside it at both ends; the streaks are as strong 60 mm in).
 - Faint z banding: our soft-tissue slice means vary by 2.5 HU from slice to slice (the scanner's by 1.5 HU), most
   strongly at periods near the half-turn table feed (20 mm). The WFBP row weighting is the likely source.
+
+## Photon-starved rays (step 7)
+
+Rays through the shoulders, or through the arms beside the abdomen, expect few photons: DICOM-CT-PD stores the incident
+photons per detector column of every view in (7033,1065) PhotonStatistics (54,000 at the centre of the fan and 1,400 at
+its edges for C145, with the bowtie and tube current modulation), so the expected count of a ray is N = N0 exp(-p).
+At the shoulders 9% of rays expect fewer than 100 photons, and some line integrals reach 17 (no photons at all, clipped).
+`low_signal.py` replaces each ray with N below a target by -log of the mean transmission over a neighbourhood
+(views x columns x rows) of about target / N rays, blending between box sizes; averaging transmission rather than line
+integrals keeps the mean right (on simulated Poisson data at 4 photons: bias +0.12 and SD 0.58 before, no bias and SD
+0.17 after, with a target of 30). Rays with enough photons are not touched.
+
+| C145, top 5 cm (shoulders), against the scanner | RMS | RMS after 2 mm blur | soft tissue noise |
+|---|---|---|---|
+| no filtering | 143 | 49.6 | 57 |
+| target 10 photons | 125 | 40.7 | 50 |
+| **target 30 photons** | **113** | **36.2** | **39** |
+| target 100 photons | 108 | 35.1 | 32 |
+| scanner | | | 37 |
+
+A target of 30 photons matches the scanner's noise and brings the shoulders in line with the rest of the scan; 1.2% of
+all rays change, in 44 s on the CPU.
+
+## Beam hardening and scatter: a per-channel scale (step 8)
+
+The projections are exported after the scanner's own beam hardening and scatter corrections: the DICOM-CT-PD flags
+(7039,1003) BeamHardeningCorrectionFlag and (7039,1008) ScatterCorrectionFlag are YES, as are gain, dark field, flat
+field, bad pixel and log. To see what the scanner does beyond that, the smoothed difference (scanner - ours) was
+projected along parallel rays through mid-scan slices and fitted against each ray's line integral p, its line integral
+through bone, and its distance t from the isocentre (rays that cross the body near the edge of the scanner's image are
+left out):
+
+| model of scanner - ours, per ray | R^2 |
+|---|---|
+| a function of p (water beam hardening) | 0.25 |
+| + the line integral through bone (bone beam hardening) | 0.26 |
+| + a dependence on t | **0.42** |
+
+Not scatter: that would grow about like exp(p), 20 times from p = 2 to 5, against the 2.8 times observed. Not bone.
+At fixed p the difference depends on t: it is a **per-channel scale of the line integrals**, the form a bowtie-dependent
+beam hardening calibration takes. Fitted on 20 slices outside the 40-slice block: g(t) = -1.49% + 1.86% (t / 100 mm)^2
+(scanner relative to the exported projections; held constant beyond 140 mm, where too few rays are usable), crossing
+zero near 90 mm. Applied as p -> p (1 + g(rho sin gamma)) per detector column, it removes the radial trend on the
+held-out block (step 8 above).
+
+It matches the scanner; whether the scanner's calibration or the exported one is closer to the truth for this patient
+cannot be told without a water phantom scanned on the same GE system. It is fitted on one GE scan, so it needs other GE
+cases (with scanner images) before it becomes a default.
 
 ## Geometry audit
 

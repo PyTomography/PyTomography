@@ -21,6 +21,8 @@ from scipy import ndimage, optimize
 
 from pytomography.io.CT import dicom_ct_pd
 import fdk_prototype
+import channel_correction
+import low_signal
 
 parser = argparse.ArgumentParser()
 parser.add_argument('projections')
@@ -33,6 +35,8 @@ parser.add_argument('--start-at', type=int, default=1, help='first step to run; 
 parser.add_argument('--angle-offset-deg', type=float, default=None, help='with --start-at 4 or later: the offset step 3 found '
                     '(default: read from --out)')
 parser.add_argument('--central-column-offset', type=float, default=0.0, help='channels added to the DetectorCentralElement column')
+parser.add_argument('--low-signal', type=float, default=0.0, help='filter photon-starved rays to about this many photons (0: off)')
+parser.add_argument('--channel-correction', default=None, help='JSON written by channel_correction.py (applied after the central column)')
 parser.add_argument('--out', default='vendor_match.json')
 parser.add_argument('--save-dir', default='.')
 args = parser.parse_args()
@@ -56,6 +60,14 @@ if args.central_column_offset:
     zs_det = (torch.arange(1, n_row + 1) - meta.detector_centers_row_idx[0]) * meta.row_det_spacing
     meta.phis_det, meta.zs_det = torch.meshgrid(phis_det, zs_det, indexing='ij')
     print(f'central column {float(meta.detector_centers_col_idx[0]) + args.central_column_offset:.3f}', flush=True)
+if args.low_signal:
+    n0 = low_signal.photon_statistics(low_signal.acquisition_order(args.projections))
+    filtered, frac = low_signal.filter_low_signal(proj.numpy(), n0, args.low_signal)
+    proj = torch.from_numpy(filtered)
+    print(f'photon-starved rays filtered to about {args.low_signal:g} photons: {100 * frac:.3f}% of rays changed', flush=True)
+if args.channel_correction:
+    proj = torch.from_numpy(channel_correction.apply_channel_scale(proj.numpy(), meta, json.load(open(args.channel_correction))))
+    print(f'per-channel correction from {args.channel_correction}', flush=True)
 first = pydicom.dcmread(glob.glob(os.path.join(args.projections, '*.dcm'))[0], stop_before_pixels=True)
 mu_w = float(first[0x7041, 0x1001].value.decode().strip('\x00 '))
 slices = sorted((pydicom.dcmread(f) for f in glob.glob(os.path.join(args.images, '*.dcm'))), key=lambda s: float(s.ImagePositionPatient[2]))
