@@ -3,11 +3,11 @@ name: GPU
 # Every test on an NVIDIA GPU, on a machine of our own (a self-hosted runner labelled "gpu").
 #
 # Not started automatically yet: there is no GPU runner. Until there is, the tests that need CUDA skip themselves on
-# GitHub's runners (tests.yml), so pull requests and the merge queue never wait for a GPU. This workflow can only be
-# started by hand. To turn it on, register the runner, then add these triggers, which only ever run code a maintainer
-# has already approved:
-#   merge_group:                  when a pull request enters the merge queue; it merges only if this passes
-#   schedule: [cron: "0 9 * * *"] every night on main
+# GitHub's runners (tests.yml), so pull requests never wait for a GPU. This workflow can only be started by hand.
+# To turn it on, register the runner, then add these triggers, which only ever run code a maintainer has already
+# approved and merged:
+#   push: branches: [development, main]   after every merge
+#   schedule: [cron: "0 9 * * *"]          every night on the default branch (development)
 # Never trigger it on a pull request's own pushes, so unreviewed code from a fork never reaches the GPU machine.
 #
 # One-time setup on the GPU machine: a conda environment with PyTorch (CUDA) and parallelproj 2 from conda-forge,

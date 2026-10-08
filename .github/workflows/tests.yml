@@ -7,12 +7,13 @@ name: Tests
 #   examples  the plain-script versions in examples/ match the tutorial notebooks
 # Tests that need CUDA skip themselves here, so merges never wait for a GPU. gpu.yml runs everything on a GPU, once a
 # GPU runner is set up.
+# The rulesets on development and main require one check from this file, "All tests passed", which waits for every
+# job above, so adding or renaming a job never needs a settings change.
 
 on:
   pull_request:
-  merge_group:  # the merge queue runs these again on the exact commit that will land on main
   push:
-    branches: [main]
+    branches: [development, main]
   workflow_dispatch:
 
 concurrency:
@@ -107,3 +108,21 @@ jobs:
         run: |
           pip install pyyaml
           python docs/tools/export_scripts.py --check
+
+  all-passed:
+    name: All tests passed
+    if: always()
+    needs: [pip, conda, data, examples]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every job above succeeded
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Results: $RESULTS"
+          for r in $RESULTS; do
+            if [ "$r" != "success" ]; then
+              echo "::error::A test job did not succeed ($r). Open it above to see which."
+              exit 1
+            fi
+          done

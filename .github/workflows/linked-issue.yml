@@ -7,7 +7,6 @@ name: Linked issue
 on:
   pull_request:
     types: [opened, edited, reopened, synchronize, labeled, unlabeled]
-  merge_group:  # already checked on the pull request; passes here so the merge queue never waits on it
 
 jobs:
   linked-issue:

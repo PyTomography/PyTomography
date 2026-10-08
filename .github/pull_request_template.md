@@ -1,7 +1,8 @@
 Closes #
 
 <!-- The issue this pull request closes (required: a check fails without it). Open one first if there isn't one.
-     For a trivial change, a maintainer can waive this with the "no-issue" label. -->
+     For a trivial change, a maintainer can waive this with the "no-issue" label.
+     The base branch is development; only releases and hotfix/ branches go into main (see CONTRIBUTING.md). -->
 
 ## What this changes
 
