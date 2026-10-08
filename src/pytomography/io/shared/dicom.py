@@ -92,7 +92,7 @@ def open_multifile(
         dz = compute_slice_thickness_multifile(files)
         shape = array.shape
         object_meta = ObjectMeta(dr=(dx,dy,dz), shape=shape)
-        object_meta.affine_matrix = _get_affine_multifile(file)
+        object_meta.affine_matrix = _get_affine_multifile(files)
         return array, object_meta
     
 def open_singlefile(file: str) -> torch.Tensor:

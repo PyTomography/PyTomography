@@ -115,7 +115,22 @@ class SPECTSystemMatrix(SystemMatrix):
         if subset_idx is not None:
             norm_proj = self.get_projection_subset(norm_proj, subset_idx)
         return self.backward(norm_proj, subset_idx)
-    
+
+    def _host_phis(self) -> list[float]:
+        """Python floats of ``270 - proj_meta.angles`` (the rotation applied to the object for each projection), copied from the device once per ``angles`` tensor. The projection loops pass these, and plain ``int`` angle indices, to the rotation and the transforms, so no per-angle device-to-host synchronisation occurs: indexing a device tensor with a 0-d device tensor, or converting a 0-d device tensor to a Python scalar, stalls the CPU until the GPU queue has drained (about 0.25 ms each on Windows), which was most of the projection time. The subtraction is still done in the tensor's dtype, so the values are unchanged."""
+        angles = self.proj_meta.angles
+        if getattr(self, '_host_phis_src', None) is not angles:
+            self._host_phis_cache = (270 - angles).tolist()
+            self._host_phis_src = angles
+        return self._host_phis_cache
+
+    def _host_angle_indices(self, subset_idx: int | None) -> list[int]:
+        """Angle indices of subset ``subset_idx`` (all angles if None) as a list of Python ints."""
+        if subset_idx is None:
+            return list(range(self.proj_meta.num_projections))
+        angle_subset = self.subset_indices_array[subset_idx]
+        return angle_subset.tolist() if torch.is_tensor(angle_subset) else list(angle_subset)
+
     def forward(
         self,
         object: torch.tensor,
@@ -130,26 +145,22 @@ class SPECTSystemMatrix(SystemMatrix):
         Returns:
             torch.tensor: forward projection estimate :math:`g_m=H_mf`
         """
-        # Deal with subset stuff
-        if subset_idx is not None:
-            angle_subset = self.subset_indices_array[subset_idx]
-        N_angles = self.proj_meta.num_projections if subset_idx is None else len(angle_subset)
-        angle_indices = torch.arange(N_angles).to(pytomography.device) if subset_idx is None else angle_subset
+        # Deal with subset stuff (Python ints/floats: the loop below must not synchronise with the device)
+        angle_indices = self._host_angle_indices(subset_idx)
+        phis = self._host_phis()
+        N_angles = len(angle_indices)
         # Start projection
         object = object.to(pytomography.device)
-        proj = torch.zeros(
-            (N_angles,*self.proj_meta.padded_shape[1:])
-            ).to(pytomography.device)
-        # Loop through all angles (or groups of angles in parallel)
-        for i in range(0, len(angle_indices)):
-            angle_indices_i = angle_indices[i]
-            # Format Object
-            object_i = pad_object(object)
+        proj = torch.zeros((N_angles,*self.proj_meta.padded_shape[1:]), device=pytomography.device)
+        # Format Object (once: the rotation returns a new tensor, so the padded object is never modified)
+        object_padded = pad_object(object)
+        # Loop through all angles
+        for i, angle_idx in enumerate(angle_indices):
             # beta = 270 - phi, and backward transform called because projection should be at +beta (requires inverse rotation of object)
-            object_i = self.rotation_transform.backward(object_i, 270-self.proj_meta.angles[angle_indices_i])
+            object_i = self.rotation_transform.backward(object_padded, phis[angle_idx])
             # Apply object 2 object transforms
             for transform in self.obj2obj_transforms:
-                object_i = transform.forward(object_i, angle_indices_i)
+                object_i = transform.forward(object_i, angle_idx)
             proj[i] = object_i.sum(axis=0)
         for transform in self.proj2proj_transforms:
             proj = transform.forward(proj)
@@ -170,30 +181,27 @@ class SPECTSystemMatrix(SystemMatrix):
         Returns:
             torch.tensor: the object :math:`\hat{f} = H_m^T g_m` obtained via back projection.
         """
-        # Deal with subset stuff
-        if subset_idx is not None:
-            angle_subset = self.subset_indices_array[subset_idx]
-        N_angles = self.proj_meta.num_projections if subset_idx is None else len(angle_subset)
-        angle_indices = torch.arange(N_angles).to(pytomography.device) if subset_idx is None else angle_subset
+        # Deal with subset stuff (Python ints/floats: the loop below must not synchronise with the device)
+        angle_indices = self._host_angle_indices(subset_idx)
+        phis = self._host_phis()
         # Box used to perform back projection
-        boundary_box_bp = pad_object(torch.ones(self.object_meta.shape).to(pytomography.device), mode='back_project')
+        boundary_box_bp = pad_object(torch.ones(self.object_meta.shape, device=pytomography.device), mode='back_project')
         # Pad proj and norm_proj (norm_proj used to compute sum_j H_ij)
         proj = pad_proj(proj)
         # First apply proj transforms before back projecting
         for transform in self.proj2proj_transforms[::-1]:
             proj = transform.backward(proj)
         # Setup for back projection
-        object = torch.zeros(self.object_meta.padded_shape).to(pytomography.device)
-        for i in range(0, len(angle_indices)):
-            angle_indices_i = angle_indices[i]
+        object = torch.zeros(self.object_meta.padded_shape, device=pytomography.device)
+        for i, angle_idx in enumerate(angle_indices):
             # Perform back projection
             object_i = proj[i].unsqueeze(0) * boundary_box_bp
             # Apply object mappings
             for transform in self.obj2obj_transforms[::-1]:
-                object_i  = transform.backward(object_i, angle_indices_i)
+                object_i  = transform.backward(object_i, angle_idx)
             # Rotate all objects by by their respective angle
-            object_i = self.rotation_transform.forward(object_i, 270-self.proj_meta.angles[angle_indices_i])
-            # Add to total 
+            object_i = self.rotation_transform.forward(object_i, phis[angle_idx])
+            # Add to total
             object += object_i
         # Unpad
         object = unpad_object(object)

@@ -83,6 +83,34 @@ class PETSinogramSystemMatrix(SystemMatrix):
         xyz2 = xyz2.reshape((N_angles, *self.proj_meta.shape[1:], 3))
         return xyz1.flatten(start_dim=0,end_dim=2), xyz2.flatten(start_dim=0,end_dim=2)
     
+    def _chunk_bounds(self, N: int) -> list[tuple[int, int]]:
+        """Start/end of the ``N_splits`` contiguous chunks of the flattened sinogram (the same partition ``torch.tensor_split`` gives)."""
+        base, extra = divmod(N, self.N_splits)
+        bounds, start = [], 0
+        for i in range(self.N_splits):
+            end = start + base + (1 if i < extra else 0)
+            bounds.append((start, end))
+            start = end
+        return bounds
+
+    def _xyz_chunk(self, start: int, end: int, subset_idx: int | None = None) -> Sequence[torch.Tensor, torch.Tensor]:
+        """Coordinates of the two crystals of flattened sinogram elements ``start:end`` (angle-major, then radial bin, then ring pair), gathered on ``pytomography.device`` from the compact detector and ring tables. The previous implementation built the coordinates of the whole sinogram on the CPU (two [N_sinogram, 3] tensors, 10 GB for a 224x449x4096 sinogram) on every forward/back projection and copied each chunk to the device."""
+        Nr, Np = self.proj_meta.shape[1], self.proj_meta.shape[2]
+        idx = torch.arange(start, end, device=pytomography.device)
+        angle, r, plane = idx // (Nr * Np), (idx // Np) % Nr, idx % Np
+        if subset_idx is not None:
+            angle = self.subset_indices_array[subset_idx].to(pytomography.device)[angle]
+        dc = self.proj_meta.detector_coordinates.to(pytomography.device)   # [N_angles, Nr, 2, 2]: x/y of crystal 1 and 2
+        rc = self.proj_meta.ring_coordinates.to(pytomography.device)       # [Np, 2]: z of crystal 1 and 2
+        xyz1 = torch.cat([dc[angle, r, 0], rc[plane, 0].unsqueeze(1)], dim=1)
+        xyz2 = torch.cat([dc[angle, r, 1], rc[plane, 1].unsqueeze(1)], dim=1)
+        return xyz1, xyz2
+
+    def _N_sinogram(self, subset_idx: int | None = None) -> int:
+        """Number of sinogram elements (all angles, or the angles of subset ``subset_idx``)."""
+        N_angles = self.proj_meta.N_angles if subset_idx is None else self.subset_indices_array[subset_idx].shape[0]
+        return N_angles * self.proj_meta.shape[1] * self.proj_meta.shape[2]
+
     def _compute_atteunation_probability_projection(self, subset_idx: torch.tensor) -> torch.tensor:
         """Compute the probability of a photon not being attenuated for a certain sinogram element.
 
@@ -92,12 +120,13 @@ class PETSinogramSystemMatrix(SystemMatrix):
         Returns:
             torch.tensor: Probability sinogram
         """
-        xyz1, xyz2 = self._get_xyz_sinogram_coordinates(subset_idx=subset_idx)
-        proj = torch.zeros(xyz1.shape[0]).to(self.output_device)
-        for idx_partial in torch.tensor_split(torch.arange(xyz1.shape[0]), self.N_splits):
-            proj[idx_partial] += torch.exp(-parallelproj.joseph3d_fwd(
-                xyz1[idx_partial].to(pytomography.device),
-                xyz2[idx_partial].to(pytomography.device),
+        N = self._N_sinogram(subset_idx)
+        proj = torch.zeros(N, device=self.output_device)
+        for start, end in self._chunk_bounds(N):
+            xyz1, xyz2 = self._xyz_chunk(start, end, subset_idx)
+            proj[start:end] += torch.exp(-parallelproj.joseph3d_fwd(
+                xyz1,
+                xyz2,
                 self.attenuation_map.to(pytomography.device),
                 self.object_origin,
                 self.object_meta.dr
@@ -207,17 +236,18 @@ class PETSinogramSystemMatrix(SystemMatrix):
         object = object.to(pytomography.device)
         for transform in self.obj2obj_transforms:
             object = transform.forward(object)
-        # Project
-        xyz1, xyz2 = self._get_xyz_sinogram_coordinates(subset_idx=subset_idx)
+        # Project chunk by chunk; the crystal coordinates of each chunk are generated on the device
+        N = self._N_sinogram(subset_idx)
         if self.TOF:
-            proj = torch.zeros((xyz1.shape[0], self.proj_meta.tof_meta.num_bins)).to(pytomography.dtype).to(self.output_device)
+            proj = torch.zeros((N, self.proj_meta.tof_meta.num_bins), dtype=pytomography.dtype, device=self.output_device)
         else:
-            proj = torch.zeros((xyz1.shape[0])).to(pytomography.dtype).to(self.output_device)
-        for idx_partial in torch.tensor_split(torch.arange(xyz1.shape[0]), self.N_splits):
+            proj = torch.zeros((N), dtype=pytomography.dtype, device=self.output_device)
+        for start, end in self._chunk_bounds(N):
+            xyz1, xyz2 = self._xyz_chunk(start, end, subset_idx)
             if self.TOF:
-                proj[idx_partial] += parallelproj.joseph3d_fwd_tof_sino(
-                    xyz1[idx_partial].to(pytomography.device),
-                    xyz2[idx_partial].to(pytomography.device),
+                proj[start:end] += parallelproj.joseph3d_fwd_tof_sino(
+                    xyz1,
+                    xyz2,
                     object.to(pytomography.device),
                     self.object_origin,
                     self.object_meta.dr,
@@ -228,9 +258,9 @@ class PETSinogramSystemMatrix(SystemMatrix):
                     self.proj_meta.tof_meta.num_bins
                 ).to(self.output_device)
             else:
-                proj[idx_partial] += parallelproj.joseph3d_fwd(
-                    xyz1[idx_partial].to(pytomography.device),
-                    xyz2[idx_partial].to(pytomography.device),
+                proj[start:end] += parallelproj.joseph3d_fwd(
+                    xyz1,
+                    xyz2,
                     object.to(pytomography.device),
                     self.object_origin,
                     self.object_meta.dr
@@ -264,17 +294,19 @@ class PETSinogramSystemMatrix(SystemMatrix):
         if force_scale_by_sensitivity or self.scale_projection_by_sensitivity:
             proj = proj * self._compute_sensitivity_sinogram(subset_idx)
         # Project
-        xyz1, xyz2 = self._get_xyz_sinogram_coordinates(subset_idx=subset_idx)
+        N = self._N_sinogram(subset_idx)
+        proj_flat = proj.flatten(end_dim=-2) if self.TOF*(not force_nonTOF) else proj.flatten()   # a view: (theta, r, plane)[, TOF]
         BP = 0
-        for idx_partial in torch.tensor_split(torch.arange(xyz1.shape[0]), self.N_splits):
+        for start, end in self._chunk_bounds(N):
+            xyz1, xyz2 = self._xyz_chunk(start, end, subset_idx)
             if self.TOF*(not force_nonTOF):
                 BP += parallelproj.joseph3d_back_tof_sino(
-                    xyz1[idx_partial].to(pytomography.device),
-                    xyz2[idx_partial].to(pytomography.device),
+                    xyz1,
+                    xyz2,
                     self.object_meta.shape,
                     self.object_origin,
                     self.object_meta.dr,
-                    proj.flatten(end_dim=-2)[idx_partial].to(pytomography.device), # flattens to planes,r,theta
+                    proj_flat[start:end].to(pytomography.device),
                     self.proj_meta.tof_meta.bin_width,
                     self.proj_meta.tof_meta.sigma,
                     self.proj_meta.tof_meta.center_offset,
@@ -283,12 +315,12 @@ class PETSinogramSystemMatrix(SystemMatrix):
                 )
             else:
                 BP += parallelproj.joseph3d_back(
-                    xyz1[idx_partial].to(pytomography.device),
-                    xyz2[idx_partial].to(pytomography.device),
+                    xyz1,
+                    xyz2,
                     self.object_meta.shape,
                     self.object_origin,
                     self.object_meta.dr,
-                    proj.flatten()[idx_partial].to(pytomography.device), # flattens to planes,r,theta
+                    proj_flat[start:end].to(pytomography.device),
                 )
         # Apply object transforms
         for transform in self.obj2obj_transforms[::-1]:
