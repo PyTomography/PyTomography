@@ -1,8 +1,8 @@
 """Filtered back projection in the CT system matrices. Helical WFBP (CTGen3SystemMatrix) reconstructs a phantom from its
 exact line integrals (computed analytically along each ray, so independent of the projector), with and without a
-flying focal spot; the circular FDK (CTConeBeamFlatPanelSystemMatrix) gives the same image through the algorithm as
-through the deprecated back projection flag; voxels outside the field of view are zero; the GPU budget bounds the peak.
-A data test (marked ``data``) compares TCIA LDCT-and-Projection-data case C145 with the scanner's own images."""
+flying focal spot, and so does the circular FDK (CTConeBeamFlatPanelSystemMatrix) in the central slices; voxels outside
+the field of view are zero; the GPU budget bounds the peak. A data test (marked ``data``) compares TCIA
+LDCT-and-Projection-data case C145 with the scanner's own images."""
 from __future__ import annotations
 
 import glob
@@ -131,24 +131,55 @@ def test_helical_fbp_is_zero_outside_the_field_of_view_and_on_the_device():
     assert torch.all(image[outside.to(image.device)] == 0)
 
 
-def test_back_projection_no_longer_accepts_a_projection_type():
-    sm = CTGen3SystemMatrix(OBJECT_META, _helix(rotations=1))
+def _conebeam(n_views=120, n_cols=64):
+    """A circular cone-beam scan: focal spot 200 mm from the axis, flat panel 100 mm beyond it (64 x 24, 2 mm)."""
+    angles = torch.linspace(0, 2 * np.pi, n_views + 1)[:-1]
+    return CTConeBeamFlatPanelProjMeta(angles, torch.zeros(n_views), detector_radius=100.0, beam_radius=200.0,
+                                       shape=(n_cols, 24), dr=(2.0, 2.0))
+
+
+def _conebeam_line_integrals(meta, sphere):
+    """Exact line integrals through a water cylinder (radius 30 mm, longer than the cone) and a sphere of contrast."""
+    end = torch.stack([meta._get_detector_coordinates(i) for i in range(meta.N_angles)]).double().cpu()
+    start = meta.beam_locations.double().cpu()[:, None, None, :].expand_as(end)
+    d = end - start
+    L = d.norm(dim=-1)
+    u = d / L[..., None]
+    centre, radius, dmu = sphere
+    return (MU * _chords_cylinder(start, u, L, radius=30.0, z0=-40.0, z1=40.0)
+            + dmu * _chords_sphere(start, u, L, centre, radius)).float()
+
+
+@pytest.mark.parametrize("n_cols", [64, 63], ids=["even columns", "odd columns"])
+def test_conebeam_fdk_reconstructs_the_phantom_in_the_central_slices(n_cols):
+    meta, sphere = _conebeam(n_cols=n_cols), ((8.0, 5.0, 0.0), 8.0, 0.004)
+    object_meta = ObjectMeta(dr=(2.0, 2.0, 2.0), shape=(40, 40, 6))
+    sm = CTConeBeamFlatPanelSystemMatrix(object_meta, meta)
+    proj = _conebeam_line_integrals(meta, sphere).to(pytomography.device)
+    image = FilteredBackProjection(proj, sm, filter='hann')()
+    x, z = (np.arange(40) - 19.5) * 2.0, (np.arange(6) - 2.5) * 2.0
+    X, Y, Z = np.meshgrid(x, x, z, indexing='ij')
+    (cx, cy, cz), radius, dmu = sphere
+    to_sphere = np.sqrt((X - cx) ** 2 + (Y - cy) ** 2 + (Z - cz) ** 2)
+    truth = MU * (np.hypot(X, Y) <= 30.0) + dmu * (to_sphere <= radius)
+    safe = (np.hypot(X, Y) < 24.0) & (np.abs(to_sphere - radius) > 4)
+    err = (image.cpu().numpy() - truth)[safe] / MU
+    assert abs(err.mean()) < 0.01 and np.abs(err).max() < 0.05
+    assert image.cpu().numpy()[to_sphere < radius - 3].mean() - MU == pytest.approx(dmu, rel=0.15)
+    ram_lak = FilteredBackProjection(proj, sm, filter='ram-lak')()
+    assert (image - ram_lak).abs().max() > 0.01 * MU                   # the window is applied
+
+
+@pytest.mark.parametrize("which", ["helical", "cone beam"])
+def test_the_projectors_no_longer_accept_a_projection_type(which):
+    if which == "helical":
+        sm = CTGen3SystemMatrix(OBJECT_META, _helix(rotations=1))
+    else:
+        sm = CTConeBeamFlatPanelSystemMatrix(ObjectMeta(dr=(2.0, 2.0, 2.0), shape=(8, 8, 4)), _conebeam(12))
     with pytest.raises(TypeError):
         sm.backward(torch.zeros(sm.proj_meta.N_angles, *sm.proj_meta.shape), projection_type='FBP')
-
-
-def test_conebeam_fdk_through_the_algorithm_matches_the_deprecated_flag():
-    angles = torch.linspace(0, 2 * np.pi, 25)[:-1]
-    meta = CTConeBeamFlatPanelProjMeta(angles, torch.zeros(24), detector_radius=100.0, beam_radius=150.0, shape=(40, 16), dr=(2.5, 2.5))
-    sm = CTConeBeamFlatPanelSystemMatrix(ObjectMeta(dr=(2.0, 2.0, 2.0), shape=(32, 32, 12)), meta)
-    proj = torch.rand((24, 40, 16), generator=torch.Generator().manual_seed(0)).to(pytomography.device)
-    with pytest.warns(DeprecationWarning):
-        old = sm.backward(proj, projection_type='FBP')
-    new = FilteredBackProjection(proj, sm, filter='ram-lak')()
-    # the same computation; parallelproj accumulates the back projection with atomic adds, so not bit for bit
-    torch.testing.assert_close(old, new, rtol=1e-5, atol=1e-6 * float(old.abs().max()))
-    hann = FilteredBackProjection(proj, sm, filter='hann')()
-    assert (hann - new).abs().max() > 0.01 * new.abs().max()
+    with pytest.raises(TypeError):
+        sm.forward(torch.zeros(sm.object_meta.shape), projection_type='FBP')
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="measures CUDA memory")

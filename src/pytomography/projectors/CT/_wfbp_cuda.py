@@ -112,6 +112,24 @@ def _kernel():
     return _KERNEL
 
 
+class _StreamHandle:
+    """A raw CUDA stream, through the CUDA stream protocol (PyTorch's streams do not implement it yet)."""
+    def __init__(self, handle: int):
+        self.handle = handle
+
+    def __cuda_stream__(self):
+        return (0, self.handle)
+
+
+def _torch_stream(device):
+    """The current PyTorch stream on ``device``, as a CuPy stream, so that the kernels queue behind PyTorch's work."""
+    import cupy
+    handle = torch.cuda.current_stream(device).cuda_stream
+    if hasattr(cupy.cuda.Stream, 'from_external'):       # CuPy 14 deprecates ExternalStream for it
+        return cupy.cuda.Stream.from_external(_StreamHandle(handle))
+    return cupy.cuda.ExternalStream(handle)
+
+
 def backproject(Q: torch.Tensor, theta: np.ndarray, t: np.ndarray, dtheta: float, geo: dict, X: torch.Tensor, Y: torch.Tensor,
                 Z: np.ndarray, out: torch.Tensor, Q_weight: float = 0.6, k_range: int | None = None, z_offsets=(0.0,),
                 budget: float | None = None, views_per_launch: int = 128) -> None:
@@ -143,7 +161,7 @@ def backproject(Q: torch.Tensor, theta: np.ndarray, t: np.ndarray, dtheta: float
     theta_lo, theta_hi = float(theta[0]) - 1e-6, float(theta[-1]) + 1e-6
     f32, i32 = np.float32, np.int32
     kernel = _kernel()
-    with cupy.cuda.ExternalStream(torch.cuda.current_stream(device).cuda_stream):
+    with _torch_stream(device):
         for s in range(0, J, Jb):
             e = min(J, s + Jb)
             th = theta[s:e]

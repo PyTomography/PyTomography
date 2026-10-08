@@ -1,6 +1,6 @@
 """Filtered back projection, the parts that need no projector: the algorithm hands the work to the system matrix and
-fails clearly for one without filtered back projection; the filter windows; and the corrections of DICOM-CT-PD
-projections (low-signal filtering, per-column scale, table feed, view order)."""
+fails clearly for one without filtered back projection; the filter windows and the ramp kernel; and the corrections of
+DICOM-CT-PD projections (low-signal filtering, per-column scale, table feed, view order)."""
 from __future__ import annotations
 
 import os
@@ -15,8 +15,8 @@ from pytomography.io.CT import dicom_ct_pd, preprocessing
 from pytomography.metadata import ObjectMeta, ProjMeta
 from pytomography.metadata.CT import CTGen3ProjMeta
 from pytomography.projectors import SystemMatrix
-from pytomography.utils import (HammingFilter, HannFilter, RamLakFilter, RampFilter, SheppLoganFilter, TabulatedFilter,
-                                get_fbp_filter, gpu_budget)
+from pytomography.utils import (HannFilter, RamLakFilter, SheppLoganFilter, TabulatedFilter, get_fbp_filter, gpu_budget,
+                                ramp_filter)
 
 
 class _NoFBP(SystemMatrix):
@@ -60,14 +60,32 @@ def test_filter_windows():
 
 def test_filter_descriptions():
     assert isinstance(get_fbp_filter(None), RamLakFilter)
-    assert isinstance(get_fbp_filter(RampFilter), RamLakFilter)
     assert isinstance(get_fbp_filter('Hann'), HannFilter)
+    assert isinstance(get_fbp_filter(HannFilter), HannFilter)
     f = torch.tensor([0.1, 0.3])
     assert torch.allclose(get_fbp_filter(lambda q: 1 - q)(f, 0.5), 1 - f)
-    # the older HammingFilter takes cycles per sample and fractions of Nyquist: wh = 1 falls to zero at Nyquist
-    assert float(get_fbp_filter(HammingFilter(0, 1))(torch.tensor([0.5]), 0.5)) == pytest.approx(0.0, abs=1e-6)
     with pytest.raises(ValueError):
         get_fbp_filter('no-such-filter')
+    with pytest.raises(TypeError):
+        get_fbp_filter(0.5)
+
+
+def test_the_ramp_filter_is_the_band_limited_kernel():
+    # a unit sample comes back as the kernel times the spacing: 1/(4s) at the sample, -1/(pi k)^2 / s at odd k, 0 at even k
+    s = 0.5
+    p = torch.zeros(3, 9)
+    p[:, 4] = 1
+    expected = torch.zeros(9)
+    expected[4] = 1 / (4 * s)
+    for k in (1, 3):
+        expected[[4 - k, 4 + k]] = -1 / (np.pi ** 2 * k ** 2 * s)
+    q = ramp_filter(p, s)
+    assert torch.allclose(q, expected.expand(3, 9), atol=1e-6)
+    assert torch.allclose(ramp_filter(p.T, s, dim=0), q.T)
+    # a window multiplies the response: Hann halves it at half the Nyquist frequency
+    wave = torch.cos(np.pi / 2 * torch.arange(128.0))
+    ratio = ramp_filter(wave, 1.0, HannFilter())[32:96].abs().max() / ramp_filter(wave, 1.0)[32:96].abs().max()
+    assert float(ratio) == pytest.approx(0.5, abs=0.02)
 
 
 def test_gpu_budget_is_the_request_off_cuda():

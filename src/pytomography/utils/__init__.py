@@ -3,5 +3,5 @@ from .misc import rev_cumsum, get_distance, get_object_nearest_neighbour, print_
 from .spatial import rotate_detector_z, compute_pad_size, pad_proj, pad_object, unpad_proj, unpad_object, pad_object_z, unpad_object_z
 from .nist_data import dual_sqrt_exponential, get_E_mu_data_from_datasheet, get_mu_from_spectrum_interp
 from .scatter import compute_EW_scatter
-from .fourier_filters import HammingFilter, RampFilter, FBPFilter, RamLakFilter, SheppLoganFilter, HannFilter, GeneralizedHammingFilter, CosineFilter, TabulatedFilter, get_fbp_filter
+from .fourier_filters import FBPFilter, RamLakFilter, SheppLoganFilter, HannFilter, GeneralizedHammingFilter, CosineFilter, TabulatedFilter, get_fbp_filter, ramp_filter
 from .memory import gpu_budget, PeakMemory

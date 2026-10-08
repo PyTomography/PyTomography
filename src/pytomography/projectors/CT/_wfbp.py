@@ -25,6 +25,7 @@ import torch
 import torch.nn.functional as F
 import pytomography
 from pytomography.utils.memory import gpu_budget
+from pytomography.utils.fourier_filters import ramp_filter_response
 
 #: bytes per element of the back projection's 4D (views x Nx x Ny x z) temporaries, at their peak
 _BYTES_PER_4D_ELEMENT = 40
@@ -117,15 +118,7 @@ def ramp_filter(P: torch.Tensor, geo: dict, dt: float, window, budget: float | N
     spacing ``dt``, times ``window(f, f_nyquist)`` with f in cycles per mm."""
     J, M, nrow = P.shape
     n_pad = int(2 ** np.ceil(np.log2(2 * M)))
-    n = torch.arange(-(n_pad // 2), n_pad // 2, dtype=torch.float64)
-    h = torch.zeros_like(n)
-    h[n == 0] = 1 / (4 * dt ** 2)
-    odd = (n.abs() % 2) == 1
-    h[odd] = -1 / (np.pi ** 2 * (n[odd] * dt) ** 2)
-    G = torch.fft.fft(torch.fft.ifftshift(h)).real
-    f = torch.fft.fftfreq(n_pad, d=dt).abs().to(torch.float64)
-    G = G * window(f, 0.5 / dt).to(torch.float64).cpu()
-    G = G.to(device, torch.float32)
+    G = ramp_filter_response(n_pad, dt, window).to(device, torch.float32)
     v = geo['v0'] + geo['dv'] * np.arange(nrow) - geo['dz']
     cone = torch.tensor(geo['dsd'] / np.sqrt(geo['dsd'] ** 2 + v ** 2), device=device, dtype=torch.float32)
     per_view = M * nrow * 4 * 2 + n_pad * nrow * 8 * 3

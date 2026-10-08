@@ -1,30 +1,7 @@
 from __future__ import annotations
 from typing import Callable
-import pytomography
 import torch
 import numpy as np
-
-class RampFilter:
-    r"""Implementation of the Ramp filter :math:`\Pi(\omega) = |\omega|`
-    """
-    def __init__(self):
-        return
-    def __call__(self, w):
-        return torch.abs(w)
-
-class HammingFilter:
-    r"""Implementation of the Hamming filter given by :math:`\Pi(\omega) = \frac{1}{2}\left(1+\cos\left(\frac{\pi(|\omega|-\omega_L)}{\omega_H-\omega_L} \right)\right)` for :math:`\omega_L \leq |\omega| < \omega_H` and :math:`\Pi(\omega) = 1` for :math:`|\omega| \leq \omega_L` and :math:`\Pi(\omega) = 0` for :math:`|\omega|>\omega_H`. Arguments ``wl`` and ``wh`` should be expressed as fractions of the Nyquist frequency (i.e. ``wh=0.93`` represents 93% the Nyquist frequency).
-    """
-    def __init__(self, wl, wh):
-        self.wl = wl/2 # units of Nyquist Frequency
-        self.wh = wh/2
-    def __call__(self, w):
-        w = w.cpu().numpy()
-        filter = np.piecewise(
-        w,
-        [np.abs(w)<=self.wl, (self.wl<np.abs(w))*(self.wh>=np.abs(w)), np.abs(w)>self.wh],
-        [lambda w: 1, lambda w: 1/2*(1+np.cos(np.pi*(np.abs(w)-self.wl)/(self.wh-self.wl))), lambda w: 0])
-        return torch.tensor(filter).to(pytomography.device)
 
 
 class FBPFilter:
@@ -124,18 +101,6 @@ class _FunctionFilter(FBPFilter):
         return torch.as_tensor(self.function(f), dtype=f.dtype, device=f.device)
 
 
-class _CyclesPerSampleFilter(FBPFilter):
-    """The older filters, :class:`RampFilter` and :class:`HammingFilter`, which are called with the frequency in cycles
-    per sample."""
-    def __init__(self, filter):
-        self.filter = filter
-
-    def __call__(self, f, f_nyquist):
-        if isinstance(self.filter, RampFilter):
-            return torch.ones_like(f)
-        return torch.as_tensor(self.filter(f / (2 * f_nyquist)), dtype=f.dtype, device=f.device)
-
-
 _NAMED_FILTERS = {'ram-lak': RamLakFilter, 'ramlak': RamLakFilter, 'ramp': RamLakFilter, 'shepp-logan': SheppLoganFilter,
                   'hann': HannFilter, 'hanning': HannFilter, 'hamming': lambda: GeneralizedHammingFilter(0.54),
                   'cosine': CosineFilter}
@@ -143,8 +108,8 @@ _NAMED_FILTERS = {'ram-lak': RamLakFilter, 'ramlak': RamLakFilter, 'ramp': RamLa
 
 def get_fbp_filter(filter) -> FBPFilter:
     """The window of filtered back projection described by ``filter``: a name (``'ram-lak'``, ``'shepp-logan'``,
-    ``'hann'``, ``'hamming'`` or ``'cosine'``), an :class:`FBPFilter`, a function of the spatial frequency in cycles per
-    mm, or one of the older :class:`RampFilter` and :class:`HammingFilter` (class or instance). None means Ram-Lak.
+    ``'hann'``, ``'hamming'`` or ``'cosine'``), an :class:`FBPFilter` (instance or class), or a function of the spatial
+    frequency in cycles per mm. None means Ram-Lak.
 
     Args:
         filter: Description of the filter.
@@ -161,12 +126,60 @@ def get_fbp_filter(filter) -> FBPFilter:
             raise ValueError(f'unknown filter {filter!r}: use one of {sorted(_NAMED_FILTERS)}, an FBPFilter, or a function of frequency') from None
     if isinstance(filter, FBPFilter):
         return filter
-    if filter is RampFilter:
-        return RamLakFilter()
-    if filter is HammingFilter:
-        return HannFilter()
-    if isinstance(filter, (RampFilter, HammingFilter)):
-        return _CyclesPerSampleFilter(filter)
+    if isinstance(filter, type) and issubclass(filter, FBPFilter):
+        return filter()
     if callable(filter):
         return _FunctionFilter(filter)
     raise TypeError(f'cannot use {filter!r} as a filter')
+
+
+def ramp_filter_response(n: int, spacing: float, window: FBPFilter | None = None) -> torch.Tensor:
+    r"""Frequency response, in FFT order, of the band-limited ramp (Ram-Lak) filter for samples ``spacing`` apart, times
+    a window: the DFT of the kernel :math:`h_0 = 1/(4s^2)`, :math:`h_k = -1/(\pi k s)^2` for odd :math:`k` and 0 for even
+    :math:`k \neq 0` (Kak and Slaney, ch. 3), which follows :math:`|f|` but, unlike :math:`|f|` sampled in
+    frequency, has no error at low frequencies. Filter with ``spacing * ifft(fft(p, n) * response)``, with ``n`` at least twice the
+    number of samples, so that nothing wraps around.
+
+    Args:
+        n (int): Length of the (zero padded) FFT.
+        spacing (float): Sample spacing. The window is given the frequency in cycles per unit of it, so the windows of
+            :func:`get_fbp_filter` need it in mm.
+        window (FBPFilter, optional): Window, called as ``window(f, f_nyquist)``. Defaults to None (none).
+
+    Returns:
+        torch.Tensor: The response (``n`` values, float64, on the host).
+    """
+    spacing = float(spacing)
+    k = torch.arange(-(n // 2), n - n // 2, dtype=torch.float64)
+    h = torch.zeros_like(k)
+    h[k == 0] = 1 / (4 * spacing ** 2)
+    odd = (k.abs() % 2) == 1
+    h[odd] = -1 / (np.pi ** 2 * (k[odd] * spacing) ** 2)
+    response = torch.fft.fft(torch.fft.ifftshift(h)).real
+    if window is not None:
+        f = torch.fft.fftfreq(n, d=spacing).abs().to(torch.float64)
+        response = response * window(f, 0.5 / spacing).to(torch.float64).cpu()
+    return response
+
+
+def ramp_filter(projections: torch.Tensor, spacing: float, window: FBPFilter | None = None, dim: int = -1) -> torch.Tensor:
+    r"""Ramp filters ``projections`` along ``dim``: linear convolution with the kernel of :func:`ramp_filter_response`
+    (zero padded to a power of two at least twice as long), times the window. The result is in the units of the
+    projections per unit of ``spacing``.
+
+    Args:
+        projections (torch.Tensor): Projections, sampled ``spacing`` apart along ``dim``.
+        spacing (float): Sample spacing (mm for the windows of :func:`get_fbp_filter`).
+        window (FBPFilter, optional): Window, called as ``window(f, f_nyquist)``. Defaults to None (none).
+        dim (int, optional): Dimension to filter along. Defaults to -1.
+
+    Returns:
+        torch.Tensor: The filtered projections, the shape of ``projections``.
+    """
+    n = projections.shape[dim]
+    n_pad = int(2 ** np.ceil(np.log2(2 * n)))
+    response = ramp_filter_response(n_pad, spacing, window)[:n_pad // 2 + 1].to(projections.device, torch.float32)
+    shape = [1] * projections.ndim
+    shape[dim] = n_pad // 2 + 1
+    spectrum = torch.fft.rfft(projections.float(), n=n_pad, dim=dim) * response.reshape(shape)
+    return float(spacing) * torch.fft.irfft(spectrum, n=n_pad, dim=dim).narrow(dim, 0, n)

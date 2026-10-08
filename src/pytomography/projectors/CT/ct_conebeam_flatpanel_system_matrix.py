@@ -1,37 +1,13 @@
 from __future__ import annotations
-import warnings
 import torch
 import pytomography
 import numpy as np
 from pytomography.projectors import SystemMatrix
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.CT import CTConeBeamFlatPanelProjMeta
-from pytomography.utils.fourier_filters import get_fbp_filter, RamLakFilter
-from torch.nn.functional import pad
+from pytomography.utils.fourier_filters import get_fbp_filter, ramp_filter
 import parallelproj_core
 from .ct_gen3_system_matrix import _float32, _pad, _crop
-
-def get_discrete_ramp_FFT(n):
-    nn = torch.arange(-n / 2, n / 2)
-    h = torch.zeros(nn.shape, dtype=torch.float32)
-    h[n//2] = 1 / 4
-    odd = nn % 2 == 1
-    h[odd] = -1 / (np.pi * nn[odd]) ** 2
-    return torch.abs(torch.fft.fft(h))
-def FBP_filter(proj, device=pytomography.device, window=None, du=1.0):
-    """Ramp filters a projection (u, v) along u, times ``window(f, f_nyquist)`` (f in cycles per mm, detector spacing
-    ``du`` mm) when one is given."""
-    pad_size = proj.shape[0] // 2
-    ramp_filter = get_discrete_ramp_FFT(proj.shape[0]+2*pad_size).to(device).reshape((-1,1))
-    if window is not None:
-        f = torch.fft.fftfreq(proj.shape[0] + 2 * pad_size, d=du).abs().to(device)
-        ramp_filter = ramp_filter * window(f, 0.5 / du).to(device, ramp_filter.dtype).reshape((-1, 1))
-    proj_fft = pad(proj, [0,0,pad_size,pad_size])
-    # filter projections
-    proj_fft = torch.fft.fft(proj_fft, dim=0)
-    proj_fft = proj_fft * ramp_filter
-    proj_filtered = torch.fft.ifft(proj_fft, dim=0).real[pad_size:-pad_size]
-    return proj_filtered
 
 class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
     """System matrix for a cone beam CT system with a flat detector panel. Filtered back projection (FDK) is available for circular (fixed z) scans through :class:`pytomography.algorithms.FilteredBackProjection`.
@@ -60,7 +36,7 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         self._FBP_preweight = None
     
     def _get_FBP_scale(self):
-        return 0.5 * (2 * np.pi/ self.proj_meta.N_angles) * (self.proj_meta.DSD/self.proj_meta.DSO) / self.proj_meta.dr[0]
+        return 0.5 * (2 * np.pi/ self.proj_meta.N_angles) * (self.proj_meta.DSD/self.proj_meta.DSO)
     
     def _get_FBP_preweight(self, idx):
         if self._FBP_preweight is None:
@@ -157,27 +133,18 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
     def forward(
         self, object: torch.Tensor,
         subset_idx: int | None = None,
-        FBP_post_weight: torch.Tensor = None,
-        projection_type='matched'
     ) -> torch.Tensor:
-        """Computes forward projection
+        r"""Computes forward projection
 
         Args:
             object (torch.Tensor): Object to be forward projected
             subset_idx (int | None, optional): Subset index :math:`m` of the projection. If None, then projects to entire projection space. Defaults to None.
-            FBP_post_weight (torch.Tensor, optional): _description_. Defaults to None.
-            projection_type (str): Type of forward projection to use; defaults to mathced. (For implementing the adjoint of FBP, we need the option of using FBP weights in the forward projection).
 
         Returns:
             torch.Tensor: Projections corresponding to :math:`\int \mu dx` along all LORs.
         """
-        if subset_idx is not None:
-            angle_subset = self.subset_indices_array[subset_idx]
-        angle_indices = torch.arange(self.proj_meta.N_angles).to(pytomography.device) if subset_idx is None else angle_subset
-        if FBP_post_weight is None:
-            object_i = _pad(_float32(object, pytomography.device))
-        else:
-            object_i = _pad(_float32(object * FBP_post_weight, pytomography.device))
+        angle_indices = self._angle_indices(subset_idx)
+        object_i = _pad(_float32(object, pytomography.device))
         # Project into one buffer: parallelproj writes the line integrals of each angle into the array it is given
         proj = torch.zeros((len(angle_indices), *self.proj_meta.shape), dtype=torch.float32, device=self.device)
         for i in range(len(angle_indices)):
@@ -215,7 +182,7 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         for detector_coordinates_s, beam_coordinate_s, proj_s in zip(torch.tensor_split(detector_coordinates, self.N_splits), torch.tensor_split(beam_coordinate, self.N_splits), torch.tensor_split(proj_i, self.N_splits)):
             parallelproj_core.joseph3d_back(beam_coordinate_s, detector_coordinates_s, BP, self.origin, self.voxel_size, proj_s)
 
-    def _fbp(self, projections: torch.Tensor, filter=None, subset_idx: int | None = None) -> torch.Tensor:
+    def _fbp(self, projections: torch.Tensor, filter=None) -> torch.Tensor:
         """Filtered back projection of a circular scan (FDK) onto the object grid of this system matrix, called by
         :class:`pytomography.algorithms.FilteredBackProjection`. Each projection is cosine weighted and ramp filtered
         along the detector rows (times the window ``filter``), back projected, and weighted with the FDK distance weight.
@@ -223,18 +190,15 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         Args:
             projections (torch.Tensor): Line integrals (views, u, v).
             filter (FBPFilter, optional): Window applied on top of the ramp filter. Defaults to None (Ram-Lak).
-            subset_idx (int, optional): Reconstruct from one subset of views only. Defaults to None (every view).
 
         Returns:
             torch.Tensor: Attenuation on the object grid, on ``pytomography.device``.
         """
         window = get_fbp_filter(filter)
-        angle_indices = self._angle_indices(subset_idx)
         BP = torch.zeros(tuple(n + 2 for n in self.object_meta.shape), dtype=torch.float32, device=pytomography.device)
-        for i in range(len(angle_indices)):
-            idx = angle_indices[i]
-            proj_i = projections[i] * self._get_FBP_preweight(idx)
-            proj_i = FBP_filter(proj_i, self.device, window=window, du=self.proj_meta.dr[0])
+        for idx in range(self.proj_meta.N_angles):
+            proj_i = projections[idx] * self._get_FBP_preweight(idx)
+            proj_i = ramp_filter(proj_i, self.proj_meta.dr[0], window, dim=0)
             # each view's back projection is weighted on its own before it is accumulated
             BP_i = torch.zeros_like(BP)
             self._back_project_view(BP_i, idx, proj_i)
@@ -245,25 +209,16 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         self,
         proj: torch.Tensor,
         subset_idx: int | None = None,
-        projection_type='matched'
     ) -> torch.Tensor:
         """Computes back projection :math:`H^T g`.
 
         Args:
             proj (torch.Tensor): Projections to be back projected
             subset_idx (int | None, optional): Subset index :math:`m` of the projection. Defaults to None.
-            projection_type (str, optional): ``'matched'``. ``'FBP'`` is deprecated: use :class:`pytomography.algorithms.FilteredBackProjection` with ``filter='ram-lak'``, which gives the same image. Defaults to ``'matched'``.
 
         Returns:
             torch.Tensor: Back projection, on ``pytomography.device``.
         """
-        if projection_type == 'FBP':
-            warnings.warn("backward(..., projection_type='FBP') is deprecated: use "
-                          "pytomography.algorithms.FilteredBackProjection(projections, system_matrix, filter='ram-lak')",
-                          DeprecationWarning, stacklevel=2)
-            return self._fbp(proj, RamLakFilter(), subset_idx=subset_idx)
-        if projection_type != 'matched':
-            raise ValueError(f"unknown projection_type {projection_type!r}")
         # parallelproj adds into the image it is given, so every angle accumulates into one (padded) buffer
         BP = torch.zeros(tuple(n + 2 for n in self.object_meta.shape), dtype=torch.float32, device=pytomography.device)
         angle_indices = self._angle_indices(subset_idx)

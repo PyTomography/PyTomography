@@ -211,7 +211,7 @@ class CTGen3SystemMatrix(SystemMatrix):
         return image if self._fov is None else image * self._fov
 
     def forward(self, object, subset_idx=None):
-        """Computes forward projection
+        r"""Computes forward projection
 
         Args:
             object (torch.Tensor): Object to be forward projected
