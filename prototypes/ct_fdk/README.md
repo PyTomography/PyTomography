@@ -40,8 +40,9 @@ With 443.25:
 - with that window our noise is the scanner's own noise (correlated at +0.93 to +0.6 across frequencies), noise SD
   38 HU (scanner 41), skin edge 1.58 mm (scanner 1.63; 2.40 before), RMS difference 29 HU over the body (74 to 88
   before), 5 to 8 HU after a 2 mm blur;
-- the per-channel scale (step 8) is still needed, and C145's coefficients take C001's radial trend from +34 / -27 HU
-  to within 10 HU (C001's own fit: -0.0169, +0.0223).
+- the per-channel scale (step 8) is still needed. The package's `fit_column_scale` (#263) fits it from the scanner's
+  images: g0 -0.0119, g2 +0.0165 on C145 and -0.0135, +0.0184 on C001, which take the radial trend of soft tissue
+  (+25..+34 HU at the centre, -23..-25 HU at 16-20 cm) to within 6 HU on both.
 
 The package (#263) reads the GE column this way automatically. The steps below are recorded as they were made, with
 444.33 and 0.161 deg; with this prototype use `--central-column-offset -1.5` and no angle offset.
