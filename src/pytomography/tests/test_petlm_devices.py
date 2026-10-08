@@ -128,3 +128,27 @@ def test_falls_back_when_the_scanner_geometry_is_unavailable():
     sm.set_n_subsets(2)
     assert sm._event_order(0) is None
     assert sm.forward(_object(), 0).shape[0] == sm.subset_indices_array[0].shape[0]
+
+
+@pytest.mark.parametrize("tof", [False, True])
+def test_attenuation_scaling_without_weights_matches_attenuation_weights(tof):
+    """With ``scale_projection_by_sensitivity`` and no ``weights``, the projections are scaled by the attenuation
+    probabilities (#220): the same as passing those probabilities as ``weights``. The events are projected in sinogram
+    order and put back, so the factors must be those of the events in the order they were given."""
+    tof_meta = PETTOFMeta(5, 300.0, 60.0, n_sigmas=3) if tof else None
+    events = _events(tof_meta)
+    object_meta = ObjectMeta(dr=(4, 4, 4), shape=(24, 24, 16))
+    gen = torch.Generator().manual_seed(3)
+    attenuation = (0.01 * torch.rand(24, 24, 16, generator=gen)).to(DEV)
+    by_map = PETLMSystemMatrix(object_meta, PETLMProjMeta(events, INFO, tof_meta=tof_meta), attenuation_map=attenuation,
+                               scale_projection_by_sensitivity=True, N_splits=2)
+    probabilities = by_map._compute_attenuation_probability_projection(by_map.proj_meta.detector_ids).cpu()
+    by_weights = PETLMSystemMatrix(object_meta, PETLMProjMeta(events, INFO, tof_meta=tof_meta, weights=probabilities),
+                                   scale_projection_by_sensitivity=True, N_splits=2)
+    assert by_map._event_order(None) is not None             # the events really are reordered
+    x = _object()
+    assert torch.allclose(by_map.forward(x), by_weights.forward(x), rtol=1e-5)
+    by_map.set_n_subsets(3), by_weights.set_n_subsets(3)
+    y = torch.rand(by_map.subset_indices_array[1].shape[0], generator=gen).to(DEV)
+    assert torch.allclose(by_map.forward(x, 1), by_weights.forward(x, 1), rtol=1e-5)
+    assert torch.allclose(by_map.backward(y, 1), by_weights.backward(y, 1), rtol=1e-4, atol=1e-6)

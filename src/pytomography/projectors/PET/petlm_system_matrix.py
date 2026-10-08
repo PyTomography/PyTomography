@@ -450,10 +450,13 @@ class PETLMSystemMatrix(SystemMatrix):
             idx = self.proj_meta.detector_ids[self.subset_indices_array[subset_idx].to(self.proj_meta.detector_ids.device)].squeeze()
         else:
             idx = self.proj_meta.detector_ids.squeeze()
-        # Normalization/attenuation scaling (if needed)
+        # Normalization/attenuation scaling (if needed); the same factors as forward, so the two stay adjoint
         if self.scale_projection_by_sensitivity:
             if self.proj_meta.weights is None:
-                raise Exception('If scaling by sensitivity, then `weights` must be provided in the projection metadata')
+                if self.attenuation_map is not None:
+                    proj = proj * self._compute_attenuation_probability_projection(idx).to(proj.device)
+                else:
+                    raise Exception('If scaling by sensitivity, then `weights` must be provided in the projection metadata')
             else:
                 proj = proj * self.get_projection_subset(self.proj_meta.weights, subset_idx).to(proj.device)
         # hand the LORs to the projector in sinogram order, with their projections
