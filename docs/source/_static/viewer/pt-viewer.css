@@ -28,6 +28,11 @@ html.ptv-noscroll, html.ptv-noscroll body { overflow: hidden; }
 .ptv-credit:empty { display: none; }
 .ptv-credit a { color: var(--ptv-fg); }
 .ptv-actions { display: flex; gap: 6px; margin-left: auto; }
+.ptv-pick { display: flex; align-items: center; gap: 8px; font: 600 .76rem var(--ptv-sans); color: var(--ptv-mut); }
+.ptv-pick label { margin: 0; font-weight: 600; }
+.ptv-pick select { -webkit-appearance: none; appearance: none; font: 600 .82rem var(--ptv-sans); color: var(--ptv-fg); border: 1px solid var(--ptv-acc); border-radius: 7px; padding: 5px 26px 5px 9px; max-width: min(60cqw, 22rem); text-overflow: ellipsis;
+  background: var(--ptv-3) no-repeat right 9px center / 9px 6px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 6'%3E%3Cpath d='M0 0h9L4.5 6z' fill='%23f3a44a'/%3E%3C/svg%3E"); cursor: pointer; }
+.ptv-pick select option { background: var(--ptv-3); color: var(--ptv-fg); }
 .ptv-btn { appearance: none; font: 600 .76rem var(--ptv-sans); padding: 6px 10px; border-radius: 7px; border: 1px solid var(--ptv-line); background: var(--ptv-3); color: var(--ptv-fg); cursor: pointer; line-height: 1.2; }
 .ptv-btn:hover { border-color: var(--ptv-mut); }
 

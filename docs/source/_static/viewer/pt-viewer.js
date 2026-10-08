@@ -195,6 +195,7 @@
     root.dataset.mode = opt.maximized ? 'max' : 'inline';
     root.innerHTML =
       `<div class="ptv-head"><div class="ptv-title"><b id="${id('title')}">${esc(opt.title || 'Loading…')}</b><span id="${id('facts')}"></span><span class="ptv-credit" id="${id('credit')}"></span></div>` +
+      `<div class="ptv-pick" id="${id('pickWrap')}" hidden><label for="${id('pick')}">Image</label><select id="${id('pick')}"></select></div>` +
       `<div class="ptv-actions">${opt.noMaximize ? '' : `<button type="button" class="ptv-btn" id="${id('max')}" aria-pressed="false">Full screen</button>`}` +
       `${opt.onClose ? `<button type="button" class="ptv-btn" id="${id('close')}">Close</button>` : ''}</div></div>` +
       `<div class="ptv-station"><div class="ptv-view"><div class="ptv-stage">` +
@@ -296,7 +297,17 @@
       return {cmap: LUT[m.colormap] ? m.colormap : over ? 'inferno' : 'gray', lo: range[0], hi: range[1],
         op: m.opacity != null ? m.opacity : over ? (hasBase ? 0.5 : 1) : 1, fwhm: 0};
     }
-    LAY.forEach(L => { L.set = defaults(L); });
+    // images in one scale group (the same units, as the export decides) share their settings, so switching between
+    // them keeps the colour scale, and the same colour means the same value
+    function assignSettings() {
+      const shared = {};
+      LAY.forEach(L => {
+        const g = L.m.group;
+        if (g && shared[g]) L.set = shared[g];
+        else { L.set = defaults(L); if (g) shared[g] = L.set; }
+      });
+    }
+    assignSettings();
     const sel = {overlay: OVS.length ? OVS[0] : -1, base: BASES.length ? BASES[0] : -1};
     const facts = [];
     if (man.description) facts.push(man.description);
@@ -515,17 +526,17 @@
     });
 
     // ---------- Smoothing (FWHM in mm) of a layer, in a worker, from the unsmoothed data ----------
-    const gWorker = mkWorker(SMOOTH_SRC), pending = LAY.map(() => 0);
+    const gWorker = mkWorker(SMOOTH_SRC), pending = LAY.map(() => 0), asked = LAY.map(() => 0);
     function smooth(li, fwhm) {
       const L = LAY[li], tag = ++pending[li];
-      L.set.fwhm = fwhm;
-      if (!(fwhm > 0) || !gWorker) { if (L.base !== L.img) { L.base = L.img; L.ver++; invalidate(); mipData(li); } return; }
+      L.set.fwhm = fwhm; asked[li] = fwhm;
+      if (!(fwhm > 0) || !gWorker) { L.smoothed = 0; if (L.base !== L.img) { L.base = L.img; L.ver++; invalidate(); mipData(li); } return; }
       gWorker.postMessage({tag: li * 65536 + tag, data: L.img.slice(), dims: L.dims, sig: L.pd.map(p => fwhm / 2.3548 / p)});
     }
     if (gWorker) gWorker.onmessage = e => {
       const {tag, data} = e.data, li = Math.floor(tag / 65536);
       if (!alive || !LAY[li] || tag % 65536 !== pending[li]) return;
-      LAY[li].base = data; LAY[li].ver++; invalidate(); mipData(li);
+      LAY[li].base = data; LAY[li].smoothed = asked[li]; LAY[li].ver++; invalidate(); mipData(li);
     };
 
     // ---------- 3D view ----------
@@ -621,11 +632,13 @@
 
     // ---------- layer controls ----------
     const cards = $('cards');
+    // the header's Image switch serves the colour images, or the grey ones when only they come in several
+    const headRole = OVS.length > 1 ? 'overlay' : BASES.length > 1 ? 'base' : null;
     function card(role) {
       const list = role === 'overlay' ? OVS : BASES;
       if (!list.length) return null;
       const r = role === 'overlay' ? 'o' : 'b', I = s => id(r + s), first = LAY[list[0]];
-      const pick = list.length > 1
+      const pick = list.length > 1 && role !== headRole
         ? `<div class="ptv-ctl"><label for="${I('Pick')}">Image</label><select id="${I('Pick')}">${list.map(i => `<option value="${i}">${esc(LAY[i].m.label || LAY[i].m.name)}</option>`).join('')}</select></div>` : '';
       const isCT = l => l.m.kind === 'ct';
       const win = role === 'base'
@@ -659,7 +672,7 @@
         }
         if (E('Pick')) E('Pick').value = String(sel[role]);
       }
-      function changed(L) { L.ver++; invalidate(); requestMip(); }
+      function changed(L) { LAY.forEach(M => { if (M.set === L.set) M.ver++; }); invalidate(); requestMip(); }
       function limits(lo, hi) {
         const L = cur(), ok = Number.isFinite(lo) && Number.isFinite(hi) && lo < hi;
         ['Lo', 'Hi'].forEach(k => E(k).setAttribute('aria-invalid', String(!ok)));
@@ -684,14 +697,26 @@
         E('Lo').value = String(w[2]); E('Hi').value = String(w[3]); E('LoR').value = String(w[2]); E('HiR').value = String(w[3]);
         limits(w[2], w[3]);
       });
-      if (E('Pick')) on(E('Pick'), 'change', () => {
-        sel[role] = +E('Pick').value; setFrame(); clampP();
-        Object.values(TILE).forEach(T => T.cache.clear());
-        show(); invalidate(); mipAll();
-      });
+      if (E('Pick')) on(E('Pick'), 'change', () => pickLayer(role, +E('Pick').value));
       return {show};
     }
     const cardO = card('overlay'), cardB = card('base');
+    function pickLayer(role, li) {
+      sel[role] = li; setFrame(); clampP();
+      Object.values(TILE).forEach(T => T.cache.clear());
+      const L = LAY[li];
+      if ((L.smoothed || 0) !== (L.set.fwhm || 0)) smooth(li, L.set.fwhm);   // a shared smoothing width
+      const c = role === 'overlay' ? cardO : cardB;
+      if (c) c.show();
+      if (headRole === role) $('pick').value = String(li);
+      invalidate(); mipAll();
+    }
+    if (headRole) {
+      const list = headRole === 'overlay' ? OVS : BASES;
+      $('pick').innerHTML = list.map(i => `<option value="${i}">${esc(LAY[i].m.label || LAY[i].m.name)}</option>`).join('');
+      $('pickWrap').hidden = false;
+      on($('pick'), 'change', () => pickLayer(headRole, +$('pick').value));
+    }
 
     on($('interp'), 'change', () => { S.smooth = $('interp').checked; invalidate(); requestMip(); drawMip(); });
     on($('views'), 'click', e => {
@@ -706,8 +731,10 @@
     }
 
     reset = function () {
-      LAY.forEach(L => { L.set = defaults(L); L.base = L.img; L.ver++; pending[LAY.indexOf(L)]++; });
+      LAY.forEach((L, i) => { L.base = L.img; L.smoothed = 0; L.ver++; pending[i]++; });
+      assignSettings();
       sel.overlay = OVS.length ? OVS[0] : -1; sel.base = BASES.length ? BASES[0] : -1;
+      if (headRole) $('pick').value = String(sel[headRole]);
       setFrame();
       S.P = startP(); S.zoom = 1; S.pan = [0, 0, 0]; S.smooth = true; $('interp').checked = true;
       Object.values(TILE).forEach(T => T.cache.clear());

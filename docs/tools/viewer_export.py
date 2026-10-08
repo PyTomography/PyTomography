@@ -333,8 +333,9 @@ def export(name: str, out_dir, namespace: dict, spec: dict) -> dict:
             break
         # over budget: average the largest anatomical image down by 2 and try again; through the slices first while they
         # are no thicker than 1.5 pixels, which keeps axial views sharp, then in plane
-        big = max((L for L in layers if L["role"] == "base"), key=lambda L: len(L["blob"]), default=None)
-        if big is None or attempt == 3:
+        shrinkable = [L for L in layers if L["role"] == "base" and min(np.abs(np.diag(L["A"])[:3])) < 3.0] or layers
+        big = max(shrinkable, key=lambda L: len(L["blob"]))
+        if attempt == 3:
             raise ValueError(f"the images take {total / 1e6:.1f} MB, more than the {max_bytes / 1e6:.0f} MB budget")
         d = np.abs(np.diag(big["A"])[:3])
         big["arr"], big["A"] = _downsample(big["arr"], big["A"], [1, 1, 2] if d[2] <= 1.5 * min(d[0], d[1]) else [2, 2, 1])
@@ -342,19 +343,31 @@ def export(name: str, out_dir, namespace: dict, spec: dict) -> dict:
             big["arr"] = np.round(big["arr"])
 
     base = next((L for L in layers if L["role"] == "base"), None)
+    for L in layers:
+        if L["role"] == "overlay":
+            L["inside"] = _inside(L, base)
+            # the hottest voxel inside the anatomy
+            L["hot"] = float(L["arr"][L["inside"]].max()) if L["inside"] is not None else float(L["arr"].max())
+        else:
+            L["hot"] = float(L["arr"].max())
+        # images in the same units share one colour scale (scale_group in viewer.yaml overrides; "none" opts out),
+        # so the viewer's Image switch compares like with like
+        g = L["spec"].get("scale_group", f"{L['role']}:{L['spec'].get('units', '')}")
+        L["group"] = None if g == "none" else g
+    group_hot = {}
+    for L in layers:
+        if L["group"]:
+            group_hot[L["group"]] = max(group_hot.get(L["group"], -np.inf), L["hot"])
     man_layers = []
     for L in layers:
         ls, arr = L["spec"], L["arr"]
         (out / L["file"]).write_bytes(L["blob"])
         mn, mx = float(arr.min()), float(arr.max())
-        if L["role"] == "overlay":
-            L["inside"] = _inside(L, base)
+        hot = group_hot[L["group"]] if L["group"] else L["hot"]
         if ls.get("range"):
             rng = [float(v) for v in ls["range"]]
-        elif L["role"] == "overlay":                      # absolute: 0 to the hottest voxel inside the anatomy
-            rng = [0.0, float(arr[L["inside"]].max()) if L["inside"] is not None else mx]
-        elif L["kind"] == "mu":
-            rng = [0.0, mx]
+        elif L["role"] == "overlay" or L["kind"] == "mu":  # absolute: 0 to the hottest voxel (inside the anatomy)
+            rng = [0.0, hot]
         elif L["kind"] == "mr":
             rng = [float(np.percentile(arr, 0.5)), float(np.percentile(arr, 99.5))]
         else:
@@ -368,6 +381,8 @@ def export(name: str, out_dir, namespace: dict, spec: dict) -> dict:
                  "bytes": len(L["blob"]), "sha256": hashlib.sha256(L["blob"]).hexdigest()}
         if L["kind"] == "ct":
             entry["window"] = ls.get("window", "soft")
+        if L["group"] and sum(1 for M in layers if M["group"] == L["group"]) > 1:
+            entry["group"] = L["group"]
         if ls.get("opacity") is not None:
             entry["opacity"] = float(ls["opacity"])
         man_layers.append(entry)

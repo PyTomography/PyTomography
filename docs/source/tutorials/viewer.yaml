@@ -8,8 +8,8 @@
 #   max_mb:              optional size budget (default 15 MB); larger CTs are averaged down to fit
 #   start_voxel:         optional [i, j, k] of the first SPECT or PET layer, as the tutorial indexes its array, where
 #                        the viewer opens (default: the hottest spot inside the anatomy)
-#   layers:              the images, drawn bottom to top. The first SPECT or PET layer is shown first; the others
-#                        can be picked in the viewer. Each layer has:
+#   layers:              the images, drawn bottom to top. List every reconstruction the tutorial makes: the viewer's
+#                        Image switch moves between them, starting with the first. Each layer has:
 #     name:       short name ("CT", "OSEM"), also the file name
 #     label:      optional longer name, shown in the picker and the readout
 #     kind:       ct (HU) | mr | mu (attenuation map) | spect | pet
@@ -23,6 +23,8 @@
 #                 voxel at the edge of the field of view doesn't set the scale.
 #     crop:       body (CT default: where the image is above -500 HU, else 2% of its maximum) | base (SPECT and PET
 #                 default: the anatomy's extent) | none
+#     scale_group: images in the same units share one colour scale and keep it when the reader switches between
+#                 them; give a different name to keep an image apart (e.g. a scanner's image in other units), or none
 #     voxel_mm:   average down to about this voxel size (downsample: an integer factor instead);
 #     slices:     per-axis "a:b", to keep part of the array
 #
@@ -67,6 +69,8 @@ tutorials:
     layers:
     - {name: CT, kind: ct, array: vx.ct_dicom(files_CT), window: soft, units: HU, voxel_mm: 2}
     - {name: SPECT, label: Stitched OSEM, kind: spect, array: recon_stitched, affine: "vx.spect_affine(files_NM[1])", units: counts}
+    - {name: Bed 1, label: Upper bed alone, kind: spect, array: recon_upper, affine: "vx.spect_affine(files_NM[0])", units: counts, scale_group: beds}
+    - {name: Bed 2, label: Lower bed alone, kind: spect, array: recon_lower, affine: "vx.spect_affine(files_NM[1])", units: counts, scale_group: beds}
 
   t_dualpeak:
     title: Lu-177 NEMA phantom, two photopeaks
@@ -83,6 +87,7 @@ tutorials:
     layers:
     - {name: CT, kind: ct, array: vx.ct_dicom(files_CT), window: soft, units: HU, voxel_mm: 2}
     - {name: SPECT, label: Stitched OSEM, kind: spect, array: reconstructed_image_multibed, affine: "vx.spect_affine(files_NM[1])", units: counts}
+    - {name: Bed 2, label: Lower bed alone (the one the uncertainty is for), kind: spect, array: recon_OSEM, affine: vx.spect_affine(file_NM), units: counts}
 
   t_spect_mc:
     title: SIMIND Jaszczak phantom, Monte Carlo scatter
@@ -111,7 +116,7 @@ tutorials:
     - {name: CT, kind: ct, array: dicom.open_multifile(files_CT), affine: dicom.get_starguide_affine_CT(files_CT), affine_scale: 10, window: phantom, units: HU}
     - {name: OSEM, label: PyTomography OSEM, kind: spect, array: recon_pytomography, units: counts/s,
        affine: "vx.flip_axis(vx.centred([10 * d for d in object_meta.dr], object_meta.shape), object_meta.shape[2], 2)"}
-    - {name: Vendor, label: Scanner's reconstruction, kind: spect, array: recon_vendor, units: counts/s,
+    - {name: Vendor, label: Scanner's reconstruction, kind: spect, array: recon_vendor, units: scanner units, scale_group: scanner,
        affine: "vx.flip_axis(vx.centred([10 * d for d in object_meta.dr], object_meta.shape), object_meta.shape[2], 2)"}
 
   t_ac225_simind_recon:
@@ -130,7 +135,7 @@ tutorials:
     layers:
     - {name: CT, kind: ct, array: CT, affine: affine_CT, window: phantom, units: HU}
     - {name: Smoothed, label: Smoothed (2 cm FWHM), kind: spect, array: recon_smoothed, affine: affine_SPECT, units: counts}
-    - {name: Unsmoothed, kind: spect, array: recon, affine: affine_SPECT, units: counts}
+    - {name: Unsmoothed, kind: spect, array: recon, affine: affine_SPECT, units: counts, scale_group: none}
 
   t_CardiacReorientation:
     title: Tc-99m myocardial perfusion
@@ -151,6 +156,8 @@ tutorials:
     - {name: MR, kind: mr, array: "vx.nifti_centred(os.path.join(path, 'fdg_pet_phantom_mri.nii.gz'), 2.0)", crop: body, units: a.u.}
     - {name: List mode, kind: pet, array: recon_lm, affine: vx.object_affine(object_meta), units: a.u.}
     - {name: Sinogram, kind: pet, array: recon_sino, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: MLEM list mode, kind: pet, array: mlem_lm, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: MLEM sinogram, kind: pet, array: mlem_sino, affine: vx.object_affine(object_meta), units: a.u.}
 
   t_PETGATE_scat_sino:
     title: FDG brain phantom, sinogram with scatter
@@ -219,6 +226,8 @@ tutorials:
     - {name: MR, kind: mr, array: mri_aligned, affine: vx.object_affine(object_meta), crop: body, units: a.u.}
     - {name: DIP, label: Deep Image Prior, kind: pet, array: recon_DIP, affine: vx.object_affine(object_meta), units: a.u.}
     - {name: OSEM, label: TOF list-mode OSEM, kind: pet, array: recon_lm_tof, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: OSEM filtered, label: "TOF list-mode OSEM, filtered", kind: pet, array: recon_lm_tof_filtered, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: Uncorrected, label: No scatter correction, kind: pet, array: recon_without_scatter_estimation, affine: vx.object_affine(object_meta), units: a.u.}
 
   # ---------- CT ----------
   t_CT_GEN3:
@@ -237,6 +246,7 @@ tutorials:
       window: soft
       voxel_mm: 2
       units: HU
+    - {name: Scanner, label: Scanner's reconstruction, kind: ct, array: vx.ct_dicom(scanner_files), window: soft, voxel_mm: 2, units: HU}
 
   t_CT_microct:
     title: Glass beads, cone-beam micro-CT
@@ -244,6 +254,7 @@ tutorials:
     credit: SophiaBeads Dataset Project (Coban and McDonald 2015, Zenodo 16474, CC BY-SA 4.0); these images are CC BY-SA 4.0 too
     layers:
     - {name: SART, label: OS-SART, kind: mu, array: recon_sart, affine: "vx.centred(system_matrix.object_meta.dr, recon_sart.shape)", units: 1/mm, downsample: 3}
+    - {name: FDK, kind: mu, array: recon_fdk, affine: "vx.centred(system_matrix.object_meta.dr, recon_fdk.shape)", units: 1/mm, downsample: 3}
 
   # ---------- Building with PyTomography ----------
   t_plotting:
