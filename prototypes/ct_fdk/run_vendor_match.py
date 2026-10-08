@@ -37,6 +37,8 @@ parser.add_argument('--angle-offset-deg', type=float, default=None, help='with -
 parser.add_argument('--central-column-offset', type=float, default=0.0, help='channels added to the DetectorCentralElement column')
 parser.add_argument('--low-signal', type=float, default=0.0, help='filter photon-starved rays to about this many photons (0: off)')
 parser.add_argument('--channel-correction', default=None, help='JSON written by channel_correction.py (applied after the central column)')
+parser.add_argument('--pixel-centre-offset', type=float, default=0.0, help="pixels added to the scanner's ImagePositionPatient (0.5 for C145)")
+parser.add_argument('--table-feed-from-pitch', action='store_true', help="rescale the focal spot z to pitch x collimation (the scanner's own feed)")
 parser.add_argument('--out', default='vendor_match.json')
 parser.add_argument('--save-dir', default='.')
 args = parser.parse_args()
@@ -68,14 +70,19 @@ if args.low_signal:
 if args.channel_correction:
     proj = torch.from_numpy(channel_correction.apply_channel_scale(proj.numpy(), meta, json.load(open(args.channel_correction))))
     print(f'per-channel correction from {args.channel_correction}', flush=True)
+if args.table_feed_from_pitch:
+    head = pydicom.dcmread(glob.glob(os.path.join(args.projections, '*.dcm'))[0], stop_before_pixels=True)
+    feed = fdk_prototype.nominal_table_feed(meta, float(head.SpiralPitchFactor))
+    k = fdk_prototype.rescale_table_feed(meta, feed)
+    print(f'focal spot z rescaled by {k:.6f} about the last view: table feed {feed:.3f} mm per rotation from the pitch', flush=True)
 first = pydicom.dcmread(glob.glob(os.path.join(args.projections, '*.dcm'))[0], stop_before_pixels=True)
 mu_w = float(first[0x7041, 0x1001].value.decode().strip('\x00 '))
 slices = sorted((pydicom.dcmread(f) for f in glob.glob(os.path.join(args.images, '*.dcm'))), key=lambda s: float(s.ImagePositionPatient[2]))
 ipp = np.array([[float(v) for v in s.ImagePositionPatient] for s in slices])
 ps = [float(v) for v in slices[0].PixelSpacing]
 zs_all = ipp[:, 2]
-xs = ipp[0, 0] + np.arange(int(slices[0].Columns)) * ps[1]
-ys = ipp[0, 1] + np.arange(int(slices[0].Rows)) * ps[0]
+xs = ipp[0, 0] + (np.arange(int(slices[0].Columns)) + args.pixel_centre_offset) * ps[1]
+ys = ipp[0, 1] + (np.arange(int(slices[0].Rows)) + args.pixel_centre_offset) * ps[0]
 lo, hi = (float(v) for v in args.block.split(','))
 ks = np.arange(len(zs_all)) if args.all_slices else np.nonzero((zs_all >= lo) & (zs_all <= hi))[0]
 zs = zs_all[ks]

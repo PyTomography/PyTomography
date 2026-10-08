@@ -81,10 +81,11 @@ is over the body.
 | 6. 1.25 mm slices | 54 | -128 | -843 | 1046 | +24 / -16 | 112 | 24 |
 | 7. photon-starved rays filtered to about 30 photons | 54 | -128 | -843 | 1046 | +24 / -16 | 112 | 24 |
 | 8. **per-channel scale of the line integrals** (fitted outside this block) | **39** | **-110** | **-855** | 1028 | **-6 / +1** | 111 | 24 |
+| 9. **pixel centres at IPP + 1/2 pixel; focal spot z on the scanner's table feed** | 39 | -110 | -854 | 1056 | -6 / +1 | **93** | 24 |
 
 (HU; noise is the SD of the high-pass image in soft tissue. Back projection 10 to 37 s per step.) Over the whole
-316-slice scan, the RMS difference goes from 139 HU (step 2) to 108 HU (step 6), 102 HU (step 7) and 101 HU (step 8);
-step 7 acts where rays are starved (the shoulders, the arms beside the abdomen), not in this block.
+316-slice scan, the RMS difference goes from 139 HU (step 2) to 108 HU (step 6), 102 HU (step 7), 101 HU (step 8) and
+83 HU (step 9); step 7 acts where rays are starved (the shoulders, the arms beside the abdomen), not in this block.
 
 - **Step 1** removes the fan-beam shading: fat moves from -158 to -128 HU, and the edge of the body from -40 to -16 HU.
 - **Step 3** is a geometry correction (see the audit below). It cuts the difference from the scanner by 17% and brings
@@ -102,9 +103,12 @@ step 7 acts where rays are starved (the shoulders, the arms beside the abdomen),
   +25 HU at the centre and -25 HU at 160 to 180 mm to within +-7 HU (one 20 mm band at -12 HU), and fat, lung and soft
   tissue land within 3 HU of the scanner. See below.
 
+- **Step 9** (`--pixel-centre-offset 0.5 --table-feed-from-pitch`) puts our image where the scanner's sits; see below.
+
 **Still different:**
 
-- A 0.36, 0.25 mm in-plane shift (about half a scanner pixel, 0.33 mm; a half-pixel convention is one candidate).
+- A small difference in sharpness: ours is slightly softer in-plane (delta sigma^2 = +0.39 mm^2) and slightly sharper in
+  z (-0.37 mm^2), which leaves a rim at the skin and fine texture on edges; and a 0.02 deg rotation.
 - The scanner's high-frequency noise texture (43 HU against our 24 HU), and its inverted response above 0.4 cycles/mm.
 - Faint z banding: our soft-tissue slice means vary by 2.5 HU from slice to slice (the scanner's by 1.5 HU), most
   strongly at periods near the half-turn table feed (20 mm). The WFBP row weighting is the likely source.
@@ -156,6 +160,24 @@ held-out block (step 8 above).
 It matches the scanner; whether the scanner's calibration or the exported one is closer to the truth for this patient
 cannot be told without a water phantom scanned on the same GE system. It is fitted on one GE scan, so it needs other GE
 cases (with scanner images) before it becomes a default.
+
+## Where the image sits (step 9)
+
+After step 8 most of the remaining difference was on edges. Fitting (ours - scanner), smoothed by 1 mm, over 210
+mid-scan slices against the image gradient (a shift), its Laplacian (a difference in sharpness), a scale and a rotation
+showed our image 0.32, 0.33 and 0.35 mm off the scanner's in x, y and z:
+
+- **In-plane, exactly half a scanner pixel** (0.331 mm) in x and y: as if the scanner's ImagePositionPatient marked the
+  corner of the first pixel rather than its centre. One scan cannot tell this from a rotation axis half a pixel off the
+  patient origin, but a geometric offset would not know the display pixel size. `--pixel-centre-offset 0.5`.
+- **In z, a drift** from 0.17 mm at z = -285 to 0.56 mm at -105. The scanner's images use a table feed of 39.375 mm
+  per rotation, (0018,9310) = pitch 0.984375 x 40 mm; the projections' focal spots advance 39.454 mm (78.75 mm/s over
+  0.501 s), 0.20% more. A 0.20% stretch about the end of the scan predicts the drift slab by slab.
+  `--table-feed-from-pitch` rescales the focal spot z about the last view to pitch x collimation, with the pitch from
+  (0018,9311) of the projections (`fdk_prototype.nominal_table_feed`, `rescale_table_feed`).
+
+With both, the fitted offset is (-0.02, 0.00, +0.01) mm, every 30 mm slab within 0.03 mm in z and 0.12 mm in-plane, and
+the RMS difference on edges falls from 113 to 82 HU. Both are placement conventions, so they move OS-SART images too.
 
 ## Geometry audit
 

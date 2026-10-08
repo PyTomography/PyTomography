@@ -56,6 +56,29 @@ def helix(meta) -> dict:
                 angle_error=float(np.abs(beta - (beta[0] + dbeta * np.arange(len(beta)))).max()))
 
 
+def nominal_table_feed(meta, pitch: float) -> float:
+    """Table feed per rotation (mm) from the pitch, (0018,9311) of the projections, times the collimation at the
+    isocentre (rows x row spacing, scaled from the detector to the isocentre)."""
+    return pitch * meta.shape[1] * float(meta.row_det_spacing) * float(meta.source_rhos.double().mean()) / float(meta.DSD)
+
+
+def rescale_table_feed(meta, feed: float, anchor_view: int = -1) -> float:
+    """Scale the focal spot z positions of a CTGen3ProjMeta, in place, about one view (the last by default) so that
+    the table advances `feed` mm per rotation. For C145 the scanner's images use its nominal feed (39.375 mm) while the
+    projections' focal spots advance 0.2% more; rescaled about the last view, our image lands on the scanner's z axis.
+    Returns the scale applied."""
+    k = feed / (abs(helix(meta)['slope']) * 2 * np.pi)
+    seen = set()
+    for name in ('source_focal_centers', 'source_focal_spots'):
+        a = getattr(meta, name, None)
+        if a is None or id(a) in seen:
+            continue
+        seen.add(id(a))
+        z = a[:, 2].double()
+        a[:, 2] = (z[anchor_view] + (z - z[anchor_view]) * k).to(a.dtype)
+    return k
+
+
 def rebin_to_parallel(proj: torch.Tensor, meta, budget: float | None = None, device: str = 'cuda',
                       angle_offset: float = 0.0) -> tuple:
     """Rebin fan projections (views, channels, rows; on the CPU) to parallel projections (angles, t, rows; on the CPU)

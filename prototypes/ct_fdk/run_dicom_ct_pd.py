@@ -4,6 +4,7 @@
         [--central-column-offset -0.42]          # GE scanners, see README
         [--low-signal 30]                         # filter photon-starved rays, see low_signal.py
         [--channel-correction fit.json]           # per-channel scale fitted by channel_correction.py
+        [--table-feed-from-pitch]                 # focal spot z on the scanner's nominal table feed, see README
 
 The image is centred as CTGen3SystemMatrix centres it, so CTGen3ProjMeta.get_patient_affine places it in patient
 coordinates. run_vendor_match.py compares it with the scanner's own reconstruction.
@@ -32,6 +33,7 @@ parser.add_argument('--central-column-offset', type=float, default=0.0)
 parser.add_argument('--apodization', default='hann')
 parser.add_argument('--low-signal', type=float, default=0.0, help='filter photon-starved rays to about this many photons (0: off)')
 parser.add_argument('--channel-correction', default=None, help='JSON written by channel_correction.py')
+parser.add_argument('--table-feed-from-pitch', action='store_true', help="rescale the focal spot z to pitch x collimation (the scanner's own feed)")
 args = parser.parse_args()
 
 if args.cache and os.path.exists(args.cache):
@@ -56,6 +58,11 @@ if args.low_signal:
 if args.channel_correction:
     proj = torch.from_numpy(channel_correction.apply_channel_scale(proj.numpy(), meta, json.load(open(args.channel_correction))))
     print(f'per-channel correction from {args.channel_correction}', flush=True)
+if args.table_feed_from_pitch:
+    head = pydicom.dcmread(glob.glob(os.path.join(args.projections, '*.dcm'))[0], stop_before_pixels=True)
+    feed = fdk_prototype.nominal_table_feed(meta, float(head.SpiralPitchFactor))
+    k = fdk_prototype.rescale_table_feed(meta, feed)
+    print(f'focal spot z rescaled by {k:.6f} about the last view: table feed {feed:.3f} mm per rotation from the pitch', flush=True)
 nx, ny = (int(v) for v in args.size.split(','))
 extent = float(meta.source_zs.max() - meta.source_zs.min())
 nz = int(np.ceil(extent + 20))
