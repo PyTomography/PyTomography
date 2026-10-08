@@ -42,14 +42,14 @@ items:
     start: io/SPECT/simind.py
     done: Both columns are read, and a test checks them against a sample .cor file.
 
-  - title: Standard FBP filter windows
-    issue: new
-    area: Algorithms
-    level: good-first
-    why: Only the ramp filter exists. Shepp-Logan and Hann windows are standard and needed for FDK later.
-    data: Analytic disk and point phantoms generated in the test.
-    start: The ramp filter in pytomography.utils, and algorithms/fbp.py once issue 227 is fixed.
-    done: Each window has a test on an analytic phantom checking amplitude and FWHM.
+  - title: Filtered back projection for SPECT
+    issue: 227
+    area: SPECT
+    level: intermediate
+    why: FilteredBackProjection hands the work to each system matrix's own filtered back projection (pull request 263). CT has one; SPECT doesn't yet, so FBP on SPECT data stops with a "not implemented" error.
+    data: A phantom forward projected in the test, then SPECT/SIMIND-Jaszak.
+    start: algorithms/fbp.py and the CT system matrices' _fbp in pull request 263 as the model, and projectors/SPECT/spect_system_matrix.py.
+    done: SPECTSystemMatrix._fbp ramp-filters the projections along the radial axis, back projects without attenuation or PSF transforms and scales by pi over the number of projections, with a test on a forward-projected phantom that checks values and resolution.
 
   - title: Restore the motion Jacobian correction
     issue: 229
@@ -113,15 +113,6 @@ items:
     data: The SIMIND tutorial data.
     start: algorithms/, next to OSEM.
     done: Matches scipy's CG on an explicit matrix and converges on a SPECT case. Planned for v4.1.
-
-  - title: FDK cone-beam CT
-    issue: new
-    area: CT
-    level: advanced
-    why: The CT tutorial has asked for this since v3. FDK gives a fast first image and a starting point for OS-SART.
-    data: The DICOM-CT-PD tutorial data and an analytic Shepp-Logan phantom.
-    start: projectors/CT/ct_conebeam_flatpanel_system_matrix.py and the FBP filters.
-    done: Passes an analytic cone-beam test, agrees with OS-SART on the tutorial data, and has a tutorial.
 
   - title: Pinhole and multi-pinhole SPECT
     issue: new
