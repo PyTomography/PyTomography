@@ -243,7 +243,7 @@ class PETLMSystemMatrix(SystemMatrix):
             parallelproj_core.joseph3d_fwd(xstart, xend, attenuation_map, self.object_origin, self.voxel_size, chunk)
             proj[start:end] = torch.exp(-chunk).to(self.output_device)
         return proj
-    
+
     def _compute_sensitivity_projection(self, all_ids: bool = True) -> torch.Tensor:
         """Computes the sensitivty projection (when back projected, gives normalization factor)
 
@@ -396,6 +396,7 @@ class PETLMSystemMatrix(SystemMatrix):
             object = transform.forward(object)
         object = _float32(object, pytomography.device)
         # hand the LORs to the projector in sinogram order; the projections are put back below
+        idx_events = idx                                    # in the order the events were given
         order = self._event_order(subset_idx)
         if order is not None:
             idx = idx[order.to(torch.long)]
@@ -419,7 +420,11 @@ class PETLMSystemMatrix(SystemMatrix):
             proj = unsorted
         if self.scale_projection_by_sensitivity:
             if self.proj_meta.weights is None:
-                raise Exception('If scaling by sensitivity, then `weights` must be provided in the projection metadata')
+                if self.attenuation_map is not None:
+                    # proj is back in the order the events were given, so the factors are computed in that order too
+                    proj = proj * self._compute_attenuation_probability_projection(idx_events).to(proj.device)
+                else:
+                    raise Exception('If scaling by sensitivity, then `weights` must be provided in the projection metadata')
             else:
                 proj = proj * self.get_projection_subset(self.proj_meta.weights, subset_idx).to(proj.device)
         return proj.to(self.output_device)

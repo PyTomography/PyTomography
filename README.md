@@ -8,7 +8,7 @@
 ![Issues](https://img.shields.io/github/issues/qurit/PyTomography)
 
 # Getting Started
-We have prepared a very detailed documentation guide available at [readthedocs](https://pytomography.readthedocs.io/en/latest/). If you have any additional questions, please ask them on the [discourse website](https://pytomography.discourse.group/).
+We have prepared a very detailed documentation guide available at [readthedocs](https://pytomography.readthedocs.io/en/latest/). If you have any additional questions, please ask them in [GitHub Discussions](https://github.com/PyTomography/PyTomography/discussions/categories/q-a). To contribute, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 # Research Paper
 If you use PyTomography in your own research, please cite the corresponding research paper:
