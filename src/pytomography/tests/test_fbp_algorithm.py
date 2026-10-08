@@ -95,6 +95,20 @@ def test_low_signal_filter_removes_bias_and_noise_and_leaves_good_rays_alone():
     assert torch.equal(out[torch.from_numpy(good)], p[torch.from_numpy(good)])
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="needs CUDA")
+def test_low_signal_filter_on_the_gpu_matches_the_host():
+    V, C, R = 40, 120, 12
+    n0 = np.full((V, C), 20000.0)
+    p_true = np.tile(np.linspace(2, 10, C)[None, :, None], (V, 1, R))
+    p = torch.tensor(_poisson(n0[:, :, None], p_true, seed=1), dtype=torch.float32)
+    host = preprocessing.filter_low_signal(p, torch.tensor(n0), 30, device='cpu')
+    gpu = preprocessing.filter_low_signal(p, torch.tensor(n0), 30, device='cuda', chunk=16)
+    assert gpu.device == p.device
+    torch.testing.assert_close(gpu, host, rtol=0, atol=1e-4)
+    good = torch.from_numpy(20000 * np.exp(-p_true) >= 120)
+    assert torch.equal(gpu[good], p[good])
+
+
 def _meta(n_views=8, n_cols=21):
     zero = torch.zeros(n_views)
     return CTGen3ProjMeta(torch.linspace(0, 2 * np.pi, n_views), torch.full((n_views,), 500.0), torch.linspace(-5, 5, n_views),

@@ -107,6 +107,21 @@ def test_helical_fbp_reconstructs_the_phantom_from_its_exact_line_integrals(ffs)
         assert image[core].mean() - MU == pytest.approx(dmu, rel=0.1)
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="the fused kernel runs on CUDA")
+@pytest.mark.parametrize("ffs", [False, True], ids=["one focal spot", "flying focal spot"])
+def test_the_fused_kernel_matches_the_pytorch_back_projection(ffs):
+    from pytomography.projectors.CT import _wfbp_cuda
+    if not _wfbp_cuda.available('cuda'):
+        pytest.skip('the fused kernel needs CuPy')
+    meta = _helix(ffs)
+    proj, sm = _line_integrals(meta), CTGen3SystemMatrix(OBJECT_META, meta)
+    stats = {}
+    fused = FilteredBackProjection(proj, sm, slice_thickness=1.25, backend='cuda', stats=stats)()
+    plain = FilteredBackProjection(proj, sm, slice_thickness=1.25, backend='torch')()
+    assert stats['backend'] == 'cuda'
+    assert float((fused - plain).abs().max()) < 1e-4 * MU
+
+
 def test_helical_fbp_is_zero_outside_the_field_of_view_and_on_the_device():
     sm = CTGen3SystemMatrix(ObjectMeta(dr=(3.0, 3.0, 2.0), shape=(48, 48, 6)), _helix())
     image = FilteredBackProjection(_line_integrals(sm.proj_meta), sm)()

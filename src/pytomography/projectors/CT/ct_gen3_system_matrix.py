@@ -170,7 +170,7 @@ class CTGen3SystemMatrix(SystemMatrix):
         return (self._coverage() > 0).to(torch.float32).to(device)
 
     def _fbp(self, projections: torch.Tensor, filter, slice_thickness: float | None = None, gpu_budget: float | None = None,
-             Q: float = 0.6, k_range: int | None = None, stats: dict | None = None) -> torch.Tensor:
+             Q: float = 0.6, k_range: int | None = None, stats: dict | None = None, backend: str = 'auto') -> torch.Tensor:
         r"""Helical filtered back projection onto the object grid of this system matrix, called by
         :class:`pytomography.algorithms.FilteredBackProjection`. The fan projections are rebinned to parallel beams and
         reconstructed by weighted filtered back projection (WFBP, Stierstorfer et al. 2004), which also handles circular
@@ -189,6 +189,9 @@ class CTGen3SystemMatrix(SystemMatrix):
             k_range (int, optional): Half turns either side searched for rays through the same voxel. Defaults to
                 what the pitch and cone angle allow.
             stats (dict, optional): Receives the time and peak GPU memory of each focal spot group.
+            backend (str, optional): ``'auto'`` back projects with a fused CUDA kernel when CuPy is installed and the
+                device is a GPU (much faster, and lighter on memory), and with PyTorch otherwise; ``'cuda'`` or
+                ``'torch'`` force one. Defaults to ``'auto'``.
 
         Returns:
             torch.Tensor: Attenuation per mm on the object grid, on ``pytomography.device``.
@@ -204,7 +207,7 @@ class CTGen3SystemMatrix(SystemMatrix):
         else:
             z_offsets = (0.0,)
         image = _wfbp.fbp_helical(projections, self.proj_meta, X, Y, z, window=filter, z_offsets=z_offsets, Q_weight=Q,
-                                  k_range=k_range, budget=gpu_budget, device=pytomography.device, stats=stats)
+                                  k_range=k_range, budget=gpu_budget, device=pytomography.device, stats=stats, backend=backend)
         return image if self._fov is None else image * self._fov
 
     def forward(self, object, subset_idx=None):

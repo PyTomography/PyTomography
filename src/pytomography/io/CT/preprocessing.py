@@ -4,14 +4,61 @@ to every reconstruction (filtered back projection and the iterative algorithms a
 from __future__ import annotations
 import numpy as np
 import torch
+import torch.nn.functional as F
 from scipy import ndimage
+import pytomography
+from pytomography.utils.memory import gpu_budget
 
 #: Neighbourhoods (views, columns, rows) of :func:`filter_low_signal`, in order of size.
 LOW_SIGNAL_SIZES = ((1, 1, 1), (1, 3, 1), (1, 3, 3), (3, 3, 3), (3, 5, 3), (5, 5, 3), (5, 7, 5))
 
 
+def _box(a: torch.Tensor, size) -> torch.Tensor:
+    """Mean over a box of odd ``size`` (views, columns, rows) with the edges replicated, as scipy's
+    ``uniform_filter(mode='nearest')``."""
+    pv, pc, pr = (s // 2 for s in size)
+    x = F.pad(a[None, None], (pr, pr, pc, pc, pv, pv), mode='replicate')
+    return F.avg_pool3d(x, tuple(size), stride=1)[0, 0]
+
+
+def _filter_low_signal_gpu(proj: torch.Tensor, n0: torch.Tensor, n_target: float, v0: int, v1: int, device, budget,
+                           chunk: int | None) -> torch.Tensor:
+    """:func:`filter_low_signal` on a GPU, a chunk of views at a time within ``budget``."""
+    V, C, R = proj.shape
+    out = proj.to(torch.float32).clone()
+    logk = torch.tensor(np.log([a * b * c for a, b, c in LOW_SIGNAL_SIZES]), dtype=torch.float32, device=device)
+    margin = max(s[0] for s in LOW_SIGNAL_SIZES) // 2 + 1
+    if chunk is None:
+        chunk = int(max(8, gpu_budget(budget, device) // (C * R * 4 * 12) - 2 * margin))
+    for s0 in range(v0, v1, chunk):
+        s1 = min(v1, s0 + chunk)
+        lo, hi = max(0, s0 - margin), min(V, s1 + margin)
+        p = proj[lo:hi].to(device, torch.float32)
+        trans = torch.exp(-p)
+        n_est = n0[lo:hi, :, None].to(device, torch.float32) * _box(trans, (3, 3, 3))
+        need = torch.clamp(n_target / torch.clamp(n_est, min=1e-9), 1.0, float(torch.exp(logk[-1])))
+        del n_est
+        if float(need.max()) <= 1.0:
+            continue
+        ln = torch.log(need)
+        i = torch.clamp(torch.searchsorted(logk, ln.contiguous(), right=True) - 1, 0, len(logk) - 2)
+        x = torch.clamp(i + (ln - logk[i]) / (logk[i + 1] - logk[i]), 0, len(logk) - 1)    # fractional size index
+        del ln, i
+        acc = torch.zeros_like(trans)
+        for k, size in enumerate(LOW_SIGNAL_SIZES):
+            w = torch.clamp(1.0 - (x - k).abs(), 0.0, 1.0)
+            if not bool(w.any()):
+                continue
+            acc += w * (trans if k == 0 else _box(trans, size))
+            del w
+        sl = slice(s0 - lo, s0 - lo + (s1 - s0))
+        out[s0:s1] = torch.where(need[sl] > 1.0, -torch.log(torch.clamp(acc[sl], min=1e-12)), p[sl]).cpu()
+        del p, trans, need, x, acc
+    return out
+
+
 def filter_low_signal(projections: torch.Tensor, photon_counts, n_target: float = 30.0, views: tuple | None = None,
-                      chunk: int = 400) -> torch.Tensor:
+                      chunk: int | None = None, device=None, budget: float | None = None) -> torch.Tensor:
     r"""Adaptive filtering of photon-starved rays, in the spirit of Hsieh (Med. Phys. 25, 2139, 1998) and Kachelriess
     et al. (Med. Phys. 28, 475, 2001).
 
@@ -22,7 +69,8 @@ def filter_low_signal(projections: torch.Tensor, photon_counts, n_target: float 
     ``n_target`` photons; the neighbourhood grows through :data:`LOW_SIGNAL_SIZES`, blending between neighbouring sizes.
     Averaging transmission rather than line integrals keeps the mean right. :math:`N` is estimated from transmission
     smoothed over 3 x 3 x 3 rays, so the choice of filter is not driven by the noise itself. Rays with enough photons
-    are returned exactly as they were. Runs on the host, a chunk of views at a time.
+    are returned exactly as they were. It runs a chunk of views at a time: on a CUDA ``device`` within ``budget``
+    bytes, otherwise on the host.
 
     Args:
         projections (torch.Tensor): Line integrals (views, columns, rows), in acquisition order.
@@ -30,12 +78,23 @@ def filter_low_signal(projections: torch.Tensor, photon_counts, n_target: float 
             stores them in (7033,1065) PhotonStatistics.
         n_target (float, optional): Photons a filtered ray should represent. Defaults to 30.
         views (tuple, optional): (start, stop) range of views to filter; the others are returned unchanged.
-        chunk (int, optional): Views processed at a time. Defaults to 400.
+        chunk (int, optional): Views processed at a time. Defaults to what fits the budget (GPU) or 400 (host).
+        device (str, optional): Where to compute. Defaults to ``pytomography.device``.
+        budget (float, optional): GPU memory budget in bytes (see :func:`pytomography.utils.gpu_budget`).
 
     Returns:
         torch.Tensor: Filtered line integrals (float32), on the device of ``projections``.
     """
-    device = projections.device if isinstance(projections, torch.Tensor) else torch.device('cpu')
+    out_device = projections.device if isinstance(projections, torch.Tensor) else torch.device('cpu')
+    work = torch.device(pytomography.device if device is None else device)
+    if work.type == 'cuda':
+        proj_t = torch.as_tensor(projections).detach().cpu()
+        n0_t = torch.as_tensor(photon_counts).detach().cpu()
+        if tuple(n0_t.shape) != tuple(proj_t.shape[:2]):
+            raise ValueError(f'photon counts {tuple(n0_t.shape)} do not match the projections {tuple(proj_t.shape[:2])} (views, columns)')
+        v0, v1 = views if views is not None else (0, proj_t.shape[0])
+        return _filter_low_signal_gpu(proj_t, n0_t, n_target, v0, v1, work, budget, chunk).to(out_device)
+    chunk = 400 if chunk is None else chunk
     proj = projections.detach().cpu().numpy() if isinstance(projections, torch.Tensor) else np.asarray(projections)
     n0 = photon_counts.detach().cpu().numpy() if isinstance(photon_counts, torch.Tensor) else np.asarray(photon_counts)
     if n0.shape != proj.shape[:2]:
@@ -64,7 +123,7 @@ def filter_low_signal(projections: torch.Tensor, photon_counts, n_target: float 
         filtered = -np.log(np.maximum(acc, 1e-12))
         sl = slice(s0 - lo, s0 - lo + (s1 - s0))
         out[s0:s1] = np.where(need[sl] > 1.0, filtered[sl], out[s0:s1])
-    return torch.from_numpy(out).to(device)
+    return torch.from_numpy(out).to(out_device)
 
 
 def column_scale(proj_meta, g0: float, g2: float, t_hold: float = 140.0) -> torch.Tensor:

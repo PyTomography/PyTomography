@@ -236,12 +236,20 @@ def backproject(Q: torch.Tensor, theta: np.ndarray, t: np.ndarray, dtheta: float
 
 def fbp_helical(proj: torch.Tensor, meta, X: torch.Tensor, Y: torch.Tensor, Z: np.ndarray, window, z_offsets=(0.0,),
                 Q_weight: float = 0.6, k_range: int | None = None, budget: float | None = None, device=None,
-                stats: dict | None = None) -> torch.Tensor:
+                stats: dict | None = None, backend: str = 'auto') -> torch.Tensor:
     """WFBP of DICOM-CT-PD style projections (views, columns, rows; line integrals) with metadata ``meta``
     (:class:`CTGen3ProjMeta`) onto the points (X[i, j], Y[i, j], Z[k]) (object frame, mm; Z increasing). Returns the
-    image (Nx, Ny, Nz) on ``device``. ``stats``, if given, receives the time and measured peak memory of each stage."""
+    image (Nx, Ny, Nz) on ``device``. ``stats``, if given, receives the time and measured peak memory of each stage.
+    ``backend``: ``'cuda'`` for the fused CUDA kernel (:mod:`._wfbp_cuda`, needs CuPy), ``'torch'`` for PyTorch, or
+    ``'auto'``: the fused kernel when it can run (CuPy, a CUDA device, uniformly spaced Z), else PyTorch."""
     import time
+    from . import _wfbp_cuda
     device = torch.device(pytomography.device if device is None else device)
+    uniform = len(Z) < 2 or np.allclose(np.diff(np.asarray(Z, dtype=np.float64)), float(Z[1] - Z[0]), rtol=1e-6, atol=1e-6)
+    if backend not in ('auto', 'cuda', 'torch'):
+        raise ValueError(f'unknown backend {backend!r}')
+    use_cuda = backend == 'cuda' or (backend == 'auto' and uniform and _wfbp_cuda.available(device)
+                                      and (k_range is None or k_range <= _wfbp_cuda.MAX_K_RANGE))
     proj = proj.detach().to('cpu', torch.float32)
     Z = np.asarray(Z, dtype=np.float64)
     if np.any(np.diff(Z) <= 0):
@@ -259,11 +267,19 @@ def fbp_helical(proj: torch.Tensor, meta, X: torch.Tensor, Y: torch.Tensor, Z: n
         Qf = ramp_filter(P, geo, dt, window, budget, device)
         del P
         t1 = time.perf_counter()
-        backproject(Qf, theta, t, dtheta, geo, X, Y, Z, out, Q_weight=Q_weight, k_range=k_range, z_offsets=z_offsets, budget=budget)
+        k = k_range
+        if use_cuda and k is None:
+            k = partner_range(geo, float(torch.sqrt(X.double() ** 2 + Y.double() ** 2).max()), theta, max(abs(o) for o in z_offsets))
+        ran_cuda = use_cuda and k <= _wfbp_cuda.MAX_K_RANGE
+        if ran_cuda:
+            _wfbp_cuda.backproject(Qf, theta, t, dtheta, geo, X, Y, Z, out, Q_weight=Q_weight, k_range=k, z_offsets=z_offsets, budget=budget)
+        else:
+            backproject(Qf, theta, t, dtheta, geo, X, Y, Z, out, Q_weight=Q_weight, k_range=k_range, z_offsets=z_offsets, budget=budget)
         del Qf
         if cuda:
             torch.cuda.synchronize(device)
         if stats is not None:
+            stats['backend'] = 'cuda' if ran_cuda else 'torch'
             stats.setdefault('groups', []).append(dict(views=len(idx), rebin_filter_s=t1 - t0, backproject_s=time.perf_counter() - t1,
                                                        peak_GB=(torch.cuda.max_memory_allocated(device) - base) / 1e9 if cuda else None))
     out /= len(groups)

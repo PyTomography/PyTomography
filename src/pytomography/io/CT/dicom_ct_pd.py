@@ -35,28 +35,34 @@ def sorted_paths(paths) -> list:
 
 
 def _read_gen3(paths) -> dict:
-    """Projections, per-view geometry, InstanceNumber and PhotonStatistics of every file, in the order given."""
-    keys = ('phi', 'z', 'rho', 'dphi', 'dz', 'drho', 'col', 'row')
-    out = {k: [] for k in keys}
-    projections, photons, instances = [], [], []
-    for path in paths:
-        ds = pydicom.dcmread(path)
-        out['phi'].append(struct.unpack('<f', ds[0x7031,0x1001].value)[0])
-        out['z'].append(struct.unpack('<f', ds[0x7031,0x1002].value)[0])
-        out['rho'].append(struct.unpack('<f', ds[0x7031,0x1003].value)[0])
-        out['dphi'].append(struct.unpack('<f', ds[0x7033,0x100B].value)[0])
-        out['dz'].append(struct.unpack('<f', ds[0x7033,0x100C].value)[0])
-        out['drho'].append(struct.unpack('<f', ds[0x7033,0x100D].value)[0])
-        center_i, center_j = struct.unpack('<2f', ds[0x7031,0x1033].value)
-        out['col'].append(center_i)
-        out['row'].append(center_j)
-        photons.append(np.frombuffer(ds[0x7033,0x1065].value, dtype='<f4') if (0x7033,0x1065) in ds else None)
-        instances.append(ds.get('InstanceNumber'))
-        data = ds.pixel_array * ds.RescaleSlope + ds.RescaleIntercept
-        projections.append(torch.tensor(data).to(pytomography.dtype))
-    out = {k: torch.tensor(v) for k, v in out.items()}
-    out['projections'] = torch.stack(projections)
-    out['photons'] = None if any(p is None for p in photons) else torch.from_numpy(np.stack(photons).astype(np.float32))
+    """Projections, per-view geometry, InstanceNumber and PhotonStatistics of every file, in the order given, in one
+    pass written straight into preallocated arrays (Python parses the files, so threads do not help; preallocation
+    avoids the copies of stacking)."""
+    first = pydicom.dcmread(paths[0])
+    shape = first.pixel_array.shape
+    N = len(paths)
+    projections = torch.empty((N, *shape), dtype=pytomography.dtype)
+    geometry = np.empty((N, 8), dtype=np.float32)
+    has_photons = (0x7033, 0x1065) in first
+    photons = np.empty((N, len(first[0x7033, 0x1065].value) // 4), dtype=np.float32) if has_photons else None
+    instances = [None] * N
+    for j, path in enumerate(paths):
+        ds = first if j == 0 else pydicom.dcmread(path)
+        geometry[j] = (struct.unpack('<f', ds[0x7031,0x1001].value)[0], struct.unpack('<f', ds[0x7031,0x1002].value)[0],
+                       struct.unpack('<f', ds[0x7031,0x1003].value)[0], struct.unpack('<f', ds[0x7033,0x100B].value)[0],
+                       struct.unpack('<f', ds[0x7033,0x100C].value)[0], struct.unpack('<f', ds[0x7033,0x100D].value)[0],
+                       *struct.unpack('<2f', ds[0x7031,0x1033].value))
+        if has_photons:
+            if (0x7033, 0x1065) in ds:
+                photons[j] = np.frombuffer(ds[0x7033, 0x1065].value, dtype='<f4')
+            else:
+                has_photons, photons = False, None
+        instances[j] = ds.get('InstanceNumber')
+        projections[j] = torch.from_numpy(ds.pixel_array * ds.RescaleSlope + ds.RescaleIntercept)
+    geometry = torch.from_numpy(geometry)
+    out = {k: geometry[:, i].contiguous() for i, k in enumerate(('phi', 'z', 'rho', 'dphi', 'dz', 'drho', 'col', 'row'))}
+    out['projections'] = projections
+    out['photons'] = torch.from_numpy(photons) if has_photons else None
     out['instances'] = None if any(n is None for n in instances) else [int(n) for n in instances]
     return out
 
@@ -146,8 +152,15 @@ def get_projections_and_metadata_gen3(paths, low_signal_filter: bool = True, low
     Returns:
         tuple: Projections (torch.Tensor) and metadata (CTGen3ProjMeta).
     """
-    paths = sorted_paths(paths)
-    d = _read_gen3(paths)
+    if isinstance(paths, (str, os.PathLike)) and os.path.isdir(paths):
+        paths = sorted(glob.glob(os.path.join(paths, '*.dcm')))
+    paths = list(paths)
+    d = _read_gen3(paths)                                       # one pass, then into acquisition order
+    if d['instances'] is not None:
+        order = np.argsort(d['instances'], kind='stable')
+        if np.any(order != np.arange(len(order))):
+            index = torch.from_numpy(order)
+            d = {k: (v.index_select(0, index) if isinstance(v, torch.Tensor) else v) for k, v in d.items()}
     projections = d['projections']
     ds = pydicom.dcmread(paths[0], stop_before_pixels=True)
     detector_tranverse_spacing = struct.unpack('<f', ds[0x7029,0x1002].value)[0]
