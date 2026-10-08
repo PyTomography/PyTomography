@@ -9,8 +9,8 @@ class Likelihood:
 
     Args:
         system_matrix (SystemMatrix): The system matrix modeling the particular system whereby the projections were obtained
-        projections (torch.Tensor | None): Acquired data. If listmode, then this argument need not be provided, and it is set to a tensor of ones. Defaults to None.
-        additive_term (torch.Tensor, optional): Additional term added after forward projection by the system matrix. This term might include things like scatter and randoms. Defaults to None.
+        projections (torch.Tensor | None): Acquired data. If listmode, then this argument need not be provided, and it is set to a tensor of ones. A sinogram that is computed one subset at a time (:class:`~pytomography.io.PET.shared.LazySinogram`) is also accepted, for reconstructions with subsets. Defaults to None.
+        additive_term (torch.Tensor, optional): Additional term added after forward projection by the system matrix. This term might include things like scatter and randoms. Like ``projections``, it may be computed one subset at a time. Defaults to None (no additive term).
         additive_term_variance_estimate (Callable, optional): Operator for variance estimate of additive term. If none, then uncertainty estimation does not include contribution from the additive term. Defaults to None.
     """
     def __init__(
@@ -26,11 +26,16 @@ class Likelihood:
         else:
             self.projections = projections
         self.FP = None # stores current state of forward projection
-        if type(additive_term) is torch.Tensor:
+        if isinstance(additive_term, torch.Tensor):
             self.additive_term = additive_term.to(self.projections.device).to(pytomography.dtype)
             self.exists_additive_term = True
+        elif additive_term is not None: # computed one subset at a time, e.g. a LazySinogram
+            self.additive_term = additive_term
+            self.exists_additive_term = True
         else:
-            self.additive_term = torch.zeros(self.projections.shape).to(self.projections.device).to(pytomography.dtype)
+            # Nothing is added. This used to be a tensor of zeros the size of the projections, which for the TOF sinogram
+            # of a clinical scanner is tens of GB.
+            self.additive_term = None
             self.exists_additive_term = False
         self.n_subsets_previous = -1
         self.additive_term_variance_estimate = additive_term_variance_estimate
@@ -66,9 +71,34 @@ class Likelihood:
             torch.Tensor: Subset projection data
         """
         if subset_idx is None:
-            return projections
+            # projections computed one subset at a time (a LazySinogram) are computed whole
+            return projections if isinstance(projections, torch.Tensor) else projections.to_dense()
         else:
             return self.system_matrix.get_projection_subset(projections, subset_idx)
+
+    def _forward_with_additive_term(self, object: torch.Tensor, subset_idx: int | None = None) -> torch.Tensor:
+        r"""Computes the expected projections :math:`H_m f + s_m` of a subset, and keeps them in ``projections_predicted``.
+
+        The additive term is added into the forward projection, which is a new tensor, instead of making a third tensor of the same size: with a time of flight sinogram, each of these is the size of a subset of the data. The previous subset's prediction is released first, for the same reason.
+
+        Args:
+            object (torch.Tensor): Object :math:`f`
+            subset_idx (int | None, optional): Subset index :math:`m`. Defaults to None.
+
+        Returns:
+            torch.Tensor: Expected projections of the subset.
+        """
+        self.projections_predicted = None
+        FP = self.system_matrix.forward(object, subset_idx)
+        if self.additive_term is not None:
+            additive_term_subset = self._get_projection_subset(self.additive_term, subset_idx)
+            if torch.broadcast_shapes(FP.shape, additive_term_subset.shape) == FP.shape and FP.dtype == additive_term_subset.dtype:
+                FP += additive_term_subset
+            else:
+                FP = FP + additive_term_subset
+            del additive_term_subset
+        self.projections_predicted = FP
+        return FP
         
         
     def _get_normBP(self, subset_idx: int, return_sum: bool = False):

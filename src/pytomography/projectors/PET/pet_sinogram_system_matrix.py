@@ -6,7 +6,7 @@ from pytomography.metadata.PET import PETSinogramPolygonProjMeta
 import numpy as np
 from pytomography.projectors import SystemMatrix
 from pytomography.transforms import Transform
-from pytomography.io.PET.shared import listmode_to_sinogram
+from pytomography.io.PET.shared import listmode_to_sinogram, all_pairs_to_sinogram
 import parallelproj_core
 from .petlm_system_matrix import _float32, _pad, _crop, _padded_origin
 
@@ -328,13 +328,8 @@ def create_sinogramSM_from_LMSM(lm_system_matrix: SystemMatrix, device='cpu'):
         lm_proj_meta.tof_meta
     )
     if lm_proj_meta.weights_sensitivity is not None:
-        idxs = torch.arange(lm_proj_meta.scanner_lut.shape[0]).cpu()
-        detector_ids_sensitivity = torch.combinations(idxs, 2)
-        sinogram_sensitivity = listmode_to_sinogram(
-            detector_ids_sensitivity,
-            lm_proj_meta.info,
-            lm_proj_meta.weights_sensitivity.cpu()
-        )
+        # binned a block of crystal pairs at a time: all 411 million pairs of the mMR at once took tens of GB
+        sinogram_sensitivity = all_pairs_to_sinogram(lm_proj_meta.weights_sensitivity.cpu(), lm_proj_meta.info)
     else:
         sinogram_sensitivity = None
     sino_system_matrix = PETSinogramSystemMatrix(

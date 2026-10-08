@@ -8,7 +8,7 @@ import numpy as np
 import parallelproj_core
 from torchrbf import RBFInterpolator
 from torch.nn.functional import grid_sample
-from pytomography.io.PET.shared import sinogram_coordinates, sinogram_to_spatial, listmode_to_sinogram
+from pytomography.io.PET.shared import sinogram_coordinates, sinogram_to_spatial, listmode_to_sinogram, LazySinogram
 from pytomography.projectors.PET import create_sinogramSM_from_LMSM
 from pytomography.projectors.PET.petlm_system_matrix import _float32
 from pytomography.metadata.PET import PETTOFMeta
@@ -460,8 +460,9 @@ def interpolate_sparse_sinogram(
     idx_intraring: torch.Tensor,
     idx_ring: torch.Tensor,
     tof_bins: Sequence[int] | None = None,
-    eval_chunk_size: int = 8192
-    ) -> torch.Tensor:
+    eval_chunk_size: int = 8192,
+    lazy: bool = False
+    ) -> torch.Tensor | LazySinogram:
     """Interpolates a sparse SSS sinogram estimate using linear interpolation on all oblique planes.
 
     Args:
@@ -471,9 +472,10 @@ def interpolate_sparse_sinogram(
         idx_ring (torch.Tensor): Interring indices corresponding to non-zero locations of the sinogram (obtained via the ``get_sample_detector_ids`` function)
         tof_bins (Sequence[int] | None, optional): TOF bins to interpolate. The interpolator is fit once for all of them and the returned sinogram gets a trailing TOF dimension. Defaults to None (non-TOF).
         eval_chunk_size (int, optional): Number of sinogram (r, theta) positions evaluated at once; bounds device memory (the kernel matrix is ``eval_chunk_size`` x number of sampled positions). Defaults to 8192.
+        lazy (bool, optional): Return a :class:`~pytomography.io.PET.shared.LazySinogram`, which keeps the interpolation over angle and radius of the sampled ring pairs (1 GB for the Siemens Biograph mMR with 21 TOF bins and every sixth ring) and interpolates over the ring pairs when a group of angles is asked for, instead of the whole sinogram (34.6 GB with 21 TOF bins). The values are the same. Defaults to False.
 
     Returns:
-        torch.Tensor: Interpolated SSS sinogram [theta, r, plane] (or [theta, r, plane, TOF]) on the CPU
+        torch.Tensor | LazySinogram: Interpolated SSS sinogram [theta, r, plane] (or [theta, r, plane, TOF]) on the CPU
     """
     device = pytomography.device
     lor_coordinates, sinogram_index = sinogram_coordinates(proj_meta.info)
@@ -502,6 +504,13 @@ def interpolate_sparse_sinogram(
     x = angular_radial_idx.to(torch.float32).to(device)
     interp_vals = torch.cat([interpolator(x[i:i+eval_chunk_size]) for i in range(0, x.shape[0], eval_chunk_size)])
     interp_vals = interp_vals.reshape(x.shape[0], len(bins), sinogram_plane_idx_sparse.shape[0])
+    N_theta, N_r = int(proj_meta.info['NrCrystalsPerRing']/2), int(proj_meta.info['NrCrystalsPerRing'])+1
+    # The interpolation over angle and radius of every sampled ring pair, kept on the host: [theta, r, sampled ring pair, bin]
+    rtheta = torch.zeros((N_theta, N_r, sinogram_plane_idx_sparse.shape[0], len(bins)), dtype=torch.float32)
+    for i in range(0, x.shape[0], eval_chunk_size):
+        rows = angular_radial_idx[i:i+eval_chunk_size]
+        rtheta[rows[:, 0], rows[:, 1]] = interp_vals[i:i+eval_chunk_size].permute(0, 2, 1).cpu()
+    del interp_vals
     # Now interpolate Z using grid_sample
     z1_sparse = z2_sparse = ring_coordinates[idx_ring][:,0].cpu().numpy().astype(np.float32)
     z1 = z2 = ring_coordinates[np.arange(proj_meta.info['NrRings'])][:,0].cpu().numpy().astype(np.float32)
@@ -513,20 +522,23 @@ def interpolate_sparse_sinogram(
     interp_mesh = torch.tensor(interp_mesh).to(torch.float32).to(device)
     idx_ring1 = torch.argsort(sinogram_index.ravel()) % sinogram_index.shape[-1]
     idx_ring2 = torch.argsort(sinogram_index.ravel()) // sinogram_index.shape[-1]
-    N_theta, N_r = int(proj_meta.info['NrCrystalsPerRing']/2), int(proj_meta.info['NrCrystalsPerRing'])+1
-    scatter_sinogram_interp_all = torch.empty((N_theta, N_r, len(z1)*len(z2), len(bins)), dtype=torch.float32)
-    for b in range(len(bins)):
-        scatter_sinogram_interp_rtheta = torch.zeros(N_theta, N_r, sinogram_plane_idx_sparse.shape[0]).to(device)
-        scatter_sinogram_interp_rtheta[angular_radial_idx.T[0], angular_radial_idx.T[1]] = interp_vals[:, b]
-        scatter_sinogram_interp_rtheta = scatter_sinogram_interp_rtheta.reshape(N_theta, N_r, len(idx_ring), len(idx_ring))
-        # r/theta becomes batch/channel in grid_sample, which is fine
-        scatter_sinogram_interp_bin = grid_sample(
-            scatter_sinogram_interp_rtheta.flatten(start_dim=0, end_dim=1).unsqueeze(0),
-            interp_mesh.unsqueeze(0),
-            align_corners=True
-        ).reshape((N_theta, N_r, len(z1), len(z2))).cpu()
-        scatter_sinogram_interp_all[..., b] = scatter_sinogram_interp_bin[:,:,idx_ring1,idx_ring2]
-    return scatter_sinogram_interp_all if tof_bins is not None else scatter_sinogram_interp_all[..., 0]
+
+    def interpolate_z(angles: torch.Tensor) -> torch.Tensor:
+        """The interpolated sinogram at the given angles: [angles, r, plane, bin], on the host."""
+        sampled = rtheta[angles].to(device)
+        out = torch.empty((len(angles), N_r, len(z1)*len(z2), len(bins)), dtype=torch.float32)
+        for b in range(len(bins)):
+            # r/theta becomes batch/channel in grid_sample, which is fine (each channel is interpolated on its own)
+            planes = grid_sample(
+                sampled[..., b].reshape(len(angles) * N_r, len(idx_ring), len(idx_ring)).unsqueeze(0),
+                interp_mesh.unsqueeze(0),
+                align_corners=True
+            ).reshape((len(angles), N_r, len(z1), len(z2)))
+            out[..., b] = planes[:, :, idx_ring1, idx_ring2].cpu()
+        return out if tof_bins is not None else out[..., 0]
+    shape = (N_theta, N_r, len(z1)*len(z2)) + ((len(bins),) if tof_bins is not None else ())
+    scatter_sinogram = LazySinogram(interpolate_z, shape, description="interpolated single scatter estimate")
+    return scatter_sinogram if lazy else scatter_sinogram.to_dense()
 
 def scale_estimated_scatter(
     proj_scatter: torch.Tensor,
@@ -538,10 +550,12 @@ def scale_estimated_scatter(
     ) -> torch.Tensor:
     """Given an interpolated (but unscaled) SSS sinogram/listmode, scales the scatter estimate by considering back projection of masked data. The mask corresponds to all locations below a certain attenuation value, where it is likely that all detected events are purely due to scatter.
 
+    The sinograms are read one subset of angles at a time, so either may be a :class:`~pytomography.io.PET.shared.LazySinogram`; the scaled estimate is then lazy too.
+
     Args:
-        proj_scatter (torch.Tensor): Estimated (but unscaled) SSS data.
+        proj_scatter (torch.Tensor | LazySinogram): Estimated (but unscaled) SSS data.
         system_matrix (SystemMatrix): PET system matrix
-        proj_data (torch.Tensor): PET projection data corresponding to all detected events
+        proj_data (torch.Tensor | LazySinogram): PET projection data corresponding to all detected events
         attenuation_image (torch.Tensor): Attenuation map
         attenuation_image_cutoff (float, optional): Mask considers regions below this value (forward projected). In particular, the attenuation map is masked above this value, then forward projected. Regions equal to zero in the forward projection are considered for the mask. This allows for hollow regions within the attenuation map to still be considered. Defaults to 0.004.
         sinogram_random (torch.Tensor | None, optional): Projection data of estimated random events. Defaults to None.
@@ -600,8 +614,9 @@ def get_sss_scatter_estimate(
     sinogram_random: torch.Tensor | None = None,
     tof_meta: PETTOFMeta = None,
     num_dense_tof_bins: int = 25,
-    N_splits: int = 1
-) -> torch.Tensor:
+    N_splits: int = 1,
+    lazy: bool = False
+) -> torch.Tensor | LazySinogram:
     """Main function used to get SSS scatter estimation during PET reconstruction
 
     Args:
@@ -610,7 +625,7 @@ def get_sss_scatter_estimate(
         pet_image (torch.Tensor): Reconstructed PET image used to get SSS estimate
         attenuation_image (torch.Tensor): Attenuation map corresponding to PET image
         system_matrix (SystemMatrix): PET system matrix
-        proj_data (torch.Tensor | None): All measured coincident events (sinogram/listmode). If None, then assumes listmode (coincidence events stored in ``proj_meta``).
+        proj_data (torch.Tensor | LazySinogram | None): All measured coincident events (sinogram/listmode). If None, then assumes listmode (coincidence events stored in ``proj_meta``). A :class:`~pytomography.io.PET.shared.LazySinogram` is read one subset of angles at a time.
         image_stepsize (int, optional): Spacing between points in object space used to obtain initial sparse sinogram estimate. Defaults to 4.
         attenuation_cutoff (float, optional): Only consider point located at attenuation values above this value as scatter points. Defaults to 0.004.
         sinogram_interring_stepsize (int, optional): Sinogram interring spacing for initial sparse sinogram estimate. Defaults to 4.
@@ -619,9 +634,10 @@ def get_sss_scatter_estimate(
         tof_meta (PETTOFMeta, optional): TOFMetadata corresponding to ``proj_data`` (if TOF is considered). Defaults to None.
         num_dense_tof_bins (int, optional): Number of dense TOF bins to use for partioning emission integrals when performing a TOF estimate. This is seperate from TOF bins used in the PET data. Defaults to 25.
         N_splits (int, optional): Splits the TOF bins into subsets and loops over them sequentially (as opposed to parallel) for scatter estimation. Defaults to 1.
+        lazy (bool, optional): Return the estimate as a :class:`~pytomography.io.PET.shared.LazySinogram`, computed a group of angles at a time when it is read, instead of a dense sinogram (34.6 GB for the Siemens Biograph mMR with 21 TOF bins; scaling it made a second one). Use it with ``sinogram_to_listmode`` for list mode data, or as part of the additive term of a sinogram reconstruction. The values are the same. Defaults to False.
 
     Returns:
-        torch.Tensor: Estimated SSS projection data (sinogram/listmode)
+        torch.Tensor | LazySinogram: Estimated SSS projection data (sinogram/listmode)
     """
     if type(system_matrix) is PETLMSystemMatrix:
         listmode = True
@@ -632,21 +648,19 @@ def get_sss_scatter_estimate(
         # Get sparse sinogram
         scatter_sinogram_sparse_unscaled = compute_sss_sparse_sinogram(object_meta, proj_meta, pet_image, attenuation_image, image_stepsize, attenuation_cutoff, sinogram_interring_stepsize, sinogram_intraring_stepsize)
         # Interpolate sparse sinogram
-        scatter_sinogram_unscaled  = interpolate_sparse_sinogram(scatter_sinogram_sparse_unscaled, proj_meta, idx_intraring, idx_ring)
+        scatter_sinogram_unscaled  = interpolate_sparse_sinogram(scatter_sinogram_sparse_unscaled, proj_meta, idx_intraring, idx_ring, lazy=lazy)
     else:
         # Get sparse sinogram
         scatter_sinogram_sparse_unscaled = compute_sss_sparse_sinogram_TOF(object_meta, proj_meta, pet_image, attenuation_image, tof_meta, image_stepsize, attenuation_cutoff, sinogram_interring_stepsize, sinogram_intraring_stepsize, num_dense_tof_bins, N_splits)
         # Interpolate sparse sinogram (all TOF bins with one interpolator fit)
-        scatter_sinogram_unscaled = interpolate_sparse_sinogram(scatter_sinogram_sparse_unscaled, proj_meta, idx_intraring, idx_ring, tof_bins=range(tof_meta.num_bins))
+        scatter_sinogram_unscaled = interpolate_sparse_sinogram(scatter_sinogram_sparse_unscaled, proj_meta, idx_intraring, idx_ring, tof_bins=range(tof_meta.num_bins), lazy=lazy)
     del(scatter_sinogram_sparse_unscaled) # save memory for next step
     # Need to create a sinogram system matrix for scaling
     if listmode:
         system_matrix = create_sinogramSM_from_LMSM(system_matrix)
-        # binned where the system matrix keeps the events (its lor_device), without copying them to the host
-        if tof_meta is None:
-            proj_data = listmode_to_sinogram(proj_meta.detector_ids, proj_meta.info)
-        else:
-            proj_data = listmode_to_sinogram(proj_meta.detector_ids, proj_meta.info, tof_meta=tof_meta)
+        # The events as a lazy sinogram: the scaling reads one subset of angles at a time, and a dense TOF sinogram of
+        # the mMR (21 TOF bins) is 34.6 GB. Their bins are found where the system matrix keeps them (its lor_device).
+        proj_data = listmode_to_sinogram(proj_meta.detector_ids, proj_meta.info, tof_meta=tof_meta, lazy=True)
     # Scale sinogram
     proj_scatter = scale_estimated_scatter(scatter_sinogram_unscaled, system_matrix, proj_data, attenuation_image, attenuation_cutoff, sinogram_random = sinogram_random)
     return proj_scatter

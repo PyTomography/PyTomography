@@ -191,13 +191,256 @@ def sinogram_to_spatial(info: dict) -> Sequence[torch.Tensor]:
             ring_coordinates[current_sinogram_index-1, 1] = scanner_lut[info['NrCrystalsPerRing']*(ring2-1), 2]
     return torch.tensor(detector_coordinates).to(torch.float32), torch.tensor(ring_coordinates).to(torch.float32)
 
+def _is_array_index(index) -> bool:
+    """Whether ``index`` indexes a tensor with an array of positions (a list, an array or a tensor that is not 0-d)."""
+    if isinstance(index, (list, tuple, np.ndarray)):
+        return True
+    return isinstance(index, torch.Tensor) and (index.ndim > 0 or index.dtype == torch.bool)
+
+class LazySinogram:
+    r"""A sinogram that is computed one group of angles at a time, when those angles are asked for, instead of being held in memory.
+
+    A sinogram with 21 TOF bins of the Siemens Biograph mMR (224 angles, 449 radial bins, 4096 ring pairs) takes 34.6 GB, so a TOF reconstruction that holds its data, its additive term and the scatter estimate as dense sinograms needs over 100 GB of memory. Reconstruction algorithms only ever use one subset of angles at a time (:meth:`PETSinogramSystemMatrix.get_projection_subset` indexes the first dimension of the projections), and so does the scaling of the scatter estimate, so these sinograms never need to exist whole. A ``LazySinogram`` can be passed wherever a likelihood takes projections or an additive term:
+
+    * ``sinogram[angles]`` (an int, a slice, or a list or tensor of angle indices, in any order) computes those angles. Further indices are applied to each group of angles as it is computed, so ``sinogram[:, :, :64, 10].sum(dim=0)`` never holds the whole sinogram.
+    * Arithmetic with numbers, with tensors whose first dimension is the same angles (such as a dense randoms or sensitivity sinogram; use ``unsqueeze`` to add trailing dimensions), and with other lazy sinograms gives a lazy sinogram, e.g. ``(randoms.unsqueeze(-1) + scatter) / sensitivity``.
+    * ``to_dense()`` computes the whole sinogram as one tensor.
+
+    The angles are computed in groups of at most :attr:`chunk_bytes` bytes whenever more than one group is asked for at once. Values are float32 on the CPU.
+
+    Args:
+        compute (Callable[[torch.Tensor], torch.Tensor]): Computes the sinogram at the given angles: it gets a 1D long tensor of angle indices on the CPU and returns a new tensor of shape ``[len(angles), *shape[1:]]``.
+        shape (Sequence[int]): Shape of the whole sinogram; the first dimension is the angles.
+        description (str, optional): What the sinogram holds, for its ``repr``. Defaults to ''.
+    """
+    #: Largest group of angles computed at once when more than one group is asked for, in bytes.
+    chunk_bytes = 1e9
+    dtype = torch.float32
+    device = torch.device('cpu')
+
+    def __init__(self, compute, shape: Sequence[int], description: str = '') -> None:
+        self._compute = compute
+        self.shape = torch.Size(shape)
+        self.description = description
+
+    @property
+    def ndim(self) -> int:
+        return len(self.shape)
+
+    def dim(self) -> int:
+        return len(self.shape)
+
+    def __len__(self) -> int:
+        return self.shape[0]
+
+    def __repr__(self) -> str:
+        return f"LazySinogram(shape={tuple(self.shape)}" + (f", {self.description}" if self.description else "") + ")"
+
+    def _angles_per_chunk(self) -> int:
+        """Number of angles in one group of at most :attr:`chunk_bytes` bytes."""
+        return max(1, int(self.chunk_bytes // (4 * int(np.prod(self.shape[1:])))))
+
+    def _angle_indices(self, index) -> tuple[torch.Tensor, bool]:
+        """The angles an index of the first dimension selects, as a 1D long tensor, and whether that dimension is dropped (an integer index)."""
+        n = self.shape[0]
+        if isinstance(index, (int, np.integer)) or (isinstance(index, torch.Tensor) and index.ndim == 0 and index.dtype != torch.bool):
+            i = int(index)
+            if not -n <= i < n:
+                raise IndexError(f"angle {i} is out of range for a sinogram with {n} angles")
+            return torch.tensor([i % n]), True
+        if isinstance(index, slice):
+            return torch.arange(n)[index], False
+        if not _is_array_index(index):
+            raise IndexError(f"index a LazySinogram along its first dimension (the angles) first, with an int, a slice, a list or a tensor; got {index!r}")
+        angles = torch.as_tensor(index).cpu()
+        if angles.dtype == torch.bool:
+            if angles.shape != (n,):
+                raise IndexError(f"a boolean index of the angles must have shape ({n},), got {tuple(angles.shape)}")
+            angles = angles.nonzero().flatten()
+        if angles.ndim != 1 or angles.is_floating_point():
+            raise IndexError(f"the angles must be a 1D integer index, got shape {tuple(angles.shape)} and dtype {angles.dtype}")
+        angles = angles.to(torch.long)
+        if angles.numel() and (angles.min() < -n or angles.max() >= n):
+            raise IndexError(f"angles must lie in [-{n}, {n}), got {int(angles.min())} to {int(angles.max())}")
+        return angles % n, False
+
+    def __getitem__(self, key):
+        if not isinstance(key, tuple):
+            key = (key,)
+        if len(key) == 0:
+            raise IndexError("index a LazySinogram along its first dimension (the angles) first")
+        angles, drop = self._angle_indices(key[0])
+        rest = key[1:]
+        # Further indices are applied to each group of angles; that equals indexing the whole sinogram as long as the
+        # first dimension stays first, which holds for one array index in ``rest`` next to slices (and for basic indices)
+        if any(_is_array_index(k) for k in rest):
+            if not isinstance(key[0], slice) or sum(_is_array_index(k) for k in rest) > 1 or any(isinstance(k, (int, np.integer)) for k in rest):
+                raise IndexError("a LazySinogram supports one array index after the angles, with slices for the angles and no integer indices")
+        index = (slice(None),) + rest
+        per_chunk = self._angles_per_chunk()
+        if len(angles) <= per_chunk:
+            values = self._compute(angles)
+            if rest:
+                values = values[index].clone()   # a copy, so the computed angles are freed
+            return values[0] if drop else values
+        out = None
+        for start in range(0, len(angles), per_chunk):
+            part = self._compute(angles[start:start + per_chunk])
+            if rest:
+                part = part[index]
+            if out is None:
+                out = torch.empty((len(angles), *part.shape[1:]), dtype=part.dtype, device=part.device)
+            out[start:start + part.shape[0]] = part
+            del part
+        return out
+
+    def to_dense(self) -> torch.Tensor:
+        """The whole sinogram as one tensor, computed a group of angles at a time.
+
+        Returns:
+            torch.Tensor: Sinogram of shape :attr:`shape`.
+        """
+        return self[:]
+
+    def cpu(self) -> LazySinogram:
+        return self
+
+    def to(self, *args, **kwargs) -> LazySinogram:
+        """Accepts only the device and dtype the sinogram already has (the CPU and float32), so that code moving its projections there works; a lazy sinogram cannot move anywhere else."""
+        for value in list(args) + list(kwargs.values()):
+            if isinstance(value, torch.dtype):
+                if value != self.dtype:
+                    raise TypeError(f"a LazySinogram is {self.dtype}; it cannot be converted to {value}")
+            elif isinstance(value, (str, torch.device)):
+                if torch.device(value).type != self.device.type:
+                    raise TypeError(f"a LazySinogram is computed on the CPU; it cannot be moved to {value}")
+        return self
+
+    def _combine(self, other, op, reflected: bool = False):
+        """Lazy ``op(self, other)`` (``op(other, self)`` if ``reflected``), computed at the angles asked for."""
+        if isinstance(other, LazySinogram):
+            if other.shape[0] != self.shape[0]:
+                raise ValueError(f"cannot combine lazy sinograms with {self.shape[0]} and {other.shape[0]} angles")
+            other_at = lambda angles: other[angles]
+            shape = torch.broadcast_shapes(self.shape, other.shape)
+        elif isinstance(other, torch.Tensor) and other.ndim > 0:
+            if other.ndim != self.ndim or other.shape[0] != self.shape[0]:
+                raise ValueError(f"cannot combine a LazySinogram of shape {tuple(self.shape)} with a tensor of shape {tuple(other.shape)}: "
+                                 "the tensor's first dimension must be the same angles, with as many dimensions (use unsqueeze to add trailing ones)")
+            other_at = lambda angles: other[angles.to(other.device)].to(self.device)
+            shape = torch.broadcast_shapes(self.shape, other.shape)
+        elif isinstance(other, (int, float, np.number)) or (isinstance(other, torch.Tensor) and other.ndim == 0):
+            other_at = lambda angles: other
+            shape = self.shape
+        else:
+            return NotImplemented
+        if reflected:
+            compute = lambda angles: op(other_at(angles), self[angles])
+        else:
+            compute = lambda angles: op(self[angles], other_at(angles))
+        return LazySinogram(compute, shape, description=self.description)
+
+    def __add__(self, other):
+        return self._combine(other, torch.add)
+
+    def __radd__(self, other):
+        return self._combine(other, torch.add, reflected=True)
+
+    def __sub__(self, other):
+        return self._combine(other, torch.sub)
+
+    def __rsub__(self, other):
+        return self._combine(other, torch.sub, reflected=True)
+
+    def __mul__(self, other):
+        return self._combine(other, torch.mul)
+
+    def __rmul__(self, other):
+        return self._combine(other, torch.mul, reflected=True)
+
+    def __truediv__(self, other):
+        return self._combine(other, torch.div)
+
+    def __rtruediv__(self, other):
+        return self._combine(other, torch.div, reflected=True)
+
+def _event_bins(detector_ids: torch.Tensor, info: dict, num_tof_bins: int | None = None, events_per_chunk: int = 2**22) -> tuple:
+    """The sinogram bin of each list mode event, as ``listmode_to_sinogram`` and ``sinogram_to_listmode`` find it: the flat (angle, radial bin, plane) index of ``_bin_keys``, whether it lies inside the sinogram, and, for TOF, the TOF bin as the sinogram stores it (mirrored when the event's two crystals were swapped to look the bin up). The events are processed a chunk at a time on their own device, so the temporaries stay small (all 50 million events of the GATE mMR scan at once took about 6 GB); the results are returned on the CPU.
+
+    Args:
+        detector_ids (torch.Tensor): [N, 2] or [N, 3] detector IDs of the events (with the TOF bin as the third column).
+        info (dict): PET geometry information dictionary.
+        num_tof_bins (int | None, optional): Number of TOF bins; None for non-TOF. Defaults to None.
+        events_per_chunk (int, optional): Events processed at once. Defaults to 2**22.
+
+    Returns:
+        tuple: key ([N] int64), inside ([N] bool) and TOF bin ([N] int64, or None for non-TOF).
+    """
+    device = detector_ids.device
+    lor_coordinates, sinogram_index = (table.to(device) for table in sinogram_coordinates(info))
+    shape = _sinogram_shape(info)
+    keys, insides, tof_bins = [], [], []
+    for start in range(0, detector_ids.shape[0], events_per_chunk):
+        ids = detector_ids[start:start + events_per_chunk]
+        within_ring_id = (ids[:,:2] % info['NrCrystalsPerRing']).to(torch.long)
+        ring_ids = (ids[:,:2] // info['NrCrystalsPerRing']).to(torch.long)
+        within_ring_id, idx = within_ring_id.sort(axis=1, descending=True, stable=True)
+        ring_ids = ring_ids.gather(index=idx, dim=1)
+        key, inside = _bin_keys(lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]], sinogram_index[ring_ids[:,0], ring_ids[:,1]], shape)
+        keys.append(key.cpu())
+        insides.append(inside.cpu())
+        if num_tof_bins is not None:
+            tof_bin = ids[:,2].to(torch.long)
+            tof_bins.append(torch.where(idx[:,0] == 1, num_tof_bins - 1 - tof_bin, tof_bin).cpu())
+    if not keys:
+        return torch.zeros(0, dtype=torch.long), torch.zeros(0, dtype=torch.bool), (torch.zeros(0, dtype=torch.long) if num_tof_bins is not None else None)
+    return torch.cat(keys), torch.cat(insides), (torch.cat(tof_bins) if num_tof_bins is not None else None)
+
+def _listmode_to_lazy_sinogram(detector_ids: torch.Tensor, info: dict, tof_meta: PETTOFMeta | None = None, weights: torch.Tensor | None = None) -> LazySinogram:
+    """``listmode_to_sinogram`` as a :class:`LazySinogram`: the events are kept, grouped by angle, as their position within the angle (4 bytes each), their TOF bin (2 bytes) and their weight if any, and the angles asked for are binned when they are asked for. The bins hold exactly what ``listmode_to_sinogram`` gives: counts are exact, and weights are summed in the same order (the events of each angle keep their order)."""
+    shape = _sinogram_shape(info)
+    num_tof_bins = None if tof_meta is None else int(tof_meta.num_bins)
+    key, keep, tof_bin = _event_bins(detector_ids, info, num_tof_bins)
+    if tof_bin is not None:
+        keep &= (tof_bin >= 0) & (tof_bin < num_tof_bins)   # listmode_to_sinogram bins only events in one of the TOF bins
+    key = key[keep]
+    per_angle = shape[1] * shape[2]
+    angle = key // per_angle
+    order = torch.argsort(angle, stable=True)   # stable: within an angle, the events keep their order
+    within_angle = (key % per_angle)[order].to(torch.int32)
+    del key
+    if tof_bin is not None:
+        tof_bin = tof_bin[keep][order].to(torch.int16)
+    if weights is not None:
+        weights = weights.to(device='cpu', dtype=torch.float32)[keep][order]
+    offsets = torch.zeros(shape[0] + 1, dtype=torch.long)
+    offsets[1:] = torch.cumsum(torch.bincount(angle, minlength=shape[0]), 0)
+    del angle, order, keep
+    bins_per_angle = per_angle * (1 if num_tof_bins is None else num_tof_bins)
+    out_shape = shape[1:] if num_tof_bins is None else (*shape[1:], num_tof_bins)
+
+    def compute(angles: torch.Tensor) -> torch.Tensor:
+        starts, counts = offsets[angles], offsets[angles + 1] - offsets[angles]
+        n = int(counts.sum())
+        group = torch.repeat_interleave(torch.arange(len(angles)), counts)                 # which of the angles each event is in
+        event = torch.arange(n) + torch.repeat_interleave(starts - (torch.cumsum(counts, 0) - counts), counts)
+        local = group * per_angle + within_angle[event].to(torch.long)
+        if num_tof_bins is not None:
+            local = local * num_tof_bins + tof_bin[event].to(torch.long)
+        values = torch.ones(n, dtype=torch.float32) if weights is None else weights[event]
+        sinogram = torch.zeros(len(angles) * bins_per_angle, dtype=torch.float32)
+        sinogram.index_add_(0, local, values)   # adds the events in order, like bincount
+        return sinogram.reshape(len(angles), *out_shape)
+    return LazySinogram(compute, (shape[0], *out_shape), description=f"binned from {int(offsets[-1]):,} list mode events")
+
 def listmode_to_sinogram(
     detector_ids: torch.Tensor,
     info: dict,
     weights: torch.Tensor = None,
     normalization: bool = False,
-    tof_meta: PETTOFMeta = None
-    ) -> torch.Tensor:
+    tof_meta: PETTOFMeta = None,
+    lazy: bool = False
+    ) -> torch.Tensor | LazySinogram:
     """Converts PET listmode data to sinogram
 
     Args:
@@ -206,10 +449,15 @@ def listmode_to_sinogram(
         weights (torch.Tensor, optional): Binning weights for each listmode event. Defaults to None.
         normalization (bool, optional): Whether or not this is a normalization sinogram (need to do some extra steps). Defaults to False.
         tof_meta (PETTOFMeta, optional): PET TOF metadata. Defaults to None.
+        lazy (bool, optional): Return a :class:`LazySinogram`, which bins the events of the angles it is asked for when it is asked for them, instead of the whole sinogram. A TOF sinogram is large (34.6 GB with 21 TOF bins for the Siemens Biograph mMR), while a reconstruction reads one subset of angles at a time. Not available with ``normalization``. Defaults to False.
 
     Returns:
-        torch.Tensor: PET sinogram
+        torch.Tensor | LazySinogram: PET sinogram
     """
+    if lazy:
+        if normalization:
+            raise NotImplementedError("a normalization sinogram cannot be lazy")
+        return _listmode_to_lazy_sinogram(detector_ids, info, tof_meta=tof_meta, weights=weights)
     if tof_meta is not None: # if tof_meta is provided
         return _listmodeTOF_to_sinogramTOF(detector_ids, info, tof_meta, weights=weights)
     # The events are binned on the device they are on (a list mode system matrix keeps them on the GPU)
@@ -228,6 +476,41 @@ def listmode_to_sinogram(
     if normalization:
         sinogram += _bin_events(*_bin_keys(lor_coordinates[within_ring_id[:,1], within_ring_id[:,0]], sinogram_index[ring_ids[:,1], ring_ids[:,0]], shape), shape, weights)
         sinogram /= 2
+    return sinogram
+
+def all_pairs_to_sinogram(weights: torch.Tensor, info: dict, normalization: bool = False, pairs_per_chunk: int = 2**24) -> torch.Tensor:
+    """``listmode_to_sinogram`` of every pair of crystals of the scanner, with a weight for each pair (such as normalization weights), binned a block of pairs at a time.
+
+    The pairs are those of ``torch.combinations(torch.arange(N_crystals), 2)``, in that order, which is the order of ``weights``. For the 411 million pairs of the Siemens Biograph mMR, the pair list alone takes 3.3 GB and binning all pairs at once took tens of GB of temporaries; binning ``pairs_per_chunk`` pairs at a time bounds those. Each sinogram bin holds at most one pair (in each of the two orders the normalization binning uses), so the result is the same as binning all pairs at once.
+
+    Args:
+        weights (torch.Tensor): Weight of each crystal pair, in ``torch.combinations`` order.
+        info (dict): PET geometry information dictionary.
+        normalization (bool, optional): Bin as a normalization sinogram (see ``listmode_to_sinogram``). Defaults to False.
+        pairs_per_chunk (int, optional): Number of pairs binned at once. Defaults to 2**24.
+
+    Returns:
+        torch.Tensor: PET sinogram.
+    """
+    n_crystals = int(info['NrCrystalsPerRing'] * info['NrRings'])
+    if weights.shape[0] != n_crystals * (n_crystals - 1) // 2:
+        raise ValueError(f"expected one weight per crystal pair ({n_crystals * (n_crystals - 1) // 2:,}), got {weights.shape[0]:,}")
+    sinogram, first, offset = None, 0, 0
+    while first < n_crystals - 1:
+        # rows first..last-1 of the pairs: (i, j) for j > i, about pairs_per_chunk of them
+        last = first + 1
+        n_pairs = n_crystals - 1 - first
+        while last < n_crystals - 1 and n_pairs + (n_crystals - 1 - last) <= pairs_per_chunk:
+            n_pairs += n_crystals - 1 - last
+            last += 1
+        i = torch.arange(first, last)
+        counts = n_crystals - 1 - i
+        crystal_1 = torch.repeat_interleave(i, counts)
+        crystal_2 = torch.arange(n_pairs) - torch.repeat_interleave(torch.cumsum(counts, 0) - counts, counts) + crystal_1 + 1
+        part = listmode_to_sinogram(torch.stack([crystal_1, crystal_2], dim=1).to(torch.int32), info, weights=weights[offset:offset + n_pairs], normalization=normalization)
+        sinogram = part if sinogram is None else sinogram.add_(part)
+        offset += n_pairs
+        first = last
     return sinogram
 
 def _sinogram_shape(info: dict) -> tuple:
@@ -423,17 +706,45 @@ def get_scanner_LUT(info: dict):
     
     return XYZ_crystals
 
-def sinogram_to_listmode(detector_ids: torch.Tensor, sinogram: torch.Tensor, info: dict) -> torch.Tensor:
+def _lazy_sinogram_to_listmode(detector_ids: torch.Tensor, sinogram: LazySinogram, info: dict) -> torch.Tensor:
+    """``sinogram_to_listmode`` of a :class:`LazySinogram`: the events are grouped by angle, and the sinogram is computed a group of angles at a time, so it is never held whole."""
+    shape = _sinogram_shape(info)
+    num_tof_bins = sinogram.shape[-1] if len(sinogram.shape) > 3 else None
+    key, inside, tof_bin = _event_bins(detector_ids, info, num_tof_bins)
+    if not bool(inside.all()):
+        raise IndexError("some events lie outside the sinogram")
+    per_angle = shape[1] * shape[2]
+    angle = key // per_angle
+    order = torch.argsort(angle, stable=True)
+    sorted_angle = angle[order]
+    values = torch.empty(key.shape[0], dtype=torch.float32)
+    per_chunk = sinogram._angles_per_chunk()
+    for first in range(0, shape[0], per_chunk):
+        last = min(first + per_chunk, shape[0])
+        lo, hi = (int(torch.searchsorted(sorted_angle, a)) for a in (first, last))
+        if lo == hi:
+            continue
+        events = order[lo:hi]
+        part = sinogram[torch.arange(first, last)]
+        k = key[events]
+        index = (angle[events] - first, (k // shape[2]) % shape[1], k % shape[2])
+        values[events] = part[index + ((tof_bin[events],) if num_tof_bins is not None else ())]
+        del part
+    return values
+
+def sinogram_to_listmode(detector_ids: torch.Tensor, sinogram: torch.Tensor | LazySinogram, info: dict) -> torch.Tensor:
     """Obtains listmode data from a sinogram at the given detector IDs
 
     Args:
         detector_ids (torch.Tensor): Detector IDs at which to obtain listmode data
-        sinogram (torch.Tensor): PET sinogram
+        sinogram (torch.Tensor | LazySinogram): PET sinogram. A :class:`LazySinogram` is computed a group of angles at a time, and the values are returned on the CPU.
         info (dict): PET geometry information dictionary
 
     Returns:
         torch.Tensor: Listmode data
-    """     
+    """
+    if isinstance(sinogram, LazySinogram):
+        return _lazy_sinogram_to_listmode(detector_ids, sinogram, info)
     # TODO: multiple IDs map to same sinogram bin -> need to divide by number of LORs mapping to each sinogram bin
     # Look the events up where the sinogram is (a list mode system matrix keeps its events' detector IDs on its lor_device)
     device = sinogram.device

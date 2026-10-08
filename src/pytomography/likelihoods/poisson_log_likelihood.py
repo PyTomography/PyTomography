@@ -31,10 +31,16 @@ class PoissonLogLikelihood(Likelihood):
             torch.Tensor: The gradient of the Poisson likelihood.
         """
         proj_subset = self._get_projection_subset(self.projections, subset_idx)
-        additive_term_subset = self._get_projection_subset(self.additive_term, subset_idx)
-        self.projections_predicted = self.system_matrix.forward(object, subset_idx) + additive_term_subset
+        FP = self._forward_with_additive_term(object, subset_idx)
         norm_BP = self._get_normBP(subset_idx)
-        return self.system_matrix.backward(proj_subset / (self.projections_predicted + pytomography.delta), subset_idx) - norm_BP
+        # g / (Hf + s + delta), computed in the memory of the denominator (a new tensor) when the shapes allow
+        ratio = FP + pytomography.delta
+        if ratio.shape == proj_subset.shape and ratio.dtype == proj_subset.dtype and ratio.device == proj_subset.device:
+            ratio = torch.div(proj_subset, ratio, out=ratio)
+        else:
+            ratio = proj_subset / ratio
+        del proj_subset
+        return self.system_matrix.backward(ratio, subset_idx) - norm_BP
     
     def compute_gradient_ff(
         self,
@@ -132,8 +138,7 @@ class MonteCarloHybridSPECTPoissonLogLikelihood(PoissonLogLikelihood):
             torch.Tensor: Gradient of the log likelihood with respect to the object
         """
         proj_subset = self._get_projection_subset(self.projections, subset_idx)
-        additive_term_subset = self._get_projection_subset(self.additive_term, subset_idx)
-        self.projections_predicted = self.system_matrix.forward(object, subset_idx) + additive_term_subset
+        self._forward_with_additive_term(object, subset_idx)
         mask_bad = (self.projections_predicted < pytomography.delta)*(proj_subset > pytomography.delta)
         ratio = (~mask_bad * proj_subset + pytomography.delta) / (self.projections_predicted + pytomography.delta)
         ratio[ratio>1000] = 1000 # clip to prevent MC noise causing instability

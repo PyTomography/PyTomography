@@ -9,7 +9,7 @@ import uproot
 import nibabel as nib
 from scipy.ndimage import affine_transform
 from ..shared import get_header_value, get_attenuation_map_interfile
-from .shared import listmode_to_sinogram, sinogram_to_listmode, get_detector_ids_from_trans_axial_ids, get_axial_trans_ids_from_info, get_scanner_LUT, smooth_randoms_sinogram, randoms_sinogram_to_sinogramTOF
+from .shared import listmode_to_sinogram, all_pairs_to_sinogram, LazySinogram, sinogram_to_listmode, get_detector_ids_from_trans_axial_ids, get_axial_trans_ids_from_info, get_scanner_LUT, smooth_randoms_sinogram, randoms_sinogram_to_sinogramTOF
 
 def get_aligned_attenuation_map(
     headerfile: str,
@@ -376,9 +376,8 @@ def get_norm_sinogram_from_listmode_data(
     Returns:
         torch.Tensor: PET sinogram
     """
-    scanner_LUT = get_scanner_LUT(info)
-    all_LOR_ids = torch.combinations(torch.arange(scanner_LUT.shape[0]).to(torch.int32), 2)
-    return listmode_to_sinogram(all_LOR_ids, info, weights=weights_sensitivity, normalization=True)
+    # binned a block of crystal pairs at a time: all 411 million pairs of the mMR at once took tens of GB
+    return all_pairs_to_sinogram(weights_sensitivity, info, normalization=True)
 
 def get_norm_sinogram_from_root_data(
     normalization_paths: Sequence[str],
