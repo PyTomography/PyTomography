@@ -4,6 +4,7 @@ DICOM-CT-PD projections (low-signal filtering, per-column scale, table feed, vie
 from __future__ import annotations
 
 import os
+import struct
 
 import numpy as np
 import pydicom
@@ -150,9 +151,7 @@ def test_table_feed_of_a_helix():
     assert dicom_ct_pd._table_feed(phis, zs) == pytest.approx(40.0, rel=1e-6)
 
 
-def _write_dicom(path, instance):
-    ds = pydicom.Dataset()
-    ds.InstanceNumber = instance
+def _save(ds, path):
     ds.file_meta = pydicom.dataset.FileMetaDataset()
     ds.file_meta.TransferSyntaxUID = pydicom.uid.ExplicitVRLittleEndian
     ds.file_meta.MediaStorageSOPClassUID = pydicom.uid.generate_uid()
@@ -164,7 +163,51 @@ def _write_dicom(path, instance):
         ds.save_as(path, write_like_original=False)
 
 
+def _write_dicom(path, instance):
+    ds = pydicom.Dataset()
+    ds.InstanceNumber = instance
+    _save(ds, path)
+
+
+def _write_ctpd(path, instance, manufacturer, n_cols=21, n_rows=4, column_tag=11.25):
+    """A minimal DICOM-CT-PD projection: the tags the reader needs and a projection of zeros."""
+    ds = pydicom.Dataset()
+    ds.InstanceNumber, ds.Manufacturer = instance, manufacturer
+    ds.Rows, ds.Columns, ds.SamplesPerPixel, ds.PhotometricInterpretation = n_cols, n_rows, 1, 'MONOCHROME2'
+    ds.BitsAllocated, ds.BitsStored, ds.HighBit, ds.PixelRepresentation = 16, 16, 15, 0
+    ds.RescaleSlope, ds.RescaleIntercept = 1, 0
+    ds.PixelData = np.zeros((n_cols, n_rows), np.uint16).tobytes()
+    f = lambda *v: struct.pack(f'<{len(v)}f', *v)
+    for tag, value in (((0x7031, 0x1001), f(0.1 * instance)), ((0x7031, 0x1002), f(-1.0 * instance)), ((0x7031, 0x1003), f(541.0)),
+                       ((0x7033, 0x100B), f(0.0)), ((0x7033, 0x100C), f(0.0)), ((0x7033, 0x100D), f(0.0)),
+                       ((0x7031, 0x1033), f(column_tag, 2.5)), ((0x7031, 0x1031), f(949.0)), ((0x7029, 0x1002), f(1.0)),
+                       ((0x7029, 0x1006), f(1.0))):
+        ds.add_new(tag, 'OB', value)
+    _save(ds, path)
+
+
 def test_views_are_read_in_acquisition_order(tmp_path):
     for name, instance in (('a.dcm', 3), ('b.dcm', 1), ('c.dcm', 2)):
         _write_dicom(os.path.join(tmp_path, name), instance)
     assert [os.path.basename(p) for p in dicom_ct_pd.sorted_paths(str(tmp_path))] == ['b.dcm', 'c.dcm', 'a.dcm']
+
+
+def test_the_central_column_follows_the_manufacturer(tmp_path):
+    # GE counts DetectorCentralElement from the other end of the detector, from zero
+    tag = torch.full((3,), 11.25)
+    assert torch.equal(dicom_ct_pd._central_column(tag, 21, 'GE MEDICAL SYSTEMS'), 21 - tag)
+    assert torch.equal(dicom_ct_pd._central_column(tag, 21, 'SIEMENS'), tag)
+    assert torch.equal(dicom_ct_pd._central_column(tag, 21, 'GE', 'tag'), tag)
+    assert torch.equal(dicom_ct_pd._central_column(tag, 21, 'GE', 10.5), torch.full((3,), 10.5))
+    with pytest.raises(ValueError):
+        dicom_ct_pd._central_column(tag, 21, 'GE', 'other')
+    for manufacturer, expected in (('GE', 21 - 11.25), ('SIEMENS', 11.25)):
+        folder = tmp_path / manufacturer
+        folder.mkdir()
+        for i in (1, 2, 3):
+            _write_ctpd(str(folder / f'{i}.dcm'), i, manufacturer)
+        _, meta = dicom_ct_pd.get_projections_and_metadata_gen3(str(folder), low_signal_filter=False)
+        assert float(meta.detector_centers_col_idx[0]) == pytest.approx(expected)
+    _, meta = dicom_ct_pd.get_projections_and_metadata_gen3(str(tmp_path / 'GE'), low_signal_filter=False, central_column='tag',
+                                                           central_column_offset=0.5)
+    assert float(meta.detector_centers_col_idx[0]) == pytest.approx(11.75)

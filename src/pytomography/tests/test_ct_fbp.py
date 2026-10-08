@@ -199,13 +199,13 @@ C145_PROJECTIONS, C145_IMAGES = os.environ.get('PYTOMOGRAPHY_C145_PROJECTIONS'),
 @pytest.mark.data
 @pytest.mark.skipif(not (C145_PROJECTIONS and C145_IMAGES), reason="set PYTOMOGRAPHY_C145_PROJECTIONS and PYTOMOGRAPHY_C145_IMAGES")
 def test_c145_matches_the_scanner_images():
-    """TCIA LDCT-and-Projection-data C145 (GE), 40 slices at the centre of the scan, with the conventions found for it,
-    against the scanner's own (STANDARD) images: soft tissue, fat and lung within 5 HU, and no radial trend."""
+    """TCIA LDCT-and-Projection-data C145 (GE), 40 slices at the centre of the scan, with the GE central column and the
+    options that reproduce the scanner's images, against those (STANDARD) images: soft tissue, fat and lung within
+    5 HU, and no radial trend."""
     import pydicom
     from scipy import ndimage
-    proj, meta = dicom_ct_pd.get_projections_and_metadata_gen3(
-        C145_PROJECTIONS, central_column_offset=-0.42, angle_offset_deg=0.161, table_feed='pitch',
-        column_scale=dict(g0=-0.0149, g2=0.0186))
+    proj, meta = dicom_ct_pd.get_projections_and_metadata_gen3(C145_PROJECTIONS, table_feed='pitch', column_scale=dict(g0=-0.0149, g2=0.0186))
+    assert float(meta.detector_centers_col_idx[0]) == pytest.approx(888 - 444.75)   # GE counts it from the other end
     object_meta = ObjectMeta(dr=(0.662109, 0.662109, 1.0), shape=(512, 512, 40))
     image = FilteredBackProjection(proj, CTGen3SystemMatrix(object_meta, meta), filter='hann', slice_thickness=1.25)()
     ours = (1000 * (image.cpu().numpy() / meta.water_attenuation - 1)).astype(np.float32)

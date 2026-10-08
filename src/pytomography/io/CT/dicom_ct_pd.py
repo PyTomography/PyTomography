@@ -107,6 +107,20 @@ def get_correction_flags(path) -> dict:
     return flags
 
 
+def _central_column(tag: torch.Tensor, n_columns: int, manufacturer: str | None, central_column='auto') -> torch.Tensor:
+    """The detector's central column (counted from 1, fractional) for every view: DetectorCentralElement as stored,
+    except that GE counts it from the other end of the detector, from zero, which makes it ``n_columns - tag``. A
+    number for ``central_column`` gives the column itself, ``'tag'`` the value as stored."""
+    if central_column == 'tag':
+        return tag
+    if central_column == 'auto':
+        is_ge = str(manufacturer or '').strip().upper().split()[:1] == ['GE']
+        return n_columns - tag if is_ge else tag
+    if isinstance(central_column, str):
+        raise ValueError(f"central_column must be 'auto', 'tag' or a number, not {central_column!r}")
+    return torch.full_like(tag, float(central_column))
+
+
 def _table_feed(source_phis: torch.Tensor, source_zs: torch.Tensor) -> float:
     """Advance of the focal spot (mm) per rotation, from a straight line fit of z against the unwrapped angle."""
     beta = np.unwrap(source_phis.double().numpy())
@@ -117,25 +131,34 @@ def _table_feed(source_phis: torch.Tensor, source_zs: torch.Tensor) -> float:
 
 
 def get_projections_and_metadata_gen3(paths, low_signal_filter: bool = True, low_signal_photons: float = 30.0,
-                                      central_column_offset: float = 0.0, angle_offset_deg: float = 0.0,
+                                      central_column='auto', central_column_offset: float = 0.0,
                                       table_feed: float | str | None = None, column_scale: dict | None = None):
     r"""Projections (line integrals; views, columns, rows) and :class:`~pytomography.metadata.CT.CTGen3ProjMeta` of a
     DICOM-CT-PD scan, with the views in acquisition order (``InstanceNumber``).
 
+    The geometry comes from the files. The detector's central column is DetectorCentralElement (7031,1033), except that
+    GE counts it from the other end of the detector, from zero, so that its central column is ``n_columns -
+    DetectorCentralElement`` (443.25 rather than 444.75 on TCIA LDCT-and-Projection-data cases C145 and C001, GE
+    Discovery CT750 HD). ``central_column='auto'`` applies this when the files' Manufacturer is GE. It was found by
+    reconstructing the views with the focal spot in either half of the turn separately: the two images coincide with
+    this column and lie 1.4 mm apart with the column as stored, which blurs every edge; a Siemens scan coincides with its
+    column as stored.
+
     By default rays that expect fewer than ``low_signal_photons`` photons (from (7033,1065) PhotonStatistics) are
     filtered with :func:`~pytomography.io.CT.preprocessing.filter_low_signal`, which removes most of the streaks of
-    photon starvation (between the shoulders, for example). The scanner conventions below are off unless asked for;
-    each was found by comparing reconstructions with one scanner's own images (TCIA LDCT-and-Projection-data case
-    C145, GE) and is not confirmed on other scans:
+    photon starvation (between the shoulders, for example).
 
-    * ``central_column_offset``: channels added to the DetectorCentralElement column. C145 and C001 (GE) fit their own
-      data best with -0.42.
-    * ``angle_offset_deg``: added to every focal spot angle; it rotates the image. C145: 0.161.
+    Two options reproduce the scanner's own images of C145 and are off unless asked for; they were found by comparing
+    with those images, not from the files:
+
     * ``table_feed``: rescale the focal spot z positions, about the last view, so that the table advances this much
       per rotation (mm), or ``'pitch'`` for SpiralPitchFactor (0018,9311) times the collimation. C145's images use the
       nominal feed (39.375 mm), 0.2% less than its projections imply.
     * ``column_scale``: ``dict(g0=..., g2=...)``, a per-column scale of the line integrals
-      (:func:`~pytomography.io.CT.preprocessing.scale_columns`); C145: ``dict(g0=-0.0149, g2=0.0186)``.
+      (:func:`~pytomography.io.CT.preprocessing.scale_columns`). For GE Discovery CT750 HD scans at 100 kV (C145, and
+      C001 independently), ``dict(g0=-0.0149, g2=0.0186)``: without it soft tissue reads 25-35 HU above the scanner's
+      at the centre and 25-30 HU below at 16-20 cm, with it within 10 HU. It matches the scanner's HU; which of the two
+      is right would take a water phantom.
 
     The metadata also carries ``photon_counts``, ``water_attenuation`` (per mm, to convert to HU), ``correction_flags``
     and ``spiral_pitch``.
@@ -144,8 +167,9 @@ def get_projections_and_metadata_gen3(paths, low_signal_filter: bool = True, low
         paths (str | list): A folder of DICOM-CT-PD files, or a list of them.
         low_signal_filter (bool, optional): Filter photon-starved rays. Defaults to True.
         low_signal_photons (float, optional): Photons a filtered ray should represent. Defaults to 30.
-        central_column_offset (float, optional): Defaults to 0.
-        angle_offset_deg (float, optional): Defaults to 0.
+        central_column (str | float, optional): ``'auto'`` (the manufacturer's convention, above), ``'tag'``
+            (DetectorCentralElement as stored), or the central column itself (counted from 1). Defaults to ``'auto'``.
+        central_column_offset (float, optional): Channels added to the central column. Defaults to 0.
         table_feed (float | str | None, optional): Defaults to None (as stored).
         column_scale (dict | None, optional): Defaults to None.
 
@@ -169,7 +193,7 @@ def get_projections_and_metadata_gen3(paths, low_signal_filter: bool = True, low
     phi_det_spacing = detector_tranverse_spacing/DSD
     z_det_spacing = struct.unpack('<f', ds[0x7029,0x1006].value)[0]
     pitch = ds.get('SpiralPitchFactor')
-    phis = d['phi'] + float(np.radians(angle_offset_deg))
+    phis = d['phi']
     zs = d['z']
     if table_feed is not None:
         if table_feed == 'pitch':
@@ -181,7 +205,8 @@ def get_projections_and_metadata_gen3(paths, low_signal_filter: bool = True, low
         feed = _table_feed(phis, zs)
         if feed > 0:
             zs = (zs[-1].double() + (zs.double() - zs[-1].double()) * (target / feed)).to(zs.dtype)
-    proj_meta = CTGen3ProjMeta(phis, d['rho'], zs, d['dphi'], d['drho'], d['dz'], d['col'] + central_column_offset, d['row'],
+    col = _central_column(d['col'], projections.shape[1], ds.get('Manufacturer'), central_column) + central_column_offset
+    proj_meta = CTGen3ProjMeta(phis, d['rho'], zs, d['dphi'], d['drho'], d['dz'], col, d['row'],
                                phi_det_spacing, z_det_spacing, DSD, shape=projections.shape[1:], patient_position=ds.get('PatientPosition'))
     proj_meta.photon_counts = d['photons']
     proj_meta.water_attenuation = get_water_attenuation(paths[0])
