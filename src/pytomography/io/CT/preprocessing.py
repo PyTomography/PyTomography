@@ -142,11 +142,12 @@ def column_scale(proj_meta, g0: float, g2: float, t_hold: float = 140.0) -> torc
 def scale_columns(projections: torch.Tensor, proj_meta, g0: float, g2: float, t_hold: float = 140.0) -> torch.Tensor:
     r"""Scale the line integrals of every detector column by :math:`1 + g(t)` (see :func:`column_scale`).
 
-    This is the form a bowtie-dependent (per column) beam hardening calibration takes. For the GE scan TCIA
-    LDCT-and-Projection-data C145, the scanner's own images relate to the exported projections by
-    :math:`g_0 = -1.49\%`, :math:`g_2 = +1.86\%`: with that scale, filtered back projection matches the scanner's soft
-    tissue, fat and lung within 3 HU, without the radial trend (+24 HU at the centre, -16 HU at 140-180 mm) left
-    otherwise. The coefficients come from one scan, so this is not applied unless asked for.
+    This is the form a bowtie-dependent (per column) beam hardening calibration takes. For GE Discovery CT750 HD
+    scans at 100 kV, :func:`fit_column_scale` finds :math:`g_0 = -1.2\%`, :math:`g_2 = +1.65\%` from the scanner's own
+    images of TCIA LDCT-and-Projection-data C145, and :math:`-1.35\%`, :math:`+1.84\%` from C001's: without the scale,
+    filtered back projection reads soft tissue 25-35 HU above the scanner's at the centre and 25 HU below at 16-20 cm;
+    with it, within 6 HU everywhere. It matches the scanner's values, which are not necessarily the true ones, so it is
+    not applied unless asked for.
 
     Args:
         projections (torch.Tensor): Line integrals (views, columns, rows).
@@ -160,3 +161,61 @@ def scale_columns(projections: torch.Tensor, proj_meta, g0: float, g2: float, t_
     """
     factors = column_scale(proj_meta, g0, g2, t_hold).to(torch.float32).to(projections.device)
     return projections.to(torch.float32) * factors[None, :, None]
+
+
+def fit_column_scale(projections: torch.Tensor, proj_meta, system_matrix, reference, mask=None, t_hold: float = 140.0,
+                     sigma: float = 2.0, **fbp_options) -> dict:
+    r"""Fit the per-column scale of :func:`scale_columns` that makes the filtered back projection of ``projections``
+    match ``reference``, another reconstruction of the same scan on the object grid of ``system_matrix``: typically the
+    scanner's own images, resampled onto that grid (for example with :func:`pytomography.io.shared.align_images_affine`
+    and :meth:`~pytomography.metadata.CT.CTGen3ProjMeta.get_patient_affine`).
+
+    Reconstruction is linear in the line integrals, so scaling them by :math:`1 + g_0 + g_2 u^2`, with
+    :math:`u = \min(|t|, t_\mathrm{hold}) / 100\,\mathrm{mm}`, changes the image by :math:`g_0 f_0 + g_2 f_2`, where
+    :math:`f_0` reconstructs the projections and :math:`f_2` the projections weighted by :math:`u^2`. The fit takes these
+    two reconstructions and solves for :math:`g_0, g_2` by least squares over ``mask``, after a Gaussian blur of
+    ``sigma`` mm, so that differences in resolution and noise do not count.
+
+    Args:
+        projections (torch.Tensor): Line integrals as read (views, columns, rows), before any column scale.
+        proj_meta (CTGen3ProjMeta): Their metadata.
+        system_matrix (CTGen3SystemMatrix): System matrix of the projections; its object grid is the grid of
+            ``reference``.
+        reference (torch.Tensor | numpy.ndarray): The image to match, in attenuation per mm, on that grid.
+        mask (array of bool, optional): Voxels to fit. Defaults to the soft tissue and fat of the blurred reference
+            (-200 to 200 HU, with ``proj_meta.water_attenuation``), 2 sigma away from other materials.
+        t_hold (float, optional): As in :func:`column_scale`. Defaults to 140.
+        sigma (float, optional): Blur (mm) before the fit. Defaults to 2.
+        **fbp_options: Passed to :class:`~pytomography.algorithms.FilteredBackProjection` (``filter``,
+            ``slice_thickness``, ...).
+
+    Returns:
+        dict: ``g0``, ``g2`` and ``t_hold``, to pass as ``column_scale`` to
+        :func:`~pytomography.io.CT.dicom_ct_pd.get_projections_and_metadata_gen3` or as keywords to
+        :func:`scale_columns`.
+    """
+    from pytomography.algorithms import FilteredBackProjection
+    u2 = (column_scale(proj_meta, 0.0, 1.0, t_hold) - 1).to(torch.float32)
+    f0 = FilteredBackProjection(projections, system_matrix, **fbp_options)().cpu().numpy().astype(np.float64)
+    weighted = projections.to(torch.float32) * u2.to(projections.device)[None, :, None]
+    f2 = FilteredBackProjection(weighted, system_matrix, **fbp_options)().cpu().numpy().astype(np.float64)
+    del weighted
+    ref = (reference.detach().cpu().numpy() if isinstance(reference, torch.Tensor) else np.asarray(reference)).astype(np.float64)
+    if ref.shape != f0.shape:
+        raise ValueError(f'reference is {ref.shape}, but the object grid of the system matrix is {f0.shape}')
+    px = sigma / np.asarray(system_matrix.object_meta.dr, dtype=np.float64)
+    B0, B2, R = (ndimage.gaussian_filter(a, px) for a in (f0, f2, ref))
+    if mask is None:
+        mu_w = getattr(proj_meta, 'water_attenuation', None)
+        if not mu_w:
+            raise ValueError('pass a mask: these projections carry no water attenuation to find soft tissue with')
+        hu = 1000 * (R / mu_w - 1)
+        soft = ((hu > -200) & (hu < 200) & (f0 != 0)).astype(np.float32)
+        size = tuple(2 * max(1, int(round(2 * p))) + 1 for p in px)       # a box 2 sigma either way
+        mask = ndimage.uniform_filter(soft, size, mode='constant') > 0.999
+    mask = np.asarray(mask, bool)
+    if mask.sum() < 100:
+        raise ValueError(f'only {int(mask.sum())} voxels to fit; widen the mask')
+    A = np.stack([B0[mask], B2[mask]], axis=1)
+    g0, g2 = np.linalg.lstsq(A, (R - B0)[mask], rcond=None)[0]
+    return dict(g0=float(g0), g2=float(g2), t_hold=float(t_hold))

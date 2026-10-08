@@ -155,10 +155,11 @@ def get_projections_and_metadata_gen3(paths, low_signal_filter: bool = True, low
       per rotation (mm), or ``'pitch'`` for SpiralPitchFactor (0018,9311) times the collimation. C145's images use the
       nominal feed (39.375 mm), 0.2% less than its projections imply.
     * ``column_scale``: ``dict(g0=..., g2=...)``, a per-column scale of the line integrals
-      (:func:`~pytomography.io.CT.preprocessing.scale_columns`). For GE Discovery CT750 HD scans at 100 kV (C145, and
-      C001 independently), ``dict(g0=-0.0149, g2=0.0186)``: without it soft tissue reads 25-35 HU above the scanner's
-      at the centre and 25-30 HU below at 16-20 cm, with it within 10 HU. It matches the scanner's HU; which of the two
-      is right would take a water phantom.
+      (:func:`~pytomography.io.CT.preprocessing.scale_columns`), fitted to the scanner's own images with
+      :func:`~pytomography.io.CT.preprocessing.fit_column_scale`. GE Discovery CT750 HD at 100 kV: about
+      ``dict(g0=-0.012, g2=0.0165)`` (C145; C001 gives -0.0135, 0.0184). Without it soft tissue reads 25-35 HU above
+      the scanner's at the centre and 25 HU below at 16-20 cm; with it, within 6 HU. It matches the scanner's HU; which
+      of the two is right would take a water phantom.
 
     The metadata also carries ``photon_counts``, ``water_attenuation`` (per mm, to convert to HU), ``correction_flags``
     and ``spiral_pitch``.

@@ -16,7 +16,7 @@ import pytomography
 
 parallelproj_core = pytest.importorskip("parallelproj_core", reason="CT system matrices require parallelproj 2")
 from pytomography.algorithms import FilteredBackProjection
-from pytomography.io.CT import dicom_ct_pd
+from pytomography.io.CT import dicom_ct_pd, preprocessing
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.CT import CTConeBeamFlatPanelProjMeta, CTGen3ProjMeta
 from pytomography.projectors.CT import CTConeBeamFlatPanelSystemMatrix, CTGen3SystemMatrix
@@ -170,6 +170,21 @@ def test_conebeam_fdk_reconstructs_the_phantom_in_the_central_slices(n_cols):
     assert (image - ram_lak).abs().max() > 0.01 * MU                   # the window is applied
 
 
+def test_the_column_scale_is_fitted_back_from_a_reference_image():
+    # the "scanner" applied a per-column scale before reconstructing; the fit finds it from the two images
+    meta = _helix(rotations=3)
+    meta.water_attenuation = MU
+    proj = _line_integrals(meta)
+    sm = CTGen3SystemMatrix(OBJECT_META, meta)
+    truth = dict(g0=-0.02, g2=0.05)
+    reference = FilteredBackProjection(preprocessing.scale_columns(proj, meta, **truth), sm, filter='hann')()
+    fit = preprocessing.fit_column_scale(proj, meta, sm, reference, filter='hann')
+    assert fit['g0'] == pytest.approx(truth['g0'], abs=1e-3) and fit['g2'] == pytest.approx(truth['g2'], abs=1e-3)
+    meta.water_attenuation = None
+    with pytest.raises(ValueError, match='pass a mask'):
+        preprocessing.fit_column_scale(proj, meta, sm, reference)
+
+
 @pytest.mark.parametrize("which", ["helical", "cone beam"])
 def test_the_projectors_no_longer_accept_a_projection_type(which):
     if which == "helical":
@@ -199,27 +214,28 @@ C145_PROJECTIONS, C145_IMAGES = os.environ.get('PYTOMOGRAPHY_C145_PROJECTIONS'),
 @pytest.mark.data
 @pytest.mark.skipif(not (C145_PROJECTIONS and C145_IMAGES), reason="set PYTOMOGRAPHY_C145_PROJECTIONS and PYTOMOGRAPHY_C145_IMAGES")
 def test_c145_matches_the_scanner_images():
-    """TCIA LDCT-and-Projection-data C145 (GE), 40 slices at the centre of the scan, with the GE central column and the
-    options that reproduce the scanner's images, against those (STANDARD) images: soft tissue, fat and lung within
-    5 HU, and no radial trend."""
-    import pydicom
+    """TCIA LDCT-and-Projection-data C145 (GE), 40 slices at the centre of the scan: the GE central column read
+    automatically, the per-column scale fitted to the scanner's own (STANDARD) images, and then soft tissue, fat and
+    lung within 5 HU of those images, with no radial trend."""
     from scipy import ndimage
-    proj, meta = dicom_ct_pd.get_projections_and_metadata_gen3(C145_PROJECTIONS, table_feed='pitch', column_scale=dict(g0=-0.0149, g2=0.0186))
+    from pytomography.io.shared import open_multifile, align_images_affine
+    proj, meta = dicom_ct_pd.get_projections_and_metadata_gen3(C145_PROJECTIONS, table_feed='pitch')
     assert float(meta.detector_centers_col_idx[0]) == pytest.approx(888 - 444.75)   # GE counts it from the other end
-    object_meta = ObjectMeta(dr=(0.662109, 0.662109, 1.0), shape=(512, 512, 40))
-    image = FilteredBackProjection(proj, CTGen3SystemMatrix(object_meta, meta), filter='hann', slice_thickness=1.25)()
+    # the scanner's images on our grid; GE's ImagePositionPatient marks the corner of the first pixel, not its centre
+    scanner, scanner_meta = open_multifile(sorted(glob.glob(os.path.join(C145_IMAGES, '*.dcm'))), return_object_meta=True)
+    ps = float(scanner_meta.dr[0])
+    object_meta = ObjectMeta(dr=(ps, ps, 1.0), shape=(512, 512, 40))
+    system_matrix = CTGen3SystemMatrix(object_meta, meta)
+    affine = scanner_meta.affine_matrix.copy()
+    affine[:2, 3] += 0.5 * ps
+    theirs = align_images_affine(np.zeros(object_meta.shape, np.float32), scanner.cpu().numpy(),
+                                 meta.get_patient_affine(object_meta).numpy(), affine, cval=-3000)
+    del scanner
+    fit = preprocessing.fit_column_scale(proj, meta, system_matrix, meta.water_attenuation * (1 + theirs / 1000),
+                                         filter='hann', slice_thickness=1.25)
+    assert fit['g0'] == pytest.approx(-0.012, abs=0.003) and fit['g2'] == pytest.approx(0.0165, abs=0.003)
+    image = FilteredBackProjection(preprocessing.scale_columns(proj, meta, **fit), system_matrix, filter='hann', slice_thickness=1.25)()
     ours = (1000 * (image.cpu().numpy() / meta.water_attenuation - 1)).astype(np.float32)
-    # the scanner's images, sampled at our voxels (their pixel centres at ImagePositionPatient + half a pixel)
-    sl = sorted((pydicom.dcmread(f) for f in glob.glob(os.path.join(C145_IMAGES, '*.dcm'))), key=lambda s: float(s.ImagePositionPatient[2]))
-    zs = np.array([float(s.ImagePositionPatient[2]) for s in sl])
-    ps = float(sl[0].PixelSpacing[0])
-    x0, y0 = (float(v) for v in sl[0].ImagePositionPatient[:2])
-    hu_v = np.stack([s.pixel_array * float(s.RescaleSlope) + float(s.RescaleIntercept) for s in sl]).astype(np.float32)
-    A = meta.get_patient_affine(object_meta).numpy()
-    i, j, k = np.meshgrid(*[np.arange(n) for n in object_meta.shape], indexing='ij')
-    xyz = A[:3, :3] @ np.stack([i.ravel(), j.ravel(), k.ravel()]) + A[:3, 3:4]
-    coords = np.stack([np.interp(xyz[2], zs, np.arange(len(zs))), (xyz[1] - y0) / ps - 0.5, (xyz[0] - x0) / ps - 0.5])
-    theirs = ndimage.map_coordinates(hu_v, coords, order=1, cval=-3000).reshape(object_meta.shape)
     valid = theirs > -1500
     smooth = ndimage.uniform_filter(np.where(valid, theirs, -1000), size=(7, 7, 3))
     r = np.hypot(*np.meshgrid((np.arange(512) - 255.5) * ps, (np.arange(512) - 255.5) * ps, indexing='ij'))[:, :, None]
