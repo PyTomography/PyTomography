@@ -60,6 +60,23 @@ TOF_range = 1000 * speed_of_light #ps to position along LOR (full range)
 num_tof_bins = 21
 tof_meta = PETTOFMeta(num_tof_bins, TOF_range, fwhm_tof_resolution, n_sigmas=3)
 
+# Cached in OUTPUT by the GATE list-mode TOF tutorial; compute any that is missing (this reads the ROOT files once)
+if not os.path.exists(os.path.join(OUTPUT, 'normalization_weights.pt')):
+    normalization_paths = [os.path.join(path, f'normalization_scan/mMR_Norm_{i}.root') for i in range(1,37)]
+    normalization_weights = gate.get_normalization_weights_cylinder_calibration(
+        normalization_paths,
+        info,
+        cylinder_radius = 318, # mm (radius of calibration cylindrical shell)
+        include_randoms=False
+    )
+    torch.save(normalization_weights, os.path.join(OUTPUT, 'normalization_weights.pt'))
+if not os.path.exists(os.path.join(OUTPUT, 'detector_ids_tof21bin_all_events.pt')):
+    detector_ids = gate.get_detector_ids_from_root(paths, info, tof_meta=tof_meta)
+    detector_ids = detector_ids[detector_ids[:,2]>-1] # For TOF, only take events within the TOF bins
+    torch.save(detector_ids, os.path.join(OUTPUT, 'detector_ids_tof21bin_all_events.pt'))
+if not os.path.exists(os.path.join(OUTPUT, 'detector_ids_delays.pt')):
+    detector_ids_delays = gate.get_detector_ids_from_root(paths, info, substr = 'delay')
+    torch.save(detector_ids_delays, os.path.join(OUTPUT, 'detector_ids_delays.pt'))
 normalization_weights = torch.load(os.path.join(OUTPUT, 'normalization_weights.pt'))
 detector_ids = torch.load(os.path.join(OUTPUT, 'detector_ids_tof21bin_all_events.pt'))
 detector_ids_delays= torch.load(os.path.join(OUTPUT, 'detector_ids_delays.pt'))
