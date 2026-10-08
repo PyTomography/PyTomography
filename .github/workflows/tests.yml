@@ -20,6 +20,11 @@ concurrency:
   group: tests-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Test on the CPU everywhere. Without this, macOS runners pick the Apple GPU ("mps"), whose virtual GPU on GitHub's
+  # runners can't compile PyTorch's linear-algebra kernels (see src/pytomography/tests/conftest.py).
+  PYTOMOGRAPHY_TEST_DEVICE: cpu
+
 jobs:
   pip:
     name: pip · ${{ matrix.os }} · Python ${{ matrix.python }}

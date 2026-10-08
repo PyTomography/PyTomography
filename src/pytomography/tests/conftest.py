@@ -5,12 +5,21 @@ Markers (declared in pyproject.toml):
   data  needs the tutorial data; skipped unless PYTOMOGRAPHY_DATA points at it
 
 CI runs ``pytest -m "not gpu and not data"`` on CPU; the GPU runner runs everything.
+
+PYTOMOGRAPHY_TEST_DEVICE (e.g. ``cpu``) overrides the device PyTomography picks for itself. CI sets it to ``cpu``:
+GitHub's macOS runners report an Apple GPU, but their virtual GPU can't compile PyTorch's MPS linear-algebra kernels.
+It is applied here, before the test modules import pytomography and read ``pytomography.device``.
 """
 import os
 from pathlib import Path
 
 import pytest
 import torch
+
+import pytomography
+
+if os.environ.get("PYTOMOGRAPHY_TEST_DEVICE"):
+    pytomography.set_device(torch.device(os.environ["PYTOMOGRAPHY_TEST_DEVICE"]))
 
 
 def pytest_collection_modifyitems(config, items):
