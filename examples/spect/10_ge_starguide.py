@@ -32,7 +32,11 @@ from pytomography.projectors.SPECT import StarGuideSystemMatrix
 PATH = DATA / 'SPECT'
 
 path_NM = os.path.join(PATH, 'Tc99m-NEMA-Starguide', 'NM_files')
-files_NM = [os.path.join(path_NM, f) for f in os.listdir(path_NM)][:12]
+# The folder holds two acquisitions, "NoFocus Cont" and "NoFocus SaS", each with a list-mode file. Pick the 12 files of
+# "NoFocus Cont" by their series description: the order of os.listdir differs between operating systems.
+files_NM = sorted(
+    os.path.join(path_NM, f) for f in os.listdir(path_NM)
+    if pydicom.dcmread(os.path.join(path_NM, f), stop_before_pixels=True).SeriesDescription == 'NoFocus Cont')
 
 object_meta, proj_meta = dicom.get_starguide_metadata(files_NM, nearest_theta=0.1)
 projections = dicom.get_starguide_projections(files_NM)
