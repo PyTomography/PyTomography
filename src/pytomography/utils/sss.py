@@ -527,11 +527,15 @@ def scale_estimated_scatter(
     """
     system_matrix.TOF = False
     norm_BP = system_matrix.compute_normalization_factor()
+    def per_sensitivity(BP):
+        # voxels no line of response reaches (outside the scanner's field of view) have no sensitivity: they get no
+        # weight, instead of 0/0 = NaN, which would make the whole estimate NaN
+        return torch.where(norm_BP > 0, BP / norm_BP, torch.zeros_like(BP))
     # Mask of sinogram bins whose LOR misses the attenuating object (computed once; it is the size of the sinogram)
     proj_outside_mask = ~(system_matrix.forward((attenuation_image>attenuation_image_cutoff).to(torch.float32))>0)
     # Random
     if sinogram_random is not None:
-        BP_random_mask = system_matrix.backward(proj_outside_mask*sinogram_random.to(system_matrix.output_device)) / norm_BP
+        BP_random_mask = per_sensitivity(system_matrix.backward(proj_outside_mask*sinogram_random.to(system_matrix.output_device)))
     else:
         BP_random_mask = 0
     if len(proj_data.shape)>3: # TOF dimension added
@@ -551,8 +555,8 @@ def scale_estimated_scatter(
         mask_subset = system_matrix.get_projection_subset(proj_outside_mask, subset_idx)
         proj_scatter_masked = system_matrix.get_projection_subset(proj_scatter, subset_idx) * mask_subset
         proj_total_masked = system_matrix.get_projection_subset(proj_data, subset_idx) * mask_subset
-        BP_scatter_mask += system_matrix.backward(proj_scatter_masked, subset_idx = subset_idx) / norm_BP
-        BP_total_mask += system_matrix.backward(proj_total_masked, subset_idx=subset_idx) / norm_BP
+        BP_scatter_mask += per_sensitivity(system_matrix.backward(proj_scatter_masked, subset_idx = subset_idx))
+        BP_total_mask += per_sensitivity(system_matrix.backward(proj_total_masked, subset_idx=subset_idx))
     BP_scatter_estimated_mask = BP_total_mask - BP_random_mask
     BP_scatter_estimated_mask[BP_scatter_estimated_mask<0] = 0
     scale_factor = ((BP_scatter_mask*BP_scatter_estimated_mask).sum() / (BP_scatter_mask**2).sum()).item()

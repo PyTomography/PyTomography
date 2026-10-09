@@ -17,8 +17,8 @@ import pytomography
 parallelproj_core = pytest.importorskip("parallelproj_core", reason="the scatter simulation requires parallelproj 2")
 from pytomography.io.PET import shared
 from pytomography.metadata import ObjectMeta
-from pytomography.metadata.PET import PETLMProjMeta, PETTOFMeta
-from pytomography.projectors.PET import PETLMSystemMatrix
+from pytomography.metadata.PET import PETLMProjMeta, PETTOFMeta, PETSinogramPolygonProjMeta
+from pytomography.projectors.PET import PETLMSystemMatrix, PETSinogramSystemMatrix
 from pytomography.projectors.PET.petlm_system_matrix import _float32
 from pytomography.utils import sss
 
@@ -169,3 +169,23 @@ def test_list_mode_scatter_estimate(tof):
     lm_scatter = shared.sinogram_to_listmode(proj_meta.detector_ids, scatter, proj_meta.info)
     assert lm_scatter.shape == (20000,)
     assert torch.equal(lm_scatter, shared.sinogram_to_listmode(proj_meta.detector_ids.cpu(), scatter, proj_meta.info))
+
+
+def test_scaling_ignores_voxels_outside_the_field_of_view():
+    """The scale factor is fitted to back projections divided by the sensitivity image. Voxels that no line of response
+    reaches have zero sensitivity; extending the image with such slices must leave the scaled estimate unchanged
+    (it made the whole estimate NaN)."""
+    gen = torch.Generator().manual_seed(4)
+    shape = (INFO['NrCrystalsPerRing'] // 2, INFO['NrCrystalsPerRing'] + 1, (INFO['moduleAxialNr'] * INFO['crystalAxialNr'])**2)
+    proj_scatter, randoms = torch.rand(shape, generator=gen), torch.rand(shape, generator=gen)
+    proj_data = proj_scatter + randoms + torch.rand(shape, generator=gen)
+    results = []
+    for n_slices in (10, 16):     # 10 slices (|z| <= 20 mm) are all reached; 16 (|z| <= 32 mm) add 6 that are not
+        object_meta = ObjectMeta(dr=(4, 4, 4), shape=(32, 32, n_slices))
+        x, y, z = torch.meshgrid(*[(torch.arange(n) - n / 2 + 0.5) * d for n, d in zip(object_meta.shape, object_meta.dr)], indexing="ij")
+        attenuation = (0.0096 * (x**2 + y**2 < 40**2).float()).to(DEV)
+        system_matrix = PETSinogramSystemMatrix(object_meta, PETSinogramPolygonProjMeta(INFO), attenuation_map=attenuation, N_splits=2, device='cpu')
+        assert bool((system_matrix.compute_normalization_factor() == 0).any()) == (n_slices == 16)
+        results.append(sss.scale_estimated_scatter(proj_scatter, system_matrix, proj_data, attenuation, sinogram_random=randoms))
+    assert torch.isfinite(results[1]).all() and results[1].sum() > 0
+    assert torch.allclose(results[1], results[0], rtol=1e-5, atol=0)
