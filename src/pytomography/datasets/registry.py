@@ -57,6 +57,9 @@ DATASETS = {
              "ranges": [[64, 710598502, "64ef103e5701ffb73581d1a90212072204c833cdcfe2d4008109cc761625a510"]],
              "unpacked": 1858656588},
             _AC225_PSF_MODEL,
+            # The six spheres of the Jaszczak phantom on SIMIND's 512^3 grid, for the accuracy tutorial
+            {"kind": "package", "file": "jaszak_spheres.npz", "size": 136312,
+             "sha256": "2c0b2891d92f570e436e1c14ba602bd8029201c5b9a048254513717267c2edc0"},
         ],
     },
     "SPECT/Lu177-NEMA-SymT2": {
