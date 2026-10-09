@@ -45,6 +45,9 @@
       block.appendChild(host);
       btn.hidden = true; btn.disabled = false;
       PTViewer.mount(host, {manifest, title, onClose: api => { api.destroy(); host.remove(); btn.hidden = false; btn.focus(); }});
+      // the viewer is as tall as the window: bring all of it into view, below the site's header
+      const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      host.scrollIntoView({block: 'start', behavior: still ? 'auto' : 'smooth'});
     });
   });
 

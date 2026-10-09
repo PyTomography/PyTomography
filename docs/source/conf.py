@@ -99,7 +99,11 @@ html_theme_options = {
     "announcement": "You are reading the preview of the PyTomography 4.0 documentation. Release target: 30 October 2026.",
     "use_edit_page_button": True,
     "show_toc_level": 2,
-    "secondary_sidebar_items": ["page-toc", "edit-this-page"],
+    # tutorial pages use the full width: their headings sit in the section navigation instead (js/pytomo-tutorial.js).
+    # Each is named exactly, since a page matching two wildcard patterns draws a warning.
+    "secondary_sidebar_items": {"**": ["page-toc", "edit-this-page"], **{
+        "notebooks/" + os.path.splitext(n)[0]: [] for n in os.listdir(os.path.join(os.path.dirname(__file__), "notebooks"))
+        if n.endswith(".ipynb")}},
     "footer_start": ["copyright"],
     "footer_end": [],
     "pygments_light_style": "friendly",

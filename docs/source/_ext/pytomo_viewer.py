@@ -107,7 +107,11 @@ def add_viewer(app, doctree):
 
 
 def add_assets(app, pagename, templatename, context, doctree):
-    """Only pages with a viewer block or the gallery load the loader and its few lines of CSS."""
+    """Only pages with a viewer block or the gallery load the loader and its few lines of CSS. Tutorial pages also get
+    the full width, with their headings in the section navigation (css/pytomo-tutorial.css, js/pytomo-tutorial.js)."""
+    if pagename.startswith("notebooks/"):
+        app.add_css_file("css/pytomo-tutorial.css")
+        app.add_js_file("js/pytomo-tutorial.js", loading_method="defer")
     body = context.get("body", "")
     if 'class="ptv-block"' in body or 'id="ptv-index"' in body:
         app.add_css_file("viewer/pt-viewer-page.css")

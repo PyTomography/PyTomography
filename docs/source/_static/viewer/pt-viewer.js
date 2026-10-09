@@ -193,29 +193,35 @@
       `<span class="ptv-tl">${VIEWS[v].label}</span><input type="range" class="ptv-slc" aria-label="${VIEWS[v].label} slice position"></div>`).join('');
     root.classList.add('ptv');
     root.dataset.mode = opt.maximized ? 'max' : 'inline';
+    const hint = coarse ? 'Drag to move the crosshair, pinch to zoom and pan, and use the sliders to move through the slices. Drag the 3D view to turn it.'
+      : '<kbd>Wheel</kbd> next slice · <kbd>Ctrl</kbd>+<kbd>Wheel</kbd> zoom · <kbd>Shift</kbd>+drag pan · click or drag to move the crosshair · drag the 3D view to turn it · arrow keys move through slices';
     root.innerHTML =
-      `<div class="ptv-head"><div class="ptv-title"><b id="${id('title')}">${esc(opt.title || 'Loading…')}</b><span id="${id('facts')}"></span><span class="ptv-credit" id="${id('credit')}"></span></div>` +
+      `<div class="ptv-head"><div class="ptv-title"><b id="${id('title')}">${esc(opt.title || 'Loading…')}</b>` +
+      `<span class="ptv-meta" id="${id('meta')}"><span id="${id('facts')}"></span><span class="ptv-credit" id="${id('credit')}"></span></span></div>` +
       `<div class="ptv-pick" id="${id('pickWrap')}" hidden><label for="${id('pick')}">Image</label><select id="${id('pick')}"></select></div>` +
-      `<div class="ptv-actions">${opt.noMaximize ? '' : `<button type="button" class="ptv-btn" id="${id('max')}" aria-pressed="false">Full screen</button>`}` +
+      `<div class="ptv-actions"><button type="button" class="ptv-btn ptv-ctlbtn" id="${id('ctl')}" aria-expanded="false" aria-controls="${id('rail')}">Controls</button>` +
+      `${opt.noMaximize ? '' : `<button type="button" class="ptv-btn" id="${id('max')}" aria-pressed="false">Full screen</button>`}` +
       `${opt.onClose ? `<button type="button" class="ptv-btn" id="${id('close')}">Close</button>` : ''}</div></div>` +
-      `<div class="ptv-station"><div class="ptv-view"><div class="ptv-stage">` +
-      `<div class="ptv-tiles" id="${id('tiles')}" data-view="multi">${tiles}` +
+      `<div class="ptv-station"><div class="ptv-view">` +
+      `<div class="ptv-bar"><div class="ptv-seg" role="group" aria-label="View" id="${id('views')}">` +
+      [['multi', 'Slices + 3D'], ['axial', 'Axial'], ['coronal', 'Coronal'], ['sagittal', 'Sagittal'], ['mip', '3D']].map(([v, t]) =>
+        `<button type="button" data-view="${v}" aria-pressed="${v === 'multi'}">${t}</button>`).join('') + `</div></div>` +
+      `<div class="ptv-stage"><div class="ptv-tiles" id="${id('tiles')}" data-view="multi">${tiles}` +
       `<div class="ptv-tile" data-v="mip"><canvas id="${id('mip')}" tabindex="0" aria-label="Rotating 3D view; drag to turn it"></canvas><span class="ptv-tl" id="${id('miplab')}">3D</span>` +
       `<div class="ptv-mipbar"><button type="button" class="ptv-btn" id="${id('rot')}" aria-pressed="true">Rotating</button></div></div></div>` +
       `<div class="ptv-loading" id="${id('loading')}" role="status">Loading the images…</div></div>` +
       `<div class="ptv-status"><div class="ptv-cbar"><span id="${id('cbLo')}"></span><div class="ptv-grad" id="${id('cbGrad')}"></div><span id="${id('cbHi')}"></span></div>` +
-      `<div class="ptv-read"><span id="${id('readout')}">–</span><span id="${id('where')}"></span></div>` +
-      `<p class="ptv-keys">${coarse ? 'Drag to move the crosshair · pinch to zoom and pan · the sliders move through the slices · drag the 3D view to turn it'
-        : '<kbd>Wheel</kbd> next slice · <kbd>Ctrl</kbd>+<kbd>Wheel</kbd> zoom · <kbd>Shift</kbd>+drag pan · click or drag to move the crosshair · drag the 3D view to turn it'}</p></div></div>` +
-      `<aside class="ptv-rail" aria-label="Viewer controls"><div class="ptv-seg" role="group" aria-label="View" id="${id('views')}">` +
-      [['multi', 'Slices + 3D'], ['axial', 'Axial'], ['coronal', 'Coronal'], ['sagittal', 'Sagittal'], ['mip', '3D']].map(([v, t]) =>
-        `<button type="button" data-view="${v}" aria-pressed="${v === 'multi'}">${t}</button>`).join('') +
-      `</div><div id="${id('cards')}" class="ptv-cards"></div>` +
-      `<label class="ptv-check"><input type="checkbox" id="${id('interp')}" checked> Smooth display (Gaussian interpolation)</label>` +
-      `<button type="button" class="ptv-btn ptv-reset" id="${id('reset')}">Reset</button>` +
+      `<div class="ptv-read"><span id="${id('readout')}">–</span><span id="${id('where')}"></span></div></div></div>` +
+      `<aside class="ptv-rail" id="${id('rail')}" aria-label="Viewer controls">` +
+      `<div class="ptv-railhead"><b>Controls</b><button type="button" class="ptv-btn" id="${id('ctlDone')}">Done</button></div>` +
+      `<div id="${id('cards')}" class="ptv-cards"></div>` +
+      `<div class="ptv-row"><label class="ptv-check"><input type="checkbox" id="${id('interp')}" checked> Smooth display</label>` +
+      `<button type="button" class="ptv-btn ptv-reset" id="${id('reset')}">Reset</button></div>` +
+      `<details class="ptv-about"><summary>About the display and the controls</summary>` +
+      `<p class="ptv-keys">${hint}</p>` +
       `<p class="ptv-note">Smooth display draws each SPECT or PET image as matplotlib's <code>interpolation="gaussian"</code> does (σ = half a voxel); ` +
       `CT is drawn bilinearly. Smoothing is a separate 3D Gaussian, with this full width at half maximum, applied to that image's data; the upper limit follows the smoothed image until you set it yourself. ` +
-      `Values at or below the lower limit of the colour image are see-through.</p>` +
+      `Values at or below the lower limit of the colour image are see-through.</p></details>` +
       `<p class="ptv-err" id="${id('err')}" role="status" aria-live="polite"></p></aside></div>`;
     const $ = s => document.getElementById(id(s));
     const err = m => { const e = $('err'); if (e) e.textContent = m || ''; };
@@ -242,6 +248,14 @@
     };
     let reset = null;
     if (opt.onClose) on($('close'), 'click', () => opt.onClose(api));
+    // on a narrow screen the controls are a drawer over the images: never below them
+    function setPanel(open) {
+      root.dataset.panel = open ? 'open' : '';
+      $('ctl').setAttribute('aria-expanded', String(open));
+      if (open) { const f = $('rail').querySelector('select, input, button'); if (f) f.focus(); } else $('ctl').focus();
+    }
+    on($('ctl'), 'click', () => setPanel(root.dataset.panel !== 'open'));
+    on($('ctlDone'), 'click', () => setPanel(false));
     if ($('max')) on($('max'), 'click', () => setMax(root.dataset.mode !== 'max'));
     function setMax(m) {
       root.dataset.mode = m ? 'max' : 'inline';
@@ -252,7 +266,11 @@
     }
     // on the document, before the page's own handlers: Safari doesn't focus a button when it is clicked, so the key may
     // not reach the viewer, and the docs theme marks Escape as handled
-    on(document, 'keydown', e => { if (e.key === 'Escape' && root.dataset.mode === 'max') { e.preventDefault(); if (opt.onClose && opt.maximized) opt.onClose(api); else setMax(false); } }, true);
+    on(document, 'keydown', e => {
+      if (e.key !== 'Escape') return;
+      if (root.dataset.panel === 'open') { e.preventDefault(); setPanel(false); return; }
+      if (root.dataset.mode === 'max') { e.preventDefault(); if (opt.onClose && opt.maximized) opt.onClose(api); else setMax(false); }
+    }, true);
     cleanups.push(() => document.documentElement.classList.remove('ptv-noscroll'));
     if (opt.maximized) document.documentElement.classList.add('ptv-noscroll');
 
@@ -320,6 +338,7 @@
       if (/^https:[/][/]/.test(man.credit_url || '')) { const a = document.createElement('a'); a.href = man.credit_url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = man.credit; c.append(a); }
       else c.append(man.credit);
     }
+    $('meta').title = $('meta').textContent;   // the line is cut to the width; its whole text on hover
 
     // ---------- geometry: scanner coordinates (RAS mm) ----------
     const ext = (L, ax) => { const a = L.aff[ax][ax], b = L.aff[ax][3], n = L.dims[ax], e1 = b - 0.5 * a, e2 = b + (n - 0.5) * a; return [Math.min(e1, e2), Math.max(e1, e2)]; };

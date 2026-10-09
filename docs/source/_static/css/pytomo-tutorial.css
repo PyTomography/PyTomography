@@ -1,0 +1,19 @@
+/* Tutorial pages use the window's width (Luke, 9 Oct 2026). The right-hand sidebar is off on notebook pages
+   (conf.py), the section navigation stays pinned on the left, narrower, and holds this page's headings under the
+   current tutorial (pytomo-tutorial.js). The article loses the theme's 60em cap: prose keeps a readable measure, while
+   code, outputs and the 3D viewer use the whole width. Loaded on notebook pages only (_ext/pytomo_viewer.py). */
+.bd-page-width { max-width: 110rem; }
+@media (min-width: 960px) {
+  .bd-container .bd-sidebar-primary { --pst-sidebar-primary-width: 17rem; width: 17rem; flex: 0 0 17rem; }
+}
+.bd-container .bd-main .bd-content .bd-article-container { max-width: none; }
+.bd-article :is(section > p, section > ul, section > ol, section > dl, section > blockquote, .admonition) { max-width: 54rem; }
+/* long lines (printed output, a few long calls) wrap instead of scrolling sideways */
+.bd-article div.highlight pre, .bd-article .cell_output pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* this page's headings, under the current tutorial in the section navigation */
+.pt-pagetoc { list-style: none; margin: 4px 0 8px 0; padding: 0 0 0 10px; border-left: 2px solid var(--pt-line); display: grid; gap: 1px; }
+.pt-pagetoc a { display: block; padding: 2px 8px; font-size: 0.8rem; line-height: 1.35; color: var(--pt-muted) !important; text-decoration: none !important; border-radius: 4px; }
+.pt-pagetoc a:hover { color: var(--pt-ink) !important; background: var(--pt-surface-2); }
+.pt-pagetoc .pt-l3 a { padding-left: 18px; font-size: 0.76rem; }
+.pt-pagetoc a[aria-current="true"] { color: var(--pt-purple) !important; font-weight: 600; background: var(--pt-wash); }
