@@ -19,6 +19,23 @@ def _float32(x, device) -> torch.Tensor:
         x = torch.as_tensor(x)
     return x.to(device=device, dtype=torch.float32).contiguous()
 
+def _pad(object: torch.Tensor) -> torch.Tensor:
+    """The object with one voxel of zeros on every face, which is how the PET system matrices hand it to parallelproj.
+
+    parallelproj 1 integrated each ray out to one voxel beyond the outermost voxel centres, where the image (linearly
+    interpolated) falls to zero. parallelproj 2 clips rays at the faces of the image, so a ray that leaves through a
+    face where the object is not zero loses that last half voxel. Projecting the padded object (with ``object_origin``
+    moved one voxel out) gives the parallelproj 1 line integrals; back projections are cropped with :func:`_crop`."""
+    return torch.nn.functional.pad(object, (1, 1, 1, 1, 1, 1))
+
+def _crop(object: torch.Tensor) -> torch.Tensor:
+    """Inverse of :func:`_pad`: removes the outer voxel on every face."""
+    return object[1:-1, 1:-1, 1:-1].contiguous()
+
+def _padded_origin(object_meta: ObjectMeta) -> torch.Tensor:
+    """Centre of the first voxel of the padded object (see :func:`_pad`), as parallelproj expects it."""
+    return _float32((- np.array(object_meta.shape) / 2 - 0.5) * (np.array(object_meta.dr)), pytomography.device)
+
 class PETLMSystemMatrix(SystemMatrix):
     r"""System matrix of PET list mode data. Forward projections corresponds to computing the expected counts along all LORs specified: in particular it approximates :math:`g_i = \int_{\text{LOR}_i} h(r) f(r) dr` where index :math:`i` corresponds to a particular detector pair and :math:`h(r)` is a Gaussian function that incorporates time-of-flight information (:math:`h(r)=1` for non-time-of-flight). The integral is approximated in the discrete object space using Joseph3D projections. In general, the system matrix implements two different projections, the quantity :math:`H` which projects to LORs corresponding to all detected events, and the quantity :math:`\tilde{H}` which projects to all valid LORs. The quantity :math:`H` is used for standard forward/back projection, while :math:`\tilde{H}` is used to compute the sensitivity image.
 
@@ -59,8 +76,9 @@ class PETLMSystemMatrix(SystemMatrix):
         else:
             self.TOF = False
         self.obj2obj_transforms = obj2obj_transforms
-        # the geometry every kernel call needs, in the form it needs (float32, on the projection device)
-        self.object_origin = _float32((- np.array(object_meta.shape) / 2 + 0.5) * (np.array(object_meta.dr)), pytomography.device)
+        # the geometry every kernel call needs, in the form it needs (float32, on the projection device); objects are
+        # projected with one voxel of zeros on every face (see _pad), so the origin is that of the padded grid
+        self.object_origin = _padded_origin(object_meta)
         self.voxel_size = _float32(np.array(object_meta.dr), pytomography.device)
         self.lor_device = lor_device
         self.proj_meta.detector_ids = self.proj_meta.detector_ids.to(lor_device)
@@ -155,6 +173,7 @@ class PETLMSystemMatrix(SystemMatrix):
         """
         n_events = self.proj_meta.detector_ids.shape[0]
         n_voxels = int(np.prod(self.object_meta.shape))
+        n_voxels_padded = int(np.prod([n + 2 for n in self.object_meta.shape]))   # the object as parallelproj gets it (see _pad)
         id_bytes = self.proj_meta.detector_ids.element_size() * self.proj_meta.detector_ids.shape[1]
         if n_subsets is None:
             n_subsets = len(self.subset_indices_array) if hasattr(self, 'subset_indices_array') else 1
@@ -175,7 +194,7 @@ class PETLMSystemMatrix(SystemMatrix):
             need = {'LOR detector IDs for the projector': id_bytes * n if (self.sort_events or not on_lor_device) else 0,
                     'LOR coordinates of one chunk': 2 * 3 * 4 * chunk,
                     'projection values': 4 * n,
-                    'object and its transforms': 3 * 4 * n_voxels}
+                    'object and its transforms': 3 * 4 * n_voxels + 4 * n_voxels_padded}
             return {k: v for k, v in need.items() if v}
 
         print(f"PETLMSystemMatrix memory: {n_events:,} events, object {tuple(self.object_meta.shape)}, "
@@ -236,7 +255,7 @@ class PETLMSystemMatrix(SystemMatrix):
             torch.Tensor: The probabilities of photons being detected along the detector pairs.
         """
         proj = torch.zeros(idx.shape[0], dtype=torch.float32, device=self.output_device)
-        attenuation_map = _float32(self.attenuation_map, pytomography.device)
+        attenuation_map = _pad(_float32(self.attenuation_map, pytomography.device))
         for start, end in self._chunks(idx.shape[0]):
             xstart, xend = self._lor_coordinates(idx[start:end])
             chunk = torch.zeros(end - start, dtype=torch.float32, device=pytomography.device)
@@ -292,13 +311,14 @@ class PETLMSystemMatrix(SystemMatrix):
         else:
             idxs = torch.arange(self.proj_meta.scanner_lut.shape[0]).to(pytomography.device).to(torch.int32)
             detector_ids_sensitivity = torch.combinations(idxs.cpu(), 2)
-        # parallelproj adds into the image it is given, so every chunk accumulates into one buffer
-        norm_BP = torch.zeros(tuple(self.object_meta.shape), dtype=torch.float32, device=pytomography.device)
+        # parallelproj adds into the image it is given, so every chunk accumulates into one (padded) buffer
+        norm_BP = torch.zeros(tuple(n + 2 for n in self.object_meta.shape), dtype=torch.float32, device=pytomography.device)
         for proj_subset, detector_ids_sensitivity_subset in zip(torch.tensor_split(proj, N_splits), torch.tensor_split(detector_ids_sensitivity, N_splits)):
             xstart, xend = self._lor_coordinates(detector_ids_sensitivity_subset)
             parallelproj_core.joseph3d_back(
                 xstart, xend, norm_BP, self.object_origin, self.voxel_size,
                 _float32(proj_subset + pytomography.delta, pytomography.device))
+        norm_BP = _crop(norm_BP)
         # Apply object transforms
         for transform in self.obj2obj_transforms[::-1]:
             norm_BP  = transform.backward(norm_BP)
@@ -394,7 +414,7 @@ class PETLMSystemMatrix(SystemMatrix):
         object = _float32(object, pytomography.device)
         for transform in self.obj2obj_transforms:
             object = transform.forward(object)
-        object = _float32(object, pytomography.device)
+        object = _pad(_float32(object, pytomography.device))
         # hand the LORs to the projector in sinogram order; the projections are put back below
         idx_events = idx                                    # in the order the events were given
         order = self._event_order(subset_idx)
@@ -464,8 +484,8 @@ class PETLMSystemMatrix(SystemMatrix):
         if order is not None:
             idx = idx[order.to(torch.long)]
             proj = proj[order.to(torch.long).to(proj.device)]
-        # parallelproj adds into the image it is given, so every chunk accumulates into one buffer
-        BP = torch.zeros(tuple(self.object_meta.shape), dtype=torch.float32, device=pytomography.device)
+        # parallelproj adds into the image it is given, so every chunk accumulates into one (padded) buffer
+        BP = torch.zeros(tuple(n + 2 for n in self.object_meta.shape), dtype=torch.float32, device=pytomography.device)
         for start, end in self._chunks(idx.shape[0]):
             idx_partial = idx[start:end]
             proj_i = _float32(proj[start:end], pytomography.device)
@@ -476,6 +496,7 @@ class PETLMSystemMatrix(SystemMatrix):
                                                        proj_i, bin_width, sigma, center_offset, bins, num_bins, n_sigmas)
             else:
                 parallelproj_core.joseph3d_back(xstart, xend, BP, self.object_origin, self.voxel_size, proj_i)
+        BP = _crop(BP)
         # Apply object transforms
         norm_constant = self.compute_normalization_factor(subset_idx)
         for transform in self.obj2obj_transforms[::-1]:
