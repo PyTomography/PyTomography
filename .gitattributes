@@ -1,0 +1,3 @@
+# Files that pytomography.datasets copies into the tutorial data are pinned by sha256 in its registry, so git must
+# store and check them out byte for byte, without converting line endings on Windows.
+src/pytomography/datasets/files/** -text

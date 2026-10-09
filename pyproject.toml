@@ -71,4 +71,5 @@ testpaths = ["src/pytomography/tests"]
 markers = [
   "gpu: needs a CUDA device (skipped without one)",
   "data: needs the tutorial data in PYTOMOGRAPHY_DATA (skipped without it)",
+  "network: checks the data hosts over the internet (skipped unless PYTOMOGRAPHY_NETWORK_TESTS=1)",
 ]
