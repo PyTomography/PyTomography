@@ -212,33 +212,51 @@ def listmode_to_sinogram(
     """
     if tof_meta is not None: # if tof_meta is provided
         return _listmodeTOF_to_sinogramTOF(detector_ids, info, tof_meta, weights=weights)
-    lor_coordinates, sinogram_index = sinogram_coordinates(info)
-    detector_ids = detector_ids[:,:2] 
+    # The events are binned on the device they are on (a list mode system matrix keeps them on the GPU)
+    device = detector_ids.device
+    lor_coordinates, sinogram_index = (table.to(device) for table in sinogram_coordinates(info))
+    detector_ids = detector_ids[:,:2]
     within_ring_id = (detector_ids % info['NrCrystalsPerRing']).to(torch.long)
     ring_ids = (detector_ids // info['NrCrystalsPerRing']).to(torch.long)
     # Need to bin by largest "within_ring_id" first (for use with the "ring_coordinates" function yielding spatial coordinates for each ID-pair at each sinogram coordinate)
-    within_ring_id, idx = within_ring_id.sort(axis=1, descending=True)
+    within_ring_id, idx = within_ring_id.sort(axis=1, descending=True, stable=True)   # stable: a pair with equal within-ring IDs keeps its order on any device
     ring_ids = ring_ids.gather(index=idx, dim=1)
     # Bin sinogram
-    bin_edges = [
-        torch.arange(int(info['NrCrystalsPerRing']/2)+1).to(torch.float32)-0.5,
-        torch.arange(int(info['NrCrystalsPerRing'])+2).to(torch.float32)-0.5,
-        torch.arange(int((info['moduleAxialNr']*info['crystalAxialNr'])**2)+1).to(torch.float32)-0.5
-    ]
-    sinogram = torch.histogramdd(
-        torch.concatenate([lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]], sinogram_index[ring_ids[:,0], ring_ids[:,1]].unsqueeze(1)], dim=-1).to(torch.float32),
-        bin_edges,
-        weight=weights
-    )[0]
+    shape = _sinogram_shape(info)
+    sinogram = _bin_events(*_bin_keys(lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]], sinogram_index[ring_ids[:,0], ring_ids[:,1]], shape), shape, weights)
     # Opposite binning for normalization sinogram, which always considers "ring_id"s in order (this only works because of +/- z symmetry of normalization factors)
     if normalization:
-        sinogram += torch.histogramdd(
-            torch.concatenate([lor_coordinates[within_ring_id[:,1], within_ring_id[:,0]], sinogram_index[ring_ids[:,1], ring_ids[:,0]].unsqueeze(1)], dim=-1).to(torch.float32),
-            bin_edges,
-            weight=weights
-        )[0]
+        sinogram += _bin_events(*_bin_keys(lor_coordinates[within_ring_id[:,1], within_ring_id[:,0]], sinogram_index[ring_ids[:,1], ring_ids[:,0]], shape), shape, weights)
         sinogram /= 2
     return sinogram
+
+def _sinogram_shape(info: dict) -> tuple:
+    """Shape (angles, radial bins, planes) of the sinogram of a scanner."""
+    return (int(info['NrCrystalsPerRing']/2), int(info['NrCrystalsPerRing'])+1, int((info['moduleAxialNr']*info['crystalAxialNr'])**2))
+
+def _bin_keys(angular_radial: torch.Tensor, plane: torch.Tensor, shape: tuple) -> tuple:
+    """Flat sinogram index of each event, and which events lie inside the sinogram (``torch.histogramdd``, used before, dropped the others; ``_bin_events`` does too)."""
+    inside = (angular_radial[:,0] >= 0) & (angular_radial[:,0] < shape[0]) & (angular_radial[:,1] >= 0) & (angular_radial[:,1] < shape[1]) & (plane >= 0) & (plane < shape[2])
+    return (angular_radial[:,0] * shape[1] + angular_radial[:,1]) * shape[2] + plane, inside
+
+def _bin_events(key: torch.Tensor, inside: torch.Tensor, shape: tuple, weights: torch.Tensor | None = None) -> torch.Tensor:
+    """Sinogram of events with flat sinogram indices ``key``: the sum of their weights (or their number) in each bin, as a float32 tensor on the CPU.
+
+    The events are counted with ``torch.bincount`` on their own device, which builds one sinogram. ``torch.histogramdd``, used before, ran on the CPU and allocated one sinogram per thread (44 GB with 24 threads for the 1.65 GB sinogram of the mMR). Counts are exact; weighted sums agree to float32 rounding.
+
+    Args:
+        key (torch.Tensor): [N] flat sinogram index of each event (see ``_bin_keys``).
+        inside (torch.Tensor): [N] whether each event lies inside the sinogram; the others are dropped.
+        shape (tuple): sinogram shape (angles, radial bins, planes).
+        weights (torch.Tensor | None, optional): [N] weight of each event. Defaults to None (count the events).
+
+    Returns:
+        torch.Tensor: sinogram of the given shape.
+    """
+    device = key.device
+    weights = torch.ones(key.shape[0], dtype=torch.float32, device=device) if weights is None else weights.to(device=device, dtype=torch.float32)
+    counts = torch.bincount(key[inside], weights=weights[inside], minlength=int(np.prod(shape)))
+    return counts.reshape(shape).cpu()
 
 def _listmodeTOF_to_sinogramTOF(
     detector_ids: torch.Tensor,
@@ -257,38 +275,29 @@ def _listmodeTOF_to_sinogramTOF(
     Returns:
         torch.Tensor: PET TOF sinogram
     """
-    lor_coordinates, sinogram_index = sinogram_coordinates(info)
+    # The events are binned on the device they are on (a list mode system matrix keeps them on the GPU)
+    device = detector_ids.device
+    lor_coordinates, sinogram_index = (table.to(device) for table in sinogram_coordinates(info))
+    if weights is not None:
+        weights = weights.to(device=device, dtype=torch.float32)
     # Sort by decreasing detector ids
     # Only consider events within TOF range
     TOF_bins = detector_ids[:,2].clone()
-    detector_ids = detector_ids[:,:2].clone() #.sort(axis=1, descending=True).values
+    detector_ids = detector_ids[:,:2]
     within_ring_id = (detector_ids % info['NrCrystalsPerRing']).to(torch.long)
     ring_ids = (detector_ids // info['NrCrystalsPerRing']).to(torch.long)
     # Sort by greatest value within ring (required for using various lookup tables)
-    within_ring_id, idx = within_ring_id.sort(axis=1, descending=True)
+    within_ring_id, idx = within_ring_id.sort(axis=1, descending=True, stable=True)   # stable: a pair with equal within-ring IDs keeps its order on any device
     # Opposite detector order
     TOF_bins[idx[:,0]==1] = tof_meta.num_bins - 1 - TOF_bins[idx[:,0]==1]
     ring_ids = ring_ids.gather(index=idx, dim=1)
-    # Bin sinogram
-    bin_edges = [
-        torch.arange(int(info['NrCrystalsPerRing']/2)+1).to(torch.float32)-0.5,
-        torch.arange(int(info['NrCrystalsPerRing'])+2).to(torch.float32)-0.5,
-        torch.arange(int((info['moduleAxialNr']*info['crystalAxialNr'])**2)+1).to(torch.float32)-0.5,
-    ]
-    data = torch.concatenate([lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]], sinogram_index[ring_ids[:,0], ring_ids[:,1]].unsqueeze(1)], dim=-1).to(torch.float32)
-    # Need the loop to prevent memory errors in histogramdd for large dimensionality
-    sinogram = torch.empty((len(bin_edges[0])-1, len(bin_edges[1])-1, len(bin_edges[2])-1, tof_meta.num_bins), dtype=torch.float32)
+    # Bin sinogram, one TOF bin at a time (which bounds the counts held on the events' device to one sinogram)
+    shape = _sinogram_shape(info)
+    key, inside = _bin_keys(lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]], sinogram_index[ring_ids[:,0], ring_ids[:,1]], shape)
+    sinogram = torch.empty((*shape, tof_meta.num_bins), dtype=torch.float32)
     for bin in range(tof_meta.num_bins):
-        if weights is None:
-            weights_TOF_bin = None
-        else:
-            weights_TOF_bin = weights[TOF_bins==bin]
-        sinogram_TOF_bin = torch.histogramdd(
-            data[TOF_bins==bin],
-            bin_edges,
-            weight=weights_TOF_bin
-        )[0]
-        sinogram[...,bin] = sinogram_TOF_bin
+        in_bin = TOF_bins == bin
+        sinogram[...,bin] = _bin_events(key[in_bin], inside[in_bin], shape, None if weights is None else weights[in_bin])
     return sinogram
 
 def get_detector_ids_from_trans_axial_ids(
