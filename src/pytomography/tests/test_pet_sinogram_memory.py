@@ -1,8 +1,8 @@
 """The PET sinogram projector generates crystal coordinates on the device per chunk instead of materialising the
 coordinates of the whole sinogram on the CPU, and the single scatter simulation keeps its sparse estimate as a table of
 sampled bins instead of a dense sinogram. These tests check that both give the same numbers as the dense/host versions.
-The projector libraries (parallelproj 2's parallelproj_core, and the 1.x module the scatter simulation still imports)
-are not needed by any of these tests; they are stubbed if they are not installed."""
+The projector library (parallelproj 2, module parallelproj_core) is not needed by any of these tests; it is stubbed if
+it is not installed."""
 from __future__ import annotations
 
 import sys
@@ -13,14 +13,8 @@ import pytest
 import torch
 
 try:
-    import parallelproj  # noqa: F401
-except ImportError:                                   # the tests below never call the projector kernels
-    _pp = types.ModuleType("parallelproj")
-    _pp.cuda_present = False
-    sys.modules["parallelproj"] = _pp
-try:
     import parallelproj_core  # noqa: F401
-except ImportError:
+except ImportError:                                   # the tests below never call the projector kernels
     sys.modules["parallelproj_core"] = types.ModuleType("parallelproj_core")
 
 import pytomography

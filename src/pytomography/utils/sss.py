@@ -5,14 +5,21 @@ import pytomography
 from pytomography.io.PET import shared
 from pytomography.projectors.PET import PETLMSystemMatrix
 import numpy as np
-import parallelproj
+import parallelproj_core
 from torchrbf import RBFInterpolator
 from torch.nn.functional import grid_sample
 from pytomography.io.PET.shared import sinogram_coordinates, sinogram_to_spatial, listmode_to_sinogram
 from pytomography.projectors.PET import create_sinogramSM_from_LMSM
+from pytomography.projectors.PET.petlm_system_matrix import _float32
 from pytomography.metadata.PET import PETTOFMeta
 from pytomography.metadata import ObjectMeta, ProjMeta
 from pytomography.projectors import SystemMatrix
+
+#: Scatter points whose emission and transmission integrals the non-TOF scatter loop computes in one projector call.
+#: parallelproj 2 synchronises the device at the end of every call, which stalls the CPU queueing the loop's kernels:
+#: with a call per scatter point the GATE mMR estimate (7233 scatter points) took 19.7 s on an RTX 5090, against
+#: 10.3 s with 32 per call. The result does not depend on it.
+_POINTS_PER_PROJECTION = 32
 
 def total_compton_cross_section(energy: torch.Tensor) -> torch.Tensor:
     """Computes the total compton cross section of interaction :math:`\sigma` at the given photon energies
@@ -77,6 +84,36 @@ def _tof_efficiency(offset: torch.Tensor, tof_bins_dense_centers: torch.Tensor, 
     prob =  torch.exp(-(offset.unsqueeze(-1)-tof_bins_dense_centers.unsqueeze(0))**2 / (2*sigma**2))
     prob = prob / prob.sum(dim=0).unsqueeze(0)
     return prob
+
+def _tof_weighted_emission(offset: torch.Tensor, centers: torch.Tensor, emission: torch.Tensor, sigma: float, tof_splits: list) -> torch.Tensor:
+    r"""Emission along each sampled LOR as seen by each TOF bin: :math:`\sum_k w_{tlk} e_{lk}`, where :math:`e_{lk}` is the emission integral of dense piece :math:`k` of LOR :math:`l`, and :math:`w_{tlk}` the Gaussian TOF kernel between that piece and TOF bin :math:`t`, normalised over all the TOF bins.
+
+    The kernel is a [LORs, TOF bins, pieces] tensor; ``tof_splits`` bounds its size by computing it for a group of TOF bins at a time. Its normalisation runs over every TOF bin, so with more than one group the kernel is computed twice: once to sum it, once to apply it. The normalisation is applied to the emission (one value per piece) instead of to the kernel, and the sum over pieces is a batched matrix product, which reads the kernel once.
+
+    Args:
+        offset (torch.Tensor): [TOF bins, LORs] TOF offsets of the LORs.
+        centers (torch.Tensor): [LORs, pieces] distance of each piece's centre along its LOR.
+        emission (torch.Tensor): [LORs, pieces] emission integrals of the pieces.
+        sigma (float): TOF resolution, as a standard deviation in spatial units.
+        tof_splits (list): (start, end) ranges of the TOF bins computed together.
+
+    Returns:
+        torch.Tensor: [TOF bins, LORs] emission seen by each TOF bin.
+    """
+    def kernel(start, end):
+        k = offset[start:end].T.unsqueeze(-1) - centers.unsqueeze(1)     # [LORs, bins, pieces]
+        return k.square_().mul_(-0.5 / sigma**2).exp_()
+    if len(tof_splits) == 1:
+        k = kernel(*tof_splits[0])
+        norm = k.sum(dim=1)
+    else:
+        k = None
+        norm = sum(kernel(start, end).sum(dim=1) for start, end in tof_splits)
+    # a piece far from every TOF bin has a kernel of zero in all of them: it contributes nothing (rather than 0/0)
+    weighted = torch.where(norm > 0, emission / norm, torch.zeros_like(emission)).unsqueeze(-1)      # [LORs, pieces, 1]
+    if k is not None:
+        return torch.bmm(k, weighted).squeeze(-1).T
+    return torch.cat([torch.bmm(kernel(start, end), weighted).squeeze(-1) for start, end in tof_splits], dim=1).T
 
 def tof_efficiency(
     offset: torch.Tensor,
@@ -207,6 +244,20 @@ def get_sample_detector_ids(
     idx = idx[1] + idx[0]*proj_meta.info['NrCrystalsPerRing']
     return idx_intraring, idx_ring, torch.combinations(idx.cpu(), 2)
     
+def _line_integrals(lor_start: torch.Tensor, lor_end: torch.Tensor, image: torch.Tensor, object_origin: torch.Tensor, voxel_size: torch.Tensor) -> torch.Tensor:
+    """Integrals of ``image`` along the segments from ``lor_start`` to ``lor_end`` ([N, 3] each). parallelproj 2 takes contiguous float32 arrays on the image's device and writes the integrals into a buffer the caller supplies."""
+    device = image.device
+    integrals = torch.zeros(lor_start.shape[0], dtype=torch.float32, device=device)
+    parallelproj_core.joseph3d_fwd(_float32(lor_start, device), _float32(lor_end, device), image, object_origin, voxel_size, integrals)
+    return integrals
+
+def _integrals_from_points(points: torch.Tensor, detectors: torch.Tensor, image: torch.Tensor, object_origin: torch.Tensor, voxel_size: torch.Tensor) -> torch.Tensor:
+    """Integrals of ``image`` from each of ``points`` ([K, 3]) to each of ``detectors`` ([N, 3]), as a [K, N] tensor, in one projector call."""
+    K, N = points.shape[0], detectors.shape[0]
+    lor_start = points.unsqueeze(1).expand(K, N, 3).reshape(-1, 3)
+    lor_end = detectors.unsqueeze(0).expand(K, N, 3).reshape(-1, 3)
+    return _line_integrals(lor_start, lor_end, image, object_origin, voxel_size).reshape(K, N)
+
 def _scatter_setup(object_meta, proj_meta, attenuation_image, image_stepsize, attenuation_cutoff, sinogram_interring_stepsize, sinogram_intraring_stepsize):
     """Everything the scatter-point loops need, computed once on the device: the loops themselves must not synchronise with the host (indexing a device tensor with a 0-d device tensor, ``.tolist()``/``.item()`` of one, or copying a host tensor to the device all stall the CPU until the GPU queue has drained, which made the loops CPU-bound)."""
     device = pytomography.device
@@ -253,35 +304,30 @@ def compute_sss_sparse_sinogram(
     """
     # Important quantities
     E_PET = torch.tensor(511).to(pytomography.device)
-    object_origin = (- np.array(object_meta.shape) / 2 + 0.5) * (np.array(object_meta.dr))
+    # the geometry and images in the form every parallelproj kernel expects (float32, on the projection device)
+    object_origin = _float32((- np.array(object_meta.shape) / 2 + 0.5) * (np.array(object_meta.dr)), pytomography.device)
+    voxel_size = _float32(np.array(object_meta.dr), pytomography.device)
     total_compton_cross_section_511keV = total_compton_cross_section(E_PET)
     voxel_volume = np.prod(object_meta.dr)
     positions, mu_values, detector_ids_scatter, scanner_LUT, idxA, idxB, rA, rB = _scatter_setup(object_meta, proj_meta, attenuation_image, image_stepsize, attenuation_cutoff, sinogram_interring_stepsize, sinogram_intraring_stepsize)
-    attenuation_image = attenuation_image.to(pytomography.dtype).to(pytomography.device)
+    attenuation_image = _float32(attenuation_image, pytomography.device)
+    pet_image = _float32(pet_image, pytomography.device)
     rA_xy_norm = torch.norm(rA[:,:2], dim=1)
     rB_xy_norm = torch.norm(rB[:,:2], dim=1)
     N_points = positions.shape[1]
     # Loop over scatter points
     probability = 0
     for scatter_point in range(N_points):
+        # Compute emission/transmission integrals, for a block of scatter points at once (see _POINTS_PER_PROJECTION)
+        j = scatter_point % _POINTS_PER_PROJECTION
+        if j == 0:
+            block = positions[:, scatter_point:scatter_point+_POINTS_PER_PROJECTION].T
+            emission_block = _integrals_from_points(block, scanner_LUT, pet_image, object_origin, voxel_size)
+            transmission_exp_block = torch.exp(-_integrals_from_points(block, scanner_LUT, attenuation_image, object_origin, voxel_size))
         scatter_point_position = positions[:,scatter_point]
         mu_value = mu_values[scatter_point]
-        # Compute emission/transmission integrals for that scatter point
-        emission_integrals = parallelproj.joseph3d_fwd(
-            scatter_point_position.unsqueeze(0).expand(scanner_LUT.shape[0], -1),
-            scanner_LUT,
-            pet_image,
-            object_origin,
-            object_meta.dr,
-        )
-        transmission_integrals = parallelproj.joseph3d_fwd(
-            scatter_point_position.unsqueeze(0).expand(scanner_LUT.shape[0], -1),
-            scanner_LUT,
-            attenuation_image,
-            object_origin,
-            object_meta.dr,
-        )
-        transmission_integrals_exp = torch.exp(-transmission_integrals)
+        emission_integrals = emission_block[j]
+        transmission_integrals_exp = transmission_exp_block[j]
         # Compute scatter contribution
         rSA = rA - scatter_point_position
         rSB = rB - scatter_point_position
@@ -328,18 +374,21 @@ def compute_sss_sparse_sinogram_TOF(
         sinogram_interring_stepsize (int, optional): Axial stepsize between rings. Defaults to 4.
         sinogram_intraring_stepsize (int, optional): Stepsize of crystals within a given ring. Defaults to 4.
         num_dense_tof_bins (int, optional): Number of dense TOF bins used when partioning the emission integrals (these integrals must be partioned for TOF-based estimation). Defaults to 25.
-        N_splits (int, optional): Splits the TOF bins into subsets and loops over them sequentially (as opposed to parallel) to bound device memory. Defaults to 1.
+        N_splits (int, optional): Splits the TOF bins into subsets and loops over them sequentially (as opposed to parallel) to bound device memory. With more than one subset the TOF kernel is computed twice per scatter point, since its normalisation runs over all the TOF bins. Defaults to 1.
 
     Returns:
         SparseSinogram: Estimated single scatter simulation at the sampled LORs and TOF bins (``.to_dense()`` gives the sinogram the function used to return).
     """
     # Important quantities
     E_PET = torch.tensor(511).to(pytomography.device)
-    object_origin = (- np.array(object_meta.shape) / 2 + 0.5) * (np.array(object_meta.dr))
+    # the geometry and images in the form every parallelproj kernel expects (float32, on the projection device)
+    object_origin = _float32((- np.array(object_meta.shape) / 2 + 0.5) * (np.array(object_meta.dr)), pytomography.device)
+    voxel_size = _float32(np.array(object_meta.dr), pytomography.device)
     total_compton_cross_section_511keV = total_compton_cross_section(E_PET)
     voxel_volume = np.prod(object_meta.dr)
     positions, mu_values, detector_ids_scatter, scanner_LUT, idxA, idxB, rA, rB = _scatter_setup(object_meta, proj_meta, attenuation_image, image_stepsize, attenuation_cutoff, sinogram_interring_stepsize, sinogram_intraring_stepsize)
-    attenuation_image = attenuation_image.to(pytomography.dtype).to(pytomography.device)
+    attenuation_image = _float32(attenuation_image, pytomography.device)
+    pet_image = _float32(pet_image, pytomography.device)
     rA_xy_norm = torch.norm(rA[:,:2], dim=1)
     rB_xy_norm = torch.norm(rB[:,:2], dim=1)
     N_points = positions.shape[1]
@@ -364,19 +413,19 @@ def compute_sss_sparse_sinogram_TOF(
         bin_centers_distance_along_LOR = (bin_edges_distance_along_LOR[:,1:] + bin_edges_distance_along_LOR[:,:-1]) / 2
         bin_edges = scatter_point_position.reshape((1,1,-1)) + bin_edges_distance_along_LOR.unsqueeze(-1) * (rSD/rSD_norm.unsqueeze(-1)).unsqueeze(1)
         # Evaluate emission integral in many distinct line segments between scatter point and detectors (used for TOF)
-        emission_integrals = parallelproj.joseph3d_fwd(
+        emission_integrals = _line_integrals(
             bin_edges[:,:-1].flatten(end_dim=-2),
             bin_edges[:,1:].flatten(end_dim=-2),
             pet_image,
             object_origin,
-            object_meta.dr,
+            voxel_size,
         ).reshape((N_detectors,num_dense_tof_bins))
-        transmission_integrals = parallelproj.joseph3d_fwd(
+        transmission_integrals = _line_integrals(
             scatter_point_position.unsqueeze(0).expand(N_detectors, -1),
             scanner_LUT,
             attenuation_image,
             object_origin,
-            object_meta.dr,
+            voxel_size,
         )
         transmission_integrals_exp = torch.exp(-transmission_integrals)
         rSA = rA - scatter_point_position
@@ -395,20 +444,14 @@ def compute_sss_sparse_sinogram_TOF(
         compton_cross_section_ratio = total_compton_cross_section(E_new) / total_compton_cross_section_511keV
         transmission_powB = transmission_integrals_exp[idxB] ** (compton_cross_section_ratio - 1)
         transmission_powA = transmission_integrals_exp[idxA] ** (compton_cross_section_ratio - 1)
-        emission_integrals_A = emission_integrals[idxA].unsqueeze(0)
-        emission_integrals_B = emission_integrals[idxB].unsqueeze(0)
         bin_centers_A = bin_centers_distance_along_LOR[idxA]
         bin_centers_B = bin_centers_distance_along_LOR[idxB]
-        # Loop over split TOF bins
-        for start, end in tof_splits:
-            prob_SA = _tof_efficiency(offset_SA[start:end], bin_centers_A, sigma) # first dim TOFbin
-            prob_SB = _tof_efficiency(offset_SB[start:end], bin_centers_B, sigma) # first dim TOFbin
-            # Compute emission integrals
-            emission_integralsA = (prob_SA*emission_integrals_A).sum(dim=-1)
-            emission_integralsB = (prob_SB*emission_integrals_B).sum(dim=-1)
-            probability[start:end] += 1/(rSB_norm**2 * rSA_norm**2) *\
-            (emission_integralsA * transmission_powB + emission_integralsB * transmission_powA) *\
-            transmission_integrals_exp[idxB] * transmission_integrals_exp[idxA] * mu_value * energy_efficiency * cos_thetaA_incidence * cos_thetaB_incidence * diff_compton_cross_section(cos_theta, E_PET) / total_compton_cross_section_511keV * voxel_volume
+        # Emission integrals seen by each TOF bin (first dim TOF bin)
+        emission_integralsA = _tof_weighted_emission(offset_SA, bin_centers_A, emission_integrals[idxA], sigma, tof_splits)
+        emission_integralsB = _tof_weighted_emission(offset_SB, bin_centers_B, emission_integrals[idxB], sigma, tof_splits)
+        probability += 1/(rSB_norm**2 * rSA_norm**2) *\
+        (emission_integralsA * transmission_powB + emission_integralsB * transmission_powA) *\
+        transmission_integrals_exp[idxB] * transmission_integrals_exp[idxA] * mu_value * energy_efficiency * cos_thetaA_incidence * cos_thetaB_incidence * diff_compton_cross_section(cos_theta, E_PET) / total_compton_cross_section_511keV * voxel_volume
     return SparseSinogram(detector_ids_scatter, probability/N_points, proj_meta.info, tof_meta=tof_meta)
 
 def interpolate_sparse_sinogram(
@@ -508,11 +551,15 @@ def scale_estimated_scatter(
     """
     system_matrix.TOF = False
     norm_BP = system_matrix.compute_normalization_factor()
+    def per_sensitivity(BP):
+        # voxels no line of response reaches (outside the scanner's field of view) have no sensitivity: they get no
+        # weight, instead of 0/0 = NaN, which would make the whole estimate NaN
+        return torch.where(norm_BP > 0, BP / norm_BP, torch.zeros_like(BP))
     # Mask of sinogram bins whose LOR misses the attenuating object (computed once; it is the size of the sinogram)
     proj_outside_mask = ~(system_matrix.forward((attenuation_image>attenuation_image_cutoff).to(torch.float32))>0)
     # Random
     if sinogram_random is not None:
-        BP_random_mask = system_matrix.backward(proj_outside_mask*sinogram_random.to(system_matrix.output_device)) / norm_BP
+        BP_random_mask = per_sensitivity(system_matrix.backward(proj_outside_mask*sinogram_random.to(system_matrix.output_device)))
     else:
         BP_random_mask = 0
     if len(proj_data.shape)>3: # TOF dimension added
@@ -532,8 +579,8 @@ def scale_estimated_scatter(
         mask_subset = system_matrix.get_projection_subset(proj_outside_mask, subset_idx)
         proj_scatter_masked = system_matrix.get_projection_subset(proj_scatter, subset_idx) * mask_subset
         proj_total_masked = system_matrix.get_projection_subset(proj_data, subset_idx) * mask_subset
-        BP_scatter_mask += system_matrix.backward(proj_scatter_masked, subset_idx = subset_idx) / norm_BP
-        BP_total_mask += system_matrix.backward(proj_total_masked, subset_idx=subset_idx) / norm_BP
+        BP_scatter_mask += per_sensitivity(system_matrix.backward(proj_scatter_masked, subset_idx = subset_idx))
+        BP_total_mask += per_sensitivity(system_matrix.backward(proj_total_masked, subset_idx=subset_idx))
     BP_scatter_estimated_mask = BP_total_mask - BP_random_mask
     BP_scatter_estimated_mask[BP_scatter_estimated_mask<0] = 0
     scale_factor = ((BP_scatter_mask*BP_scatter_estimated_mask).sum() / (BP_scatter_mask**2).sum()).item()
@@ -595,10 +642,11 @@ def get_sss_scatter_estimate(
     # Need to create a sinogram system matrix for scaling
     if listmode:
         system_matrix = create_sinogramSM_from_LMSM(system_matrix)
+        # binned where the system matrix keeps the events (its lor_device), without copying them to the host
         if tof_meta is None:
-            proj_data = listmode_to_sinogram(proj_meta.detector_ids.cpu(), proj_meta.info)
+            proj_data = listmode_to_sinogram(proj_meta.detector_ids, proj_meta.info)
         else:
-            proj_data = listmode_to_sinogram(proj_meta.detector_ids.cpu(), proj_meta.info, tof_meta=tof_meta)
+            proj_data = listmode_to_sinogram(proj_meta.detector_ids, proj_meta.info, tof_meta=tof_meta)
     # Scale sinogram
     proj_scatter = scale_estimated_scatter(scatter_sinogram_unscaled, system_matrix, proj_data, attenuation_image, attenuation_cutoff, sinogram_random = sinogram_random)
     return proj_scatter
