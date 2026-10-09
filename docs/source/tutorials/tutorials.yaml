@@ -199,7 +199,7 @@ sections:
     modality: CT
     data: DICOM
     topic: Basics
-    summary: OS-SART on raw projections from a 3rd-generation clinical CT scanner.
+    summary: Filtered back projection of raw projections from a 3rd-generation clinical CT scanner, then the settings that reproduce the scanner's own images.
     datasets:
     - CT/ldct-c145
   - notebook: t_CT_microct
