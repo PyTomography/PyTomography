@@ -124,17 +124,23 @@ def fetch(name: str, *, extras: Union[str, Sequence[str]] = (), data_dir: Option
         The dataset's folder.
 
     Raises:
-        DatasetNotAvailable: the dataset cannot be downloaded yet.
+        DatasetNotAvailable: the dataset cannot be downloaded yet, and its folder is empty. (If it already holds
+            files, they are used as they are, without checks.)
         DownloadError: a server could not be reached after several retries. Run fetch() again to continue.
         ChecksumError: downloaded data does not match the registry.
     """
     entry = _entry(name)
-    if entry.get("status") == "pending":
-        raise DatasetNotAvailable(f"{name} cannot be downloaded yet. {entry.get('note', '')}".strip())
     if verify not in ("size", "hash", "none"):
         raise ValueError(f"verify must be 'size', 'hash' or 'none', not {verify!r}")
     root = _root(data_dir)
     folder = root.joinpath(*name.split("/"))
+    if entry.get("status") == "pending":
+        if not user_files(folder):
+            raise DatasetNotAvailable(f"{name} cannot be downloaded yet. {entry.get('note', '')}".strip())
+        if progress:
+            print(f"{name} cannot be downloaded yet, so the files already in its folder are used as they are,"
+                  " unchecked.", flush=True)
+        return folder
     parts = _selected_parts(name, entry, extras)
     ctx = Context(name, folder, workers, progress)
 
@@ -153,7 +159,7 @@ def fetch(name: str, *, extras: Union[str, Sequence[str]] = (), data_dir: Option
 
     # Most calls find the dataset complete, which needs no lock and nothing written
     if not force and verify != "hash" and (folder / MARKER).is_file() and not broken(Marker(folder, name)):
-        ctx.say(f"{name}: already downloaded, in {folder}")
+        ctx.say(f"{name}: already downloaded")
         return folder
 
     with lock(folder, name, progress):
@@ -178,7 +184,7 @@ def fetch(name: str, *, extras: Union[str, Sequence[str]] = (), data_dir: Option
                     marker.add(pid, part["kind"], "already in the folder", files)
                     del todo[pid]
             if not todo:
-                ctx.say(f"{name}: the files already in {folder} match the registry")
+                ctx.say(f"{name}: the files already in its folder match the registry")
         if todo:
             _fetch_parts(name, entry, [p for p in parts if part_id(p) in todo], marker, ctx, root)
         known = _known_ids(entry)

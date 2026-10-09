@@ -114,7 +114,7 @@ def zip_install(part: dict, ctx: Context, pieces: List[Piece]) -> Tuple[Dict[str
     else:
         archive = source = _local_archive(part, ctx)
         algorithm, _, expected = checksum(part).partition(":")
-        ctx.say(f"Checking {archive.name}, which is already in {ctx.folder}")
+        ctx.say(f"Checking {archive.name}, which is already in the dataset folder")
         if file_digest(archive, algorithm) != expected:
             raise ChecksumError(f"{archive} is not the archive in the registry ({algorithm} does not match). Delete"
                                 " it and run fetch() again to download it.")

@@ -490,6 +490,9 @@ def test_unknown_and_pending_datasets(monkeypatch, tmp_path):
     with pytest.raises(datasets.DatasetNotAvailable, match="cannot be downloaded yet. Soon."):
         datasets.fetch("PET/Later", data_dir=tmp_path)
     assert datasets.info("PET/Later", data_dir=tmp_path)["state"] == "not published yet"
+    (tmp_path / "PET" / "Later").mkdir(parents=True)
+    (tmp_path / "PET" / "Later" / "copied.root").write_bytes(b"by hand")  # e.g. from the old shared folder
+    assert datasets.fetch("PET/Later", data_dir=tmp_path) == tmp_path / "PET" / "Later"
 
 
 def test_path_info_and_available(server, monkeypatch, tmp_path):
