@@ -156,12 +156,23 @@ def test_sheared_affine_is_refused(tmp_path):
 
 # ---------- the patient frame of data sources without one in object_meta (tutorial data) ----------
 
+def _tutorial_data(data_dir, dataset, *path):
+    """A file of one tutorial dataset; the test is skipped when that dataset isn't in the data folder (CI's data job
+    fetches only SPECT/Lu177-PSMA-GEDisc)."""
+    target = data_dir / dataset
+    for part in path:
+        target = target / part
+    if not target.exists():
+        pytest.skip(f"{dataset} is not in the tutorial data folder")
+    return target
+
+
 @pytest.mark.data
 def test_starguide_frame_matches_ge_reconstruction(data_dir):
     """PyTomography's StarGuide grid, placed through the CT, is where GE's own reconstruction of the same grid is."""
     import os
     from pytomography.io.SPECT import dicom
-    root = data_dir / "SPECT" / "Tc99m-NEMA-Starguide"
+    root = _tutorial_data(data_dir, "SPECT/Tc99m-NEMA-Starguide")
     files_CT = [str(root / "CT_files" / f) for f in os.listdir(root / "CT_files")]
     ge = pydicom.dcmread(str(root / "vendor_recon" / "i196884.NMDC.1"), stop_before_pixels=True)
     meta = SPECTObjectMeta(dr=(float(ge.PixelSpacing[0]) / 10,) * 3, shape=(196, 196, 112))   # get_starguide_metadata's grid
@@ -184,7 +195,7 @@ def test_gate_image_lands_on_its_phantom_nifti(tmp_path, data_dir):
     nib = pytest.importorskip("nibabel")
     from scipy.ndimage import map_coordinates
     from pytomography.io.PET import gate
-    path = str(data_dir / "PET" / "GATE-mMR-Brain" / "fdg_pet_phantom_mri.nii.gz")
+    path = str(_tutorial_data(data_dir, "PET/GATE-mMR-Brain", "fdg_pet_phantom_mri.nii.gz"))
     meta = ObjectMeta(dr=(2.0, 2.0, 2.0), shape=(100, 120, 110))
     on_grid = gate.get_attenuation_map_nifti(path, meta).cpu().numpy() * 10   # the MR as the PET grid sees it
     saved = nib.load(str(save_nifti(on_grid, tmp_path / "mr_on_pet_grid.nii.gz",
@@ -203,7 +214,7 @@ def test_gate_image_lands_on_its_phantom_nifti(tmp_path, data_dir):
 def test_save_dcm_scale_by_number_of_projections_reads_back(tmp_path, data_dir):
     """#230: with scale_by_number_projections the series reads back as the image itself, not N_proj times it."""
     from pytomography.io.SPECT import dicom
-    file_NM = str(data_dir / "SPECT" / "Lu177-NEMA-SymT2" / "projection_data.dcm")
+    file_NM = str(_tutorial_data(data_dir, "SPECT/Lu177-PSMA-GEDisc", "bed1_projections.dcm"))
     object_meta, proj_meta = dicom.get_metadata(file_NM, index_peak=0)
     x = torch.rand(object_meta.shape) * 100
     before = x.clone()
@@ -220,9 +231,10 @@ def test_save_dcm_scale_by_number_of_projections_reads_back(tmp_path, data_dir):
 def test_projection_reader_applies_rescale(tmp_path, data_dir):
     """#232: projections stored with a rescale slope and intercept are read as their real values."""
     from pytomography.io.SPECT import dicom
-    file_NM = str(data_dir / "SPECT" / "Lu177-NEMA-SymT2" / "projection_data.dcm")
-    plain = dicom.parse_projection_dataset(pydicom.dcmread(file_NM))[0]
+    file_NM = str(_tutorial_data(data_dir, "SPECT/Lu177-PSMA-GEDisc", "bed1_projections.dcm"))
     ds = pydicom.dcmread(file_NM)
+    ds.RescaleSlope, ds.RescaleIntercept = 1, 0                    # the stored values, whatever the file says
+    plain = dicom.parse_projection_dataset(ds)[0]
     ds.RescaleSlope, ds.RescaleIntercept = 2.5, 3.0
     scaled = dicom.parse_projection_dataset(ds)[0]
     assert torch.allclose(scaled, plain * 2.5 + 3.0)
