@@ -115,18 +115,48 @@ def test_points_per_projection_does_not_change_the_estimate(monkeypatch):
     assert all(torch.equal(e, estimates[0]) for e in estimates[1:])
 
 
-def test_tof_estimate_summed_over_bins_equals_non_tof_estimate():
+@pytest.mark.parametrize("n_splits", [1, 2])
+def test_tof_estimate_summed_over_bins_equals_non_tof_estimate(n_splits):
     """The time of flight probabilities of each piece are normalised over the bins, so summing the time of flight
     estimate over its bins must give the non time of flight estimate for the same scatter points (parallelproj 1 gave
-    a sum 76% larger on this phantom)."""
+    a sum 76% larger on this phantom; with 2 splits of the TOF bins, the estimate used to be twice as large)."""
     activity, attenuation = _phantom()
     tof_meta = PETTOFMeta(5, 300.0, 60.0, n_sigmas=3)
     torch.manual_seed(0)
     non_tof = sss.compute_sss_sparse_sinogram(OBJECT_META, _proj_meta(tof_meta), activity, attenuation, *STEPS)
     torch.manual_seed(0)
-    tof = sss.compute_sss_sparse_sinogram_TOF(OBJECT_META, _proj_meta(tof_meta), activity, attenuation, tof_meta, *STEPS)
+    tof = sss.compute_sss_sparse_sinogram_TOF(OBJECT_META, _proj_meta(tof_meta), activity, attenuation, tof_meta, *STEPS, 25, n_splits)
     assert torch.equal(tof.keys, non_tof.keys) and tof.weights.shape == (5, non_tof.weights.shape[0])
     assert torch.allclose(tof.weights.sum(dim=0), non_tof.weights, rtol=1e-3, atol=1e-6 * non_tof.weights.abs().max().item())
+
+
+def test_tof_estimate_does_not_depend_on_how_the_bins_are_split():
+    """N_splits only bounds memory. The TOF kernel used to be normalised over the bins of each split, which multiplied
+    the estimate by the number of splits and gave every split the whole emission."""
+    activity, attenuation = _phantom()
+    tof_meta = PETTOFMeta(6, 300.0, 60.0, n_sigmas=3)
+    estimates = []
+    for n_splits in (1, 2, 4, 6):            # 4 splits are uneven (2, 2, 1, 1 bins)
+        torch.manual_seed(0)
+        estimates.append(sss.compute_sss_sparse_sinogram_TOF(OBJECT_META, _proj_meta(tof_meta), activity, attenuation, tof_meta, *STEPS, 25, n_splits).weights)
+    for estimate in estimates[1:]:
+        assert torch.allclose(estimate, estimates[0], rtol=1e-5, atol=1e-6 * estimates[0].abs().max().item())
+
+
+def test_tof_weighted_emission_matches_normalising_the_kernel():
+    """The emission seen by each TOF bin is computed by normalising the emission of each piece instead of the kernel,
+    with a batched product for the sum over pieces; it must equal the direct formula."""
+    gen = torch.Generator().manual_seed(5)
+    n_bins, n_lors, n_pieces, sigma = 7, 3000, 25, 35.0
+    offset = ((torch.rand(n_bins, n_lors, generator=gen) - 0.5) * 300).to(DEV)
+    # pieces within 200 mm: farther out every bin's kernel can underflow, where the direct formula gives 0/0
+    centers = (torch.rand(n_lors, 1, generator=gen) * 200 * (torch.arange(n_pieces) + 0.5) / n_pieces).to(DEV)
+    emission = torch.rand(n_lors, n_pieces, generator=gen).to(DEV)
+    direct = (sss._tof_efficiency(offset, centers, sigma) * emission.unsqueeze(0)).sum(dim=-1)
+    for splits in ([(0, 7)], [(0, 3), (3, 7)]):
+        computed = sss._tof_weighted_emission(offset, centers, emission, sigma, splits)
+        assert computed.shape == (n_bins, n_lors)
+        assert torch.allclose(computed, direct, rtol=1e-5, atol=1e-6)
 
 
 @pytest.mark.parametrize("tof", [False, True])

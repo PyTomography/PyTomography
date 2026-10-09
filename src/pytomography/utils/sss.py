@@ -85,6 +85,36 @@ def _tof_efficiency(offset: torch.Tensor, tof_bins_dense_centers: torch.Tensor, 
     prob = prob / prob.sum(dim=0).unsqueeze(0)
     return prob
 
+def _tof_weighted_emission(offset: torch.Tensor, centers: torch.Tensor, emission: torch.Tensor, sigma: float, tof_splits: list) -> torch.Tensor:
+    r"""Emission along each sampled LOR as seen by each TOF bin: :math:`\sum_k w_{tlk} e_{lk}`, where :math:`e_{lk}` is the emission integral of dense piece :math:`k` of LOR :math:`l`, and :math:`w_{tlk}` the Gaussian TOF kernel between that piece and TOF bin :math:`t`, normalised over all the TOF bins.
+
+    The kernel is a [LORs, TOF bins, pieces] tensor; ``tof_splits`` bounds its size by computing it for a group of TOF bins at a time. Its normalisation runs over every TOF bin, so with more than one group the kernel is computed twice: once to sum it, once to apply it. The normalisation is applied to the emission (one value per piece) instead of to the kernel, and the sum over pieces is a batched matrix product, which reads the kernel once.
+
+    Args:
+        offset (torch.Tensor): [TOF bins, LORs] TOF offsets of the LORs.
+        centers (torch.Tensor): [LORs, pieces] distance of each piece's centre along its LOR.
+        emission (torch.Tensor): [LORs, pieces] emission integrals of the pieces.
+        sigma (float): TOF resolution, as a standard deviation in spatial units.
+        tof_splits (list): (start, end) ranges of the TOF bins computed together.
+
+    Returns:
+        torch.Tensor: [TOF bins, LORs] emission seen by each TOF bin.
+    """
+    def kernel(start, end):
+        k = offset[start:end].T.unsqueeze(-1) - centers.unsqueeze(1)     # [LORs, bins, pieces]
+        return k.square_().mul_(-0.5 / sigma**2).exp_()
+    if len(tof_splits) == 1:
+        k = kernel(*tof_splits[0])
+        norm = k.sum(dim=1)
+    else:
+        k = None
+        norm = sum(kernel(start, end).sum(dim=1) for start, end in tof_splits)
+    # a piece far from every TOF bin has a kernel of zero in all of them: it contributes nothing (rather than 0/0)
+    weighted = torch.where(norm > 0, emission / norm, torch.zeros_like(emission)).unsqueeze(-1)      # [LORs, pieces, 1]
+    if k is not None:
+        return torch.bmm(k, weighted).squeeze(-1).T
+    return torch.cat([torch.bmm(kernel(start, end), weighted).squeeze(-1) for start, end in tof_splits], dim=1).T
+
 def tof_efficiency(
     offset: torch.Tensor,
     tof_bins_dense_centers: torch.Tensor,
@@ -344,7 +374,7 @@ def compute_sss_sparse_sinogram_TOF(
         sinogram_interring_stepsize (int, optional): Axial stepsize between rings. Defaults to 4.
         sinogram_intraring_stepsize (int, optional): Stepsize of crystals within a given ring. Defaults to 4.
         num_dense_tof_bins (int, optional): Number of dense TOF bins used when partioning the emission integrals (these integrals must be partioned for TOF-based estimation). Defaults to 25.
-        N_splits (int, optional): Splits the TOF bins into subsets and loops over them sequentially (as opposed to parallel) to bound device memory. Defaults to 1.
+        N_splits (int, optional): Splits the TOF bins into subsets and loops over them sequentially (as opposed to parallel) to bound device memory. With more than one subset the TOF kernel is computed twice per scatter point, since its normalisation runs over all the TOF bins. Defaults to 1.
 
     Returns:
         SparseSinogram: Estimated single scatter simulation at the sampled LORs and TOF bins (``.to_dense()`` gives the sinogram the function used to return).
@@ -414,20 +444,14 @@ def compute_sss_sparse_sinogram_TOF(
         compton_cross_section_ratio = total_compton_cross_section(E_new) / total_compton_cross_section_511keV
         transmission_powB = transmission_integrals_exp[idxB] ** (compton_cross_section_ratio - 1)
         transmission_powA = transmission_integrals_exp[idxA] ** (compton_cross_section_ratio - 1)
-        emission_integrals_A = emission_integrals[idxA].unsqueeze(0)
-        emission_integrals_B = emission_integrals[idxB].unsqueeze(0)
         bin_centers_A = bin_centers_distance_along_LOR[idxA]
         bin_centers_B = bin_centers_distance_along_LOR[idxB]
-        # Loop over split TOF bins
-        for start, end in tof_splits:
-            prob_SA = _tof_efficiency(offset_SA[start:end], bin_centers_A, sigma) # first dim TOFbin
-            prob_SB = _tof_efficiency(offset_SB[start:end], bin_centers_B, sigma) # first dim TOFbin
-            # Compute emission integrals
-            emission_integralsA = (prob_SA*emission_integrals_A).sum(dim=-1)
-            emission_integralsB = (prob_SB*emission_integrals_B).sum(dim=-1)
-            probability[start:end] += 1/(rSB_norm**2 * rSA_norm**2) *\
-            (emission_integralsA * transmission_powB + emission_integralsB * transmission_powA) *\
-            transmission_integrals_exp[idxB] * transmission_integrals_exp[idxA] * mu_value * energy_efficiency * cos_thetaA_incidence * cos_thetaB_incidence * diff_compton_cross_section(cos_theta, E_PET) / total_compton_cross_section_511keV * voxel_volume
+        # Emission integrals seen by each TOF bin (first dim TOF bin)
+        emission_integralsA = _tof_weighted_emission(offset_SA, bin_centers_A, emission_integrals[idxA], sigma, tof_splits)
+        emission_integralsB = _tof_weighted_emission(offset_SB, bin_centers_B, emission_integrals[idxB], sigma, tof_splits)
+        probability += 1/(rSB_norm**2 * rSA_norm**2) *\
+        (emission_integralsA * transmission_powB + emission_integralsB * transmission_powA) *\
+        transmission_integrals_exp[idxB] * transmission_integrals_exp[idxA] * mu_value * energy_efficiency * cos_thetaA_incidence * cos_thetaB_incidence * diff_compton_cross_section(cos_theta, E_PET) / total_compton_cross_section_511keV * voxel_volume
     return SparseSinogram(detector_ids_scatter, probability/N_points, proj_meta.info, tof_meta=tof_meta)
 
 def interpolate_sparse_sinogram(
