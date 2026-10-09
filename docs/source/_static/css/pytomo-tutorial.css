@@ -29,9 +29,11 @@ html[data-theme="dark"] .bd-article {
 
 /* ---------- header ---------- */
 .bd-article .pt-tut { display: grid; gap: 16px; margin: 0 0 22px; padding: 0; border: 0; }
-.pt-tut-lede { margin: -6px 0 0; max-width: 54rem; font-size: 1.1rem; line-height: 1.5; color: var(--pt-ink-2); }
-.pt-tut-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 18px; margin-top: -4px; }
-.pt-tags { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.pt-tut-lede { margin: -6px 0 0; max-width: 72rem; font-size: 1.1rem; line-height: 1.5; color: var(--pt-ink-2); }
+.pt-tut-meta { display: flex; margin-top: -8px; }
+/* the tags, on the summary's line after its last word */
+.pt-tut-tags { display: inline; margin-left: 2px; white-space: nowrap; }
+.pt-tut-tags .pt-tag { display: inline-block; margin: 0 6px 0 0; vertical-align: 0.12em; line-height: 1.5; }
 .pt-tag { padding: 1px 8px; border: 1px solid var(--pt-line); border-radius: 4px; background: var(--pt-surface-2);
   font: 500 0.7rem/1.6 var(--pst-font-family-monospace); letter-spacing: 0.06em; text-transform: uppercase; color: var(--pt-ink-2); }
 .pt-tut-run { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--pt-muted); }
@@ -42,8 +44,8 @@ html[data-theme="dark"] .bd-article {
   border: 1px solid var(--pt-line); border-radius: 12px; background: var(--pt-surface); }
 .pt-tut-panel[data-cols="1"] { --cols: 1; } .pt-tut-panel[data-cols="2"] { --cols: 2; } .pt-tut-panel[data-cols="3"] { --cols: 3; }
 .pt-tcol { display: grid; grid-template-rows: auto 1fr; gap: 10px; padding: 14px 16px; min-width: 0; }
-.pt-tcol + .pt-tcol { border-left: 1px solid var(--pt-line); }
-.pt-tcol-k { margin: 0; font: 500 0.66rem var(--pst-font-family-monospace); letter-spacing: 0.1em; text-transform: uppercase; color: var(--pt-muted); }
+.pt-tcol + .pt-tcol { border-left: 2px solid var(--pt-line); }
+.pt-tcol-k { margin: 0; font: 700 1rem/1.2 var(--pst-font-family-heading); letter-spacing: -0.005em; color: var(--pt-ink); }
 .pt-tcol-do { display: grid; gap: 8px; align-content: start; }
 
 /* every button in the panel: the same height, radius and type, the full width of its column */
@@ -94,7 +96,7 @@ html[data-theme="dark"] .pt-tb-3d { border-color: #2a2f3c; }
 .pt-mode-script .bd-article .pt-tut { margin-bottom: 18px; }
 @media (max-width: 860px) {
   .pt-tut-panel { grid-template-columns: minmax(0, 1fr); }
-  .pt-tcol + .pt-tcol { border-left: 0; border-top: 1px solid var(--pt-line); }
+  .pt-tcol + .pt-tcol { border-left: 0; border-top: 2px solid var(--pt-line); }
 }
 
 /* the data popup: under its button; a sheet at the bottom of a phone's screen */

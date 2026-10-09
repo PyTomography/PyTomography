@@ -98,8 +98,7 @@ def header_html(t: dict, *, colab: str, github: str, has_script: bool, run: dict
     tags = "".join(f'<span class="pt-tag">{esc(t[k])}</span>' for k in ("modality", "data", "topic")
                    if t.get(k) and t[k] not in ("None", "Any"))
     when = run_text(run)
-    meta = (f'<div class="pt-tut-meta"><span class="pt-tags">{tags}</span>'
-            + (f'<span class="pt-tut-run">{icon("clock")}{esc(when)}</span>' if when else "") + "</div>")
+    meta = f'<div class="pt-tut-meta"><span class="pt-tut-run">{icon("clock")}{esc(when)}</span></div>' if when else ""
 
     def column(label: str, body: str) -> str:
         return f'<div class="pt-tcol"><p class="pt-tcol-k">{label}</p><div class="pt-tcol-do">{body}</div></div>'
@@ -129,7 +128,9 @@ def header_html(t: dict, *, colab: str, github: str, has_script: bool, run: dict
     tabrow = f'<div class="pt-tut-tabs">{tabs}<span class="pt-tb-end"></span></div>'
     island = (f'<script type="application/json" class="pt-data">{json.dumps(data).replace("</", "<" + chr(92) + "/")}</script>'
               if data else "")
-    lede = f'<p class="pt-tut-lede">{esc(t["summary"])}</p>' if t.get("summary") else ""
+    # the tags follow the summary, on its line
+    lede = (f'<p class="pt-tut-lede">{esc(t.get("summary", ""))} <span class="pt-tut-tags">{tags}</span></p>'
+            if t.get("summary") or tags else "")
     return f'<div class="pt-tut pt-launch">{lede}{meta}{panel}{tabrow}{island}</div>'
 
 
