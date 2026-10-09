@@ -818,26 +818,22 @@ def save_dcm(
         modality = 'PT'
         imagetype = None
     ds = create_ds(ds_NM, SOP_instance_UID, SOP_class_UID, modality, imagetype)
-    pixel_data = torch.permute(object,(2,1,0)).cpu().numpy()
+    # a copy: on the CPU, .numpy() shares the caller's memory, and the scaling below would change their image
+    pixel_data = torch.permute(object,(2,1,0)).cpu().numpy().astype(np.float64)
     if scale_by_number_projections:
         scale_factor = get_metadata(file_NM)[1].num_projections
         ds.RescaleSlope = 1
     else:
         scale_factor = (2**16 - 1) / pixel_data.max()
         ds.RescaleSlope = 1/scale_factor
+    ds.RescaleIntercept = 0  # required with RescaleSlope; without it, open_multifile can't read the series back
     pixel_data *= scale_factor #maximum dynamic range
     pixel_data = pixel_data.round().astype(np.uint16)
-    # Affine
-    Sx, Sy, Sz = ds_NM.DetectorInformationSequence[0].ImagePositionPatient
-    dx = dy = ds_NM.PixelSpacing[0]
-    dz = ds_NM.PixelSpacing[1]
-    if Sy == 0:
-        Sx -= (ds_NM.Rows-1) / 2 * dx
-        Sy -= (ds_NM.Rows-1) / 2 * dy
-        # Y-Origin point at tableheight=0
-        Sy -= ds_NM.RotationInformationSequence[0].TableHeight
-    # Sz now refers to location of lowest slice
-    Sz -= (pixel_data.shape[0] - 1) * dz
+    # Where the voxels are: the matrix the reader gives the reconstruction (get_metadata's object_meta.affine_matrix),
+    # so a saved image is where PyTomography put it, for every manufacturer; voxel k's slice is at Sz + k dz
+    M = _get_affine_spect_projections(file_NM)
+    dx, dy, dz = float(M[0, 0]), float(M[1, 1]), float(M[2, 2])
+    Sx, Sy, Sz = (float(v) for v in M[:3, 3])
     ds.Rows, ds.Columns = pixel_data.shape[1:]
     ds.SeriesNumber = 1
     if single_dicom_file:
