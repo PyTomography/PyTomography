@@ -3,8 +3,9 @@
 * ``tutorials/tutorials.yaml`` is the single list of tutorials. From it this extension
   builds the filterable gallery (``.. tutorial-gallery::``), the sidebar toctree, and
   a thumbnail for every tutorial taken from the notebook's own image outputs.
-* ``tutorials/datasets.yaml`` lists every dataset the tutorials read. It renders the
-  "Tutorial data" page (``.. tutorial-datasets::``) and the data links on each tutorial.
+* ``src/pytomography/datasets/registry.py``, which ``pytomography.datasets.fetch()``
+  downloads from, lists every dataset the tutorials read. It renders the "Tutorial data"
+  page (``.. tutorial-datasets::``), which the data links on each tutorial point to.
 * Every notebook page gets a header (``tutorial_page.py``): its summary and tags, a panel with
   Run it (Colab, GitHub), Data (a popup per dataset) and Results (View results in 3D), and tabs
   for the Jupyter notebook or the script.
@@ -18,12 +19,14 @@ import base64
 import html
 import json
 import posixpath
+import runpy
 from pathlib import Path
 
 import yaml
 from docutils import nodes
 from docutils.parsers.rst import Directive
 from sphinx import addnodes
+from sphinx.errors import ExtensionError
 
 import tutorial_page
 import tutorial_scripts
@@ -66,9 +69,37 @@ def _write_thumbnails(app) -> None:
             target.write_bytes(base64.b64decode(png))
 
 
+def _registry_path(srcdir: Path) -> Path:
+    return srcdir.parents[1] / "src" / "pytomography" / "datasets" / "registry.py"
+
+
 def _load_datasets(srcdir: Path) -> dict:
-    with open(srcdir / "tutorials" / "datasets.yaml", encoding="utf8") as f:
-        return yaml.safe_load(f)
+    """The registry of pytomography.datasets. It imports nothing, so it loads without importing PyTomography."""
+    path = _registry_path(srcdir)
+    if not path.is_file():
+        raise ExtensionError(f"pytomo_docs: the dataset registry {path} is missing; the Tutorial data page is"
+                             " built from it")
+    return runpy.run_path(str(path))["DATASETS"]
+
+
+def _size_text(n: float) -> str:
+    """Bytes in decimal units, as pytomography.datasets prints them."""
+    for unit, scale in (("GB", 1e9), ("MB", 1e6), ("kB", 1e3)):
+        if n >= scale:
+            return f"{n / scale:.{2 if unit == 'GB' and n < 1e11 else 1}f} {unit}"
+    return f"{int(n)} B"
+
+
+def _dataset_sizes(entry: dict) -> tuple[int, int]:
+    """(bytes downloaded, bytes on disk) of a registry entry, counted as pytomography.datasets counts them."""
+    download = disk = 0
+    for p in entry["parts"]:
+        if p["kind"] == "zip_range":
+            download += p["size"] - p["index"][0] + sum(hi - lo for lo, hi, _ in p["ranges"])
+        elif p["kind"] != "package":
+            download += p["size"]
+        disk += p["unpacked"] if p["kind"] in ("zip", "zip_range") else p["size"]
+    return download, disk
 
 
 def dataset_anchor(key: str) -> str:
@@ -192,13 +223,14 @@ class FeatureBoard(Directive):
 
 
 class TutorialDatasets(Directive):
-    """One entry per dataset in tutorials/datasets.yaml, with the tutorials that use it."""
+    """One entry per dataset in the registry of pytomography.datasets: the line that downloads it, its size,
+    licence and citation, and the tutorials that use it."""
 
     has_content = False
 
     def run(self):
         env = self.state.document.settings.env
-        env.note_dependency(str(Path(env.srcdir) / "tutorials" / "datasets.yaml"))
+        env.note_dependency(str(_registry_path(Path(env.srcdir))))
         here = posixpath.dirname(env.docname)
         users = {}
         for section in env.pytomo_tutorials:
@@ -211,8 +243,15 @@ class TutorialDatasets(Directive):
             used = ", ".join(
                 f'<a href="{posixpath.relpath("notebooks/" + t["notebook"], here)}.html">{esc(t["title"])}</a>'
                 for t in users.get(key, [])) or "not used by a tutorial yet"
-            rows = [("Download", esc(d.get("download", ""))), ("Size", esc(d.get("size", ""))),
-                    ("Licence", esc(d.get("licence", ""))), ("Used by", used)]
+            if d.get("status") == "pending":
+                rows = [("Get it", f"Not downloadable yet. {esc(d.get('note', ''))}")]
+            else:
+                get = f'<code>datasets.fetch("{esc(key)}")</code>'
+                if any(p["kind"] == "idc" for p in d["parts"]):
+                    get += ", which needs the Imaging Data Commons client: <code>pip install idc-index</code>"
+                download, disk = _dataset_sizes(d)
+                rows = [("Get it", get), ("Size", f"{_size_text(download)} to download, {_size_text(disk)} on disk")]
+            rows += [("Licence", esc(d["licence"])), ("Used by", used)]
             if d.get("cite"):
                 rows.append(("Cite", esc(d["cite"])))
             parts.append(

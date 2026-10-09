@@ -8,7 +8,8 @@
 #   topic:     Basics | Corrections | Algorithms | Clinical workflow | Systems | Physics | Uncertainty | Development
 #   summary:   one sentence shown on the card
 #   thumbnail: optional, index of the image output to use (default: the last one)
-#   datasets:  folders under PYTOMOGRAPHY_DATA that the tutorial reads (keys of datasets.yaml)
+#   datasets:  folders under PYTOMOGRAPHY_DATA that the tutorial reads: keys of the registry in
+#              src/pytomography/datasets/registry.py, whose own lists of tutorials must agree (a test checks)
 
 sections:
 - title: SPECT

@@ -6,8 +6,8 @@ a whole pipeline at a glance or run it as a script. Each file links to the full 
 These files are generated from the notebooks in `docs/source/notebooks` by `docs/tools/export_scripts.py`.
 Edit the notebook, then run that script; CI checks the two match.
 
-`data/` holds small files that tutorials read alongside their datasets, such as the fitted Ac-225 PSF model
-(`data/ac225_psf_model.json`). The data page of the docs says where each one goes.
+Each script downloads the data it reads with `pytomography.datasets.fetch()`; the Tutorial data page of the
+docs lists every dataset.
 
 ## SPECT
 
