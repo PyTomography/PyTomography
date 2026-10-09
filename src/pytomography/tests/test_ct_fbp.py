@@ -6,7 +6,6 @@ LDCT-and-Projection-data case C145 with the scanner's own images."""
 from __future__ import annotations
 
 import glob
-import os
 
 import numpy as np
 import pytest
@@ -248,21 +247,20 @@ def test_the_gpu_budget_bounds_the_peak():
     assert m.peak <= 1.25 * budget
 
 
-C145_PROJECTIONS, C145_IMAGES = os.environ.get('PYTOMOGRAPHY_C145_PROJECTIONS'), os.environ.get('PYTOMOGRAPHY_C145_IMAGES')
-
-
 @pytest.mark.data
-@pytest.mark.skipif(not (C145_PROJECTIONS and C145_IMAGES), reason="set PYTOMOGRAPHY_C145_PROJECTIONS and PYTOMOGRAPHY_C145_IMAGES")
-def test_c145_matches_the_scanner_images():
-    """TCIA LDCT-and-Projection-data C145 (GE), 40 slices at the centre of the scan: the GE central column read
-    automatically, the per-column scale fitted to the scanner's own (STANDARD) images, and then soft tissue, fat and
-    lung within 5 HU of those images, with no radial trend."""
+def test_c145_matches_the_scanner_images(data_dir):
+    """TCIA LDCT-and-Projection-data C145 (GE; CT/ldct-c145 in the tutorial data folder), 40 slices at the centre of
+    the scan: the GE central column read automatically, the per-column scale fitted to the scanner's own (STANDARD)
+    images, and then soft tissue, fat and lung within 5 HU of those images, with no radial trend."""
     from scipy import ndimage
     from pytomography.io.shared import open_multifile, align_images_affine
-    proj, meta = dicom_ct_pd.get_projections_and_metadata_gen3(C145_PROJECTIONS, table_feed='pitch')
+    folder = data_dir / 'CT' / 'ldct-c145'
+    if not (folder / 'full_dose_projections').is_dir():
+        pytest.skip('CT/ldct-c145 is not in the tutorial data folder')
+    proj, meta = dicom_ct_pd.get_projections_and_metadata_gen3(folder / 'full_dose_projections', table_feed='pitch')
     assert float(meta.detector_centers_col_idx[0]) == pytest.approx(888 - 444.75)   # GE counts it from the other end
     # the scanner's images on our grid; GE's ImagePositionPatient marks the corner of the first pixel, not its centre
-    scanner, scanner_meta = open_multifile(sorted(glob.glob(os.path.join(C145_IMAGES, '*.dcm'))), return_object_meta=True)
+    scanner, scanner_meta = open_multifile(sorted(glob.glob(str(folder / 'full_dose_images' / '*.dcm'))), return_object_meta=True)
     ps = float(scanner_meta.dr[0])
     object_meta = ObjectMeta(dr=(ps, ps, 1.0), shape=(512, 512, 40))
     system_matrix = CTGen3SystemMatrix(object_meta, meta)
