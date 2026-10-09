@@ -190,3 +190,32 @@ def test_gate_image_lands_on_its_phantom_nifti(tmp_path, data_dir):
     src = np.linalg.inv(mr.affine) @ world
     sampled = map_coordinates(np.asarray(mr.dataobj, np.float32), src[:3], order=1)
     assert np.allclose(sampled, on_grid[tuple(ijk.T)], rtol=1e-3, atol=1e-3 * on_grid.max())
+
+
+@pytest.mark.data
+def test_save_dcm_scale_by_number_of_projections_reads_back(tmp_path, data_dir):
+    """#230: with scale_by_number_projections the series reads back as the image itself, not N_proj times it."""
+    from pytomography.io.SPECT import dicom
+    file_NM = str(data_dir / "SPECT" / "Lu177-NEMA-SymT2" / "projection_data.dcm")
+    object_meta, proj_meta = dicom.get_metadata(file_NM, index_peak=0)
+    x = torch.rand(object_meta.shape) * 100
+    before = x.clone()
+    dicom.save_dcm(str(tmp_path / "n"), x, file_NM, scale_by_number_projections=True)
+    assert torch.equal(x, before)                                   # the caller's image is untouched
+    files = sorted(str(f) for f in (tmp_path / "n").glob("*.dcm"))
+    back = open_multifile(files).cpu()
+    assert torch.allclose(back, x, atol=0.51 / proj_meta.num_projections)
+    with pytest.raises(ValueError, match="16 bits"):
+        dicom.save_dcm(str(tmp_path / "big"), x * 1000, file_NM, scale_by_number_projections=True)
+
+
+@pytest.mark.data
+def test_projection_reader_applies_rescale(tmp_path, data_dir):
+    """#232: projections stored with a rescale slope and intercept are read as their real values."""
+    from pytomography.io.SPECT import dicom
+    file_NM = str(data_dir / "SPECT" / "Lu177-NEMA-SymT2" / "projection_data.dcm")
+    plain = dicom.parse_projection_dataset(pydicom.dcmread(file_NM))[0]
+    ds = pydicom.dcmread(file_NM)
+    ds.RescaleSlope, ds.RescaleIntercept = 2.5, 3.0
+    scaled = dicom.parse_projection_dataset(ds)[0]
+    assert torch.allclose(scaled, plain * 2.5 + 3.0)

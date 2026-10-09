@@ -47,6 +47,11 @@ def parse_projection_dataset(
     """
     flags = {"multi_energy_window": False, "multi_time_slot": False}
     pixel_array = ds.pixel_array
+    # Stored values to real ones with DICOM's rescale (#232). Most NM files store a slope of 1, but not all.
+    slope = float(getattr(ds, "RescaleSlope", 1) or 1)
+    intercept = float(getattr(ds, "RescaleIntercept", 0) or 0)
+    if slope != 1 or intercept != 0:
+        pixel_array = pixel_array * slope + intercept
     # Energy Window Vector
     energy_window_vector = np.array(ds.EnergyWindowVector)
     detector_vector = np.array(ds.DetectorVector)
@@ -822,12 +827,16 @@ def save_dcm(
     pixel_data = torch.permute(object,(2,1,0)).cpu().numpy().astype(np.float64)
     if scale_by_number_projections:
         scale_factor = get_metadata(file_NM)[1].num_projections
-        ds.RescaleSlope = 1
+        if pixel_data.max() * scale_factor > 2**16 - 1:
+            raise ValueError(f"scale_by_number_projections: the image's maximum times {scale_factor} projections "
+                             "doesn't fit in 16 bits; save without it, which scales the maximum to 65535")
     else:
-        scale_factor = (2**16 - 1) / pixel_data.max()
-        ds.RescaleSlope = 1/scale_factor
+        scale_factor = (2**16 - 1) / pixel_data.max() #maximum dynamic range
+    # Either way the stored integers are the image times scale_factor, so the slope gives the image back (#230: with
+    # scale_by_number_projections it was 1, and values read back that many times too large)
+    ds.RescaleSlope = 1/scale_factor
     ds.RescaleIntercept = 0  # required with RescaleSlope; without it, open_multifile can't read the series back
-    pixel_data *= scale_factor #maximum dynamic range
+    pixel_data *= scale_factor
     pixel_data = pixel_data.round().astype(np.uint16)
     # Where the voxels are: the matrix the reader gives the reconstruction (get_metadata's object_meta.affine_matrix),
     # so a saved image is where PyTomography put it, for every manufacturer; voxel k's slice is at Sz + k dz
