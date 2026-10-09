@@ -529,3 +529,28 @@ def get_attenuation_map_nifti(path, object_meta):
     M_pet[3] = np.array([0, 0, 0, 1])
     M = npl.inv(M_highres) @ M_pet
     return torch.tensor(affine_transform(img, M, output_shape=object_meta.shape, mode='constant', order=1)) / 10
+
+
+def get_patient_affine_from_nifti(path: str, object_meta: ObjectMeta) -> np.ndarray:
+    """Where the voxels of a reconstruction on ``object_meta``'s grid are in the frame of the NIfTI image the GATE
+    phantom came from (its MR or attenuation map), so a saved reconstruction lands on that image in other software.
+
+    It is the placement :func:`get_attenuation_map_nifti` uses: both images centred on the scanner's axis, the NIfTI's
+    first two axes reversed (RAS to LPS). Pass the result as ``affine`` to :func:`pytomography.io.save_nifti` or
+    :func:`pytomography.io.save_dicom`.
+
+    Args:
+        path (str): the NIfTI file (e.g. the phantom's MR).
+        object_meta (ObjectMeta): the reconstruction's object metadata (voxel sizes in mm).
+
+    Returns:
+        np.ndarray: the 4 x 4 voxel-to-patient matrix (LPS, mm).
+    """
+    from ..shared.output import LPS_TO_RAS, centred_affine
+    img = nib.load(path)
+    n = np.asarray(img.shape[:3], float)
+    d = np.asarray(img.header['pixdim'][1:4], float) * [-1, -1, 1]   # RAS to LPS, as get_attenuation_map_nifti
+    M_nifti = np.diag([*d, 1.0])
+    M_nifti[:3, 3] = -(n - 1) / 2 * d
+    M_pet = centred_affine(object_meta.dr, object_meta.shape)
+    return LPS_TO_RAS @ img.affine @ npl.inv(M_nifti) @ M_pet

@@ -47,6 +47,11 @@ def parse_projection_dataset(
     """
     flags = {"multi_energy_window": False, "multi_time_slot": False}
     pixel_array = ds.pixel_array
+    # Stored values to real ones with DICOM's rescale (#232). Most NM files store a slope of 1, but not all.
+    slope = float(getattr(ds, "RescaleSlope", 1) or 1)
+    intercept = float(getattr(ds, "RescaleIntercept", 0) or 0)
+    if slope != 1 or intercept != 0:
+        pixel_array = pixel_array * slope + intercept
     # Energy Window Vector
     energy_window_vector = np.array(ds.EnergyWindowVector)
     detector_vector = np.array(ds.DetectorVector)
@@ -818,26 +823,26 @@ def save_dcm(
         modality = 'PT'
         imagetype = None
     ds = create_ds(ds_NM, SOP_instance_UID, SOP_class_UID, modality, imagetype)
-    pixel_data = torch.permute(object,(2,1,0)).cpu().numpy()
+    # a copy: on the CPU, .numpy() shares the caller's memory, and the scaling below would change their image
+    pixel_data = torch.permute(object,(2,1,0)).cpu().numpy().astype(np.float64)
     if scale_by_number_projections:
         scale_factor = get_metadata(file_NM)[1].num_projections
-        ds.RescaleSlope = 1
+        if pixel_data.max() * scale_factor > 2**16 - 1:
+            raise ValueError(f"scale_by_number_projections: the image's maximum times {scale_factor} projections "
+                             "doesn't fit in 16 bits; save without it, which scales the maximum to 65535")
     else:
-        scale_factor = (2**16 - 1) / pixel_data.max()
-        ds.RescaleSlope = 1/scale_factor
-    pixel_data *= scale_factor #maximum dynamic range
+        scale_factor = (2**16 - 1) / pixel_data.max() #maximum dynamic range
+    # Either way the stored integers are the image times scale_factor, so the slope gives the image back (#230: with
+    # scale_by_number_projections it was 1, and values read back that many times too large)
+    ds.RescaleSlope = 1/scale_factor
+    ds.RescaleIntercept = 0  # required with RescaleSlope; without it, open_multifile can't read the series back
+    pixel_data *= scale_factor
     pixel_data = pixel_data.round().astype(np.uint16)
-    # Affine
-    Sx, Sy, Sz = ds_NM.DetectorInformationSequence[0].ImagePositionPatient
-    dx = dy = ds_NM.PixelSpacing[0]
-    dz = ds_NM.PixelSpacing[1]
-    if Sy == 0:
-        Sx -= (ds_NM.Rows-1) / 2 * dx
-        Sy -= (ds_NM.Rows-1) / 2 * dy
-        # Y-Origin point at tableheight=0
-        Sy -= ds_NM.RotationInformationSequence[0].TableHeight
-    # Sz now refers to location of lowest slice
-    Sz -= (pixel_data.shape[0] - 1) * dz
+    # Where the voxels are: the matrix the reader gives the reconstruction (get_metadata's object_meta.affine_matrix),
+    # so a saved image is where PyTomography put it, for every manufacturer; voxel k's slice is at Sz + k dz
+    M = _get_affine_spect_projections(file_NM)
+    dx, dy, dz = float(M[0, 0]), float(M[1, 1]), float(M[2, 2])
+    Sx, Sy, Sz = (float(v) for v in M[:3, 3])
     ds.Rows, ds.Columns = pixel_data.shape[1:]
     ds.SeriesNumber = 1
     if single_dicom_file:
@@ -1015,6 +1020,30 @@ def get_starguide_affine_NM(files_NM: Sequence[str]):
                          [0, 0, dz_NM, Sz_NM],
                          [0, 0, 0, 1]])
     return affine_NM
+
+def get_starguide_patient_affine(files_CT: Sequence[str], object_meta: SPECTObjectMeta) -> np.ndarray:
+    """Where the voxels of a StarGuide reconstruction are in the patient (DICOM LPS, mm), from the CT taken with it.
+
+    PyTomography places StarGuide's reconstruction and CT in a frame centred on the scan (see
+    :func:`get_starguide_affine_CT` and :func:`get_starguide_affine_NM`), with the reconstruction's slices running head
+    to foot. This puts that frame where the CT's own DICOM geometry is; on the tutorial's phantom it matches GE's own
+    reconstruction to 0.002 mm. Pass the result as ``affine`` to :func:`pytomography.io.save_dicom` or
+    :func:`pytomography.io.save_nifti`.
+
+    Args:
+        files_CT (Sequence[str]): the CT files of the acquisition.
+        object_meta (SPECTObjectMeta): the reconstruction's object metadata (from :func:`get_starguide_metadata`).
+
+    Returns:
+        np.ndarray: the 4 x 4 voxel-to-patient matrix (LPS, mm).
+    """
+    from ..shared.output import centred_affine
+    A_ct = _get_affine_multifile(files_CT)                    # the CT's real geometry
+    A_ct_centred = get_starguide_affine_CT(files_CT).copy()   # the same CT in PyTomography's centred frame, cm
+    A_ct_centred[:3, :] *= 10
+    flip_z = np.eye(4)
+    flip_z[2, 2], flip_z[2, 3] = -1, object_meta.shape[2] - 1   # slice k is the (Lz - 1 - k)th from the bottom
+    return A_ct @ npl.inv(A_ct_centred) @ centred_affine(object_meta.dr, object_meta.shape, in_cm=True) @ flip_z
 
 def get_starguide_attenuation_map_from_CT_slices(
     files_CT: Sequence[str],
