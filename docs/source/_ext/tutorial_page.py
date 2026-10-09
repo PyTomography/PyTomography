@@ -116,7 +116,9 @@ def header_html(t: dict, *, colab: str, github: str, has_script: bool, run: dict
             f'{size(e)}{icon("chevron", "pt-i pt-chev")}</button>'
             for e in data)))
     if viewer:
-        thumb = f'<img src="{esc(viewer["thumb"])}" alt="" loading="lazy">' if viewer.get("thumb") else icon("cube")
+        # dark-light: the theme gives other images a white backdrop in dark mode, which showed as bars beside the picture
+        thumb = (f'<img class="dark-light" src="{esc(viewer["thumb"])}" alt="" loading="lazy">'
+                 if viewer.get("thumb") else icon("cube"))
         cols.append(column("Results",
                            f'<button type="button" class="pt-tb pt-tb-3d" data-ptv-open="{esc(viewer["block"])}" '
                            f'title="{esc(viewer.get("layers", ""))}">{thumb}<span>View results in 3D</span>'
