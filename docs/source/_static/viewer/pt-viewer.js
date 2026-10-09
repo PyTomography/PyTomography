@@ -27,8 +27,6 @@
     ['lung', 'Lung', -1350, 150], ['full', 'Full range', -1000, 1000]];
   // SPECT and PET are drawn in colour over a grey anatomical image (CT, MR or attenuation map)
   const ROLE = {spect: 'overlay', pet: 'overlay', ct: 'base', mr: 'base', mu: 'base', image: 'base'};
-  // the colour images' first 3% above the lower limit fade in from clear (see rgbaOf)
-  const FADE = 0.03;
   // u = screen right, v = screen down, each [scanner axis, sign]; n = the axis through the slice. Radiological, as
   // imshow shows PyTomography's arrays: the patient's right on the left, anterior and superior at the top.
   const VIEWS = {
@@ -226,7 +224,7 @@
       `<p class="ptv-keys">${hint}</p>` +
       `<p class="ptv-note">Smooth display draws each SPECT or PET image as matplotlib's <code>interpolation="gaussian"</code> does (σ = half a voxel); ` +
       `CT is drawn bilinearly. Smoothing is a separate 3D Gaussian, with this full width at half maximum, applied to that image's data; the upper limit follows the smoothed image until you set it yourself. ` +
-      `Values at or below the lower limit of the colour image are see-through.</p></details>` +
+      `Values below the lower limit of the colour image are see-through.</p></details>` +
       `<p class="ptv-err" id="${id('err')}" role="status" aria-live="polite"></p></aside></div>`;
     const $ = s => document.getElementById(id(s));
     const err = m => { const e = $('err'); if (e) e.textContent = m || ''; };
@@ -382,13 +380,13 @@
       const n = sl.w * sl.h, out = new Uint8ClampedArray(n * 4), d = sl.data, s = L.set, lut = LUT[s.cmap] || LUT.gray;
       const lo = s.lo, span = Math.max(1e-12, s.hi - s.lo), a = Math.round(s.op * 255);
       if (L.role === 'overlay') {
-        // The bottom of the colour scale fades in from clear. Otherwise the reconstruction's near-zero voxels around the
-        // object would show as a flat sheet of the colormap's darkest colour (hot starts at dark red, not black), the
-        // same at every upper limit.
+        // A value at the lower limit takes the bottom colour of the map, as matplotlib draws it, so a voxel of exactly 0
+        // looks like its near-zero neighbours (hot's bottom colour is dark red: see-through zeros beside it made a blocky
+        // sheet). Only values below the lower limit, and NaN, are see-through.
         for (let i = 0; i < n; i++) {
-          const v = d[i]; if (!(v > lo)) continue;
-          const t = Math.min(1, (v - lo) / span), q = Math.round(t * 255) * 3;
-          out[4 * i] = lut[q]; out[4 * i + 1] = lut[q + 1]; out[4 * i + 2] = lut[q + 2]; out[4 * i + 3] = t < FADE ? a * t / FADE : a;
+          const v = d[i]; if (!(v >= lo)) continue;
+          const q = Math.round(Math.min(1, (v - lo) / span) * 255) * 3;
+          out[4 * i] = lut[q]; out[4 * i + 1] = lut[q + 1]; out[4 * i + 2] = lut[q + 2]; out[4 * i + 3] = a;
         }
       } else {
         for (let i = 0; i < n; i++) {
