@@ -43,10 +43,15 @@ allow-direct-references = true
 "Bug Tracker" = "https://github.com/qurit/PyTomography/issues"
 
 [project.optional-dependencies]
+# PETSIRD list mode, read with ETSI's package: 0.9 is the format of ETSI's converters and STIR
+petsird = [
+  "petsird>=0.9,<0.10",
+]
 test = [
   "pytest>=8",
   "pytest-xdist",
   "pyyaml",
+  "petsird>=0.9,<0.10",
 ]
 dev = [
   "pytomography[test,doc]",
