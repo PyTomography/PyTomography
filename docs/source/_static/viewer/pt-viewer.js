@@ -203,7 +203,10 @@
       `<div class="ptv-pick" id="${id('pickWrap')}" hidden><label for="${id('pick')}">Image</label><select id="${id('pick')}"></select></div>` +
       `<div class="ptv-actions"><button type="button" class="ptv-btn ptv-ctlbtn" id="${id('ctl')}" aria-expanded="false" aria-controls="${id('rail')}">Controls</button>` +
       `${opt.noMaximize ? '' : `<button type="button" class="ptv-btn" id="${id('max')}" aria-pressed="false">Full screen</button>`}` +
-      `${opt.onClose ? `<button type="button" class="ptv-btn" id="${id('close')}">Close</button>` : ''}</div></div>` +
+      // Close: the most visible button, always in the top right corner
+      `${opt.onClose ? `<button type="button" class="ptv-btn ptv-close" id="${id('close')}" aria-label="Close the 3D viewer">` +
+        `<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 3.5l9 9m0-9-9 9"/></svg>Close` +
+        `${coarse ? '' : '<kbd>Esc</kbd>'}</button>` : ''}</div></div>` +
       `<div class="ptv-station"><div class="ptv-view">` +
       `<div class="ptv-bar"><div class="ptv-seg" role="group" aria-label="View" id="${id('views')}">` +
       [['multi', 'Slices + 3D'], ['axial', 'Axial'], ['coronal', 'Coronal'], ['sagittal', 'Sagittal'], ['mip', '3D']].map(([v, t]) =>
@@ -329,7 +332,14 @@
       });
     }
     assignSettings();
-    const sel = {overlay: OVS.length ? OVS[0] : -1, base: BASES.length ? BASES[0] : -1};
+    // the first image of each role, or the one named by opt.layer (the button under the cell that computes it)
+    const firstSel = () => {
+      const s = {overlay: OVS.length ? OVS[0] : -1, base: BASES.length ? BASES[0] : -1};
+      const w = opt.layer ? LAY.findIndex(L => L.m.name === opt.layer) : -1;
+      if (w >= 0) s[LAY[w].role] = w;
+      return s;
+    };
+    const sel = firstSel();
     const facts = [];
     if (man.description) facts.push(man.description);
     const vox = pd => { const p = pd.map(x => +x.toFixed(2)); return (p[0] === p[1] && p[1] === p[2] ? String(p[0]) : p.join(' × ')) + ' mm'; };
@@ -786,6 +796,7 @@
       const list = headRole === 'overlay' ? OVS : BASES;
       $('pick').innerHTML = list.map(i => `<option value="${i}">${esc(LAY[i].m.label || LAY[i].m.name)}</option>`).join('');
       $('pickWrap').hidden = false;
+      $('pick').value = String(sel[headRole]);
       on($('pick'), 'change', () => pickLayer(headRole, +$('pick').value));
     }
 
@@ -804,7 +815,7 @@
     reset = function () {
       LAY.forEach((L, i) => { L.base = L.img; L.smoothed = 0; L.ver++; pending[i]++; });
       assignSettings();
-      sel.overlay = OVS.length ? OVS[0] : -1; sel.base = BASES.length ? BASES[0] : -1;
+      Object.assign(sel, firstSel());
       if (headRole) $('pick').value = String(sel[headRole]);
       setFrame();
       S.P = startP(); S.zoom = 1; S.pan = [0, 0, 0]; S.smooth = true; $('interp').checked = true;

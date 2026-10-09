@@ -1,7 +1,9 @@
 """The 3D image viewer on tutorial pages and gallery cards.
 
 Every tutorial listed in ``tutorials/viewer_images.json`` gets a "View the images in 3D" block under its launch bar,
-and its gallery card a "View in 3D" button. A page loads only a small loader (``_static/viewer/pt-viewer-loader.js``);
+and its gallery card a "View in 3D" button. Inside the tutorial, a "View ... in 3D" button follows the cell that
+computes each image (found from the image's expression in ``tutorials/viewer.yaml``), and opens the viewer on that
+image. A page loads only a small loader (``_static/viewer/pt-viewer-loader.js``);
 the viewer itself (``pt-viewer.js``, about 60 kB) and the images (a few MB, from the image host) load when a reader
 opens it.
 
@@ -19,17 +21,21 @@ To preview the images of a local tutorial run instead, set ``PYTOMOGRAPHY_VIEWER
 """
 from __future__ import annotations
 
+import ast
 import hashlib
 import html
 import json
 import os
 import posixpath
+import re
 import shutil
 from pathlib import Path
 
+import yaml
 from docutils import nodes
 
 INDEX = "tutorials/viewer_images.json"
+SPECS = "tutorials/viewer.yaml"
 LOCAL_ENV = "PYTOMOGRAPHY_VIEWER_IMAGES"
 LOCAL_DIR = "_viewer"
 
@@ -62,6 +68,8 @@ def _load(app) -> dict:
 
 def builder_inited(app):
     app.env.pytomo_viewer = _load(app)
+    specs = Path(app.srcdir) / SPECS
+    app.env.pytomo_viewer_specs = (yaml.safe_load(specs.read_text(encoding="utf8")) or {}).get("tutorials", {}) if specs.exists() else {}
     # the loader fetches the viewer on demand; this stamp in its URLs keeps browsers from using an old copy
     h = hashlib.sha1()
     for f in ("pt-viewer.js", "pt-viewer.css"):
@@ -80,6 +88,80 @@ def _layers_text(t: dict) -> str:
     return f"{listed} · {t['bytes'] / 1e6:.1f} MB" if t.get("bytes") else listed
 
 
+_HELPERS = {"vx", "np", "numpy", "torch", "nib", "pydicom"}
+_CUBE = ('<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true">'
+         '<path d="M10 2.6 16.4 6v8L10 17.4 3.6 14V6z"/><path d="M3.6 6 10 9.6 16.4 6M10 9.6v7.8"/></svg>')
+
+
+def _root_name(expr: str) -> str | None:
+    """The notebook variable an image expression starts from (recon_OSEM[0].cpu() -> recon_OSEM); None for a helper
+    call such as vx.ct_dicom(files_CT), which reads an input rather than a result."""
+    try:
+        node = ast.parse(str(expr), mode="eval").body
+    except SyntaxError:
+        return None
+    if isinstance(node, ast.Tuple) and node.elts:
+        node = node.elts[0]
+    while isinstance(node, (ast.Attribute, ast.Subscript, ast.Call)):
+        node = node.func if isinstance(node, ast.Call) else node.value
+    return node.id if isinstance(node, ast.Name) and node.id not in _HELPERS else None
+
+
+def _cells(doctree):
+    """MyST-NB's code cells in page order, each with its source and whether it shows an image."""
+    out = []
+    for c in doctree.findall(nodes.container):
+        if "cell" not in c.get("classes", []):
+            continue
+        src = next((n.astext() for n in c.findall(nodes.literal_block)), "")
+        out.append((c, src, any(True for _ in c.findall(nodes.image))))
+    return out
+
+
+def _result_buttons(doctree, spec: dict, exported: list[str]):
+    """After the cell that computes each image the tutorial exports (or after the plot that shows it, when the next
+    cell draws it), a button that opens the viewer on that image. A last plot that shows several of them gets one
+    that opens them for comparison."""
+    results = []          # (variable, layer name, label)
+    layers = spec.get("layers", [])
+    # the reconstructions: SPECT and PET, or in a CT tutorial the CT images (their anatomy is an input there)
+    colour = any(L.get("kind") in ("spect", "pet") for L in layers)
+    for L in layers:
+        label = L.get("label", L["name"])
+        if L.get("kind") not in (("spect", "pet") if colour else ("ct",)) or label not in exported:
+            continue
+        var = _root_name(L.get("array", ""))
+        if var:
+            results.append((var, L["name"], label if len(label) <= 30 else L["name"]))
+    if not results:
+        return
+    cells = _cells(doctree)
+    uses = lambda src, v: re.search(rf"\b{re.escape(v)}\b", src) is not None
+    spots = {}            # cell index -> [(layer name, label)]
+    for var, name, label in results:
+        assign = re.compile(rf"^[ \t]*(?:[\w.]+[ \t]*,[ \t]*)*{re.escape(var)}[ \t]*(?:,[ \t]*[\w.]+[ \t]*)*=(?!=)", re.M)
+        hits = [i for i, (_, src, _) in enumerate(cells) if assign.search(src)]
+        if not hits:
+            continue
+        i = hits[-1]      # the value the viewer shows is the last one assigned
+        if i + 1 < len(cells) and cells[i + 1][2] and uses(cells[i + 1][1], var):
+            i += 1        # the next cell plots it: the button goes under the picture
+        spots.setdefault(i, []).append((name, label))
+    if len(results) > 1:  # the last picture that shows two or more of them
+        many = [i for i, (_, src, img) in enumerate(cells) if img and sum(uses(src, v) for v, _, _ in results) > 1]
+        if many and many[-1] not in spots:
+            spots[many[-1]] = [(None, "them all")]
+    for i, found in spots.items():
+        cell = cells[i][0]
+        name = found[0][0]
+        what = " and ".join(lbl for _, lbl in found) if name else "them all"
+        text = f"Compare {what} in 3D" if not name else f"View {what} in 3D"
+        layer = f' data-ptv-layer="{html.escape(name)}"' if name else ""
+        button = (f'<div class="ptv-result"><button type="button" class="ptv-result-btn" data-ptv-open="ptv-block"{layer}>'
+                  f'{_CUBE}<span>{html.escape(text)}</span></button></div>')
+        cell.parent.insert(cell.parent.index(cell) + 1, nodes.raw("", button, format="html"))
+
+
 def add_viewer(app, doctree):
     """A viewer block under the launch bar of each tutorial with images, and the image list on the gallery page."""
     env, docname = app.env, app.env.docname
@@ -93,13 +175,17 @@ def add_viewer(app, doctree):
         t = found[Path(docname).name]
         poster = (f'<img class="ptv-poster" src="{html.escape(_href(t, "thumb", here))}" alt="" loading="lazy">'
                   if t.get("thumb") else "")
-        block = (f'<div class="ptv-block" data-manifest="{html.escape(_href(t, "manifest", here))}" data-title="{html.escape(t["title"])}">'
+        block = (f'<div class="ptv-block" id="ptv-block" data-manifest="{html.escape(_href(t, "manifest", here))}" data-title="{html.escape(t["title"])}">'
                  f'<button type="button" class="ptv-open">{poster}<span class="ptv-otext"><b>View the images in 3D</b>'
                  f'<small>{html.escape(_layers_text(t))}</small></span></button><p class="ptv-msg" role="status"></p></div>')
         # under the launch bar that pytomo_docs puts below the title
         at = next((i for i, n in enumerate(section.children) if isinstance(n, nodes.raw) and 'class="pt-launch"' in n.astext()),
                   next((i for i, n in enumerate(section.children) if isinstance(n, nodes.title)), -1))
         section.insert(at + 1, nodes.raw("", block, format="html"))
+        spec = getattr(env, "pytomo_viewer_specs", {}).get(Path(docname).name)
+        if spec:
+            env.note_dependency(str(Path(env.srcdir) / SPECS))
+            _result_buttons(doctree, spec, t["layers"])
     if any(isinstance(n, nodes.raw) and "data-gallery" in n.astext() for n in doctree.findall(nodes.raw)):
         cards = {name: {"manifest": _href(t, "manifest", here), "title": t["title"]} for name, t in found.items()}
         island = json.dumps(cards).replace("<", "\\u003c")

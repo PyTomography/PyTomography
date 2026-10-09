@@ -28,14 +28,21 @@
 }
 html.ptv-noscroll, html.ptv-noscroll body { overflow: hidden; }
 
-.ptv-head { flex: none; display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; padding: 6px 10px; border-bottom: 1px solid var(--ptv-line); background: var(--ptv-2); }
-.ptv-title { display: grid; min-width: 0; flex: 1 1 14rem; }
+/* header: title | Image switch | buttons, with the buttons (Close last) always in the top right corner */
+.ptv-head { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 6px 14px; padding: 8px 10px 8px 14px; border-bottom: 1px solid var(--ptv-line); background: var(--ptv-2); }
+.ptv-title { display: grid; min-width: 0; }
 .ptv-title b { font-weight: 600; font-size: .9rem; line-height: 1.3; }
 .ptv-meta { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font: 500 .68rem/1.4 var(--ptv-mono); color: var(--ptv-mut); }
 .ptv-credit { font-family: var(--ptv-sans); }
 .ptv-credit:not(:empty)::before { content: " · "; }
 .ptv-credit a { color: var(--ptv-fg); }
-.ptv-actions { display: flex; gap: 6px; margin-left: auto; }
+.ptv-actions { display: flex; align-items: center; gap: 6px; justify-self: end; }
+.ptv-btn.ptv-close { display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px 8px 11px; font-size: .86rem;
+  background: #eef0f5; border-color: #eef0f5; color: #0b0d12; }
+.ptv-btn.ptv-close:hover { background: #ffffff; border-color: #ffffff; }
+.ptv-close svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.ptv-close kbd { font: 600 .66rem var(--ptv-mono); padding: 1px 5px; border-radius: 4px; border: 1px solid #b9bfcc; color: #4a5162; background: none; }
+.ptv-btn:focus-visible { outline: 2px solid var(--ptv-acc); outline-offset: 2px; }
 .ptv-pick { display: flex; align-items: center; gap: 8px; font: 600 .76rem var(--ptv-sans); color: var(--ptv-mut); min-width: 0; }
 .ptv-pick label { margin: 0; font-weight: 600; }
 .ptv-pick select { -webkit-appearance: none; appearance: none; font: 600 .82rem var(--ptv-sans); color: var(--ptv-fg); border: 1px solid var(--ptv-acc); border-radius: 7px; padding: 5px 26px 5px 9px; max-width: min(56cqw, 22rem); text-overflow: ellipsis;
@@ -44,6 +51,12 @@ html.ptv-noscroll, html.ptv-noscroll body { overflow: hidden; }
 .ptv-btn { appearance: none; font: 600 .76rem var(--ptv-sans); padding: 6px 10px; border-radius: 7px; border: 1px solid var(--ptv-line); background: var(--ptv-3); color: var(--ptv-fg); cursor: pointer; line-height: 1.2; }
 .ptv-btn:hover { border-color: var(--ptv-mut); }
 .ptv-ctlbtn[aria-expanded="true"] { border-color: var(--ptv-acc); }
+/* narrow: the Image switch takes its own row, so the buttons keep the top right corner */
+@container (max-width: 620px) {
+  .ptv-head { grid-template-columns: minmax(0, 1fr) auto; }
+  .ptv-actions { grid-column: 2; grid-row: 1; }
+  .ptv-pick { grid-column: 1 / -1; grid-row: 2; }
+}
 
 /* the station: images on the left, controls on the right (or in a drawer) */
 .ptv-station { position: relative; flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); overflow: hidden; }

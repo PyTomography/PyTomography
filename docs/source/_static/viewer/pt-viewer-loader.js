@@ -19,36 +19,28 @@
     });
     return loading;
   }
-  const narrow = () => window.matchMedia && matchMedia('(max-width: 700px)').matches;
-
-  // Full screen, over the page: the gallery, and every page on a phone
-  async function openOver(manifest, title, opener, msg) {
-    try { await load(); } catch (e) { if (msg) msg.textContent = e.message; return; }
+  // The viewer always opens full screen, over the page (Luke, 9 Oct 2026: in the page it was confusing). Close, in the
+  // top right corner, or Escape returns to the page where the reader was.
+  async function openOver(manifest, title, opener, msg, layer) {
+    if (opener) opener.disabled = true;
+    if (msg) msg.textContent = '';
+    try { await load(); } catch (e) { if (msg) msg.textContent = e.message; return; } finally { if (opener) opener.disabled = false; }
     const el = document.createElement('div');
     el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', title + ', 3D viewer');
     document.body.appendChild(el);
-    PTViewer.mount(el, {manifest, title, maximized: true, noMaximize: true,
+    PTViewer.mount(el, {manifest, title, layer, maximized: true, noMaximize: true,
       onClose: api => { api.destroy(); el.remove(); if (opener) opener.focus(); }});
-    const close = el.querySelector('.ptv-actions button');
+    const close = el.querySelector('.ptv-close');
     if (close) close.focus();
   }
 
-  // Tutorial pages: the viewer opens in place of the block, and Close puts the block back
+  // Tutorial pages: the block's own button, and any button that names the block (data-ptv-open="<block id>"), such as
+  // those after the cells that compute each image, which open the viewer on that image (data-ptv-layer)
   document.querySelectorAll('.ptv-block').forEach(block => {
     const btn = block.querySelector('.ptv-open'), msg = block.querySelector('.ptv-msg');
-    btn.addEventListener('click', async () => {
-      const {manifest, title} = block.dataset;
-      if (narrow()) return openOver(manifest, title, btn, msg);
-      btn.disabled = true; msg.textContent = '';
-      try { await load(); } catch (e) { btn.disabled = false; msg.textContent = e.message; return; }
-      const host = document.createElement('div');
-      block.appendChild(host);
-      btn.hidden = true; btn.disabled = false;
-      PTViewer.mount(host, {manifest, title, onClose: api => { api.destroy(); host.remove(); btn.hidden = false; btn.focus(); }});
-      // the viewer is as tall as the window: bring all of it into view, below the site's header
-      const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-      host.scrollIntoView({block: 'start', behavior: still ? 'auto' : 'smooth'});
-    });
+    const open = b => openOver(block.dataset.manifest, block.dataset.title, b, msg, b.dataset.ptvLayer);
+    if (btn) btn.addEventListener('click', () => open(btn));
+    if (block.id) document.querySelectorAll(`[data-ptv-open="${block.id}"]`).forEach(b => b.addEventListener('click', () => open(b)));
   });
 
   // Gallery: a "View in 3D" button on each card whose tutorial has images

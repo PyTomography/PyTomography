@@ -10,6 +10,17 @@
 .ptv-msg { margin: 0; color: var(--pst-color-danger, #b4233a); font-size: 0.85rem; }
 .ptv-msg:empty { display: none; }
 
+/* under the cell that computes an image: open the viewer on it. Dark, like the viewer it opens */
+.ptv-result { margin: -6px 0 24px; }
+.ptv-result-btn { display: inline-flex; align-items: center; gap: 9px; height: 38px; padding: 0 15px 0 12px; border: 1px solid #0b0d12;
+  border-radius: 8px; background: #0b0d12; color: #f1f3f8; font: 600 0.86rem/1 var(--pst-font-family-base); cursor: pointer;
+  transition: border-color 0.15s; }
+.ptv-result-btn:hover { border-color: var(--pt-purple); }
+.ptv-result-btn:focus-visible { outline: 2px solid var(--pt-purple); outline-offset: 2px; }
+.ptv-result-btn[disabled] { cursor: progress; opacity: 0.7; }
+.ptv-result-btn svg { width: 16px; height: 16px; flex: none; color: #f3a44a; }
+html[data-theme="dark"] .ptv-result-btn { border-color: #2a2f3c; }
+
 .ptv-cardwrap { position: relative; display: flex; min-width: 0; }
 .ptv-cardwrap[hidden] { display: none; }
 .ptv-cardwrap > .pt-card { flex: 1 1 auto; min-width: 0; }
