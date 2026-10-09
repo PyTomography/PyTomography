@@ -1,9 +1,10 @@
 """The 3D image viewer on tutorial pages and gallery cards.
 
-Every tutorial listed in ``tutorials/viewer_images.json`` gets a "View the images in 3D" block under its launch bar,
-and its gallery card a "View in 3D" button. Inside the tutorial, a "View ... in 3D" button follows the cell that
-computes each image (found from the image's expression in ``tutorials/viewer.yaml``), and opens the viewer on that
-image. A page loads only a small loader (``_static/viewer/pt-viewer-loader.js``);
+Every tutorial listed in ``tutorials/viewer_images.json`` gets "View results in 3D" in its header (tutorial_page.py,
+through ``for_page``), and its gallery card a "View in 3D" button. The viewer opens full screen. Inside the tutorial,
+a "View ... in 3D" button follows the cell that computes each image (found from the image's expression in
+``tutorials/viewer.yaml``), and opens the viewer on that image. A page loads only a small loader
+(``_static/viewer/pt-viewer-loader.js``);
 the viewer itself (``pt-viewer.js``, about 60 kB) and the images (a few MB, from the image host) load when a reader
 opens it.
 
@@ -162,6 +163,17 @@ def _result_buttons(doctree, spec: dict, exported: list[str]):
         cell.parent.insert(cell.parent.index(cell) + 1, nodes.raw("", button, format="html"))
 
 
+def for_page(env, docname: str) -> dict | None:
+    """What the tutorial header's View results in 3D needs: the viewer block's id, the picture, what it shows and its
+    size; None for a tutorial without 3D images."""
+    t = getattr(env, "pytomo_viewer", {}).get(Path(docname).name)
+    if not t or not docname.startswith("notebooks/"):
+        return None
+    here = posixpath.dirname(docname)
+    return {"block": "ptv-block", "thumb": _href(t, "thumb", here) if t.get("thumb") else "", "layers": _layers_text(t).split(" · ")[0],
+            "size": f"{t['bytes'] / 1e6:.1f} MB" if t.get("bytes") else ""}
+
+
 def add_viewer(app, doctree):
     """A viewer block under the launch bar of each tutorial with images, and the image list on the gallery page."""
     env, docname = app.env, app.env.docname
@@ -173,13 +185,11 @@ def add_viewer(app, doctree):
     section = next(iter(doctree.findall(nodes.section)), None)
     if env.doc2path(docname).suffix == ".ipynb" and Path(docname).name in found and section is not None:
         t = found[Path(docname).name]
-        poster = (f'<img class="ptv-poster" src="{html.escape(_href(t, "thumb", here))}" alt="" loading="lazy">'
-                  if t.get("thumb") else "")
-        block = (f'<div class="ptv-block" id="ptv-block" data-manifest="{html.escape(_href(t, "manifest", here))}" data-title="{html.escape(t["title"])}">'
-                 f'<button type="button" class="ptv-open">{poster}<span class="ptv-otext"><b>View the images in 3D</b>'
-                 f'<small>{html.escape(_layers_text(t))}</small></span></button><p class="ptv-msg" role="status"></p></div>')
-        # under the launch bar that pytomo_docs puts below the title
-        at = next((i for i, n in enumerate(section.children) if isinstance(n, nodes.raw) and 'class="pt-launch"' in n.astext()),
+        # the header's View results in 3D (tutorial_page) and the buttons after each result open the viewer from here
+        block = (f'<div class="ptv-block" id="ptv-block" data-manifest="{html.escape(_href(t, "manifest", here))}" '
+                 f'data-title="{html.escape(t["title"])}"><p class="ptv-msg" role="status"></p></div>')
+        # under the header that pytomo_docs puts below the title
+        at = next((i for i, n in enumerate(section.children) if isinstance(n, nodes.raw) and "pt-launch" in n.astext()),
                   next((i for i, n in enumerate(section.children) if isinstance(n, nodes.title)), -1))
         section.insert(at + 1, nodes.raw("", block, format="html"))
         spec = getattr(env, "pytomo_viewer_specs", {}).get(Path(docname).name)

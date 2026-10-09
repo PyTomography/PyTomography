@@ -89,7 +89,8 @@ html_context = {
 html_theme_options = {
     "logo": {"text": "PyTomography"},
     "navbar_align": "left",
-    "header_links_before_dropdown": 7,
+    # Installation, Tutorials, Gallery, API and Contribute in the top bar; Migrate to v4, Concepts and the rest under More
+    "header_links_before_dropdown": 5,
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
     "icon_links": [
         {"name": "GitHub", "url": "https://github.com/PyTomography/PyTomography", "icon": "fa-brands fa-github"},

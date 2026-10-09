@@ -1,19 +1,155 @@
-/* Tutorial pages use the window's width (Luke, 9 Oct 2026). The right-hand sidebar is off on notebook pages
-   (conf.py), the section navigation stays pinned on the left, narrower, and holds this page's headings under the
-   current tutorial (pytomo-tutorial.js). The article loses the theme's 60em cap: prose keeps a readable measure, while
-   code, outputs and the 3D viewer use the whole width. Loaded on notebook pages only (_ext/pytomo_viewer.py). */
+/* Tutorial pages: one convention for every tutorial (Luke, 9 Oct 2026). Loaded on notebook pages only
+   (_ext/pytomo_viewer.py add_assets).
+   - The window's width: no right-hand sidebar (conf.py); the section navigation stays pinned on the left, narrower,
+     with this page's headings under the current tutorial (js/pytomo-tutorial.js). Prose keeps a readable measure;
+     code, outputs and the header use the whole width.
+   - The header (_ext/tutorial_page.py): summary and tags, one panel with Run it, Data and Results, then tabs for the
+     Jupyter notebook or the script. A data button opens a popup with what the dataset is and how to get it.
+   - Code keeps the grey cards; each output sits in a thin outlined box titled Output. Nothing scrolls sideways: a long
+     line wraps and continues under its own start. */
 .bd-page-width { max-width: 110rem; }
 @media (min-width: 960px) {
   .bd-container .bd-sidebar-primary { --pst-sidebar-primary-width: 17rem; width: 17rem; flex: 0 0 17rem; }
 }
 .bd-container .bd-main .bd-content .bd-article-container { max-width: none; }
 .bd-article :is(section > p, section > ul, section > ol, section > dl, section > blockquote, .admonition) { max-width: 54rem; }
-/* long lines (printed output, a few long calls) wrap instead of scrolling sideways */
-.bd-article div.highlight pre, .bd-article .cell_output pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.bd-article {
+  --pt-data: #0b7f9a; --pt-data-wash: #eaf6f9; --pt-data-line: #bfe2ea;
+}
+html[data-theme="dark"] .bd-article {
+  --pt-data: #5cc8e0; --pt-data-wash: #0f242a; --pt-data-line: #1e4852;
+}
 
-/* this page's headings, under the current tutorial in the section navigation */
+/* ---------- this page's headings, under the current tutorial in the section navigation ---------- */
 .pt-pagetoc { list-style: none; margin: 4px 0 8px 0; padding: 0 0 0 10px; border-left: 2px solid var(--pt-line); display: grid; gap: 1px; }
 .pt-pagetoc a { display: block; padding: 2px 8px; font-size: 0.8rem; line-height: 1.35; color: var(--pt-muted) !important; text-decoration: none !important; border-radius: 4px; }
 .pt-pagetoc a:hover { color: var(--pt-ink) !important; background: var(--pt-surface-2); }
 .pt-pagetoc .pt-l3 a { padding-left: 18px; font-size: 0.76rem; }
 .pt-pagetoc a[aria-current="true"] { color: var(--pt-purple) !important; font-weight: 600; background: var(--pt-wash); }
+
+/* ---------- header ---------- */
+.bd-article .pt-tut { display: grid; gap: 16px; margin: 0 0 22px; padding: 0; border: 0; }
+.pt-tut-lede { margin: -6px 0 0; max-width: 54rem; font-size: 1.1rem; line-height: 1.5; color: var(--pt-ink-2); }
+.pt-tut-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 18px; margin-top: -4px; }
+.pt-tags { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.pt-tag { padding: 1px 8px; border: 1px solid var(--pt-line); border-radius: 4px; background: var(--pt-surface-2);
+  font: 500 0.7rem/1.6 var(--pst-font-family-monospace); letter-spacing: 0.06em; text-transform: uppercase; color: var(--pt-ink-2); }
+.pt-tut-run { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--pt-muted); }
+.pt-tut-run .pt-i { width: 14px; height: 14px; }
+
+/* one panel, a labelled column per job */
+.pt-tut-panel { position: relative; display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+  border: 1px solid var(--pt-line); border-radius: 12px; background: var(--pt-surface); }
+.pt-tut-panel[data-cols="1"] { --cols: 1; } .pt-tut-panel[data-cols="2"] { --cols: 2; } .pt-tut-panel[data-cols="3"] { --cols: 3; }
+.pt-tcol { display: grid; grid-template-rows: auto 1fr; gap: 10px; padding: 14px 16px; min-width: 0; }
+.pt-tcol + .pt-tcol { border-left: 1px solid var(--pt-line); }
+.pt-tcol-k { margin: 0; font: 500 0.66rem var(--pst-font-family-monospace); letter-spacing: 0.1em; text-transform: uppercase; color: var(--pt-muted); }
+.pt-tcol-do { display: grid; gap: 8px; align-content: start; }
+
+/* every button in the panel: the same height, radius and type, the full width of its column */
+.pt-tb, .pt-dchip { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; height: 38px; margin: 0; padding: 0 12px;
+  border: 1px solid var(--pt-line); border-radius: 8px; background: var(--pt-surface); color: var(--pt-ink) !important;
+  font: 600 0.86rem/1 var(--pst-font-family-base); text-decoration: none !important; white-space: nowrap; cursor: pointer;
+  transition: border-color 0.15s, filter 0.15s; }
+.pt-tb:hover { border-color: var(--pt-purple); }
+.pt-tb-go { background: var(--pt-purple); border-color: var(--pt-purple); color: var(--pt-on-accent) !important; }
+.pt-tb-go:hover { filter: brightness(1.08); }
+.pt-tb[disabled] { cursor: progress; opacity: 0.7; }
+.pt-tb .pt-i, .pt-dchip .pt-i { width: 16px; height: 16px; flex: none; }
+.pt-tb small, .pt-dchip small { margin-left: auto; font: 500 0.74rem var(--pst-font-family-base); color: var(--pt-muted); }
+/* View results in 3D: dark, like the viewer it opens, with the tutorial's own picture */
+.pt-tb-3d { height: 52px; padding: 0 12px 0 6px; background: #0b0d12; border-color: #0b0d12; color: #f1f3f8 !important; }
+.pt-tb-3d:hover { border-color: var(--pt-purple); }
+.pt-tb-3d img { width: 58px; height: 40px; object-fit: contain; border-radius: 5px; background: #000; flex: none; }
+.pt-tb-3d .pt-i { margin-left: 8px; color: #f3a44a; }
+.pt-tb-3d small { color: #a3aabb; }
+html[data-theme="dark"] .pt-tb-3d { border-color: #2a2f3c; }
+.pt-tb:focus-visible, .pt-dchip:focus-visible, .pt-dpop button:focus-visible, .bd-article .pt-tut .pt-copy-md:focus-visible,
+.bd-article .pt-tut .pt-viewswitch button:focus-visible { outline: 2px solid var(--pt-purple); outline-offset: 2px; }
+
+/* the data: one button per dataset, in the data colour; it opens the popup */
+.pt-dchip { padding: 0 10px 0 11px; border-color: var(--pt-data-line); background: var(--pt-data-wash); font-weight: 500; }
+.pt-dchip:hover, .pt-dchip[aria-expanded="true"] { border-color: var(--pt-data); }
+.pt-dchip .pt-i { color: var(--pt-data); }
+.bd-article .pt-dchip code { min-width: 0; overflow: hidden; text-overflow: ellipsis; padding: 0; border: 0; background: none;
+  color: var(--pt-ink); font: 600 0.8rem var(--pst-font-family-monospace); }
+.pt-dchip .pt-chev { width: 14px; height: 14px; margin-left: auto; color: var(--pt-muted); transition: transform 0.15s; }
+.pt-dchip small + .pt-chev { margin-left: 0; }
+.pt-dchip[aria-expanded="true"] .pt-chev { transform: rotate(180deg); }
+
+/* tabs for the page itself, sitting on the line that starts the tutorial */
+.pt-tut-tabs { display: flex; align-items: flex-end; gap: 12px; min-height: 38px; border-bottom: 1px solid var(--pt-line); margin-top: 4px; }
+.bd-article .pt-tut .pt-viewswitch { display: flex; gap: 4px; height: auto; margin: 0 0 -1px; border: 0; border-radius: 0; overflow: visible; }
+.bd-article .pt-tut .pt-viewswitch button { display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px 10px; border: 0;
+  border-bottom: 2px solid transparent; border-radius: 0; background: none; color: var(--pt-muted);
+  font: 600 0.88rem/1 var(--pst-font-family-base); cursor: pointer; }
+.bd-article .pt-tut .pt-viewswitch button + button { border-left: 0; }
+.bd-article .pt-tut .pt-viewswitch button:hover { color: var(--pt-ink); }
+.bd-article .pt-tut .pt-viewswitch button[aria-pressed="true"] { background: none; color: var(--pt-ink); border-bottom-color: var(--pt-purple); }
+.bd-article .pt-tut .pt-viewswitch .pt-i { width: 16px; height: 16px; }
+.pt-tb-end { display: inline-flex; margin: 0 0 7px auto; }
+.bd-article .pt-tut .pt-copy-md { float: none; margin: 0; padding: 5px 10px; border: 1px solid var(--pt-line); border-radius: 6px;
+  background: var(--pt-surface); color: var(--pt-ink-2) !important; font: 500 0.8rem var(--pst-font-family-base); }
+.bd-article .pt-tut .pt-copy-md:hover { border-color: var(--pt-purple); color: var(--pt-ink) !important; }
+.pt-mode-script .bd-article .pt-tut { margin-bottom: 18px; }
+@media (max-width: 860px) {
+  .pt-tut-panel { grid-template-columns: minmax(0, 1fr); }
+  .pt-tcol + .pt-tcol { border-left: 0; border-top: 1px solid var(--pt-line); }
+}
+
+/* the data popup: under its button; a sheet at the bottom of a phone's screen */
+.pt-dpop { position: absolute; top: 0; left: 0; z-index: 40; width: min(36rem, 100%); padding: 14px 16px 12px;
+  border: 1px solid var(--pt-line); border-radius: 12px; background: var(--pst-color-background);
+  box-shadow: 0 24px 60px -18px rgba(16, 18, 32, 0.38), 0 2px 6px rgba(16, 18, 32, 0.06); }
+.pt-dpop[hidden] { display: none; }
+.pt-dpop:focus { outline: none; }
+.pt-dpop-head { display: flex; align-items: center; gap: 10px; }
+.pt-dpop-title { display: flex; align-items: center; gap: 8px; margin: 0; }
+.pt-dpop-title .pt-i { width: 18px; height: 18px; color: var(--pt-data); }
+.bd-article .pt-dpop-title code { padding: 0; border: 0; background: none; color: var(--pt-ink); font: 600 0.92rem var(--pst-font-family-monospace); }
+.pt-dpop-x { margin-left: auto; width: 30px; height: 30px; border: 1px solid transparent; border-radius: 6px; background: none;
+  color: var(--pt-muted); font: 400 1.3rem/1 var(--pst-font-family-base); cursor: pointer; }
+.pt-dpop-x:hover { border-color: var(--pt-line); color: var(--pt-ink); }
+.pt-dpop-what { margin: 6px 0 12px; font-size: 0.92rem; line-height: 1.5; color: var(--pt-ink-2); }
+.pt-dpop-k { margin: 0 0 6px; font: 500 0.64rem var(--pst-font-family-monospace); letter-spacing: 0.08em; text-transform: uppercase; color: var(--pt-muted); }
+.pt-dpop-get { display: flex; align-items: center; gap: 10px; padding: 7px 7px 7px 12px; border-radius: 8px; background: var(--pt-surface-2);
+  border: 1px solid var(--pt-line); }
+.bd-article .pt-dpop-get code { flex: 1 1 auto; min-width: 0; padding: 0; border: 0; background: none; color: var(--pt-ink);
+  font: 500 0.82rem/1.5 var(--pst-font-family-monospace); overflow-wrap: anywhere; }
+.pt-dpop-copy { flex: none; height: 28px; padding: 0 10px; border: 1px solid var(--pt-line); border-radius: 6px; background: var(--pt-surface);
+  color: var(--pt-ink-2); font: 600 0.76rem var(--pst-font-family-base); cursor: pointer; }
+.pt-dpop-copy:hover { border-color: var(--pt-purple); color: var(--pt-ink); }
+.pt-dpop-hint, .pt-dpop-steps, .pt-dpop-pending { margin: 6px 0 12px; font-size: 0.82rem; line-height: 1.5; color: var(--pt-muted); }
+.pt-dpop-steps, .pt-dpop-pending { color: var(--pt-ink-2); margin-top: 0; }
+.bd-article .pt-dpop-hint code { font-size: 0.95em; }
+.pt-dpop dl { display: grid; grid-template-columns: 4.6rem minmax(0, 1fr); gap: 6px 12px; margin: 0; font-size: 0.85rem; line-height: 1.45; }
+.pt-dpop dt { font: 500 0.64rem/1.9 var(--pst-font-family-monospace); letter-spacing: 0.08em; text-transform: uppercase; color: var(--pt-muted); }
+.pt-dpop dd { margin: 0; color: var(--pt-ink-2); overflow-wrap: anywhere; }
+.pt-dpop-foot { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--pt-line); font-size: 0.84rem; }
+@media (max-width: 640px) {
+  .pt-tb-end { display: none; }   /* Copy page as Markdown is for desktops */
+  .pt-tut-lede { font-size: 1rem; }
+  .bd-article .pt-tut .pt-viewswitch button { padding: 9px 8px 10px; font-size: 0.82rem; }
+  .pt-dpop { position: fixed; top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; max-height: 78vh; overflow: auto; }
+}
+
+/* ---------- code and outputs ---------- */
+/* long lines (printed output, a few long calls) wrap instead of scrolling sideways */
+.bd-article div.highlight pre, .bd-article .cell_output pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.bd-article .cell_input div.highlight pre { padding-right: 2.6rem; }   /* clear of the copy button */
+/* a wrapped code line continues under its own start, four columns in (js/pytomo-tutorial.js splits the lines) */
+.bd-article pre .pt-ln { display: inline-block; width: 100%; padding-left: var(--h, 4ch); text-indent: calc(-1 * var(--h, 4ch)); vertical-align: top; }
+/* each output: a thin outlined box, titled Output in its top edge, on the page's own background */
+.bd-article div.cell div.cell_output { position: relative; margin: 18px 0 0; padding: 14px 16px 10px; border: 1px solid var(--pt-line);
+  border-radius: 8px; background: none; }
+.bd-article div.cell div.cell_output::before { content: "Output"; position: absolute; top: -0.62rem; left: 12px; padding: 0 6px;
+  background: var(--pst-color-background); font: 500 0.72rem/1.2 var(--pst-font-family-monospace); letter-spacing: 0.04em; color: var(--pt-muted); }
+.bd-article div.cell div.cell_output[hidden], .bd-article div.cell div.cell_output [hidden] { display: none !important; }
+.bd-article div.cell div.cell_output > * + * { margin-top: 10px; }
+.bd-article div.cell div.cell_output .output, .bd-article div.cell div.cell_output div.highlight,
+.bd-article div.cell div.cell_output pre { margin: 0; padding: 0; border: 0; background: none !important; box-shadow: none; }
+.bd-article div.cell div.cell_output pre { color: var(--pt-ink-2); font: 0.8rem/1.55 var(--pst-font-family-monospace); }
+.bd-article div.cell div.cell_output .output.stderr pre { color: #9a5b00; }
+html[data-theme="dark"] .bd-article div.cell div.cell_output .output.stderr pre { color: #e3a64a; }
+.bd-article div.cell div.cell_output img { display: block; max-width: 100%; height: auto; margin: 0; border-radius: 4px; }
+.bd-article div.cell div.cell_output button.copybtn { display: none; }

@@ -5,8 +5,9 @@
   a thumbnail for every tutorial taken from the notebook's own image outputs.
 * ``tutorials/datasets.yaml`` lists every dataset the tutorials read. It renders the
   "Tutorial data" page (``.. tutorial-datasets::``) and the data links on each tutorial.
-* Every notebook page gets a header bar: Notebook / Script toggle, Open in Colab, view on
-  GitHub, links to its data, and the tutorial's modality, data source and topic.
+* Every notebook page gets a header (``tutorial_page.py``): its summary and tags, a panel with
+  Run it (Colab, GitHub), Data (a popup per dataset) and Results (View results in 3D), and tabs
+  for the Jupyter notebook or the script.
 * Every page is also written as Markdown to ``_md/<page>.md``, and ``llms.txt`` and
   ``llms-full.txt`` are built from those copies for AI agents. A ``pt-source`` meta tag
   points "Copy page as Markdown" at the copy.
@@ -24,7 +25,13 @@ from docutils import nodes
 from docutils.parsers.rst import Directive
 from sphinx import addnodes
 
+import tutorial_page
 import tutorial_scripts
+
+try:                      # the 3D viewer's images, for the header's View results in 3D
+    import pytomo_viewer
+except ImportError:
+    pytomo_viewer = None
 
 REPO = "PyTomography/PyTomography"
 BRANCH = "main"
@@ -218,7 +225,7 @@ class TutorialDatasets(Directive):
 
 
 def add_notebook_header(app, doctree):
-    """Insert the launch bar under the title of every tutorial notebook page."""
+    """Insert the header under the title of every tutorial notebook page (tutorial_page.header_html)."""
     docname = app.env.docname
     if not app.env.doc2path(docname).suffix == ".ipynb":
         return
@@ -226,50 +233,22 @@ def add_notebook_header(app, doctree):
     t = app.env.pytomo_by_notebook.get(docname, {})
     colab = f"https://colab.research.google.com/github/{REPO}/blob/{BRANCH}/{NOTEBOOK_DIR}/{nb}.ipynb"
     github = f"https://github.com/{REPO}/blob/{BRANCH}/{NOTEBOOK_DIR}/{nb}.ipynb"
-    here = posixpath.dirname(docname)
-    data_links = "".join(
-        f'<a class="pt-badge" href="{posixpath.relpath("tutorials/data", here)}.html#{dataset_anchor(k)}">'
-        f'Data: <code>{html.escape(k)}</code></a>'
-        for k in t.get("datasets", [])
-    )
-    facts = "".join(
-        f'<span class="pt-fact"><small>{label}</small>{html.escape(t[key])}</span>'
-        for label, key in (("Modality", "modality"), ("Data", "data"), ("Topic", "topic"))
-        if t.get(key) and t[key] not in ("None", "Any")
-    )
     # Written by docs/tools/run_tutorials.py --write-back when the notebook last ran end to end
     run = json.loads(app.env.doc2path(docname).read_text(encoding="utf8")).get("metadata", {}).get("pytomography_run")
-    if run:
-        minutes = (run.get("wall_time_s") or 0) / 60
-        # Peak memory tells readers whether their machine can run it
-        memory = ", ".join(f"{run[k]:g} GB {label}" for k, label in (("peak_ram_gb", "RAM"), ("peak_gpu_gb", "GPU memory"))
-                           if run.get(k))
-        stamp = " · ".join(str(x) for x in (
-            run.get("date"), f"PyTomography {run.get('pytomography')}", run.get("gpu"),
-            f"{minutes:.0f} min" if minutes >= 1 else "under a minute", memory and f"peak {memory}") if x)
-        facts += f'<span class="pt-fact"><small>Last run</small>{html.escape(stamp)}</span>'
     # The plain-Python version of this tutorial, generated into examples/ by docs/tools/export_scripts.py
     script_rel = tutorial_scripts.script_paths(Path(app.srcdir)).get(docname)
     script_file = tutorial_scripts.repo_root(Path(app.srcdir)) / script_rel if script_rel else None
     has_script = script_file is not None and script_file.exists()
-    switch = (
-        '<div class="pt-viewswitch" role="group" aria-label="Tutorial view">'
-        '<button type="button" data-view="notebook" aria-pressed="true">Notebook</button>'
-        '<button type="button" data-view="script" aria-pressed="false">Script</button></div>'
-        if has_script else ""
-    )
-    bar = (
-        f'<div class="pt-launch">{switch}'
-        f'<a class="pt-badge pt-badge-go" href="{colab}">Open in Colab</a>'
-        f'<a class="pt-badge" href="{github}">View on GitHub</a>'
-        f'{data_links}'
-        f'{facts}</div>'
-    )
+    bar = tutorial_page.header_html(
+        t, colab=colab, github=github, has_script=has_script, run=run,
+        data=tutorial_page.page_data(app.env, docname), data_page=tutorial_page.data_page_href(docname),
+        viewer=pytomo_viewer.for_page(app.env, docname) if pytomo_viewer else None)
     section = next(iter(doctree.findall(nodes.section)), None)
     if section is None:
         return
     title_index = next((i for i, n in enumerate(section.children) if isinstance(n, nodes.title)), -1)
     section.insert(title_index + 1, nodes.raw("", bar, format="html"))
+    tutorial_page.drop_data_note(section)
     if has_script:
         app.env.note_dependency(str(script_file))
         script_url = f"https://github.com/{REPO}/blob/{BRANCH}/{script_rel.as_posix()}"

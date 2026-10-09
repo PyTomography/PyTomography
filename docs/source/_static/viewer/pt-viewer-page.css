@@ -1,13 +1,7 @@
 /* The 3D viewer's block on tutorial pages and its button on gallery cards (the viewer's own styles load with it). */
-.ptv-block { margin: 0.75rem 0 1.5rem; display: grid; gap: 8px; }
-.ptv-open { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 10px; border: 1px solid var(--pt-line); border-radius: 12px; background: var(--pt-surface); color: var(--pt-ink); cursor: pointer; font: inherit; transition: border-color 0.15s; }
-.ptv-open:hover { border-color: var(--pt-purple); }
-.ptv-open[disabled] { cursor: progress; opacity: 0.7; }
-.ptv-poster { width: 132px; height: 88px; object-fit: contain; background: var(--pt-black); border-radius: 8px; flex: none; }
-.ptv-otext { display: grid; gap: 2px; min-width: 0; }
-.ptv-otext b { font: 600 1rem var(--pst-font-family-heading); }
-.ptv-otext small { color: var(--pt-muted); font-size: 0.85rem; }
-.ptv-msg { margin: 0; color: var(--pst-color-danger, #b4233a); font-size: 0.85rem; }
+/* holds the tutorial's images; its buttons are in the header (tutorial_page.py) and after each result */
+.ptv-block { margin: 0; }
+.ptv-msg { margin: 0 0 16px; color: var(--pst-color-danger, #b4233a); font-size: 0.85rem; }
 .ptv-msg:empty { display: none; }
 
 /* under the cell that computes an image: open the viewer on it. Dark, like the viewer it opens */
@@ -28,5 +22,5 @@ html[data-theme="dark"] .ptv-result-btn { border-color: #2a2f3c; }
 .ptv-card3d { position: absolute; top: 10px; right: 10px; z-index: 2; font: 600 0.7rem var(--pst-font-family-base); padding: 4px 9px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.28); background: rgba(10, 12, 20, 0.82); color: #fff; cursor: pointer; transition: transform 0.15s; }
 .ptv-card3d:hover { background: rgba(10, 12, 20, 0.95); border-color: rgba(255, 255, 255, 0.6); }
 .ptv-cardwrap:hover > .ptv-card3d { transform: translateY(-2px); }
-.ptv-card3d:focus-visible, .ptv-open:focus-visible { outline: 2px solid var(--pt-purple); outline-offset: 2px; }
+.ptv-card3d:focus-visible { outline: 2px solid var(--pt-purple); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .ptv-cardwrap:hover > .pt-card, .ptv-cardwrap:hover > .ptv-card3d { transform: none; } }
