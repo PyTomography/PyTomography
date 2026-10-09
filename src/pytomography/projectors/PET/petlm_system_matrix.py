@@ -5,8 +5,11 @@ from pytomography.transforms import Transform
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.PET import PETLMProjMeta
 from pytomography.projectors import SystemMatrix
+import math
 import numpy as np
 import parallelproj_core
+from pytomography.io.PET.shared import crystal_pair_blocks
+from pytomography.utils.memory import block_size
 
 #: Factor applied to the memory estimates of :meth:`PETLMSystemMatrix.print_memory_usage`. Summing the arrays a
 #: projection allocates underestimates what the device reports, because PyTorch's caching allocator keeps freed
@@ -272,52 +275,71 @@ class PETLMSystemMatrix(SystemMatrix):
         Returns:
             torch.Tensor: Sesitivity factor for detector IDs
         """
-        # If detector_ids is None, use all detector ids
         if all_ids:
-            if self.proj_meta.detector_ids_sensitivity is not None:
-                detector_ids = self.proj_meta.detector_ids_sensitivity
-            else:
-                # Assumes all possible pairs are used
-                idxs = torch.arange(self.proj_meta.scanner_lut.shape[0]).to(pytomography.device).to(torch.int32)
-                detector_ids = torch.combinations(idxs.cpu(), 2)
-        else:
-            detector_ids = self.proj_meta.detector_ids
+            # every line of response of the sensitivity image, filled a block at a time (all 411 million crystal pairs
+            # of the mMR at once took a 3.3 GB list of pairs, plus the temporaries of making it)
+            proj = torch.empty(self._n_sensitivity_lors())
+            for offset, ids in self._sensitivity_lor_blocks(self._sensitivity_block_size(default=2**24)):
+                proj[offset:offset + ids.shape[0]] = self._sensitivity_weights(ids, offset)
+            return proj
+        detector_ids = self.proj_meta.detector_ids
         proj = torch.ones(detector_ids.shape[0])
-        # Load normalization weights for the specific detector IDs
+        # Load normalization weights for the specific detector IDs: the norm factor of each event's crystal pair (maybe move this somewhere else)
         if self.proj_meta.weights_sensitivity is not None:
-            # If using all detector IDs (assumes weights_sensitivity is same shape as detector_ids)
-            if all_ids:
-                proj *= self.proj_meta.weights_sensitivity.cpu()
-            # Otherwise need to grab norm factor specific to the detector_ids used
-            else: # otherwise grab specific IDs (maybe move this somewhere else)
-                ids_sorted, _ = torch.sort(detector_ids[:,:2].cpu(), 1)
-                norm_factor_idxs = ((self.proj_meta.info['NrCrystalsPerRing'] * self.proj_meta.info['NrRings']-1)*ids_sorted[:,0] + ids_sorted[:,1] - ids_sorted[:,0]*(ids_sorted[:,0]+1)/2 - 1).to(torch.int)
-                proj *= self.proj_meta.weights_sensitivity.cpu()[norm_factor_idxs]
+            ids_sorted, _ = torch.sort(detector_ids[:,:2].cpu(), 1)
+            norm_factor_idxs = ((self.proj_meta.info['NrCrystalsPerRing'] * self.proj_meta.info['NrRings']-1)*ids_sorted[:,0] + ids_sorted[:,1] - ids_sorted[:,0]*(ids_sorted[:,0]+1)/2 - 1).to(torch.int)
+            proj *= self.proj_meta.weights_sensitivity.cpu()[norm_factor_idxs]
         # Scale the weights by attenuation image if its provided in the system matrix
         if self.attenuation_map is not None:
             proj *= self._compute_attenuation_probability_projection(detector_ids).cpu()
         return proj
         
+    def _n_sensitivity_lors(self) -> int:
+        """Number of lines of response of the sensitivity image: ``detector_ids_sensitivity``, or every pair of crystals."""
+        if self.proj_meta.detector_ids_sensitivity is not None:
+            return self.proj_meta.detector_ids_sensitivity.shape[0]
+        n_crystals = self.proj_meta.scanner_lut.shape[0]
+        return n_crystals * (n_crystals - 1) // 2
+
+    def _sensitivity_block_size(self, default: int) -> int:
+        """Lines of response of the sensitivity image handled at once: as many as fit in an eighth of the memory budget (about 48 bytes each on the host; :func:`pytomography.set_memory_budget`), or ``default`` without a budget."""
+        return block_size(48, default=default)
+
+    def _sensitivity_lor_blocks(self, lors_per_block: int):
+        """The lines of response of the sensitivity image a block at a time, as ``(offset, detector_ids)``: ``offset`` is the index of the block's first line of response in ``detector_ids_sensitivity`` or, without it, among all crystal pairs in ``torch.combinations`` order. That is the order of ``weights_sensitivity``."""
+        ids = self.proj_meta.detector_ids_sensitivity
+        if ids is not None:
+            for start in range(0, ids.shape[0], lors_per_block):
+                yield start, ids[start:start + lors_per_block]
+        else:
+            yield from crystal_pair_blocks(self.proj_meta.scanner_lut.shape[0], lors_per_block)
+
+    def _sensitivity_weights(self, detector_ids: torch.Tensor, offset: int) -> torch.Tensor:
+        """Sensitivity weights :math:`w` of a block from ``_sensitivity_lor_blocks``: the normalization weight times the probability that the photons are not attenuated."""
+        proj = torch.ones(detector_ids.shape[0])
+        if self.proj_meta.weights_sensitivity is not None:
+            proj *= self.proj_meta.weights_sensitivity[offset:offset + detector_ids.shape[0]].cpu()
+        if self.attenuation_map is not None:
+            proj *= self._compute_attenuation_probability_projection(detector_ids).cpu()
+        return proj
+
     def _backward_full(self, N_splits: int = 20):
         r"""Computes full back projection :math:`\tilde{H}^T w g` where :math:`w` is the weighting specified in the projection metadata that accounts for attenuation/normalization correction. If ``proj`` ($g$) is not provided, then uses a tensor of all ones (this is used to compute the normalization factor).
 
+        The lines of response (every crystal pair, or ``detector_ids_sensitivity``) are gone through a block at a time: all 411 million crystal pairs of the mMR took a 3.3 GB list of pairs and 1.6 GB arrays of their weights at once.
+
         Args:
-            N_splits (int, optional): Optionally splits up computation to save memory on GPU. Defaults to 10.
+            N_splits (int, optional): Optionally splits up computation to save memory on GPU. Defaults to 20.
         """
-        proj = self._compute_sensitivity_projection()
-        # All detector IDs
-        if self.proj_meta.detector_ids_sensitivity is not None:
-            detector_ids_sensitivity = self.proj_meta.detector_ids_sensitivity
-        else:
-            idxs = torch.arange(self.proj_meta.scanner_lut.shape[0]).to(pytomography.device).to(torch.int32)
-            detector_ids_sensitivity = torch.combinations(idxs.cpu(), 2)
-        # parallelproj adds into the image it is given, so every chunk accumulates into one (padded) buffer
+        # parallelproj adds into the image it is given, so every block accumulates into one (padded) buffer
         norm_BP = torch.zeros(tuple(n + 2 for n in self.object_meta.shape), dtype=torch.float32, device=pytomography.device)
-        for proj_subset, detector_ids_sensitivity_subset in zip(torch.tensor_split(proj, N_splits), torch.tensor_split(detector_ids_sensitivity, N_splits)):
-            xstart, xend = self._lor_coordinates(detector_ids_sensitivity_subset)
+        lors_per_call = math.ceil(self._n_sensitivity_lors() / N_splits)   # what one projector call back projected before
+        for offset, detector_ids in self._sensitivity_lor_blocks(min(lors_per_call, self._sensitivity_block_size(default=lors_per_call))):
+            proj = self._sensitivity_weights(detector_ids, offset)
+            xstart, xend = self._lor_coordinates(detector_ids)
             parallelproj_core.joseph3d_back(
                 xstart, xend, norm_BP, self.object_origin, self.voxel_size,
-                _float32(proj_subset + pytomography.delta, pytomography.device))
+                _float32(proj + pytomography.delta, pytomography.device))
         norm_BP = _crop(norm_BP)
         # Apply object transforms
         for transform in self.obj2obj_transforms[::-1]:

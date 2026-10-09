@@ -9,6 +9,7 @@ import parallelproj_core
 from torchrbf import RBFInterpolator
 from torch.nn.functional import grid_sample
 from pytomography.io.PET.shared import sinogram_coordinates, sinogram_to_spatial, listmode_to_sinogram, LazySinogram
+from pytomography.utils.memory import prefer_lazy, subsets_for_budget
 from pytomography.projectors.PET import create_sinogramSM_from_LMSM
 from pytomography.projectors.PET.petlm_system_matrix import _float32
 from pytomography.metadata.PET import PETTOFMeta
@@ -461,7 +462,7 @@ def interpolate_sparse_sinogram(
     idx_ring: torch.Tensor,
     tof_bins: Sequence[int] | None = None,
     eval_chunk_size: int = 8192,
-    lazy: bool = False
+    lazy: bool | None = None
     ) -> torch.Tensor | LazySinogram:
     """Interpolates a sparse SSS sinogram estimate using linear interpolation on all oblique planes.
 
@@ -472,7 +473,7 @@ def interpolate_sparse_sinogram(
         idx_ring (torch.Tensor): Interring indices corresponding to non-zero locations of the sinogram (obtained via the ``get_sample_detector_ids`` function)
         tof_bins (Sequence[int] | None, optional): TOF bins to interpolate. The interpolator is fit once for all of them and the returned sinogram gets a trailing TOF dimension. Defaults to None (non-TOF).
         eval_chunk_size (int, optional): Number of sinogram (r, theta) positions evaluated at once; bounds device memory (the kernel matrix is ``eval_chunk_size`` x number of sampled positions). Defaults to 8192.
-        lazy (bool, optional): Return a :class:`~pytomography.io.PET.shared.LazySinogram`, which keeps the interpolation over angle and radius of the sampled ring pairs (1 GB for the Siemens Biograph mMR with 21 TOF bins and every sixth ring) and interpolates over the ring pairs when a group of angles is asked for, instead of the whole sinogram (34.6 GB with 21 TOF bins). The values are the same. Defaults to False.
+        lazy (bool, optional): Return a :class:`~pytomography.io.PET.shared.LazySinogram`, which keeps the interpolation over angle and radius of the sampled ring pairs (1 GB for the Siemens Biograph mMR with 21 TOF bins and every sixth ring) and interpolates over the ring pairs when a group of angles is asked for, instead of the whole sinogram (34.6 GB with 21 TOF bins). The values are the same. Defaults to None: lazy when the whole sinogram would take more than a quarter of the memory budget (:func:`pytomography.set_memory_budget`), and never without a budget.
 
     Returns:
         torch.Tensor | LazySinogram: Interpolated SSS sinogram [theta, r, plane] (or [theta, r, plane, TOF]) on the CPU
@@ -528,16 +529,21 @@ def interpolate_sparse_sinogram(
         sampled = rtheta[angles].to(device)
         out = torch.empty((len(angles), N_r, len(z1)*len(z2), len(bins)), dtype=torch.float32)
         for b in range(len(bins)):
-            # r/theta becomes batch/channel in grid_sample, which is fine (each channel is interpolated on its own)
-            planes = grid_sample(
-                sampled[..., b].reshape(len(angles) * N_r, len(idx_ring), len(idx_ring)).unsqueeze(0),
-                interp_mesh.unsqueeze(0),
-                align_corners=True
-            ).reshape((len(angles), N_r, len(z1), len(z2)))
+            # r/theta becomes batch/channel in grid_sample, which is fine (each channel is interpolated on its own).
+            # On CUDA, grid_sample hands calls with at most 1024 channels to cuDNN, which rounds differently from
+            # PyTorch's own kernel; without cuDNN the values do not depend on how many angles are computed at once.
+            with torch.backends.cudnn.flags(enabled=False):
+                planes = grid_sample(
+                    sampled[..., b].reshape(len(angles) * N_r, len(idx_ring), len(idx_ring)).unsqueeze(0),
+                    interp_mesh.unsqueeze(0),
+                    align_corners=True
+                ).reshape((len(angles), N_r, len(z1), len(z2)))
             out[..., b] = planes[:, :, idx_ring1, idx_ring2].cpu()
         return out if tof_bins is not None else out[..., 0]
     shape = (N_theta, N_r, len(z1)*len(z2)) + ((len(bins),) if tof_bins is not None else ())
     scatter_sinogram = LazySinogram(interpolate_z, shape, description="interpolated single scatter estimate")
+    if lazy is None:
+        lazy = prefer_lazy(4 * np.prod(shape))
     return scatter_sinogram if lazy else scatter_sinogram.to_dense()
 
 def scale_estimated_scatter(
@@ -584,8 +590,9 @@ def scale_estimated_scatter(
     # Scatter
     # Need to get back projecgion of masked scatter and masked totall;
     # we'll split into subsets to preserve memory since this requires
-    # making copies of potentially very large sinogram tensors
-    N_SUBSETS = 20
+    # making copies of potentially very large sinogram tensors (four subset-sized arrays at once; more subsets if the
+    # memory budget needs them)
+    N_SUBSETS = subsets_for_budget(4 * float(np.prod(proj_data.shape)), arrays=4, minimum=20)
     system_matrix.set_n_subsets(N_SUBSETS)
     BP_scatter_mask = 0
     BP_total_mask = 0
@@ -615,7 +622,7 @@ def get_sss_scatter_estimate(
     tof_meta: PETTOFMeta = None,
     num_dense_tof_bins: int = 25,
     N_splits: int = 1,
-    lazy: bool = False
+    lazy: bool | None = None
 ) -> torch.Tensor | LazySinogram:
     """Main function used to get SSS scatter estimation during PET reconstruction
 
@@ -634,7 +641,7 @@ def get_sss_scatter_estimate(
         tof_meta (PETTOFMeta, optional): TOFMetadata corresponding to ``proj_data`` (if TOF is considered). Defaults to None.
         num_dense_tof_bins (int, optional): Number of dense TOF bins to use for partioning emission integrals when performing a TOF estimate. This is seperate from TOF bins used in the PET data. Defaults to 25.
         N_splits (int, optional): Splits the TOF bins into subsets and loops over them sequentially (as opposed to parallel) for scatter estimation. Defaults to 1.
-        lazy (bool, optional): Return the estimate as a :class:`~pytomography.io.PET.shared.LazySinogram`, computed a group of angles at a time when it is read, instead of a dense sinogram (34.6 GB for the Siemens Biograph mMR with 21 TOF bins; scaling it made a second one). Use it with ``sinogram_to_listmode`` for list mode data, or as part of the additive term of a sinogram reconstruction. The values are the same. Defaults to False.
+        lazy (bool, optional): Return the estimate as a :class:`~pytomography.io.PET.shared.LazySinogram`, computed a group of angles at a time when it is read, instead of a dense sinogram (34.6 GB for the Siemens Biograph mMR with 21 TOF bins; scaling it made a second one). Use it with ``sinogram_to_listmode`` for list mode data, or as part of the additive term of a sinogram reconstruction. The values are the same. Defaults to None: lazy when the dense estimate would take more than a quarter of the memory budget (:func:`pytomography.set_memory_budget`), and never without a budget.
 
     Returns:
         torch.Tensor | LazySinogram: Estimated SSS projection data (sinogram/listmode)

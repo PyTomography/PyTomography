@@ -2,7 +2,9 @@ from __future__ import annotations
 import pytomography
 from pytomography.projectors import SystemMatrix
 from collections.abc import Callable
+import math
 import torch
+from pytomography.utils.memory import subsets_for_budget
 
 class Likelihood:
     """Generic likelihood class in PyTomography. Subclasses may implement specific likelihoods with methods to compute the likelihood itself as well as particular gradients of the likelihood 
@@ -50,6 +52,7 @@ class Likelihood:
             n_subsets (int): Number of subsets
         """
         self.n_subsets = n_subsets
+        self._check_memory_budget(n_subsets)
         if n_subsets < 2:
             self.norm_BP = self.system_matrix.compute_normalization_factor()
         else:
@@ -60,6 +63,21 @@ class Likelihood:
                     self.norm_BPs.append(self.system_matrix.compute_normalization_factor(k))
         self.n_subsets_previous = n_subsets
         
+    def _check_memory_budget(self, n_subsets: int) -> None:
+        """Stops a reconstruction whose subsets would not fit in the memory budget (:func:`pytomography.set_memory_budget`) before it starts, with the number of subsets that would fit. A subset needs about three arrays of its size at once; half the budget is left for everything else.
+
+        Args:
+            n_subsets (int): Number of subsets
+        """
+        if pytomography.memory_budget is None:
+            return
+        projection_bytes = 4 * math.prod(self.projections.shape)   # all the projections, even if they are computed a subset at a time
+        needed = subsets_for_budget(projection_bytes)
+        if n_subsets < needed:
+            raise ValueError(f"one subset of {n_subsets} needs about {3 * projection_bytes / n_subsets / 1e9:.1f} GB at once, more than the "
+                             f"{pytomography.memory_budget / 2e9:.1f} GB the memory budget of {pytomography.memory_budget / 1e9:.1f} GB leaves for it: "
+                             f"use at least {needed} subsets, or raise the budget with pytomography.set_memory_budget")
+
     def _get_projection_subset(self, projections: torch.Tensor, subset_idx: int | None = None) -> torch.Tensor:
         """Method for getting projection subset corresponding to given subset index
 

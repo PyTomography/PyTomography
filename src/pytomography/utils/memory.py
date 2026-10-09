@@ -1,5 +1,8 @@
-"""Memory budgets for computations that are split into chunks, so that they do not take over a shared GPU."""
+"""Memory budgets. The host (RAM) budget set with :func:`pytomography.set_memory_budget` sizes the blocks and subsets of
+PyTomography's memory-heavy steps (without a budget, every step keeps its fixed default); the GPU budget of chunked
+computations keeps them from taking over a shared GPU."""
 from __future__ import annotations
+import math
 import torch
 import pytomography
 
@@ -53,3 +56,55 @@ class PeakMemory:
             torch.cuda.synchronize(self.device)
             self.peak = torch.cuda.max_memory_allocated(self.device) - self._base
         return False
+
+def block_size(bytes_per_item: float, default: int, fraction: float = 1 / 8) -> int:
+    """Number of items (crystal pairs, events) a step processes at once: as many as fit in ``fraction`` of the memory budget, or ``default`` without a budget.
+
+    Args:
+        bytes_per_item (float): Memory the step needs per item, temporaries included.
+        default (int): Number of items without a budget.
+        fraction (float, optional): Share of the budget the step may take. Defaults to 1/8.
+
+    Returns:
+        int: Number of items per block (at least 1).
+    """
+    if pytomography.memory_budget is None:
+        return default
+    return max(1, int(pytomography.memory_budget * fraction // bytes_per_item))
+
+
+def prefer_lazy(nbytes: float) -> bool:
+    """Whether an array of ``nbytes`` bytes should be computed one part at a time instead of held whole: when it would take more than a quarter of the memory budget. Never without a budget.
+
+    Args:
+        nbytes (float): Size of the whole array.
+
+    Returns:
+        bool: True if the array should be computed a part at a time.
+    """
+    return pytomography.memory_budget is not None and nbytes > pytomography.memory_budget / 4
+
+
+def subsets_for_budget(projection_bytes: float, arrays: int = 3, held_bytes: float | None = None, minimum: int = 1) -> int:
+    """Fewest subsets for which a reconstruction fits in the memory budget.
+
+    A subset needs ``arrays`` arrays the size of one subset of the projections at once (a Poisson likelihood holds the
+    measured subset, its expected value and their ratio), next to ``held_bytes`` held for the whole reconstruction (the
+    data, the additive term, the images; half the budget if not given).
+
+    Args:
+        projection_bytes (float): Size of all the projections (e.g. a whole time of flight sinogram, even if it is never held whole).
+        arrays (int, optional): Number of subset-sized arrays held at once. Defaults to 3.
+        held_bytes (float | None, optional): Memory held besides them. Defaults to None (half the budget).
+        minimum (int, optional): Fewest subsets to return. Defaults to 1.
+
+    Returns:
+        int: Number of subsets (``minimum`` without a budget).
+    """
+    budget = pytomography.memory_budget
+    if budget is None:
+        return minimum
+    available = budget - (budget / 2 if held_bytes is None else held_bytes)
+    if available <= 0:
+        raise ValueError(f"the memory budget ({budget / 1e9:.1f} GB) leaves nothing for the subsets after the {held_bytes / 1e9:.1f} GB held: raise it with pytomography.set_memory_budget")
+    return max(minimum, math.ceil(arrays * projection_bytes / available))
