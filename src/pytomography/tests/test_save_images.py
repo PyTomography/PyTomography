@@ -31,9 +31,16 @@ def _positions_from_dicom(files):
     out = []
     for f in files:
         ds = pydicom.dcmread(str(f))
-        row, col = np.array(ds.ImageOrientationPatient[:3], float), np.array(ds.ImageOrientationPatient[3:], float)
+        det = ds.DetectorInformationSequence[0] if "DetectorInformationSequence" in ds else None   # NM
+        iop = det.ImageOrientationPatient if det is not None else ds.ImageOrientationPatient
+        row, col = np.array(iop[:3], float), np.array(iop[3:], float)
         dr, dc = (float(v) for v in ds.PixelSpacing)        # between rows, between columns
-        frames = ds.pixel_array.reshape(-1, ds.Rows, ds.Columns) * float(ds.RescaleSlope) + float(ds.RescaleIntercept)
+        if "RealWorldValueMappingSequence" in ds:                # NM
+            m = ds.RealWorldValueMappingSequence[0]
+            slope, intercept = float(m.RealWorldValueSlope), float(m.RealWorldValueIntercept)
+        else:
+            slope, intercept = float(ds.RescaleSlope), float(ds.RescaleIntercept)
+        frames = ds.pixel_array.reshape(-1, ds.Rows, ds.Columns) * slope + intercept
         if "NumberOfFrames" in ds and int(ds.NumberOfFrames) > 1:
             ipp0 = np.array(ds.DetectorInformationSequence[0].ImagePositionPatient, float)
             normal = np.cross(row, col)
@@ -227,3 +234,13 @@ def test_ct_in_other_units_keeps_fractions(tmp_path):
     files = save_dicom(mu, tmp_path / "mu", affine=AFFINES[0], modality="CT", units="1/mm")
     _check_dicom(files, mu, AFFINES[0], tol=float(mu.max()) / 65535 * 0.51 + 1e-9)
     assert pydicom.dcmread(str(files[0])).RescaleType == "US"
+
+
+def test_ct_keeps_whole_hu_and_clips_wild_voxels(tmp_path):
+    """CT in HU stays in 1 HU steps even when a few voxels are far outside the 16-bit range; those are clipped."""
+    x = np.round(_image(signed=True) * 10)
+    x[0, 0, 0] = 6e5                                                            # a wild voxel at the edge of coverage
+    with pytest.warns(UserWarning, match="1 voxels"):
+        files = save_dicom(x, tmp_path / "ct", affine=AFFINES[0], modality="CT")
+    clipped = np.clip(x, -32768, 32767)
+    _check_dicom(files, clipped, AFFINES[0], tol=0)

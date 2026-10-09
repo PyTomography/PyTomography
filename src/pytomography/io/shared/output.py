@@ -18,6 +18,7 @@ series joins that patient, study and frame of reference, so clinical viewers fus
 from __future__ import annotations
 
 import copy
+import warnings
 import datetime
 from pathlib import Path
 from typing import Sequence
@@ -39,6 +40,10 @@ SOP_CLASS = {
 # Units of a PET series, (0054,1001)
 PET_UNITS = {"counts": "CNTS", "cnts": "CNTS", "bq/ml": "BQML", "bqml": "BQML", "kbq/ml": "BQML", "suv": "GML",
              "gml": "GML", "propcps": "PROPCPS", "a.u.": "CNTS"}
+# The image's units as UCUM codes (NM images give their real values through a Real World Value Mapping)
+UCUM = {"counts": ("{counts}", "counts"), "cnts": ("{counts}", "counts"), "bq/ml": ("Bq/mL", "becquerels/milliliter"),
+        "bqml": ("Bq/mL", "becquerels/milliliter"), "kbq/ml": ("kBq/mL", "kilobecquerels/milliliter"),
+        "counts/s": ("{counts}/s", "counts per second"), "mbq/ml": ("MBq/mL", "megabecquerels/milliliter")}
 # Copied from the reference, when it has them, so the series joins its patient, study and frame of reference
 PATIENT_STUDY = ["PatientName", "PatientID", "PatientBirthDate", "PatientSex", "PatientAge", "PatientSize", "PatientWeight",
                  "IssuerOfPatientID", "OtherPatientIDs", "EthnicGroup", "StudyInstanceUID", "StudyDate", "StudyTime",
@@ -172,15 +177,17 @@ def _is_hu(modality: str, units: str | None) -> bool:
 
 
 def _scaling(arr: np.ndarray, modality: str, units: str | None = None):
-    """Integers for the pixel data and the rescale slope: whole HU for CT in HU (int16, slope 1 when they fit);
-    otherwise unsigned 16 bits for images without negative values and signed 16 bits for the rest, scaled to their
-    maximum."""
+    """Integers for the pixel data and the rescale slope: whole HU for CT in HU (int16, slope 1); otherwise unsigned
+    16 bits for images without negative values and signed 16 bits for the rest, scaled to their maximum."""
     finite = np.nan_to_num(arr.astype(np.float64), nan=0.0, posinf=0.0, neginf=0.0)
     lo, hi = float(finite.min()), float(finite.max())
     if _is_hu(modality, units):
-        finite = np.round(finite)
-        if lo >= -32768 and hi <= 32767:
-            return finite.astype(np.int16), 1.0, True
+        # 1 HU steps always: a few wild voxels (e.g. at the edge of a reconstruction's coverage) would otherwise force a
+        # coarse scale on the whole image, so values beyond 16 bits are clipped, with a warning
+        outside = int(np.count_nonzero((finite < -32768) | (finite > 32767)))
+        if outside:
+            warnings.warn(f"save_dicom: {outside} voxels beyond -32768..32767 HU were clipped to that range")
+        return np.clip(np.round(finite), -32768, 32767).astype(np.int16), 1.0, True
     if lo >= 0:
         integral = bool(np.all(finite == np.round(finite))) and hi <= 65535
         slope = 1.0 if integral else (hi / 65535 if hi > 0 else 1.0)
@@ -244,6 +251,12 @@ def _base(modality: str, ref: Dataset | None, series_uid: str, frame_uid: str, s
     return ds
 
 
+def _patient_orientation(ds: Dataset, ref: Dataset | None) -> None:
+    """The NM/PET Patient Orientation module (type 2): the reference's codes, or empty when there are none."""
+    for key in ("PatientOrientationCodeSequence", "PatientGantryRelationshipCodeSequence"):
+        ds[key] = ref[key] if ref is not None and key in ref else pydicom.DataElement(key, "SQ", DicomSequence([]))
+
+
 def _file(ds: Dataset, path: Path) -> None:
     meta = FileMetaDataset()
     meta.MediaStorageSOPClassUID = ds.SOPClassUID
@@ -303,13 +316,14 @@ def save_dicom(image, folder, object_meta=None, affine=None, modality: str = "PT
     base.PixelSpacing = [_number(geo["dy"]), _number(geo["dx"])]         # between rows, between columns
     base.SliceThickness = _number(geo["dz"])
     base.ImageOrientationPatient = [_number(c) for c in (*geo["row"], *geo["col"])]
+    if modality == "NM":                       # NM gives real values through a Real World Value Mapping instead
+        return [_write_nm(base, pixels, slope, geo, folder, ref, units)]
     base.RescaleSlope, base.RescaleIntercept = _number(slope), "0"
-    if modality == "NM":
-        return [_write_nm(base, pixels, geo, folder, ref, units)]
     if modality == "CT":
         base.ImageType = ["DERIVED", "PRIMARY", "AXIAL"]
         base.RescaleType = "HU" if _is_hu(modality, units) else "US"   # US: unspecified (e.g. attenuation per mm)
         base.KVP = getattr(ref, "KVP", "") if ref is not None else ""
+        base.AcquisitionNumber = 1
     else:
         base.ImageType = ["DERIVED", "PRIMARY"]
         base.Units = PET_UNITS.get((units or "counts").lower(), "CNTS")
@@ -321,8 +335,11 @@ def save_dicom(image, folder, object_meta=None, affine=None, modality: str = "PT
         base.FrameReferenceTime = "0"
         base.AcquisitionDate = getattr(ref, "AcquisitionDate", base.ContentDate) if ref is not None else base.ContentDate
         base.AcquisitionTime = getattr(ref, "AcquisitionTime", base.ContentTime) if ref is not None else base.ContentTime
+        base.ActualFrameDuration = int(getattr(ref, "ActualFrameDuration", 0) or 0) if ref is not None else 0   # ms
+        base.CollimatorType = "NONE"                                       # PET: no collimator
         if ref is not None and "RadiopharmaceuticalInformationSequence" in ref:
             base.RadiopharmaceuticalInformationSequence = ref.RadiopharmaceuticalInformationSequence
+        _patient_orientation(base, ref)
     files = []
     for k in range(arr.shape[2]):
         ds = copy.deepcopy(base)
@@ -339,9 +356,12 @@ def save_dicom(image, folder, object_meta=None, affine=None, modality: str = "PT
     return files
 
 
-def _write_nm(base: Dataset, pixels: np.ndarray, geo: dict, folder: Path, ref: Dataset | None, units) -> Path:
+def _write_nm(base: Dataset, pixels: np.ndarray, slope: float, geo: dict, folder: Path, ref: Dataset | None,
+              units) -> Path:
     """SPECT as one NM multi-frame file of reconstructed slices (RECON TOMO). Frames run along the slice normal (the
-    cross product of the row and column directions), as DICOM requires, so slices are reversed when k runs against it."""
+    cross product of the row and column directions), as DICOM requires, so slices are reversed when k runs against it.
+    Where the slices are is in the Detector Information Sequence; the stored integers become real values through a
+    Real World Value Mapping (NM has no rescale slope)."""
     order = list(range(pixels.shape[2])) if geo["ascending"] else list(range(pixels.shape[2]))[::-1]
     ds = base
     ds.SOPInstanceUID = generate_uid()
@@ -355,13 +375,33 @@ def _write_nm(base: Dataset, pixels: np.ndarray, geo: dict, folder: Path, ref: D
     detector = Dataset()
     detector.ImagePositionPatient = [_number(c) for c in geo["ipp"][order[0]]]
     detector.ImageOrientationPatient = base.ImageOrientationPatient
+    ref_det = ref.DetectorInformationSequence[0] if ref is not None and ref.get("DetectorInformationSequence") else None
+    detector.CollimatorType = getattr(ref_det, "CollimatorType", "") if ref_det is not None else ""
+    detector.FocalDistance = getattr(ref_det, "FocalDistance", "") if ref_det is not None else ""
     ds.DetectorInformationSequence = DicomSequence([detector])
-    ds.ImagePositionPatient = detector.ImagePositionPatient
-    for key in ("EnergyWindowInformationSequence", "RadiopharmaceuticalInformationSequence", "RotationInformationSequence"):
+    del ds.ImageOrientationPatient                                     # it lives in the Detector Information Sequence
+    ds.NumberOfDetectors = 1
+    ds.NumberOfEnergyWindows = 1
+    ds.CountsAccumulated = ""
+    # one energy window: the reference's, when it has exactly one (a reconstruction doesn't say which of several it used)
+    windows = ref.get("EnergyWindowInformationSequence") if ref is not None else None
+    ds.EnergyWindowInformationSequence = DicomSequence(list(windows) if windows is not None and len(windows) == 1 else [])
+    for key in ("RadiopharmaceuticalInformationSequence", "RotationInformationSequence"):
         if ref is not None and key in ref:
             ds[key] = ref[key]
-    if units:
-        ds.Units = PET_UNITS.get(units.lower(), "CNTS")
+    _patient_orientation(ds, ref)
+    code, meaning = UCUM.get((units or "counts").strip().lower(), ("1", "no units"))
+    unit = Dataset()
+    unit.CodeValue, unit.CodingSchemeDesignator, unit.CodeMeaning = code, "UCUM", meaning
+    rwvm = Dataset()
+    rwvm.LUTExplanation = "PyTomography reconstruction"
+    rwvm.LUTLabel = "PYTOMOGRAPHY"
+    rwvm.MeasurementUnitsCodeSequence = DicomSequence([unit])
+    rwvm.RealWorldValueFirstValueMapped = 0
+    rwvm.RealWorldValueLastValueMapped = int(pixels.max())
+    rwvm.RealWorldValueIntercept = 0.0
+    rwvm.RealWorldValueSlope = float(slope)
+    ds.RealWorldValueMappingSequence = DicomSequence([rwvm])
     ds.PixelData = np.ascontiguousarray(np.stack([pixels[:, :, k].T for k in order])).tobytes()
     path = folder / "NM_0001.dcm"
     _file(ds, path)
