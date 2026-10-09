@@ -26,7 +26,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: A fresh environment for this commit, on top of the runner's CUDA environment
         run: |
           python -m venv --system-site-packages .ci-venv

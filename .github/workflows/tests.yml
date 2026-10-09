@@ -35,8 +35,8 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python: ["3.10", "3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
           cache: pip
@@ -64,8 +64,8 @@ jobs:
       run:
         shell: bash -el {0}
     steps:
-      - uses: actions/checkout@v4
-      - uses: mamba-org/setup-micromamba@v2
+      - uses: actions/checkout@v7
+      - uses: mamba-org/setup-micromamba@v3
         with:
           environment-file: .github/ci-environment.yml
           cache-environment: true
@@ -83,15 +83,15 @@ jobs:
       run:
         shell: bash -el {0}
     steps:
-      - uses: actions/checkout@v4
-      - uses: mamba-org/setup-micromamba@v2
+      - uses: actions/checkout@v7
+      - uses: mamba-org/setup-micromamba@v3
         with:
           environment-file: .github/ci-environment.yml
           cache-environment: true
       - name: Install PyTomography with the test extras
         run: pip install -e ".[test]"
       - name: Restore the test data
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/pytomography_data
           key: tutorial-data-zenodo-15314460-${{ hashFiles('.github/fetch_test_data.py') }}
@@ -104,8 +104,8 @@ jobs:
     name: Example scripts match the notebooks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Check examples/ against docs/source/notebooks
