@@ -165,12 +165,19 @@ def _geometry(A: np.ndarray, shape) -> dict:
             "ipp": [p[:3] for p in positions], "ascending": float(normal @ w) > 0}
 
 
-def _scaling(arr: np.ndarray, modality: str):
-    """Integers for the pixel data and the rescale slope: whole HU for CT (int16, slope 1 when they fit); otherwise
-    unsigned 16 bits for images without negative values and signed 16 bits for the rest, scaled to their maximum."""
+def _is_hu(modality: str, units: str | None) -> bool:
+    """A CT image in Hounsfield units (the default for CT). Other CT images, such as attenuation per mm, keep their
+    fractional values."""
+    return modality == "CT" and (units is None or units.strip().upper() == "HU")
+
+
+def _scaling(arr: np.ndarray, modality: str, units: str | None = None):
+    """Integers for the pixel data and the rescale slope: whole HU for CT in HU (int16, slope 1 when they fit);
+    otherwise unsigned 16 bits for images without negative values and signed 16 bits for the rest, scaled to their
+    maximum."""
     finite = np.nan_to_num(arr.astype(np.float64), nan=0.0, posinf=0.0, neginf=0.0)
     lo, hi = float(finite.min()), float(finite.max())
-    if modality == "CT":
+    if _is_hu(modality, units):
         finite = np.round(finite)
         if lo >= -32768 and hi <= 32767:
             return finite.astype(np.int16), 1.0, True
@@ -263,7 +270,8 @@ def save_dicom(image, folder, object_meta=None, affine=None, modality: str = "PT
             a CT slice, raw CT projections). The series takes its patient, study and frame of reference, so it lines
             up with that study's other images. Without one, the series gets a new study and frame of reference.
         units (str, optional): the image's units, e.g. ``"counts"`` or ``"Bq/mL"`` (PET: written as DICOM's code,
-            CNTS or BQML; CT is always HU).
+            CNTS or BQML). CT is in HU, rounded to whole numbers, unless units says otherwise (e.g. ``"1/mm"`` for
+            attenuation), which keeps fractional values.
         series_description (str): shown in DICOM viewers' series lists.
         series_number (int): the series number.
         overwrite (bool): replace DICOM files already in ``folder``. Defaults to False, which refuses to.
@@ -288,7 +296,7 @@ def save_dicom(image, folder, object_meta=None, affine=None, modality: str = "PT
     now = datetime.datetime.now()
     series_uid = generate_uid()
     frame_uid = ref.FrameOfReferenceUID if ref is not None and "FrameOfReferenceUID" in ref else generate_uid()
-    pixels, slope, signed = _scaling(arr, modality)
+    pixels, slope, signed = _scaling(arr, modality, units)
     base = _base(modality, ref, series_uid, frame_uid, series_description, series_number, now)
     base.PixelRepresentation = 1 if signed else 0
     base.Rows, base.Columns = int(arr.shape[1]), int(arr.shape[0])       # rows run along y (j), columns along x (i)
@@ -300,7 +308,7 @@ def save_dicom(image, folder, object_meta=None, affine=None, modality: str = "PT
         return [_write_nm(base, pixels, geo, folder, ref, units)]
     if modality == "CT":
         base.ImageType = ["DERIVED", "PRIMARY", "AXIAL"]
-        base.RescaleType = "HU"
+        base.RescaleType = "HU" if _is_hu(modality, units) else "US"   # US: unspecified (e.g. attenuation per mm)
         base.KVP = getattr(ref, "KVP", "") if ref is not None else ""
     else:
         base.ImageType = ["DERIVED", "PRIMARY"]

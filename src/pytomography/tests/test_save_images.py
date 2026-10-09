@@ -219,3 +219,11 @@ def test_projection_reader_applies_rescale(tmp_path, data_dir):
     ds.RescaleSlope, ds.RescaleIntercept = 2.5, 3.0
     scaled = dicom.parse_projection_dataset(ds)[0]
     assert torch.allclose(scaled, plain * 2.5 + 3.0)
+
+
+def test_ct_in_other_units_keeps_fractions(tmp_path):
+    """CT in HU is rounded to whole HU; attenuation per mm (micro-CT) keeps its fractional values."""
+    mu = _image() / 2000                                                        # about 0 to 0.2 per mm
+    files = save_dicom(mu, tmp_path / "mu", affine=AFFINES[0], modality="CT", units="1/mm")
+    _check_dicom(files, mu, AFFINES[0], tol=float(mu.max()) / 65535 * 0.51 + 1e-9)
+    assert pydicom.dcmread(str(files[0])).RescaleType == "US"
