@@ -31,6 +31,7 @@ from ..shared import (
     create_ds,
     align_images_affine
 )
+from ..shared.dicom import compute_slice_thickness_multifile
 from .attenuation_map import get_HU2mu_conversion as get_HU2mu_conversion_old
 
 def parse_projection_dataset(
@@ -983,7 +984,8 @@ def get_starguide_affine_CT(files_CT: Sequence[str]):
     """
     ds = pydicom.dcmread(files_CT[0])
     dx = dy = ds.PixelSpacing[0] / 10
-    dz = ds.SliceThickness / 10
+    # the distance between slices, from their positions: SliceThickness differs from it when slices overlap or have gaps
+    dz = compute_slice_thickness_multifile(files_CT) / 10
     shape = [*ds.pixel_array.shape, len(files_CT)]
     Sx_CT = - (shape[0]-1) * dx / 2
     Sy_CT = - (shape[1]-1) * dy / 2
