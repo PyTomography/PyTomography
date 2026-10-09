@@ -145,3 +145,48 @@ def test_sheared_affine_is_refused(tmp_path):
     A[0, 2] = 1.0                                                             # a tilted slice axis
     with pytest.raises(ValueError, match="sheared"):
         save_dicom(_image(), tmp_path / "s", affine=A)
+
+
+# ---------- the patient frame of data sources without one in object_meta (tutorial data) ----------
+
+@pytest.mark.data
+def test_starguide_frame_matches_ge_reconstruction(data_dir):
+    """PyTomography's StarGuide grid, placed through the CT, is where GE's own reconstruction of the same grid is."""
+    import os
+    from pytomography.io.SPECT import dicom
+    root = data_dir / "SPECT" / "Tc99m-NEMA-Starguide"
+    files_CT = [str(root / "CT_files" / f) for f in os.listdir(root / "CT_files")]
+    ge = pydicom.dcmread(str(root / "vendor_recon" / "i196884.NMDC.1"), stop_before_pixels=True)
+    meta = SPECTObjectMeta(dr=(float(ge.PixelSpacing[0]) / 10,) * 3, shape=(196, 196, 112))   # get_starguide_metadata's grid
+    A = dicom.get_starguide_patient_affine(files_CT, meta)
+    det = ge.DetectorInformationSequence[0]
+    row, col = np.array(det.ImageOrientationPatient[:3], float), np.array(det.ImageOrientationPatient[3:], float)
+    A_ge = np.eye(4)
+    A_ge[:3, 0] = row * float(ge.PixelSpacing[1])
+    A_ge[:3, 1] = col * float(ge.PixelSpacing[0])
+    A_ge[:3, 2] = np.cross(row, col) * float(ge.SpacingBetweenSlices)
+    A_ge[:3, 3] = np.array(det.ImagePositionPatient, float)
+    corners = np.array([[i, j, k, 1] for i in (0, 195) for j in (0, 195) for k in (0, 111)], float).T
+    assert np.abs(A @ corners - A_ge @ corners).max() < 0.01
+
+
+@pytest.mark.data
+def test_gate_image_lands_on_its_phantom_nifti(tmp_path, data_dir):
+    """A reconstruction-sized image saved with the phantom's frame overlays the phantom's own NIfTI: sampling the
+    original MR at each saved voxel's position (through the two files' affines only) gives the saved value."""
+    nib = pytest.importorskip("nibabel")
+    from scipy.ndimage import map_coordinates
+    from pytomography.io.PET import gate
+    path = str(data_dir / "PET" / "GATE-mMR-Brain" / "fdg_pet_phantom_mri.nii.gz")
+    meta = ObjectMeta(dr=(2.0, 2.0, 2.0), shape=(100, 120, 110))
+    on_grid = gate.get_attenuation_map_nifti(path, meta).cpu().numpy() * 10   # the MR as the PET grid sees it
+    saved = nib.load(str(save_nifti(on_grid, tmp_path / "mr_on_pet_grid.nii.gz",
+                                    affine=gate.get_patient_affine_from_nifti(path, meta))))
+    mr = nib.load(path)
+    rng = np.random.default_rng(0)
+    ijk = np.argwhere(on_grid > 0.2 * on_grid.max())
+    ijk = ijk[rng.choice(len(ijk), 2000, replace=False)]
+    world = saved.affine @ np.c_[ijk, np.ones(len(ijk))].T
+    src = np.linalg.inv(mr.affine) @ world
+    sampled = map_coordinates(np.asarray(mr.dataobj, np.float32), src[:3], order=1)
+    assert np.allclose(sampled, on_grid[tuple(ijk.T)], rtol=1e-3, atol=1e-3 * on_grid.max())

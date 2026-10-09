@@ -1012,6 +1012,30 @@ def get_starguide_affine_NM(files_NM: Sequence[str]):
                          [0, 0, 0, 1]])
     return affine_NM
 
+def get_starguide_patient_affine(files_CT: Sequence[str], object_meta: SPECTObjectMeta) -> np.ndarray:
+    """Where the voxels of a StarGuide reconstruction are in the patient (DICOM LPS, mm), from the CT taken with it.
+
+    PyTomography places StarGuide's reconstruction and CT in a frame centred on the scan (see
+    :func:`get_starguide_affine_CT` and :func:`get_starguide_affine_NM`), with the reconstruction's slices running head
+    to foot. This puts that frame where the CT's own DICOM geometry is; on the tutorial's phantom it matches GE's own
+    reconstruction to 0.002 mm. Pass the result as ``affine`` to :func:`pytomography.io.save_dicom` or
+    :func:`pytomography.io.save_nifti`.
+
+    Args:
+        files_CT (Sequence[str]): the CT files of the acquisition.
+        object_meta (SPECTObjectMeta): the reconstruction's object metadata (from :func:`get_starguide_metadata`).
+
+    Returns:
+        np.ndarray: the 4 x 4 voxel-to-patient matrix (LPS, mm).
+    """
+    from ..shared.output import centred_affine
+    A_ct = _get_affine_multifile(files_CT)                    # the CT's real geometry
+    A_ct_centred = get_starguide_affine_CT(files_CT).copy()   # the same CT in PyTomography's centred frame, cm
+    A_ct_centred[:3, :] *= 10
+    flip_z = np.eye(4)
+    flip_z[2, 2], flip_z[2, 3] = -1, object_meta.shape[2] - 1   # slice k is the (Lz - 1 - k)th from the bottom
+    return A_ct @ npl.inv(A_ct_centred) @ centred_affine(object_meta.dr, object_meta.shape, in_cm=True) @ flip_z
+
 def get_starguide_attenuation_map_from_CT_slices(
     files_CT: Sequence[str],
     files_NM: Sequence[str],
