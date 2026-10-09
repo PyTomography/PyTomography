@@ -3,7 +3,9 @@ import torch
 import pytomography
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.PET import PETSinogramPolygonProjMeta
+import math
 import numpy as np
+from pytomography.utils.memory import gpu_budget
 from pytomography.projectors import SystemMatrix
 from pytomography.transforms import Transform
 from pytomography.io.PET.shared import listmode_to_sinogram, all_pairs_to_sinogram
@@ -96,10 +98,13 @@ class PETSinogramSystemMatrix(SystemMatrix):
         return xyz1.flatten(start_dim=0,end_dim=2), xyz2.flatten(start_dim=0,end_dim=2)
     
     def _chunk_bounds(self, N: int) -> list[tuple[int, int]]:
-        """Start/end of the ``N_splits`` contiguous chunks of the flattened sinogram (the same partition ``torch.tensor_split`` gives)."""
-        base, extra = divmod(N, self.N_splits)
+        """Start/end of the contiguous chunks of the flattened sinogram the projector handles at once (the partition ``torch.tensor_split`` gives): ``N_splits`` of them, or more if a chunk would not fit in the GPU budget (:func:`pytomography.utils.memory.gpu_budget`). A whole non-TOF sinogram of the mMR in ten chunks held about 4 GB on the GPU, which Windows also counts as host memory."""
+        num_bins = 1 if not self.TOF else self.proj_meta.tof_meta.num_bins
+        bytes_per_lor = 88 + 8 * num_bins   # LOR indices, angle/radial/plane indices, crystal coordinates, and the projection values
+        n_chunks = max(self.N_splits, math.ceil(N * bytes_per_lor / gpu_budget()))
+        base, extra = divmod(N, n_chunks)
         bounds, start = [], 0
-        for i in range(self.N_splits):
+        for i in range(n_chunks):
             end = start + base + (1 if i < extra else 0)
             bounds.append((start, end))
             start = end

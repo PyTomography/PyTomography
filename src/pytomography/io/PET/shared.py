@@ -801,6 +801,20 @@ def sinogram_to_listmode(detector_ids: torch.Tensor, sinogram: torch.Tensor | La
         lm_return += sinogram[idx0, idx1, idx2]
     return lm_return
 
+def _convolve_last_axis(x: torch.Tensor, kernel: torch.nn.Conv1d) -> torch.Tensor:
+    """``x`` convolved with a 1D ``kernel`` along its last axis, a block of rows at a time into one output. The convolution
+    of all rows at once took about 13 times the input in temporaries on the CPU (21 GB for the randoms sinogram of the
+    Siemens Biograph mMR); the blocks hold an eighth of the memory budget (:func:`pytomography.set_memory_budget`), or
+    about 0.5 GB without one. Each row is convolved on its own, so the result does not depend on the blocks."""
+    out = torch.empty(x.shape, dtype=x.dtype, device=x.device)
+    bytes_per_row = 64 * x.shape[-1]   # 16 float32 temporaries per sample
+    rows_per_slice = max(1, int(np.prod(x.shape[1:-1])))
+    slices = max(1, block_size(bytes_per_row, default=max(1, int(5e8 // bytes_per_row))) // rows_per_slice)
+    for start in range(0, x.shape[0], slices):
+        block = x[start:start + slices]
+        out[start:start + slices] = kernel(block.reshape(-1, 1, x.shape[-1])).reshape(block.shape)
+    return out
+
 @torch.no_grad()
 def smooth_randoms_sinogram(
     sinogram_random: torch.Tensor,
@@ -833,9 +847,7 @@ def smooth_randoms_sinogram(
     kr = get_1d_gaussian_kernel(sigma_r, kernel_size_r, 'replicate')
     kz = get_1d_gaussian_kernel(sigma_z, kernel_size_z, 'replicate')
     for i, k in enumerate([ktheta,kr,kz,kz]):
-        sino = sino.swapaxes(i,3)
-        sino = k(sino.flatten(end_dim=-2).unsqueeze(1)).reshape(sino.shape)
-        sino = sino.swapaxes(i,3)
+        sino = _convolve_last_axis(sino.swapaxes(i,3), k).swapaxes(i,3)
     ii = torch.argsort(sinogram_index.ravel())
     ix, iy = ii // sino.shape[-2], ii % sino.shape[-1]
     sinogram_random_interp = sino[:,:,ix,iy]
