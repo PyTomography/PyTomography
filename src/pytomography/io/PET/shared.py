@@ -478,16 +478,16 @@ def listmode_to_sinogram(
         sinogram /= 2
     return sinogram
 
-def all_pairs_to_sinogram(weights: torch.Tensor, info: dict, normalization: bool = False, pairs_per_chunk: int = 2**24) -> torch.Tensor:
+def all_pairs_to_sinogram(weights: torch.Tensor, info: dict, normalization: bool = False, pairs_per_chunk: int = 2**22) -> torch.Tensor:
     """``listmode_to_sinogram`` of every pair of crystals of the scanner, with a weight for each pair (such as normalization weights), binned a block of pairs at a time.
 
-    The pairs are those of ``torch.combinations(torch.arange(N_crystals), 2)``, in that order, which is the order of ``weights``. For the 411 million pairs of the Siemens Biograph mMR, the pair list alone takes 3.3 GB and binning all pairs at once took tens of GB of temporaries; binning ``pairs_per_chunk`` pairs at a time bounds those. Each sinogram bin holds at most one pair (in each of the two orders the normalization binning uses), so the result is the same as binning all pairs at once.
+    The pairs are those of ``torch.combinations(torch.arange(N_crystals), 2)``, in that order, which is the order of ``weights``. For the 411 million pairs of the Siemens Biograph mMR, the pair list alone takes 3.3 GB and binning all pairs at once took tens of GB of temporaries. Here each block of ``pairs_per_chunk`` pairs is added into one sinogram (two for a normalization sinogram, one per order of the crystals) in the order ``listmode_to_sinogram`` adds them, so the result is the same.
 
     Args:
         weights (torch.Tensor): Weight of each crystal pair, in ``torch.combinations`` order.
         info (dict): PET geometry information dictionary.
         normalization (bool, optional): Bin as a normalization sinogram (see ``listmode_to_sinogram``). Defaults to False.
-        pairs_per_chunk (int, optional): Number of pairs binned at once. Defaults to 2**24.
+        pairs_per_chunk (int, optional): Number of pairs binned at once. Defaults to 2**22.
 
     Returns:
         torch.Tensor: PET sinogram.
@@ -495,7 +495,11 @@ def all_pairs_to_sinogram(weights: torch.Tensor, info: dict, normalization: bool
     n_crystals = int(info['NrCrystalsPerRing'] * info['NrRings'])
     if weights.shape[0] != n_crystals * (n_crystals - 1) // 2:
         raise ValueError(f"expected one weight per crystal pair ({n_crystals * (n_crystals - 1) // 2:,}), got {weights.shape[0]:,}")
-    sinogram, first, offset = None, 0, 0
+    lor_coordinates, sinogram_index = sinogram_coordinates(info)
+    shape = _sinogram_shape(info)
+    # one sinogram per order of the two crystals that is binned: the normalization sinogram bins each pair both ways
+    sinograms = [torch.zeros(int(np.prod(shape)), dtype=torch.float32) for _ in range(2 if normalization else 1)]
+    first, offset = 0, 0
     while first < n_crystals - 1:
         # rows first..last-1 of the pairs: (i, j) for j > i, about pairs_per_chunk of them
         last = first + 1
@@ -507,11 +511,21 @@ def all_pairs_to_sinogram(weights: torch.Tensor, info: dict, normalization: bool
         counts = n_crystals - 1 - i
         crystal_1 = torch.repeat_interleave(i, counts)
         crystal_2 = torch.arange(n_pairs) - torch.repeat_interleave(torch.cumsum(counts, 0) - counts, counts) + crystal_1 + 1
-        part = listmode_to_sinogram(torch.stack([crystal_1, crystal_2], dim=1).to(torch.int32), info, weights=weights[offset:offset + n_pairs], normalization=normalization)
-        sinogram = part if sinogram is None else sinogram.add_(part)
+        ids = torch.stack([crystal_1, crystal_2], dim=1)
+        within_ring_id, ring_ids = ids % info['NrCrystalsPerRing'], ids // info['NrCrystalsPerRing']
+        within_ring_id, idx = within_ring_id.sort(axis=1, descending=True, stable=True)   # as in listmode_to_sinogram
+        ring_ids = ring_ids.gather(index=idx, dim=1)
+        block_weights = weights[offset:offset + n_pairs].to(device='cpu', dtype=torch.float32)
+        for (a, b), sinogram in zip(((0, 1), (1, 0)), sinograms):
+            key, inside = _bin_keys(lor_coordinates[within_ring_id[:,a], within_ring_id[:,b]], sinogram_index[ring_ids[:,a], ring_ids[:,b]], shape)
+            sinogram.index_add_(0, key[inside], block_weights[inside])   # adds in order, like bincount
         offset += n_pairs
         first = last
-    return sinogram
+    sinogram = sinograms[0]
+    if normalization:
+        sinogram += sinograms[1]
+        sinogram /= 2
+    return sinogram.reshape(shape)
 
 def _sinogram_shape(info: dict) -> tuple:
     """Shape (angles, radial bins, planes) of the sinogram of a scanner."""
