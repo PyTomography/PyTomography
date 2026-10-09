@@ -128,6 +128,22 @@ def test_low_signal_filter_on_the_gpu_matches_the_host():
     assert torch.equal(gpu[good], p[good])
 
 
+@pytest.mark.parametrize("device", ["cpu", pytest.param("cuda", marks=pytest.mark.skipif(not torch.cuda.is_available(), reason="needs CUDA"))])
+def test_the_low_signal_filter_in_place_matches_the_copy(device):
+    # starved rays in two runs of views, so that some chunks filter and some don't, across chunk edges
+    V, C, R = 60, 80, 8
+    n0 = np.full((V, C), 20000.0)
+    views = np.arange(V)[:, None, None]
+    starved = (views < 15) | ((views >= 30) & (views < 45))
+    p_true = np.where(starved, np.linspace(2, 10, C)[None, :, None], 2.0) * np.ones((V, C, R))
+    p = torch.tensor(_poisson(n0[:, :, None], p_true, seed=2), dtype=torch.float32)
+    copy = preprocessing.filter_low_signal(p, torch.tensor(n0), 30, device=device, chunk=8)
+    q = p.clone()
+    inplace = preprocessing.filter_low_signal(q, torch.tensor(n0), 30, device=device, chunk=8, inplace=True)
+    assert inplace.data_ptr() == q.data_ptr()                            # filtered where it was, without a copy
+    assert torch.equal(inplace, copy) and not torch.equal(copy, p)
+
+
 def _meta(n_views=8, n_cols=21):
     zero = torch.zeros(n_views)
     return CTGen3ProjMeta(torch.linspace(0, 2 * np.pi, n_views), torch.full((n_views,), 500.0), torch.linspace(-5, 5, n_views),

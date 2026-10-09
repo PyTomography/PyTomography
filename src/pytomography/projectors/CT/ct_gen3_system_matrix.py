@@ -170,12 +170,17 @@ class CTGen3SystemMatrix(SystemMatrix):
         return (self._coverage() > 0).to(torch.float32).to(device)
 
     def _fbp(self, projections: torch.Tensor, filter, slice_thickness: float | None = None, gpu_budget: float | None = None,
-             Q: float = 0.6, k_range: int | None = None, stats: dict | None = None, backend: str = 'auto') -> torch.Tensor:
+             Q: float = 0.6, k_range: int | None = None, stats: dict | None = None, backend: str = 'auto',
+             column_weights: torch.Tensor | None = None) -> torch.Tensor:
         r"""Helical filtered back projection onto the object grid of this system matrix, called by
         :class:`pytomography.algorithms.FilteredBackProjection`. The fan projections are rebinned to parallel beams and
         reconstructed by weighted filtered back projection (WFBP, Stierstorfer et al. 2004), which also handles circular
         scans. With a flying focal spot, each group of views sharing a focal spot offset is reconstructed on its own and
         the groups are averaged. Voxels outside the field of view are zero, as in :meth:`forward`.
+
+        Host memory: besides the projections and the image, the reconstruction holds the rebinned projections of a chunk
+        of views at a time, at most an eighth of the memory budget (:func:`pytomography.set_memory_budget`), or 1 GB
+        without one. A smaller budget means more chunks, which is slower; the image is the same.
 
         Args:
             projections (torch.Tensor): Line integrals (views, columns, rows), on any device.
@@ -192,6 +197,9 @@ class CTGen3SystemMatrix(SystemMatrix):
             backend (str, optional): ``'auto'`` back projects with a fused CUDA kernel when CuPy is installed and the
                 device is a GPU (much faster, and lighter on memory), and with PyTorch otherwise; ``'cuda'`` or
                 ``'torch'`` force one. Defaults to ``'auto'``.
+            column_weights (torch.Tensor, optional): A weight for each detector column, multiplying the line
+                integrals as they are read: the reconstruction of the weighted projections, without a weighted copy of
+                them (:func:`pytomography.io.CT.preprocessing.fit_column_scale` uses it). Defaults to None.
 
         Returns:
             torch.Tensor: Attenuation per mm on the object grid, on ``pytomography.device``.
@@ -207,8 +215,9 @@ class CTGen3SystemMatrix(SystemMatrix):
         else:
             z_offsets = (0.0,)
         image = _wfbp.fbp_helical(projections, self.proj_meta, X, Y, z, window=filter, z_offsets=z_offsets, Q_weight=Q,
-                                  k_range=k_range, budget=gpu_budget, device=pytomography.device, stats=stats, backend=backend)
-        return image if self._fov is None else image * self._fov
+                                  k_range=k_range, budget=gpu_budget, device=pytomography.device, stats=stats, backend=backend,
+                                  column_weights=column_weights)
+        return image if self._fov is None else image.mul_(self._fov.to(image.device))
 
     def forward(self, object, subset_idx=None):
         r"""Computes forward projection

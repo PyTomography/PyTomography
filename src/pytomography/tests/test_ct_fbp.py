@@ -205,6 +205,26 @@ def test_the_window_is_fitted_back_from_a_reference_image():
         preprocessing.fit_window(proj, meta, sm, reference, filter='hann')
 
 
+def test_the_fbp_streams_its_views_and_weights_columns_as_it_reads_them():
+    meta = _helix(rotations=3)
+    proj = _line_integrals(meta)
+    sm = CTGen3SystemMatrix(OBJECT_META, meta)
+    whole = FilteredBackProjection(proj, sm, filter='hann')()
+    stats = {}
+    try:   # a budget whose eighth holds about 150 of the 70 x 12 rebinned views: several chunks
+        pytomography.set_memory_budget(8 * 150 * 70 * 12 * 4 / 1e9)
+        streamed = FilteredBackProjection(proj, sm, filter='hann', stats=stats)()
+    finally:
+        pytomography.set_memory_budget(None)
+    assert stats['groups'][0]['chunks'] > 2
+    torch.testing.assert_close(streamed, whole, rtol=1e-4, atol=1e-6)
+    w = torch.linspace(0.5, 1.5, meta.shape[0])
+    weighted = FilteredBackProjection(proj * w[None, :, None], sm, filter='hann')()
+    torch.testing.assert_close(FilteredBackProjection(proj, sm, filter='hann', column_weights=w)(), weighted, rtol=1e-4, atol=1e-6)
+    with pytest.raises(ValueError):
+        pytomography.set_memory_budget(0)
+
+
 @pytest.mark.parametrize("which", ["helical", "cone beam"])
 def test_the_projectors_no_longer_accept_a_projection_type(which):
     if which == "helical":

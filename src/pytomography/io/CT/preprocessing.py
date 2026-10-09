@@ -26,23 +26,26 @@ def _box(a: torch.Tensor, size) -> torch.Tensor:
 
 
 def _filter_low_signal_gpu(proj: torch.Tensor, n0: torch.Tensor, n_target: float, v0: int, v1: int, device, budget,
-                           chunk: int | None) -> torch.Tensor:
+                           chunk: int | None, inplace: bool = False) -> torch.Tensor:
     """:func:`filter_low_signal` on a GPU, a chunk of views at a time within ``budget``."""
     V, C, R = proj.shape
-    out = proj.to(torch.float32).clone()
+    inplace = inplace and proj.dtype == torch.float32 and proj.is_contiguous()
+    out = proj if inplace else proj.to(torch.float32).clone()
     logk = torch.tensor(np.log([a * b * c for a, b, c in LOW_SIGNAL_SIZES]), dtype=torch.float32, device=device)
     margin = max(s[0] for s in LOW_SIGNAL_SIZES) // 2 + 1
     if chunk is None:
         chunk = int(max(8, gpu_budget(budget, device) // (C * R * 4 * 12) - 2 * margin))
+    tail = None    # in place: the views just before the chunk as they were, before the previous chunk overwrote them
     for s0 in range(v0, v1, chunk):
         s1 = min(v1, s0 + chunk)
         lo, hi = max(0, s0 - margin), min(V, s1 + margin)
-        p = proj[lo:hi].to(device, torch.float32)
+        p = (proj[lo:hi] if tail is None else torch.cat([tail[len(tail) - (s0 - lo):], proj[s0:hi]])).to(device, torch.float32)
         trans = torch.exp(-p)
         n_est = n0[lo:hi, :, None].to(device, torch.float32) * _box(trans, (3, 3, 3))
         need = torch.clamp(n_target / torch.clamp(n_est, min=1e-9), 1.0, float(torch.exp(logk[-1])))
         del n_est
         if float(need.max()) <= 1.0:
+            tail = None
             continue
         ln = torch.log(need)
         i = torch.clamp(torch.searchsorted(logk, ln.contiguous(), right=True) - 1, 0, len(logk) - 2)
@@ -56,6 +59,8 @@ def _filter_low_signal_gpu(proj: torch.Tensor, n0: torch.Tensor, n_target: float
             acc += w * (trans if k == 0 else _box(trans, size))
             del w
         sl = slice(s0 - lo, s0 - lo + (s1 - s0))
+        if inplace:
+            tail = proj[max(s0, s1 - margin):s1].clone()
         out[s0:s1] = torch.where(need[sl] > 1.0, -torch.log(torch.clamp(acc[sl], min=1e-12)), p[sl]).cpu()
         del p, trans, need, x, acc
     if torch.device(device).type == 'cuda':   # hand back the GPU memory: on Windows it also counts against the host's
@@ -64,7 +69,7 @@ def _filter_low_signal_gpu(proj: torch.Tensor, n0: torch.Tensor, n_target: float
 
 
 def filter_low_signal(projections: torch.Tensor, photon_counts, n_target: float = 30.0, views: tuple | None = None,
-                      chunk: int | None = None, device=None, budget: float | None = None) -> torch.Tensor:
+                      chunk: int | None = None, device=None, budget: float | None = None, inplace: bool = False) -> torch.Tensor:
     r"""Adaptive filtering of photon-starved rays, in the spirit of Hsieh (Med. Phys. 25, 2139, 1998) and Kachelriess
     et al. (Med. Phys. 28, 475, 2001).
 
@@ -87,6 +92,8 @@ def filter_low_signal(projections: torch.Tensor, photon_counts, n_target: float 
         chunk (int, optional): Views processed at a time. Defaults to what fits the budget (GPU) or 400 (host).
         device (str, optional): Where to compute. Defaults to ``pytomography.device``.
         budget (float, optional): GPU memory budget in bytes (see :func:`pytomography.utils.gpu_budget`).
+        inplace (bool, optional): Filter float32 projections on the host in place, without a second copy of them
+            (others are copied first); the result is the same. Defaults to False.
 
     Returns:
         torch.Tensor: Filtered line integrals (float32), on the device of ``projections``.
@@ -99,25 +106,29 @@ def filter_low_signal(projections: torch.Tensor, photon_counts, n_target: float 
         if tuple(n0_t.shape) != tuple(proj_t.shape[:2]):
             raise ValueError(f'photon counts {tuple(n0_t.shape)} do not match the projections {tuple(proj_t.shape[:2])} (views, columns)')
         v0, v1 = views if views is not None else (0, proj_t.shape[0])
-        return _filter_low_signal_gpu(proj_t, n0_t, n_target, v0, v1, work, budget, chunk).to(out_device)
+        return _filter_low_signal_gpu(proj_t, n0_t, n_target, v0, v1, work, budget, chunk, inplace).to(out_device)
     chunk = 400 if chunk is None else chunk
     proj = projections.detach().cpu().numpy() if isinstance(projections, torch.Tensor) else np.asarray(projections)
     n0 = photon_counts.detach().cpu().numpy() if isinstance(photon_counts, torch.Tensor) else np.asarray(photon_counts)
     if n0.shape != proj.shape[:2]:
         raise ValueError(f'photon counts {n0.shape} do not match the projections {proj.shape[:2]} (views, columns)')
-    out = np.array(proj, dtype=np.float32, copy=True)
+    inplace = inplace and proj.dtype == np.float32 and proj.flags.writeable and proj.flags.c_contiguous
+    out = proj if inplace else np.array(proj, dtype=np.float32, copy=True)
     V = proj.shape[0]
     v0, v1 = views if views is not None else (0, V)
     k = np.array([a * b * c for a, b, c in LOW_SIGNAL_SIZES], dtype=np.float64)
     logk = np.log(k)
     margin = max(s[0] for s in LOW_SIGNAL_SIZES) // 2 + 1
+    tail = None    # in place: the views just before the chunk as they were, before the previous chunk overwrote them
     for s0 in range(v0, v1, chunk):
         s1 = min(v1, s0 + chunk)
         lo, hi = max(0, s0 - margin), min(V, s1 + margin)
-        trans = np.exp(-np.asarray(proj[lo:hi], dtype=np.float32))
+        block = proj[lo:hi] if tail is None else np.concatenate([tail[len(tail) - (s0 - lo):], proj[s0:hi]])
+        trans = np.exp(-np.asarray(block, dtype=np.float32))
         n_est = n0[lo:hi, :, None] * ndimage.uniform_filter(trans, (3, 3, 3), mode='nearest')
         need = np.clip(n_target / np.maximum(n_est, 1e-9), 1.0, k[-1])
         if need.max() <= 1.0:
+            tail = None
             continue
         x = np.interp(np.log(need), logk, np.arange(len(k)))                         # fractional size index
         acc = np.zeros_like(trans)
@@ -128,6 +139,8 @@ def filter_low_signal(projections: torch.Tensor, photon_counts, n_target: float 
             acc += w * (trans if i == 0 else ndimage.uniform_filter(trans, size, mode='nearest'))
         filtered = -np.log(np.maximum(acc, 1e-12))
         sl = slice(s0 - lo, s0 - lo + (s1 - s0))
+        if inplace:
+            tail = proj[max(s0, s1 - margin):s1].copy()
         out[s0:s1] = np.where(need[sl] > 1.0, filtered[sl], out[s0:s1])
     return torch.from_numpy(out).to(out_device)
 
@@ -225,9 +238,8 @@ def fit_column_scale(projections: torch.Tensor, proj_meta, system_matrix, refere
     f0 = _image(FilteredBackProjection(projections, system_matrix, **fbp_options)())
     if ref.shape != f0.shape:
         raise ValueError(f'reference is {ref.shape}, but the object grid of the system matrix is {f0.shape}')
-    weighted = projections.to(torch.float32) * u2.to(projections.device)[None, :, None]
-    f2 = _image(FilteredBackProjection(weighted, system_matrix, **fbp_options)())
-    del weighted
+    # the reconstruction weights the columns as it reads them, so the weighted projections are never held
+    f2 = _image(FilteredBackProjection(projections, system_matrix, column_weights=u2, **fbp_options)())
     px = sigma / np.asarray(system_matrix.object_meta.dr, dtype=np.float64)
     B0, B2, R = (ndimage.gaussian_filter(a, px) for a in (f0, f2, ref))          # float32, like the images
     del f2

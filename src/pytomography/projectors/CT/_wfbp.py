@@ -69,17 +69,16 @@ def group_geometry(meta, idx: np.ndarray) -> dict:
                 angle_error=float(np.abs(beta - (beta[0] + dbeta * np.arange(len(beta)))).max()))
 
 
-def rebin_to_parallel(proj: torch.Tensor, geo: dict, dt: float, budget: float | None, device) -> tuple:
-    """Rebin the fan projections of one focal spot group (``proj``: all views, columns, rows, on the host) to parallel
-    projections (angles, t, rows, on the host) on a uniform t grid of spacing ``dt``, by bilinear interpolation in (view,
-    column). Only the fan views a chunk of parallel angles needs are copied to the device."""
-    idx = geo['idx']
-    N, ncol, nrow = len(idx), proj.shape[1], proj.shape[2]
-    rho, gamma = geo['rho'], geo['gamma']
-    t_max = rho * np.sin(geo['gamma_max'])
+#: Bytes of rebinned projections the FBP holds at once without a memory budget (with one, an eighth of it)
+CHUNK_BYTES = 1e9
+
+
+def parallel_grid(geo: dict, dt: float) -> tuple:
+    """The parallel projections that one focal spot group rebins to: their angles (one per fan view step, over the
+    angles the whole group covers), the uniform t grid of spacing ``dt``, and the angle step."""
+    t_max = geo['rho'] * np.sin(geo['gamma_max'])
     M = 2 * int(np.ceil(t_max / dt))
     t = (np.arange(M) - (M - 1) / 2) * dt
-    gam_t = np.arcsin(np.clip(t / rho, -1, 1))
     n_pi = int(round(np.pi / abs(geo['dbeta'])))                         # the gantry may turn either way
     dtheta = np.pi / n_pi
     beta_min, beta_max = min(geo['beta0'], geo['beta1']), max(geo['beta0'], geo['beta1'])
@@ -87,7 +86,29 @@ def rebin_to_parallel(proj: torch.Tensor, geo: dict, dt: float, budget: float | 
     J = int(np.floor((beta_max - geo['gamma_max'] - theta0) / dtheta)) + 1
     if J < 1:
         raise ValueError('the scan covers too small an angle for filtered back projection')
-    theta = theta0 + np.arange(J) * dtheta
+    return theta0 + np.arange(J) * dtheta, t, dtheta
+
+
+def views_per_chunk(J: int, bytes_per_view: float) -> int:
+    """How many parallel views the FBP rebins, filters and back projects at a time: an eighth of the memory budget
+    (:func:`pytomography.set_memory_budget`) of rebinned projections, or :data:`CHUNK_BYTES` without a budget."""
+    budget = getattr(pytomography, 'memory_budget', None)
+    allowed = budget / 8 if budget else CHUNK_BYTES
+    return int(min(J, max(1, allowed // bytes_per_view)))
+
+
+def rebin_to_parallel(proj: torch.Tensor, geo: dict, theta: np.ndarray, t: np.ndarray, budget: float | None, device,
+                      column_weights: torch.Tensor | None = None) -> torch.Tensor:
+    """Rebin the fan projections of one focal spot group (``proj``: all views, columns, rows, on the host) to the
+    parallel projections at angles ``theta`` (angles, t, rows, on the host) on the t grid ``t``, by bilinear
+    interpolation in (view, column). Only the fan views a chunk of parallel angles needs are copied to the device;
+    ``column_weights`` (one per detector column), if given, multiply them there."""
+    idx = geo['idx']
+    N, ncol, nrow = len(idx), proj.shape[1], proj.shape[2]
+    rho, gamma = geo['rho'], geo['gamma']
+    t_max = rho * np.sin(geo['gamma_max'])
+    M, J = len(t), len(theta)
+    gam_t = np.arcsin(np.clip(t / rho, -1, 1))
     fan_span = int(np.ceil(2 * geo['gamma_max'] / abs(geo['dbeta']))) + 3
     per_view = ncol * nrow * 4 + 6 * M * nrow * 4
     chunk = int(max(1, min(256, gpu_budget(budget, device) // per_view - fan_span)))
@@ -97,6 +118,7 @@ def rebin_to_parallel(proj: torch.Tensor, geo: dict, dt: float, budget: float | 
     fc = (col - c0).float()[None, :, None]
     inside = torch.tensor(np.abs(t) <= t_max, device=device).float()[None, :, None]
     gam_t_d = torch.tensor(gam_t, device=device)
+    weights = None if column_weights is None else torch.as_tensor(column_weights).to(device, torch.float32)[None, :, None]
     P = torch.empty((J, M, nrow), dtype=torch.float32)
     for s in range(0, J, chunk):
         th = torch.tensor(theta[s:s + chunk], device=device)
@@ -104,13 +126,15 @@ def rebin_to_parallel(proj: torch.Tensor, geo: dict, dt: float, budget: float | 
         lo = max(0, int(iv.min().floor()) - 1)
         hi = min(N, int(iv.max().ceil()) + 2)
         p = proj[torch.as_tensor(idx[lo:hi])].to(device, torch.float32)
+        if weights is not None:
+            p *= weights
         i0 = (iv.floor().clamp(0, N - 2).long() - lo).clamp(0, hi - lo - 2)
         fi = (iv - (i0 + lo)).float().clamp(0, 1)[..., None]
         cc = c0[None, :].expand_as(i0)
         v = ((1 - fi) * ((1 - fc) * p[i0, cc] + fc * p[i0, cc + 1]) + fi * ((1 - fc) * p[i0 + 1, cc] + fc * p[i0 + 1, cc + 1]))
         P[s:s + chunk] = (v * inside).cpu()
         del p, v
-    return P, theta, t, dtheta
+    return P
 
 
 def ramp_filter(P: torch.Tensor, geo: dict, dt: float, window, budget: float | None, device) -> torch.Tensor:
@@ -153,18 +177,20 @@ def partner_range(geo: dict, r_fov: float, theta: np.ndarray, reach_extra: float
 
 def backproject(Q: torch.Tensor, theta: np.ndarray, t: np.ndarray, dtheta: float, geo: dict, X: torch.Tensor, Y: torch.Tensor,
                 Z: np.ndarray, out: torch.Tensor, Q_weight: float = 0.6, k_range: int | None = None, z_offsets=(0.0,),
-                budget: float | None = None, views_per_batch: int = 4) -> None:
+                budget: float | None = None, views_per_batch: int = 4, theta_range: tuple | None = None) -> None:
     """Voxel-driven weighted back projection of the filtered parallel projections of one focal spot group (on the host)
     onto the points (X[i, j], Y[i, j], Z[k]) (object frame, mm; Z increasing), added into ``out`` (Nx, Ny, Nz). Each
     ray's weight is its WFBP row weight over the sum for the rays through the same voxel at theta + k pi that were
-    measured. ``z_offsets`` (mm): sub-slices whose contributions are averaged into each slice, which widens its slice
-    sensitivity profile."""
+    measured: those with angles in ``theta_range`` (first, last), by default those of ``theta``, so that the group's
+    views can be back projected a chunk at a time. ``z_offsets`` (mm): sub-slices whose contributions are averaged into
+    each slice, which widens its slice sensitivity profile."""
     device = out.device
     J, M, nrow = Q.shape
     rho, slope, z0, beta0, dsd, dz = geo['rho'], geo['slope'], geo['z0'], geo['beta0'], geo['dsd'], geo['dz']
     dt, v0, dv = float(t[1] - t[0]), geo['v0'], geo['dv']
     t_max = rho * np.sin(geo['gamma_max'])
-    theta_lo, theta_hi = float(theta[0]) - 1e-6, float(theta[-1]) + 1e-6
+    first, last = theta_range if theta_range is not None else (theta[0], theta[-1])
+    theta_lo, theta_hi = float(first) - 1e-6, float(last) + 1e-6
     X, Y = X.to(device, torch.float32), Y.to(device, torch.float32)
     Nx, Ny = X.shape
     Z = np.asarray(Z, dtype=np.float64)
@@ -229,12 +255,16 @@ def backproject(Q: torch.Tensor, theta: np.ndarray, t: np.ndarray, dtheta: float
 
 def fbp_helical(proj: torch.Tensor, meta, X: torch.Tensor, Y: torch.Tensor, Z: np.ndarray, window, z_offsets=(0.0,),
                 Q_weight: float = 0.6, k_range: int | None = None, budget: float | None = None, device=None,
-                stats: dict | None = None, backend: str = 'auto') -> torch.Tensor:
+                stats: dict | None = None, backend: str = 'auto', column_weights: torch.Tensor | None = None) -> torch.Tensor:
     """WFBP of DICOM-CT-PD style projections (views, columns, rows; line integrals) with metadata ``meta``
     (:class:`CTGen3ProjMeta`) onto the points (X[i, j], Y[i, j], Z[k]) (object frame, mm; Z increasing). Returns the
     image (Nx, Ny, Nz) on ``device``. ``stats``, if given, receives the time and measured peak memory of each stage.
     ``backend``: ``'cuda'`` for the fused CUDA kernel (:mod:`._wfbp_cuda`, needs CuPy), ``'torch'`` for PyTorch, or
-    ``'auto'``: the fused kernel when it can run (CuPy, a CUDA device, uniformly spaced Z), else PyTorch."""
+    ``'auto'``: the fused kernel when it can run (CuPy, a CUDA device, uniformly spaced Z), else PyTorch.
+
+    The parallel views are rebinned, filtered and back projected a chunk at a time (:func:`views_per_chunk`), so the
+    host holds only a chunk of rebinned projections; the image does not depend on the chunks. ``column_weights``, one
+    per detector column, multiply the line integrals as they are read, as if the projections had been weighted."""
     import time
     from . import _wfbp_cuda
     device = torch.device(pytomography.device if device is None else device)
@@ -251,29 +281,33 @@ def fbp_helical(proj: torch.Tensor, meta, X: torch.Tensor, Y: torch.Tensor, Z: n
     groups = view_groups(meta)
     out = torch.zeros((X.shape[0], X.shape[1], len(Z)), dtype=torch.float32, device=device)
     cuda = device.type == 'cuda'
+    r_fov = float(torch.sqrt(X.double() ** 2 + Y.double() ** 2).max())
     for g, idx in enumerate(groups):
         geo = group_geometry(meta, idx)
+        theta, t, dtheta = parallel_grid(geo, dt)
+        k = k_range if k_range is not None else partner_range(geo, r_fov, theta, max(abs(o) for o in z_offsets))
+        ran_cuda = use_cuda and k <= _wfbp_cuda.MAX_K_RANGE
+        bp = _wfbp_cuda.backproject if ran_cuda else backproject
+        chunk = views_per_chunk(len(theta), len(t) * proj.shape[2] * 4)
         if cuda:
             torch.cuda.synchronize(device); torch.cuda.reset_peak_memory_stats(device); base = torch.cuda.memory_allocated(device)
-        t0 = time.perf_counter()
-        P, theta, t, dtheta = rebin_to_parallel(proj, geo, dt, budget, device)
-        Qf = ramp_filter(P, geo, dt, window, budget, device)      # in place: Qf is P
-        del P
-        t1 = time.perf_counter()
-        k = k_range
-        if use_cuda and k is None:
-            k = partner_range(geo, float(torch.sqrt(X.double() ** 2 + Y.double() ** 2).max()), theta, max(abs(o) for o in z_offsets))
-        ran_cuda = use_cuda and k <= _wfbp_cuda.MAX_K_RANGE
-        if ran_cuda:
-            _wfbp_cuda.backproject(Qf, theta, t, dtheta, geo, X, Y, Z, out, Q_weight=Q_weight, k_range=k, z_offsets=z_offsets, budget=budget)
-        else:
-            backproject(Qf, theta, t, dtheta, geo, X, Y, Z, out, Q_weight=Q_weight, k_range=k_range, z_offsets=z_offsets, budget=budget)
-        del Qf
-        if cuda:
-            torch.cuda.synchronize(device)
+        rebin_filter_s = backproject_s = 0.0
+        for j0 in range(0, len(theta), chunk):
+            th = theta[j0:j0 + chunk]
+            t0 = time.perf_counter()
+            Q = ramp_filter(rebin_to_parallel(proj, geo, th, t, budget, device, column_weights), geo, dt, window, budget, device)
+            t1 = time.perf_counter()
+            bp(Q, th, t, dtheta, geo, X, Y, Z, out, Q_weight=Q_weight, k_range=k, z_offsets=z_offsets, budget=budget,
+               theta_range=(theta[0], theta[-1]))
+            del Q
+            if cuda:
+                torch.cuda.synchronize(device)
+            rebin_filter_s += t1 - t0
+            backproject_s += time.perf_counter() - t1
         if stats is not None:
             stats['backend'] = 'cuda' if ran_cuda else 'torch'
-            stats.setdefault('groups', []).append(dict(views=len(idx), rebin_filter_s=t1 - t0, backproject_s=time.perf_counter() - t1,
+            stats.setdefault('groups', []).append(dict(views=len(idx), chunks=-(-len(theta) // chunk), rebin_filter_s=rebin_filter_s,
+                                                       backproject_s=backproject_s,
                                                        peak_GB=(torch.cuda.max_memory_allocated(device) - base) / 1e9 if cuda else None))
     out /= len(groups)
     if cuda:   # hand back the GPU memory of the stages: on Windows it also counts against the host's committed memory

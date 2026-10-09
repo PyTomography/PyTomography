@@ -221,7 +221,7 @@ def get_projections_and_metadata_gen3(paths, low_signal_filter: bool = True, low
         if d['photons'] is None:
             warnings.warn('these DICOM-CT-PD files carry no PhotonStatistics (7033,1065), so photon-starved rays are not filtered')
         else:
-            projections = preprocessing.filter_low_signal(projections, d['photons'], low_signal_photons)
+            projections = preprocessing.filter_low_signal(projections, d['photons'], low_signal_photons, inplace=True)
     if column_scale is not None:        # as scale_columns does it, but in place: these projections are the reader's own
         projections.mul_(preprocessing.column_scale(proj_meta, **column_scale).to(projections)[None, :, None])
     return projections, proj_meta

@@ -132,7 +132,7 @@ def _torch_stream(device):
 
 def backproject(Q: torch.Tensor, theta: np.ndarray, t: np.ndarray, dtheta: float, geo: dict, X: torch.Tensor, Y: torch.Tensor,
                 Z: np.ndarray, out: torch.Tensor, Q_weight: float = 0.6, k_range: int | None = None, z_offsets=(0.0,),
-                budget: float | None = None, views_per_launch: int = 128) -> None:
+                budget: float | None = None, views_per_launch: int = 128, theta_range: tuple | None = None) -> None:
     """Same as :func:`._wfbp.backproject` (and the same arguments), in one fused CUDA kernel. ``Z`` must be uniformly
     spaced."""
     import cupy
@@ -158,7 +158,8 @@ def backproject(Q: torch.Tensor, theta: np.ndarray, t: np.ndarray, dtheta: float
     free = gpu_budget(budget, device) - 2 * out.numel() * 4
     Jb = int(max(1, min(views_per_launch, free // (M * nrow * 4 * 2))))
     t_max = rho * np.sin(geo['gamma_max'])
-    theta_lo, theta_hi = float(theta[0]) - 1e-6, float(theta[-1]) + 1e-6
+    first, last = theta_range if theta_range is not None else (theta[0], theta[-1])
+    theta_lo, theta_hi = float(first) - 1e-6, float(last) + 1e-6
     f32, i32 = np.float32, np.int32
     kernel = _kernel()
     with _torch_stream(device):
