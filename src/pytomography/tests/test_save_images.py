@@ -154,6 +154,39 @@ def test_sheared_affine_is_refused(tmp_path):
         save_dicom(_image(), tmp_path / "s", affine=A)
 
 
+@pytest.mark.parametrize("signed", [False, True])
+def test_nm_scale_uses_16_bits_and_is_in_the_headers(tmp_path, signed):
+    """SPECT (NM): the stored integers use the full 16-bit range, and the slope is both in the Real World Value
+    Mapping (with the units) and in Rescale Slope/Intercept, so readers using either get the values within half a step."""
+    x = _image(signed=signed) * 1000
+    [path] = save_dicom(x, tmp_path / "nm", affine=AFFINES[0], modality="NM", units="Bq/mL")
+    ds = pydicom.dcmread(str(path))
+    m = ds.RealWorldValueMappingSequence[0]
+    stored = ds.pixel_array
+    assert int(np.abs(stored).max()) == (32767 if signed else 65535)
+    assert m.MeasurementUnitsCodeSequence[0].CodeValue == "Bq/mL"
+    assert int(m.RealWorldValueFirstValueMapped) == min(0, int(stored.min()))   # negative stored values are mapped too
+    assert int(m.RealWorldValueLastValueMapped) == int(stored.max())
+    step = float(m.RealWorldValueSlope)
+    assert float(ds.RescaleSlope) == pytest.approx(step, rel=1e-9) and float(ds.RescaleIntercept) == 0
+    for slope, intercept in [(step, float(m.RealWorldValueIntercept)), (float(ds.RescaleSlope), 0.0)]:
+        real = np.transpose(stored * slope + intercept, (2, 1, 0))           # frames (k, j, i) to axes (i, j, k)
+        assert np.abs(real - x).max() <= 0.5001 * step
+
+
+def test_nm_is_the_default_for_spect(tmp_path):
+    """SPECT images are saved as NM unless PET-style slices are asked for; NM without a reference has the required
+    (empty) radiopharmaceutical sequence."""
+    meta = SPECTObjectMeta(dr=(0.48, 0.48, 0.48), shape=(12, 10, 7))
+    [path] = save_dicom(_image(), tmp_path / "spect", meta)
+    ds = pydicom.dcmread(str(path))
+    assert ds.Modality == "NM" and "RadiopharmaceuticalInformationSequence" in ds
+    files = save_dicom(_image(), tmp_path / "spect_slices", meta, modality="PT")
+    assert len(files) == 7 and pydicom.dcmread(str(files[0])).Modality == "PT"
+    files = save_dicom(_image(), tmp_path / "pet", ObjectMeta(dr=(2.0, 2.0, 2.0), shape=(12, 10, 7)))
+    assert len(files) == 7 and pydicom.dcmread(str(files[0])).Modality == "PT"
+
+
 # ---------- the patient frame of data sources without one in object_meta (tutorial data) ----------
 
 def _tutorial_data(data_dir, dataset, *path):

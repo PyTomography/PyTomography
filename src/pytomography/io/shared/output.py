@@ -12,7 +12,9 @@ patient coordinates (LPS, in mm), given as ``affine``, or taken from ``object_me
 
 ``save_nifti`` writes one NIfTI-1 file in float32, with that matrix (converted to NIfTI's RAS) as its sform and qform.
 ``save_dicom`` writes a DICOM series: one file per slice for PET (PT) and CT, or one multi-frame file for SPECT (NM).
-Given a ``reference`` (any DICOM file of the same acquisition: the projections, a CT slice, raw CT projections), the
+Values are stored as 16-bit integers over the full range (one slope, from the image's largest value) and read back
+within half a step; CT in HU is stored in whole HU. The slope is in the rescale tags, and for NM also in a Real World
+Value Mapping with the units. Given a ``reference`` (any DICOM file of the same acquisition: the projections, a CT slice, raw CT projections), the
 series joins that patient, study and frame of reference, so clinical viewers fuse it with the other images of the study.
 """
 from __future__ import annotations
@@ -267,7 +269,7 @@ def _file(ds: Dataset, path: Path) -> None:
     fds.save_as(str(path), enforce_file_format=True)
 
 
-def save_dicom(image, folder, object_meta=None, affine=None, modality: str = "PT", reference=None,
+def save_dicom(image, folder, object_meta=None, affine=None, modality: str | None = None, reference=None,
                units: str | None = None, series_description: str = "PyTomography reconstruction",
                series_number: int = 1000, overwrite: bool = False) -> list:
     """Save a 3D image as a DICOM series, each voxel in its place in the patient.
@@ -277,8 +279,9 @@ def save_dicom(image, folder, object_meta=None, affine=None, modality: str = "PT
         folder (str | Path): the folder to write into (created if needed).
         object_meta (ObjectMeta, optional): where the voxels are (see :func:`patient_affine`).
         affine (array-like, optional): the voxel-to-patient matrix (LPS, mm), instead of ``object_meta``.
-        modality (str): ``"PT"`` (PET; one file per slice), ``"CT"`` (CT in HU; one file per slice) or ``"NM"``
-            (SPECT; one multi-frame file).
+        modality (str, optional): ``"NM"`` (SPECT; one multi-frame file), ``"PT"`` (PET; one file per slice) or
+            ``"CT"`` (CT in HU; one file per slice). Defaults to ``"NM"`` for SPECT ``object_meta`` and ``"PT"``
+            otherwise; ``"PT"`` also saves a SPECT image as PET-style slices.
         reference (str | Path | pydicom.Dataset | list, optional): a DICOM file of the same acquisition (projections,
             a CT slice, raw CT projections). The series takes its patient, study and frame of reference, so it lines
             up with that study's other images. Without one, the series gets a new study and frame of reference.
@@ -292,7 +295,7 @@ def save_dicom(image, folder, object_meta=None, affine=None, modality: str = "PT
     Returns:
         list[Path]: the files written, in slice order.
     """
-    modality = modality.upper()
+    modality = (modality or ("NM" if _dr_in_cm(object_meta) else "PT")).upper()
     if modality not in SOP_CLASS:
         raise ValueError(f"modality must be one of {sorted(SOP_CLASS)}, not {modality!r}")
     arr = _volume(image)
@@ -360,8 +363,10 @@ def _write_nm(base: Dataset, pixels: np.ndarray, slope: float, geo: dict, folder
               units) -> Path:
     """SPECT as one NM multi-frame file of reconstructed slices (RECON TOMO). Frames run along the slice normal (the
     cross product of the row and column directions), as DICOM requires, so slices are reversed when k runs against it.
-    Where the slices are is in the Detector Information Sequence; the stored integers become real values through a
-    Real World Value Mapping (NM has no rescale slope)."""
+    Where the slices are is in the Detector Information Sequence. The stored integers become real values through a
+    Real World Value Mapping with the units, NM's own way, and through the same slope as Rescale Slope and Intercept:
+    the NM IOD doesn't define those, but GDCM (3D Slicer, SimpleITK) and pydicom read only them, and show the stored
+    integers without them. The standard allows extra standard attributes (a Standard Extended SOP Class)."""
     order = list(range(pixels.shape[2])) if geo["ascending"] else list(range(pixels.shape[2]))[::-1]
     ds = base
     ds.SOPInstanceUID = generate_uid()
@@ -389,6 +394,8 @@ def _write_nm(base: Dataset, pixels: np.ndarray, slope: float, geo: dict, folder
     for key in ("RadiopharmaceuticalInformationSequence", "RotationInformationSequence"):
         if ref is not None and key in ref:
             ds[key] = ref[key]
+    if "RadiopharmaceuticalInformationSequence" not in ds:            # required, empty when unknown (NM Isotope module)
+        ds.RadiopharmaceuticalInformationSequence = DicomSequence([])
     _patient_orientation(ds, ref)
     code, meaning = UCUM.get((units or "counts").strip().lower(), ("1", "no units"))
     unit = Dataset()
@@ -397,11 +404,12 @@ def _write_nm(base: Dataset, pixels: np.ndarray, slope: float, geo: dict, folder
     rwvm.LUTExplanation = "PyTomography reconstruction"
     rwvm.LUTLabel = "PYTOMOGRAPHY"
     rwvm.MeasurementUnitsCodeSequence = DicomSequence([unit])
-    rwvm.RealWorldValueFirstValueMapped = 0
+    rwvm.RealWorldValueFirstValueMapped = min(0, int(pixels.min()))     # negative stored values too, when signed
     rwvm.RealWorldValueLastValueMapped = int(pixels.max())
     rwvm.RealWorldValueIntercept = 0.0
     rwvm.RealWorldValueSlope = float(slope)
     ds.RealWorldValueMappingSequence = DicomSequence([rwvm])
+    ds.RescaleSlope, ds.RescaleIntercept = _number(slope), "0"
     ds.PixelData = np.ascontiguousarray(np.stack([pixels[:, :, k].T for k in order])).tobytes()
     path = folder / "NM_0001.dcm"
     _file(ds, path)
