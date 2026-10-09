@@ -1,6 +1,7 @@
 from __future__ import annotations
 from collections.abc import Sequence
 from typing import Sequence
+import warnings
 import numpy as np
 import torch
 import numpy.linalg as npl
@@ -42,8 +43,49 @@ def _get_affine_multifile(files: Sequence[str]):
     M[3] = np.array([0, 0, 0, 1])
     return M
 
+def _shared_group(ds, sequence: str):
+    """The item of ``sequence`` in the Shared Functional Groups of an enhanced multi-frame file, or None."""
+    shared = ds.get('SharedFunctionalGroupsSequence')
+    if shared and sequence in shared[0]:
+        return getattr(shared[0], sequence)[0]
+    return None
+
+
+def _frame_origin_and_spacing(ds, filename: str = '') -> tuple:
+    """Position (mm) of the first frame of an image stored as the frames of one file, and the signed distance between
+    consecutive frames along the frames' normal.
+
+    The distance comes from the frames' positions (PlanePositionSequence of the Per-frame Functional Groups) when the
+    file has them; otherwise from SpacingBetweenSlices (0018,0088), with the frames taken to run along +z; and only
+    when neither is there, with a warning, from SliceThickness (0018,0050). SliceThickness is the thickness of a slice,
+    which is not the distance between slices when they overlap or have gaps (TCIA LDCT-and-Projection-data C145: 1.25 mm
+    thick, 1 mm apart)."""
+    frames = ds.get('PerFrameFunctionalGroupsSequence') or []
+    positions = [np.asarray(f.PlanePositionSequence[0].ImagePositionPatient, dtype=np.float64)
+                 for f in frames if 'PlanePositionSequence' in f]
+    origin = positions[0] if positions else np.asarray(ds.ImagePositionPatient, dtype=np.float64)
+    if len(positions) > 1:
+        orientation = ds.get('ImageOrientationPatient')
+        plane = _shared_group(ds, 'PlaneOrientationSequence')
+        if orientation is None and plane is not None:
+            orientation = plane.ImageOrientationPatient
+        if orientation is None:
+            normal = np.array([0.0, 0.0, 1.0])
+        else:
+            normal = np.cross(np.asarray(orientation[:3], dtype=np.float64), np.asarray(orientation[3:], dtype=np.float64))
+        return origin, float(np.dot(positions[1] - positions[0], normal / np.linalg.norm(normal)))
+    if 'SpacingBetweenSlices' in ds:
+        return origin, abs(float(ds.SpacingBetweenSlices))
+    warnings.warn(f'{filename}: no frame positions and no SpacingBetweenSlices, so the distance between slices is taken '
+                  f'to be SliceThickness ({float(ds.SliceThickness)} mm), which is wrong if the slices overlap or have gaps')
+    return origin, float(ds.SliceThickness)
+
+
 def _get_affine_single_file(filename: str) -> np.array:
-    """Obtain the affine matrix from a 3D medical image stored in a single file.
+    """Obtain the affine matrix (axis aligned, mm) of a 3D image stored as the frames of a single DICOM file: voxel
+    (i, j, k) is at the position of the first frame plus (i dx, j dy, k dz), with ``dz`` the distance between frames
+    from their positions, or from SpacingBetweenSlices (see :func:`_frame_origin_and_spacing`), never the slice
+    thickness unless nothing else is there.
 
     Args:
         filename (str): Path of file
@@ -51,10 +93,10 @@ def _get_affine_single_file(filename: str) -> np.array:
     Returns:
         np.array: Affine matrix
     """
-    ds = pydicom.dcmread(filename)
-    Sx, Sy, Sz = ds.ImagePositionPatient
-    dx, dy = ds.PixelSpacing
-    dz = ds.SliceThickness # assumption
+    ds = pydicom.dcmread(filename, stop_before_pixels=True)
+    (Sx, Sy, Sz), dz = _frame_origin_and_spacing(ds, str(filename))
+    measures = _shared_group(ds, 'PixelMeasuresSequence')
+    dx, dy = (float(v) for v in (ds.PixelSpacing if 'PixelSpacing' in ds else measures.PixelSpacing))
     M = np.zeros((4, 4))
     M[0] = np.array([dx, 0, 0, Sx])
     M[1] = np.array([0, dy, 0, Sy])
@@ -145,13 +187,16 @@ def compute_min_slice_loc_multifile(files: Sequence[str]) -> float:
     return np.min(slice_locs)
 
 def compute_slice_thickness_multifile(files: Sequence[str]) -> float:
-    """Compute the slice thickness for files that make up a scan. Though this information is often contained in the DICOM file, it is sometimes inconsistent with the ImagePositionPatient attribute, which gives the true location of the slices.
+    """Distance between consecutive slices (mm) of a scan stored one slice per file, from their ImagePositionPatient.
+    Despite the name, this is the slice spacing, not SliceThickness (0018,0050): the two differ when slices overlap
+    or have gaps (TCIA LDCT-and-Projection-data C145: 1.25 mm thick, 1 mm apart), and the spacing is what places the
+    slices.
 
     Args:
         files (Sequence[str]): List of DICOM filepaths corresponding to different z slices of the same scan.
 
     Returns:
-        float: Slice thickness of the scan
+        float: Distance between consecutive slices
     """
     slice_locs = []
     for file in files:
