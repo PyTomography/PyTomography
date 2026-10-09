@@ -384,22 +384,25 @@ def _event_bins(detector_ids: torch.Tensor, info: dict, num_tof_bins: int | None
     shape = _sinogram_shape(info)
     if events_per_chunk is None:
         events_per_chunk = block_size(130, default=2**22)
-    keys, insides, tof_bins = [], [], []
-    for start in range(0, detector_ids.shape[0], events_per_chunk):
+    # the results are filled a chunk at a time, rather than concatenated from lists of chunks at the end
+    n_events = detector_ids.shape[0]
+    keys = torch.empty(n_events, dtype=torch.long)
+    insides = torch.empty(n_events, dtype=torch.bool)
+    tof_bins = torch.empty(n_events, dtype=torch.long) if num_tof_bins is not None else None
+    for start in range(0, n_events, events_per_chunk):
         ids = detector_ids[start:start + events_per_chunk]
+        end = start + ids.shape[0]
         within_ring_id = (ids[:,:2] % info['NrCrystalsPerRing']).to(torch.long)
         ring_ids = (ids[:,:2] // info['NrCrystalsPerRing']).to(torch.long)
         within_ring_id, idx = within_ring_id.sort(axis=1, descending=True, stable=True)
         ring_ids = ring_ids.gather(index=idx, dim=1)
         key, inside = _bin_keys(lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]], sinogram_index[ring_ids[:,0], ring_ids[:,1]], shape)
-        keys.append(key.cpu())
-        insides.append(inside.cpu())
+        keys[start:end] = key
+        insides[start:end] = inside
         if num_tof_bins is not None:
             tof_bin = ids[:,2].to(torch.long)
-            tof_bins.append(torch.where(idx[:,0] == 1, num_tof_bins - 1 - tof_bin, tof_bin).cpu())
-    if not keys:
-        return torch.zeros(0, dtype=torch.long), torch.zeros(0, dtype=torch.bool), (torch.zeros(0, dtype=torch.long) if num_tof_bins is not None else None)
-    return torch.cat(keys), torch.cat(insides), (torch.cat(tof_bins) if num_tof_bins is not None else None)
+            tof_bins[start:end] = torch.where(idx[:,0] == 1, num_tof_bins - 1 - tof_bin, tof_bin)
+    return keys, insides, tof_bins
 
 def _listmode_to_lazy_sinogram(detector_ids: torch.Tensor, info: dict, tof_meta: PETTOFMeta | None = None, weights: torch.Tensor | None = None) -> LazySinogram:
     """``listmode_to_sinogram`` as a :class:`LazySinogram`: the events are kept, grouped by angle, as their position within the angle (4 bytes each), their TOF bin (2 bytes) and their weight if any, and the angles asked for are binned when they are asked for. The bins hold exactly what ``listmode_to_sinogram`` gives: counts are exact, and weights are summed in the same order (the events of each angle keep their order)."""

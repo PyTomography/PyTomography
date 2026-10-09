@@ -546,6 +546,15 @@ def interpolate_sparse_sinogram(
         lazy = prefer_lazy(4 * np.prod(shape))
     return scatter_sinogram if lazy else scatter_sinogram.to_dense()
 
+def _masked(subset: torch.Tensor, projections, mask: torch.Tensor) -> torch.Tensor:
+    """``subset * mask``, computed in the memory of ``subset`` when it is a tensor of its own (a copy that indexing
+    ``projections`` made, or a subset computed on its own from a LazySinogram), so that one subset-sized array is held
+    instead of two."""
+    own = (isinstance(subset, torch.Tensor) and subset._base is None and subset.is_floating_point()
+           and subset.device == mask.device and torch.broadcast_shapes(subset.shape, mask.shape) == subset.shape
+           and not (isinstance(projections, torch.Tensor) and subset.untyped_storage().data_ptr() == projections.untyped_storage().data_ptr()))
+    return subset.mul_(mask) if own else subset * mask
+
 def scale_estimated_scatter(
     proj_scatter: torch.Tensor,
     system_matrix: SystemMatrix,
@@ -590,18 +599,20 @@ def scale_estimated_scatter(
     # Scatter
     # Need to get back projecgion of masked scatter and masked totall;
     # we'll split into subsets to preserve memory since this requires
-    # making copies of potentially very large sinogram tensors (four subset-sized arrays at once; more subsets if the
-    # memory budget needs them)
-    N_SUBSETS = subsets_for_budget(4 * float(np.prod(proj_data.shape)), arrays=4, minimum=20)
+    # making copies of potentially very large sinogram tensors (one masked subset at a time, plus the temporaries of
+    # computing it; more subsets if the memory budget needs them)
+    N_SUBSETS = subsets_for_budget(4 * float(np.prod(proj_data.shape)), arrays=2, minimum=20)
     system_matrix.set_n_subsets(N_SUBSETS)
     BP_scatter_mask = 0
     BP_total_mask = 0
     for subset_idx in range(N_SUBSETS):
         mask_subset = system_matrix.get_projection_subset(proj_outside_mask, subset_idx)
-        proj_scatter_masked = system_matrix.get_projection_subset(proj_scatter, subset_idx) * mask_subset
-        proj_total_masked = system_matrix.get_projection_subset(proj_data, subset_idx) * mask_subset
+        proj_scatter_masked = _masked(system_matrix.get_projection_subset(proj_scatter, subset_idx), proj_scatter, mask_subset)
         BP_scatter_mask += per_sensitivity(system_matrix.backward(proj_scatter_masked, subset_idx = subset_idx))
+        del proj_scatter_masked
+        proj_total_masked = _masked(system_matrix.get_projection_subset(proj_data, subset_idx), proj_data, mask_subset)
         BP_total_mask += per_sensitivity(system_matrix.backward(proj_total_masked, subset_idx=subset_idx))
+        del proj_total_masked
     BP_scatter_estimated_mask = BP_total_mask - BP_random_mask
     BP_scatter_estimated_mask[BP_scatter_estimated_mask<0] = 0
     scale_factor = ((BP_scatter_mask*BP_scatter_estimated_mask).sum() / (BP_scatter_mask**2).sum()).item()
