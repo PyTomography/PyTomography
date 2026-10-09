@@ -1,30 +1,30 @@
 """Every dataset the tutorials read: what it is, where it is published, and how to download and check it.
 
 Keys are folders under the data folder (``PYTOMOGRAPHY_DATA``). :func:`pytomography.datasets.fetch` reads this file,
-and so do the "Tutorial data" page of the docs and the data badge of each tutorial, so a dataset is added, moved or
-re-pinned here and nowhere else. The file has no imports, so the docs can load it without importing PyTomography.
+and so does the "Tutorial data" page of the docs, so a dataset is added, moved or re-pinned here and nowhere else.
+The file has no imports, so the docs can load it without importing PyTomography.
 
-A dataset has:
+A dataset has these fields::
 
     title, source, url  what it is, who published it, and its landing page (a DOI when there is one)
     licence, cite       the licence of the data, and what to cite when you use them
     tutorials           the tutorial notebooks that read it
     parts               what to download; every part is pinned by size and checksum
-    extras              optional, named groups of parts that ``fetch(name, extras=[...])`` adds
-    status, note        "pending" while the data cannot be downloaded yet; ``note`` says why
+    extras              optional, named groups of parts that fetch(name, extras=[...]) adds
+    status, note        "pending" while the data cannot be downloaded yet; note says why
 
-A part is one of:
+A part is one of these kinds::
 
-    zip        an archive to download and unpack. ``prefix`` keeps only the members under it (and removes it from
-               their paths); ``exclude`` drops members matching these patterns; ``unpacked`` is their size on disk.
-    zip_range  members of a larger zip on a server, read with HTTP Range requests: ``ranges`` are [first byte,
-               end byte, sha256] of the blocks that hold them, and ``index`` is [first byte, sha256] of the zip's
-               central directory, which runs to the end of the zip. ``prefix``, ``exclude`` and ``unpacked`` as for zip.
-    file       one file, saved as ``to`` (default: its name on the server).
-    package    one small file shipped in pytomography/datasets/files, copied to ``to`` (default: the same name).
-    idc        one DICOM series from the NCI Imaging Data Commons, downloaded with idc-index into the folder ``to``.
-               Pinned by its number of files, bytes and content hash: the sha256 of the sorted sha256 digests of its
-               files.
+    zip        an archive to download and unpack. prefix keeps only the members under it (and removes it from
+               their paths); exclude drops members matching these patterns; unpacked is their size on disk.
+    zip_range  members of a larger zip on a server, read with HTTP Range requests: ranges are [first byte,
+               end byte, sha256] of the blocks that hold them, and index is [first byte, sha256] of the zip's
+               central directory, which runs to the end of the zip. prefix, exclude and unpacked as for zip.
+    file       one file, saved as to (default: its name on the server).
+    package    one small file shipped in pytomography/datasets/files, copied to to (default: the same name).
+    idc        one DICOM series from the NCI Imaging Data Commons, downloaded with idc-index into the folder to.
+               Pinned by its number of files, bytes and content hash: the sha256 of the sorted sha256 digests of
+               its files.
 
 Sizes are in bytes. ``url`` may be replaced by ``urls``, a list of mirrors of the same file tried in order.
 """
@@ -126,7 +126,7 @@ DATASETS = {
                       "t_PETGATE_scat_lmTOF", "t_PETGATE_DIP"],
         "status": "pending",
         "note": "The GATE simulation is being published on Zenodo; it can be downloaded once that record is out."
-                " The phantom's MRI and attenuation map come from Belzunce's record, already pinned in its parts.",
+                " Its phantom images, the MRI and the attenuation map, come from Belzunce's record.",
         "parts": [
             {"kind": "file", "url": "https://zenodo.org/records/8045458/files/fdg_pet_phantom_mri.nii.gz",
              "size": 471795384, "md5": "e7e899f16596cb95d69370103fd2ec7d"},
