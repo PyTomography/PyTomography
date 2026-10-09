@@ -1,10 +1,12 @@
 from __future__ import annotations
+import numpy as np
 import torch
 import pytomography
 from pytomography.projectors import SystemMatrix
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.CT import CTGen3ProjMeta
 import parallelproj_core
+from . import _wfbp
 
 #: Most rays :class:`CTGen3SystemMatrix` hands to parallelproj in one call. Their coordinates are built on the GPU, at
 #: about 28 bytes per ray, so a projection of every view of a clinical scan at once (half a billion rays, 15 GB) is
@@ -167,8 +169,58 @@ class CTGen3SystemMatrix(SystemMatrix):
             device = pytomography.device
         return (self._coverage() > 0).to(torch.float32).to(device)
 
-    def forward(self, object, subset_idx=None, *args, **kwargs):
-        """Computes forward projection
+    def _fbp(self, projections: torch.Tensor, filter, slice_thickness: float | None = None, gpu_budget: float | None = None,
+             Q: float = 0.6, k_range: int | None = None, stats: dict | None = None, backend: str = 'auto',
+             column_weights: torch.Tensor | None = None) -> torch.Tensor:
+        r"""Helical filtered back projection onto the object grid of this system matrix, called by
+        :class:`pytomography.algorithms.FilteredBackProjection`. The fan projections are rebinned to parallel beams and
+        reconstructed by weighted filtered back projection (WFBP, Stierstorfer et al. 2004), which also handles circular
+        scans. With a flying focal spot, each group of views sharing a focal spot offset is reconstructed on its own and
+        the groups are averaged. Voxels outside the field of view are zero, as in :meth:`forward`.
+
+        Host memory: besides the projections and the image, the reconstruction holds the rebinned projections of a chunk
+        of views at a time, at most an eighth of the memory budget (:func:`pytomography.set_memory_budget`), or 1 GB
+        without one. A smaller budget means more chunks, which is slower; the image is the same.
+
+        Args:
+            projections (torch.Tensor): Line integrals (views, columns, rows), on any device.
+            filter (FBPFilter): Window applied on top of the ramp filter.
+            slice_thickness (float, optional): Average every slice over a box of this width (mm) along z, sampled every
+                0.25 mm, on top of the reconstruction's own axial resolution. Defaults to None (no averaging).
+            gpu_budget (float, optional): Bytes the reconstruction may hold on the device; never more than a quarter of
+                the free GPU memory (see :func:`pytomography.utils.gpu_budget`). Defaults to 1.5 GB.
+            Q (float, optional): WFBP row weighting: rows within the central fraction Q of the detector get full
+                weight, falling to zero at its edges. Defaults to 0.6.
+            k_range (int, optional): Half turns either side searched for rays through the same voxel. Defaults to
+                what the pitch and cone angle allow.
+            stats (dict, optional): Receives the time and peak GPU memory of each focal spot group.
+            backend (str, optional): ``'auto'`` back projects with a fused CUDA kernel when CuPy is installed and the
+                device is a GPU (much faster, and lighter on memory), and with PyTorch otherwise; ``'cuda'`` or
+                ``'torch'`` force one. Defaults to ``'auto'``.
+            column_weights (torch.Tensor, optional): A weight for each detector column, multiplying the line
+                integrals as they are read: the reconstruction of the weighted projections, without a weighted copy of
+                them (:func:`pytomography.io.CT.preprocessing.fit_column_scale` uses it). Defaults to None.
+
+        Returns:
+            torch.Tensor: Attenuation per mm on the object grid, on ``pytomography.device``.
+        """
+        (Nx, Ny, Nz), (dx, dy, dz) = self.object_meta.shape, self.object_meta.dr
+        x = (torch.arange(Nx) - (Nx - 1) / 2) * dx
+        y = (torch.arange(Ny) - (Ny - 1) / 2) * dy
+        z = (np.arange(Nz) - (Nz - 1) / 2) * dz              # voxel centres as the projector places them (see origin)
+        X, Y = torch.meshgrid(x, y, indexing='ij')
+        if slice_thickness:
+            n = max(1, int(np.ceil(slice_thickness / 0.25 - 1e-9)))
+            z_offsets = tuple(((np.arange(n) + 0.5) / n - 0.5) * slice_thickness)
+        else:
+            z_offsets = (0.0,)
+        image = _wfbp.fbp_helical(projections, self.proj_meta, X, Y, z, window=filter, z_offsets=z_offsets, Q_weight=Q,
+                                  k_range=k_range, budget=gpu_budget, device=pytomography.device, stats=stats, backend=backend,
+                                  column_weights=column_weights)
+        return image if self._fov is None else image.mul_(self._fov.to(image.device))
+
+    def forward(self, object, subset_idx=None):
+        r"""Computes forward projection
 
         Args:
             object (torch.Tensor): Object to be forward projected
@@ -191,8 +243,9 @@ class CTGen3SystemMatrix(SystemMatrix):
             proj[start:end] = proj_i.to(self.device)
         return proj
     
-    def backward(self, proj, subset_idx=None, *args, **kwargs):
-        """Computes back projection
+    def backward(self, proj, subset_idx=None):
+        """Computes back projection :math:`H^T g` (for filtered back projection, use
+        :class:`pytomography.algorithms.FilteredBackProjection`)
 
         Args:
             proj (torch.Tensor): Projections to be back projected

@@ -46,6 +46,12 @@ class CTGen3ProjMeta(ProjMeta):
         self.z_center = float(self.source_zs.double().mean())
         self.source_zs -= self.source_zs.mean()
         self.patient_position = patient_position
+        # set by the DICOM-CT-PD reader when the files carry them: incident photons per detector column of every view
+        # (views, columns), the water attenuation per mm, the preprocessing flags, and the spiral pitch
+        self.photon_counts = None
+        self.water_attenuation = None
+        self.correction_flags = None
+        self.spiral_pitch = None
         self.source_phi_offsets = source_phi_offsets
         self.source_z_offsets = source_z_offsets
         self.source_rho_offsets = source_rho_offsets

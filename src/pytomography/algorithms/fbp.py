@@ -1,40 +1,55 @@
-"""This module contains classes that implement filtered back projection reconstruction algorithms.
+"""This module contains filtered back projection, the analytic reconstruction algorithm.
 """
 from __future__ import annotations
-import pytomography
 import torch
 from pytomography.projectors import SystemMatrix
-from pytomography.utils import RampFilter
+from pytomography.utils.fourier_filters import get_fbp_filter
 
 class FilteredBackProjection:
-    r"""Implementation of filtered back projection reconstruction :math:`\hat{f} = \frac{\pi}{N_{\text{proj}}} \mathcal{R}^{-1}\mathcal{F}^{-1}\Pi\mathcal{F} g` where :math:`N_{\text{proj}}` is the number of projections, :math:`\mathcal{R}` is the 3D radon transform, :math:`\mathcal{F}` is the 2D Fourier transform (applied to each projection seperately), and :math:`\Pi` is the filter applied in Fourier space, which is by default the ramp filter.
+    r"""Filtered back projection: each projection is ramp filtered (the ramp :math:`|f|` times a window) and back
+    projected with the weights of the geometry. The geometry-specific work is done by the system matrix, through its
+    private ``_fbp`` method, onto its object grid. System matrices without one raise ``NotImplementedError``. Those
+    that support it:
+
+    * :class:`~pytomography.projectors.SPECT.SPECTSystemMatrix`: parallel-hole SPECT. Its transforms are not used, so
+      the object is not corrected for attenuation, collimator blurring or scatter.
+    * :class:`~pytomography.projectors.CT.CTGen3SystemMatrix`: helical and circular scans of third-generation CT
+      scanners, with or without a flying focal spot, by WFBP.
+    * :class:`~pytomography.projectors.CT.CTConeBeamFlatPanelSystemMatrix`: circular cone-beam scans, by FDK.
+
+    Example:
+        >>> image = FilteredBackProjection(projections, system_matrix, filter='hann')()
 
         Args:
-            projections (torch.Tensor): projection data :math:`g` to be reconstructed
-            system_matrix (SystemMatrix): system matrix for the imaging system. In FBP, phenomena such as attenuation and PSF should not be implemented in the system matrix
-            filter (Callable, optional): Additional Fourier space filter (applied after Ramp Filter) used during reconstruction.
+            projections (torch.Tensor): Projections :math:`g` to reconstruct (line integrals for CT).
+            system_matrix (SystemMatrix): System matrix of the scan; it defines the geometry and the object grid.
+            filter (optional): Window applied on top of the ramp: a name (``'ram-lak'``, ``'shepp-logan'``, ``'hann'``,
+                ``'hamming'``, ``'cosine'``), an :class:`~pytomography.utils.FBPFilter` such as
+                :class:`~pytomography.utils.HannFilter` with a cut-off, or a function of the spatial frequency in cycles
+                per mm (for a SPECT Butterworth window of cut-off 0.5 cycles per cm and order 5,
+                ``lambda f: 1 / torch.sqrt(1 + (f / 0.05) ** 10)``). Defaults to ``'hann'``.
+            **options: Passed to the system matrix's ``_fbp``. For :class:`~pytomography.projectors.CT.CTGen3SystemMatrix`:
+                ``slice_thickness`` (mm), ``gpu_budget`` (bytes), ``Q`` (row weighting) and ``k_range``.
     """
     def __init__(
         self,
         projections: torch.Tensor,
         system_matrix: SystemMatrix,
-        filter=RampFilter
+        filter='hann',
+        **options
         ) -> None:
+        self.projections = projections
         self.system_matrix = system_matrix
-        self.filter = filter
-        # Random transform equivalent to SPECT System matrix
-    def __call__(self, projections):
-        """Applies reconstruction
+        self.filter = get_fbp_filter(filter)
+        self.options = options
+
+    def __call__(self) -> torch.Tensor:
+        """Reconstructs.
 
         Returns:
-            torch.tensor: Reconstructed object prediction
+            torch.Tensor: The reconstructed object, on the object grid of the system matrix.
+
+        Raises:
+            NotImplementedError: The system matrix does not support filtered back projection.
         """
-        freq_fft = torch.fft.fftfreq(projections.shape[-2]).reshape((-1,1)).to(pytomography.device) # only works for SPECT
-        filter_total = self.filter()(freq_fft)
-        proj_fft = torch.fft.fft(self.proj, axis=-2)
-        proj_fft = proj_fft* filter_total
-        proj_filtered = torch.fft.ifft(proj_fft, axis=-2).real
-        object_prediction = self.system_matrix.backward(proj_filtered) * torch.pi / len(self.system_matrix.proj_meta.shape[0]) # assumes the "angle" index is the first of the system matrix
-        return object_prediction
-            
-    
+        return self.system_matrix._fbp(self.projections, self.filter, **self.options)
