@@ -222,7 +222,7 @@ def _fetch_parts(name: str, entry: dict, parts: List[dict], marker: Marker, ctx:
         files, source = INSTALL[part["kind"]](part, ctx, pieces[part_id(part)])
         marker.add(part_id(part), part["kind"], source, files)
         count += len(files)
-    ctx.say(f"{name}: {count} {'file' if count == 1 else 'files'} checked and in place, in {ctx.folder}")
+    ctx.say(f"{name}: {count} {'file' if count == 1 else 'files'} checked and in place in the data folder")
     ctx.say(f"Licence: {entry['licence']}." + (f" If you use these data, please cite:\n  {entry['cite']}"
                                                 if entry.get("cite") else ""))
 
