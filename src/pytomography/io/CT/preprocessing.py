@@ -58,6 +58,8 @@ def _filter_low_signal_gpu(proj: torch.Tensor, n0: torch.Tensor, n_target: float
         sl = slice(s0 - lo, s0 - lo + (s1 - s0))
         out[s0:s1] = torch.where(need[sl] > 1.0, -torch.log(torch.clamp(acc[sl], min=1e-12)), p[sl]).cpu()
         del p, trans, need, x, acc
+    if torch.device(device).type == 'cuda':   # hand back the GPU memory: on Windows it also counts against the host's
+        torch.cuda.empty_cache()              # committed memory
     return out
 
 

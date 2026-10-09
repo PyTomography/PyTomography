@@ -276,4 +276,6 @@ def fbp_helical(proj: torch.Tensor, meta, X: torch.Tensor, Y: torch.Tensor, Z: n
             stats.setdefault('groups', []).append(dict(views=len(idx), rebin_filter_s=t1 - t0, backproject_s=time.perf_counter() - t1,
                                                        peak_GB=(torch.cuda.max_memory_allocated(device) - base) / 1e9 if cuda else None))
     out /= len(groups)
+    if cuda:   # hand back the GPU memory of the stages: on Windows it also counts against the host's committed memory
+        torch.cuda.empty_cache()
     return out
