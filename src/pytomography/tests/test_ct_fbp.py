@@ -20,7 +20,7 @@ from pytomography.io.CT import dicom_ct_pd, preprocessing
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.CT import CTConeBeamFlatPanelProjMeta, CTGen3ProjMeta
 from pytomography.projectors.CT import CTConeBeamFlatPanelSystemMatrix, CTGen3SystemMatrix
-from pytomography.utils import PeakMemory
+from pytomography.utils import PeakMemory, TabulatedFilter
 
 MU = 0.02                                                      # per mm, about water
 CYLINDER = dict(radius=36.0, z0=-14.0, z1=14.0)
@@ -63,7 +63,7 @@ def _chords_cylinder(a, u, L, radius, z0, z1):
     return torch.clamp(hi - lo, min=0) * (disc > 0)
 
 
-def _line_integrals(meta):
+def _line_integrals(meta, spheres=SPHERES):
     """Exact line integrals of the phantom along every ray, from each view's focal spot to each detector element."""
     end = meta.get_detector_coordinates(torch.arange(meta.N_angles)).double()
     start = meta.source_focal_spots.double()[:, None, None, :].expand_as(end)
@@ -71,7 +71,7 @@ def _line_integrals(meta):
     L = d.norm(dim=-1)
     u = d / L[..., None]
     p = MU * _chords_cylinder(start, u, L, **CYLINDER)
-    for centre, radius, dmu in SPHERES:
+    for centre, radius, dmu in spheres:
         p = p + dmu * _chords_sphere(start, u, L, centre, radius)
     return p.float()
 
@@ -183,6 +183,26 @@ def test_the_column_scale_is_fitted_back_from_a_reference_image():
     meta.water_attenuation = None
     with pytest.raises(ValueError, match='pass a mask'):
         preprocessing.fit_column_scale(proj, meta, sm, reference)
+
+
+def test_the_window_is_fitted_back_from_a_reference_image():
+    # the "scanner" reconstructed the same noisy projections of a water cylinder with its own window, a clinical
+    # kernel's shape; the fit finds that window from the noise the two images share
+    meta = _helix(rotations=3, n_cols=144)                # projections sampled up to 0.7 cycles per mm
+    meta.water_attenuation = MU
+    proj = _line_integrals(meta, spheres=[])
+    proj = proj + 0.01 * torch.from_numpy(np.random.default_rng(0).standard_normal(proj.shape).astype(np.float32))
+    sm = CTGen3SystemMatrix(ObjectMeta(dr=(0.75, 0.75, 2.0), shape=(80, 80, 10)), meta)
+    scanner = TabulatedFilter([0.0, 0.25, 0.4, 0.55], [1.0, 1.0, 0.7, 0.35], taper=0.1)
+    reference = FilteredBackProjection(proj, sm, filter=scanner)()
+    window = preprocessing.fit_window(proj, meta, sm, reference, block=24.0)
+    assert isinstance(window, TabulatedFilter) and window.frequencies[0] == 0 and window.values[0] == 1
+    f = window.frequencies
+    measured = (f > 0) & (f < 0.6)
+    expected = scanner(torch.as_tensor(f[measured]), 0.5).numpy()
+    assert np.abs(window.values[measured] - expected).max() < 0.02
+    with pytest.raises(TypeError):
+        preprocessing.fit_window(proj, meta, sm, reference, filter='hann')
 
 
 @pytest.mark.parametrize("which", ["helical", "cone beam"])

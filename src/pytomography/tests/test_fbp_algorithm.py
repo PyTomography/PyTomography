@@ -169,14 +169,14 @@ def _write_dicom(path, instance):
     _save(ds, path)
 
 
-def _write_ctpd(path, instance, manufacturer, n_cols=21, n_rows=4, column_tag=11.25):
-    """A minimal DICOM-CT-PD projection: the tags the reader needs and a projection of zeros."""
+def _write_ctpd(path, instance, manufacturer, n_cols=21, n_rows=4, column_tag=11.25, value=0):
+    """A minimal DICOM-CT-PD projection: the tags the reader needs and a projection of ``value`` everywhere."""
     ds = pydicom.Dataset()
     ds.InstanceNumber, ds.Manufacturer = instance, manufacturer
     ds.Rows, ds.Columns, ds.SamplesPerPixel, ds.PhotometricInterpretation = n_cols, n_rows, 1, 'MONOCHROME2'
     ds.BitsAllocated, ds.BitsStored, ds.HighBit, ds.PixelRepresentation = 16, 16, 15, 0
     ds.RescaleSlope, ds.RescaleIntercept = 1, 0
-    ds.PixelData = np.zeros((n_cols, n_rows), np.uint16).tobytes()
+    ds.PixelData = np.full((n_cols, n_rows), value, np.uint16).tobytes()
     f = lambda *v: struct.pack(f'<{len(v)}f', *v)
     for tag, value in (((0x7031, 0x1001), f(0.1 * instance)), ((0x7031, 0x1002), f(-1.0 * instance)), ((0x7031, 0x1003), f(541.0)),
                        ((0x7033, 0x100B), f(0.0)), ((0x7033, 0x100C), f(0.0)), ((0x7033, 0x100D), f(0.0)),
@@ -211,3 +211,13 @@ def test_the_central_column_follows_the_manufacturer(tmp_path):
     _, meta = dicom_ct_pd.get_projections_and_metadata_gen3(str(tmp_path / 'GE'), low_signal_filter=False, central_column='tag',
                                                            central_column_offset=0.5)
     assert float(meta.detector_centers_col_idx[0]) == pytest.approx(11.75)
+
+
+def test_the_reader_applies_the_column_scale(tmp_path):
+    for i in (1, 2, 3):
+        _write_ctpd(str(tmp_path / f'{i}.dcm'), i, 'GE', value=1000)
+    plain, meta = dicom_ct_pd.get_projections_and_metadata_gen3(str(tmp_path), low_signal_filter=False)
+    scale = dict(g0=-0.01, g2=0.5)
+    scaled, _ = dicom_ct_pd.get_projections_and_metadata_gen3(str(tmp_path), low_signal_filter=False, column_scale=scale)
+    expected = preprocessing.scale_columns(plain, meta, **scale)
+    assert not torch.equal(expected, plain) and torch.equal(scaled, expected)

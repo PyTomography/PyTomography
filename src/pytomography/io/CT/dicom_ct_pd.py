@@ -161,6 +161,10 @@ def get_projections_and_metadata_gen3(paths, low_signal_filter: bool = True, low
       the scanner's at the centre and 25 HU below at 16-20 cm; with it, within 6 HU. It matches the scanner's HU; which
       of the two is right would take a water phantom.
 
+    The third setting, the scanner's reconstruction kernel, belongs to the reconstruction:
+    :func:`~pytomography.io.CT.preprocessing.fit_window` fits it as the ``filter`` of
+    :class:`~pytomography.algorithms.FilteredBackProjection`.
+
     The metadata also carries ``photon_counts``, ``water_attenuation`` (per mm, to convert to HU), ``correction_flags``
     and ``spiral_pitch``.
 
@@ -218,6 +222,6 @@ def get_projections_and_metadata_gen3(paths, low_signal_filter: bool = True, low
             warnings.warn('these DICOM-CT-PD files carry no PhotonStatistics (7033,1065), so photon-starved rays are not filtered')
         else:
             projections = preprocessing.filter_low_signal(projections, d['photons'], low_signal_photons)
-    if column_scale is not None:
-        projections = preprocessing.scale_columns(projections, proj_meta, **column_scale)
+    if column_scale is not None:        # as scale_columns does it, but in place: these projections are the reader's own
+        projections.mul_(preprocessing.column_scale(proj_meta, **column_scale).to(projections)[None, :, None])
     return projections, proj_meta

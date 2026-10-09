@@ -114,8 +114,9 @@ def rebin_to_parallel(proj: torch.Tensor, geo: dict, dt: float, budget: float | 
 
 
 def ramp_filter(P: torch.Tensor, geo: dict, dt: float, window, budget: float | None, device) -> torch.Tensor:
-    """Cone weight and ramp filter the parallel projections (on the host) along t: the band-limited Ram-Lak kernel of
-    spacing ``dt``, times ``window(f, f_nyquist)`` with f in cycles per mm."""
+    """Cone weight and ramp filter the parallel projections (on the host) along t, in place (a second array of them
+    would take as much host memory again): the band-limited Ram-Lak kernel of spacing ``dt``, times
+    ``window(f, f_nyquist)`` with f in cycles per mm. Returns ``P``."""
     J, M, nrow = P.shape
     n_pad = int(2 ** np.ceil(np.log2(2 * M)))
     G = ramp_filter_response(n_pad, dt, window).to(device, torch.float32)
@@ -123,15 +124,14 @@ def ramp_filter(P: torch.Tensor, geo: dict, dt: float, window, budget: float | N
     cone = torch.tensor(geo['dsd'] / np.sqrt(geo['dsd'] ** 2 + v ** 2), device=device, dtype=torch.float32)
     per_view = M * nrow * 4 * 2 + n_pad * nrow * 8 * 3
     chunk = int(max(1, min(1024, gpu_budget(budget, device) // per_view)))
-    Q = torch.empty_like(P)
     for s in range(0, J, chunk):
         p = P[s:s + chunk].to(device) * cone
         S = torch.fft.fft(F.pad(p, (0, 0, 0, n_pad - M)), dim=1)
         del p
         S *= G[None, :, None]
-        Q[s:s + chunk] = (dt * torch.fft.ifft(S, dim=1).real[:, :M]).cpu()
+        P[s:s + chunk] = (dt * torch.fft.ifft(S, dim=1).real[:, :M]).cpu()
         del S
-    return Q
+    return P
 
 
 def _row_window(q: torch.Tensor, Q: float) -> torch.Tensor:
@@ -257,7 +257,7 @@ def fbp_helical(proj: torch.Tensor, meta, X: torch.Tensor, Y: torch.Tensor, Z: n
             torch.cuda.synchronize(device); torch.cuda.reset_peak_memory_stats(device); base = torch.cuda.memory_allocated(device)
         t0 = time.perf_counter()
         P, theta, t, dtheta = rebin_to_parallel(proj, geo, dt, budget, device)
-        Qf = ramp_filter(P, geo, dt, window, budget, device)
+        Qf = ramp_filter(P, geo, dt, window, budget, device)      # in place: Qf is P
         del P
         t1 = time.perf_counter()
         k = k_range
