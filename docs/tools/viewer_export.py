@@ -13,7 +13,17 @@ namespace and writes, into out_dir/<name>/:
 The cell never raises, so a failed export never fails the tutorial; it prints one line starting with MARKER that the
 runner reads. The expressions can use the helpers below as `vx.<name>`, e.g. `vx.ct_dicom(files_CT)`.
 
-Run this file directly to check an export folder:  python docs/tools/viewer_export.py OUT_DIR/t_dicomdata
+The cache: each image is also kept as the tutorial computed it (full precision, with its affine) in
+<run>/viewer_cache/<name>/, keyed by its expressions in viewer.yaml. Editing anything else in viewer.yaml (ranges,
+colormaps, crop, voxel_mm, slices, labels, scale groups, the size budget...) then needs no new run of the tutorial:
+
+    python docs/tools/viewer_export.py rebuild RUN_DIR                 # every tutorial cached in RUN_DIR
+    python docs/tools/viewer_export.py rebuild RUN_DIR t_dicomdata     # some of them
+
+rewrites RUN_DIR/viewer/<name>/ from the cache with the current viewer.yaml, and names the tutorials that need a new
+run because an image's expression is new or has changed.
+
+Run this file with a folder to check an export:  python docs/tools/viewer_export.py OUT_DIR/t_dicomdata
 """
 from __future__ import annotations
 
@@ -252,34 +262,105 @@ def _thumbnail(layers, path: Path, height_px: int = 320) -> None:
     path.write_bytes(buf.getvalue())
 
 
+def _layer_key(ls: dict, spec: dict) -> str:
+    """What a layer's image depends on: its expressions and the spec's setup code. Display settings are left out, so
+    changing them re-exports from the cache without a new run."""
+    what = {"array": ls["array"], "affine": ls.get("affine"), "setup": spec.get("setup", "")}
+    return hashlib.sha1(json.dumps(what, sort_keys=True).encode("utf8")).hexdigest()[:16]
+
+
+def cache_dir(out_dir, name: str) -> Path:
+    """<run>/viewer_cache/<name>, next to the export folder <run>/viewer."""
+    return Path(out_dir).parent / "viewer_cache" / name
+
+
+def _cache_write(folder: Path, name: str, spec: dict, raw: list) -> None:
+    """Keep each evaluated image (float64 as float32, other types as they are) and its affine, and an index of them."""
+    folder.mkdir(parents=True, exist_ok=True)
+    entries = []
+    for ls, arr, A, space in raw:
+        key = _layer_key(ls, spec)
+        keep = arr.astype(np.float32) if arr.dtype == np.float64 else arr
+        np.savez_compressed(folder / f"{key}.npz", arr=keep, A=A, space=np.array(space or ""))
+        entries.append({"key": key, "name": ls["name"], "array": ls["array"], "affine": ls.get("affine"),
+                        "shape": list(arr.shape), "dtype": str(keep.dtype)})
+    for old in folder.glob("*.npz"):                    # images of expressions that are gone
+        if old.stem not in {e["key"] for e in entries}:
+            old.unlink()
+    import pytomography
+    index = {"tutorial": name, "created": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+             "pytomography": getattr(pytomography, "__version__", "?"), "layers": entries}
+    (folder / "index.json").write_text(json.dumps(index, indent=1), encoding="utf8")
+
+
+def _cache_read(folder: Path, spec: dict) -> list:
+    """The cached images for spec's layers. A layer with `when` that isn't cached didn't apply to the run; any other
+    missing layer means its expression is new or changed, and the tutorial must run again."""
+    index = json.loads((folder / "index.json").read_text(encoding="utf8"))
+    have = {e["key"] for e in index["layers"]}
+    raw, missing = [], []
+    for ls in spec["layers"]:
+        key = _layer_key(ls, spec)
+        if key in have:
+            with np.load(folder / f"{key}.npz") as z:
+                raw.append((ls, z["arr"], z["A"], str(z["space"]) or None))
+        elif not ls.get("when"):
+            missing.append(ls["name"])
+    if missing:
+        raise LookupError(f"no cached image for {', '.join(missing)}: the expression is new or changed, so run the "
+                          "tutorial again")
+    return raw
+
+
 def export(name: str, out_dir, namespace: dict, spec: dict) -> dict:
-    """Evaluate spec's layers in namespace and write the viewer files. Returns a summary; raises on failure."""
+    """Evaluate spec's layers in namespace, keep them in the cache, and write the viewer files. Returns a summary;
+    raises on failure."""
     t0 = time.time()
-    out = Path(out_dir) / name
-    out.mkdir(parents=True, exist_ok=True)
-    for old in list(out.glob("*.nii.gz")) + [out / "manifest.json", out / "thumb.png"]:
-        old.unlink(missing_ok=True)
     env = dict(namespace)
     env["vx"] = sys.modules[__name__]
     env["np"] = np
     if spec.get("setup"):
         exec(spec["setup"], env)
-
-    layers = []
+    raw = []
     for ls in spec["layers"]:
         if ls.get("when") and not eval(ls["when"], env):   # a layer for one version of the tutorial only
             continue
-        kind = ls["kind"]
         got = eval(ls["array"], env)
-        space = ls.get("space", "lps")
+        space = None
         if isinstance(got, tuple):
             arr, A = got[0], got[1]
             if len(got) > 2:
                 space = got[2]
         else:
             arr, A = got, eval(ls["affine"], env)
-        arr = _to_numpy(arr)
-        A = np.asarray(_to_numpy(A), float).reshape(4, 4).copy()
+        raw.append((ls, _to_numpy(arr), np.asarray(_to_numpy(A), float).reshape(4, 4).copy(), space))
+    try:
+        _cache_write(cache_dir(out_dir, name), name, spec, raw)
+        cached = True
+    except Exception:                                   # a full disk shouldn't cost the export
+        cached = False
+    result = _write(name, out_dir, spec, raw, t0)
+    result["cached"] = cached
+    return result
+
+
+def rebuild(name: str, out_dir, spec: dict) -> dict:
+    """Rewrite out_dir/<name>/ from the cache, with the current spec: no tutorial run. Raises LookupError when an
+    image has to be computed again."""
+    return _write(name, out_dir, spec, _cache_read(cache_dir(out_dir, name), spec), time.time())
+
+
+def _write(name: str, out_dir, spec: dict, raw: list, t0: float) -> dict:
+    """The viewer files from evaluated images: [(layer spec, array, affine, space from the expression or None)]."""
+    out = Path(out_dir) / name
+    out.mkdir(parents=True, exist_ok=True)
+    for old in list(out.glob("*.nii.gz")) + [out / "manifest.json", out / "thumb.png"]:
+        old.unlink(missing_ok=True)
+    layers = []
+    for ls, arr, A, space in raw:
+        kind = ls["kind"]
+        A = np.asarray(A, float).copy()
+        space = space or ls.get("space", "lps")
         if ls.get("affine_scale"):                      # e.g. 10 for an affine in cm
             A[:3, :] *= float(ls["affine_scale"])
         while arr.ndim > 3 and arr.shape[0] == 1:
@@ -458,5 +539,33 @@ def check(folder) -> int:
     return 0 if ok else 1
 
 
+def rebuild_run(run_dir, names=None, srcdir=None) -> int:
+    """`rebuild` for a run folder: every tutorial in RUN_DIR/viewer_cache (or the names given), with viewer.yaml."""
+    run_dir = Path(run_dir)
+    specs = load_specs(Path(srcdir) if srcdir else Path(__file__).resolve().parents[1] / "source")
+    cached = sorted(p.parent.name for p in (run_dir / "viewer_cache").glob("*/index.json"))
+    todo = names or cached
+    rerun = []
+    for name in todo:
+        if name not in specs:
+            print(f"{name}: not in viewer.yaml, skipped")
+            continue
+        if name not in cached:
+            print(f"{name}: not cached in this run; run the tutorial")
+            rerun.append(name)
+            continue
+        try:
+            r = rebuild(name, run_dir / "viewer", specs[name])
+            print(f"{name}: rebuilt, {r['bytes'] / 1e6:.1f} MB, {', '.join(r['layers'])}")
+        except LookupError as e:
+            print(f"{name}: {e}")
+            rerun.append(name)
+    if rerun:
+        print("run again: " + ",".join(rerun))
+    return 1 if rerun else 0
+
+
 if __name__ == "__main__":
+    if len(sys.argv) > 2 and sys.argv[1] == "rebuild":
+        sys.exit(rebuild_run(sys.argv[2], sys.argv[3:] or None))
     sys.exit(check(sys.argv[1]))

@@ -64,6 +64,17 @@ tutorials:
     - {name: OSMAPOSL, kind: spect, array: recon_osmaposl, affine: object_meta.affine_matrix, units: counts}
     - {name: KEM, kind: spect, array: recon_kem, affine: object_meta.affine_matrix, units: counts}
 
+  # Both versions of this tutorial (the multi-organ phantom now, the Jaszczak phantom after Data Chat's F3) use these names
+  t_accuracy_known_truth:
+    title: SIMIND phantom with a known activity
+    description: OSEM and BSREM next to the true activity they should recover
+    credit: Monte Carlo data simulated with SIMIND (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
+    layers:
+    - {name: Attenuation, kind: mu, array: attenuation_map, affine: vx.simind_affine(object_meta), units: 1/cm}
+    - {name: OSEM, kind: spect, array: recon_osem, affine: vx.simind_affine(object_meta), units: counts}
+    - {name: BSREM, kind: spect, array: recon_bsrem, affine: vx.simind_affine(object_meta), units: counts}
+    - {name: Truth, label: True activity, kind: spect, array: truth_image, affine: vx.simind_affine(object_meta), units: MBq/mL}
+
   t_dicommultibed:
     title: Lu-177-PSMA patient, two bed positions
     description: Both beds reconstructed and stitched into one volume
