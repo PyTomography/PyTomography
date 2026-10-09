@@ -271,6 +271,8 @@ def fbp_helical(proj: torch.Tensor, meta, X: torch.Tensor, Y: torch.Tensor, Z: n
     uniform = len(Z) < 2 or np.allclose(np.diff(np.asarray(Z, dtype=np.float64)), float(Z[1] - Z[0]), rtol=1e-6, atol=1e-6)
     if backend not in ('auto', 'cuda', 'torch'):
         raise ValueError(f'unknown backend {backend!r}')
+    if backend == 'cuda' and not _wfbp_cuda.available(device):
+        raise ValueError(f"backend='cuda' needs CuPy and a CUDA device, and the device is {device}")
     use_cuda = backend == 'cuda' or (backend == 'auto' and uniform and _wfbp_cuda.available(device)
                                       and (k_range is None or k_range <= _wfbp_cuda.MAX_K_RANGE))
     proj = proj.detach().to('cpu', torch.float32)
