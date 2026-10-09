@@ -432,14 +432,16 @@ def sinogram_to_listmode(detector_ids: torch.Tensor, sinogram: torch.Tensor, inf
     detector_ids_spatial = detector_ids[:,:2].to(device)
     within_ring_id = (detector_ids_spatial % info['NrCrystalsPerRing']).to(torch.long)
     ring_ids = (detector_ids_spatial // info['NrCrystalsPerRing']).to(torch.long)
-    within_ring_id, idx = within_ring_id.sort(axis=1, descending=True)
-    ring_ids = ring_ids.gather(index=idx, dim=1)
+    # Same bin as listmode_to_sinogram: crystals ordered by descending within-ring index, ring IDs reordered with them
+    within_ring_id, idx = within_ring_id.sort(axis=1, descending=True, stable=True)   # stable: a pair with equal within-ring IDs keeps its order on any device
     ring_ids = ring_ids.gather(index=idx, dim=1)
     lm_return = 0
     idx0, idx1 = lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]].T
     idx2 = sinogram_index[ring_ids[:,0], ring_ids[:,1]]
     if len(sinogram.shape)>3: # If TOF
         idxTOF =  detector_ids[:,2].to(device)
+        # the TOF bin of an event whose crystals were swapped is mirrored, as in listmode_to_sinogram
+        idxTOF = torch.where(idx[:,0] == 1, sinogram.shape[-1] - 1 - idxTOF, idxTOF)
         lm_return += sinogram[idx0, idx1, idx2, idxTOF] # randoms same for all TOF bins
     else:
         lm_return += sinogram[idx0, idx1, idx2]
