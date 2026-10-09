@@ -203,7 +203,8 @@ def run_one(name: str, run_dir: Path, timeout: int, min_free_gb: float, max_kern
     nb = nbformat.read(SRCDIR / "notebooks" / f"{name}.ipynb", as_version=4)
     nb.cells.append(nbformat.v4.new_code_cell(RUNINFO, metadata={"tags": ["run-info"]}))
     if viewer_spec:  # after the run information, so the stamp's peak memory is the tutorial's own; dropped on write-back
-        nb.cells.append(nbformat.v4.new_code_cell(viewer_export.cell_source(name, run_dir / "viewer", viewer_spec),
+        sha = viewer_export.code_sha(SRCDIR / "notebooks" / f"{name}.ipynb")   # which code the cached images came from
+        nb.cells.append(nbformat.v4.new_code_cell(viewer_export.cell_source(name, run_dir / "viewer", viewer_spec, sha),
                                                   metadata={"tags": ["run-info", "viewer-export"]}))
     cwd = run_dir / "cwd" / name
     cwd.mkdir(parents=True, exist_ok=True)

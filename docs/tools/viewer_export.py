@@ -21,7 +21,8 @@ colormaps, crop, voxel_mm, slices, labels, scale groups, the size budget...) the
     python docs/tools/viewer_export.py rebuild RUN_DIR t_dicomdata     # some of them
 
 rewrites RUN_DIR/viewer/<name>/ from the cache with the current viewer.yaml, and names the tutorials that need a new
-run because an image's expression is new or has changed.
+run: an image's expression is new or has changed, or the notebook's code has changed since the run (each cache keeps a
+fingerprint of the code cells it ran; edits to text cells don't count). `rebuild --force` uses the cache anyway.
 
 Run this file with a folder to check an export:  python docs/tools/viewer_export.py OUT_DIR/t_dicomdata
 """
@@ -274,7 +275,15 @@ def cache_dir(out_dir, name: str) -> Path:
     return Path(out_dir).parent / "viewer_cache" / name
 
 
-def _cache_write(folder: Path, name: str, spec: dict, raw: list) -> None:
+def code_sha(notebook) -> str:
+    """A fingerprint of a notebook's code: its code cells' sources, in order. Text cells don't change the images."""
+    nb = json.loads(Path(notebook).read_text(encoding="utf8"))
+    code = [("".join(c["source"]) if isinstance(c["source"], list) else c["source"]) for c in nb["cells"]
+            if c.get("cell_type") == "code" and "run-info" not in c.get("metadata", {}).get("tags", [])]
+    return hashlib.sha1(json.dumps(code).encode("utf8")).hexdigest()[:16]
+
+
+def _cache_write(folder: Path, name: str, spec: dict, raw: list, notebook_sha: str | None = None) -> None:
     """Keep each evaluated image (float64 as float32, other types as they are) and its affine, and an index of them."""
     folder.mkdir(parents=True, exist_ok=True)
     entries = []
@@ -289,7 +298,7 @@ def _cache_write(folder: Path, name: str, spec: dict, raw: list) -> None:
             old.unlink()
     import pytomography
     index = {"tutorial": name, "created": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-             "pytomography": getattr(pytomography, "__version__", "?"), "layers": entries}
+             "pytomography": getattr(pytomography, "__version__", "?"), "notebook_code_sha": notebook_sha, "layers": entries}
     (folder / "index.json").write_text(json.dumps(index, indent=1), encoding="utf8")
 
 
@@ -312,7 +321,7 @@ def _cache_read(folder: Path, spec: dict) -> list:
     return raw
 
 
-def export(name: str, out_dir, namespace: dict, spec: dict) -> dict:
+def export(name: str, out_dir, namespace: dict, spec: dict, notebook_sha: str | None = None) -> dict:
     """Evaluate spec's layers in namespace, keep them in the cache, and write the viewer files. Returns a summary;
     raises on failure."""
     t0 = time.time()
@@ -335,7 +344,7 @@ def export(name: str, out_dir, namespace: dict, spec: dict) -> dict:
             arr, A = got, eval(ls["affine"], env)
         raw.append((ls, _to_numpy(arr), np.asarray(_to_numpy(A), float).reshape(4, 4).copy(), space))
     try:
-        _cache_write(cache_dir(out_dir, name), name, spec, raw)
+        _cache_write(cache_dir(out_dir, name), name, spec, raw, notebook_sha)
         cached = True
     except Exception:                                   # a full disk shouldn't cost the export
         cached = False
@@ -495,21 +504,22 @@ def _write(name: str, out_dir, spec: dict, raw: list, t0: float) -> dict:
             "bytes": manifest["bytes"], "seconds": round(time.time() - t0, 1)}
 
 
-def run(name: str, out_dir, namespace: dict, spec: dict) -> None:
+def run(name: str, out_dir, namespace: dict, spec: dict, notebook_sha: str | None = None) -> None:
     """The runner's cell: export, and print one MARKER line with the result. Never raises."""
     try:
-        result = export(name, out_dir, namespace, spec)
+        result = export(name, out_dir, namespace, spec, notebook_sha)
     except Exception as e:  # the tutorial itself passed; report the export's failure without failing it
         result = {"status": "export failed", "error": f"{type(e).__name__}: {e}"[:400],
                   "trace": traceback.format_exc(limit=3)[-800:]}
     print(MARKER + json.dumps(result))
 
 
-def cell_source(name: str, out_dir, spec: dict) -> str:
-    """The code of the extra cell that the runner appends to a tutorial."""
+def cell_source(name: str, out_dir, spec: dict, notebook_sha: str | None = None) -> str:
+    """The code of the extra cell that the runner appends to a tutorial. notebook_sha (code_sha of the notebook being
+    run) goes into the cache, so a later rebuild knows whether the notebook's code has changed since."""
     tools = str(Path(__file__).resolve().parent)
     return (f"import sys as _s\n_s.path.insert(0, {tools!r})\nimport viewer_export as _vx\n"
-            f"_vx.run({name!r}, {str(out_dir)!r}, globals(), __import__('json').loads({json.dumps(spec)!r}))\n"
+            f"_vx.run({name!r}, {str(out_dir)!r}, globals(), __import__('json').loads({json.dumps(spec)!r}), {notebook_sha!r})\n"
             "del _s, _vx\n")
 
 
@@ -539,10 +549,11 @@ def check(folder) -> int:
     return 0 if ok else 1
 
 
-def rebuild_run(run_dir, names=None, srcdir=None) -> int:
+def rebuild_run(run_dir, names=None, srcdir=None, force: bool = False) -> int:
     """`rebuild` for a run folder: every tutorial in RUN_DIR/viewer_cache (or the names given), with viewer.yaml."""
     run_dir = Path(run_dir)
-    specs = load_specs(Path(srcdir) if srcdir else Path(__file__).resolve().parents[1] / "source")
+    srcdir = Path(srcdir) if srcdir else Path(__file__).resolve().parents[1] / "source"
+    specs = load_specs(srcdir)
     cached = sorted(p.parent.name for p in (run_dir / "viewer_cache").glob("*/index.json"))
     todo = names or cached
     rerun = []
@@ -554,6 +565,15 @@ def rebuild_run(run_dir, names=None, srcdir=None) -> int:
             print(f"{name}: not cached in this run; run the tutorial")
             rerun.append(name)
             continue
+        index = json.loads((run_dir / "viewer_cache" / name / "index.json").read_text(encoding="utf8"))
+        made, now = index.get("notebook_code_sha"), code_sha(srcdir / "notebooks" / f"{name}.ipynb")
+        if made and made != now and not force:
+            print(f"{name}: the notebook's code has changed since this run ({index['created']}); run it again")
+            rerun.append(name)
+            continue
+        if not made:
+            print(f"{name}: this cache doesn't record the notebook's code, so a change since {index['created']} "
+                  "can't be detected")
         try:
             r = rebuild(name, run_dir / "viewer", specs[name])
             print(f"{name}: rebuilt, {r['bytes'] / 1e6:.1f} MB, {', '.join(r['layers'])}")
@@ -567,5 +587,6 @@ def rebuild_run(run_dir, names=None, srcdir=None) -> int:
 
 if __name__ == "__main__":
     if len(sys.argv) > 2 and sys.argv[1] == "rebuild":
-        sys.exit(rebuild_run(sys.argv[2], sys.argv[3:] or None))
+        rest = [a for a in sys.argv[3:] if a != "--force"]
+        sys.exit(rebuild_run(sys.argv[2], rest or None, force="--force" in sys.argv[3:]))
     sys.exit(check(sys.argv[1]))
