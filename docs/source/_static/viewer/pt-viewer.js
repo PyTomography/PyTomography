@@ -27,6 +27,8 @@
     ['lung', 'Lung', -1350, 150], ['full', 'Full range', -1000, 1000]];
   // SPECT and PET are drawn in colour over a grey anatomical image (CT, MR or attenuation map)
   const ROLE = {spect: 'overlay', pet: 'overlay', ct: 'base', mr: 'base', mu: 'base', image: 'base'};
+  // the colour images' first 3% above the lower limit fade in from clear (see rgbaOf)
+  const FADE = 0.03;
   // u = screen right, v = screen down, each [scanner axis, sign]; n = the axis through the slice. Radiological, as
   // imshow shows PyTomography's arrays: the patient's right on the left, anterior and superior at the top.
   const VIEWS = {
@@ -313,7 +315,8 @@
       const w = m.kind === 'ct' && CT_WINDOWS.find(x => x[0] === m.window);
       if (w) range = [w[2], w[3]];
       return {cmap: LUT[m.colormap] ? m.colormap : over ? 'inferno' : 'gray', lo: range[0], hi: range[1],
-        op: m.opacity != null ? m.opacity : over ? (hasBase ? 0.5 : 1) : 1, fwhm: 0, hiAuto: true};
+        // SPECT and PET over an anatomy image start at 75% opacity (Luke, 9 Oct 2026); on their own, at 100%
+        op: m.opacity != null ? m.opacity : over ? (hasBase ? 0.75 : 1) : 1, fwhm: 0, hiAuto: true};
     }
     // images in one scale group (the same units, as the export decides) share their settings, so switching between
     // them keeps the colour scale, and the same colour means the same value
@@ -369,10 +372,13 @@
       const n = sl.w * sl.h, out = new Uint8ClampedArray(n * 4), d = sl.data, s = L.set, lut = LUT[s.cmap] || LUT.gray;
       const lo = s.lo, span = Math.max(1e-12, s.hi - s.lo), a = Math.round(s.op * 255);
       if (L.role === 'overlay') {
+        // The bottom of the colour scale fades in from clear. Otherwise the reconstruction's near-zero voxels around the
+        // object would show as a flat sheet of the colormap's darkest colour (hot starts at dark red, not black), the
+        // same at every upper limit.
         for (let i = 0; i < n; i++) {
           const v = d[i]; if (!(v > lo)) continue;
-          const q = Math.round(Math.min(1, (v - lo) / span) * 255) * 3;
-          out[4 * i] = lut[q]; out[4 * i + 1] = lut[q + 1]; out[4 * i + 2] = lut[q + 2]; out[4 * i + 3] = a;
+          const t = Math.min(1, (v - lo) / span), q = Math.round(t * 255) * 3;
+          out[4 * i] = lut[q]; out[4 * i + 1] = lut[q + 1]; out[4 * i + 2] = lut[q + 2]; out[4 * i + 3] = t < FADE ? a * t / FADE : a;
         }
       } else {
         for (let i = 0; i < n; i++) {
