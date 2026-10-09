@@ -44,9 +44,9 @@ sections:
     modality: SPECT
     data: SIMIND
     topic: Quantification
-    summary: Measure bias and noise in every organ of a simulated patient, with OSEM and BSREM.
+    summary: Measure bias and noise in each sphere of a simulated phantom, with OSEM and BSREM.
     datasets:
-    - SPECT/SIMIND-MultiOrgan
+    - SPECT/SIMIND-Jaszak
   - notebook: t_dicommultibed
     title: Multiple bed positions
     modality: SPECT
