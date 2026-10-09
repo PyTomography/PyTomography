@@ -23,9 +23,11 @@
 #                 voxel at the edge of the field of view doesn't set the scale.
 #     crop:       body (CT default: where the image is above -500 HU, else 2% of its maximum) | base (SPECT and PET
 #                 default: the anatomy's extent) | none
+#     when:       optional Python condition, checked in the tutorial's namespace; the layer is exported only when it
+#                 holds (e.g. while two versions of a tutorial are in flight)
 #     scale_group: images in the same units share one colour scale and keep it when the reader switches between
 #                 them; give a different name to keep an image apart (e.g. a scanner's image in other units), or none
-#     voxel_mm:   average down to about this voxel size (downsample: an integer factor instead);
+#     voxel_mm:   average down to about this voxel size, or [x, y, z] (downsample: an integer factor instead);
 #     slices:     per-axis "a:b", to keep part of the array
 #
 # Helpers in expressions: vx.ct_dicom(files) gives (HU, affine); vx.spect_affine(file_NM); vx.centred(dr_mm, shape);
@@ -232,21 +234,31 @@ tutorials:
   # ---------- CT ----------
   t_CT_GEN3:
     title: Chest CT from raw projections
-    description: OS-SART on the scanner's raw projections, in HU
+    description: Our reconstruction of the scanner's raw projections, in HU, beside the scanner's own
     credit: TCIA LDCT-and-Projection-data, case C145 (CC BY 4.0; see TCIA's data usage policy)
     credit_url: https://www.cancerimagingarchive.net/collection/ldct-and-projection-data/
     layers:
-    # the reconstruction runs head to foot from the mean table position; the first and last 12 slices lack coverage
+    # Two versions of this tutorial: OS-SART now, and filtered back projection once #263 is in development (the CT
+    # chat's rewrite, which defines hu_matched). `when` picks the layers of whichever version ran.
+    # OS-SART: the reconstruction runs head to foot from the mean table position; the first and last 12 slices lack
+    # coverage.
     - name: CT
       label: OS-SART
       kind: ct
+      when: "'hu_matched' not in globals()"
       array: hu
       affine: "np.array([[object_meta.dr[0], 0, 0, -(Nx - 1) / 2 * object_meta.dr[0]], [0, object_meta.dr[1], 0, -(Ny - 1) / 2 * object_meta.dr[1]], [0, 0, -object_meta.dr[2], source_z_mean + (Nz - 1) / 2 * object_meta.dr[2]], [0, 0, 0, 1]])"
       slices: [":", ":", "12:-12"]
       window: soft
       voxel_mm: 2
       units: HU
-    - {name: Scanner, label: Scanner's reconstruction, kind: ct, array: vx.ct_dicom(scanner_files), window: soft, voxel_mm: 2, units: HU}
+    # FBP: our grid in the patient's frame comes from the projections; both FBP images share it (entry from the CT
+    # chat, tested with its draft). 2 x 2 x 3 mm for all three keeps axial views sharp, gives every image the reader
+    # switches between the same grid, and stays under 15 MB without halving one of them.
+    - {name: CT, label: FBP, kind: ct, when: "'hu_matched' in globals()", array: hu, affine: "proj_meta.get_patient_affine(object_meta).numpy()", window: soft, voxel_mm: [2, 2, 3], units: HU}
+    - {name: Matched, label: "FBP, advanced settings", kind: ct, when: "'hu_matched' in globals()", array: hu_matched, affine: "proj_meta.get_patient_affine(object_meta).numpy()", window: soft, voxel_mm: [2, 2, 3], units: HU}
+    - {name: Scanner, label: Scanner's reconstruction, kind: ct, when: "'hu_matched' in globals()", array: vx.ct_dicom(scanner_files), window: soft, voxel_mm: [2, 2, 3], units: HU}
+    - {name: Scanner, label: Scanner's reconstruction, kind: ct, when: "'hu_matched' not in globals()", array: vx.ct_dicom(scanner_files), window: soft, voxel_mm: 2, units: HU}
 
   t_CT_microct:
     title: Glass beads, cone-beam micro-CT

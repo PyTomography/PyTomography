@@ -267,6 +267,8 @@ def export(name: str, out_dir, namespace: dict, spec: dict) -> dict:
 
     layers = []
     for ls in spec["layers"]:
+        if ls.get("when") and not eval(ls["when"], env):   # a layer for one version of the tutorial only
+            continue
         kind = ls["kind"]
         got = eval(ls["array"], env)
         space = ls.get("space", "lps")
@@ -314,8 +316,9 @@ def export(name: str, out_dir, namespace: dict, spec: dict) -> dict:
             bmm = base["A"] @ corners
             vox = np.linalg.inv(A) @ bmm
             arr, A = _crop(arr, A, np.floor(vox[:3].min(1)).astype(int) - 2, np.ceil(vox[:3].max(1)).astype(int) + 3)
-        if ls.get("voxel_mm"):
-            arr, A = _downsample(arr, A, [max(1, round(float(ls["voxel_mm"]) / abs(A[j, j]))) for j in range(3)])
+        if ls.get("voxel_mm"):                          # one size, or one per axis
+            vm = ls["voxel_mm"] if isinstance(ls["voxel_mm"], list) else [ls["voxel_mm"]] * 3
+            arr, A = _downsample(arr, A, [max(1, round(float(vm[j]) / abs(A[j, j]))) for j in range(3)])
         elif ls.get("downsample"):
             arr, A = _downsample(arr, A, [int(ls["downsample"])] * 3)
         arr = np.nan_to_num(np.asarray(arr, np.float32), nan=0.0, posinf=0.0, neginf=0.0)
