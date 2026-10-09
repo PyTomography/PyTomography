@@ -670,4 +670,8 @@ def get_sss_scatter_estimate(
         proj_data = listmode_to_sinogram(proj_meta.detector_ids, proj_meta.info, tof_meta=tof_meta, lazy=True)
     # Scale sinogram
     proj_scatter = scale_estimated_scatter(scatter_sinogram_unscaled, system_matrix, proj_data, attenuation_image, attenuation_cutoff, sinogram_random = sinogram_random)
+    # Release the GPU memory PyTorch keeps cached from the estimate (3.5 GB for the mMR with 21 TOF bins): on Windows it
+    # also counts as the process's host memory
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     return proj_scatter

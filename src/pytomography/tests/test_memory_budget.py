@@ -72,8 +72,10 @@ def test_set_memory_budget():
 def test_block_and_subset_sizes(budget):
     budget(None)
     assert memory.block_size(100, default=7) == 7 and not memory.prefer_lazy(1e12) and memory.subsets_for_budget(1e12, minimum=3) == 3
-    budget(8)                                         # an eighth is 1 GB; a quarter is 2 GB; half is 4 GB
-    assert memory.block_size(100, default=7) == 10**7
+    budget(2)                                         # an eighth is 0.25 GB
+    assert memory.block_size(100, default=7) == 2.5 * 10**6
+    budget(8)                                         # an eighth is 1 GB, above the 0.5 GB cap; a quarter is 2 GB; half is 4 GB
+    assert memory.block_size(100, default=7) == memory.BLOCK_CAP_BYTES // 100
     assert memory.prefer_lazy(2.1e9) and not memory.prefer_lazy(1.9e9)
     assert memory.subsets_for_budget(34.6e9) == 26    # three 34.6 GB / 26 arrays fit in 4 GB, 25 do not
     assert memory.subsets_for_budget(34.6e9, held_bytes=2e9) == 18

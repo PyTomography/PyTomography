@@ -6,6 +6,10 @@ import math
 import torch
 from pytomography.utils.memory import subsets_for_budget
 
+def _rows_per_block(x: torch.Tensor, block_bytes: float = 2.5e8) -> int:
+    """Rows of ``x`` (along its first dimension) in a block of about ``block_bytes``."""
+    return max(1, int(block_bytes // max(1, x[0].numel() * x.element_size()))) if x.ndim > 0 and x.shape[0] > 0 else 1
+
 class Likelihood:
     """Generic likelihood class in PyTomography. Subclasses may implement specific likelihoods with methods to compute the likelihood itself as well as particular gradients of the likelihood 
 
@@ -109,14 +113,42 @@ class Likelihood:
         self.projections_predicted = None
         FP = self.system_matrix.forward(object, subset_idx)
         if self.additive_term is not None:
-            additive_term_subset = self._get_projection_subset(self.additive_term, subset_idx)
-            if torch.broadcast_shapes(FP.shape, additive_term_subset.shape) == FP.shape and FP.dtype == additive_term_subset.dtype:
-                FP += additive_term_subset
+            angles = self._subset_angles(subset_idx, FP)
+            if angles is not None and not isinstance(self.additive_term, torch.Tensor):
+                # computed a subset at a time (a LazySinogram): added a block of the subset's angles at a time, so the
+                # subset's additive term is never held whole
+                rows = _rows_per_block(FP)
+                for start in range(0, len(angles), rows):
+                    FP[start:start + rows] += self._get_projection_rows(self.additive_term, angles[start:start + rows])
             else:
-                FP = FP + additive_term_subset
-            del additive_term_subset
+                additive_term_subset = self._get_projection_subset(self.additive_term, subset_idx)
+                if torch.broadcast_shapes(FP.shape, additive_term_subset.shape) == FP.shape and FP.dtype == additive_term_subset.dtype:
+                    FP += additive_term_subset
+                else:
+                    FP = FP + additive_term_subset
+                del additive_term_subset
         self.projections_predicted = FP
         return FP
+
+    def _subset_angles(self, subset_idx: int | None, FP: torch.Tensor) -> torch.Tensor | None:
+        """The angles of a sinogram subset, if the system matrix splits its projections by their first dimension (as the PET sinogram system matrix does) and ``FP`` has one row per angle; otherwise None."""
+        if subset_idx is None or not hasattr(self.system_matrix, 'proj_meta') or not hasattr(self.system_matrix.proj_meta, 'N_angles'):
+            return None
+        angles = self.system_matrix.subset_indices_array[subset_idx]
+        return angles if FP.shape[0] == len(angles) else None
+
+    def _is_own_copy(self, proj_subset: torch.Tensor) -> bool:
+        """Whether a subset of the projections is a tensor of its own (a copy made by indexing, or computed a subset at a time), which may be overwritten, rather than the projections themselves or a view of them."""
+        if not isinstance(proj_subset, torch.Tensor) or proj_subset._base is not None:
+            return False
+        if not isinstance(self.projections, torch.Tensor):
+            return True
+        return proj_subset.untyped_storage().data_ptr() != self.projections.untyped_storage().data_ptr()
+
+    @staticmethod
+    def _get_projection_rows(projections, angles: torch.Tensor) -> torch.Tensor:
+        """Rows ``angles`` of projections indexed by angle (a tensor or a LazySinogram)."""
+        return projections[angles]
         
         
     def _get_normBP(self, subset_idx: int, return_sum: bool = False):

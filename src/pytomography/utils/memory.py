@@ -57,8 +57,14 @@ class PeakMemory:
             self.peak = torch.cuda.max_memory_allocated(self.device) - self._base
         return False
 
+#: Largest block of temporaries (bytes) a blocked step uses, whatever the budget. Larger blocks are no faster for these
+#: steps, and on Windows a process keeps part of what its larger blocks took after freeing them (3.5 GB after smoothing
+#: the mMR randoms in 3 GB blocks, 1.5 GB with 0.25 GB blocks), which then counts against the budget.
+BLOCK_CAP_BYTES = 5e8
+
+
 def block_size(bytes_per_item: float, default: int, fraction: float = 1 / 8) -> int:
-    """Number of items (crystal pairs, events) a step processes at once: as many as fit in ``fraction`` of the memory budget, or ``default`` without a budget.
+    """Number of items (crystal pairs, events, rows) a step processes at once: as many as fit in ``fraction`` of the memory budget, but at most :data:`BLOCK_CAP_BYTES` of temporaries; ``default`` without a budget.
 
     Args:
         bytes_per_item (float): Memory the step needs per item, temporaries included.
@@ -70,7 +76,7 @@ def block_size(bytes_per_item: float, default: int, fraction: float = 1 / 8) -> 
     """
     if pytomography.memory_budget is None:
         return default
-    return max(1, int(pytomography.memory_budget * fraction // bytes_per_item))
+    return max(1, int(min(pytomography.memory_budget * fraction, BLOCK_CAP_BYTES) // bytes_per_item))
 
 
 def prefer_lazy(nbytes: float) -> bool:
