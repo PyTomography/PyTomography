@@ -125,11 +125,12 @@ def _result_buttons(doctree, spec: dict, exported: list[str]):
     that opens them for comparison."""
     results = []          # (variable, layer name, label)
     layers = spec.get("layers", [])
-    # the reconstructions: SPECT and PET, or in a CT tutorial the CT images (their anatomy is an input there)
+    # the reconstructions: SPECT and PET, or in a CT tutorial its CT and attenuation images (in SPECT and PET
+    # tutorials those are inputs)
     colour = any(L.get("kind") in ("spect", "pet") for L in layers)
     for L in layers:
         label = L.get("label", L["name"])
-        if L.get("kind") not in (("spect", "pet") if colour else ("ct",)) or label not in exported:
+        if L.get("kind") not in (("spect", "pet") if colour else ("ct", "mu")) or label not in exported:
             continue
         var = _root_name(L.get("array", ""))
         if var:
