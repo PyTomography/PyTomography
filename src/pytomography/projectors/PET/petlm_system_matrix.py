@@ -9,7 +9,7 @@ import math
 import numpy as np
 import parallelproj_core
 from pytomography.io.PET.shared import crystal_pair_blocks, crystal_pair_index
-from pytomography.utils.memory import block_size
+from pytomography.utils.memory import MemoryPart, block_size
 
 #: Factor applied to the memory estimates of :meth:`PETLMSystemMatrix.print_memory_usage`. Summing the arrays a
 #: projection allocates underestimates what the device reports, because PyTorch's caching allocator keeps freed
@@ -239,6 +239,37 @@ class PETLMSystemMatrix(SystemMatrix):
             print(f"  device has {free/1e9:.3f} GB free of {total/1e9:.3f} GB"
                   + ("" if worst < free else "  -- the all-event projection does not fit; raise N_splits, "
                                              "set lor_device='cpu', or project subsets only"))
+
+    def _memory_parts(self, n_subsets: int, N_splits: int | None) -> list[MemoryPart]:
+        """What a reconstruction with this system matrix holds at its peak (see :meth:`~pytomography.projectors.SystemMatrix.estimate_memory`):
+        the events (where ``lor_device`` keeps them) with their projector order, the sensitivity weights, the
+        sensitivity image, a normalisation image per subset and the images for the whole run; one subset's expected
+        counts, ratio and temporaries (about four values per event of the subset); and the projector's chunk on the
+        GPU. The additive term is the likelihood's: pass it to ``estimate_memory`` as ``held``.
+
+        Args:
+            n_subsets (int): Number of subsets.
+            N_splits (int | None): Projector splits, or None for this system matrix's own.
+
+        Returns:
+            list[MemoryPart]: The arrays.
+        """
+        ids = self.proj_meta.detector_ids
+        n_events = ids.shape[0]
+        image_bytes = 4 * math.prod(self.object_meta.shape)
+        def where(device, nbytes):
+            return {'gpu_bytes': float(nbytes)} if torch.device(device).type == 'cuda' else {'ram_bytes': float(nbytes)}
+        parts = [MemoryPart('events and their projector order', **where(ids.device, ids.untyped_storage().nbytes() + (4 * n_events if self.sort_events else 0)))]
+        weights = getattr(self.proj_meta, 'weights_sensitivity', None)
+        if isinstance(weights, torch.Tensor):
+            parts.append(MemoryPart('sensitivity weights', **where(weights.device, weights.untyped_storage().nbytes())))
+        parts.append(MemoryPart(f'sensitivity and normalisation images ({n_subsets})', gpu_bytes=(n_subsets + 1) * image_bytes))
+        parts.append(MemoryPart('image, update and attenuation map', gpu_bytes=4 * image_bytes))
+        events = math.ceil(n_events / n_subsets)
+        parts.append(MemoryPart('expected counts, ratio and temporaries (one subset)', **where(self.output_device, 4 * 4 * events), scope='subset'))
+        splits = self.N_splits if N_splits is None else N_splits
+        parts.append(MemoryPart('projector chunk', gpu_bytes=float(math.ceil(events / splits) * 64), scope='chunk'))   # LOR ends, ids, TOF bins, values
+        return parts
 
     def _n_events(self, subset_idx: int | None) -> int:
         """Number of events of subset ``subset_idx`` (all the events for None)."""

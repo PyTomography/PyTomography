@@ -5,7 +5,7 @@ from pytomography.metadata import ObjectMeta
 from pytomography.metadata.PET import PETSinogramPolygonProjMeta
 import math
 import numpy as np
-from pytomography.utils.memory import gpu_budget
+from pytomography.utils.memory import gpu_budget, MemoryPart
 from pytomography.projectors import SystemMatrix
 from pytomography.transforms import Transform
 from pytomography.io.PET.shared import listmode_to_sinogram, all_pairs_to_sinogram
@@ -122,6 +122,38 @@ class PETSinogramSystemMatrix(SystemMatrix):
         xyz1 = torch.cat([dc[angle, r, 0], rc[plane, 0].unsqueeze(1)], dim=1)
         xyz2 = torch.cat([dc[angle, r, 1], rc[plane, 1].unsqueeze(1)], dim=1)
         return xyz1, xyz2
+
+    def _memory_parts(self, n_subsets: int, N_splits: int | None) -> list[MemoryPart]:
+        """What a reconstruction with this system matrix holds at its peak (see :meth:`~pytomography.projectors.SystemMatrix.estimate_memory`):
+        the sensitivity sinogram, a normalisation image per subset and the images for the whole run; one subset's data,
+        expected counts, ratio and the temporaries of computing them (about four arrays of a subset's size, where the
+        projections are: ``device``); and the projector's chunk on the GPU. The data and the additive term are the
+        likelihood's: pass them to ``estimate_memory`` as ``held``.
+
+        Args:
+            n_subsets (int): Number of subsets.
+            N_splits (int | None): Projector splits, or None for this system matrix's own.
+
+        Returns:
+            list[MemoryPart]: The arrays.
+        """
+        n_angles, n_r, n_planes = self.proj_meta.N_angles, self.proj_meta.shape[1], self.proj_meta.shape[2]
+        n_bins = self.proj_meta.tof_meta.num_bins if self.TOF else 1
+        image_bytes = 4 * math.prod(self.object_meta.shape)
+        on_gpu = torch.device(self.output_device).type == 'cuda'
+        where = (lambda nbytes: {'gpu_bytes': nbytes}) if on_gpu else (lambda nbytes: {'ram_bytes': nbytes})
+        parts = []
+        if self.sinogram_sensitivity is not None:
+            parts.append(MemoryPart('sensitivity sinogram', **where(float(self.sinogram_sensitivity.untyped_storage().nbytes()))))
+        parts.append(MemoryPart(f'normalisation images ({n_subsets})', gpu_bytes=n_subsets * image_bytes))
+        parts.append(MemoryPart('image, update and attenuation map', gpu_bytes=4 * image_bytes))
+        lors = math.ceil(n_angles / n_subsets) * n_r * n_planes          # the LORs of the largest subset
+        parts.append(MemoryPart('data, expected counts, ratio and temporaries (one subset)', **where(4.0 * 4 * lors * n_bins), scope='subset'))
+        splits = self.N_splits if N_splits is None else N_splits
+        bytes_per_lor = 88 + 8 * n_bins
+        n_chunks = max(splits, math.ceil(lors * bytes_per_lor / gpu_budget()))
+        parts.append(MemoryPart('projector chunk', gpu_bytes=float(math.ceil(lors / n_chunks) * bytes_per_lor), scope='chunk'))
+        return parts
 
     def _N_sinogram(self, subset_idx: int | None = None) -> int:
         """Number of sinogram elements (all angles, or the angles of subset ``subset_idx``)."""
