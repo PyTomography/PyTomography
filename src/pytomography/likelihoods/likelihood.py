@@ -82,8 +82,15 @@ class Likelihood:
                              f"{pytomography.memory_budget / 2e9:.1f} GB the memory budget of {pytomography.memory_budget / 1e9:.1f} GB leaves for it: "
                              f"use at least {needed} subsets, or raise the budget with pytomography.set_memory_budget")
 
+    def _projection_device(self) -> torch.device | None:
+        """The device the system matrix puts its projections on (its ``output_device``), if it has one."""
+        device = getattr(self.system_matrix, 'output_device', None)
+        return None if device is None else torch.device(device)
+
     def _get_projection_subset(self, projections: torch.Tensor, subset_idx: int | None = None) -> torch.Tensor:
-        """Method for getting projection subset corresponding to given subset index
+        """Method for getting projection subset corresponding to given subset index. The subset is on the device the
+        system matrix puts its projections on: a subset of projections computed one subset at a time (a LazySinogram)
+        is computed there (on a GPU, it never passes through host memory), and a tensor's subset is copied there.
 
         Args:
             projections (torch.Tensor): Projection data
@@ -92,11 +99,22 @@ class Likelihood:
         Returns:
             torch.Tensor: Subset projection data
         """
+        device = self._projection_device()
         if subset_idx is None:
             # projections computed one subset at a time (a LazySinogram) are computed whole
-            return projections if isinstance(projections, torch.Tensor) else projections.to_dense()
-        else:
-            return self.system_matrix.get_projection_subset(projections, subset_idx)
+            whole = projections if isinstance(projections, torch.Tensor) else projections.to_dense()
+            return whole if device is None else whole.to(device)
+        angles = self._sinogram_subset_angles(subset_idx)
+        if not isinstance(projections, torch.Tensor) and hasattr(projections, 'compute_at') and angles is not None:
+            return projections.compute_at(angles, device if device is not None else 'cpu')
+        subset = self.system_matrix.get_projection_subset(projections, subset_idx)
+        return subset if device is None or not isinstance(subset, torch.Tensor) else subset.to(device)
+
+    def _sinogram_subset_angles(self, subset_idx: int | None) -> torch.Tensor | None:
+        """The angles (on the CPU) of subset ``subset_idx``, if the system matrix splits its projections by angle (as the PET sinogram system matrix does); otherwise None."""
+        if subset_idx is None or not hasattr(self.system_matrix, 'proj_meta') or not hasattr(self.system_matrix.proj_meta, 'N_angles'):
+            return None
+        return self.system_matrix.subset_indices_array[subset_idx].cpu()
 
     def _forward_with_additive_term(self, object: torch.Tensor, subset_idx: int | None = None) -> torch.Tensor:
         r"""Computes the expected projections :math:`H_m f + s_m` of a subset, and keeps them in ``projections_predicted``.
@@ -119,7 +137,7 @@ class Likelihood:
                 # subset's additive term is never held whole
                 rows = _rows_per_block(FP)
                 for start in range(0, len(angles), rows):
-                    FP[start:start + rows] += self._get_projection_rows(self.additive_term, angles[start:start + rows])
+                    FP[start:start + rows] += self._get_projection_rows(self.additive_term, angles[start:start + rows], FP.device)
             else:
                 additive_term_subset = self._get_projection_subset(self.additive_term, subset_idx)
                 if torch.broadcast_shapes(FP.shape, additive_term_subset.shape) == FP.shape and FP.dtype == additive_term_subset.dtype:
@@ -146,9 +164,12 @@ class Likelihood:
         return proj_subset.untyped_storage().data_ptr() != self.projections.untyped_storage().data_ptr()
 
     @staticmethod
-    def _get_projection_rows(projections, angles: torch.Tensor) -> torch.Tensor:
-        """Rows ``angles`` of projections indexed by angle (a tensor or a LazySinogram)."""
-        return projections[angles]
+    def _get_projection_rows(projections, angles: torch.Tensor, device: torch.device | None = None) -> torch.Tensor:
+        """Rows ``angles`` of projections indexed by angle (a tensor or a LazySinogram), on ``device`` (a LazySinogram computes them there)."""
+        if not isinstance(projections, torch.Tensor) and hasattr(projections, 'compute_at') and device is not None:
+            return projections.compute_at(angles, device)
+        rows = projections[angles.to(projections.device) if isinstance(projections, torch.Tensor) else angles]
+        return rows if device is None else rows.to(device)
         
         
     def _get_normBP(self, subset_idx: int, return_sum: bool = False):

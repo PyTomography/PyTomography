@@ -204,7 +204,8 @@ class PETSinogramSystemMatrix(SystemMatrix):
             return projections
         else:
             subset_indices = self.subset_indices_array[subset_idx]
-            proj_subset = projections[subset_indices]
+            # index where the projections are (the subsets are kept on the output device, which may differ)
+            proj_subset = projections[subset_indices.to(projections.device) if isinstance(projections, torch.Tensor) else subset_indices]
             return proj_subset
     
     def get_weighting_subset(

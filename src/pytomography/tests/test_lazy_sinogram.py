@@ -251,6 +251,31 @@ def test_osem_with_lazy_data_and_additive_term_equals_dense(tof, small_chunks):
 
 
 @needs_kernels
+@pytest.mark.skipif(DEV == 'cpu' or not torch.cuda.is_available(), reason="needs a CUDA device")
+@pytest.mark.parametrize("tof", [False, True])
+def test_osem_with_projections_on_the_gpu(tof, small_chunks):
+    """With a system matrix that puts its projections on the GPU (device='cuda'), each subset of the data and of the
+    additive term is computed there (lazy) or copied there (dense): the reconstruction is that of the system matrix
+    that puts them on the host, up to the projector's rounding."""
+    activity, attenuation = _phantom()
+    events = _events(60000, tof, seed=16)
+    data_lazy = shared.listmode_to_sinogram(events, INFO, tof_meta=_tof_meta(tof), lazy=True)
+    randoms = torch.rand(SHAPE, generator=torch.Generator().manual_seed(17)) * 0.01
+    randoms = randoms.unsqueeze(-1) if tof else randoms
+    results = {}
+    for device in ('cpu', DEV):
+        sm = PETSinogramSystemMatrix(OBJECT_META, PETSinogramPolygonProjMeta(INFO, _tof_meta(tof)), attenuation_map=attenuation, N_splits=3, device=device)
+        sensitivity = sm._compute_sensitivity_sinogram().cpu()
+        for name, (projections, additive) in {'lazy': (data_lazy, (randoms + 0.1 * data_lazy + 0.001) / sensitivity),
+                                              'dense': (data_lazy.to_dense(), (randoms + 0.1 * data_lazy.to_dense() + 0.001) / sensitivity)}.items():
+            likelihood = PoissonLogLikelihood(sm, projections, additive_term=additive)
+            results[device, name] = OSEM(likelihood)(n_iters=2, n_subsets=4).cpu()
+            assert likelihood.projections_predicted.device.type == torch.device(device).type
+    for name in ('lazy', 'dense'):
+        assert _close(results[DEV, name], results['cpu', name], rtol=1e-4)
+
+
+@needs_kernels
 @pytest.mark.parametrize("tof", [False, True])
 def test_osem_result_unchanged_by_in_place_additive_term(tof):
     """The forward projection and the additive term are added in place now; the reconstruction is the same as adding them into a new tensor."""
