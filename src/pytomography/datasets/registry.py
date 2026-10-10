@@ -137,6 +137,28 @@ DATASETS = {
              "size": 261908527, "md5": "a531de147927d3c58b038e08a7820ac8"},
         ],
     },
+    # The October 2024 re-simulation. The April 2024 simulation above has a GATE artefact (stripes) from its voxelized
+    # attenuating phantom. The tutorials move here when their notebooks switch to the new files.
+    "PET/GATE-mMR-BrainInWater": {
+        "title": "GATE simulation of an FDG brain source in a 23 cm water cube on a Siemens Biograph mMR",
+        "source": "PyTomography PET tutorial data, with the brain activity from Belzunce's phantom (Zenodo)",
+        "url": "https://doi.org/10.5281/zenodo.8045458",
+        "licence": "to be confirmed (the brain phantom: CC BY 4.0)",
+        "cite": "Belzunce MA. High-Resolution Heterogeneous Digital PET [18F]FDG Brain Phantom based on the BigBrain"
+                " Atlas. Zenodo (2018). doi:10.5281/zenodo.8045458",
+        "tutorials": [],
+        "status": "pending",
+        "note": "The GATE simulation (54 runs of 10 s: 116.9 million coincidences and 14.4 million delays) and its"
+                " water-cube attenuation map are being published on Zenodo; they can be downloaded once that record is"
+                " out. The MRI that the Deep Image Prior tutorial uses comes from Belzunce's record.",
+        "parts": [],
+        "extras": {
+            "mri": {"title": "MRI of the brain phantom, the prior of the Deep Image Prior tutorial", "parts": [
+                {"kind": "file", "url": "https://zenodo.org/records/8045458/files/fdg_pet_phantom_mri.nii.gz",
+                 "size": 471795384, "md5": "e7e899f16596cb95d69370103fd2ec7d"},
+            ]},
+        },
+    },
     "PET/GE-DMI-NEMA": {
         "title": "NEMA IQ phantom list mode from a GE Discovery MI PET/CT, with the scanner's corrections",
         "source": "Georg Schramm (Zenodo), with a sphere mask from PyTomography",
@@ -153,16 +175,21 @@ DATASETS = {
              "sha256": "be239bc852277803d7b8a036c629aab003a033269d6763d4b7957c5c95fdab6d"},
         ],
     },
-    "PET/PETSIRD-mIEC": {
-        "title": "List mode in the PETSIRD format",
-        "source": "PyTomography PET tutorial data",
-        "url": "https://github.com/ETSInitiative/PETSIRD",
-        "licence": "to be confirmed",
+    # The 60-minute NEMA scan of Zenodo 1304454 converted to PETSIRD 0.9.1 with ETSI's STIR2PETSIRD (October 2026). It
+    # replaces PET/PETSIRD-mIEC, a 2024 example in an early PETSIRD format that was never published.
+    "PET/PETSIRD-mMR-NEMA": {
+        "title": "NEMA IQ phantom on a Siemens Biograph mMR, in the PETSIRD 0.9 format, with its attenuation map",
+        "source": "Thomas and Sanderson, University College London (Zenodo), converted to PETSIRD by PyTomography",
+        "url": "https://doi.org/10.5281/zenodo.1304454",
+        "licence": "CC BY-SA 4.0",
+        "cite": "Thomas BA, Sanderson T. NEMA image quality phantom acquisition on the Siemens mMR scanner. Zenodo"
+                " (2018). doi:10.5281/zenodo.1304454",
         "tutorials": ["t_PETSIRD"],
         "status": "pending",
-        "note": "The 2024 example was in an early PETSIRD format and was never published. The PETSIRD tutorial is"
-                " moving to a Siemens Biograph mMR NEMA phantom scan (Zenodo 1304454) converted to PETSIRD 0.9.1; this"
-                " entry changes when that file is published.",
+        "note": "The scan in PETSIRD 0.9.1 (4.2 GB: 196.6 million prompts and 20.7 million delayed coincidences over"
+                " 60 minutes, with the scanner's normalisation) is being published on Zenodo; it can be downloaded once"
+                " that record is out. Its attenuation map, 20170809_NEMA_MUMAP_UCL.v with its .hdr, is in the source"
+                " record's NEMA_IQ.zip (Zenodo 1304454).",
         "parts": [],
     },
     "CT/ldct-c145": {
