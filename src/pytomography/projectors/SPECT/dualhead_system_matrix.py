@@ -1,4 +1,5 @@
 from __future__ import annotations
+import math
 import warnings
 import torch
 import pytomography
@@ -7,12 +8,66 @@ from pytomography.transforms.shared import RotationTransform
 from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta
 from pytomography.utils import pad_object, unpad_object, pad_proj, unpad_proj, rotate_detector_z
 from pytomography.utils.fourier_filters import get_fbp_filter, ramp_filter
+from pytomography.utils.memory import MemoryPart, nbytes, tensor_bytes
 import numpy as np
-from ..system_matrix import SystemMatrix
+from ..system_matrix import SystemMatrix, on_device
 from pytomography.utils import simind_mc
 from copy import copy
 from typing import Sequence
 import shutil
+
+def _transform_memory(transform, object_shape: Sequence[int], n_views: int) -> tuple[float, float, float]:
+    """What an object-to-object transform of a SPECT system matrix keeps, and the temporaries of one call on objects of
+    ``object_shape``, in bytes: (RAM kept, GPU kept, temporaries on ``pytomography.device``).
+
+    * Attenuation: its map, and the rotated probability map of every view if it caches them (``cache_probabilities``).
+      A call without the cache pads and rotates the map, scales it, sums it along the projection axis (flipped, summed,
+      flipped back, less half of itself) and takes the exponential, then multiplies: eight objects, rounded up from
+      the seven that can be alive at once.
+    * PSF with Gaussian layers: their kernels (one per radius); a call takes four objects (the copies the two
+      convolutions are given and their outputs).
+    * PSF from an operator (:class:`~pytomography.transforms.SPECT.psf.PSF2D`): its grids, and the kernel spectrum of
+      every radius if it caches them (``cache_kernel``); a call takes eight arrays of the zero padded object (signal, its
+      spectrum, the kernel's, their product and the result, rounded up for the first call, which also runs the
+      operator's own convolution to check the fast one). Not measured.
+    * Any other transform: the tensors it keeps, and two objects per call.
+    """
+    from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
+    from pytomography.transforms.SPECT.psf import Seperable1DBlurNet, PSF2D
+    obj = 4 * math.prod(object_shape)
+    on_gpu = torch.device(pytomography.device).type == 'cuda'
+    if isinstance(transform, SPECTAttenuationTransform):
+        ram, gpu = nbytes(getattr(transform, 'attenuation_map', None))
+        if transform.cache_probabilities:
+            cache = n_views * obj
+            ram, gpu = (ram, gpu + cache) if on_gpu else (ram + cache, gpu)
+            return ram, gpu, obj
+        return ram, gpu, 8 * obj
+    if isinstance(transform, SPECTPSFTransform):
+        ram = gpu = temporaries = 0.0
+        for layer in getattr(transform, 'layers', {}).values():
+            if isinstance(layer, Seperable1DBlurNet):
+                for conv in (layer.layer_r, layer.layer_z):
+                    if conv is not None:
+                        r, g = nbytes(conv.weight)
+                        ram, gpu = ram + r, gpu + g
+                temporaries = max(temporaries, 4 * obj)
+            elif isinstance(layer, PSF2D):
+                r, g = tensor_bytes(layer)
+                k = int(layer.kernel_size)
+                height = object_shape[1] + k - 1
+                width = object_shape[2] + k - 1
+                width += width % 2
+                if layer.cache_kernel and getattr(layer, '_kernel_spectrum', None) is None:   # cached at the first call
+                    spectrum = 8.0 * object_shape[0] * height * (width // 2 + 1)
+                    r, g = (r, g + spectrum) if on_gpu else (r + spectrum, g)
+                ram, gpu = ram + r, gpu + g
+                temporaries = max(temporaries, 8 * 4.0 * object_shape[0] * height * width)
+            else:
+                temporaries = max(temporaries, 4 * obj)
+        return ram, gpu, temporaries
+    ram, gpu = tensor_bytes(transform)
+    return ram, gpu, 2 * obj
 
 def _view_weights(angles: Sequence[float]) -> list[float]:
     """Angle (radians) that each view stands for in the sum of filtered back projection. A parallel-hole view and the
@@ -136,6 +191,65 @@ class SPECTSystemMatrix(SystemMatrix):
         if subset_idx is not None:
             norm_proj = self.get_projection_subset(norm_proj, subset_idx)
         return self.backward(norm_proj, subset_idx)
+
+    def _memory_parts(self, n_subsets: int, N_splits: int | None = None) -> list[MemoryPart]:
+        r"""What a reconstruction with this system matrix holds at its peak (see
+        :meth:`~pytomography.projectors.SystemMatrix.estimate_memory`), all on ``pytomography.device``. Held for the
+        whole run: the image, one :math:`H_m^T 1` image per subset (so that more subsets can take more memory), the
+        images of an update, the rotation grids of every view (cached by the rotation: two per view, one more per
+        attenuation transform and for an initial object from the camera path), and what the transforms keep (see
+        :func:`_transform_memory`). For a subset: its projections (measured, expected, additive term, of ones, and the
+        padded copy back projection makes; at the start, the projections of ones of every view for :math:`H_m^T 1`),
+        one more padded copy per projection transform, and the padded object, support and sum of a projection. For a
+        view: the rotated object and the transforms' temporaries, added up (rounded up: they run one after another).
+        ``N_splits`` does not apply.
+
+        Args:
+            n_subsets (int): Number of subsets.
+            N_splits (int | None): Not used (no projector splits).
+
+        Returns:
+            list[MemoryPart]: The arrays.
+        """
+        from pytomography.transforms.SPECT import SPECTAttenuationTransform
+        n = max(1, int(n_subsets))
+        device = pytomography.device
+        image = 4 * math.prod(self.object_meta.shape)
+        padded_shape = tuple(self.object_meta.padded_shape)
+        padded = 4 * math.prod(padded_shape)
+        n_views = self.proj_meta.num_projections
+        views = -(-n_views // n)                                      # in the largest subset
+        view_padded = 4 * math.prod(self.proj_meta.padded_shape[1:])
+        view = 4 * math.prod(self.proj_meta.shape[1:])
+        attenuations = sum(isinstance(t, SPECTAttenuationTransform) for t in self.obj2obj_transforms)
+        grids_per_view = 2 + attenuations + (1 if self.object_initial_based_on_camera_path else 0)
+        parts = [MemoryPart('image', **on_device(device, image)),
+                 MemoryPart(f'H_m^T 1 of {n} subset{"s" if n > 1 else ""}', **on_device(device, n * image)),
+                 MemoryPart('images of an update', **on_device(device, 3 * image)),
+                 MemoryPart('rotation grids of every view (cached)', **on_device(device, grids_per_view * n_views * padded_shape[0] * padded_shape[1] * 2 * 4))]
+        ram = gpu = temporaries = 0.0
+        for transform in self.obj2obj_transforms:
+            r, g, t = _transform_memory(transform, padded_shape, n_views)
+            ram, gpu, temporaries = ram + r, gpu + g, temporaries + t
+        if self.obj2obj_transforms:
+            parts.append(MemoryPart('what the object transforms keep', ram, gpu))
+        if self.proj2proj_transforms:
+            kept = [tensor_bytes(t) for t in self.proj2proj_transforms]
+            parts.append(MemoryPart('what the projection transforms keep', sum(r for r, _ in kept), sum(g for _, g in kept)))
+        projections = max(5 * views * view_padded, n_views * view + 2 * views * view_padded) + len(self.proj2proj_transforms) * views * view_padded
+        parts.append(MemoryPart('projections of a subset: measured, expected, additive term, of ones, padded copy', **on_device(device, projections), scope='subset'))
+        parts.append(MemoryPart('padded object, support and sum of a projection', **on_device(device, 3 * padded), scope='subset'))
+        parts.append(MemoryPart("one view: rotated object and the transforms' temporaries", **on_device(device, 2 * padded + temporaries), scope='chunk'))
+        return parts
+
+    def _memory_alternatives(self, n_subsets: int, N_splits: int | None) -> list:
+        """Half and twice the subsets (at most one view each), where they take less memory: each subset keeps an
+        :math:`H_m^T 1` image while its projections shrink with more subsets, so which way saves memory depends on the
+        scan."""
+        candidates = [(f'{n_subsets // 2} subsets', n_subsets // 2, None)] if n_subsets >= 2 else []
+        if 2 * n_subsets <= self.proj_meta.num_projections:
+            candidates.append((f'{2 * n_subsets} subsets', 2 * n_subsets, None))
+        return self._saving_memory(candidates, n_subsets, N_splits)
 
     def _host_phis(self) -> list[float]:
         """Python floats of ``270 - proj_meta.angles`` (the rotation applied to the object for each projection), copied from the device once per ``angles`` tensor. The projection loops pass these, and plain ``int`` angle indices, to the rotation and the transforms, so no per-angle device-to-host synchronisation occurs: indexing a device tensor with a 0-d device tensor, or converting a 0-d device tensor to a Python scalar, stalls the CPU until the GPU queue has drained (about 0.25 ms each on Windows), which was most of the projection time. The subtraction is still done in the tensor's dtype, so the values are unchanged."""
@@ -346,7 +460,39 @@ class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
         self.primary_window_idx = primary_window_idx
         self.n_events = n_events
         self.n_parallel = n_parallel
-        
+
+    #: Memory of one SIMIND process besides the maps and projections it keeps, in bytes, for memory estimates. An
+    #: assumption, rounded up, not measured: ``tests/calibrate_memory.py`` measures it (case ``simind``).
+    SIMIND_PROCESS_BYTES = 0.5e9
+
+    def _memory_parts(self, n_subsets: int, N_splits: int | None = None) -> list[MemoryPart]:
+        """What a reconstruction with this system matrix holds at its peak: as :class:`SPECTSystemMatrix` (whose back
+        projection it uses), and the 140 keV attenuation map; for a subset, the host copies of the maps written for
+        SIMIND and the scatter and total projections of every energy window that are read back and added up (four sets);
+        and the ``n_parallel`` SIMIND processes, each with its maps and the images of every window (three per window),
+        plus :data:`SIMIND_PROCESS_BYTES`. The SIMIND processes are processes of their own: they take the machine's
+        RAM, not this process's.
+
+        Args:
+            n_subsets (int): Number of subsets.
+            N_splits (int | None): Not used.
+
+        Returns:
+            list[MemoryPart]: The arrays.
+        """
+        parts = super()._memory_parts(n_subsets, N_splits)
+        n = max(1, int(n_subsets))
+        views = -(-self.proj_meta.num_projections // n)
+        view = 4 * math.prod(self.proj_meta.shape[1:])
+        image = 4 * math.prod(self.object_meta.shape)
+        windows = len(self.energy_window_params)
+        parts.append(MemoryPart('attenuation map at 140 keV', *nbytes(self.attenuation_map_140keV)))
+        parts.append(MemoryPart('SIMIND maps and the projections of every window read back (host)',
+                                ram_bytes=2 * image + 4 * windows * views * view, scope='subset'))
+        parts.append(MemoryPart(f'SIMIND processes ({self.n_parallel}, not measured)',
+                                ram_bytes=self.n_parallel * (self.SIMIND_PROCESS_BYTES + 2 * image + 3 * windows * views * view), scope='chunk'))
+        return parts
+
     def _get_proj_meta_subset(self, subset_idx: int) -> SPECTProjMeta:
         """Creates a new SPECTProjMeta that corresponds to a subset of projections
         Args:
