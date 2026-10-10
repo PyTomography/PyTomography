@@ -8,4 +8,5 @@ dependencies:
   - pytorch=*=cpu_*
   - libparallelproj=2.0.*=cpu_*
   - parallelproj-core=2.0.*
+  - numba  # from conda-forge, so that it matches conda's numpy; pip would install its own
   - pip
