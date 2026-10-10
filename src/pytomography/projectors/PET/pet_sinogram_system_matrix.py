@@ -3,10 +3,12 @@ import torch
 import pytomography
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.PET import PETSinogramPolygonProjMeta
+import math
 import numpy as np
+from pytomography.utils.memory import gpu_budget
 from pytomography.projectors import SystemMatrix
 from pytomography.transforms import Transform
-from pytomography.io.PET.shared import listmode_to_sinogram
+from pytomography.io.PET.shared import listmode_to_sinogram, all_pairs_to_sinogram
 import parallelproj_core
 from .petlm_system_matrix import _float32, _pad, _crop, _padded_origin
 
@@ -96,10 +98,13 @@ class PETSinogramSystemMatrix(SystemMatrix):
         return xyz1.flatten(start_dim=0,end_dim=2), xyz2.flatten(start_dim=0,end_dim=2)
     
     def _chunk_bounds(self, N: int) -> list[tuple[int, int]]:
-        """Start/end of the ``N_splits`` contiguous chunks of the flattened sinogram (the same partition ``torch.tensor_split`` gives)."""
-        base, extra = divmod(N, self.N_splits)
+        """Start/end of the contiguous chunks of the flattened sinogram the projector handles at once (the partition ``torch.tensor_split`` gives): ``N_splits`` of them, or more if a chunk would not fit in the GPU budget (:func:`pytomography.utils.memory.gpu_budget`). A whole non-TOF sinogram of the mMR in ten chunks held about 4 GB on the GPU, which Windows also counts as host memory."""
+        num_bins = 1 if not self.TOF else self.proj_meta.tof_meta.num_bins
+        bytes_per_lor = 88 + 8 * num_bins   # LOR indices, angle/radial/plane indices, crystal coordinates, and the projection values
+        n_chunks = max(self.N_splits, math.ceil(N * bytes_per_lor / gpu_budget()))
+        base, extra = divmod(N, n_chunks)
         bounds, start = [], 0
-        for i in range(self.N_splits):
+        for i in range(n_chunks):
             end = start + base + (1 if i < extra else 0)
             bounds.append((start, end))
             start = end
@@ -133,13 +138,13 @@ class PETSinogramSystemMatrix(SystemMatrix):
             torch.tensor: Probability sinogram
         """
         N = self._N_sinogram(subset_idx)
-        proj = torch.zeros(N, device=self.output_device)
+        proj = torch.empty(N, device=self.output_device)
         attenuation_map = _pad(_float32(self.attenuation_map, pytomography.device))
         for start, end in self._chunk_bounds(N):
             xyz1, xyz2 = self._xyz_chunk(start, end, subset_idx)
             chunk = torch.zeros(end - start, dtype=torch.float32, device=pytomography.device)
             parallelproj_core.joseph3d_fwd(xyz1, xyz2, attenuation_map, self.object_origin, self.voxel_size, chunk)
-            proj[start:end] += torch.exp(-chunk).to(self.output_device)
+            proj[start:end] = torch.exp(-chunk)
         N_angles = self.proj_meta.N_angles if subset_idx is None else self.subset_indices_array[subset_idx].shape[0]
         proj = proj.reshape((N_angles, *self.proj_meta.shape[1:]))
         return proj
@@ -161,7 +166,11 @@ class PETSinogramSystemMatrix(SystemMatrix):
             sinogram_sensitivity = self.get_projection_subset(sinogram_sensitivity, subset_idx)
         # Scale the weights by attenuation image if its provided in the system matrix
         if self.attenuation_map is not None:
-            sinogram_sensitivity = sinogram_sensitivity * self._compute_atteunation_probability_projection(subset_idx)
+            attenuation = self._compute_atteunation_probability_projection(subset_idx)   # a new tensor: the product can be taken in its memory
+            if attenuation.shape == sinogram_sensitivity.shape and attenuation.dtype == sinogram_sensitivity.dtype and attenuation.device == sinogram_sensitivity.device:
+                sinogram_sensitivity = attenuation.mul_(sinogram_sensitivity)
+            else:
+                sinogram_sensitivity = sinogram_sensitivity * attenuation
         if self.TOF:
             sinogram_sensitivity = sinogram_sensitivity.unsqueeze(-1)
         return sinogram_sensitivity
@@ -195,7 +204,8 @@ class PETSinogramSystemMatrix(SystemMatrix):
             return projections
         else:
             subset_indices = self.subset_indices_array[subset_idx]
-            proj_subset = projections[subset_indices]
+            # index where the projections are (the subsets are kept on the output device, which may differ)
+            proj_subset = projections[subset_indices.to(projections.device) if isinstance(projections, torch.Tensor) else subset_indices]
             return proj_subset
     
     def get_weighting_subset(
@@ -246,12 +256,13 @@ class PETSinogramSystemMatrix(SystemMatrix):
         for transform in self.obj2obj_transforms:
             object = transform.forward(object)
         object = _pad(_float32(object, pytomography.device))
-        # Project chunk by chunk; the crystal coordinates of each chunk are generated on the device
+        # Project chunk by chunk; the crystal coordinates of each chunk are generated on the device. The chunks cover
+        # every row once, and each is copied straight into its rows of the output (no host copy of each chunk to add)
         N = self._N_sinogram(subset_idx)
         if self.TOF:
-            proj = torch.zeros((N, self.proj_meta.tof_meta.num_bins), dtype=pytomography.dtype, device=self.output_device)
+            proj = torch.empty((N, self.proj_meta.tof_meta.num_bins), dtype=pytomography.dtype, device=self.output_device)
         else:
-            proj = torch.zeros((N), dtype=pytomography.dtype, device=self.output_device)
+            proj = torch.empty((N), dtype=pytomography.dtype, device=self.output_device)
         for start, end in self._chunk_bounds(N):
             xyz1, xyz2 = self._xyz_chunk(start, end, subset_idx)
             if self.TOF:
@@ -259,11 +270,10 @@ class PETSinogramSystemMatrix(SystemMatrix):
                 chunk = torch.zeros((end - start, num_bins), dtype=torch.float32, device=pytomography.device)
                 parallelproj_core.joseph3d_tof_sino_fwd(xyz1, xyz2, object, self.object_origin, self.voxel_size,
                                                         chunk, bin_width, sigma, center_offset, num_bins, n_sigmas)
-                proj[start:end] += chunk.to(self.output_device)
             else:
                 chunk = torch.zeros(end - start, dtype=torch.float32, device=pytomography.device)
                 parallelproj_core.joseph3d_fwd(xyz1, xyz2, object, self.object_origin, self.voxel_size, chunk)
-                proj[start:end] += chunk.to(self.output_device)
+            proj[start:end] = chunk
         N_angles = self.proj_meta.N_angles if subset_idx is None else self.subset_indices_array[subset_idx].shape[0]
         proj = proj.reshape((N_angles, *self.proj_meta.shape[1:], -1))
         if self.scale_projection_by_sensitivity:
@@ -291,7 +301,9 @@ class PETSinogramSystemMatrix(SystemMatrix):
         """
         # sensitivity scaling
         if force_scale_by_sensitivity or self.scale_projection_by_sensitivity:
-            proj = proj * self._compute_sensitivity_sinogram(subset_idx)
+            sensitivity = self._compute_sensitivity_sinogram(subset_idx)
+            # the normalization factor back projects 1 times the sensitivity, which is the sensitivity itself (no copy)
+            proj = sensitivity if isinstance(proj, (int, float)) and proj == 1 else proj * sensitivity
         # Project
         N = self._N_sinogram(subset_idx)
         proj_flat = proj.flatten(end_dim=-2) if self.TOF*(not force_nonTOF) else proj.flatten()   # a view: (theta, r, plane)[, TOF]
@@ -328,13 +340,8 @@ def create_sinogramSM_from_LMSM(lm_system_matrix: SystemMatrix, device='cpu'):
         lm_proj_meta.tof_meta
     )
     if lm_proj_meta.weights_sensitivity is not None:
-        idxs = torch.arange(lm_proj_meta.scanner_lut.shape[0]).cpu()
-        detector_ids_sensitivity = torch.combinations(idxs, 2)
-        sinogram_sensitivity = listmode_to_sinogram(
-            detector_ids_sensitivity,
-            lm_proj_meta.info,
-            lm_proj_meta.weights_sensitivity.cpu()
-        )
+        # binned a block of crystal pairs at a time: all 411 million pairs of the mMR at once took tens of GB
+        sinogram_sensitivity = all_pairs_to_sinogram(lm_proj_meta.weights_sensitivity.cpu(), lm_proj_meta.info)
     else:
         sinogram_sensitivity = None
     sino_system_matrix = PETSinogramSystemMatrix(

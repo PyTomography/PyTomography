@@ -5,13 +5,19 @@ from pytomography.transforms import Transform
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.PET import PETLMProjMeta
 from pytomography.projectors import SystemMatrix
+import math
 import numpy as np
 import parallelproj_core
+from pytomography.io.PET.shared import crystal_pair_blocks, crystal_pair_index
+from pytomography.utils.memory import block_size
 
 #: Factor applied to the memory estimates of :meth:`PETLMSystemMatrix.print_memory_usage`. Summing the arrays a
 #: projection allocates underestimates what the device reports, because PyTorch's caching allocator keeps freed
 #: blocks; measured peaks of the GATE mMR scan ran 16 to 32 percent above the sum, so the estimates are scaled.
 _MEMORY_MARGIN = 1.5
+
+#: Events sorted at once by :meth:`PETLMSystemMatrix._event_order` (a subset with more is sorted in runs of this many).
+_SORT_RUN = 2**24
 
 def _float32(x, device) -> torch.Tensor:
     """Contiguous float32 tensor on ``device``: the array form every parallelproj kernel expects."""
@@ -130,7 +136,7 @@ class PETLMSystemMatrix(SystemMatrix):
 
         Events are recorded in the order they were detected, so neighbouring events are unrelated in space, and neighbouring threads of the projector read (and, back projecting, atomically write) unrelated parts of the image. Ordering them makes those accesses local: on an RTX 5090, a 4 million event non time of flight forward projection of a GATE mMR scan takes 9.8 ms as recorded and 2.2 ms ordered, and back projection 22.2 ms against 10.6 ms. Only the order the LORs are handed to the projector in changes; projections are returned, and accepted, in the order the events were given.
 
-        The permutation is built once per subset and kept (4 bytes per event in total). It is None when ``sort_events`` is off or the scanner geometry (``proj_meta.info``) is not available.
+        The permutation is built once per subset and kept (4 bytes per event in total). A subset of more than 2**24 events is sorted in runs of 2**24, which a projector chunk sees as one or two sorted runs. It is None when ``sort_events`` is off or the scanner geometry (``proj_meta.info``) is not available.
 
         Args:
             subset_idx (int | None): Subset index :math:`m`, or None for all events.
@@ -150,14 +156,27 @@ class PETLMSystemMatrix(SystemMatrix):
                 lor_coordinates, sinogram_index = sinogram_coordinates(self.proj_meta.info)
                 self._sinogram_tables = (lor_coordinates.to(device), sinogram_index.to(device))
             lor_coordinates, sinogram_index = self._sinogram_tables
-            ids = ids[:,:2].to(torch.long)
             crystals_per_ring = self.proj_meta.info['NrCrystalsPerRing']
-            within_ring_id, pair_order = (ids % crystals_per_ring).sort(dim=1, descending=True)
-            ring_ids = (ids // crystals_per_ring).gather(1, pair_order)
-            angular_radial = lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]]
-            plane = sinogram_index[ring_ids[:,0], ring_ids[:,1]]
-            key = (angular_radial[:,0] * lor_coordinates.shape[1] + angular_radial[:,1]) * sinogram_index.numel() + plane
-            order = torch.argsort(key).to(torch.int32)
+            # the events are sorted a run of 2**24 at a time, and their sort keys computed 2**22 at a time: all 50.8M
+            # events of the mMR at once took about 5 GB of temporaries on the GPU for the keys, and sorting all 107M
+            # events of the GATE brain scan took 4.3 GB more (Windows counts GPU memory as RAM too). A projector chunk
+            # then holds one or two sorted runs, which keeps its accesses as local; a subset of up to 2**24 events is
+            # sorted whole, as before
+            n_events = ids.shape[0]
+            order = torch.empty(n_events, dtype=torch.int32, device=device)
+            for run_start in range(0, n_events, _SORT_RUN):
+                run_end = min(run_start + _SORT_RUN, n_events)
+                key = torch.empty(run_end - run_start, dtype=torch.long, device=device)
+                for start in range(run_start, run_end, 2**22):
+                    block = ids[start:min(start + 2**22, run_end), :2].to(torch.long)
+                    within_ring_id, pair_order = (block % crystals_per_ring).sort(dim=1, descending=True)
+                    ring_ids = (block // crystals_per_ring).gather(1, pair_order)
+                    angular_radial = lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]]
+                    plane = sinogram_index[ring_ids[:,0], ring_ids[:,1]]
+                    key[start - run_start:start - run_start + block.shape[0]] = (angular_radial[:,0] * lor_coordinates.shape[1] + angular_radial[:,1]) * sinogram_index.numel() + plane
+                order[run_start:run_end] = (torch.argsort(key) + run_start).to(torch.int32)
+                del key
+            del ids
         self._orders[subset_idx] = order
         return order
 
@@ -205,7 +224,7 @@ class PETLMSystemMatrix(SystemMatrix):
         print(f"    {'resident on ' + str(pytomography.device):40s} {resident/1e9:8.3f} GB")
         for label, n in ((f'one subset of {n_subsets}', int(np.ceil(n_events / n_subsets))), ('every event at once', n_events)):
             need = projection(n)
-            build = (id_bytes + 8 + 8) * n if self.sort_events else 0   # sorting keys, freed afterwards
+            build = id_bytes * n + 16 * min(n, _SORT_RUN) if self.sort_events else 0   # the subset's IDs and one run's sort keys, freed afterwards
             print(f"  projecting {label} ({n:,} events):")
             for k, v in need.items():
                 print(f"    {k:40s} {v/1e9:8.3f} GB")
@@ -216,10 +235,42 @@ class PETLMSystemMatrix(SystemMatrix):
               f"peak it reports runs above the sum of the arrays above.")
         if torch.cuda.is_available() and str(pytomography.device).startswith('cuda'):
             free, total = torch.cuda.mem_get_info()
-            worst = _MEMORY_MARGIN * (resident + sum(projection(n_events).values()) + ((id_bytes + 16) * n_events if self.sort_events else 0))
+            worst = _MEMORY_MARGIN * (resident + sum(projection(n_events).values()) + (id_bytes * n_events + 16 * min(n_events, _SORT_RUN) if self.sort_events else 0))
             print(f"  device has {free/1e9:.3f} GB free of {total/1e9:.3f} GB"
                   + ("" if worst < free else "  -- the all-event projection does not fit; raise N_splits, "
                                              "set lor_device='cpu', or project subsets only"))
+
+    def _n_events(self, subset_idx: int | None) -> int:
+        """Number of events of subset ``subset_idx`` (all the events for None)."""
+        if subset_idx is None:
+            return self.proj_meta.detector_ids.shape[0]
+        return self.subset_indices_array[subset_idx].shape[0]
+
+    def _chunk_events(self, subset_idx: int | None, order: torch.Tensor | None, start: int, end: int) -> torch.Tensor:
+        """Positions, within subset ``subset_idx``, of the events of chunk ``start:end`` of the projector order (sinogram
+        order when ``order`` is given, the order the events were given in otherwise), as a long tensor on the device
+        the detector IDs are on."""
+        device = self.proj_meta.detector_ids.device
+        if order is None:
+            return torch.arange(start, end, device=device)
+        return order[start:end].to(device=device, dtype=torch.long)
+
+    def _subset_positions(self, subset_idx: int | None) -> torch.Tensor | None:
+        """Positions of subset ``subset_idx``'s events among all the events, on the device the detector IDs are on (None
+        for all the events). A projection takes them there once and every chunk indexes them (taking them there for
+        each chunk copied 29 MB to the GPU ten times per projection of a 14th of the mMR's events)."""
+        if subset_idx is None:
+            return None
+        return self.subset_indices_array[subset_idx].to(self.proj_meta.detector_ids.device)
+
+    def _event_ids(self, positions: torch.Tensor | None, events: torch.Tensor | None) -> torch.Tensor:
+        """Detector IDs (and TOF bins) of ``events``, positions within the subset whose events are at ``positions``
+        among all the events (from :meth:`_subset_positions`; None for all the events). All of the subset's events, in
+        the order they were given, for ``events`` None."""
+        ids = self.proj_meta.detector_ids
+        if positions is not None:
+            return ids[positions if events is None else positions[events]]
+        return ids if events is None else ids[events]
 
     def _chunks(self, n: int) -> list:
         """Start/end of the ``N_splits`` contiguous chunks the projection is computed in."""
@@ -272,52 +323,75 @@ class PETLMSystemMatrix(SystemMatrix):
         Returns:
             torch.Tensor: Sesitivity factor for detector IDs
         """
-        # If detector_ids is None, use all detector ids
         if all_ids:
-            if self.proj_meta.detector_ids_sensitivity is not None:
-                detector_ids = self.proj_meta.detector_ids_sensitivity
-            else:
-                # Assumes all possible pairs are used
-                idxs = torch.arange(self.proj_meta.scanner_lut.shape[0]).to(pytomography.device).to(torch.int32)
-                detector_ids = torch.combinations(idxs.cpu(), 2)
-        else:
-            detector_ids = self.proj_meta.detector_ids
+            # every line of response of the sensitivity image, filled a block at a time (all 411 million crystal pairs
+            # of the mMR at once took a 3.3 GB list of pairs, plus the temporaries of making it)
+            proj = torch.empty(self._n_sensitivity_lors())
+            for offset, ids in self._sensitivity_lor_blocks(self._sensitivity_block_size(default=2**24)):
+                proj[offset:offset + ids.shape[0]] = self._sensitivity_weights(ids, offset)
+            return proj
+        detector_ids = self.proj_meta.detector_ids
         proj = torch.ones(detector_ids.shape[0])
-        # Load normalization weights for the specific detector IDs
+        # Load normalization weights for the specific detector IDs: the norm factor of each event's crystal pair, a block
+        # of events at a time (all 50.8M events of the mMR at once took about 2.5 GB of host temporaries)
         if self.proj_meta.weights_sensitivity is not None:
-            # If using all detector IDs (assumes weights_sensitivity is same shape as detector_ids)
-            if all_ids:
-                proj *= self.proj_meta.weights_sensitivity.cpu()
-            # Otherwise need to grab norm factor specific to the detector_ids used
-            else: # otherwise grab specific IDs (maybe move this somewhere else)
-                ids_sorted, _ = torch.sort(detector_ids[:,:2].cpu(), 1)
-                norm_factor_idxs = ((self.proj_meta.info['NrCrystalsPerRing'] * self.proj_meta.info['NrRings']-1)*ids_sorted[:,0] + ids_sorted[:,1] - ids_sorted[:,0]*(ids_sorted[:,0]+1)/2 - 1).to(torch.int)
-                proj *= self.proj_meta.weights_sensitivity.cpu()[norm_factor_idxs]
+            weights = self.proj_meta.weights_sensitivity.cpu()
+            n_crystals = self.proj_meta.info['NrCrystalsPerRing'] * self.proj_meta.info['NrRings']
+            for start in range(0, detector_ids.shape[0], 2**22):
+                ids_sorted, _ = torch.sort(detector_ids[start:start + 2**22, :2], 1)
+                index = crystal_pair_index(ids_sorted[:, 0], ids_sorted[:, 1], n_crystals).cpu()
+                proj[start:start + index.shape[0]] *= weights[index]
         # Scale the weights by attenuation image if its provided in the system matrix
         if self.attenuation_map is not None:
             proj *= self._compute_attenuation_probability_projection(detector_ids).cpu()
         return proj
         
+    def _n_sensitivity_lors(self) -> int:
+        """Number of lines of response of the sensitivity image: ``detector_ids_sensitivity``, or every pair of crystals."""
+        if self.proj_meta.detector_ids_sensitivity is not None:
+            return self.proj_meta.detector_ids_sensitivity.shape[0]
+        n_crystals = self.proj_meta.scanner_lut.shape[0]
+        return n_crystals * (n_crystals - 1) // 2
+
+    def _sensitivity_block_size(self, default: int) -> int:
+        """Lines of response of the sensitivity image handled at once: as many as fit in an eighth of the memory budget (about 48 bytes each on the host; :func:`pytomography.set_memory_budget`), or ``default`` without a budget."""
+        return block_size(48, default=default)
+
+    def _sensitivity_lor_blocks(self, lors_per_block: int):
+        """The lines of response of the sensitivity image a block at a time, as ``(offset, detector_ids)``: ``offset`` is the index of the block's first line of response in ``detector_ids_sensitivity`` or, without it, among all crystal pairs in ``torch.combinations`` order. That is the order of ``weights_sensitivity``."""
+        ids = self.proj_meta.detector_ids_sensitivity
+        if ids is not None:
+            for start in range(0, ids.shape[0], lors_per_block):
+                yield start, ids[start:start + lors_per_block]
+        else:
+            yield from crystal_pair_blocks(self.proj_meta.scanner_lut.shape[0], lors_per_block)
+
+    def _sensitivity_weights(self, detector_ids: torch.Tensor, offset: int) -> torch.Tensor:
+        """Sensitivity weights :math:`w` of a block from ``_sensitivity_lor_blocks``: the normalization weight times the probability that the photons are not attenuated."""
+        proj = torch.ones(detector_ids.shape[0])
+        if self.proj_meta.weights_sensitivity is not None:
+            proj *= self.proj_meta.weights_sensitivity[offset:offset + detector_ids.shape[0]].cpu()
+        if self.attenuation_map is not None:
+            proj *= self._compute_attenuation_probability_projection(detector_ids).cpu()
+        return proj
+
     def _backward_full(self, N_splits: int = 20):
         r"""Computes full back projection :math:`\tilde{H}^T w g` where :math:`w` is the weighting specified in the projection metadata that accounts for attenuation/normalization correction. If ``proj`` ($g$) is not provided, then uses a tensor of all ones (this is used to compute the normalization factor).
 
+        The lines of response (every crystal pair, or ``detector_ids_sensitivity``) are gone through a block at a time: all 411 million crystal pairs of the mMR took a 3.3 GB list of pairs and 1.6 GB arrays of their weights at once.
+
         Args:
-            N_splits (int, optional): Optionally splits up computation to save memory on GPU. Defaults to 10.
+            N_splits (int, optional): Optionally splits up computation to save memory on GPU. Defaults to 20.
         """
-        proj = self._compute_sensitivity_projection()
-        # All detector IDs
-        if self.proj_meta.detector_ids_sensitivity is not None:
-            detector_ids_sensitivity = self.proj_meta.detector_ids_sensitivity
-        else:
-            idxs = torch.arange(self.proj_meta.scanner_lut.shape[0]).to(pytomography.device).to(torch.int32)
-            detector_ids_sensitivity = torch.combinations(idxs.cpu(), 2)
-        # parallelproj adds into the image it is given, so every chunk accumulates into one (padded) buffer
+        # parallelproj adds into the image it is given, so every block accumulates into one (padded) buffer
         norm_BP = torch.zeros(tuple(n + 2 for n in self.object_meta.shape), dtype=torch.float32, device=pytomography.device)
-        for proj_subset, detector_ids_sensitivity_subset in zip(torch.tensor_split(proj, N_splits), torch.tensor_split(detector_ids_sensitivity, N_splits)):
-            xstart, xend = self._lor_coordinates(detector_ids_sensitivity_subset)
+        lors_per_call = math.ceil(self._n_sensitivity_lors() / N_splits)   # what one projector call back projected before
+        for offset, detector_ids in self._sensitivity_lor_blocks(min(lors_per_call, self._sensitivity_block_size(default=lors_per_call))):
+            proj = self._sensitivity_weights(detector_ids, offset)
+            xstart, xend = self._lor_coordinates(detector_ids)
             parallelproj_core.joseph3d_back(
                 xstart, xend, norm_BP, self.object_origin, self.voxel_size,
-                _float32(proj_subset + pytomography.delta, pytomography.device))
+                _float32(proj + pytomography.delta, pytomography.device))
         norm_BP = _crop(norm_BP)
         # Apply object transforms
         for transform in self.obj2obj_transforms[::-1]:
@@ -338,6 +412,11 @@ class PETLMSystemMatrix(SystemMatrix):
         for i in range(n_subsets):
             subset_indices_array.append(indices[i::n_subsets])
         self.subset_indices_array = subset_indices_array
+        # the projector order of each subset's events belongs to one partition: forget those of another (the order of
+        # all the events, key None, stays)
+        if getattr(self, '_orders_n_subsets', None) != n_subsets:
+            self._orders = {key: order for key, order in self._orders.items() if key is None}
+            self._orders_n_subsets = n_subsets
         
     def get_projection_subset(self, projections: torch.Tensor, subset_idx: int) -> torch.tensor:
         """Obtains subsampled projections :math:`g_m` corresponding to subset index :math:`m`. For LM PET, its always the case that :math:`g_m=1`, but this function is still required for subsampling scatter :math:`s_m` as is required in certain reconstruction algorithms
@@ -405,25 +484,20 @@ class PETLMSystemMatrix(SystemMatrix):
         Returns:
             torch.tensor: Projections corresponding to the expected number of counts along each LOR.
         """ 
-        # Deal With subset stuff
-        if subset_idx is not None:
-            idx = self.proj_meta.detector_ids[self.subset_indices_array[subset_idx].to(self.proj_meta.detector_ids.device)].squeeze()
-        else:
-            idx = self.proj_meta.detector_ids.squeeze()
         # Apply object space transforms
         object = _float32(object, pytomography.device)
         for transform in self.obj2obj_transforms:
             object = transform.forward(object)
         object = _pad(_float32(object, pytomography.device))
-        # hand the LORs to the projector in sinogram order; the projections are put back below
-        idx_events = idx                                    # in the order the events were given
+        # The LORs go to the projector in sinogram order, a chunk at a time: each chunk's events are taken through the
+        # event order, and its projections written back to where those events are (no sorted copy of all the events)
+        n_events = self._n_events(subset_idx)
         order = self._event_order(subset_idx)
-        if order is not None:
-            idx = idx[order.to(torch.long)]
-        # Project into one buffer: parallelproj writes the values of each chunk into the slice it is given
-        proj = torch.zeros(idx.shape[0], dtype=torch.float32, device=self.output_device)
-        for start, end in self._chunks(idx.shape[0]):
-            idx_partial = idx[start:end]
+        positions = self._subset_positions(subset_idx)
+        proj = torch.empty(n_events, dtype=torch.float32, device=self.output_device)
+        for start, end in self._chunks(n_events):
+            events = self._chunk_events(subset_idx, order, start, end)
+            idx_partial = self._event_ids(positions, events)
             xstart, xend = self._lor_coordinates(idx_partial)
             chunk = torch.zeros(end - start, dtype=torch.float32, device=pytomography.device)
             if self.TOF:
@@ -432,17 +506,12 @@ class PETLMSystemMatrix(SystemMatrix):
                                                       chunk, bin_width, sigma, center_offset, bins, num_bins, n_sigmas)
             else:
                 parallelproj_core.joseph3d_fwd(xstart, xend, object, self.object_origin, self.voxel_size, chunk)
-            proj[start:end] = chunk.to(self.output_device)
-        # back to the order the events were given in
-        if order is not None:
-            unsorted = torch.empty_like(proj)
-            unsorted[order.to(torch.long).to(proj.device)] = proj
-            proj = unsorted
+            proj[events.to(proj.device)] = chunk.to(self.output_device)
         if self.scale_projection_by_sensitivity:
             if self.proj_meta.weights is None:
                 if self.attenuation_map is not None:
-                    # proj is back in the order the events were given, so the factors are computed in that order too
-                    proj = proj * self._compute_attenuation_probability_projection(idx_events).to(proj.device)
+                    # proj is in the order the events were given, so the factors are computed in that order too
+                    proj = proj * self._compute_attenuation_probability_projection(self._event_ids(positions, None)).to(proj.device)
                 else:
                     raise Exception('If scaling by sensitivity, then `weights` must be provided in the projection metadata')
             else:
@@ -465,30 +534,26 @@ class PETLMSystemMatrix(SystemMatrix):
         Returns:
             torch.tensor: _description_
         """
-        # Deal With subset stuff
-        if subset_idx is not None:
-            idx = self.proj_meta.detector_ids[self.subset_indices_array[subset_idx].to(self.proj_meta.detector_ids.device)].squeeze()
-        else:
-            idx = self.proj_meta.detector_ids.squeeze()
+        positions = self._subset_positions(subset_idx)
         # Normalization/attenuation scaling (if needed); the same factors as forward, so the two stay adjoint
         if self.scale_projection_by_sensitivity:
             if self.proj_meta.weights is None:
                 if self.attenuation_map is not None:
-                    proj = proj * self._compute_attenuation_probability_projection(idx).to(proj.device)
+                    proj = proj * self._compute_attenuation_probability_projection(self._event_ids(positions, None)).to(proj.device)
                 else:
                     raise Exception('If scaling by sensitivity, then `weights` must be provided in the projection metadata')
             else:
                 proj = proj * self.get_projection_subset(self.proj_meta.weights, subset_idx).to(proj.device)
-        # hand the LORs to the projector in sinogram order, with their projections
+        # The LORs go to the projector in sinogram order, a chunk at a time, with their projections (taken through the
+        # event order chunk by chunk, so there is no sorted copy of all the events or projections)
+        n_events = self._n_events(subset_idx)
         order = self._event_order(subset_idx)
-        if order is not None:
-            idx = idx[order.to(torch.long)]
-            proj = proj[order.to(torch.long).to(proj.device)]
         # parallelproj adds into the image it is given, so every chunk accumulates into one (padded) buffer
         BP = torch.zeros(tuple(n + 2 for n in self.object_meta.shape), dtype=torch.float32, device=pytomography.device)
-        for start, end in self._chunks(idx.shape[0]):
-            idx_partial = idx[start:end]
-            proj_i = _float32(proj[start:end], pytomography.device)
+        for start, end in self._chunks(n_events):
+            events = self._chunk_events(subset_idx, order, start, end)
+            idx_partial = self._event_ids(positions, events)
+            proj_i = _float32(proj[events.to(proj.device)], pytomography.device)
             xstart, xend = self._lor_coordinates(idx_partial)
             if self.TOF:
                 bin_width, sigma, center_offset, bins, num_bins, n_sigmas = self._tof_arguments(idx_partial)

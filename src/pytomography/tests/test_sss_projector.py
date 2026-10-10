@@ -159,6 +159,37 @@ def test_tof_weighted_emission_matches_normalising_the_kernel():
         assert torch.allclose(computed, direct, rtol=1e-5, atol=1e-6)
 
 
+@pytest.mark.skipif(not sss._sss_cuda.available(DEV, 21), reason="the fused TOF kernel needs a CUDA device and CuPy")
+@pytest.mark.parametrize("n_bins", [1, 7, 21])
+def test_fused_tof_weighting_equals_pytorch(n_bins):
+    """The fused CUDA kernel computes the TOF weighting of each LOR from per-crystal tables, in registers; it must give
+    what PyTorch gives for the same LORs, up to the order of its sums (float32 rounding)."""
+    gen = torch.Generator().manual_seed(6)
+    n_crystals, n_lors, n_pieces, sigma = 40, 5000, 25, 35.0
+    offset = ((torch.rand(n_bins, n_lors, generator=gen) - 0.5) * 300).to(DEV)
+    centers = (torch.rand(n_crystals, 1, generator=gen) * 200 * (torch.arange(n_pieces) + 0.5) / n_pieces).to(DEV)
+    centers[3] = 1e5                            # a crystal whose pieces are far from every TOF bin: the kernel is 0
+    emission = torch.rand(n_crystals, n_pieces, generator=gen).to(DEV)
+    crystal = torch.randint(0, n_crystals, (n_lors,), generator=gen).to(DEV)
+    expected = sss._tof_weighted_emission(offset, centers[crystal], emission[crystal], sigma, [(0, n_bins)])
+    fused = sss._sss_cuda.tof_weighted_emission(offset, crystal, centers, emission, sigma)
+    assert fused.shape == (n_bins, n_lors) and (fused[:, crystal == 3] == 0).all()
+    assert torch.allclose(fused, expected, rtol=1e-5, atol=1e-6 * expected.abs().max().item())
+
+
+@pytest.mark.skipif(not sss._sss_cuda.available(DEV, 5), reason="the fused TOF kernel needs a CUDA device and CuPy")
+def test_tof_estimate_with_the_fused_kernel_equals_pytorch(monkeypatch):
+    activity, attenuation = _phantom()
+    tof_meta = PETTOFMeta(5, 300.0, 60.0, n_sigmas=3)
+    estimates = []
+    for fused in (True, False):
+        monkeypatch.setattr(sss._sss_cuda, "available", lambda *args, _fused=fused: _fused)
+        torch.manual_seed(0)
+        estimates.append(sss.compute_sss_sparse_sinogram_TOF(OBJECT_META, _proj_meta(tof_meta), activity, attenuation, tof_meta, *STEPS).weights)
+    assert estimates[0].abs().sum() > 0
+    assert torch.allclose(estimates[0], estimates[1], rtol=1e-5, atol=1e-6 * estimates[1].abs().max().item())
+
+
 @pytest.mark.parametrize("tof", [False, True])
 def test_images_of_any_dtype_layout_and_device(tof):
     """parallelproj 2 takes contiguous float32 arrays on one device; the images are converted, whatever they are given as."""

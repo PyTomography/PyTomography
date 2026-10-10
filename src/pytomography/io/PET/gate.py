@@ -9,7 +9,8 @@ import uproot
 import nibabel as nib
 from scipy.ndimage import affine_transform
 from ..shared import get_header_value, get_attenuation_map_interfile
-from .shared import listmode_to_sinogram, sinogram_to_listmode, get_detector_ids_from_trans_axial_ids, get_axial_trans_ids_from_info, get_scanner_LUT, smooth_randoms_sinogram, randoms_sinogram_to_sinogramTOF
+from pytomography.utils.memory import block_size
+from .shared import listmode_to_sinogram, all_pairs_to_sinogram, crystal_pair_blocks, LazySinogram, sinogram_to_listmode, get_detector_ids_from_trans_axial_ids, get_axial_trans_ids_from_info, get_scanner_LUT, smooth_randoms_sinogram, randoms_sinogram_to_sinogramTOF
 
 def get_aligned_attenuation_map(
     headerfile: str,
@@ -312,6 +313,8 @@ def get_symmetry_histogram_from_ROOTfile(
 def get_symmetry_histogram_all_combos(info: dict) -> torch.Tensor:
     """Obtains the symmetry histogram for detector sensitivity corresponding to all possible detector pair combinations
 
+    This holds every pair at once (about 75 GB at the peak for the Siemens Biograph mMR); ``get_normalization_weights_cylinder_calibration`` goes through the pairs in blocks instead.
+
     Args:
         info (dict): PET geometry information dictionary
 
@@ -332,6 +335,8 @@ def get_normalization_weights_cylinder_calibration(
     ) -> torch.tensor:
     """Function to get sensitivty factor from a cylindrical calibration phantom
 
+    The factor of every crystal pair (411 million for the Siemens Biograph mMR) is computed a block of pairs at a time, sized from the memory budget (:func:`pytomography.set_memory_budget`); computing all pairs at once took about 75 GB.
+
     Args:
         paths (Sequence[str]): List of paths corresponding to calibration scan
         info (dict): PET geometry information dictionary
@@ -342,11 +347,7 @@ def get_normalization_weights_cylinder_calibration(
     Returns:
         torch.tensor: Sensitivty factor for all possible detector combinations
     """
-    # Part 1: Geometry correction factor for non-unform exposure from cylindrical shell
-    scanner_LUT = get_scanner_LUT(info)
-    all_LOR_ids = torch.combinations(torch.arange(scanner_LUT.shape[0]).to(torch.int32), 2)
-    geometric_correction_factor = 1/(torch.sqrt(1-(torch.abs(get_radius(all_LOR_ids, scanner_LUT)) / cylinder_radius )**2) + pytomography.delta)
-    # Part 2: Detector sensitivity correction factor (exploits symmetries)
+    # Detector sensitivity correction factor (exploits symmetries): the calibration scan's coincidences, counted per symmetry class of crystal pairs
     Nr_crystal_axial_bins = info['crystalAxialNr']
     Nr_crystal_trans_bins = info['crystalTransNr']
     Nr_delta_submodule_axial_bins = info['submoduleAxialNr'] * 2 - 1
@@ -358,10 +359,55 @@ def get_normalization_weights_cylinder_calibration(
         with uproot.open(path) as f:
             vals = get_symmetry_histogram_from_ROOTfile(f, info, include_randoms=include_randoms)
             histo += torch.histogramdd(vals.to(torch.float32), bin_edges)[0]
-    vals_all_pairs = get_symmetry_histogram_all_combos(info)
-    N_bins = torch.histogramdd(vals_all_pairs.to(torch.float32), bin_edges)[0]
-    # exploits the fact that vals_all_pairs is in order of ascending detector ids
-    return (histo/N_bins)[vals_all_pairs[:,0], vals_all_pairs[:,1], vals_all_pairs[:,2], vals_all_pairs[:,3], vals_all_pairs[:,4], vals_all_pairs[:,5], vals_all_pairs[:,6]] * geometric_correction_factor
+    return _weights_from_symmetry_histogram(histo, info, cylinder_radius)
+
+def _symmetry_values(pairs: torch.Tensor, components: Sequence[torch.Tensor], info: dict) -> torch.Tensor:
+    """The seven symmetry-histogram coordinates of crystal pairs, as ``get_symmetry_histogram_all_combos`` gives them for all pairs: ``components`` are the crystals' trans/axial ids from ``get_axial_trans_ids_from_info(info, sort_by_detector_ids=True)``."""
+    trans_crystal, axial_crystal, trans_submodule, axial_submodule, trans_module, axial_module, trans_rsector, axial_rsector = components
+    a, b = pairs[:,0], pairs[:,1]
+    return torch.vstack([axial_crystal[a], axial_crystal[b], trans_crystal[a], trans_crystal[b],
+                         (axial_submodule[b] - axial_submodule[a]) + (info['submoduleAxialNr'] - 1),
+                         (axial_module[b] - axial_module[a]) + (info['moduleAxialNr'] - 1),
+                         (trans_rsector[b] - trans_rsector[a]) % info['rsectorTransNr']]).T
+
+def _weights_from_symmetry_histogram(histo: torch.Tensor, info: dict, cylinder_radius: float, pairs_per_block: int | None = None) -> torch.Tensor:
+    """Normalization weight of every crystal pair (``torch.combinations`` order) from the calibration scan's symmetry histogram: the counts of the pair's symmetry class over the number of pairs in it, times the correction for the cylinder's non-uniform exposure.
+
+    All pairs at once took about 75 GB for the mMR (eight 6.6 GB lists of all pairs and a 23 GB table of their symmetry classes), so the pairs are gone through a block at a time, twice: to count the pairs in each class, then to compute their weights. The result is the same.
+
+    Args:
+        histo (torch.Tensor): Coincidences of the calibration scan per symmetry class.
+        info (dict): PET geometry information dictionary
+        cylinder_radius (float): Radius of cylindrical phantom used in scan
+        pairs_per_block (int | None, optional): Pairs processed at once. Defaults to None: as many as fit in an eighth of the memory budget (about 200 bytes each), or 2**22 without a budget.
+
+    Returns:
+        torch.Tensor: Weight of every crystal pair.
+    """
+    scanner_LUT = get_scanner_LUT(info)
+    n_crystals = scanner_LUT.shape[0]
+    if pairs_per_block is None:
+        pairs_per_block = block_size(200, default=2**22)
+    components = get_axial_trans_ids_from_info(info, sort_by_detector_ids=True)
+    shape = histo.shape
+
+    def flat_class(vals):
+        index = torch.zeros(vals.shape[0], dtype=torch.long)
+        for k, n in enumerate(shape):
+            index = index * n + vals[:,k]
+        return index
+    # number of crystal pairs in each symmetry class
+    N_bins = torch.zeros(histo.numel(), dtype=torch.long)
+    for _, pairs in crystal_pair_blocks(n_crystals, pairs_per_block):
+        N_bins += torch.bincount(flat_class(_symmetry_values(pairs, components, info)), minlength=histo.numel())
+    counts_per_pair = histo / N_bins.to(histo.dtype).reshape(shape)
+    weights = torch.empty(n_crystals * (n_crystals - 1) // 2, dtype=counts_per_pair.dtype)
+    for offset, pairs in crystal_pair_blocks(n_crystals, pairs_per_block):
+        vals = _symmetry_values(pairs, components, info)
+        # Geometry correction factor for non-unform exposure from cylindrical shell
+        geometric_correction_factor = 1/(torch.sqrt(1-(torch.abs(get_radius(pairs, scanner_LUT)) / cylinder_radius )**2) + pytomography.delta)
+        weights[offset:offset + pairs.shape[0]] = counts_per_pair[tuple(vals.T)] * geometric_correction_factor
+    return weights
 
 def get_norm_sinogram_from_listmode_data(
     weights_sensitivity: torch.Tensor,
@@ -376,9 +422,8 @@ def get_norm_sinogram_from_listmode_data(
     Returns:
         torch.Tensor: PET sinogram
     """
-    scanner_LUT = get_scanner_LUT(info)
-    all_LOR_ids = torch.combinations(torch.arange(scanner_LUT.shape[0]).to(torch.int32), 2)
-    return listmode_to_sinogram(all_LOR_ids, info, weights=weights_sensitivity, normalization=True)
+    # binned a block of crystal pairs at a time: all 411 million pairs of the mMR at once took tens of GB
+    return all_pairs_to_sinogram(weights_sensitivity, info, normalization=True)
 
 def get_norm_sinogram_from_root_data(
     normalization_paths: Sequence[str],

@@ -115,3 +115,20 @@ def test_interpolation_chunk_size_does_not_change_result():
     a = sss.interpolate_sparse_sinogram(sparse, proj_meta, idx_intraring, idx_ring, eval_chunk_size=100)
     b = sss.interpolate_sparse_sinogram(sparse, proj_meta, idx_intraring, idx_ring, eval_chunk_size=10 ** 9)
     assert (a - b).abs().max() < 1e-4 * b.abs().max()      # float32 kernel-matrix products differ per chunk shape (measured 1e-5 of the maximum)
+
+
+@pytest.mark.skipif("parallelproj_core" not in sys.modules, reason="requires parallelproj 2 (parallelproj_core)")
+@pytest.mark.parametrize("tof", [False, True])
+@pytest.mark.parametrize("subset_idx", [None, 2])
+def test_projections_do_not_depend_on_the_chunks(tof, subset_idx):
+    """The forward projection and the attenuation probabilities are written a chunk at a time into outputs that start
+    uninitialised, so every row must be written exactly once: any number of chunks gives the same values."""
+    gen = torch.Generator().manual_seed(3)
+    image = torch.rand((32, 32, 16), generator=gen).to(DEV)
+    results = []
+    for n_splits in (1, 7):
+        sm = _system_matrix(tof, n_splits)
+        sm.attenuation_map = 0.01 * image
+        results.append((sm.forward(image, subset_idx), sm._compute_atteunation_probability_projection(subset_idx)))
+    assert torch.equal(results[0][0], results[1][0]) and torch.equal(results[0][1], results[1][1])
+    assert results[0][0].abs().sum() > 0 and (results[0][1] < 1).any()

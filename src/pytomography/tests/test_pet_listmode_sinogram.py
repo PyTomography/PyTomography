@@ -64,6 +64,19 @@ def test_device_of_the_events_does_not_matter(tof):
     assert torch.equal(shared.sinogram_to_listmode(events.cuda(), sinogram.cuda(), INFO).cpu(), expected)
 
 
+@pytest.mark.parametrize("tof", [False, True])
+def test_events_looked_up_in_chunks_equal_all_at_once(tof):
+    """The events are looked up a chunk at a time (all 107 million events of the GATE mMR brain scan at once took 8 GB
+    of temporaries). Any chunk size, a last partial chunk included, gives the values of one chunk of all the events."""
+    tof_meta = PETTOFMeta(5, 300.0, 60.0, n_sigmas=3) if tof else None
+    events = _events(1000, tof_meta, seed=4)
+    sinogram = torch.rand(shared.listmode_to_sinogram(events, INFO, tof_meta=tof_meta).shape, generator=torch.Generator().manual_seed(5))
+    expected = shared._dense_sinogram_to_listmode(events, sinogram, INFO, events_per_chunk=events.shape[0])
+    for events_per_chunk in (1, 7, 999):
+        assert torch.equal(shared._dense_sinogram_to_listmode(events, sinogram, INFO, events_per_chunk=events_per_chunk), expected)
+    assert torch.equal(shared.sinogram_to_listmode(events, sinogram, INFO), expected)
+
+
 def test_listmode_to_sinogram_follows_the_sinogram_geometry():
     """The line of response of the bin an event is binned in joins that event's two crystals, and its TOF bin is
     mirrored exactly when the bin's line of response runs from the event's second crystal to its first."""

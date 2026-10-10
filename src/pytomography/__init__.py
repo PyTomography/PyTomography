@@ -52,7 +52,7 @@ def set_memory_budget(gb: float | None):
       whole (a :class:`~pytomography.io.PET.shared.LazySinogram`), e.g. a time of flight sinogram;
     * a reconstruction whose subsets would not fit stops before it starts, with the number of subsets that would.
 
-    The results do not depend on the budget. Without one (the default), sinograms are built whole and blocks have fixed sizes.
+    The results do not depend on the budget. Without one (the default), blocks have fixed sizes, and sinograms are built whole unless one would take more than 8 GB (a TOF sinogram of a clinical scanner).
 
     Args:
         gb (float | None): Memory budget in GB, or None for no budget.

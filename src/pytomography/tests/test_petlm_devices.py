@@ -1,7 +1,7 @@
 """The list mode PET system matrix keeps its LORs on the projection device and hands them to the projector in
 sinogram order. Neither changes what is computed: these tests check that where the LORs are kept, and whether they
-are ordered, does not change the projections, that subsets stay consistent, and that the memory report does not
-promise less than a projection actually uses."""
+are ordered, does not change the projections, that subsets stay consistent, that the memory report does not
+promise less than a projection actually uses, and that each event gets its own crystal pair's normalization weight."""
 from __future__ import annotations
 
 import re
@@ -13,6 +13,7 @@ import torch
 import pytomography
 
 parallelproj_core = pytest.importorskip("parallelproj_core", reason="PET projection requires parallelproj 2")
+from pytomography.io.PET.shared import crystal_pair_index
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.PET import PETLMProjMeta, PETTOFMeta
 from pytomography.projectors.PET import PETLMSystemMatrix
@@ -80,6 +81,26 @@ def test_event_ordering_does_not_change_the_projection(tof):
         assert (ba - bb).abs().max() <= 1e-4 * bb.abs().max()
 
 
+@pytest.mark.parametrize("tof", [False, True])
+def test_events_sorted_in_runs_project_the_same(tof, monkeypatch):
+    """A subset of more events than one sort run (2**24; 37 here) is sorted a run at a time: each run is a permutation
+    of its own events, and the projections are unchanged."""
+    import pytomography.projectors.PET.petlm_system_matrix as petlm
+    monkeypatch.setattr(petlm, "_SORT_RUN", 37)
+    obj = _object()
+    ordered, unordered = _system(tof, sort_events=True), _system(tof, sort_events=False)
+    for subset_idx in (None, 0):
+        order = ordered._event_order(subset_idx).long().cpu()
+        for start in range(0, order.shape[0], 37):
+            run = order[start:start + 37]
+            assert torch.equal(run.sort().values, torch.arange(start, start + run.shape[0]))
+        a, b = ordered.forward(obj, subset_idx), unordered.forward(obj, subset_idx)
+        assert torch.equal(a, b)
+        g = torch.rand(a.shape[0], generator=torch.Generator().manual_seed(4)).to(a.device)
+        ba, bb = ordered.backward(g, subset_idx), unordered.backward(g, subset_idx)
+        assert (ba - bb).abs().max() <= 1e-4 * bb.abs().max()
+
+
 def test_subsets_partition_the_events():
     """Every event appears in exactly one subset, and a subset projection equals those events of the full one."""
     obj = _object()
@@ -92,6 +113,22 @@ def test_subsets_partition_the_events():
         covered[idx] = True
         assert torch.equal(sm.forward(obj, k), full[idx.to(full.device)])
     assert covered.all()
+
+
+def test_changing_the_number_of_subsets_reorders_the_events():
+    """The order the events of a subset are handed to the projector in is kept per subset; a new partition (another
+    number of subsets, as when a second reconstruction uses other subsets) must not reuse the old one's orders, which
+    could raise an error or drop events."""
+    obj = _object()
+    sm = _system(tof=True, n_subsets=2)
+    first = [sm.forward(obj, k) for k in range(2)]
+    sm.set_n_subsets(3)
+    full = sm.forward(obj)
+    for k in range(3):
+        idx = sm.subset_indices_array[k].cpu()
+        assert torch.equal(sm.forward(obj, k), full[idx.to(full.device)])
+    sm.set_n_subsets(2)
+    assert all(torch.equal(sm.forward(obj, k), first[k]) for k in range(2))
 
 
 @pytest.mark.parametrize("sort_events", [False, True])
@@ -152,3 +189,31 @@ def test_attenuation_scaling_without_weights_matches_attenuation_weights(tof):
     y = torch.rand(by_map.subset_indices_array[1].shape[0], generator=gen).to(DEV)
     assert torch.allclose(by_map.forward(x, 1), by_weights.forward(x, 1), rtol=1e-5)
     assert torch.allclose(by_map.backward(y, 1), by_weights.backward(y, 1), rtol=1e-4, atol=1e-6)
+
+
+def test_crystal_pair_index_is_the_combinations_order():
+    """The index of a crystal pair in ``torch.combinations`` order, exactly, up to the 411 million pairs of the mMR (in
+    float32, about 9 in 10 of the mMR's crystal pairs were given a neighbouring pair's normalization weight)."""
+    pairs = torch.combinations(torch.arange(40), 2)
+    assert torch.equal(crystal_pair_index(pairs[:, 0], pairs[:, 1], 40), torch.arange(pairs.shape[0]))
+    n = 28672                                                 # crystals of the Siemens Biograph mMR
+    gen = torch.Generator().manual_seed(2)
+    a, b = torch.randint(0, n, (2, 100_000), generator=gen).sort(dim=0).values
+    a, b = a[a < b], b[a < b]
+    counts = n - 1 - torch.arange(n)                          # pairs (i, j > i) of each crystal i
+    first_pair_of = torch.cumsum(counts, 0) - counts
+    assert torch.equal(crystal_pair_index(a.to(torch.int32), b.to(torch.int32), n), first_pair_of[a] + b - a - 1)
+
+
+def test_each_event_gets_its_crystal_pairs_normalization_weight():
+    """``_compute_sensitivity_projection(all_ids=False)``: the normalization weight of each event's crystal pair, whichever
+    crystal the event lists first."""
+    events = _events()
+    pairs = torch.combinations(torch.arange(N_DETECTORS), 2)
+    weights = torch.rand(pairs.shape[0], generator=torch.Generator().manual_seed(5)) + 0.5
+    pair_of = torch.full((N_DETECTORS, N_DETECTORS), -1)
+    pair_of[pairs[:, 0], pairs[:, 1]] = pair_of[pairs[:, 1], pairs[:, 0]] = torch.arange(pairs.shape[0])
+    assert (events[:, 0] > events[:, 1]).any() and (events[:, 0] < events[:, 1]).any()
+    sm = PETLMSystemMatrix(ObjectMeta(dr=(4, 4, 4), shape=(24, 24, 16)),
+                           PETLMProjMeta(events, INFO, weights_sensitivity=weights), N_splits=2)
+    assert torch.equal(sm._compute_sensitivity_projection(all_ids=False), weights[pair_of[events[:, 0], events[:, 1]]])
