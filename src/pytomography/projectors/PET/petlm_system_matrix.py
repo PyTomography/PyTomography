@@ -57,6 +57,10 @@ class PETLMSystemMatrix(SystemMatrix):
             sort_events (bool): Whether to reorder the events so that neighbouring events cross the image in nearly the same place (see :meth:`_sort_events`). This makes the projector's memory accesses local and roughly halves the time of a time of flight list mode projection. It needs the scanner geometry (``proj_meta.info``) and one additional index array per event. Events are only reordered internally: projections are returned, and expected, in the order the events were given. Defaults to True.
 
     """
+    #: On Windows, memory PyTorch's allocators keep, as a fraction of a reconstruction's arrays, for memory estimates
+    #: (as for the PET sinogram system matrix, whose tutorials it was measured on).
+    memory_allocator_fraction = 0.6
+
     def __init__(
         self,
         object_meta: ObjectMeta,

@@ -25,6 +25,11 @@ class PETSinogramSystemMatrix(SystemMatrix):
             N_splits (int, optional): Splits up computation of forward/back projection to save GPU memory. Defaults to 1.
             device (str, optional): The device for any objects in projection space projection space (what it outputs in forward projection and what it expects for back projection). This is seperate from ``pytomography.device`` since the internal functionality may still use GPU even if this is CPU. This is used to save GPU memory since sinograms are often very large. Defaults to pytomography.device.
         """
+    #: On Windows, memory PyTorch's allocators keep, as a fraction of a reconstruction's arrays, for memory estimates:
+    #: measured on the GATE mMR TOF sinogram tutorial (14 and 28 subsets, projections in RAM or on the GPU), where the
+    #: estimates then come within 15% of the measured peaks.
+    memory_allocator_fraction = 0.6
+
     def __init__(
         self,
         object_meta: ObjectMeta,
@@ -126,7 +131,7 @@ class PETSinogramSystemMatrix(SystemMatrix):
     def _memory_parts(self, n_subsets: int, N_splits: int | None) -> list[MemoryPart]:
         """What a reconstruction with this system matrix holds at its peak (see :meth:`~pytomography.projectors.SystemMatrix.estimate_memory`):
         the sensitivity sinogram, a normalisation image per subset and the images for the whole run; one subset's data,
-        expected counts, ratio and the temporaries of computing them (about four arrays of a subset's size, where the
+        expected counts, ratio and the temporaries of computing them (about three arrays of a subset's size, where the
         projections are: ``device``); and the projector's chunk on the GPU. The data and the additive term are the
         likelihood's: pass them to ``estimate_memory`` as ``held``.
 
@@ -148,7 +153,7 @@ class PETSinogramSystemMatrix(SystemMatrix):
         parts.append(MemoryPart(f'normalisation images ({n_subsets})', gpu_bytes=n_subsets * image_bytes))
         parts.append(MemoryPart('image, update and attenuation map', gpu_bytes=4 * image_bytes))
         lors = math.ceil(n_angles / n_subsets) * n_r * n_planes          # the LORs of the largest subset
-        parts.append(MemoryPart('data, expected counts, ratio and temporaries (one subset)', **where(4.0 * 4 * lors * n_bins), scope='subset'))
+        parts.append(MemoryPart('data, expected counts, ratio and temporaries (one subset)', **where(3.0 * 4 * lors * n_bins), scope='subset'))
         splits = self.N_splits if N_splits is None else N_splits
         bytes_per_lor = 88 + 8 * n_bins
         n_chunks = max(splits, math.ceil(lors * bytes_per_lor / gpu_budget()))

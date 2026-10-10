@@ -143,7 +143,8 @@ class SystemMatrix():
                  + (f", N_splits {N_splits}" if N_splits is not None else "")
                  + (f", memory budget {pytomography.memory_budget / 1e9:g} GB" if pytomography.memory_budget is not None else ""))
         alternatives = [(label, list(self._memory_parts(k, s)) + held_parts) for label, k, s in self._memory_alternatives(n_subsets, N_splits)]
-        return memory_estimate(title, list(self._memory_parts(n_subsets, N_splits)) + held_parts, alternatives)
+        return memory_estimate(title, list(self._memory_parts(n_subsets, N_splits)) + held_parts, alternatives,
+                               allocator_fraction=getattr(self, 'memory_allocator_fraction', None))
 
     def fewest_subsets(self, ram_gb: float, N_splits: int | None = None, held: Sequence | Mapping = (), max_subsets: int = 1024) -> int | None:
         """The fewest subsets for which :meth:`estimate_memory` predicts at most ``ram_gb`` GB of RAM, or None if no
