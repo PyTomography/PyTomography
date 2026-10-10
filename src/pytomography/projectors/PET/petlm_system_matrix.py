@@ -16,6 +16,9 @@ from pytomography.utils.memory import block_size
 #: blocks; measured peaks of the GATE mMR scan ran 16 to 32 percent above the sum, so the estimates are scaled.
 _MEMORY_MARGIN = 1.5
 
+#: Events sorted at once by :meth:`PETLMSystemMatrix._event_order` (a subset with more is sorted in runs of this many).
+_SORT_RUN = 2**24
+
 def _float32(x, device) -> torch.Tensor:
     """Contiguous float32 tensor on ``device``: the array form every parallelproj kernel expects."""
     if not isinstance(x, torch.Tensor):
@@ -133,7 +136,7 @@ class PETLMSystemMatrix(SystemMatrix):
 
         Events are recorded in the order they were detected, so neighbouring events are unrelated in space, and neighbouring threads of the projector read (and, back projecting, atomically write) unrelated parts of the image. Ordering them makes those accesses local: on an RTX 5090, a 4 million event non time of flight forward projection of a GATE mMR scan takes 9.8 ms as recorded and 2.2 ms ordered, and back projection 22.2 ms against 10.6 ms. Only the order the LORs are handed to the projector in changes; projections are returned, and accepted, in the order the events were given.
 
-        The permutation is built once per subset and kept (4 bytes per event in total). It is None when ``sort_events`` is off or the scanner geometry (``proj_meta.info``) is not available.
+        The permutation is built once per subset and kept (4 bytes per event in total). A subset of more than 2**24 events is sorted in runs of 2**24, which a projector chunk sees as one or two sorted runs. It is None when ``sort_events`` is off or the scanner geometry (``proj_meta.info``) is not available.
 
         Args:
             subset_idx (int | None): Subset index :math:`m`, or None for all events.
@@ -154,18 +157,26 @@ class PETLMSystemMatrix(SystemMatrix):
                 self._sinogram_tables = (lor_coordinates.to(device), sinogram_index.to(device))
             lor_coordinates, sinogram_index = self._sinogram_tables
             crystals_per_ring = self.proj_meta.info['NrCrystalsPerRing']
-            # the sort keys are computed a block of events at a time (all 50.8M events of the mMR at once took about
-            # 5 GB of temporaries on the GPU, which stayed in PyTorch's cache)
-            key = torch.empty(ids.shape[0], dtype=torch.long, device=device)
-            for start in range(0, ids.shape[0], 2**22):
-                block = ids[start:start + 2**22, :2].to(torch.long)
-                within_ring_id, pair_order = (block % crystals_per_ring).sort(dim=1, descending=True)
-                ring_ids = (block // crystals_per_ring).gather(1, pair_order)
-                angular_radial = lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]]
-                plane = sinogram_index[ring_ids[:,0], ring_ids[:,1]]
-                key[start:start + block.shape[0]] = (angular_radial[:,0] * lor_coordinates.shape[1] + angular_radial[:,1]) * sinogram_index.numel() + plane
+            # the events are sorted a run of 2**24 at a time, and their sort keys computed 2**22 at a time: all 50.8M
+            # events of the mMR at once took about 5 GB of temporaries on the GPU for the keys, and sorting all 107M
+            # events of the GATE brain scan took 4.3 GB more (Windows counts GPU memory as RAM too). A projector chunk
+            # then holds one or two sorted runs, which keeps its accesses as local; a subset of up to 2**24 events is
+            # sorted whole, as before
+            n_events = ids.shape[0]
+            order = torch.empty(n_events, dtype=torch.int32, device=device)
+            for run_start in range(0, n_events, _SORT_RUN):
+                run_end = min(run_start + _SORT_RUN, n_events)
+                key = torch.empty(run_end - run_start, dtype=torch.long, device=device)
+                for start in range(run_start, run_end, 2**22):
+                    block = ids[start:min(start + 2**22, run_end), :2].to(torch.long)
+                    within_ring_id, pair_order = (block % crystals_per_ring).sort(dim=1, descending=True)
+                    ring_ids = (block // crystals_per_ring).gather(1, pair_order)
+                    angular_radial = lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]]
+                    plane = sinogram_index[ring_ids[:,0], ring_ids[:,1]]
+                    key[start - run_start:start - run_start + block.shape[0]] = (angular_radial[:,0] * lor_coordinates.shape[1] + angular_radial[:,1]) * sinogram_index.numel() + plane
+                order[run_start:run_end] = (torch.argsort(key) + run_start).to(torch.int32)
+                del key
             del ids
-            order = torch.argsort(key).to(torch.int32)
         self._orders[subset_idx] = order
         return order
 
@@ -213,7 +224,7 @@ class PETLMSystemMatrix(SystemMatrix):
         print(f"    {'resident on ' + str(pytomography.device):40s} {resident/1e9:8.3f} GB")
         for label, n in ((f'one subset of {n_subsets}', int(np.ceil(n_events / n_subsets))), ('every event at once', n_events)):
             need = projection(n)
-            build = (id_bytes + 8 + 8) * n if self.sort_events else 0   # sorting keys, freed afterwards
+            build = id_bytes * n + 16 * min(n, _SORT_RUN) if self.sort_events else 0   # the subset's IDs and one run's sort keys, freed afterwards
             print(f"  projecting {label} ({n:,} events):")
             for k, v in need.items():
                 print(f"    {k:40s} {v/1e9:8.3f} GB")
@@ -224,7 +235,7 @@ class PETLMSystemMatrix(SystemMatrix):
               f"peak it reports runs above the sum of the arrays above.")
         if torch.cuda.is_available() and str(pytomography.device).startswith('cuda'):
             free, total = torch.cuda.mem_get_info()
-            worst = _MEMORY_MARGIN * (resident + sum(projection(n_events).values()) + ((id_bytes + 16) * n_events if self.sort_events else 0))
+            worst = _MEMORY_MARGIN * (resident + sum(projection(n_events).values()) + (id_bytes * n_events + 16 * min(n_events, _SORT_RUN) if self.sort_events else 0))
             print(f"  device has {free/1e9:.3f} GB free of {total/1e9:.3f} GB"
                   + ("" if worst < free else "  -- the all-event projection does not fit; raise N_splits, "
                                              "set lor_device='cpu', or project subsets only"))

@@ -81,6 +81,26 @@ def test_event_ordering_does_not_change_the_projection(tof):
         assert (ba - bb).abs().max() <= 1e-4 * bb.abs().max()
 
 
+@pytest.mark.parametrize("tof", [False, True])
+def test_events_sorted_in_runs_project_the_same(tof, monkeypatch):
+    """A subset of more events than one sort run (2**24; 37 here) is sorted a run at a time: each run is a permutation
+    of its own events, and the projections are unchanged."""
+    import pytomography.projectors.PET.petlm_system_matrix as petlm
+    monkeypatch.setattr(petlm, "_SORT_RUN", 37)
+    obj = _object()
+    ordered, unordered = _system(tof, sort_events=True), _system(tof, sort_events=False)
+    for subset_idx in (None, 0):
+        order = ordered._event_order(subset_idx).long().cpu()
+        for start in range(0, order.shape[0], 37):
+            run = order[start:start + 37]
+            assert torch.equal(run.sort().values, torch.arange(start, start + run.shape[0]))
+        a, b = ordered.forward(obj, subset_idx), unordered.forward(obj, subset_idx)
+        assert torch.equal(a, b)
+        g = torch.rand(a.shape[0], generator=torch.Generator().manual_seed(4)).to(a.device)
+        ba, bb = ordered.backward(g, subset_idx), unordered.backward(g, subset_idx)
+        assert (ba - bb).abs().max() <= 1e-4 * bb.abs().max()
+
+
 def test_subsets_partition_the_events():
     """Every event appears in exactly one subset, and a subset projection equals those events of the full one."""
     obj = _object()
