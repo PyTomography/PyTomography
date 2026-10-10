@@ -454,6 +454,63 @@ class ExtendedSystemMatrix(SystemMatrix):
     ) -> torch.tensor:
         return self.system_matrices[0].get_weighting_subset(subset_idx)
     
+    @property
+    def memory_allocator_fraction(self) -> float | None:
+        """The Windows allowance of the first system matrix's memory estimates (see :func:`~pytomography.utils.memory.memory_estimate`)."""
+        return getattr(self.system_matrices[0], 'memory_allocator_fraction', None)
+
+    def _max_subsets(self) -> int:
+        return self.system_matrices[0]._max_subsets()
+
+    def _memory_settings(self) -> dict[str, tuple]:
+        """The settings of the first system matrix (they are all assumed alike, as :meth:`set_n_subsets` assumes)."""
+        return self.system_matrices[0]._memory_settings()
+
+    def _memory_alternatives(self, n_subsets: int, N_splits: int | None) -> list:
+        return self.system_matrices[0]._memory_alternatives(n_subsets, N_splits)
+
+    def _memory_parts(self, n_subsets: int, N_splits: int | None) -> list[MemoryPart]:
+        """What a reconstruction with this system matrix holds at its peak (see :meth:`SystemMatrix.estimate_memory`):
+        the arrays of the first system matrix, with its arrays of a subset counted twice for each of the :math:`N`
+        system matrices (each one's projection is kept, then they are stacked); what every other distinct system matrix
+        holds for the whole run (its own images included, which overestimates by those); the arrays the transforms keep
+        and their temporaries (twelve images, rounded up from a deformation's coordinates and resampling); and the
+        projections of ones of all :math:`N` that :meth:`compute_normalization_factor` back projects.
+
+        Args:
+            n_subsets (int): Number of subsets.
+            N_splits (int | None): Projector splits, or None for the system matrices' own.
+
+        Returns:
+            list[MemoryPart]: The arrays.
+        """
+        N = len(self.system_matrices)
+        first = self.system_matrices[0]
+        parts = []
+        for part in first._memory_parts(n_subsets, N_splits):
+            if part.scope == 'subset':
+                parts.append(MemoryPart(f"{part.name}, for each of {N}, kept and stacked", 2 * N * part.ram_bytes, 2 * N * part.gpu_bytes, 'subset'))
+            else:
+                parts.append(part)
+        seen = {id(first)}
+        for i, system_matrix in enumerate(self.system_matrices[1:], start=2):
+            if id(system_matrix) in seen:
+                continue
+            seen.add(id(system_matrix))
+            held = [p for p in system_matrix._memory_parts(n_subsets, N_splits) if p.scope == 'held']
+            parts.append(MemoryPart(f"system matrix {i}: what it holds", sum(p.ram_bytes for p in held), sum(p.gpu_bytes for p in held), 'held'))
+        transforms = [t for t in list(self.obj2obj_transforms or []) + list(self.proj2proj_transforms or []) if t is not None]
+        if transforms:
+            ram = sum(tensor_bytes(t)[0] for t in transforms)
+            gpu = sum(tensor_bytes(t)[1] for t in transforms)
+            parts.append(MemoryPart(f"arrays of the {len(transforms)} transforms", ram, gpu, 'held'))
+            image = 4 * math.prod(self.object_meta.shape)
+            parts.append(MemoryPart("a transform's temporaries", **on_device(pytomography.device, 12 * image), scope='chunk'))
+        shape = getattr(self.proj_meta, 'shape', None)
+        if shape is not None:
+            parts.append(MemoryPart(f"projections of ones of all {N} (for H^T 1)", **on_device(pytomography.device, 4 * N * math.prod(shape)), scope='subset'))
+        return parts
+
     def compute_normalization_factor(self, subset_idx: int | None = None):
         r"""Function called by reconstruction algorithms to get the normalization factor :math:`H' = \sum_n v_n^T \otimes A_n^T H_n^T B_n^T` 1.
 

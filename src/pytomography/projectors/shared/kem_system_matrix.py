@@ -1,5 +1,8 @@
 from __future__ import annotations
-from ..system_matrix import SystemMatrix
+import math
+import pytomography
+from pytomography.utils.memory import MemoryPart, nbytes
+from ..system_matrix import SystemMatrix, on_device
 
 class KEMSystemMatrix(SystemMatrix):
     """Given a KEM transform :math:`K` and a system matrix :math:`H`, implements the transform :math:`HK` (and backward transform :math:`K^T H^T`)
@@ -18,7 +21,46 @@ class KEMSystemMatrix(SystemMatrix):
         self.set_n_subsets = self.system_matrix.set_n_subsets
         self.get_projection_subset = self.system_matrix.get_projection_subset
         self.get_weighting_subset = self.system_matrix.get_projection_subset
-        
+
+    @property
+    def memory_allocator_fraction(self) -> float | None:
+        """The Windows allowance of the inner system matrix's memory estimates (see :func:`~pytomography.utils.memory.memory_estimate`)."""
+        return getattr(self.system_matrix, 'memory_allocator_fraction', None)
+
+    def _max_subsets(self) -> int:
+        return self.system_matrix._max_subsets()
+
+    def _memory_settings(self) -> dict[str, tuple]:
+        """The settings of the inner system matrix (the kernel transform has none)."""
+        return self.system_matrix._memory_settings()
+
+    def _memory_alternatives(self, n_subsets: int, N_splits: int | None) -> list:
+        return self.system_matrix._memory_alternatives(n_subsets, N_splits)
+
+    def _memory_parts(self, n_subsets: int, N_splits: int | None) -> list[MemoryPart]:
+        """What a reconstruction with this system matrix holds at its peak (see
+        :meth:`~pytomography.projectors.SystemMatrix.estimate_memory`): the arrays of the inner system matrix, the
+        kernel :math:`K` (``size**3`` images, where the transform keeps it: on the host unless ``kernel_on_gpu``) and the
+        support images, and the temporaries of applying :math:`K` on the device (the result, a neighbour, a slice of the
+        kernel and their product: four images).
+
+        Args:
+            n_subsets (int): Number of subsets.
+            N_splits (int | None): Projector splits, or None for the inner system matrix's own.
+
+        Returns:
+            list[MemoryPart]: The arrays.
+        """
+        image = 4 * math.prod(self.object_meta.shape)
+        parts = list(self.system_matrix._memory_parts(n_subsets, N_splits))
+        parts.append(MemoryPart('KEM kernel', *nbytes(getattr(self.kem_transform, 'kernel', None)), scope='held'))
+        support = [nbytes(x) for x in getattr(self.kem_transform, 'support_objects', [])]
+        if support:
+            parts.append(MemoryPart('KEM support images', sum(r for r, _ in support), sum(g for _, g in support), scope='held'))
+        parts.append(MemoryPart('applying the KEM kernel: result, neighbour, kernel slice, product',
+                                **on_device(pytomography.device, 4 * image), scope='chunk'))
+        return parts
+
     def compute_normalization_factor(self, subset_idx : int | None = None):
         """Function used to get normalization factor :math:`K^T H^T_m 1` corresponding to projection subset :math:`m`.
 

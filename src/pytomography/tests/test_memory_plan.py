@@ -250,3 +250,166 @@ def test_ct_plan_finds_the_fewest_subsets_when_memory_rises_with_them():
     plan = big.plan_memory(ram_gb=ram_gb, gpu_gb=1000)
     assert plan.settings == {'N_splits': 1, 'n_subsets': 1}                             # fewer subsets take less here
     assert big.fewest_subsets(ram_gb) == 1
+
+
+# ------------------------------------------------------------------ SPECT, StarGuide, KEM and motion
+def _spect(n_views=60, shape=(32, 32, 16), cache_probabilities=False, psf=True, n_radii=1):
+    from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
+    from pytomography.projectors.SPECT import SPECTSystemMatrix
+    from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
+    object_meta = SPECTObjectMeta([0.4] * 3, shape)
+    radii = 20.0 + (np.arange(n_views) % n_radii)
+    proj_meta = SPECTProjMeta((shape[1], shape[2]), [0.4, 0.4], list(np.linspace(0, 360, n_views, endpoint=False)), radii=radii)
+    transforms = [SPECTAttenuationTransform(torch.rand(shape) * 0.1, cache_probabilities=cache_probabilities)]
+    if psf:
+        transforms.append(SPECTPSFTransform(SPECTPSFMeta((0.03, 0.1))))
+    return SPECTSystemMatrix(transforms, [], object_meta, proj_meta)
+
+
+def _parts(estimate) -> dict:
+    return {p.name: p for p in estimate.parts}
+
+
+def _bytes(part) -> float:
+    return part.ram_bytes + part.gpu_bytes
+
+
+def test_spect_estimate_counts_its_arrays():
+    sm = _spect()
+    image = 4 * 32 * 32 * 16
+    padded = 4 * np.prod(sm.object_meta.padded_shape)
+    four, eight = _parts(sm.estimate_memory(4)), _parts(sm.estimate_memory(8))
+    assert _bytes(four['H_m^T 1 of 4 subsets']) == 4 * image and _bytes(eight['H_m^T 1 of 8 subsets']) == 8 * image
+    subset = 'projections of a subset: measured, expected, additive term, of ones, padded copy'
+    assert _bytes(eight[subset]) < _bytes(four[subset])
+    kept = _bytes(four['what the object transforms keep'])
+    assert kept >= image                                                                 # the attenuation map, and PSF kernels
+    cached = _parts(_spect(cache_probabilities=True).estimate_memory(4))
+    assert _bytes(cached['what the object transforms keep']) == pytest.approx(kept + 60 * padded)
+    view = _bytes(four["one view: rotated object and the transforms' temporaries"])
+    assert view == 2 * padded + 8 * padded + 4 * padded                                   # rotation, attenuation, PSF
+    assert sm.estimate_memory(4).settings == {'n_subsets': 4} and list(sm._memory_settings()) == ['n_subsets']
+    assert sm._memory_settings()['n_subsets'][1] == list(range(1, 61))
+    with pytest.raises(ValueError, match="has no setting N_splits"):
+        sm.plan_memory(ram_gb=10, gpu_gb=10, N_splits=2)
+
+
+def test_spect_psf_operator_and_its_kernel_cache():
+    from pytomography.transforms.SPECT import SPECTPSFTransform
+    from pytomography.tests.test_psf2d_operator import _KernelOperator
+    sm = _spect(psf=False)
+
+    class _Operator(_KernelOperator):
+        def _get_kernel(self, xv, yv, a):
+            return torch.ones(len(a), xv.shape[0], xv.shape[1]) / xv.numel()
+    without = _bytes(_parts(sm.estimate_memory(2))['what the object transforms keep'])
+    for cache in (False, True):
+        transform = SPECTPSFTransform(psf_operator=_Operator(None), cache_kernel=cache)
+        transform.configure(sm.object_meta, sm.proj_meta)
+        sm.obj2obj_transforms = sm.obj2obj_transforms[:1] + [transform]
+        parts = _parts(sm.estimate_memory(2))
+        Lx, Ly, Lz = sm.object_meta.padded_shape
+        k = sm.object_meta.shape[0] - 1
+        width = Lz + k - 1 + (Lz + k - 1) % 2
+        spectrum = 8 * Lx * (Ly + k - 1) * (width // 2 + 1)
+        extra = _bytes(parts['what the object transforms keep']) - without
+        assert (extra >= spectrum) == cache
+        assert _bytes(parts["one view: rotated object and the transforms' temporaries"]) >= 8 * 4 * Lx * (Ly + k - 1) * width
+
+
+def test_monte_carlo_hybrid_adds_simind(monkeypatch):
+    from pytomography.projectors.SPECT import dualhead_system_matrix, MonteCarloHybridSPECTSystemMatrix
+    monkeypatch.setattr(dualhead_system_matrix.shutil, "which", lambda name: "simind")
+    base = _spect(psf=False)
+    sm = MonteCarloHybridSPECTSystemMatrix(base.object_meta, base.proj_meta, n_events=10**6, n_parallel=6,
+                                           obj2obj_transforms=base.obj2obj_transforms, proj2proj_transforms=[],
+                                           attenuation_map_140keV=torch.rand(base.object_meta.shape), energy_window_params=['a', 'b', 'c'],
+                                           primary_window_idx=1, isotope_names=['lu177'], isotope_ratios=[1.0], collimator_type='SY-ME',
+                                           crystal_thickness=0.95, cover_thickness=0.1, backscatter_thickness=5.0)
+    parts = _parts(sm.estimate_memory(4))
+    simind = parts['SIMIND processes (6, not measured)']
+    assert simind.ram_bytes >= 6 * sm.SIMIND_PROCESS_BYTES and simind.scope == 'chunk'
+    assert parts['attenuation map at 140 keV'].ram_bytes == 4 * np.prod(base.object_meta.shape)
+    assert sm.estimate_memory(4).ram_gb > base.estimate_memory(4).ram_gb
+
+
+def _starguide(psf=True):
+    from pytomography.tests.test_starguide_projector import _system
+    sm, f, g = _system(psf_params=(0.02, 0.05) if psf else None)
+    return sm
+
+
+def test_starguide_estimate():
+    sm = _starguide()
+    assert sm._max_subsets() == 6 and sm._memory_settings()['n_subsets'][1] == list(range(1, 7))
+    two, three = _parts(sm.estimate_memory(2)), _parts(sm.estimate_memory(3))
+    subset = 'projections of a subset: measured, expected, additive term, scaled, of ones'
+    assert _bytes(three[subset]) <= _bytes(two[subset])
+    assert _bytes(three['H_m^T 1 of 3 subsets']) == 3 * 4 * 40 * 40 * 12
+    angle = next(p for name, p in two.items() if name.startswith('one angle (4 views)'))
+    without_psf = next(p for name, p in _parts(_starguide(psf=False).estimate_memory(2)).items() if name.startswith('one angle'))
+    assert _bytes(angle) > _bytes(without_psf)                                          # the PSF widens the slab and convolves it
+    plan = sm.plan_memory(ram_gb=1000, gpu_gb=1000, n_subsets=3)
+    assert plan.settings == {'n_subsets': 3}
+
+
+def test_kem_and_motion_pass_through_to_their_system_matrices():
+    from pytomography.projectors.shared import KEMSystemMatrix, MotionSystemMatrix
+    from pytomography.transforms.shared import KEMTransform, DVFMotionTransform
+    sm = _spect(psf=False)
+    image = 4 * np.prod(sm.object_meta.shape)
+    kem = KEMSystemMatrix(sm, KEMTransform([torch.rand(sm.object_meta.shape)], size=3))
+    parts = _parts(kem.estimate_memory(4))
+    assert _bytes(parts['KEM kernel']) == 27 * image and _bytes(parts['KEM support images']) == image
+    assert set(_parts(sm.estimate_memory(4))) < set(parts)
+    assert kem._memory_settings().keys() == sm._memory_settings().keys()
+    assert kem.plan_memory(ram_gb=1000, gpu_gb=1000).settings == {'n_subsets': 1}
+    dvf = torch.zeros(*sm.object_meta.shape, 3)
+    others = [_spect(psf=False) for _ in range(2)]
+    motion = MotionSystemMatrix([sm] + others, [DVFMotionTransform(dvf.clone(), dvf.clone()) for _ in range(3)])
+    parts = _parts(motion.estimate_memory(4))
+    assert _bytes(parts['projections of ones of all 3 (for H^T 1)']) == 3 * 4 * np.prod(sm.proj_meta.shape)
+    assert 'system matrix 2: what it holds' in parts and 'system matrix 3: what it holds' in parts
+    assert _bytes(parts['arrays of the 3 transforms']) == 3 * 2 * 3 * image
+    same = _parts(MotionSystemMatrix([sm, sm, sm], [DVFMotionTransform(dvf, dvf) for _ in range(3)]).estimate_memory(4))
+    assert 'system matrix 2: what it holds' not in same                                 # one system matrix, counted once
+    assert motion.plan_memory(ram_gb=1000, gpu_gb=1000).settings == {'n_subsets': 1}
+
+
+@pytest.mark.parametrize("model", ["spect", "starguide", "kem", "motion", "pet sinogram", "pet list mode", "ct helical", "ct cone beam"])
+def test_every_system_model_estimates_and_plans(model, monkeypatch, gpu_as_ram):
+    if model == "spect":
+        sm = _spect()
+    elif model == "starguide":
+        sm = _starguide()
+    elif model == "kem":
+        from pytomography.projectors.shared import KEMSystemMatrix
+        from pytomography.transforms.shared import KEMTransform
+        sm = KEMSystemMatrix(_spect(), KEMTransform([torch.rand(32, 32, 16)], size=3))
+    elif model == "motion":
+        from pytomography.projectors.shared import MotionSystemMatrix
+        from pytomography.transforms.shared import DVFMotionTransform
+        dvf = torch.zeros(32, 32, 16, 3)
+        sm = MotionSystemMatrix([_spect(), _spect()], [DVFMotionTransform(dvf, dvf) for _ in range(2)])
+    elif model == "pet sinogram":
+        sm = _pet_sinogram_system_matrix()
+    elif model == "pet list mode":
+        sm = _pet_listmode_system_matrix(monkeypatch)
+    else:
+        pytest.importorskip("parallelproj_core")
+        from pytomography.projectors.CT import CTGen3SystemMatrix, CTConeBeamFlatPanelSystemMatrix
+        from pytomography.tests.test_ct_fbp import OBJECT_META, _conebeam, _helix
+        sm = CTGen3SystemMatrix(OBJECT_META, _helix()) if model == "ct helical" else \
+            CTConeBeamFlatPanelSystemMatrix(ObjectMeta(dr=(2.0, 2.0, 2.0), shape=(32, 32, 24)), _conebeam(120))
+    estimate = sm.estimate_memory(n_subsets=2)
+    own = sum(_bytes(p) for p in estimate.parts if p.scope != 'overhead')
+    assert own > 0 and estimate.settings['n_subsets'] == 2
+    _roundtrip(estimate)
+    str(estimate).encode('cp1252')
+    settings = sm._memory_settings()
+    plan = sm.plan_memory(ram_gb=1000, gpu_gb=1000)
+    assert plan.fits and plan.settings == {name: values[0] for name, (_, values) in settings.items()}
+    tight = sm.plan_memory(ram_gb=estimate.ram_gb, gpu_gb=estimate.gpu_gb)
+    assert tight.fits and tight.estimate.ram_gb <= estimate.ram_gb + 1e-9 and tight.estimate.gpu_gb <= estimate.gpu_gb + 1e-9
+    assert not sm.plan_memory(ram_gb=0.1, gpu_gb=0).fits
+    _roundtrip(tight)
