@@ -270,7 +270,7 @@ class MemoryEstimate:
         return ram / 1e9
 
     def __str__(self) -> str:
-        lines = [self.title, f"Peak ≈ {self.ram_gb:.1f} GB RAM, {self.gpu_gb:.1f} GB GPU"
+        lines = [self.title, f"Peak ~ {self.ram_gb:.1f} GB RAM, {self.gpu_gb:.1f} GB GPU"
                  + (" (on Windows, GPU memory counts as RAM too)" if counts_gpu_as_ram() and self.gpu_gb >= 0.05 else "")]
         for scope, label in MEMORY_SCOPES.items():
             parts = [p for p in self.parts if p.scope == scope]
@@ -282,7 +282,7 @@ class MemoryEstimate:
                                for p in parts)
             lines.append(f"  {label}: {_gb(ram)} GB RAM, {_gb(gpu)} GB GPU ({items})")
         if self.alternatives:
-            lines.append("To use less: " + " · ".join(f"{label} ≈ {estimate.ram_gb:.1f} GB RAM, {estimate.gpu_gb:.1f} GB GPU"
+            lines.append("To use less: " + " · ".join(f"{label} ~ {estimate.ram_gb:.1f} GB RAM, {estimate.gpu_gb:.1f} GB GPU"
                                                       for label, estimate in self.alternatives))
         lines.append("(plus whatever else your script keeps)")
         return "\n".join(lines)
