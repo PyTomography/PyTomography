@@ -257,7 +257,7 @@ def get_symmetry_histogram_from_ROOTfile(
         f (object): Opened ROOT file
         info (dict): PET geometry information dictionary
         substr (str, optional): Name of events to consider in ROOT file. Defaults to 'Coincidences'.
-        include_randoms (bool, optional): Whether or not to include random events from data. Defaults to True.
+        include_randoms (bool, optional): Whether or not to include random events from data (coincidences whose two photons come from different annihilations). Defaults to True.
 
     Returns:
         torch.Tensor: Symmetry histogram
@@ -297,7 +297,8 @@ def get_symmetry_histogram_from_ROOTfile(
         ids_delta_axial_module,
         ids_delta_trans_rsector
     ]).T
-    if include_randoms:
+    if not include_randoms:
+        # keep the coincidences whose two photons come from the same annihilation (randoms come from two)
         xs1 = torch.tensor(f[substr]['sourcePosX1'].array(library='np'))
         xs2 = torch.tensor(f[substr]['sourcePosX2'].array(library='np'))
         ys1 = torch.tensor(f[substr]['sourcePosY1'].array(library='np'))
