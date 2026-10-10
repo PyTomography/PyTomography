@@ -360,6 +360,11 @@ class PETLMSystemMatrix(SystemMatrix):
         for i in range(n_subsets):
             subset_indices_array.append(indices[i::n_subsets])
         self.subset_indices_array = subset_indices_array
+        # the projector order of each subset's events belongs to one partition: forget those of another (the order of
+        # all the events, key None, stays)
+        if getattr(self, '_orders_n_subsets', None) != n_subsets:
+            self._orders = {key: order for key, order in self._orders.items() if key is None}
+            self._orders_n_subsets = n_subsets
         
     def get_projection_subset(self, projections: torch.Tensor, subset_idx: int) -> torch.tensor:
         """Obtains subsampled projections :math:`g_m` corresponding to subset index :math:`m`. For LM PET, its always the case that :math:`g_m=1`, but this function is still required for subsampling scatter :math:`s_m` as is required in certain reconstruction algorithms

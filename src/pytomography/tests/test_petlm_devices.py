@@ -94,6 +94,22 @@ def test_subsets_partition_the_events():
     assert covered.all()
 
 
+def test_changing_the_number_of_subsets_reorders_the_events():
+    """The order the events of a subset are handed to the projector in is kept per subset; a new partition (another
+    number of subsets, as when a second reconstruction uses other subsets) must not reuse the old one's orders, which
+    could raise an error or drop events."""
+    obj = _object()
+    sm = _system(tof=True, n_subsets=2)
+    first = [sm.forward(obj, k) for k in range(2)]
+    sm.set_n_subsets(3)
+    full = sm.forward(obj)
+    for k in range(3):
+        idx = sm.subset_indices_array[k].cpu()
+        assert torch.equal(sm.forward(obj, k), full[idx.to(full.device)])
+    sm.set_n_subsets(2)
+    assert all(torch.equal(sm.forward(obj, k), first[k]) for k in range(2))
+
+
 @pytest.mark.parametrize("sort_events", [False, True])
 def test_memory_report_is_not_optimistic(capsys, sort_events):
     """The reported peak must not be below what a projection actually uses."""
