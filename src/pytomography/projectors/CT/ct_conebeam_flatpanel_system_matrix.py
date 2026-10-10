@@ -5,32 +5,12 @@ import numpy as np
 from pytomography.projectors import SystemMatrix
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.CT import CTConeBeamFlatPanelProjMeta
-from torch.nn.functional import pad
-try:
-    import parallelproj
-except:
-    pass
-
-# TODO:Place these functions in a utilities file and support more filter types
-def get_discrete_ramp_FFT(n):
-    nn = torch.arange(-n / 2, n / 2)
-    h = torch.zeros(nn.shape, dtype=torch.float32)
-    h[n//2] = 1 / 4
-    odd = nn % 2 == 1
-    h[odd] = -1 / (np.pi * nn[odd]) ** 2
-    return torch.abs(torch.fft.fft(h))
-def FBP_filter(proj, device=pytomography.device):
-    pad_size = proj.shape[0] // 2
-    ramp_filter = get_discrete_ramp_FFT(proj.shape[0]+2*pad_size).to(device).reshape((-1,1))
-    proj_fft = pad(proj, [0,0,pad_size,pad_size])
-    # filter projections
-    proj_fft = torch.fft.fft(proj_fft, dim=0)
-    proj_fft = proj_fft * ramp_filter
-    proj_filtered = torch.fft.ifft(proj_fft, dim=0).real[pad_size:-pad_size]
-    return proj_filtered
+from pytomography.utils.fourier_filters import get_fbp_filter, ramp_filter
+import parallelproj_core
+from .ct_gen3_system_matrix import _float32, _pad, _crop
 
 class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
-    """System matrix for a cone beam CT system with a flat detector panel. Backprojection supports FBP, but only for non-helical (i.e. fixed z) geometries.
+    """System matrix for a cone beam CT system with a flat detector panel. Filtered back projection (FDK) is available for circular (fixed z) scans through :class:`pytomography.algorithms.FilteredBackProjection`.
 
         Args:
             object_meta (ObjectMeta): Metadata for object space
@@ -46,16 +26,17 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         device: str = pytomography.device
     ) -> None:
         super(CTConeBeamFlatPanelSystemMatrix, self).__init__(object_meta, proj_meta)
-        # Used for parallelproj projectors
-        self.origin = -(torch.tensor(object_meta.shape).to(pytomography.device)/2-0.5) * torch.tensor(object_meta.dr).to(pytomography.dtype).to(pytomography.device) # + proj_meta.COR
-        self.voxel_size = torch.tensor(object_meta.dr).to(pytomography.dtype).to(pytomography.device)
+        # the geometry every kernel call needs, in the form it needs (float32, on the projection device). The object is
+        # projected with one voxel of zeros on every face (see CTGen3SystemMatrix); origin is that of the padded grid.
+        self.origin = _float32(-(torch.tensor(object_meta.shape)/2+0.5) * torch.tensor(object_meta.dr), pytomography.device) # + proj_meta.COR
+        self.voxel_size = _float32(object_meta.dr, pytomography.device)
         self.N_splits = N_splits
         self.device = device
         self._FBP_postweight_component1 = None
         self._FBP_preweight = None
     
     def _get_FBP_scale(self):
-        return 0.5 * (2 * np.pi/ self.proj_meta.N_angles) * (self.proj_meta.DSD/self.proj_meta.DSO) / self.proj_meta.dr[0]
+        return 0.5 * (2 * np.pi/ self.proj_meta.N_angles) * (self.proj_meta.DSD/self.proj_meta.DSO)
     
     def _get_FBP_preweight(self, idx):
         if self._FBP_preweight is None:
@@ -146,89 +127,101 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         Returns:
             torch.Tensor: Normalization factor.
         """
-        return self.backward(torch.ones(self.proj_meta.N_angles, *self.proj_meta.shape).to(self.device), subset_idx)
+        n_views = self.proj_meta.N_angles if subset_idx is None else len(self.subset_indices_array[subset_idx])
+        return self.backward(torch.ones(n_views, *self.proj_meta.shape, device=self.device), subset_idx)
     
     def forward(
         self, object: torch.Tensor,
         subset_idx: int | None = None,
-        FBP_post_weight: torch.Tensor = None,
-        projection_type='matched'
     ) -> torch.Tensor:
-        """Computes forward projection
+        r"""Computes forward projection
 
         Args:
             object (torch.Tensor): Object to be forward projected
             subset_idx (int | None, optional): Subset index :math:`m` of the projection. If None, then projects to entire projection space. Defaults to None.
-            FBP_post_weight (torch.Tensor, optional): _description_. Defaults to None.
-            projection_type (str): Type of forward projection to use; defaults to mathced. (For implementing the adjoint of FBP, we need the option of using FBP weights in the forward projection).
 
         Returns:
             torch.Tensor: Projections corresponding to :math:`\int \mu dx` along all LORs.
         """
-        if subset_idx is not None:
-            angle_subset = self.subset_indices_array[subset_idx]
-        angle_indices = torch.arange(self.proj_meta.N_angles).to(pytomography.device) if subset_idx is None else angle_subset
-        proj_total = []
+        angle_indices = self._angle_indices(subset_idx)
+        object_i = _pad(_float32(object, pytomography.device))
+        # Project into one buffer: parallelproj writes the line integrals of each angle into the array it is given
+        proj = torch.zeros((len(angle_indices), *self.proj_meta.shape), dtype=torch.float32, device=self.device)
         for i in range(len(angle_indices)):
             idx = angle_indices[i] # index of angle
-            detector_coordinates = self.proj_meta._get_detector_coordinates(idx).flatten(end_dim=1)
-            beam_coordinate = self.proj_meta.beam_locations[idx].unsqueeze(0).repeat(detector_coordinates.shape[0], 1)
-            if FBP_post_weight is None:
-                object_i = object
-            else:
-                object_i = object * FBP_post_weight
-            proj = parallelproj.joseph3d_fwd(
+            detector_coordinates = _float32(self.proj_meta._get_detector_coordinates(idx), pytomography.device)
+            beam_coordinate = _float32(self.proj_meta.beam_locations[idx], pytomography.device).expand(detector_coordinates.shape).contiguous()
+            proj_i = torch.zeros(self.proj_meta.shape, dtype=torch.float32, device=pytomography.device)
+            parallelproj_core.joseph3d_fwd(
                 beam_coordinate,
                 detector_coordinates,
                 object_i,
                 self.origin,
-                self.voxel_size
-            ).reshape(self.proj_meta.shape)
-            proj_total.append(proj.to(self.device))
-        return torch.stack(proj_total)
+                self.voxel_size,
+                proj_i
+            )
+            proj[i] = proj_i.to(self.device)
+        return proj
     
+    def _angle_indices(self, subset_idx: int | None) -> torch.Tensor:
+        """Indices of the views in subset :math:`m`, or of every view when ``subset_idx`` is None."""
+        if subset_idx is None:
+            return torch.arange(self.proj_meta.N_angles).to(pytomography.device)
+        return self.subset_indices_array[subset_idx]
+
+    def _rays_of_view(self, idx) -> tuple:
+        """Focal spot and detector element coordinates of every ray of view ``idx``, flattened, on ``pytomography.device``."""
+        detector_coordinates = _float32(self.proj_meta._get_detector_coordinates(idx), pytomography.device).flatten(end_dim=1)
+        beam_coordinate = _float32(self.proj_meta.beam_locations[idx], pytomography.device).expand(detector_coordinates.shape).contiguous()
+        return beam_coordinate, detector_coordinates
+
+    def _back_project_view(self, BP: torch.Tensor, idx, proj_i: torch.Tensor) -> None:
+        """Adds the (Joseph) back projection of the projection ``proj_i`` of view ``idx`` into the padded image ``BP``."""
+        beam_coordinate, detector_coordinates = self._rays_of_view(idx)
+        proj_i = _float32(proj_i.flatten(), pytomography.device)
+        for detector_coordinates_s, beam_coordinate_s, proj_s in zip(torch.tensor_split(detector_coordinates, self.N_splits), torch.tensor_split(beam_coordinate, self.N_splits), torch.tensor_split(proj_i, self.N_splits)):
+            parallelproj_core.joseph3d_back(beam_coordinate_s, detector_coordinates_s, BP, self.origin, self.voxel_size, proj_s)
+
+    def _fbp(self, projections: torch.Tensor, filter=None) -> torch.Tensor:
+        """Filtered back projection of a circular scan (FDK) onto the object grid of this system matrix, called by
+        :class:`pytomography.algorithms.FilteredBackProjection`. Each projection is cosine weighted and ramp filtered
+        along the detector rows (times the window ``filter``), back projected, and weighted with the FDK distance weight.
+
+        Args:
+            projections (torch.Tensor): Line integrals (views, u, v).
+            filter (FBPFilter, optional): Window applied on top of the ramp filter. Defaults to None (Ram-Lak).
+
+        Returns:
+            torch.Tensor: Attenuation on the object grid, on ``pytomography.device``.
+        """
+        window = get_fbp_filter(filter)
+        BP = torch.zeros(tuple(n + 2 for n in self.object_meta.shape), dtype=torch.float32, device=pytomography.device)
+        for idx in range(self.proj_meta.N_angles):
+            proj_i = projections[idx] * self._get_FBP_preweight(idx)
+            proj_i = ramp_filter(proj_i, self.proj_meta.dr[0], window, dim=0)
+            # each view's back projection is weighted on its own before it is accumulated
+            BP_i = torch.zeros_like(BP)
+            self._back_project_view(BP_i, idx, proj_i)
+            BP[1:-1, 1:-1, 1:-1] += _crop(BP_i) * self._get_FBP_postweight(idx) * self._get_FBP_scale()
+        return _crop(BP)
+
     def backward(
         self,
         proj: torch.Tensor,
         subset_idx: int | None = None,
-        projection_type='matched'
     ) -> torch.Tensor:
-        """Computes back projection.
+        """Computes back projection :math:`H^T g`.
 
         Args:
             proj (torch.Tensor): Projections to be back projected
             subset_idx (int | None, optional): Subset index :math:`m` of the projection. Defaults to None.
-            projection_type (str, optional): Type of back projection to use. To use with filtered back projection, use ``'FBP'``, which weights all LORs accordingly for this geometry. Defaults to ``'matched'``.
 
         Returns:
-            torch.Tensor: _description_
+            torch.Tensor: Back projection, on ``pytomography.device``.
         """
-        if subset_idx is not None:
-            angle_subset = self.subset_indices_array[subset_idx]
-        angle_indices = torch.arange(self.proj_meta.N_angles).to(pytomography.device) if subset_idx is None else angle_subset
-        BP = 0
+        # parallelproj adds into the image it is given, so every angle accumulates into one (padded) buffer
+        BP = torch.zeros(tuple(n + 2 for n in self.object_meta.shape), dtype=torch.float32, device=pytomography.device)
+        angle_indices = self._angle_indices(subset_idx)
         for i in range(len(angle_indices)):
-            idx = angle_indices[i]
-            detector_coordinates_i = self.proj_meta._get_detector_coordinates(idx).flatten(end_dim=1)
-            beam_coordinate_i = self.proj_meta.beam_locations[idx].unsqueeze(0).repeat(detector_coordinates_i.shape[0], 1)
-            proj_i = proj[i]
-            # If FBP projection, preweight using FBP weighting and filter
-            if projection_type=='FBP':
-                proj_i = proj_i * self._get_FBP_preweight(idx)
-                proj_i = FBP_filter(proj_i, self.device)
-            # Now back project
-            proj_i = proj_i.flatten().to(pytomography.device)
-            BP_i = 0
-            for detector_coordinates_i_s, beam_coordinate_i_s, proj_i_s in zip(torch.tensor_split(detector_coordinates_i, self.N_splits), torch.tensor_split(beam_coordinate_i, self.N_splits), torch.tensor_split(proj_i, self.N_splits)):
-                BP_i = BP_i + parallelproj.joseph3d_back(
-                    beam_coordinate_i_s,
-                    detector_coordinates_i_s,
-                    self.object_meta.shape,
-                    self.origin,
-                    self.voxel_size,
-                    proj_i_s
-                )
-            if projection_type=='FBP':
-                BP_i = BP_i * self._get_FBP_postweight(idx) * self._get_FBP_scale()
-            BP += BP_i
-        return BP
+            self._back_project_view(BP, angle_indices[i], proj[i])
+        return _crop(BP)

@@ -1,0 +1,138 @@
+name: Tests
+
+# Every pull request runs every test that doesn't need a GPU, on GitHub's own runners:
+#   pip       the install most users have (no parallelproj 2): Linux, macOS, Windows x Python 3.10 to 3.13
+#   conda     adds parallelproj 2 (only on conda-forge), so the PET, CT and scatter projector tests run too
+#   data      the regression tests on tutorial data, downloaded with pytomography.datasets once and then cached
+#   examples  the plain-script versions in examples/ match the tutorial notebooks
+# Tests that need CUDA skip themselves here, so merges never wait for a GPU. gpu.yml runs everything on a GPU, once a
+# GPU runner is set up.
+# The rulesets on development and main require one check from this file, "All tests passed", which waits for every
+# job above, so adding or renaming a job never needs a settings change.
+
+on:
+  pull_request:
+  push:
+    branches: [development, main]
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Test on the CPU everywhere. Without this, macOS runners pick the Apple GPU ("mps"), whose virtual GPU on GitHub's
+  # runners can't compile PyTorch's linear-algebra kernels (see src/pytomography/tests/conftest.py).
+  PYTOMOGRAPHY_TEST_DEVICE: cpu
+
+jobs:
+  pip:
+    name: pip · ${{ matrix.os }} · Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - name: Install PyTorch (CPU)
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            pip install torch
+          else
+            pip install torch --index-url https://download.pytorch.org/whl/cpu
+          fi
+      - name: Install PyTomography with the test extras
+        run: pip install -e ".[test]"
+      - name: Run tests (no GPU, no tutorial data)
+        run: pytest -m "not gpu and not data" -n auto -ra
+
+  conda:
+    name: parallelproj 2 · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: mamba-org/setup-micromamba@v3
+        with:
+          environment-file: .github/ci-environment.yml
+          cache-environment: true
+      - name: Install PyTomography with the test extras
+        run: pip install -e ".[test]"
+      - name: Check parallelproj 2 loads, so its tests run instead of skipping
+        run: python -c "import parallelproj_core; print('parallelproj_core loaded')"
+      - name: Run tests (no GPU, no tutorial data)
+        run: pytest -m "not gpu and not data" -n auto -ra
+
+  data:
+    name: Regression tests on tutorial data
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: mamba-org/setup-micromamba@v3
+        with:
+          environment-file: .github/ci-environment.yml
+          cache-environment: true
+      - name: Install PyTomography with the test extras
+        run: pip install -e ".[test]"
+      - name: Key for the cached test data
+        id: data
+        # The key changes only when the registry changes this dataset. The last line, because importing
+        # pytomography can print a note about the GPU first.
+        run: echo "key=$(python -m pytomography.datasets cache-key SPECT/Lu177-PSMA-GEDisc | tail -n 1)" >> "$GITHUB_OUTPUT"
+      - name: Restore the test data
+        uses: actions/cache@v6
+        with:
+          path: ~/pytomography_data
+          key: tutorial-data-${{ steps.data.outputs.key }}
+      - name: Download the test data if it was not cached (85 MB from Zenodo)
+        run: python -m pytomography.datasets fetch SPECT/Lu177-PSMA-GEDisc --data-dir ~/pytomography_data
+      - name: Run the data tests
+        run: PYTOMOGRAPHY_DATA=$HOME/pytomography_data pytest -m data -ra
+
+  examples:
+    name: Example scripts match the notebooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Check examples/ against docs/source/notebooks
+        if: ${{ hashFiles('docs/tools/export_scripts.py') != '' }}
+        run: |
+          pip install pyyaml
+          python docs/tools/export_scripts.py --check
+
+  all-passed:
+    name: All tests passed
+    if: always()
+    needs: [pip, conda, data, examples]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every job above succeeded
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Results: $RESULTS"
+          for r in $RESULTS; do
+            if [ "$r" != "success" ]; then
+              echo "::error::A test job did not succeed ($r). Open it above to see which."
+              exit 1
+            fi
+          done

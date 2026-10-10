@@ -68,7 +68,21 @@ class SystemMatrix():
             torch.Tensor: Prior scaling
         """
         return torch.ones(self.object_meta.shape).to(pytomography.device)
-    
+
+    def _fbp(self, projections: torch.Tensor, filter, **kwargs) -> torch.Tensor:
+        """Filtered back projection in the geometry of this system matrix, onto its object grid. It is called by
+        :class:`pytomography.algorithms.FilteredBackProjection`, which is how it should be used. System matrices whose
+        geometry supports an analytic reconstruction override it; this one raises.
+
+        Args:
+            projections (torch.Tensor): Projections to reconstruct.
+            filter (FBPFilter): Window applied on top of the ramp filter (see :func:`pytomography.utils.get_fbp_filter`).
+
+        Raises:
+            NotImplementedError: This system matrix has no filtered back projection.
+        """
+        raise NotImplementedError(f'{type(self).__name__} does not support filtered back projection')
+
     @abc.abstractmethod
     def forward(self, object: torch.tensor, **kwargs):
         r"""Implements forward projection :math:`Hf` on an object :math:`f`.

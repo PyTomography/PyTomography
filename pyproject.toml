@@ -43,6 +43,21 @@ allow-direct-references = true
 "Bug Tracker" = "https://github.com/qurit/PyTomography/issues"
 
 [project.optional-dependencies]
+# PETSIRD list mode, read with ETSI's package: 0.9 is the format of ETSI's converters and STIR
+petsird = [
+  "petsird>=0.9,<0.10",
+]
+test = [
+  "pytest>=8",
+  "pytest-xdist",
+  "pyyaml",
+  "petsird>=0.9,<0.10",
+]
+dev = [
+  "pytomography[test,doc]",
+  "pre-commit",
+  "ruff",
+]
 doc = [
   "sphinx>=8,<9",
   "pydata-sphinx-theme>=0.16",
@@ -54,3 +69,10 @@ doc = [
   "pyyaml",
 ]
 
+[tool.pytest.ini_options]
+testpaths = ["src/pytomography/tests"]
+markers = [
+  "gpu: needs a CUDA device (skipped without one)",
+  "data: needs the tutorial data in PYTOMOGRAPHY_DATA (skipped without it)",
+  "network: checks the data hosts over the internet (skipped unless PYTOMOGRAPHY_NETWORK_TESTS=1)",
+]
