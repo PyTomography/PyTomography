@@ -175,16 +175,21 @@ DATASETS = {
              "sha256": "be239bc852277803d7b8a036c629aab003a033269d6763d4b7957c5c95fdab6d"},
         ],
     },
-    "PET/PETSIRD-mIEC": {
-        "title": "List mode in the PETSIRD format",
-        "source": "PyTomography PET tutorial data",
-        "url": "https://github.com/ETSInitiative/PETSIRD",
-        "licence": "to be confirmed",
+    # The 60-minute NEMA scan of Zenodo 1304454 converted to PETSIRD 0.9.1 with ETSI's STIR2PETSIRD (October 2026). It
+    # replaces PET/PETSIRD-mIEC, a 2024 example in an early PETSIRD format that was never published.
+    "PET/PETSIRD-mMR-NEMA": {
+        "title": "NEMA IQ phantom on a Siemens Biograph mMR, in the PETSIRD 0.9 format, with its attenuation map",
+        "source": "Thomas and Sanderson, University College London (Zenodo), converted to PETSIRD by PyTomography",
+        "url": "https://doi.org/10.5281/zenodo.1304454",
+        "licence": "CC BY-SA 4.0",
+        "cite": "Thomas BA, Sanderson T. NEMA image quality phantom acquisition on the Siemens mMR scanner. Zenodo"
+                " (2018). doi:10.5281/zenodo.1304454",
         "tutorials": ["t_PETSIRD"],
         "status": "pending",
-        "note": "The 2024 example was in an early PETSIRD format and was never published. The PETSIRD tutorial is"
-                " moving to a Siemens Biograph mMR NEMA phantom scan (Zenodo 1304454) converted to PETSIRD 0.9.1; this"
-                " entry changes when that file is published.",
+        "note": "The scan in PETSIRD 0.9.1 (4.2 GB: 196.6 million prompts and 20.7 million delayed coincidences over"
+                " 60 minutes, with the scanner's normalisation) is being published on Zenodo; it can be downloaded once"
+                " that record is out. Its attenuation map, 20170809_NEMA_MUMAP_UCL.v with its .hdr, is in the source"
+                " record's NEMA_IQ.zip (Zenodo 1304454).",
         "parts": [],
     },
     "CT/ldct-c145": {
