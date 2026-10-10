@@ -260,6 +260,25 @@ class CTGen3SystemMatrix(SystemMatrix):
             alternatives.append((f'gpu_budget={half / 1e9:g}e9', smaller))
         return alternatives
 
+    def _fbp_memory_settings(self, projections: torch.Tensor, filter, gpu_budget: float | None = None, **options) -> dict:
+        """The settings :meth:`pytomography.algorithms.FilteredBackProjection.plan_memory` chooses for :meth:`_fbp`, the
+        two that :meth:`_fbp_memory_alternatives` lower, largest (fastest) first; neither changes the image. ``gpu_budget``
+        (bytes): the one given, or 1.5 GB, then halves of it down to a 64th. ``memory_budget_gb``: the present memory
+        budget (:func:`pytomography.set_memory_budget`; None for none), then budgets that halve the chunk of rebinned
+        views the host holds, down to a 256th of it."""
+        from pytomography.utils.memory import DEFAULT_BUDGET
+        gpu = DEFAULT_BUDGET if gpu_budget is None else float(gpu_budget)
+        present = None if pytomography.memory_budget is None else pytomography.memory_budget / 1e9
+        parts = self._fbp_memory_parts(projections, filter, gpu_budget=gpu_budget, **options)
+        chunk = sum(p.ram_bytes for p in parts if p.name == 'rebinned views of one chunk')
+        budgets = [present]
+        for k in range(1, 9):
+            gb = float(f'{8 * chunk / 2 ** k / 1e9:.2g}')             # chunks of at most budget / 8
+            if gb > 0 and gb not in budgets and (present is None or gb < present):
+                budgets.append(gb)
+        return {'gpu_budget': (gpu, [gpu / 2 ** k for k in range(7)]),
+                'memory_budget_gb': (present, budgets)}
+
     def _memory_parts(self, n_subsets: int = 1, N_splits: int | None = None) -> list:
         r"""The arrays of an ordered-subset reconstruction with this system matrix, as OS-SART takes them, for
         :meth:`estimate_memory` (which adds the projections, passed as ``held``). Held for the whole reconstruction:
