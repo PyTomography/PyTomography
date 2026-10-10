@@ -10,13 +10,13 @@ import matplotlib
 matplotlib.use("Agg")  # no figure windows when run as a script
 
 import os
-from pytomography import datasets
+from pathlib import Path
 
-# The tutorial data: downloaded the first time it runs (see Tutorial data in the docs)
-datasets.fetch("PET/GATE-mMR-Brain")
-DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_data
+# Tutorial data: the folder set by the PYTOMOGRAPHY_DATA environment variable (see Tutorial data in the docs)
+DATA = Path(os.environ.get("PYTOMOGRAPHY_DATA", "~/pytomography_data")).expanduser()
 # Results go here, never into the data folder
-OUTPUT = datasets.output_dir("PET/GATE-mMR-Brain")
+OUTPUT = Path(os.environ.get("PYTOMOGRAPHY_OUTPUT", "pytomography_outputs")).expanduser() / "PET/GATE-mMR-BrainInWater"
+OUTPUT.mkdir(parents=True, exist_ok=True)
 
 import time
 import torch
@@ -30,15 +30,20 @@ from pytomography.algorithms import OSEM
 from pytomography.transforms.shared import GaussianFilter
 from pytomography.io.PET import gate
 
+# %% How much memory this needs
+RAM_GB = 25 # memory (RAM) this tutorial may use, in GB
+pytomography.set_memory_budget(RAM_GB)
+
 # %% 1. The scanner
-path = DATA / 'PET' / 'GATE-mMR-Brain'
+path = DATA / 'PET' / 'GATE-mMR-BrainInWater'
 info = gate.get_detector_info(path=os.path.join(path, 'mMR_Geometry.mac'), mean_interaction_depth=9, min_rsector_difference=0)
 print(f"{info['NrRings']} rings of {info['NrCrystalsPerRing']} crystals, radius {info['radius']} mm")
 
 # %% 2. Normalisation
 weights_file = os.path.join(OUTPUT, 'normalization_weights.pt')
 if not os.path.exists(weights_file):
-    normalization_paths = [os.path.join(path, f'normalization_scan/mMR_Norm_{i}.root') for i in range(1, 37)]
+    # the calibration scan is shared with the earlier simulation, in PET/GATE-mMR-Brain
+    normalization_paths = [os.path.join(DATA / 'PET' / 'GATE-mMR-Brain', f'normalization_scan/mMR_Norm_{i}.root') for i in range(1, 37)]
     normalization_weights = gate.get_normalization_weights_cylinder_calibration(
         normalization_paths, info, cylinder_radius=318, include_randoms=False)  # shell radius in mm
     torch.save(normalization_weights, weights_file)
@@ -47,7 +52,7 @@ normalization_weights = torch.load(weights_file)
 # %% 3. The true coincidences
 ids_file = os.path.join(OUTPUT, 'detector_ids_primary_only.pt')
 if not os.path.exists(ids_file):
-    paths = [os.path.join(path, f'all_physics/mMR_voxBrain_{i}.root') for i in range(1, 55) if i != 24]
+    paths = [os.path.join(path, f'simple_phantom/mMR_voxBrain_withSimplePhantom_{i}.root') for i in range(1, 55)]
     detector_ids = gate.get_detector_ids_from_root(paths, info, include_randoms=False, include_scatters=False)
     torch.save(detector_ids, ids_file)
 detector_ids = torch.load(ids_file)
@@ -55,7 +60,7 @@ print(f"{detector_ids.shape[0] / 1e6:.1f} million true coincidences")
 
 # %% 4. Object space, attenuation and resolution
 object_meta = ObjectMeta(dr=(2, 2, 2), shape=(128, 128, 96))  # mm, voxels
-atten_map = gate.get_attenuation_map_nifti(os.path.join(path, 'fdg_pet_phantom_umap.nii.gz'), object_meta)
+atten_map = gate.get_aligned_attenuation_map(os.path.join(path, 'umap_mMR_brainSimplePhantom.hv'), object_meta)
 atten_map = atten_map.to(pytomography.dtype).to(pytomography.device)
 psf_transform = GaussianFilter(3.)  # mm
 
