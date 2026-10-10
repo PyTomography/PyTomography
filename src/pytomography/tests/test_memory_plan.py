@@ -413,3 +413,119 @@ def test_every_system_model_estimates_and_plans(model, monkeypatch, gpu_as_ram):
     assert tight.fits and tight.estimate.ram_gb <= estimate.ram_gb + 1e-9 and tight.estimate.gpu_gb <= estimate.gpu_gb + 1e-9
     assert not sm.plan_memory(ram_gb=0.1, gpu_gb=0).fits
     _roundtrip(tight)
+
+
+# ------------------------------------------------------------------ reconstruction algorithms
+def _likelihood(sm, additive=True):
+    from pytomography.likelihoods import PoissonLogLikelihood
+    gen = torch.Generator().manual_seed(0)
+    projections = torch.rand(sm.proj_meta.shape, generator=gen)
+    return PoissonLogLikelihood(sm, projections, additive_term=torch.rand(sm.proj_meta.shape, generator=gen) if additive else None)
+
+
+def test_algorithms_delegate_to_their_system_matrix(gpu_as_ram):
+    from pytomography.algorithms import OSEM, BSREM, MLEM, OSMAPOSL
+    from pytomography.priors import RelativeDifferencePrior
+    sm = _spect(psf=False)
+    likelihood = _likelihood(sm)
+    held = {'projections (the data)': likelihood.projections, 'additive term': likelihood.additive_term}
+    osem = OSEM(likelihood)
+    estimate = osem.estimate_memory(n_subsets=4)
+    assert estimate.title.startswith('OSEM (SPECTSystemMatrix): 4 subsets') and estimate.settings == {'n_subsets': 4}
+    assert estimate.ram_gb == pytest.approx(sm.estimate_memory(4, held=held).ram_gb)
+    assert estimate.gpu_gb == pytest.approx(sm.estimate_memory(4, held=held).gpu_gb)
+    osem.n_subsets = 6                                        # what the last call used, by default
+    assert osem.estimate_memory().settings == {'n_subsets': 6}
+    # a prior's arrays, and BSREM's stacked H_m^T 1, are the algorithm's own
+    image = 4 * np.prod(sm.object_meta.shape)
+    own = lambda e: sum(_bytes(p) for p in e.parts if p.scope != 'overhead')
+    bsrem = BSREM(likelihood, prior=RelativeDifferencePrior(beta=1))
+    osmaposl = OSMAPOSL(likelihood, prior=RelativeDifferencePrior(beta=1))
+    assert own(osmaposl.estimate_memory(4)) == pytest.approx(own(estimate) + 9 * image)
+    assert own(bsrem.estimate_memory(4)) == pytest.approx(own(estimate) + 9 * image + 5 * image)
+    assert own(bsrem.estimate_memory(1)) == pytest.approx(own(osem.estimate_memory(1)) + 9 * image)
+    # MLEM has one subset, whatever it is asked
+    mlem = MLEM(likelihood)
+    assert mlem.estimate_memory(n_subsets=8).settings == {'n_subsets': 1}
+    assert mlem.plan_memory(ram_gb=1000, gpu_gb=1000, n_subsets=8).settings == {'n_subsets': 1}
+
+
+def test_algorithm_plans_keep_the_subsets_and_agree_with_their_estimates(gpu_as_ram):
+    from pytomography.algorithms import BSREM
+    from pytomography.priors import QuadraticPrior
+    bsrem = BSREM(_likelihood(_spect()), prior=QuadraticPrior(beta=1))
+    plan = bsrem.plan_memory(ram_gb=1000, gpu_gb=1000, n_subsets=8)
+    assert plan.fits and plan.settings == {'n_subsets': 8} and plan.title == 'BSREM (SPECTSystemMatrix)'
+    ram_gb = bsrem.estimate_memory(n_subsets=3).ram_gb
+    plan = bsrem.plan_memory(ram_gb=ram_gb, gpu_gb=1000)
+    assert plan.fits and bsrem.estimate_memory(**plan.settings).ram_gb <= ram_gb
+    assert plan.estimate.ram_gb == pytest.approx(bsrem.estimate_memory(**plan.settings).ram_gb)
+    assert not bsrem.plan_memory(ram_gb=0.1, gpu_gb=0).fits
+    _roundtrip(plan)
+
+
+def test_kem_sart_and_multibed_reconstructions():
+    from pytomography.algorithms import KEM, SART, OSEM, PGAAMultiBedSPECT
+    from pytomography.likelihoods import PoissonLogLikelihood
+    from pytomography.projectors.shared import KEMSystemMatrix
+    from pytomography.transforms.shared import KEMTransform
+    sm = _spect(psf=False)
+    kem_sm = KEMSystemMatrix(sm, KEMTransform([torch.rand(sm.object_meta.shape)], size=3))
+    kem = KEM(PoissonLogLikelihood(kem_sm, torch.rand(sm.proj_meta.shape)))
+    assert 'KEM kernel' in _parts(kem.estimate_memory(2)) and kem.plan_memory(ram_gb=1000, gpu_gb=1000).fits
+    sart = SART(sm, torch.rand(sm.proj_meta.shape))
+    assert sart.estimate_memory(3).settings == {'n_subsets': 3} and sart.plan_memory(ram_gb=1000, gpu_gb=1000, n_subsets=5).fits
+    beds = [OSEM(_likelihood(_spect(psf=False))) for _ in range(3)]
+    multibed = PGAAMultiBedSPECT(['bed1', 'bed2', 'bed3'], beds)
+    estimate = multibed.estimate_memory(n_subsets=4)
+    parts = _parts(estimate)
+    assert {f'bed {k}: what its reconstruction holds' for k in (1, 2, 3)} <= set(parts)
+    one = beds[0].estimate_memory(4)
+    held = sum(_bytes(p) for p in one.parts if p.scope == 'held')
+    assert _bytes(parts['bed 2: what its reconstruction holds']) == pytest.approx(held)
+    assert estimate.ram_gb + estimate.gpu_gb > one.ram_gb + one.gpu_gb
+    plan = multibed.plan_memory(ram_gb=1000, gpu_gb=1000, n_subsets=4)
+    assert plan.settings == {'n_subsets': 4} and plan.estimate.ram_gb == pytest.approx(estimate.ram_gb)
+    _roundtrip(plan)
+
+
+# ------------------------------------------------------------------ filtered back projection
+def test_fbp_plan_lowers_its_budgets_only_when_needed():
+    pytest.importorskip("parallelproj_core")
+    from pytomography.algorithms import FilteredBackProjection
+    from pytomography.projectors.CT import CTGen3SystemMatrix
+    from pytomography.tests.test_ct_fbp import OBJECT_META, _helix, _line_integrals
+    from pytomography.utils.memory import DEFAULT_BUDGET, memory_budget_set
+    meta = _helix()
+    proj = _line_integrals(meta)
+    fbp = FilteredBackProjection(proj, CTGen3SystemMatrix(OBJECT_META, meta))
+    estimate = fbp.estimate_memory()
+    assert estimate.settings == {'gpu_budget': DEFAULT_BUDGET, 'memory_budget_gb': None}
+    plan = fbp.plan_memory(ram_gb=1000, gpu_gb=1000)
+    assert plan.fits and plan.settings == estimate.settings and len(plan.options) == 1
+    # a RAM budget the present chunk of rebinned views does not fit: a lower memory budget, which halves the chunk
+    smaller = dict(estimate.alternatives)
+    assert any(label.startswith('set_memory_budget') for label in smaller)
+    ram_gb = min(e.ram_gb for e in smaller.values()) + 1e-9
+    plan = fbp.plan_memory(ram_gb=ram_gb, gpu_gb=1000)
+    assert plan.fits and plan.settings != estimate.settings
+    with memory_budget_set(plan.settings['memory_budget_gb']):
+        again = FilteredBackProjection(proj, fbp.system_matrix, gpu_budget=plan.settings['gpu_budget']).estimate_memory()
+    assert again.ram_gb == pytest.approx(plan.estimate.ram_gb) and again.ram_gb <= ram_gb
+    assert pytomography.memory_budget is None                                           # the plan sets nothing
+    kept = fbp.plan_memory(ram_gb=1000, gpu_gb=1000, gpu_budget=0.1e9)
+    assert kept.settings['gpu_budget'] == 0.1e9 and kept.fixed == ['gpu_budget']
+    assert not fbp.plan_memory(ram_gb=0.1, gpu_gb=0).fits
+    _roundtrip(plan)
+
+
+def test_fbp_plans_with_nothing_to_choose():
+    from pytomography.algorithms import FilteredBackProjection
+    sm = _spect(psf=False)
+    fbp = FilteredBackProjection(torch.zeros(sm.proj_meta.shape), sm)
+    estimate = fbp.estimate_memory()
+    assert estimate.settings == {}
+    plan = fbp.plan_memory(ram_gb=estimate.ram_gb, gpu_gb=estimate.gpu_gb)
+    assert plan.fits and plan.settings == {} and plan.estimate.ram_gb == pytest.approx(estimate.ram_gb)
+    assert not fbp.plan_memory(ram_gb=estimate.ram_gb - 0.01, gpu_gb=estimate.gpu_gb).fits
+    _roundtrip(plan)

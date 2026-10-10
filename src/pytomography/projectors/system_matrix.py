@@ -117,6 +117,14 @@ class SystemMatrix():
         less" line of :meth:`pytomography.algorithms.FilteredBackProjection.estimate_memory`. None by default."""
         return []
 
+    def _fbp_memory_settings(self, projections: torch.Tensor, filter, **kwargs) -> dict[str, tuple]:
+        """The settings of :meth:`_fbp` with the same arguments that
+        :meth:`pytomography.algorithms.FilteredBackProjection.plan_memory` chooses, as ``{name: (present value,
+        candidates)}`` in the order they are searched, each list fastest first. A name is a keyword of :meth:`_fbp`, or
+        ``memory_budget_gb`` for the memory budget (:func:`pytomography.set_memory_budget`). None by default: the
+        reconstruction has nothing to choose."""
+        return {}
+
     def _memory_parts(self, n_subsets: int, N_splits: int | None) -> list[MemoryPart]:
         """The arrays a reconstruction with this system matrix holds at its peak, without the overheads every estimate
         adds (:func:`pytomography.utils.memory.memory_estimate`): what it holds for the whole run, one subset's arrays and
