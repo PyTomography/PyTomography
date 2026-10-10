@@ -244,12 +244,20 @@ class PETLMSystemMatrix(SystemMatrix):
             return torch.arange(start, end, device=device)
         return order[start:end].to(device=device, dtype=torch.long)
 
-    def _event_ids(self, subset_idx: int | None, events: torch.Tensor | None) -> torch.Tensor:
-        """Detector IDs (and TOF bins) of ``events``, positions within subset ``subset_idx`` (all of the subset's
-        events, in the order they were given, for None)."""
+    def _subset_positions(self, subset_idx: int | None) -> torch.Tensor | None:
+        """Positions of subset ``subset_idx``'s events among all the events, on the device the detector IDs are on (None
+        for all the events). A projection takes them there once and every chunk indexes them (taking them there for
+        each chunk copied 29 MB to the GPU ten times per projection of a 14th of the mMR's events)."""
+        if subset_idx is None:
+            return None
+        return self.subset_indices_array[subset_idx].to(self.proj_meta.detector_ids.device)
+
+    def _event_ids(self, positions: torch.Tensor | None, events: torch.Tensor | None) -> torch.Tensor:
+        """Detector IDs (and TOF bins) of ``events``, positions within the subset whose events are at ``positions``
+        among all the events (from :meth:`_subset_positions`; None for all the events). All of the subset's events, in
+        the order they were given, for ``events`` None."""
         ids = self.proj_meta.detector_ids
-        if subset_idx is not None:
-            positions = self.subset_indices_array[subset_idx].to(ids.device)
+        if positions is not None:
             return ids[positions if events is None else positions[events]]
         return ids if events is None else ids[events]
 
@@ -474,10 +482,11 @@ class PETLMSystemMatrix(SystemMatrix):
         # event order, and its projections written back to where those events are (no sorted copy of all the events)
         n_events = self._n_events(subset_idx)
         order = self._event_order(subset_idx)
+        positions = self._subset_positions(subset_idx)
         proj = torch.empty(n_events, dtype=torch.float32, device=self.output_device)
         for start, end in self._chunks(n_events):
             events = self._chunk_events(subset_idx, order, start, end)
-            idx_partial = self._event_ids(subset_idx, events)
+            idx_partial = self._event_ids(positions, events)
             xstart, xend = self._lor_coordinates(idx_partial)
             chunk = torch.zeros(end - start, dtype=torch.float32, device=pytomography.device)
             if self.TOF:
@@ -491,7 +500,7 @@ class PETLMSystemMatrix(SystemMatrix):
             if self.proj_meta.weights is None:
                 if self.attenuation_map is not None:
                     # proj is in the order the events were given, so the factors are computed in that order too
-                    proj = proj * self._compute_attenuation_probability_projection(self._event_ids(subset_idx, None)).to(proj.device)
+                    proj = proj * self._compute_attenuation_probability_projection(self._event_ids(positions, None)).to(proj.device)
                 else:
                     raise Exception('If scaling by sensitivity, then `weights` must be provided in the projection metadata')
             else:
@@ -514,11 +523,12 @@ class PETLMSystemMatrix(SystemMatrix):
         Returns:
             torch.tensor: _description_
         """
+        positions = self._subset_positions(subset_idx)
         # Normalization/attenuation scaling (if needed); the same factors as forward, so the two stay adjoint
         if self.scale_projection_by_sensitivity:
             if self.proj_meta.weights is None:
                 if self.attenuation_map is not None:
-                    proj = proj * self._compute_attenuation_probability_projection(self._event_ids(subset_idx, None)).to(proj.device)
+                    proj = proj * self._compute_attenuation_probability_projection(self._event_ids(positions, None)).to(proj.device)
                 else:
                     raise Exception('If scaling by sensitivity, then `weights` must be provided in the projection metadata')
             else:
@@ -531,7 +541,7 @@ class PETLMSystemMatrix(SystemMatrix):
         BP = torch.zeros(tuple(n + 2 for n in self.object_meta.shape), dtype=torch.float32, device=pytomography.device)
         for start, end in self._chunks(n_events):
             events = self._chunk_events(subset_idx, order, start, end)
-            idx_partial = self._event_ids(subset_idx, events)
+            idx_partial = self._event_ids(positions, events)
             proj_i = _float32(proj[events.to(proj.device)], pytomography.device)
             xstart, xend = self._lor_coordinates(idx_partial)
             if self.TOF:
