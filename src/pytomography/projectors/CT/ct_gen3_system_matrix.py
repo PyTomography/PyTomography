@@ -29,14 +29,8 @@ def _crop(object: torch.Tensor) -> torch.Tensor:
 
 def _saving_memory(system_matrix, candidates: list, n_subsets: int, N_splits: int | None) -> list:
     """The (label, n_subsets, N_splits) ``candidates`` with which ``system_matrix._memory_parts`` saves RAM or GPU
-    memory compared with ``n_subsets`` and ``N_splits``: at least 5% of the two together, so that a few kilobytes of
-    one are not offered against far more of the other."""
-    def totals(n, s):
-        parts = system_matrix._memory_parts(n, s)
-        return sum(p.ram_bytes for p in parts), sum(p.gpu_bytes for p in parts)
-    ram, gpu = totals(n_subsets, N_splits)
-    least = 0.05 * (ram + gpu)
-    return [c for c in candidates if (lambda r, g: ram - r >= least or gpu - g >= least)(*totals(c[1], c[2]))]
+    memory compared with ``n_subsets`` and ``N_splits`` (see :meth:`~pytomography.projectors.SystemMatrix._saving_memory`)."""
+    return system_matrix._saving_memory(candidates, n_subsets, N_splits)
 
 class CTGen3SystemMatrix(SystemMatrix):
     """System matrix for 3rd generation clinical DICOM scanners with cylindrical detector panels. For more information, see the DICOM-CTPD user manual.
