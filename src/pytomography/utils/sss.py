@@ -563,7 +563,7 @@ def interpolate_sparse_sinogram(
             del planes
         return out if tof_bins is not None else out[..., 0]
     shape = (N_theta, N_r, len(z1)*len(z2)) + ((len(bins),) if tof_bins is not None else ())
-    scatter_sinogram = LazySinogram(interpolate_z, shape, description="interpolated single scatter estimate", compute_on=interpolate_z)
+    scatter_sinogram = LazySinogram(interpolate_z, shape, description="interpolated single scatter estimate", compute_on=interpolate_z, memory_bytes=rtheta.nbytes)
     if lazy is None:
         lazy = prefer_lazy(4 * np.prod(shape))
     return scatter_sinogram if lazy else scatter_sinogram.to_dense()
