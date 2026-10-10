@@ -199,7 +199,7 @@ def fixed_overhead() -> MemoryPart:
 WINDOWS_ALLOCATOR_FRACTION = 0.35
 
 
-def memory_estimate(title: str, parts: Sequence[MemoryPart], alternatives: Sequence[tuple[str, Sequence[MemoryPart]]] = ()) -> MemoryEstimate:
+def memory_estimate(title: str, parts: Sequence[MemoryPart], alternatives: Sequence[tuple[str, Sequence[MemoryPart]]] = (), allocator_fraction: float | None = None) -> MemoryEstimate:
     """A :class:`MemoryEstimate` of a computation's own arrays (``parts``), with the overheads every estimate adds: Python,
     PyTorch and CUDA (:func:`fixed_overhead`) and, on Windows, the memory PyTorch's allocator keeps after freeing
     (:data:`WINDOWS_ALLOCATOR_FRACTION` of the arrays). The alternatives get the same overheads, so their totals compare
@@ -210,6 +210,8 @@ def memory_estimate(title: str, parts: Sequence[MemoryPart], alternatives: Seque
         parts (Sequence[MemoryPart]): The computation's arrays (no overhead parts).
         alternatives (Sequence[tuple[str, Sequence[MemoryPart]]], optional): Other settings and their arrays, for the
             "To use less" line. Defaults to none.
+        allocator_fraction (float | None, optional): The Windows allowance as a fraction of the arrays (RAM and GPU),
+            for computations measured to need another. Defaults to None: :data:`WINDOWS_ALLOCATOR_FRACTION`.
 
     Returns:
         MemoryEstimate: The estimate.
@@ -218,9 +220,11 @@ def memory_estimate(title: str, parts: Sequence[MemoryPart], alternatives: Seque
         parts = list(parts)
         overheads = [fixed_overhead()]
         if counts_gpu_as_ram():
-            arrays = sum(p.ram_bytes for p in parts if p.scope != 'overhead')
+            # what PyTorch's allocators keep after freeing (its CPU allocator, and its GPU cache, which Windows also counts)
+            arrays = sum(p.ram_bytes + p.gpu_bytes for p in parts if p.scope != 'overhead')
+            fraction = WINDOWS_ALLOCATOR_FRACTION if allocator_fraction is None else allocator_fraction
             if arrays > 0:
-                overheads.append(MemoryPart('memory the allocator keeps (Windows)', ram_bytes=WINDOWS_ALLOCATOR_FRACTION * arrays, scope='overhead'))
+                overheads.append(MemoryPart('memory the allocators keep (Windows)', ram_bytes=fraction * arrays, scope='overhead'))
         return parts + overheads
     return MemoryEstimate(title, with_overheads(parts), [(label, MemoryEstimate(label, with_overheads(p))) for label, p in alternatives])
 
@@ -277,12 +281,12 @@ class MemoryEstimate:
             if not parts:
                 continue
             ram, gpu = sum(p.ram_bytes for p in parts), sum(p.gpu_bytes for p in parts)
-            items = " · ".join(p.name + " " + " + ".join(s for s in (f"{_gb(p.ram_bytes)} RAM" if p.ram_bytes else "",
+            items = ", ".join(p.name + " " + " + ".join(s for s in (f"{_gb(p.ram_bytes)} RAM" if p.ram_bytes else "",
                                                                      f"{_gb(p.gpu_bytes)} GPU" if p.gpu_bytes else "") if s)
                                for p in parts)
             lines.append(f"  {label}: {_gb(ram)} GB RAM, {_gb(gpu)} GB GPU ({items})")
         if self.alternatives:
-            lines.append("To use less: " + " · ".join(f"{label} ~ {estimate.ram_gb:.1f} GB RAM, {estimate.gpu_gb:.1f} GB GPU"
+            lines.append("To use less: " + ", ".join(f"{label} ~ {estimate.ram_gb:.1f} GB RAM, {estimate.gpu_gb:.1f} GB GPU"
                                                       for label, estimate in self.alternatives))
         lines.append("(plus whatever else your script keeps)")
         return "\n".join(lines)

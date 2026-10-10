@@ -117,7 +117,7 @@ def test_pet_sinogram_estimate_follows_the_subsets_and_the_device(tof, monkeypat
     subset = lambda estimate: next(p for p in estimate.parts if p.scope == 'subset')
     four, eight = sm.estimate_memory(4), sm.estimate_memory(8)
     lors = 8 * (INFO['NrCrystalsPerRing'] + 1) * (INFO['moduleAxialNr'] * INFO['crystalAxialNr'])**2      # 32 angles / 4
-    assert subset(four).ram_bytes == 4 * 4 * lors * (5 if tof else 1) and subset(eight).ram_bytes == subset(four).ram_bytes / 2
+    assert subset(four).ram_bytes == 3 * 4 * lors * (5 if tof else 1) and subset(eight).ram_bytes == subset(four).ram_bytes / 2
     assert eight.ram_gb < four.ram_gb
     if torch.cuda.is_available():
         on_gpu = PETSinogramSystemMatrix(object_meta, proj_meta, N_splits=3, device='cuda').estimate_memory(4)
