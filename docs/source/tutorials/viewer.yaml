@@ -12,7 +12,7 @@
 #                        Image switch moves between them, starting with the first. Each layer has:
 #     name:       short name ("CT", "OSEM"), also the file name
 #     label:      optional longer name, shown in the picker and the readout
-#     kind:       ct (HU) | mr | mu (attenuation map) | spect | pet
+#     kind:       ct (HU) | mr | mu (attenuation map) | spect | pet | image (any other image, in grey)
 #     array:      expression for the 3D image (torch or numpy, axes x, y, z as PyTomography stores them), or for a
 #                 tuple (image, affine)
 #     affine:     expression for its 4 x 4 voxel-to-scanner matrix in mm, in DICOM's LPS axes as PyTomography uses
@@ -294,6 +294,19 @@ tutorials:
     - {name: FDK, kind: mu, array: recon_fdk, affine: "vx.centred(system_matrix.object_meta.dr, recon_fdk.shape)", units: 1/mm, downsample: 3}
 
   # ---------- Building with PyTomography ----------
+  t_examplesystemmatrix:
+    title: A new system matrix, on 3 × 3 × 3 voxels
+    description: OSEM with the tutorial's own list-mode system matrix, with one subset and with two
+    credit: Events drawn at random in the tutorial; no external data
+    layers:
+    # The tutorial's last reconstructions, from its list-mode example (its `recon` has the same settings as
+    # recon_1subset). Its voxels are 1.5 units of no stated length, placed here as mm.
+    - {name: 1 subset, label: "List-mode OSEM, 1 subset", kind: image, array: recon_1subset, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: 2 subsets, label: "List-mode OSEM, 2 subsets", kind: image, array: recon_2subsets, affine: vx.object_affine(object_meta), units: a.u.}
+
+  # t_dicom_algorithms has no entry: it is an unfinished draft that reconstructs nothing (its fourth cell does not
+  # parse), it is not in tutorials.yaml, and conf.py leaves it out of the docs, so the runner never runs it.
+
   t_plotting:
     title: Lu-177-PSMA patient
     description: The stitched two-bed reconstruction that the plotting examples draw
