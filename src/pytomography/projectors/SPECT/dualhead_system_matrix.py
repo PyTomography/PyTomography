@@ -261,6 +261,22 @@ class SPECTSystemMatrix(SystemMatrix):
             object += self.rotation_transform.forward(object_i, phis[angle_idx]) * (weights[angle_idx] * dx)
         return unpad_object(object)
 
+    def _fbp_memory_parts(self, projections: torch.Tensor, filter=None) -> list:
+        """The memory :meth:`_fbp` takes, without running it, for
+        :meth:`pytomography.algorithms.FilteredBackProjection.estimate_memory`. Held: the projections, the padded
+        object and its support (two images), and the rotation grid of every view, which is cached. For each view: the
+        filtered projection spread through the object, its rotated, weighted copy and the filter's FFT workspace (six
+        images, measured)."""
+        from pytomography.utils.memory import MemoryPart, nbytes
+        padded = int(np.prod(self.object_meta.padded_shape)) * 4
+        Lx, Ly = self.object_meta.padded_shape[:2]
+        on = (lambda b: dict(gpu_bytes=b)) if torch.device(pytomography.device).type == 'cuda' else (lambda b: dict(ram_bytes=b))
+        ram, gpu = nbytes(projections)
+        return [MemoryPart('projections', ram_bytes=ram, gpu_bytes=gpu, scope='held'),
+                MemoryPart('image and its support', **on(2 * padded), scope='held'),
+                MemoryPart('rotation grids of every view', **on(self.proj_meta.num_projections * Lx * Ly * 2 * 4), scope='held'),
+                MemoryPart('one view: spread and rotated', **on(6 * padded), scope='chunk')]
+
 class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
     def __init__(
         self,

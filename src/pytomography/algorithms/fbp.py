@@ -4,6 +4,7 @@ from __future__ import annotations
 import torch
 from pytomography.projectors import SystemMatrix
 from pytomography.utils.fourier_filters import get_fbp_filter
+from pytomography.utils.memory import MemoryEstimate, memory_estimate
 
 class FilteredBackProjection:
     r"""Filtered back projection: each projection is ramp filtered (the ramp :math:`|f|` times a window) and back
@@ -53,3 +54,25 @@ class FilteredBackProjection:
             NotImplementedError: The system matrix does not support filtered back projection.
         """
         return self.system_matrix._fbp(self.projections, self.filter, **self.options)
+
+    def estimate_memory(self) -> MemoryEstimate:
+        """The peak memory (RAM and GPU) this reconstruction will take, without running it: what it holds (the
+        projections, the image) and the most its steps hold at once, from the same sizes the system matrix uses to
+        split the work. Print it to see the main arrays and what to change to use less, such as a lower
+        :func:`pytomography.set_memory_budget` or ``gpu_budget``, which take longer and give the same image.
+
+        Example:
+            >>> fbp = FilteredBackProjection(projections, system_matrix, filter='hann')
+            >>> print(fbp.estimate_memory())
+            >>> image = fbp()
+
+        Returns:
+            MemoryEstimate: The estimate, with ``ram_gb``, ``gpu_gb`` and its parts.
+
+        Raises:
+            NotImplementedError: The system matrix does not support filtered back projection.
+        """
+        sm = self.system_matrix
+        return memory_estimate(f'Filtered back projection ({type(sm).__name__})',
+                               sm._fbp_memory_parts(self.projections, self.filter, **self.options),
+                               sm._fbp_memory_alternatives(self.projections, self.filter, **self.options))
