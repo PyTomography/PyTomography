@@ -535,6 +535,13 @@ def _host_memory() -> tuple[float, float, float]:
             available = float(os.sysconf('SC_AVPHYS_PAGES') * os.sysconf('SC_PAGE_SIZE'))
         except (AttributeError, ValueError, OSError):
             available = total / 2                     # unknown: assume half the machine is in use
+    if not process:
+        try:                                          # macOS without psutil: the peak resident size (bytes there)
+            import resource
+            peak = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+            process = peak if sys.platform == 'darwin' else peak * 1024
+        except (ImportError, AttributeError, ValueError, OSError):
+            process = 0.0                             # unknown: nothing is added back to the budget
     return float(total), float(available), float(process or 0.0)
 
 

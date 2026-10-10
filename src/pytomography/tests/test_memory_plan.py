@@ -175,7 +175,7 @@ def test_available_memory_keeps_a_margin(monkeypatch):
 
 def test_available_memory_reads_this_machine():
     total, available, process = memory._host_memory()
-    assert total > 0 and 0 < available <= total and process > 0
+    assert total > 0 and 0 < available <= total and process >= 0   # 0: unknown here, so nothing is added back
     ram, gpu = memory.available_memory()
     assert 0 <= ram <= total / 1e9 and gpu >= 0
     if not torch.cuda.is_available():
