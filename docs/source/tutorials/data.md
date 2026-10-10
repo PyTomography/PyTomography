@@ -1,6 +1,18 @@
 # Tutorial data
 
-Every tutorial reads its data from one folder, named by the `PYTOMOGRAPHY_DATA` environment variable. Put each dataset you need in the subfolder shown below, then point the variable at the folder that contains `SPECT`, `PET` and `CT`.
+Every tutorial downloads the data it reads in its first code cell, with one line:
+
+```python
+from pytomography import datasets
+
+datasets.fetch("SPECT/Lu177-NEMA-SymT2")
+```
+
+`fetch()` downloads only that dataset, checks it against the checksums pinned in PyTomography, unpacks it and returns its folder. The next time, it finds the dataset there and returns at once. An interrupted download continues where it stopped, and data already in the folder, from an earlier download or copied there by hand, is checked and used rather than downloaded again. The first download prints the data's licence and what to cite.
+
+## Where the data goes
+
+Into the folder named by the `PYTOMOGRAPHY_DATA` environment variable, or `pytomography_data` in your home folder if the variable is not set. Each dataset is a subfolder, such as `SPECT/Lu177-NEMA-SymT2`.
 
 ::::{tab-set}
 
@@ -27,22 +39,40 @@ Run this before the tutorial's data cell.
 
 ::::
 
-If the variable is not set, the tutorials look in `pytomography_data` in your home folder. They write their outputs to `pytomography_outputs` in the folder you run them from, or to `PYTOMOGRAPHY_OUTPUT` if you set it, and never into the data folder.
+The tutorials write their outputs to `pytomography_outputs` in the folder you run them from, or to `PYTOMOGRAPHY_OUTPUT` if you set it, and never into the data folder.
 
 ```{note}
-On Windows, keep `PYTOMOGRAPHY_OUTPUT` short, for example `D:\pytomography_outputs`. Saved DICOM files are named by their UID, about 64 characters, and Windows limits paths to 260 characters unless long paths are enabled.
+On Windows, keep both folders short, for example `D:\pytomography_data` and `D:\pytomography_outputs`. Some files have long names, such as DICOM files named by their UID, and Windows limits paths to 260 characters unless long paths are enabled. `fetch()` stops before writing anything if a path would be too long.
 ```
 
-The layout is:
+## In Google Colab
 
-```text
-pytomography_data/
-├── SPECT/   SIMIND-Jaszak, Lu177-NEMA-SymT2, Ac225-NEMA-SymT2, Lu177-PSMA-GEDisc, Tc99m-Cardiac, Tc99m-NEMA-Starguide
-├── PET/     GATE-mMR-Brain, GE-DMI-NEMA, PETSIRD-mIEC
-└── CT/      ldct-c145, SophiaBeads-256
+```python
+!pip install pytomography
+from pytomography import datasets
+datasets.fetch("SPECT/Lu177-NEMA-SymT2")  # into /root/pytomography_data
 ```
 
-You only need the datasets of the tutorials you run.
+Colab's disk is wiped when the session ends. To keep the data between sessions, mount your Google Drive and point `PYTOMOGRAPHY_DATA` at it before the first `fetch()`:
+
+```python
+from google.colab import drive
+drive.mount("/content/drive")
+import os
+os.environ["PYTOMOGRAPHY_DATA"] = "/content/drive/MyDrive/pytomography_data"
+```
+
+## From a shell
+
+```bash
+python -m pytomography.datasets list                          # every dataset, its size and licence, and whether you have it
+python -m pytomography.datasets fetch --tutorial t_dicomdata  # every dataset one tutorial reads
+python -m pytomography.datasets verify --hash                 # check every file you downloaded against its checksum
+```
+
+In Python, `datasets.available()` gives the same table, and `datasets.info("CT/ldct-c145")` says what a dataset is, where it comes from and how to cite it.
+
+## The datasets
 
 ```{tutorial-datasets}
 ```

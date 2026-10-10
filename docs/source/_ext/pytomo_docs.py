@@ -3,8 +3,9 @@
 * ``tutorials/tutorials.yaml`` is the single list of tutorials. From it this extension
   builds the filterable gallery (``.. tutorial-gallery::``), the sidebar toctree, and
   a thumbnail for every tutorial taken from the notebook's own image outputs.
-* ``tutorials/datasets.yaml`` lists every dataset the tutorials read. It renders the
-  "Tutorial data" page (``.. tutorial-datasets::``) and the data links on each tutorial.
+* ``tutorial_data.py`` holds everything about the tutorial data, from the registry that
+  ``pytomography.datasets.fetch()`` downloads from: the "Tutorial data" page
+  (``.. tutorial-datasets::``) and each tutorial's datasets for its header.
 * Every notebook page gets a header (``tutorial_page.py``): its summary and tags, a panel with
   Run it (Colab, GitHub), Data (a popup per dataset) and Results (View results in 3D), and tabs
   for the Jupyter notebook or the script.
@@ -27,6 +28,7 @@ from sphinx import addnodes
 
 import tutorial_page
 import tutorial_scripts
+from tutorial_data import dataset_anchor
 
 try:                      # the 3D viewer's images, for the header's View results in 3D
     import pytomo_viewer
@@ -66,18 +68,8 @@ def _write_thumbnails(app) -> None:
             target.write_bytes(base64.b64decode(png))
 
 
-def _load_datasets(srcdir: Path) -> dict:
-    with open(srcdir / "tutorials" / "datasets.yaml", encoding="utf8") as f:
-        return yaml.safe_load(f)
-
-
-def dataset_anchor(key: str) -> str:
-    return "data-" + "".join(c if c.isalnum() else "-" for c in key.lower())
-
-
 def builder_inited(app):
     app.env.pytomo_tutorials = _load_tutorials(Path(app.srcdir))
-    app.env.pytomo_datasets = _load_datasets(Path(app.srcdir))
     app.env.pytomo_by_notebook = {
         f"notebooks/{t['notebook']}": t
         for s in app.env.pytomo_tutorials for t in s["tutorials"]
@@ -188,39 +180,6 @@ class FeatureBoard(Directive):
                 )
             parts.append("</div>")
         parts.append("</div></div>")
-        return [nodes.raw("", "".join(parts), format="html")]
-
-
-class TutorialDatasets(Directive):
-    """One entry per dataset in tutorials/datasets.yaml, with the tutorials that use it."""
-
-    has_content = False
-
-    def run(self):
-        env = self.state.document.settings.env
-        env.note_dependency(str(Path(env.srcdir) / "tutorials" / "datasets.yaml"))
-        here = posixpath.dirname(env.docname)
-        users = {}
-        for section in env.pytomo_tutorials:
-            for t in section["tutorials"]:
-                for k in t.get("datasets", []):
-                    users.setdefault(k, []).append(t)
-        esc = lambda v: html.escape(str(v))
-        parts = ['<div class="pt-datasets">']
-        for key, d in env.pytomo_datasets.items():
-            used = ", ".join(
-                f'<a href="{posixpath.relpath("notebooks/" + t["notebook"], here)}.html">{esc(t["title"])}</a>'
-                for t in users.get(key, [])) or "not used by a tutorial yet"
-            rows = [("Download", esc(d.get("download", ""))), ("Size", esc(d.get("size", ""))),
-                    ("Licence", esc(d.get("licence", ""))), ("Used by", used)]
-            if d.get("cite"):
-                rows.append(("Cite", esc(d["cite"])))
-            parts.append(
-                f'<article class="pt-dataset" id="{dataset_anchor(key)}">'
-                f'<h3><code>{esc(key)}</code></h3><p>{esc(d["title"])}. '
-                f'<a href="{esc(d["url"])}">{esc(d["source"])}</a></p><dl>'
-                + "".join(f"<dt>{k}</dt><dd>{v}</dd>" for k, v in rows) + "</dl></article>")
-        parts.append("</div>")
         return [nodes.raw("", "".join(parts), format="html")]
 
 
@@ -353,9 +312,9 @@ def write_markdown(app, exception):
 
 
 def setup(app):
+    app.setup_extension("tutorial_data")  # the Tutorial data page and each tutorial's datasets
     app.add_directive("tutorial-gallery", TutorialGallery)
     app.add_directive("feature-board", FeatureBoard)
-    app.add_directive("tutorial-datasets", TutorialDatasets)
     app.connect("builder-inited", builder_inited)
     app.connect("doctree-read", add_notebook_header)
     app.connect("html-page-context", add_source_meta)
