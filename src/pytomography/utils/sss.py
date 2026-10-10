@@ -516,15 +516,16 @@ def interpolate_sparse_sinogram(
         device=device
     )
     x = angular_radial_idx.to(torch.float32).to(device)
-    interp_vals = torch.cat([interpolator(x[i:i+eval_chunk_size]) for i in range(0, x.shape[0], eval_chunk_size)])
-    interp_vals = interp_vals.reshape(x.shape[0], len(bins), sinogram_plane_idx_sparse.shape[0])
     N_theta, N_r = int(proj_meta.info['NrCrystalsPerRing']/2), int(proj_meta.info['NrCrystalsPerRing'])+1
-    # The interpolation over angle and radius of every sampled ring pair, kept on the host: [theta, r, sampled ring pair, bin]
+    # The interpolation over angle and radius of every sampled ring pair, kept on the host: [theta, r, sampled ring pair, bin].
+    # Each chunk of positions goes to the host as it is evaluated (all of them at once took 1 GB on the device for the
+    # mMR with 21 TOF bins, which Windows also counts as host memory)
     rtheta = torch.zeros((N_theta, N_r, sinogram_plane_idx_sparse.shape[0], len(bins)), dtype=torch.float32)
     for i in range(0, x.shape[0], eval_chunk_size):
         rows = angular_radial_idx[i:i+eval_chunk_size]
-        rtheta[rows[:, 0], rows[:, 1]] = interp_vals[i:i+eval_chunk_size].permute(0, 2, 1).cpu()
-    del interp_vals
+        values_chunk = interpolator(x[i:i+eval_chunk_size]).reshape(rows.shape[0], len(bins), sinogram_plane_idx_sparse.shape[0])
+        rtheta[rows[:, 0], rows[:, 1]] = values_chunk.permute(0, 2, 1).cpu()
+    del values_chunk, interpolator
     # Now interpolate Z using grid_sample
     z1_sparse = z2_sparse = ring_coordinates[idx_ring][:,0].cpu().numpy().astype(np.float32)
     z1 = z2 = ring_coordinates[np.arange(proj_meta.info['NrRings'])][:,0].cpu().numpy().astype(np.float32)
@@ -606,30 +607,15 @@ def scale_estimated_scatter(
     Returns:
         torch.Tensor: Scaled SSS projection data (sinogram/listmode).
     """
-    system_matrix.TOF = False
-    norm_BP = system_matrix.compute_normalization_factor()
-    def per_sensitivity(BP):
-        # voxels no line of response reaches (outside the scanner's field of view) have no sensitivity: they get no
-        # weight, instead of 0/0 = NaN, which would make the whole estimate NaN
-        return torch.where(norm_BP > 0, BP / norm_BP, torch.zeros_like(BP))
-    # Mask of sinogram bins whose LOR misses the attenuating object (computed once; it is the size of the sinogram)
-    proj_outside_mask = ~(system_matrix.forward((attenuation_image>attenuation_image_cutoff).to(torch.float32))>0)
-    # Random
-    if sinogram_random is not None:
-        BP_random_mask = per_sensitivity(system_matrix.backward(proj_outside_mask*sinogram_random.to(system_matrix.output_device)))
-    else:
-        BP_random_mask = 0
-    if len(proj_data.shape)>3: # TOF dimension added
-        system_matrix.TOF = True
-        proj_outside_mask = proj_outside_mask.unsqueeze(-1)
-    else:
-        system_matrix.TOF = False
-    # Scatter
-    # Need to get back projecgion of masked scatter and masked totall, one subset of angles at a time, since these
-    # sinograms are large (34.6 GB each for the mMR with 21 TOF bins). Each subset is computed, masked and back projected
-    # on pytomography.device, so on a GPU it never passes through host memory (lazy sinograms are computed there); a
-    # subset then takes at most a third of the GPU budget. On the CPU, one masked subset at a time, plus the temporaries
-    # of computing it; more subsets if the memory budget needs them.
+    # Everything is computed one subset of angles at a time, since these sinograms are large (34.6 GB each for the mMR
+    # with 21 TOF bins, 1.65 GB without TOF): the sensitivity image, the mask of the bins whose LOR misses the
+    # attenuating object and the masked randoms (without TOF), and the masked scatter estimate and data. Each subset is
+    # computed, masked and back projected on pytomography.device, so on a GPU the sinograms never pass through host
+    # memory (lazy sinograms are computed there); a subset then takes at most a third of the GPU budget, and is
+    # projected in as few chunks as that budget allows. On the CPU, one masked subset at a time, plus the temporaries of
+    # computing it; more subsets if the memory budget needs them. The back projections are added up over the subsets,
+    # and divided by the sensitivity image at the end.
+    TOF = len(proj_data.shape) > 3 # TOF dimension added
     device = torch.device(pytomography.device)
     sinogram_bytes = 4 * float(np.prod(proj_data.shape))
     N_SUBSETS = subsets_for_budget(sinogram_bytes, arrays=2, minimum=20)
@@ -637,17 +623,39 @@ def scale_estimated_scatter(
         N_SUBSETS = max(N_SUBSETS, math.ceil(sinogram_bytes / (gpu_budget(device=device) / 3)))
     N_SUBSETS = min(N_SUBSETS, proj_data.shape[0])
     system_matrix.set_n_subsets(N_SUBSETS)
-    BP_scatter_mask = 0
-    BP_total_mask = 0
-    for subset_idx in range(N_SUBSETS):
-        angles = system_matrix.subset_indices_array[subset_idx].cpu()
-        mask_subset = proj_outside_mask[angles.to(proj_outside_mask.device)].to(device)
-        proj_scatter_masked = _masked(_subset_on(proj_scatter, angles, device), None, mask_subset)
-        BP_scatter_mask += per_sensitivity(system_matrix.backward(proj_scatter_masked, subset_idx = subset_idx))
-        del proj_scatter_masked
-        proj_total_masked = _masked(_subset_on(proj_data, angles, device), None, mask_subset)
-        BP_total_mask += per_sensitivity(system_matrix.backward(proj_total_masked, subset_idx=subset_idx))
-        del proj_total_masked
+    mask_image = (attenuation_image > attenuation_image_cutoff).to(torch.float32)
+    N_splits = getattr(system_matrix, 'N_splits', None)
+    if N_splits is not None:
+        system_matrix.N_splits = 1
+    norm_BP = BP_random = BP_scatter = BP_total = 0
+    try:
+        for subset_idx in range(N_SUBSETS):
+            angles = system_matrix.subset_indices_array[subset_idx].cpu()
+            system_matrix.TOF = False
+            norm_BP = norm_BP + system_matrix.compute_normalization_factor(subset_idx)
+            mask_subset = ~(system_matrix.forward(mask_image, subset_idx=subset_idx) > 0)
+            mask_subset = mask_subset.reshape(len(angles), *proj_data.shape[1:3]).to(device)
+            if sinogram_random is not None:
+                BP_random = BP_random + system_matrix.backward(_masked(_subset_on(sinogram_random, angles, device), None, mask_subset), subset_idx=subset_idx)
+            system_matrix.TOF = TOF
+            if TOF:
+                mask_subset = mask_subset.unsqueeze(-1)
+            proj_scatter_masked = _masked(_subset_on(proj_scatter, angles, device), None, mask_subset)
+            BP_scatter = BP_scatter + system_matrix.backward(proj_scatter_masked, subset_idx=subset_idx)
+            del proj_scatter_masked
+            proj_total_masked = _masked(_subset_on(proj_data, angles, device), None, mask_subset)
+            BP_total = BP_total + system_matrix.backward(proj_total_masked, subset_idx=subset_idx)
+            del proj_total_masked
+    finally:
+        if N_splits is not None:
+            system_matrix.N_splits = N_splits
+    def per_sensitivity(BP):
+        # voxels no line of response reaches (outside the scanner's field of view) have no sensitivity: they get no
+        # weight, instead of 0/0 = NaN, which would make the whole estimate NaN
+        return torch.where(norm_BP > 0, BP / norm_BP, torch.zeros_like(BP))
+    BP_random_mask = per_sensitivity(BP_random) if sinogram_random is not None else 0
+    BP_scatter_mask = per_sensitivity(BP_scatter)
+    BP_total_mask = per_sensitivity(BP_total)
     BP_scatter_estimated_mask = BP_total_mask - BP_random_mask
     BP_scatter_estimated_mask[BP_scatter_estimated_mask<0] = 0
     scale_factor = ((BP_scatter_mask*BP_scatter_estimated_mask).sum() / (BP_scatter_mask**2).sum()).item()

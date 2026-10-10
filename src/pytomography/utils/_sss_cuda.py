@@ -4,7 +4,7 @@ compiled at run time with CuPy (NVRTC), used when CuPy is installed and the devi
 For each scatter point, the PyTorch version builds the Gaussian TOF kernel between every sampled LOR, TOF bin and piece
 of the LOR as one [LORs, TOF bins, pieces] tensor (850 MB for the GATE mMR with 21 TOF bins, 25 pieces and every sixth
 ring and crystal), normalises it over the bins and sums it over the pieces: a few passes over that tensor per scatter
-point, so it is bound by memory traffic (31 s for the tutorial's 7233 scatter points on an RTX 5090). Here one thread
+point, so it is bound by memory traffic (31 s for the tutorial's 2122 scatter points on an RTX 5090). Here one thread
 holds one LOR: its kernel values stay in registers one piece at a time, and the piece centres and emission are read from
 per-crystal tables. The kernel values are computed exactly as PyTorch computes them; only the sums over the TOF bins and
 over the pieces run in a different order, which changes the result in the last bits of float32.
