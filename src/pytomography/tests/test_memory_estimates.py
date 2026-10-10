@@ -50,7 +50,8 @@ def test_estimate_adds_up_its_parts(gpu_as_ram):
     assert estimate.gpu_gb == pytest.approx(2.0)
     assert estimate.ram_gb == pytest.approx(3.5 if gpu_as_ram else 1.5)
     text = str(estimate)
-    assert text.startswith('test\nPeak ≈') and 'held for the whole run' in text and 'one subset at a time' in text
+    assert text.startswith('test\nPeak ~') and 'held for the whole run' in text and 'one subset at a time' in text
+    text.encode('cp1252')                                     # printable on a Windows console or into a file
     with pytest.raises(ValueError):
         MemoryPart('c', scope='always')
 
@@ -63,7 +64,7 @@ def test_memory_estimate_adds_the_overheads_to_the_alternatives_too(gpu_as_ram):
     assert estimate.ram_gb == pytest.approx(4 * (1 + allocator) + overhead)
     (label, alternative), = estimate.alternatives
     assert label == 'fewer' and alternative.ram_gb == pytest.approx(2 * (1 + allocator) + overhead)
-    assert 'To use less: fewer ≈' in str(estimate)
+    assert 'To use less: fewer ~' in str(estimate)
 
 
 def test_memory_budget_set_restores_the_budget():
@@ -92,6 +93,11 @@ def test_system_matrix_estimate_and_fewest_subsets(gpu_as_ram):
     target = sm.estimate_memory(n_subsets=10, held=[held]).ram_gb
     assert sm.fewest_subsets(target, held=[held]) == 10
     assert sm.fewest_subsets(0.1) is None
+    # memory lowest at a few subsets (a normalisation image per subset, as in CT: 4/n + 0.2 n GB, least at 4 and 5):
+    # still found, though 1024 subsets do not fit
+    sm._memory_parts = lambda n, s: [MemoryPart('subset arrays', ram_bytes=4e9 / n, scope='subset'), MemoryPart('normalisation images', ram_bytes=0.2e9 * n)]
+    assert sm.fewest_subsets(sm.estimate_memory(4).ram_gb) == 4
+    assert sm.fewest_subsets(sm.estimate_memory(3).ram_gb) == 3
     with pytest.raises(NotImplementedError):
         SystemMatrix._memory_parts(sm, 1, None)
 

@@ -147,7 +147,8 @@ class SystemMatrix():
 
     def fewest_subsets(self, ram_gb: float, N_splits: int | None = None, held: Sequence | Mapping = (), max_subsets: int = 1024) -> int | None:
         """The fewest subsets for which :meth:`estimate_memory` predicts at most ``ram_gb`` GB of RAM, or None if no
-        number up to ``max_subsets`` does.
+        number up to ``max_subsets`` does. The numbers are tried in order (an estimate is arithmetic), since memory need
+        not fall with more subsets (a CT reconstruction keeps a normalisation image per subset).
 
         Args:
             ram_gb (float): RAM available, in GB.
@@ -158,17 +159,10 @@ class SystemMatrix():
         Returns:
             int | None: Number of subsets.
         """
-        fits = lambda k: self.estimate_memory(k, N_splits, held).ram_gb <= ram_gb
-        if not fits(max_subsets):
-            return None
-        low, high = 1, max_subsets          # the memory decreases with the number of subsets: bisect for the fewest that fit
-        while low < high:
-            middle = (low + high) // 2
-            if fits(middle):
-                high = middle
-            else:
-                low = middle + 1
-        return low
+        for n_subsets in range(1, max_subsets + 1):
+            if self.estimate_memory(n_subsets, N_splits, held).ram_gb <= ram_gb:
+                return n_subsets
+        return None
 
     @abc.abstractmethod
     def forward(self, object: torch.tensor, **kwargs):
