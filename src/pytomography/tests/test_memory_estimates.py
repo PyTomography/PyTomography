@@ -102,6 +102,28 @@ def test_system_matrix_estimate_and_fewest_subsets(gpu_as_ram):
         SystemMatrix._memory_parts(sm, 1, None)
 
 
+@pytest.mark.parametrize("tof", [False, True])
+def test_pet_sinogram_estimate_follows_the_subsets_and_the_device(tof, monkeypatch):
+    """A PET sinogram reconstruction's subset arrays shrink with more subsets, and are counted where the system matrix
+    puts its projections."""
+    pytest.importorskip("parallelproj_core")
+    from pytomography.metadata.PET import PETSinogramPolygonProjMeta, PETTOFMeta
+    from pytomography.projectors.PET import PETSinogramSystemMatrix
+    monkeypatch.setattr(memory, "counts_gpu_as_ram", lambda: False)
+    tof_meta = PETTOFMeta(5, 300.0, 60.0, n_sigmas=3) if tof else None
+    proj_meta = PETSinogramPolygonProjMeta(INFO, tof_meta)
+    object_meta = ObjectMeta(dr=(4, 4, 4), shape=(32, 32, 6))
+    sm = PETSinogramSystemMatrix(object_meta, proj_meta, N_splits=3, device='cpu')
+    subset = lambda estimate: next(p for p in estimate.parts if p.scope == 'subset')
+    four, eight = sm.estimate_memory(4), sm.estimate_memory(8)
+    lors = 8 * (INFO['NrCrystalsPerRing'] + 1) * (INFO['moduleAxialNr'] * INFO['crystalAxialNr'])**2      # 32 angles / 4
+    assert subset(four).ram_bytes == 4 * 4 * lors * (5 if tof else 1) and subset(eight).ram_bytes == subset(four).ram_bytes / 2
+    assert eight.ram_gb < four.ram_gb
+    if torch.cuda.is_available():
+        on_gpu = PETSinogramSystemMatrix(object_meta, proj_meta, N_splits=3, device='cuda').estimate_memory(4)
+        assert subset(on_gpu).gpu_bytes == subset(four).ram_bytes and subset(on_gpu).ram_bytes == 0
+
+
 def test_lazy_sinogram_reports_what_it_keeps():
     gen = torch.Generator().manual_seed(0)
     n_detectors = INFO['NrCrystalsPerRing'] * INFO['NrRings']
