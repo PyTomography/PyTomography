@@ -182,7 +182,8 @@ sections:
     modality: PET
     data: Vendor
     topic: Systems
-    summary: Read list-mode data in the open PETSIRD format.
+    summary: A Siemens Biograph mMR scan in ETSI's open PETSIRD format, reconstructed without and with scatter correction.
+    thumbnail: 0
     datasets:
     - PET/PETSIRD-mMR-NEMA
   - notebook: t_PETGATE_DIP

@@ -38,7 +38,7 @@ docs lists every dataset.
 | [`pet/05_gate_tof_list_mode.py`](pet/05_gate_tof_list_mode.py) | Time-of-flight list-mode reconstruction with TOF scatter. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_PETGATE_scat_lmTOF.html) |
 | [`pet/06_ge_discovery_mi.py`](pet/06_ge_discovery_mi.py) | Clinical list mode exported from GE Duetto, with time of flight. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_GE_HDF5.html) |
 | [`pet/07_pet_uncertainty_estimation.py`](pet/07_pet_uncertainty_estimation.py) | Uncertainty estimates for a clinical PET reconstruction. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_uncertainty_pet.html) |
-| [`pet/08_petsird_list_mode.py`](pet/08_petsird_list_mode.py) | Read list-mode data in the open PETSIRD format. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_PETSIRD.html) |
+| [`pet/08_petsird_list_mode.py`](pet/08_petsird_list_mode.py) | A Siemens Biograph mMR scan in ETSI's open PETSIRD format, reconstructed without and with scatter correction. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_PETSIRD.html) |
 | [`pet/09_deep_image_prior.py`](pet/09_deep_image_prior.py) | Build a PyTorch network and use it as the image model inside the reconstruction. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_PETGATE_DIP.html) |
 
 ## CT
