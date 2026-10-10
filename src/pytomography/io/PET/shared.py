@@ -427,26 +427,75 @@ def _event_bins(detector_ids: torch.Tensor, info: dict, num_tof_bins: int | None
             tof_bins[start:end] = torch.where(idx[:,0] == 1, num_tof_bins - 1 - tof_bin, tof_bin)
     return keys, insides, tof_bins
 
+def _events_by_angle(detector_ids: torch.Tensor, info: dict, num_tof_bins: int | None = None, drop_outside: bool = True, weights: torch.Tensor | None = None, event_index: bool = False, events_per_chunk: int | None = None) -> tuple:
+    """The events grouped by the angle of their sinogram bin (``_event_bins``), each angle's events in their order in the list: a counting sort done a chunk of events at a time, in two passes (count the events of each angle, then place them), so that only the grouped arrays are as long as the list. Binning all 107 million events of the GATE mMR brain scan at once and sorting them took about 55 bytes per event (5.9 GB).
+
+    Args:
+        detector_ids (torch.Tensor): [N, 2] or [N, 3] detector IDs of the events (with the TOF bin as the third column).
+        info (dict): PET geometry information dictionary.
+        num_tof_bins (int | None, optional): Number of TOF bins; None for non-TOF. Defaults to None.
+        drop_outside (bool, optional): Leave out the events outside the sinogram or its TOF bins, as ``listmode_to_sinogram`` does. If False, every event is kept, and one outside the sinogram raises an ``IndexError``. Defaults to True.
+        weights (torch.Tensor | None, optional): [N] weights of the events, to group with them. Defaults to None.
+        event_index (bool, optional): Also give each grouped event's index in ``detector_ids``. Defaults to False.
+        events_per_chunk (int | None, optional): Events binned at once. Defaults to None: as ``_event_bins``.
+
+    Returns:
+        tuple: ``offsets`` ([angles + 1] int64: the events of angle ``a`` are entries ``offsets[a]:offsets[a + 1]`` of the arrays that follow), and for each grouped event its position within its angle ([M] int32: radial bin times planes plus plane), its TOF bin as the sinogram stores it ([M] int16, or None for non-TOF), its weight ([M] float32, or None) and its index in ``detector_ids`` ([M] int64, or None).
+    """
+    shape = _sinogram_shape(info)
+    per_angle = shape[1] * shape[2]
+    n_events = detector_ids.shape[0]
+    if events_per_chunk is None:
+        events_per_chunk = block_size(130, default=2**22)
+
+    def chunk_bins(start: int) -> tuple:
+        """Bins, TOF bins and indices of one chunk's events, without the events left out."""
+        key, inside, tof_bin = _event_bins(detector_ids[start:start + events_per_chunk], info, num_tof_bins, events_per_chunk)
+        index = torch.arange(start, start + key.shape[0])
+        if not drop_outside:
+            if not bool(inside.all()):
+                raise IndexError("some events lie outside the sinogram")
+            return key, tof_bin, index
+        if tof_bin is not None:
+            inside &= (tof_bin >= 0) & (tof_bin < num_tof_bins)   # listmode_to_sinogram bins only events in one of the TOF bins
+            tof_bin = tof_bin[inside]
+        return key[inside], tof_bin, index[inside]
+
+    counts = torch.zeros(shape[0], dtype=torch.long)
+    for start in range(0, n_events, events_per_chunk):
+        counts += torch.bincount(chunk_bins(start)[0] // per_angle, minlength=shape[0])
+    offsets = torch.zeros(shape[0] + 1, dtype=torch.long)
+    offsets[1:] = torch.cumsum(counts, 0)
+    n = int(offsets[-1])
+    within_angle = torch.empty(n, dtype=torch.int32)
+    tof_bins = torch.empty(n, dtype=torch.int16) if num_tof_bins is not None else None
+    grouped_weights = torch.empty(n, dtype=torch.float32) if weights is not None else None
+    indices = torch.empty(n, dtype=torch.long) if event_index else None
+    # a chunk's events of an angle go after those of the earlier chunks, in their order (a stable sort within the chunk)
+    cursor = offsets[:-1].clone()
+    for start in range(0, n_events, events_per_chunk):
+        key, tof_bin, index = chunk_bins(start)
+        angle = key // per_angle
+        order = torch.argsort(angle, stable=True)
+        angle = angle[order]
+        chunk_counts = torch.bincount(angle, minlength=shape[0])
+        position = cursor[angle] + torch.arange(angle.shape[0]) - (torch.cumsum(chunk_counts, 0) - chunk_counts)[angle]
+        within_angle[position] = (key[order] % per_angle).to(torch.int32)
+        if tof_bins is not None:
+            tof_bins[position] = tof_bin[order].to(torch.int16)
+        if grouped_weights is not None:
+            grouped_weights[position] = weights[start:start + events_per_chunk].to(device='cpu', dtype=torch.float32)[index[order] - start]
+        if indices is not None:
+            indices[position] = index[order]
+        cursor += chunk_counts
+    return offsets, within_angle, tof_bins, grouped_weights, indices
+
 def _listmode_to_lazy_sinogram(detector_ids: torch.Tensor, info: dict, tof_meta: PETTOFMeta | None = None, weights: torch.Tensor | None = None) -> LazySinogram:
-    """``listmode_to_sinogram`` as a :class:`LazySinogram`: the events are kept, grouped by angle, as their position within the angle (4 bytes each), their TOF bin (2 bytes) and their weight if any, and the angles asked for are binned when they are asked for. The bins hold exactly what ``listmode_to_sinogram`` gives: counts are exact, and weights are summed in the same order (the events of each angle keep their order). Binned on a GPU (:meth:`LazySinogram.compute_at`), counts are still exact, but weights are added up in an order that can differ (atomic adds)."""
+    """``listmode_to_sinogram`` as a :class:`LazySinogram`: the events are kept, grouped by angle (``_events_by_angle``), as their position within the angle (4 bytes each), their TOF bin (2 bytes) and their weight if any, and the angles asked for are binned when they are asked for. The bins hold exactly what ``listmode_to_sinogram`` gives: counts are exact, and weights are summed in the same order (the events of each angle keep their order). Binned on a GPU (:meth:`LazySinogram.compute_at`), counts are still exact, but weights are added up in an order that can differ (atomic adds)."""
     shape = _sinogram_shape(info)
     num_tof_bins = None if tof_meta is None else int(tof_meta.num_bins)
-    key, keep, tof_bin = _event_bins(detector_ids, info, num_tof_bins)
-    if tof_bin is not None:
-        keep &= (tof_bin >= 0) & (tof_bin < num_tof_bins)   # listmode_to_sinogram bins only events in one of the TOF bins
-    key = key[keep]
+    offsets, within_angle, tof_bin, weights, _ = _events_by_angle(detector_ids, info, num_tof_bins, weights=weights)
     per_angle = shape[1] * shape[2]
-    angle = key // per_angle
-    order = torch.argsort(angle, stable=True)   # stable: within an angle, the events keep their order
-    within_angle = (key % per_angle)[order].to(torch.int32)
-    del key
-    if tof_bin is not None:
-        tof_bin = tof_bin[keep][order].to(torch.int16)
-    if weights is not None:
-        weights = weights.to(device='cpu', dtype=torch.float32)[keep][order]
-    offsets = torch.zeros(shape[0] + 1, dtype=torch.long)
-    offsets[1:] = torch.cumsum(torch.bincount(angle, minlength=shape[0]), 0)
-    del angle, order, keep
     bins_per_angle = per_angle * (1 if num_tof_bins is None else num_tof_bins)
     out_shape = shape[1:] if num_tof_bins is None else (*shape[1:], num_tof_bins)
 
@@ -783,28 +832,22 @@ def get_scanner_LUT(info: dict):
     return XYZ_crystals
 
 def _lazy_sinogram_to_listmode(detector_ids: torch.Tensor, sinogram: LazySinogram, info: dict) -> torch.Tensor:
-    """``sinogram_to_listmode`` of a :class:`LazySinogram`: the events are grouped by angle, and the sinogram is computed a group of angles at a time, so it is never held whole."""
+    """``sinogram_to_listmode`` of a :class:`LazySinogram`: the events are grouped by angle (``_events_by_angle``), and the sinogram is computed a group of angles at a time, so it is never held whole."""
     shape = _sinogram_shape(info)
     num_tof_bins = sinogram.shape[-1] if len(sinogram.shape) > 3 else None
-    key, inside, tof_bin = _event_bins(detector_ids, info, num_tof_bins)
-    if not bool(inside.all()):
-        raise IndexError("some events lie outside the sinogram")
-    per_angle = shape[1] * shape[2]
-    angle = key // per_angle
-    order = torch.argsort(angle, stable=True)
-    sorted_angle = angle[order]
-    values = torch.empty(key.shape[0], dtype=torch.float32)
+    offsets, within_angle, tof_bin, _, event = _events_by_angle(detector_ids, info, num_tof_bins, drop_outside=False, event_index=True)
+    values = torch.empty(detector_ids.shape[0], dtype=torch.float32)
     per_chunk = sinogram._angles_per_chunk()
     for first in range(0, shape[0], per_chunk):
         last = min(first + per_chunk, shape[0])
-        lo, hi = (int(torch.searchsorted(sorted_angle, a)) for a in (first, last))
+        lo, hi = int(offsets[first]), int(offsets[last])
         if lo == hi:
             continue
-        events = order[lo:hi]
         part = sinogram[torch.arange(first, last)]
-        k = key[events]
-        index = (angle[events] - first, (k // shape[2]) % shape[1], k % shape[2])
-        values[events] = part[index + ((tof_bin[events],) if num_tof_bins is not None else ())]
+        k = within_angle[lo:hi].to(torch.long)
+        angle = torch.repeat_interleave(torch.arange(last - first), offsets[first + 1:last + 1] - offsets[first:last])
+        index = (angle, k // shape[2], k % shape[2])
+        values[event[lo:hi]] = part[index + ((tof_bin[lo:hi].to(torch.long),) if num_tof_bins is not None else ())]
         del part
     return values
 
@@ -821,26 +864,46 @@ def sinogram_to_listmode(detector_ids: torch.Tensor, sinogram: torch.Tensor | La
     """
     if isinstance(sinogram, LazySinogram):
         return _lazy_sinogram_to_listmode(detector_ids, sinogram, info)
+    return _dense_sinogram_to_listmode(detector_ids, sinogram, info)
+
+def _dense_sinogram_to_listmode(detector_ids: torch.Tensor, sinogram: torch.Tensor, info: dict, events_per_chunk: int | None = None) -> torch.Tensor:
+    """``sinogram_to_listmode`` of a sinogram held whole, a chunk of events at a time into one output: all 107 million events of the GATE mMR brain scan at once took about 75 bytes each in temporaries (8 GB, which Windows kept committed afterwards). Each event is looked up on its own, so the values do not depend on the chunks.
+
+    Args:
+        detector_ids (torch.Tensor): Detector IDs at which to obtain listmode data
+        sinogram (torch.Tensor): PET sinogram
+        info (dict): PET geometry information dictionary
+        events_per_chunk (int | None, optional): Events looked up at once. Defaults to None: as many as fit in an eighth of the memory budget (about 80 bytes each), or 2**22 without a budget.
+
+    Returns:
+        torch.Tensor: Listmode data, on the device of ``sinogram``
+    """
     # TODO: multiple IDs map to same sinogram bin -> need to divide by number of LORs mapping to each sinogram bin
     # Look the events up where the sinogram is (a list mode system matrix keeps its events' detector IDs on its lor_device)
     device = sinogram.device
     lor_coordinates, sinogram_index = (table.to(device) for table in sinogram_coordinates(info))
-    detector_ids_spatial = detector_ids[:,:2].to(device)
-    within_ring_id = (detector_ids_spatial % info['NrCrystalsPerRing']).to(torch.long)
-    ring_ids = (detector_ids_spatial // info['NrCrystalsPerRing']).to(torch.long)
-    # Same bin as listmode_to_sinogram: crystals ordered by descending within-ring index, ring IDs reordered with them
-    within_ring_id, idx = within_ring_id.sort(axis=1, descending=True, stable=True)   # stable: a pair with equal within-ring IDs keeps its order on any device
-    ring_ids = ring_ids.gather(index=idx, dim=1)
-    lm_return = 0
-    idx0, idx1 = lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]].T
-    idx2 = sinogram_index[ring_ids[:,0], ring_ids[:,1]]
-    if len(sinogram.shape)>3: # If TOF
-        idxTOF =  detector_ids[:,2].to(device)
-        # the TOF bin of an event whose crystals were swapped is mirrored, as in listmode_to_sinogram
-        idxTOF = torch.where(idx[:,0] == 1, sinogram.shape[-1] - 1 - idxTOF, idxTOF)
-        lm_return += sinogram[idx0, idx1, idx2, idxTOF] # randoms same for all TOF bins
-    else:
-        lm_return += sinogram[idx0, idx1, idx2]
+    if events_per_chunk is None:
+        events_per_chunk = block_size(80, default=2**22)
+    n_events = detector_ids.shape[0]
+    lm_return = torch.empty(n_events, dtype=sinogram.dtype, device=device)
+    for start in range(0, n_events, events_per_chunk):
+        ids = detector_ids[start:start + events_per_chunk]
+        end = start + ids.shape[0]
+        detector_ids_spatial = ids[:,:2].to(device)
+        within_ring_id = (detector_ids_spatial % info['NrCrystalsPerRing']).to(torch.long)
+        ring_ids = (detector_ids_spatial // info['NrCrystalsPerRing']).to(torch.long)
+        # Same bin as listmode_to_sinogram: crystals ordered by descending within-ring index, ring IDs reordered with them
+        within_ring_id, idx = within_ring_id.sort(axis=1, descending=True, stable=True)   # stable: a pair with equal within-ring IDs keeps its order on any device
+        ring_ids = ring_ids.gather(index=idx, dim=1)
+        idx0, idx1 = lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]].T
+        idx2 = sinogram_index[ring_ids[:,0], ring_ids[:,1]]
+        if len(sinogram.shape)>3: # If TOF
+            idxTOF = ids[:,2].to(device)
+            # the TOF bin of an event whose crystals were swapped is mirrored, as in listmode_to_sinogram
+            idxTOF = torch.where(idx[:,0] == 1, sinogram.shape[-1] - 1 - idxTOF, idxTOF)
+            lm_return[start:end] = sinogram[idx0, idx1, idx2, idxTOF]
+        else:
+            lm_return[start:end] = sinogram[idx0, idx1, idx2]
     return lm_return
 
 def _convolve_last_axis(x: torch.Tensor, kernel: torch.nn.Conv1d) -> torch.Tensor:

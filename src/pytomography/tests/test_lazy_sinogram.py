@@ -138,6 +138,44 @@ def test_events_read_from_lazy_sinogram_equal_dense(tof, small_chunks):
     assert torch.equal(shared.sinogram_to_listmode(events, lazy, INFO), expected)
 
 
+@pytest.mark.parametrize("tof", [False, True])
+def test_events_grouped_by_angle_in_chunks_equal_one_stable_sort(tof):
+    """``_events_by_angle`` groups the events a chunk at a time (a counting sort): any chunk size, a last partial chunk
+    included, gives the grouping of one stable sort of all the kept events by angle."""
+    events = _events(5000, tof, seed=8, outside_tof=True)
+    weights = torch.rand(events.shape[0], generator=torch.Generator().manual_seed(9))
+    num_tof_bins = N_TOF if tof else None
+    key, keep, tof_bin = shared._event_bins(events, INFO, num_tof_bins)
+    if tof:
+        keep &= (tof_bin >= 0) & (tof_bin < N_TOF)
+    per_angle = SHAPE[1] * SHAPE[2]
+    angle = key[keep] // per_angle
+    order = torch.argsort(angle, stable=True)
+    index = torch.arange(events.shape[0])[keep][order]
+    expected_offsets = torch.cat([torch.zeros(1, dtype=torch.long), torch.cumsum(torch.bincount(angle, minlength=SHAPE[0]), 0)])
+    for events_per_chunk in (7, 1000, events.shape[0]):
+        offsets, within_angle, tof_bins, grouped_weights, indices = shared._events_by_angle(
+            events, INFO, num_tof_bins, weights=weights, event_index=True, events_per_chunk=events_per_chunk)
+        assert torch.equal(offsets, expected_offsets)
+        assert torch.equal(indices, index)
+        assert torch.equal(within_angle, (key[keep][order] % per_angle).to(torch.int32))
+        assert torch.equal(grouped_weights, weights[index])
+        assert tof_bins is None if not tof else torch.equal(tof_bins, tof_bin[keep][order].to(torch.int16))
+
+
+@pytest.mark.parametrize("tof", [False, True])
+def test_lazy_paths_in_small_chunks_of_events_equal_dense(tof, small_chunks, monkeypatch):
+    """The lazy binning and look-up, with the events grouped a few hundred at a time, give exactly the dense results."""
+    monkeypatch.setattr(shared, "block_size", lambda bytes_per_item, default, fraction=1 / 8: 333)
+    events = _events(6000, tof, seed=10, outside_tof=True)
+    weights = torch.rand(events.shape[0], generator=torch.Generator().manual_seed(11))
+    dense = shared.listmode_to_sinogram(events, INFO, weights=weights, tof_meta=_tof_meta(tof))
+    lazy = shared.listmode_to_sinogram(events, INFO, weights=weights, tof_meta=_tof_meta(tof), lazy=True)
+    assert torch.equal(lazy.to_dense(), dense)
+    inside_tof = events if not tof else events[(events[:, 2] >= 0) & (events[:, 2] < N_TOF)]
+    assert torch.equal(shared.sinogram_to_listmode(inside_tof, lazy, INFO), shared.sinogram_to_listmode(inside_tof, dense, INFO))
+
+
 @pytest.mark.parametrize("normalization", [False, True])
 def test_all_pairs_sinogram_in_blocks_equals_all_at_once(normalization):
     n_pairs = N_DETECTORS * (N_DETECTORS - 1) // 2
