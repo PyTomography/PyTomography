@@ -33,6 +33,7 @@ dependencies = [
   "h5py>=3.11.0",
   "torchrbf",
   "pandas>=2.2",
+  "numba>=0.59",
 ]
 
 [tool.hatch.metadata]
