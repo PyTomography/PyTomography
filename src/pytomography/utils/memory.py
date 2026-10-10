@@ -1,8 +1,14 @@
-"""Memory budgets. The host (RAM) budget set with :func:`pytomography.set_memory_budget` sizes the blocks and subsets of
-PyTomography's memory-heavy steps (without a budget, every step keeps its fixed default); the GPU budget of chunked
-computations keeps them from taking over a shared GPU."""
+"""Memory budgets and estimates. The host (RAM) budget set with :func:`pytomography.set_memory_budget` sizes the blocks
+and subsets of PyTomography's memory-heavy steps (without a budget, every step keeps its fixed default); the GPU budget
+of chunked computations keeps them from taking over a shared GPU. :class:`MemoryEstimate` is what the ``estimate_memory``
+methods (e.g. :meth:`pytomography.projectors.SystemMatrix.estimate_memory`) return: the predicted peak RAM and GPU
+memory of a computation, what it is made of, and what other settings would need."""
 from __future__ import annotations
 import math
+import sys
+from contextlib import contextmanager
+from dataclasses import dataclass
+from typing import Sequence
 import torch
 import pytomography
 
@@ -121,3 +127,169 @@ def subsets_for_budget(projection_bytes: float, arrays: int = 3, held_bytes: flo
     if available <= 0:
         raise ValueError(f"the memory budget ({budget / 1e9:.1f} GB) leaves nothing for the subsets after the {held_bytes / 1e9:.1f} GB held: raise it with pytomography.set_memory_budget")
     return max(minimum, math.ceil(arrays * projection_bytes / available))
+
+
+@contextmanager
+def memory_budget_set(gb: float | None):
+    """Context manager that sets the memory budget (:func:`pytomography.set_memory_budget`) to ``gb`` inside its block and
+    restores the previous budget afterwards, also if the block raises. Estimates use it to see what a lower budget
+    would change.
+
+    Example:
+        >>> with memory_budget_set(16):
+        ...     estimate = system_matrix.estimate_memory(n_subsets=14)
+    """
+    previous = pytomography.memory_budget
+    pytomography.set_memory_budget(gb)
+    try:
+        yield
+    finally:
+        pytomography.memory_budget = previous
+
+
+#: Python, PyTorch and the CUDA context: the committed memory of a process after ``import pytomography`` and its first
+#: CUDA call, measured on Windows with an RTX 5090 (2.7 GB; ``import torch`` alone is 1.9 GB).
+FIXED_OVERHEAD_BYTES = 2.7e9
+
+#: What each scope of a :class:`MemoryPart` means, in the order estimates print them.
+MEMORY_SCOPES = {
+    'held': 'held for the whole run',
+    'subset': 'one subset at a time',
+    'chunk': 'projector chunks',
+    'overhead': 'Python, CUDA, allocator',
+}
+
+
+@dataclass
+class MemoryPart:
+    """One array, or one group of arrays, in a memory estimate.
+
+    Args:
+        name (str): What it is, as printed (e.g. ``'expected counts'``).
+        ram_bytes (float, optional): Host memory it takes, in bytes. Defaults to 0.
+        gpu_bytes (float, optional): GPU memory it takes, in bytes. Defaults to 0.
+        scope (str, optional): ``'held'`` for the whole computation, ``'subset'`` for one subset at a time,
+            ``'chunk'`` for projector or kernel temporaries, or ``'overhead'`` (Python, CUDA, allocator). Defaults to
+            ``'held'``.
+    """
+    name: str
+    ram_bytes: float = 0.0
+    gpu_bytes: float = 0.0
+    scope: str = 'held'
+
+    def __post_init__(self):
+        if self.scope not in MEMORY_SCOPES:
+            raise ValueError(f"the scope of a memory part is one of {list(MEMORY_SCOPES)}, not {self.scope!r}")
+
+
+def counts_gpu_as_ram() -> bool:
+    """Whether GPU memory a process holds also counts as its RAM: on Windows, where the GPU memory PyTorch holds (in
+    use or cached) is part of the process's committed memory, the measure the 25 GB tutorial cap uses."""
+    return sys.platform == 'win32'
+
+
+def fixed_overhead() -> MemoryPart:
+    """Python, PyTorch and the CUDA context (:data:`FIXED_OVERHEAD_BYTES`), as the ``'overhead'`` part every estimate adds."""
+    return MemoryPart('Python, PyTorch and CUDA', ram_bytes=FIXED_OVERHEAD_BYTES, scope='overhead')
+
+
+#: Memory PyTorch's CPU allocator keeps after tensors are freed, on Windows, as a fraction of the computation's own
+#: arrays (held, subset and chunk parts). PyTorch's allocator there (mimalloc) seldom gives freed memory back during a
+#: long computation; calibrated against the PET tutorials' measured peaks.
+WINDOWS_ALLOCATOR_FRACTION = 0.35
+
+
+def memory_estimate(title: str, parts: Sequence[MemoryPart], alternatives: Sequence[tuple[str, Sequence[MemoryPart]]] = (), allocator_fraction: float | None = None) -> MemoryEstimate:
+    """A :class:`MemoryEstimate` of a computation's own arrays (``parts``), with the overheads every estimate adds: Python,
+    PyTorch and CUDA (:func:`fixed_overhead`) and, on Windows, the memory PyTorch's allocator keeps after freeing
+    (:data:`WINDOWS_ALLOCATOR_FRACTION` of the arrays). The alternatives get the same overheads, so their totals compare
+    with the main one. The ``estimate_memory`` methods build their estimates with it.
+
+    Args:
+        title (str): What is estimated, with its settings.
+        parts (Sequence[MemoryPart]): The computation's arrays (no overhead parts).
+        alternatives (Sequence[tuple[str, Sequence[MemoryPart]]], optional): Other settings and their arrays, for the
+            "To use less" line. Defaults to none.
+        allocator_fraction (float | None, optional): The Windows allowance as a fraction of the arrays (RAM and GPU),
+            for computations measured to need another. Defaults to None: :data:`WINDOWS_ALLOCATOR_FRACTION`.
+
+    Returns:
+        MemoryEstimate: The estimate.
+    """
+    def with_overheads(parts):
+        parts = list(parts)
+        overheads = [fixed_overhead()]
+        if counts_gpu_as_ram():
+            # what PyTorch's allocators keep after freeing (its CPU allocator, and its GPU cache, which Windows also counts)
+            arrays = sum(p.ram_bytes + p.gpu_bytes for p in parts if p.scope != 'overhead')
+            fraction = WINDOWS_ALLOCATOR_FRACTION if allocator_fraction is None else allocator_fraction
+            if arrays > 0:
+                overheads.append(MemoryPart('memory the allocators keep (Windows)', ram_bytes=fraction * arrays, scope='overhead'))
+        return parts + overheads
+    return MemoryEstimate(title, with_overheads(parts), [(label, MemoryEstimate(label, with_overheads(p))) for label, p in alternatives])
+
+
+def nbytes(x) -> tuple[float, float]:
+    """Memory an array keeps, as (RAM bytes, GPU bytes): a tensor's storage on its device, or what a
+    :class:`~pytomography.io.PET.shared.LazySinogram` keeps (``memory_bytes``, on the host); 0 for anything else."""
+    if isinstance(x, torch.Tensor):
+        size = x.untyped_storage().nbytes()
+        return (0.0, float(size)) if x.device.type == 'cuda' else (float(size), 0.0)
+    return float(getattr(x, 'memory_bytes', 0)), 0.0
+
+
+def _gb(nbytes: float) -> str:
+    return f"{nbytes / 1e9:.1f}" if nbytes >= 0.05e9 else f"{nbytes / 1e9:.2f}"
+
+
+class MemoryEstimate:
+    """The predicted peak memory of a computation: the arrays it holds (:class:`MemoryPart`), their total RAM and GPU
+    memory, and what other settings would need. ``print`` it to see the estimate; ``ram_gb`` and ``gpu_gb`` give the
+    numbers to code.
+
+    On Windows the GPU memory also counts as RAM (:func:`counts_gpu_as_ram`), so ``ram_gb`` includes it there.
+
+    Args:
+        title (str): What is estimated, with its settings (e.g. ``'PET sinogram reconstruction, 14 subsets'``).
+        parts (Sequence[MemoryPart]): The arrays, including the overhead.
+        alternatives (Sequence[tuple[str, MemoryEstimate]], optional): Other settings and their estimates, for the
+            "To use less" line (e.g. ``('28 subsets', estimate_28)``). Defaults to none.
+    """
+    def __init__(self, title: str, parts: Sequence[MemoryPart], alternatives: Sequence[tuple[str, MemoryEstimate]] = ()) -> None:
+        self.title = title
+        self.parts = list(parts)
+        self.alternatives = list(alternatives)
+
+    @property
+    def gpu_gb(self) -> float:
+        """Peak GPU memory, in GB."""
+        return sum(p.gpu_bytes for p in self.parts) / 1e9
+
+    @property
+    def ram_gb(self) -> float:
+        """Peak RAM, in GB (on Windows, with the GPU memory)."""
+        ram = sum(p.ram_bytes for p in self.parts)
+        if counts_gpu_as_ram():
+            ram += sum(p.gpu_bytes for p in self.parts)
+        return ram / 1e9
+
+    def __str__(self) -> str:
+        lines = [self.title, f"Peak ~ {self.ram_gb:.1f} GB RAM, {self.gpu_gb:.1f} GB GPU"
+                 + (" (on Windows, GPU memory counts as RAM too)" if counts_gpu_as_ram() and self.gpu_gb >= 0.05 else "")]
+        for scope, label in MEMORY_SCOPES.items():
+            parts = [p for p in self.parts if p.scope == scope]
+            if not parts:
+                continue
+            ram, gpu = sum(p.ram_bytes for p in parts), sum(p.gpu_bytes for p in parts)
+            items = ", ".join(p.name + " " + " + ".join(s for s in (f"{_gb(p.ram_bytes)} RAM" if p.ram_bytes else "",
+                                                                     f"{_gb(p.gpu_bytes)} GPU" if p.gpu_bytes else "") if s)
+                               for p in parts)
+            lines.append(f"  {label}: {_gb(ram)} GB RAM, {_gb(gpu)} GB GPU ({items})")
+        if self.alternatives:
+            lines.append("To use less: " + ", ".join(f"{label} ~ {estimate.ram_gb:.1f} GB RAM, {estimate.gpu_gb:.1f} GB GPU"
+                                                      for label, estimate in self.alternatives))
+        lines.append("(plus whatever else your script keeps)")
+        return "\n".join(lines)
+
+    def __repr__(self) -> str:
+        return self.__str__()

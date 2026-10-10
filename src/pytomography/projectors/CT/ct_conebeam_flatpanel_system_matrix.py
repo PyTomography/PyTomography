@@ -7,7 +7,7 @@ from pytomography.metadata import ObjectMeta
 from pytomography.metadata.CT import CTConeBeamFlatPanelProjMeta
 from pytomography.utils.fourier_filters import get_fbp_filter, ramp_filter
 import parallelproj_core
-from .ct_gen3_system_matrix import _float32, _pad, _crop
+from .ct_gen3_system_matrix import _float32, _pad, _crop, _saving_memory
 
 class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
     """System matrix for a cone beam CT system with a flat detector panel. Filtered back projection (FDK) is available for circular (fixed z) scans through :class:`pytomography.algorithms.FilteredBackProjection`.
@@ -58,15 +58,16 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
             xv, yv = torch.meshgrid(x, y, indexing='ij')
             post_weight = (self.proj_meta.DSO / (self.proj_meta.DSO + yv.unsqueeze(0) * torch.sin(self.proj_meta.angles.to(pytomography.device)).reshape((-1,1,1)) + xv.unsqueeze(0) * torch.cos(self.proj_meta.angles.to(pytomography.device)).reshape((-1,1,1))))**2
             self._FBP_postweight_component1 = post_weight.unsqueeze(-1)
-        # Weight that removes length scaling Joseph projector to make projector "unmatched" (see Ander Biguri thesis chapter 4)
+        # Weight that removes length scaling Joseph projector to make projector "unmatched" (see Ander Biguri thesis chapter 4).
+        # The length of l = (lx, ly, lz) and its product with d are summed over broadcast axes: three images at most,
+        # not the (Nx, Ny, Nz, 3) vectors and their products.
         d = -self.proj_meta.detector_orientations[idx].to(pytomography.device)
         source_pos = self.proj_meta.beam_locations[idx].to(pytomography.device)
-        lx = x - source_pos[0]
-        ly = y - source_pos[1]
-        lz = z - source_pos[2]
-        l_vec = torch.stack(torch.meshgrid(lx,ly,lz, indexing='ij'), dim=-1)
-        l = torch.norm(l_vec, dim=-1)
-        w = self.proj_meta.DSD**2 * l / ((l_vec*d).sum(dim=-1))**3 * dx*dy*dz / (du*dv)
+        lx = (x - source_pos[0])[:, None, None]
+        ly = (y - source_pos[1])[None, :, None]
+        lz = (z - source_pos[2])[None, None, :]
+        w = (lx ** 2 + ly ** 2 + lz ** 2).sqrt_()
+        w.div_((lx * d[0] + ly * d[1] + lz * d[2]).pow_(3)).mul_(self.proj_meta.DSD**2 * dx*dy*dz / (du*dv))
         return self._FBP_postweight_component1[idx] / w
     
     def set_n_subsets(self, n_subsets: int) -> list:
@@ -188,7 +189,8 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         along the detector rows (times the window ``filter``), back projected, and weighted with the FDK distance weight.
 
         Args:
-            projections (torch.Tensor): Line integrals (views, u, v).
+            projections (torch.Tensor): Line integrals (views, u, v), on any device: one view at a time is moved to
+                the projection device.
             filter (FBPFilter, optional): Window applied on top of the ramp filter. Defaults to None (Ram-Lak).
 
         Returns:
@@ -197,13 +199,67 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         window = get_fbp_filter(filter)
         BP = torch.zeros(tuple(n + 2 for n in self.object_meta.shape), dtype=torch.float32, device=pytomography.device)
         for idx in range(self.proj_meta.N_angles):
-            proj_i = projections[idx] * self._get_FBP_preweight(idx)
+            proj_i = projections[idx].to(self.device) * self._get_FBP_preweight(idx)   # one view at a time on the device
             proj_i = ramp_filter(proj_i, self.proj_meta.dr[0], window, dim=0)
-            # each view's back projection is weighted on its own before it is accumulated
+            # each view's back projection is weighted on its own before it is accumulated (in place: one image more)
             BP_i = torch.zeros_like(BP)
             self._back_project_view(BP_i, idx, proj_i)
-            BP[1:-1, 1:-1, 1:-1] += _crop(BP_i) * self._get_FBP_postweight(idx) * self._get_FBP_scale()
+            weighted = self._get_FBP_postweight(idx)
+            weighted.mul_(BP_i[1:-1, 1:-1, 1:-1]).mul_(self._get_FBP_scale())
+            BP[1:-1, 1:-1, 1:-1] += weighted
+            del BP_i, weighted
         return _crop(BP)
+
+    def _fbp_memory_parts(self, projections: torch.Tensor, filter=None) -> list:
+        """The memory :meth:`_fbp` takes, without running it, for
+        :meth:`pytomography.algorithms.FilteredBackProjection.estimate_memory`. Held: the projections, the padded
+        image, and the in-plane distance weight of every view, which the system matrix keeps for later calls. For each
+        view: its back projection (a second padded image), its rays, its ramp filter's spectra, and its weights in 3D
+        (three images, measured); on the first view, while the in-plane weights of every view are computed, two more
+        arrays of their size."""
+        from pytomography.utils.memory import MemoryPart, nbytes
+        image = int(np.prod(self.object_meta.shape)) * 4
+        padded = int(np.prod([s + 2 for s in self.object_meta.shape])) * 4
+        Nx, Ny, _ = self.object_meta.shape
+        cols, rows = self.proj_meta.shape
+        rays = cols * rows
+        spectra = 16 * int(2 ** np.ceil(np.log2(2 * cols))) * rows               # ramp_filter's, zero padded
+        weights = self.proj_meta.N_angles * Nx * Ny * 4
+        on = (lambda b: dict(gpu_bytes=b)) if torch.device(pytomography.device).type == 'cuda' else (lambda b: dict(ram_bytes=b))
+        ram, gpu = nbytes(projections)
+        return [MemoryPart('projections', ram_bytes=ram, gpu_bytes=gpu, scope='held'),
+                MemoryPart('image', **on(padded + image), scope='held'),
+                MemoryPart('distance weights of every view', **on(weights), scope='held'),
+                MemoryPart('one view: back projection, rays, distance weight',
+                           **on(max(padded + 28 * rays + spectra + 3 * image, 2 * weights)), scope='chunk')]
+
+    def _memory_parts(self, n_subsets: int = 1, N_splits: int | None = None) -> list:
+        r"""The arrays of an ordered-subset reconstruction with this system matrix, as OS-SART takes them, for
+        :meth:`estimate_memory` (which adds the projections, passed as ``held``). Held for the whole reconstruction:
+        the image, and one :math:`H_m^T 1` per subset, kept on the device (an image each), so that more subsets take
+        more memory. For each subset: its projections (measured, predicted, of ones, and their ratio) and the images of
+        the update. For each view: the end points and values of its rays (28 bytes a ray) and the padded image.
+        ``N_splits`` splits the kernel calls of a view but not these arrays, so it does not change the memory."""
+        from pytomography.utils.memory import MemoryPart
+        n = max(1, n_subsets)
+        image = int(np.prod(self.object_meta.shape)) * 4
+        padded = int(np.prod([s + 2 for s in self.object_meta.shape])) * 4
+        rays = int(np.prod(self.proj_meta.shape))
+        views = -(-self.proj_meta.N_angles // n)                    # in the largest subset
+        on = lambda device, b: dict(gpu_bytes=b) if torch.device(device).type == 'cuda' else dict(ram_bytes=b)
+        return [MemoryPart('image', **on(pytomography.device, image), scope='held'),
+                MemoryPart(f'H_m^T 1 of {n} subset{"s" if n > 1 else ""}', **on(pytomography.device, n * image), scope='held'),
+                MemoryPart('projections of a subset: measured, predicted, of ones, ratio',
+                           **on(self.device, 4 * views * rays * 4), scope='subset'),
+                MemoryPart('images of an update', **on(pytomography.device, 3 * image), scope='subset'),
+                MemoryPart('one view: rays and the padded image', **on(pytomography.device, 28 * rays + padded + image), scope='chunk')]
+
+    def _memory_alternatives(self, n_subsets: int, N_splits: int | None) -> list:
+        """Half and twice the subsets, where they take less memory: each subset keeps an image on the device while
+        its projections shrink with more subsets, so which way saves memory depends on the scan. ``N_splits`` does
+        not change the memory."""
+        candidates = [(f'{n_subsets // 2} subsets', n_subsets // 2, N_splits)] if n_subsets >= 2 else []
+        return _saving_memory(self, candidates + [(f'{2 * n_subsets} subsets', 2 * n_subsets, N_splits)], n_subsets, N_splits)
 
     def backward(
         self,

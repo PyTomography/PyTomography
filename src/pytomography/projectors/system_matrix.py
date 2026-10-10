@@ -1,10 +1,11 @@
 from __future__ import annotations
-from typing import Sequence
+from typing import Mapping, Sequence
 import abc
 import torch
 import pytomography
 from pytomography.transforms import Transform
 from pytomography.metadata import ObjectMeta, ProjMeta
+from pytomography.utils.memory import MemoryEstimate, MemoryPart, memory_estimate, nbytes
 from copy import copy
 
 class SystemMatrix():
@@ -82,6 +83,104 @@ class SystemMatrix():
             NotImplementedError: This system matrix has no filtered back projection.
         """
         raise NotImplementedError(f'{type(self).__name__} does not support filtered back projection')
+
+    def _fbp_memory_parts(self, projections: torch.Tensor, filter, **kwargs) -> list[MemoryPart]:
+        """The arrays :meth:`_fbp` would take with the same arguments, without running it and without the overheads
+        every estimate adds (:func:`pytomography.utils.memory.memory_estimate`): the projections, the image, and the
+        most its steps hold at once. It is called by
+        :meth:`pytomography.algorithms.FilteredBackProjection.estimate_memory`. System matrices with a :meth:`_fbp`
+        override it; this one raises.
+
+        Raises:
+            NotImplementedError: This system matrix has no filtered back projection.
+        """
+        raise NotImplementedError(f'{type(self).__name__} does not support filtered back projection')
+
+    def _fbp_memory_alternatives(self, projections: torch.Tensor, filter, **kwargs) -> list[tuple[str, list[MemoryPart]]]:
+        """Other settings of :meth:`_fbp` that take less memory, with their arrays, as ``(label, parts)``, for the "To use
+        less" line of :meth:`pytomography.algorithms.FilteredBackProjection.estimate_memory`. None by default."""
+        return []
+
+    def _memory_parts(self, n_subsets: int, N_splits: int | None) -> list[MemoryPart]:
+        """The arrays a reconstruction with this system matrix holds at its peak, without the overheads every estimate
+        adds (:func:`pytomography.utils.memory.memory_estimate`): what it holds for the whole run, one subset's arrays and
+        the projector's temporaries. System matrices that can estimate their memory override it.
+
+        Args:
+            n_subsets (int): Number of subsets.
+            N_splits (int | None): Projector splits, or None for this system matrix's own.
+
+        Returns:
+            list[MemoryPart]: The arrays.
+        """
+        raise NotImplementedError(f"{type(self).__name__} does not estimate its memory yet")
+
+    def _memory_alternatives(self, n_subsets: int, N_splits: int | None) -> list[tuple[str, int, int | None]]:
+        """The settings the "To use less" line of :meth:`estimate_memory` shows, as ``(label, n_subsets, N_splits)``:
+        twice the subsets, and twice the projector splits if this system matrix has them. System matrices for which
+        other settings use less (e.g. fewer subsets) override it.
+
+        Args:
+            n_subsets (int): Number of subsets of the estimate.
+            N_splits (int | None): Projector splits of the estimate.
+
+        Returns:
+            list[tuple[str, int, int | None]]: The settings.
+        """
+        alternatives = [(f"{2 * n_subsets} subsets", 2 * n_subsets, N_splits)]
+        splits = N_splits if N_splits is not None else getattr(self, 'N_splits', None)
+        if splits is not None:
+            alternatives.append((f"N_splits {2 * splits}", n_subsets, 2 * splits))
+        return alternatives
+
+    def estimate_memory(self, n_subsets: int = 1, N_splits: int | None = None, held: Sequence | Mapping = ()) -> MemoryEstimate:
+        """The predicted peak RAM and GPU memory of a reconstruction with this system matrix, for ``n_subsets`` subsets
+        and ``N_splits`` projector splits, under the current memory budget (:func:`pytomography.set_memory_budget`).
+        ``print`` it to see the peak, what it is made of, and what more subsets or splits would need ("To use less");
+        ``ram_gb`` and ``gpu_gb`` give the numbers. On Windows, GPU memory counts as RAM too.
+
+        Args:
+            n_subsets (int, optional): Number of subsets. Defaults to 1.
+            N_splits (int | None, optional): Projector splits, for system matrices that take them. Defaults to None: this
+                system matrix's own.
+            held (Sequence | Mapping, optional): Other arrays the reconstruction holds for the whole run, such as its
+                projections and additive term (tensors or :class:`~pytomography.io.PET.shared.LazySinogram`), as a list
+                or as a dict of names to arrays. Their size is added. Defaults to none.
+
+        Returns:
+            MemoryEstimate: The estimate.
+
+        Example:
+            >>> estimate = system_matrix.estimate_memory(n_subsets=14, held={'data': sinogram, 'additive term': additive_term})
+            >>> print(estimate)
+        """
+        items = held.items() if isinstance(held, Mapping) else ((f"array {k + 1}", x) for k, x in enumerate(held))
+        held_parts = [MemoryPart(name, *nbytes(x), scope='held') for name, x in items]
+        title = (f"{type(self).__name__}: {n_subsets} subset{'' if n_subsets == 1 else 's'}"
+                 + (f", N_splits {N_splits}" if N_splits is not None else "")
+                 + (f", memory budget {pytomography.memory_budget / 1e9:g} GB" if pytomography.memory_budget is not None else ""))
+        alternatives = [(label, list(self._memory_parts(k, s)) + held_parts) for label, k, s in self._memory_alternatives(n_subsets, N_splits)]
+        return memory_estimate(title, list(self._memory_parts(n_subsets, N_splits)) + held_parts, alternatives,
+                               allocator_fraction=getattr(self, 'memory_allocator_fraction', None))
+
+    def fewest_subsets(self, ram_gb: float, N_splits: int | None = None, held: Sequence | Mapping = (), max_subsets: int = 1024) -> int | None:
+        """The fewest subsets for which :meth:`estimate_memory` predicts at most ``ram_gb`` GB of RAM, or None if no
+        number up to ``max_subsets`` does. The numbers are tried in order (an estimate is arithmetic), since memory need
+        not fall with more subsets (a CT reconstruction keeps a normalisation image per subset).
+
+        Args:
+            ram_gb (float): RAM available, in GB.
+            N_splits (int | None, optional): Projector splits. Defaults to None: this system matrix's own.
+            held (Sequence | Mapping, optional): As for :meth:`estimate_memory`. Defaults to none.
+            max_subsets (int, optional): Most subsets to consider. Defaults to 1024.
+
+        Returns:
+            int | None: Number of subsets.
+        """
+        for n_subsets in range(1, max_subsets + 1):
+            if self.estimate_memory(n_subsets, N_splits, held).ram_gb <= ram_gb:
+                return n_subsets
+        return None
 
     @abc.abstractmethod
     def forward(self, object: torch.tensor, **kwargs):
