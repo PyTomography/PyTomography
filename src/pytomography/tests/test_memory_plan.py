@@ -529,3 +529,52 @@ def test_fbp_plans_with_nothing_to_choose():
     assert plan.fits and plan.settings == {} and plan.estimate.ram_gb == pytest.approx(estimate.ram_gb)
     assert not fbp.plan_memory(ram_gb=estimate.ram_gb - 0.01, gpu_gb=estimate.gpu_gb).fits
     _roundtrip(plan)
+
+
+# ------------------------------------------------------------------ single scatter simulation
+BIG_INFO = dict(INFO, rsectorTransNr=32, crystalTransNr=8, NrCrystalsPerRing=256, moduleAxialNr=4, crystalAxialNr=8, NrRings=32)   # large enough to matter
+
+
+def test_sss_estimate_follows_n_splits_and_lazy():
+    pytest.importorskip("parallelproj_core")
+    from pytomography.metadata.PET import PETSinogramPolygonProjMeta, PETTOFMeta
+    from pytomography.utils import sss
+    tof_meta = PETTOFMeta(21, 300.0, 60.0, n_sigmas=3)
+    proj_meta = PETSinogramPolygonProjMeta(BIG_INFO, tof_meta)
+    sizes = sss._sss_sizes(proj_meta, tof_meta, 4, 4)
+    assert sizes['lors'] == (9 * 64) * (9 * 64 - 1) // 2 and sizes['sampled_planes'] == 9 ** 2   # rings 0, 4, ... 28 and 31
+    # every other ring and crystal sampled: 2.4 million lines of response, whose TOF kernel is the largest step
+    fine = dict(sinogram_interring_stepsize=2, sinogram_intraring_stepsize=2)
+    one = sss.estimate_sss_memory(PET_OBJECT, proj_meta, tof_meta=tof_meta, N_splits=1, lazy=True, **fine)
+    seven = sss.estimate_sss_memory(PET_OBJECT, proj_meta, tof_meta=tof_meta, N_splits=7, lazy=True, **fine)
+    assert one.settings == {'lazy': True, 'N_splits': 1} and seven.settings == {'lazy': True, 'N_splits': 7}
+    if not sss._sss_cuda.available(pytomography.device, 21):                            # the TOF kernel is built by PyTorch
+        assert any('sparse estimate' in p.name for p in one.parts)
+        assert one.ram_gb + one.gpu_gb > seven.ram_gb + seven.gpu_gb + 2
+    dense = sss.estimate_sss_memory(PET_OBJECT, proj_meta, tof_meta=tof_meta, N_splits=7, lazy=False)
+    sinogram = 4 * 128 * 257 * 32 ** 2 * 21
+    assert _bytes(_parts(dense)['interpolated estimate (dense) and its scaled copy (host)']) == 2 * sinogram
+    assert dense.ram_gb > seven.ram_gb
+    _roundtrip(dense)
+    str(dense).encode('cp1252')
+    non_tof = sss.estimate_sss_memory(PET_OBJECT, PETSinogramPolygonProjMeta(BIG_INFO, None), proj_data=torch.zeros(128, 257, 32 ** 2))
+    assert non_tof.settings == {'lazy': False} and _bytes(_parts(non_tof)['data']) == 4 * 128 * 257 * 32 ** 2
+
+
+def test_sss_plan_chooses_lazy_and_n_splits():
+    pytest.importorskip("parallelproj_core")
+    from pytomography.metadata.PET import PETSinogramPolygonProjMeta, PETTOFMeta
+    from pytomography.utils import sss
+    tof_meta = PETTOFMeta(21, 300.0, 60.0, n_sigmas=3)
+    arguments = dict(object_meta=PET_OBJECT, proj_meta=PETSinogramPolygonProjMeta(BIG_INFO, tof_meta), tof_meta=tof_meta)
+    plan = sss.plan_sss_memory(**arguments, ram_gb=1000, gpu_gb=1000)
+    assert plan.fits and plan.settings == {'lazy': False, 'N_splits': 1}               # dense, and the TOF bins together
+    budget = sss.estimate_sss_memory(**arguments, lazy=True, N_splits=3)
+    plan = sss.plan_sss_memory(**arguments, ram_gb=budget.ram_gb, gpu_gb=budget.gpu_gb)
+    assert plan.fits and plan.settings['lazy'] is True and plan.settings['N_splits'] <= 3
+    assert sss.estimate_sss_memory(**arguments, **plan.settings).ram_gb <= budget.ram_gb
+    kept = sss.plan_sss_memory(**arguments, ram_gb=1000, gpu_gb=1000, N_splits=5)
+    assert kept.settings == {'lazy': False, 'N_splits': 5} and kept.fixed == ['N_splits']
+    nothing = sss.plan_sss_memory(**arguments, ram_gb=0.1, gpu_gb=0)
+    assert not nothing.fits and len(nothing.options) == 2 * 21
+    _roundtrip(nothing)
