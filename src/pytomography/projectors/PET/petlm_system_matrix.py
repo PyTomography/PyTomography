@@ -153,13 +153,18 @@ class PETLMSystemMatrix(SystemMatrix):
                 lor_coordinates, sinogram_index = sinogram_coordinates(self.proj_meta.info)
                 self._sinogram_tables = (lor_coordinates.to(device), sinogram_index.to(device))
             lor_coordinates, sinogram_index = self._sinogram_tables
-            ids = ids[:,:2].to(torch.long)
             crystals_per_ring = self.proj_meta.info['NrCrystalsPerRing']
-            within_ring_id, pair_order = (ids % crystals_per_ring).sort(dim=1, descending=True)
-            ring_ids = (ids // crystals_per_ring).gather(1, pair_order)
-            angular_radial = lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]]
-            plane = sinogram_index[ring_ids[:,0], ring_ids[:,1]]
-            key = (angular_radial[:,0] * lor_coordinates.shape[1] + angular_radial[:,1]) * sinogram_index.numel() + plane
+            # the sort keys are computed a block of events at a time (all 50.8M events of the mMR at once took about
+            # 5 GB of temporaries on the GPU, which stayed in PyTorch's cache)
+            key = torch.empty(ids.shape[0], dtype=torch.long, device=device)
+            for start in range(0, ids.shape[0], 2**22):
+                block = ids[start:start + 2**22, :2].to(torch.long)
+                within_ring_id, pair_order = (block % crystals_per_ring).sort(dim=1, descending=True)
+                ring_ids = (block // crystals_per_ring).gather(1, pair_order)
+                angular_radial = lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]]
+                plane = sinogram_index[ring_ids[:,0], ring_ids[:,1]]
+                key[start:start + block.shape[0]] = (angular_radial[:,0] * lor_coordinates.shape[1] + angular_radial[:,1]) * sinogram_index.numel() + plane
+            del ids
             order = torch.argsort(key).to(torch.int32)
         self._orders[subset_idx] = order
         return order
@@ -223,6 +228,30 @@ class PETLMSystemMatrix(SystemMatrix):
             print(f"  device has {free/1e9:.3f} GB free of {total/1e9:.3f} GB"
                   + ("" if worst < free else "  -- the all-event projection does not fit; raise N_splits, "
                                              "set lor_device='cpu', or project subsets only"))
+
+    def _n_events(self, subset_idx: int | None) -> int:
+        """Number of events of subset ``subset_idx`` (all the events for None)."""
+        if subset_idx is None:
+            return self.proj_meta.detector_ids.shape[0]
+        return self.subset_indices_array[subset_idx].shape[0]
+
+    def _chunk_events(self, subset_idx: int | None, order: torch.Tensor | None, start: int, end: int) -> torch.Tensor:
+        """Positions, within subset ``subset_idx``, of the events of chunk ``start:end`` of the projector order (sinogram
+        order when ``order`` is given, the order the events were given in otherwise), as a long tensor on the device
+        the detector IDs are on."""
+        device = self.proj_meta.detector_ids.device
+        if order is None:
+            return torch.arange(start, end, device=device)
+        return order[start:end].to(device=device, dtype=torch.long)
+
+    def _event_ids(self, subset_idx: int | None, events: torch.Tensor | None) -> torch.Tensor:
+        """Detector IDs (and TOF bins) of ``events``, positions within subset ``subset_idx`` (all of the subset's
+        events, in the order they were given, for None)."""
+        ids = self.proj_meta.detector_ids
+        if subset_idx is not None:
+            positions = self.subset_indices_array[subset_idx].to(ids.device)
+            return ids[positions if events is None else positions[events]]
+        return ids if events is None else ids[events]
 
     def _chunks(self, n: int) -> list:
         """Start/end of the ``N_splits`` contiguous chunks the projection is computed in."""
@@ -432,25 +461,19 @@ class PETLMSystemMatrix(SystemMatrix):
         Returns:
             torch.tensor: Projections corresponding to the expected number of counts along each LOR.
         """ 
-        # Deal With subset stuff
-        if subset_idx is not None:
-            idx = self.proj_meta.detector_ids[self.subset_indices_array[subset_idx].to(self.proj_meta.detector_ids.device)].squeeze()
-        else:
-            idx = self.proj_meta.detector_ids.squeeze()
         # Apply object space transforms
         object = _float32(object, pytomography.device)
         for transform in self.obj2obj_transforms:
             object = transform.forward(object)
         object = _pad(_float32(object, pytomography.device))
-        # hand the LORs to the projector in sinogram order; the projections are put back below
-        idx_events = idx                                    # in the order the events were given
+        # The LORs go to the projector in sinogram order, a chunk at a time: each chunk's events are taken through the
+        # event order, and its projections written back to where those events are (no sorted copy of all the events)
+        n_events = self._n_events(subset_idx)
         order = self._event_order(subset_idx)
-        if order is not None:
-            idx = idx[order.to(torch.long)]
-        # Project into one buffer: parallelproj writes the values of each chunk into the slice it is given
-        proj = torch.zeros(idx.shape[0], dtype=torch.float32, device=self.output_device)
-        for start, end in self._chunks(idx.shape[0]):
-            idx_partial = idx[start:end]
+        proj = torch.empty(n_events, dtype=torch.float32, device=self.output_device)
+        for start, end in self._chunks(n_events):
+            events = self._chunk_events(subset_idx, order, start, end)
+            idx_partial = self._event_ids(subset_idx, events)
             xstart, xend = self._lor_coordinates(idx_partial)
             chunk = torch.zeros(end - start, dtype=torch.float32, device=pytomography.device)
             if self.TOF:
@@ -459,17 +482,12 @@ class PETLMSystemMatrix(SystemMatrix):
                                                       chunk, bin_width, sigma, center_offset, bins, num_bins, n_sigmas)
             else:
                 parallelproj_core.joseph3d_fwd(xstart, xend, object, self.object_origin, self.voxel_size, chunk)
-            proj[start:end] = chunk.to(self.output_device)
-        # back to the order the events were given in
-        if order is not None:
-            unsorted = torch.empty_like(proj)
-            unsorted[order.to(torch.long).to(proj.device)] = proj
-            proj = unsorted
+            proj[events.to(proj.device)] = chunk.to(self.output_device)
         if self.scale_projection_by_sensitivity:
             if self.proj_meta.weights is None:
                 if self.attenuation_map is not None:
-                    # proj is back in the order the events were given, so the factors are computed in that order too
-                    proj = proj * self._compute_attenuation_probability_projection(idx_events).to(proj.device)
+                    # proj is in the order the events were given, so the factors are computed in that order too
+                    proj = proj * self._compute_attenuation_probability_projection(self._event_ids(subset_idx, None)).to(proj.device)
                 else:
                     raise Exception('If scaling by sensitivity, then `weights` must be provided in the projection metadata')
             else:
@@ -492,30 +510,25 @@ class PETLMSystemMatrix(SystemMatrix):
         Returns:
             torch.tensor: _description_
         """
-        # Deal With subset stuff
-        if subset_idx is not None:
-            idx = self.proj_meta.detector_ids[self.subset_indices_array[subset_idx].to(self.proj_meta.detector_ids.device)].squeeze()
-        else:
-            idx = self.proj_meta.detector_ids.squeeze()
         # Normalization/attenuation scaling (if needed); the same factors as forward, so the two stay adjoint
         if self.scale_projection_by_sensitivity:
             if self.proj_meta.weights is None:
                 if self.attenuation_map is not None:
-                    proj = proj * self._compute_attenuation_probability_projection(idx).to(proj.device)
+                    proj = proj * self._compute_attenuation_probability_projection(self._event_ids(subset_idx, None)).to(proj.device)
                 else:
                     raise Exception('If scaling by sensitivity, then `weights` must be provided in the projection metadata')
             else:
                 proj = proj * self.get_projection_subset(self.proj_meta.weights, subset_idx).to(proj.device)
-        # hand the LORs to the projector in sinogram order, with their projections
+        # The LORs go to the projector in sinogram order, a chunk at a time, with their projections (taken through the
+        # event order chunk by chunk, so there is no sorted copy of all the events or projections)
+        n_events = self._n_events(subset_idx)
         order = self._event_order(subset_idx)
-        if order is not None:
-            idx = idx[order.to(torch.long)]
-            proj = proj[order.to(torch.long).to(proj.device)]
         # parallelproj adds into the image it is given, so every chunk accumulates into one (padded) buffer
         BP = torch.zeros(tuple(n + 2 for n in self.object_meta.shape), dtype=torch.float32, device=pytomography.device)
-        for start, end in self._chunks(idx.shape[0]):
-            idx_partial = idx[start:end]
-            proj_i = _float32(proj[start:end], pytomography.device)
+        for start, end in self._chunks(n_events):
+            events = self._chunk_events(subset_idx, order, start, end)
+            idx_partial = self._event_ids(subset_idx, events)
+            proj_i = _float32(proj[events.to(proj.device)], pytomography.device)
             xstart, xend = self._lor_coordinates(idx_partial)
             if self.TOF:
                 bin_width, sigma, center_offset, bins, num_bins, n_sigmas = self._tof_arguments(idx_partial)
