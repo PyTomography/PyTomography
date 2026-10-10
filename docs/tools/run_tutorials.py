@@ -12,6 +12,10 @@ docs/source/notebooks with their new outputs and a "pytomography_run" stamp in t
 which the docs show on the tutorial page. --write-back-from does the same for an earlier run without
 running anything, and skips any notebook whose cells have been edited since that run.
 
+After each tutorial listed in docs/source/tutorials/viewer.yaml, one more cell in the same kernel exports its images
+for the docs' 3D viewer into <run>/viewer/<tutorial>/ (docs/tools/viewer_export.py; --no-viewer skips it). A failed
+export is reported, and never fails the tutorial; the cell is not written back.
+
 The kernel runs with:
   --python       the interpreter that has PyTomography and its dependencies
                  (default: $PYTOMOGRAPHY_TUTORIAL_PYTHON, else this interpreter)
@@ -22,7 +26,10 @@ The kernel runs with:
 and PYTOMOGRAPHY_DATA from the environment (required). Outputs go to PYTOMOGRAPHY_OUTPUT if it is set
 (so cached steps are reused across runs), otherwise to the run folder.
 
-Memory: a run must never take the machine's memory. Notebooks run one at a time, and each one
+Memory: every tutorial must run in at most 25 GB of RAM (Luke, 9 Oct 2026), and say how to use less (its RAM_GB
+cell). A notebook whose kernel uses more than --ram-cap-gb (default 25; 0 turns it off, to measure a tutorial's real
+peak) is stopped and reported "over the RAM cap". Apart from that, a run must never take the machine's memory.
+Notebooks run one at a time, and each one
   - is not started unless --min-free-gb (default 16) is free;
   - is stopped if free memory falls below --min-free-gb while it runs, or if the kernel and the
     processes it starts use more than --max-kernel-gb (default 60% of RAM);
@@ -48,6 +55,8 @@ import psutil
 import yaml
 from nbclient import NotebookClient
 from nbclient.exceptions import CellExecutionError, CellTimeoutError, DeadKernelError
+
+import viewer_export  # images for the docs' 3D viewer, exported in each tutorial's kernel (docs/tools/viewer_export.py)
 
 SRCDIR = Path(__file__).resolve().parents[1] / "source"
 MARKER = "__PYTOMOGRAPHY_RUN__"
@@ -143,9 +152,11 @@ class WindowsMemoryCap:
 class MemoryWatchdog(threading.Thread):
     """Stops the kernel, and everything it started, before the machine runs short of memory."""
 
-    def __init__(self, min_free_gb: float, max_kernel_gb: float, interval_s: float = 1.0):
+    def __init__(self, min_free_gb: float, max_kernel_gb: float, interval_s: float = 1.0, ram_cap_gb: float = 0):
         super().__init__(daemon=True)
         self.min_free_gb, self.max_kernel_gb, self.interval_s = min_free_gb, max_kernel_gb, interval_s
+        self.ram_cap_gb = ram_cap_gb      # the tutorials' cap (0: none); the other two limits protect the machine
+        self.over_cap = False
         self.peak_kernel_gb = 0.0
         self.tripped: str | None = None
         self._done = threading.Event()
@@ -160,9 +171,14 @@ class MemoryWatchdog(threading.Thread):
                 continue
             free = free_memory_gb()
             self.peak_kernel_gb = max(self.peak_kernel_gb, used)
-            if free < self.min_free_gb or used > self.max_kernel_gb:
+            if self.ram_cap_gb and used > self.ram_cap_gb:
+                self.over_cap = True
+                self.tripped = (f"over the RAM cap: the kernel used {used:.1f} GB; tutorials must run in "
+                                f"{self.ram_cap_gb:.0f} GB (lower its memory use, e.g. its RAM_GB cell)")
+            elif free < self.min_free_gb or used > self.max_kernel_gb:
                 self.tripped = (f"stopped to protect the machine's memory: the kernel used {used:.1f} GB "
                                 f"with {free:.1f} GB free (limits {self.max_kernel_gb:.0f} GB used, {self.min_free_gb:.0f} GB free)")
+            if self.tripped:
                 for p in procs:
                     try:
                         p.kill()
@@ -186,7 +202,8 @@ def kernel_dir(run_dir: Path, python: str, path_prefix: str, env: dict) -> Path:
     return run_dir / "jupyter"
 
 
-def run_one(name: str, run_dir: Path, timeout: int, min_free_gb: float, max_kernel_gb: float) -> dict:
+def run_one(name: str, run_dir: Path, timeout: int, min_free_gb: float, max_kernel_gb: float,
+            viewer_spec: dict | None = None, ram_cap_gb: float = 0) -> dict:
     result = {"notebook": name, "status": "passed", "cell": None, "error": None, "date": dt.date.today().isoformat(),
               "wall_time_s": 0.0}
     free = free_memory_gb()
@@ -195,10 +212,14 @@ def run_one(name: str, run_dir: Path, timeout: int, min_free_gb: float, max_kern
         return result
     nb = nbformat.read(SRCDIR / "notebooks" / f"{name}.ipynb", as_version=4)
     nb.cells.append(nbformat.v4.new_code_cell(RUNINFO, metadata={"tags": ["run-info"]}))
+    if viewer_spec:  # after the run information, so the stamp's peak memory is the tutorial's own; dropped on write-back
+        sha = viewer_export.code_sha(SRCDIR / "notebooks" / f"{name}.ipynb")   # which code the cached images came from
+        nb.cells.append(nbformat.v4.new_code_cell(viewer_export.cell_source(name, run_dir / "viewer", viewer_spec, sha),
+                                                  metadata={"tags": ["run-info", "viewer-export"]}))
     cwd = run_dir / "cwd" / name
     cwd.mkdir(parents=True, exist_ok=True)
     client = NotebookClient(nb, timeout=timeout, kernel_name="pytomography-run", resources={"metadata": {"path": str(cwd)}})
-    watchdog = MemoryWatchdog(min_free_gb, max_kernel_gb)
+    watchdog = MemoryWatchdog(min_free_gb, max_kernel_gb, ram_cap_gb=ram_cap_gb)
     watchdog.start()
     t0 = time.time()
     try:
@@ -212,7 +233,10 @@ def run_one(name: str, run_dir: Path, timeout: int, min_free_gb: float, max_kern
     finally:
         watchdog.stop()
     if watchdog.tripped:
-        result.update(status="stopped (memory)", error=watchdog.tripped)
+        result.update(status="over the RAM cap" if watchdog.over_cap else "stopped (memory)", error=watchdog.tripped)
+    elif ram_cap_gb and watchdog.peak_kernel_gb > ram_cap_gb:   # a peak between two of the watchdog's checks
+        result.update(status="over the RAM cap",
+                      error=f"over the RAM cap: the kernel peaked at {watchdog.peak_kernel_gb:.1f} GB; tutorials must run in {ram_cap_gb:.0f} GB")
     result["wall_time_s"] = round(time.time() - t0, 1)
     result["peak_kernel_gb"] = round(watchdog.peak_kernel_gb, 1)
     # Which cell failed, and the run information printed by the final cell
@@ -223,6 +247,9 @@ def run_one(name: str, run_dir: Path, timeout: int, min_free_gb: float, max_kern
             text = out.get("text", "") if out.get("output_type") == "stream" else ""
             if MARKER in text:
                 result["info"] = json.loads(text.split(MARKER, 1)[1].strip().splitlines()[0])
+            if viewer_export.MARKER in text:
+                result["viewer"] = json.loads(text.split(viewer_export.MARKER, 1)[1].strip().splitlines()[0])
+                result["wall_time_s"] = round(result["wall_time_s"] - result["viewer"].get("seconds", 0), 1)
     nbformat.write(nb, run_dir / f"{name}.ipynb")
     return result
 
@@ -269,6 +296,10 @@ def main() -> int:
                     help="don't start a notebook, and stop it, when less memory than this is free (default 16)")
     ap.add_argument("--max-kernel-gb", type=float, default=round(0.6 * psutil.virtual_memory().total / 1e9),
                     help="stop a notebook whose kernel uses more memory than this (default 60%% of RAM)")
+    ap.add_argument("--ram-cap-gb", type=float, default=25,
+                    help="the tutorials' RAM cap: a notebook using more is stopped and reported (default 25; 0 turns it off)")
+    ap.add_argument("--no-viewer", action="store_true",
+                    help="don't export the 3D viewer's images (by default, tutorials in viewer.yaml export them into RUN_DIR/viewer)")
     args = ap.parse_args()
 
     sections = yaml.safe_load(open(SRCDIR / "tutorials" / "tutorials.yaml", encoding="utf8"))["sections"]
@@ -299,7 +330,8 @@ def main() -> int:
     os.environ["JUPYTER_PATH"] = str(kernel_dir(run_dir, args.python, args.path_prefix, env))
 
     print(f"memory: {free_memory_gb():.0f} GB free; each notebook is stopped below {args.min_free_gb:.0f} GB free "
-          f"or above {args.max_kernel_gb:.0f} GB used", flush=True)
+          f"or above {args.max_kernel_gb:.0f} GB used" + (f"; tutorials over the {args.ram_cap_gb:.0f} GB RAM cap are stopped "
+          "and reported" if args.ram_cap_gb else ""), flush=True)
     if os.name == "nt":
         # Every process this one starts (kernels, the venv launcher's interpreter, SIMIND) inherits the job, so the
         # cap holds even between watchdog checks; the job is closed, killing any kernel left, when this script exits.
@@ -309,12 +341,16 @@ def main() -> int:
                 print("  (could not join the memory-capped job; the watchdog still applies)", flush=True)
         except OSError as e:
             print(f"  (no hard memory cap: {e}; the watchdog still applies)", flush=True)
+    viewer_specs = {} if args.no_viewer else viewer_export.load_specs(SRCDIR)
     results = []
     for name in names:
         print(f"running {name} ...", flush=True)
-        r = run_one(name, run_dir, args.timeout, args.min_free_gb, args.max_kernel_gb)
+        r = run_one(name, run_dir, args.timeout, args.min_free_gb, args.max_kernel_gb, viewer_specs.get(name), args.ram_cap_gb)
         results.append(r)
         print(f"  {r['status']} in {r['wall_time_s']} s" + (f" (cell {r['cell']}: {r['error']})" if r["error"] else ""), flush=True)
+        if "viewer" in r:
+            v = r["viewer"]
+            print(f"  viewer: {v['status']}" + (f", {v['bytes'] / 1e6:.1f} MB in {v['folder']}" if "bytes" in v else f": {v.get('error')}"), flush=True)
         if args.write_back and r["status"] == "passed":
             write_back(name, run_dir, r)
 

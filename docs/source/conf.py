@@ -27,6 +27,7 @@ extensions = [
     "sphinx_copybutton",
     "autoapi.extension",
     "pytomo_docs",                  # _ext/pytomo_docs.py: gallery, launch bars, llms.txt
+    "pytomo_viewer",                # _ext/pytomo_viewer.py: the 3D image viewer on tutorial pages and cards
 ]
 
 source_suffix = {".rst": "restructuredtext", ".md": "myst-nb", ".ipynb": "myst-nb"}
@@ -88,7 +89,8 @@ html_context = {
 html_theme_options = {
     "logo": {"text": "PyTomography"},
     "navbar_align": "left",
-    "header_links_before_dropdown": 7,
+    # Installation, Tutorials, Gallery, API and Contribute in the top bar; Migrate to v4, Concepts and the rest under More
+    "header_links_before_dropdown": 5,
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
     "icon_links": [
         {"name": "GitHub", "url": "https://github.com/PyTomography/PyTomography", "icon": "fa-brands fa-github"},
@@ -98,7 +100,11 @@ html_theme_options = {
     "announcement": "You are reading the preview of the PyTomography 4.0 documentation. Release target: 30 October 2026.",
     "use_edit_page_button": True,
     "show_toc_level": 2,
-    "secondary_sidebar_items": ["page-toc", "edit-this-page"],
+    # tutorial pages use the full width: their headings sit in the section navigation instead (js/pytomo-tutorial.js).
+    # Each is named exactly, since a page matching two wildcard patterns draws a warning.
+    "secondary_sidebar_items": {"**": ["page-toc", "edit-this-page"], **{
+        "notebooks/" + os.path.splitext(n)[0]: [] for n in os.listdir(os.path.join(os.path.dirname(__file__), "notebooks"))
+        if n.endswith(".ipynb")}},
     "footer_start": ["copyright"],
     "footer_end": [],
     "pygments_light_style": "friendly",
