@@ -1,0 +1,99 @@
+# Every dataset the tutorials read. Keys are folders relative to the PYTOMOGRAPHY_DATA folder.
+# The "Tutorial data" page, the data note at the top of each tutorial and (from v4.1)
+# pytomography.datasets.fetch() are all generated from this file.
+#
+#   title:     what the dataset is
+#   source:    who published it, and where
+#   url:       landing page of the download (a DOI when there is one)
+#   download:  exact steps to put it in place under PYTOMOGRAPHY_DATA
+#   size:      download size
+#   licence:   licence of the data
+#   cite:      what to cite when you use it (optional)
+
+SPECT/SIMIND-Jaszak:
+  title: SIMIND simulations of a Jaszczak phantom (Lu-177 and the Ac-225 decay chain)
+  source: PyTomography SPECT tutorial data (Zenodo)
+  url: https://doi.org/10.5281/zenodo.15314460
+  download: Download SPECT.zip from the record and unzip it into PYTOMOGRAPHY_DATA. It creates the SPECT folder with every SPECT dataset. The Ac-225 tutorial also needs the fitted PSF model ac225_psf_model.json from the PyTomography repository (examples/data); put a copy in SPECT/SIMIND-Jaszak.
+  size: 1.4 GB (SPECT.zip, all SPECT datasets)
+  licence: CC BY 4.0
+SPECT/Lu177-NEMA-SymT2:
+  title: Lu-177 NEMA IQ phantom on a Siemens Symbia T2, with CT and the scanner's reconstruction
+  source: PyTomography SPECT tutorial data (Zenodo)
+  url: https://doi.org/10.5281/zenodo.15314460
+  download: Included in SPECT.zip (see SPECT/SIMIND-Jaszak).
+  size: included in SPECT.zip
+  licence: CC BY 4.0
+SPECT/Ac225-NEMA-SymT2:
+  title: Ac-225 NEMA IQ phantom on a Siemens Symbia T2, with CT
+  source: PyTomography SPECT tutorial data (Zenodo)
+  url: https://doi.org/10.5281/zenodo.15314460
+  download: Included in SPECT.zip (see SPECT/SIMIND-Jaszak), apart from the fitted PSF model ac225_psf_model.json, which is in the PyTomography repository (examples/data); put a copy in SPECT/Ac225-NEMA-SymT2.
+  size: included in SPECT.zip
+  licence: CC BY 4.0
+SPECT/Lu177-PSMA-GEDisc:
+  title: Lu-177-PSMA patient scan over two bed positions on a GE Discovery 670 Pro, with CT and organ segmentations
+  source: PyTomography SPECT tutorial data (Zenodo)
+  url: https://doi.org/10.5281/zenodo.15314460
+  download: Included in SPECT.zip (see SPECT/SIMIND-Jaszak).
+  size: included in SPECT.zip
+  licence: CC BY 4.0
+SPECT/Tc99m-Cardiac:
+  title: Tc-99m myocardial perfusion rest study from a Siemens SPECT scanner
+  source: PyTomography SPECT tutorial data (Zenodo)
+  url: https://doi.org/10.5281/zenodo.15314460
+  download: Included in SPECT.zip (see SPECT/SIMIND-Jaszak).
+  size: included in SPECT.zip
+  licence: CC BY 4.0
+SPECT/Tc99m-NEMA-Starguide:
+  title: Tc-99m NEMA IQ phantom on a GE StarGuide, with CT and the vendor reconstruction
+  source: PyTomography SPECT tutorial data (Zenodo)
+  url: https://doi.org/10.5281/zenodo.15314460
+  download: Included in SPECT.zip (see SPECT/SIMIND-Jaszak).
+  size: included in SPECT.zip
+  licence: CC BY 4.0
+SPECT/SIMIND-MultiOrgan:
+  title: SIMIND simulation of a Lu-177 patient phantom, one projection set per organ, with the true activity maps
+  source: PyTomography SPECT tutorial data (Google Drive until it moves to Zenodo in v4.1)
+  url: https://drive.google.com/drive/folders/1dUBC1EbUgEH-Cug-oWIS7Yy_tpAqhe4j
+  download: From the simind_tutorial folder, download multi_projections and phantom_organs into SPECT/SIMIND-MultiOrgan.
+  size: 8 GB (most of it is the full-resolution truth maps)
+  licence: to be confirmed when the data moves to Zenodo
+PET/GATE-mMR-Brain:
+  title: GATE simulation of an FDG brain phantom on a Siemens Biograph mMR, with a normalisation scan
+  source: PyTomography PET tutorial data (Google Drive until it moves to Zenodo in v4.1)
+  url: https://drive.google.com/drive/folders/1dUBC1EbUgEH-Cug-oWIS7Yy_tpAqhe4j
+  download: From the PET_GATE_files_new folder, download all_physics.zip, normalization_scan.zip, mMR_Geometry.mac, fdg_pet_phantom_umap.nii.gz and fdg_pet_phantom_mri.nii.gz into PET/GATE-mMR-Brain, then unzip the two zips there. File all_physics/mMR_voxBrain_24.root is empty and is skipped.
+  size: 47 GB (40 GB of it is the normalisation scan)
+  licence: to be confirmed when the data moves to Zenodo
+PET/GE-DMI-NEMA:
+  title: NEMA IQ phantom list mode from a GE Discovery MI PET/CT, with the scanner's corrections
+  source: Georg Schramm (Zenodo)
+  url: https://doi.org/10.5281/zenodo.8404015
+  download: Download dmi_nema_lm.zip from the record and unzip it into PET/GE-DMI-NEMA.
+  size: 16.2 GB
+  licence: CC BY 4.0
+  cite: Schramm G. GE Discovery TOF MI PET NEMA IQ projector benchmark listmode data. Zenodo (2023). doi:10.5281/zenodo.8404015
+PET/PETSIRD-mIEC:
+  title: GATE simulation of a mini IEC phantom on the ETSI reference scanner, in PETSIRD format
+  source: Emission Tomography Standardization Initiative example data (PyTomography Google Drive)
+  url: https://drive.google.com/drive/folders/1dUBC1EbUgEH-Cug-oWIS7Yy_tpAqhe4j
+  download: From the petsird_tutorial folder, download mIEC_ETSIPETscanner_1.petsird and eta.npy into PET/PETSIRD-mIEC. The attenuation map (ETSIPET_ACmap_IEC_10cmRadius.hv and .v) is not in the shared folder yet.
+  size: 2.3 GB
+  licence: to be confirmed with ETSI
+CT/ldct-c145:
+  title: Chest CT (case C145) from a GE LightSpeed VCT, with the full-dose projections in DICOM-CT-PD format and the scanner's reconstruction
+  source: The Cancer Imaging Archive, LDCT-and-Projection-data, served by the NCI Imaging Data Commons
+  url: https://doi.org/10.7937/9npb-2637
+  download: "pip install idc-index, then download the projections and the scanner's reconstruction (no login needed): idc download 1.2.840.113713.4.100.1.2.234724616712334404725906500152169 --download-dir PYTOMOGRAPHY_DATA/CT/ldct-c145/full_dose_projections --dir-template \"\" and idc download 1.2.840.113713.4.100.1.2.332029262210606042701376029452792 --download-dir PYTOMOGRAPHY_DATA/CT/ldct-c145/full_dose_images --dir-template \"\""
+  size: 1.23 GB (1.07 GB of projections, 0.16 GB of images)
+  licence: CC BY 4.0. Use is also subject to the TCIA data usage policy.
+  cite: "McCollough C, Chen B, Holmes D III, Duan X, Yu Z, Yu L, Leng S, Fletcher J. Low Dose CT Image and Projection Data (LDCT-and-Projection-data), version 7. The Cancer Imaging Archive (2020). doi:10.7937/9npb-2637. Supported by NIBIB grants EB017095 and EB017185."
+CT/SophiaBeads-256:
+  title: Cone-beam micro-CT of glass beads in a plastic tube (Nikon XT H 225), 255 projections
+  source: SophiaBeads Dataset Project, University of Manchester (Zenodo)
+  url: https://doi.org/10.5281/zenodo.16474
+  download: Download SophiaBeads_256_averaged.zip from the record and unzip it into CT/SophiaBeads-256, which gives the folder CT/SophiaBeads-256/SophiaBeads_256_averaged.
+  size: 1.92 GB
+  licence: CC BY-SA 4.0
+  cite: "Coban SB, McDonald SA. SophiaBeads Dataset Project. Zenodo (2015). doi:10.5281/zenodo.16474"

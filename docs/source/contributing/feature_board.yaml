@@ -1,0 +1,133 @@
+# Work we would like contributors to take on. Rendered on contributing/feature-board.md.
+# Each item becomes a GitHub issue labelled `feature-board`; keep the two in sync.
+#
+#   level:  good-first | intermediate | advanced | research
+#   area:   IO | SPECT | PET | CT | Algorithms | Performance | Docs | Research
+#   issue:  GitHub issue number, or "new" until one is opened
+
+items:
+  - title: Add the missing to_device call
+    issue: 219
+    area: PET
+    level: good-first
+    why: joseph_fwd raises an error in the PET list-mode system matrix when an attenuation map is used, because the call lacks the to_device step the sinogram system matrix has.
+    data: A small synthetic scanner, as in the existing PET tests.
+    start: projectors/PET/petlm_system_matrix.py, compared with pet_sinogram_system_matrix.py.
+    done: A test that projects with an attenuation map on CPU and, when available, CUDA.
+
+  - title: Fix the multifile affine call
+    issue: 231
+    area: IO
+    level: good-first
+    why: open_multifile passes a single path to the multifile affine function, so the image is placed wrongly in space.
+    data: Any multi-file SPECT DICOM series from the tutorial data.
+    start: io/SPECT/dicom.py, _get_affine_multifile. Issue 223 describes the same bug.
+    done: The affine matches the single-file path for the same series, checked by a test.
+
+  - title: KEMSystemMatrix weighting subset
+    issue: 228
+    area: Algorithms
+    level: good-first
+    why: get_weighting_subset is an alias of get_projection_subset, so subsets use the wrong weights.
+    data: Synthetic.
+    start: projectors/shared/kem_system_matrix.py
+    done: The KEM system matrix passes the system-matrix contract tests with subsets.
+
+  - title: Parse SIMIND .cor files
+    issue: 222
+    area: IO
+    level: good-first
+    why: get_metadata ignores the second column of SIMIND .cor files.
+    data: The SIMIND examples in the tutorial data.
+    start: io/SPECT/simind.py
+    done: Both columns are read, and a test checks them against a sample .cor file.
+
+  - title: Restore the motion Jacobian correction
+    issue: 229
+    area: Algorithms
+    level: intermediate
+    why: The volume-ratio correction in MotionTransform is commented out and fixed at 1, so counts are not conserved for deformations that change volume.
+    data: A synthetic deformation field generated in the test.
+    start: transforms/shared/motion.py, _get_vol_ratio
+    done: Total activity is preserved under a known uniform expansion.
+
+  - title: Correct multi-bed stitching weights
+    issue: 225
+    area: SPECT
+    level: intermediate
+    why: stitch_multibed(return_stitching_weights=True) returns weights with the wrong shape or content for 3D reconstructions.
+    data: The multi-bed tutorial data.
+    start: stitch_multibed
+    done: Weights have the right shape and sum to one in the overlap region.
+
+  - title: Remove the kornia dependency
+    issue: new
+    area: Performance
+    level: intermediate
+    why: Rotation now uses cached sampling grids and only needs kornia to build them. One fewer dependency makes installation easier.
+    data: None.
+    start: utils/spatial.py, rotate_cached and _rotation_grid
+    done: Rotations are bit-identical to v4.0 and kornia is removed from pyproject.toml.
+
+  - title: Interactive slice viewer in the docs
+    issue: new
+    area: Docs
+    level: intermediate
+    why: Readers should be able to scroll through a reconstructed volume instead of looking at one static slice.
+    data: The output of any tutorial.
+    start: A MyST-NB cell tag and a small viewer such as NiiVue.
+    done: A tagged notebook cell renders a scrollable volume on the docs site.
+
+  - title: Siemens mMR list-mode reader
+    issue: 189
+    area: PET
+    level: intermediate
+    why: Several users have asked to reconstruct Biograph mMR list mode directly.
+    data: Needs a public mMR list-mode dataset.
+    start: io/PET and the PETSIRD reader.
+    done: A phantom reconstruction matches the vendor or a GATE-equivalent reference.
+
+  - title: DICOM export for CT reconstructions
+    issue: new
+    area: CT
+    level: intermediate
+    why: CT reconstructions can only be saved as arrays today, so they can't be opened next to the scanner's images in a clinical viewer.
+    data: TCIA case C145 from the CT tutorial, whose scanner reconstruction shows which tags to copy.
+    start: io/shared/dicom_creation.py, and dicom.save_dcm for SPECT as a model.
+    done: A saved reconstruction opens in 3D Slicer at the right position with correct Hounsfield units, checked by a read-back test.
+
+  - title: Conjugate-gradient reconstruction
+    issue: new
+    area: Algorithms
+    level: advanced
+    why: CG does not force every voxel to stay non-negative the way EM does, which changes bias at low counts.
+    data: The SIMIND tutorial data.
+    start: algorithms/, next to OSEM.
+    done: Matches scipy's CG on an explicit matrix and converges on a SPECT case. Planned for v4.1.
+
+  - title: Pinhole and multi-pinhole SPECT
+    issue: new
+    area: SPECT
+    level: advanced
+    why: Pinhole collimators give a better resolution and sensitivity trade-off for small objects and preclinical work.
+    data: STIR's PinholeSPECTUB sample geometry files and simulated projections.
+    start: projectors/SPECT/
+    done: Forward projections agree with STIR on the sample geometry, the class passes the contract tests, and a tutorial reconstructs a phantom.
+
+  - title: "Low-count bias study: OSEM against CG"
+    issue: new
+    area: Research
+    level: research
+    why: Tells users which algorithm to trust for dosimetry at late, low-count time points.
+    data: Monte Carlo SPECT data at several count levels, to be published on Zenodo.
+    start: The research projects on the roadmap.
+    done: Bias and noise per region against counts, a figure for the docs, and a conference abstract.
+
+  - title: Cascade-gamma (TOF-CGI) PET projector
+    issue: new
+    area: PET
+    level: research
+    why: Ac-225 can be imaged on a clinical TOF-PET scanner by detecting its 465 and 1567 keV cascade.
+    data: Needs list-mode data, through a collaboration with the authors of the 2026 JNM paper.
+    start: projectors/PET and the parallelproj 2 geometry.
+    done: Reproduces the published phantom resolution to within 10%.
