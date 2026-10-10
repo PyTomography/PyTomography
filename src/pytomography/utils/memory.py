@@ -147,9 +147,9 @@ def memory_budget_set(gb: float | None):
         pytomography.memory_budget = previous
 
 
-#: Python, PyTorch and the CUDA context: the committed memory of a process after ``import torch`` and its first CUDA
-#: call, measured on Windows with an RTX 5090 (1.9 GB).
-FIXED_OVERHEAD_BYTES = 1.9e9
+#: Python, PyTorch and the CUDA context: the committed memory of a process after ``import pytomography`` and its first
+#: CUDA call, measured on Windows with an RTX 5090 (2.7 GB; ``import torch`` alone is 1.9 GB).
+FIXED_OVERHEAD_BYTES = 2.7e9
 
 #: What each scope of a :class:`MemoryPart` means, in the order estimates print them.
 MEMORY_SCOPES = {
