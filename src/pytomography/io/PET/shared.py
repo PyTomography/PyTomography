@@ -208,20 +208,22 @@ class LazySinogram:
     * Arithmetic with numbers, with tensors whose first dimension is the same angles (such as a dense randoms or sensitivity sinogram; use ``unsqueeze`` to add trailing dimensions), and with other lazy sinograms gives a lazy sinogram, e.g. ``(randoms.unsqueeze(-1) + scatter) / sensitivity``.
     * ``to_dense()`` computes the whole sinogram as one tensor.
 
-    The angles are computed in groups of at most :attr:`chunk_bytes` bytes (and a sixteenth of the memory budget, if one is set with :func:`pytomography.set_memory_budget`) whenever more than one group is asked for at once. Values are float32 on the CPU.
+    The angles are computed in groups of at most :attr:`chunk_bytes` bytes (and a sixteenth of the memory budget, if one is set with :func:`pytomography.set_memory_budget`) whenever more than one group is asked for at once. Values are float32 on the CPU; :meth:`compute_at` gives a group of angles on another device, computed there when the sinogram can be.
 
     Args:
         compute (Callable[[torch.Tensor], torch.Tensor]): Computes the sinogram at the given angles: it gets a 1D long tensor of angle indices on the CPU and returns a new tensor of shape ``[len(angles), *shape[1:]]``.
         shape (Sequence[int]): Shape of the whole sinogram; the first dimension is the angles.
         description (str, optional): What the sinogram holds, for its ``repr``. Defaults to ''.
+        compute_on (Callable[[torch.Tensor, torch.device], torch.Tensor] | None, optional): Like ``compute``, but returns the angles as a new tensor on the device it is given, computed there. Defaults to None: :meth:`compute_at` computes on the CPU and copies.
     """
     #: Largest group of angles computed at once when more than one group is asked for, in bytes.
     chunk_bytes = 1e9
     dtype = torch.float32
     device = torch.device('cpu')
 
-    def __init__(self, compute, shape: Sequence[int], description: str = '') -> None:
+    def __init__(self, compute, shape: Sequence[int], description: str = '', compute_on=None) -> None:
         self._compute = compute
+        self._compute_on = compute_on
         self.shape = torch.Size(shape)
         self.description = description
 
@@ -297,6 +299,22 @@ class LazySinogram:
             del part
         return out
 
+    def compute_at(self, angles: torch.Tensor, device: str | torch.device) -> torch.Tensor:
+        """The sinogram at ``angles`` as a new tensor on ``device``, all the angles at once. A sinogram that can be computed on a device (binned list mode events, the interpolated scatter estimate, and arithmetic of those with tensors and numbers) is computed there, without passing through host memory; any other is computed on the CPU and copied.
+
+        Args:
+            angles (torch.Tensor): 1D long tensor of angle indices.
+            device (str | torch.device): Device of the result.
+
+        Returns:
+            torch.Tensor: Sinogram at those angles, of shape ``[len(angles), *shape[1:]]``.
+        """
+        angles = torch.as_tensor(angles).cpu().to(torch.long)
+        device = torch.device(device)
+        if self._compute_on is not None:
+            return self._compute_on(angles, device)
+        return self._compute(angles).to(device)
+
     def to_dense(self) -> torch.Tensor:
         """The whole sinogram as one tensor, computed a group of angles at a time.
 
@@ -325,23 +343,28 @@ class LazySinogram:
             if other.shape[0] != self.shape[0]:
                 raise ValueError(f"cannot combine lazy sinograms with {self.shape[0]} and {other.shape[0]} angles")
             other_at = lambda angles: other[angles]
+            other_on = lambda angles, device: other.compute_at(angles, device)
             shape = torch.broadcast_shapes(self.shape, other.shape)
         elif isinstance(other, torch.Tensor) and other.ndim > 0:
             if other.ndim != self.ndim or other.shape[0] != self.shape[0]:
                 raise ValueError(f"cannot combine a LazySinogram of shape {tuple(self.shape)} with a tensor of shape {tuple(other.shape)}: "
                                  "the tensor's first dimension must be the same angles, with as many dimensions (use unsqueeze to add trailing ones)")
             other_at = lambda angles: other[angles.to(other.device)].to(self.device)
+            other_on = lambda angles, device: other[angles.to(other.device)].to(device)
             shape = torch.broadcast_shapes(self.shape, other.shape)
         elif isinstance(other, (int, float, np.number)) or (isinstance(other, torch.Tensor) and other.ndim == 0):
             other_at = lambda angles: other
+            other_on = lambda angles, device: other
             shape = self.shape
         else:
             return NotImplemented
         if reflected:
             compute = lambda angles: op(other_at(angles), self[angles])
+            compute_on = lambda angles, device: op(other_on(angles, device), self.compute_at(angles, device))
         else:
             compute = lambda angles: op(self[angles], other_at(angles))
-        return LazySinogram(compute, shape, description=self.description)
+            compute_on = lambda angles, device: op(self.compute_at(angles, device), other_on(angles, device))
+        return LazySinogram(compute, shape, description=self.description, compute_on=compute_on)
 
     def __add__(self, other):
         return self._combine(other, torch.add)
@@ -405,7 +428,7 @@ def _event_bins(detector_ids: torch.Tensor, info: dict, num_tof_bins: int | None
     return keys, insides, tof_bins
 
 def _listmode_to_lazy_sinogram(detector_ids: torch.Tensor, info: dict, tof_meta: PETTOFMeta | None = None, weights: torch.Tensor | None = None) -> LazySinogram:
-    """``listmode_to_sinogram`` as a :class:`LazySinogram`: the events are kept, grouped by angle, as their position within the angle (4 bytes each), their TOF bin (2 bytes) and their weight if any, and the angles asked for are binned when they are asked for. The bins hold exactly what ``listmode_to_sinogram`` gives: counts are exact, and weights are summed in the same order (the events of each angle keep their order)."""
+    """``listmode_to_sinogram`` as a :class:`LazySinogram`: the events are kept, grouped by angle, as their position within the angle (4 bytes each), their TOF bin (2 bytes) and their weight if any, and the angles asked for are binned when they are asked for. The bins hold exactly what ``listmode_to_sinogram`` gives: counts are exact, and weights are summed in the same order (the events of each angle keep their order). Binned on a GPU (:meth:`LazySinogram.compute_at`), counts are still exact, but weights are added up in an order that can differ (atomic adds)."""
     shape = _sinogram_shape(info)
     num_tof_bins = None if tof_meta is None else int(tof_meta.num_bins)
     key, keep, tof_bin = _event_bins(detector_ids, info, num_tof_bins)
@@ -427,19 +450,21 @@ def _listmode_to_lazy_sinogram(detector_ids: torch.Tensor, info: dict, tof_meta:
     bins_per_angle = per_angle * (1 if num_tof_bins is None else num_tof_bins)
     out_shape = shape[1:] if num_tof_bins is None else (*shape[1:], num_tof_bins)
 
-    def compute(angles: torch.Tensor) -> torch.Tensor:
+    def compute(angles: torch.Tensor, device: torch.device | None = None) -> torch.Tensor:
+        device = torch.device('cpu') if device is None else device
         starts, counts = offsets[angles], offsets[angles + 1] - offsets[angles]
         n = int(counts.sum())
         group = torch.repeat_interleave(torch.arange(len(angles)), counts)                 # which of the angles each event is in
         event = torch.arange(n) + torch.repeat_interleave(starts - (torch.cumsum(counts, 0) - counts), counts)
-        local = group * per_angle + within_angle[event].to(torch.long)
+        # only the events' positions within their angle and TOF bins (6 bytes each) go to the device
+        local = group.to(device) * per_angle + within_angle[event].to(device, torch.long)
         if num_tof_bins is not None:
-            local = local * num_tof_bins + tof_bin[event].to(torch.long)
-        values = torch.ones(n, dtype=torch.float32) if weights is None else weights[event]
-        sinogram = torch.zeros(len(angles) * bins_per_angle, dtype=torch.float32)
-        sinogram.index_add_(0, local, values)   # adds the events in order, like bincount
+            local = local * num_tof_bins + tof_bin[event].to(device, torch.long)
+        values = torch.ones(n, dtype=torch.float32, device=device) if weights is None else weights[event].to(device)
+        sinogram = torch.zeros(len(angles) * bins_per_angle, dtype=torch.float32, device=device)
+        sinogram.index_add_(0, local, values)   # on the CPU, adds the events in order, like bincount
         return sinogram.reshape(len(angles), *out_shape)
-    return LazySinogram(compute, (shape[0], *out_shape), description=f"binned from {int(offsets[-1]):,} list mode events")
+    return LazySinogram(compute, (shape[0], *out_shape), description=f"binned from {int(offsets[-1]):,} list mode events", compute_on=compute)
 
 def listmode_to_sinogram(
     detector_ids: torch.Tensor,

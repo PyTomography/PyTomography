@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Sequence
+import math
 import torch
 import pytomography
 from pytomography.io.PET import shared
@@ -9,7 +10,8 @@ import parallelproj_core
 from torchrbf import RBFInterpolator
 from torch.nn.functional import grid_sample
 from pytomography.io.PET.shared import sinogram_coordinates, sinogram_to_spatial, listmode_to_sinogram, LazySinogram
-from pytomography.utils.memory import prefer_lazy, subsets_for_budget
+from pytomography.utils.memory import gpu_budget, prefer_lazy, subsets_for_budget
+from pytomography.utils import _sss_cuda
 from pytomography.projectors.PET import create_sinogramSM_from_LMSM
 from pytomography.projectors.PET.petlm_system_matrix import _float32
 from pytomography.metadata.PET import PETTOFMeta
@@ -115,6 +117,15 @@ def _tof_weighted_emission(offset: torch.Tensor, centers: torch.Tensor, emission
     if k is not None:
         return torch.bmm(k, weighted).squeeze(-1).T
     return torch.cat([torch.bmm(kernel(start, end), weighted).squeeze(-1) for start, end in tof_splits], dim=1).T
+
+def _tof_weighted_emission_of_crystals(offset: torch.Tensor, crystal: torch.Tensor, centers: torch.Tensor, emission: torch.Tensor, sigma: float, tof_splits: list) -> torch.Tensor:
+    """:func:`_tof_weighted_emission` of LORs whose pieces are those of the line from the scatter point to one of their
+    crystals: ``crystal`` ([LORs]) is that crystal's row in the per-crystal tables ``centers`` and ``emission``
+    ([crystals, pieces]). On a CUDA device with CuPy installed it runs as one fused kernel (``_sss_cuda``), which does not
+    build the [LORs, TOF bins, pieces] kernel tensor; otherwise with PyTorch, ``tof_splits`` bounding that tensor."""
+    if _sss_cuda.available(offset.device, offset.shape[0]):
+        return _sss_cuda.tof_weighted_emission(offset, crystal, centers, emission, sigma)
+    return _tof_weighted_emission(offset, centers[crystal], emission[crystal], sigma, tof_splits)
 
 def tof_efficiency(
     offset: torch.Tensor,
@@ -272,8 +283,12 @@ def _scatter_setup(object_meta, proj_meta, attenuation_image, image_stepsize, at
     # attenuation coefficient at each scatter point
     mu_values = attenuation_image.to(device)[coords[0], coords[1], coords[2]]
     _, _, detector_ids_scatter = get_sample_detector_ids(proj_meta, sinogram_interring_stepsize, sinogram_intraring_stepsize)
-    scanner_LUT = proj_meta.scanner_lut.to(device)
-    idxA, idxB = detector_ids_scatter.to(device).T
+    # The integrals from a scatter point are needed only to the crystals of the sampled LORs (900 of the mMR's 28,672
+    # with every sixth ring and crystal), so only those crystals are kept, and the crystals of each LOR become indices
+    # into them. (The integrals to every crystal of the scanner were computed before: 32 times the projector work.)
+    sampled_crystals, local_ids = torch.unique(detector_ids_scatter, return_inverse=True)
+    scanner_LUT = proj_meta.scanner_lut.to(device)[sampled_crystals.to(device)]
+    idxA, idxB = local_ids.to(device).T
     rA = scanner_LUT[idxA]
     rB = scanner_LUT[idxB]
     return positions, mu_values, detector_ids_scatter, scanner_LUT, idxA, idxB, rA, rB
@@ -445,11 +460,9 @@ def compute_sss_sparse_sinogram_TOF(
         compton_cross_section_ratio = total_compton_cross_section(E_new) / total_compton_cross_section_511keV
         transmission_powB = transmission_integrals_exp[idxB] ** (compton_cross_section_ratio - 1)
         transmission_powA = transmission_integrals_exp[idxA] ** (compton_cross_section_ratio - 1)
-        bin_centers_A = bin_centers_distance_along_LOR[idxA]
-        bin_centers_B = bin_centers_distance_along_LOR[idxB]
         # Emission integrals seen by each TOF bin (first dim TOF bin)
-        emission_integralsA = _tof_weighted_emission(offset_SA, bin_centers_A, emission_integrals[idxA], sigma, tof_splits)
-        emission_integralsB = _tof_weighted_emission(offset_SB, bin_centers_B, emission_integrals[idxB], sigma, tof_splits)
+        emission_integralsA = _tof_weighted_emission_of_crystals(offset_SA, idxA, bin_centers_distance_along_LOR, emission_integrals, sigma, tof_splits)
+        emission_integralsB = _tof_weighted_emission_of_crystals(offset_SB, idxB, bin_centers_distance_along_LOR, emission_integrals, sigma, tof_splits)
         probability += 1/(rSB_norm**2 * rSA_norm**2) *\
         (emission_integralsA * transmission_powB + emission_integralsB * transmission_powA) *\
         transmission_integrals_exp[idxB] * transmission_integrals_exp[idxA] * mu_value * energy_efficiency * cos_thetaA_incidence * cos_thetaB_incidence * diff_compton_cross_section(cos_theta, E_PET) / total_compton_cross_section_511keV * voxel_volume
@@ -523,25 +536,33 @@ def interpolate_sparse_sinogram(
     interp_mesh = torch.tensor(interp_mesh).to(torch.float32).to(device)
     idx_ring1 = torch.argsort(sinogram_index.ravel()) % sinogram_index.shape[-1]
     idx_ring2 = torch.argsort(sinogram_index.ravel()) // sinogram_index.shape[-1]
+    # position of each sinogram plane in the interpolated (z1, z2) grid, flattened
+    plane_order = (idx_ring1 * len(z2) + idx_ring2).to(device)
+    n_planes = len(z1) * len(z2)
+    # angles interpolated at once: the device holds the interpolated planes, the planes in sinogram order, and those
+    # in (angle, r, plane, bin) order for the copy to the host
+    angles_per_call = max(1, int(gpu_budget(device=device) // (3 * 4 * N_r * n_planes * len(bins))))
 
-    def interpolate_z(angles: torch.Tensor) -> torch.Tensor:
-        """The interpolated sinogram at the given angles: [angles, r, plane, bin], on the host."""
-        sampled = rtheta[angles].to(device)
-        out = torch.empty((len(angles), N_r, len(z1)*len(z2), len(bins)), dtype=torch.float32)
-        for b in range(len(bins)):
-            # r/theta becomes batch/channel in grid_sample, which is fine (each channel is interpolated on its own).
-            # On CUDA, grid_sample hands calls with at most 1024 channels to cuDNN, which rounds differently from
-            # PyTorch's own kernel; without cuDNN the values do not depend on how many angles are computed at once.
+    def interpolate_z(angles: torch.Tensor, on: torch.device | None = None) -> torch.Tensor:
+        """The interpolated sinogram at the given angles: [angles, r, plane, bin], on the host, or on device ``on``. All
+        the bins of a group of angles are interpolated in one call and copied out at once (one call and one copy per bin
+        took 90 ms per angle of the mMR with 21 TOF bins)."""
+        out = torch.empty((len(angles), N_r, n_planes, len(bins)), dtype=torch.float32, device=on)
+        for start in range(0, len(angles), angles_per_call):
+            group = angles[start:start + angles_per_call]
+            # (angle, r, bin) becomes the channel of grid_sample, which interpolates each channel on its own. On CUDA,
+            # grid_sample hands calls with at most 1024 channels to cuDNN, which rounds differently from PyTorch's own
+            # kernel; without cuDNN the values do not depend on how many angles or bins are computed at once.
+            sampled = rtheta[group].to(device).permute(0, 1, 3, 2).reshape(1, len(group) * N_r * len(bins), len(idx_ring), len(idx_ring))
             with torch.backends.cudnn.flags(enabled=False):
-                planes = grid_sample(
-                    sampled[..., b].reshape(len(angles) * N_r, len(idx_ring), len(idx_ring)).unsqueeze(0),
-                    interp_mesh.unsqueeze(0),
-                    align_corners=True
-                ).reshape((len(angles), N_r, len(z1), len(z2)))
-            out[..., b] = planes[:, :, idx_ring1, idx_ring2].cpu()
+                planes = grid_sample(sampled, interp_mesh.unsqueeze(0), align_corners=True)
+            del sampled
+            planes = planes.reshape(len(group), N_r, len(bins), n_planes)[..., plane_order]
+            out[start:start + len(group)] = planes.permute(0, 1, 3, 2)
+            del planes
         return out if tof_bins is not None else out[..., 0]
     shape = (N_theta, N_r, len(z1)*len(z2)) + ((len(bins),) if tof_bins is not None else ())
-    scatter_sinogram = LazySinogram(interpolate_z, shape, description="interpolated single scatter estimate")
+    scatter_sinogram = LazySinogram(interpolate_z, shape, description="interpolated single scatter estimate", compute_on=interpolate_z)
     if lazy is None:
         lazy = prefer_lazy(4 * np.prod(shape))
     return scatter_sinogram if lazy else scatter_sinogram.to_dense()
@@ -554,6 +575,13 @@ def _masked(subset: torch.Tensor, projections, mask: torch.Tensor) -> torch.Tens
            and subset.device == mask.device and torch.broadcast_shapes(subset.shape, mask.shape) == subset.shape
            and not (isinstance(projections, torch.Tensor) and subset.untyped_storage().data_ptr() == projections.untyped_storage().data_ptr()))
     return subset.mul_(mask) if own else subset * mask
+
+def _subset_on(projections, angles: torch.Tensor, device: torch.device) -> torch.Tensor:
+    """The projections at ``angles`` as a new tensor on ``device``: a LazySinogram computes them there; a tensor is
+    indexed (a copy) and moved."""
+    if isinstance(projections, LazySinogram):
+        return projections.compute_at(angles, device)
+    return projections[angles.to(projections.device)].to(device)
 
 def scale_estimated_scatter(
     proj_scatter: torch.Tensor,
@@ -597,20 +625,27 @@ def scale_estimated_scatter(
     else:
         system_matrix.TOF = False
     # Scatter
-    # Need to get back projecgion of masked scatter and masked totall;
-    # we'll split into subsets to preserve memory since this requires
-    # making copies of potentially very large sinogram tensors (one masked subset at a time, plus the temporaries of
-    # computing it; more subsets if the memory budget needs them)
-    N_SUBSETS = subsets_for_budget(4 * float(np.prod(proj_data.shape)), arrays=2, minimum=20)
+    # Need to get back projecgion of masked scatter and masked totall, one subset of angles at a time, since these
+    # sinograms are large (34.6 GB each for the mMR with 21 TOF bins). Each subset is computed, masked and back projected
+    # on pytomography.device, so on a GPU it never passes through host memory (lazy sinograms are computed there); a
+    # subset then takes at most a third of the GPU budget. On the CPU, one masked subset at a time, plus the temporaries
+    # of computing it; more subsets if the memory budget needs them.
+    device = torch.device(pytomography.device)
+    sinogram_bytes = 4 * float(np.prod(proj_data.shape))
+    N_SUBSETS = subsets_for_budget(sinogram_bytes, arrays=2, minimum=20)
+    if device.type == 'cuda':
+        N_SUBSETS = max(N_SUBSETS, math.ceil(sinogram_bytes / (gpu_budget(device=device) / 3)))
+    N_SUBSETS = min(N_SUBSETS, proj_data.shape[0])
     system_matrix.set_n_subsets(N_SUBSETS)
     BP_scatter_mask = 0
     BP_total_mask = 0
     for subset_idx in range(N_SUBSETS):
-        mask_subset = system_matrix.get_projection_subset(proj_outside_mask, subset_idx)
-        proj_scatter_masked = _masked(system_matrix.get_projection_subset(proj_scatter, subset_idx), proj_scatter, mask_subset)
+        angles = system_matrix.subset_indices_array[subset_idx].cpu()
+        mask_subset = proj_outside_mask[angles.to(proj_outside_mask.device)].to(device)
+        proj_scatter_masked = _masked(_subset_on(proj_scatter, angles, device), None, mask_subset)
         BP_scatter_mask += per_sensitivity(system_matrix.backward(proj_scatter_masked, subset_idx = subset_idx))
         del proj_scatter_masked
-        proj_total_masked = _masked(system_matrix.get_projection_subset(proj_data, subset_idx), proj_data, mask_subset)
+        proj_total_masked = _masked(_subset_on(proj_data, angles, device), None, mask_subset)
         BP_total_mask += per_sensitivity(system_matrix.backward(proj_total_masked, subset_idx=subset_idx))
         del proj_total_masked
     BP_scatter_estimated_mask = BP_total_mask - BP_random_mask

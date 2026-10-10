@@ -167,6 +167,22 @@ def test_lazy_scatter_interpolation_equals_dense(tof, small_chunks):
     assert torch.equal(lazy[angles], dense[angles])
 
 
+@pytest.mark.parametrize("tof", [False, True])
+def test_scatter_interpolation_does_not_depend_on_the_angles_per_call(tof, monkeypatch):
+    """The interpolation over the ring pairs handles a group of angles, with all their TOF bins, per call, as many as fit
+    in the GPU budget; one angle per call gives the same values."""
+    gen = torch.Generator().manual_seed(9)
+    tof_meta = _tof_meta(tof)
+    proj_meta = PETSinogramPolygonProjMeta(INFO, tof_meta)
+    idx_intraring, idx_ring, detector_ids = sss.get_sample_detector_ids(proj_meta, 4, 4)
+    N = detector_ids.shape[0]
+    sparse = sss.SparseSinogram(detector_ids, torch.rand((N_TOF, N) if tof else (N,), generator=gen).to(DEV), INFO, tof_meta=tof_meta)
+    tof_bins = range(N_TOF) if tof else None
+    expected = sss.interpolate_sparse_sinogram(sparse, proj_meta, idx_intraring, idx_ring, tof_bins=tof_bins)
+    monkeypatch.setattr(sss, "gpu_budget", lambda *args, **kwargs: 1.0)
+    assert torch.equal(sss.interpolate_sparse_sinogram(sparse, proj_meta, idx_intraring, idx_ring, tof_bins=tof_bins), expected)
+
+
 def test_likelihood_without_additive_term_holds_no_zeros():
     """It used to hold a tensor of zeros the size of the projections: 34.6 GB for a TOF sinogram of the mMR."""
     sm = PETSinogramSystemMatrix(OBJECT_META, PETSinogramPolygonProjMeta(INFO, _tof_meta(True)), device='cpu')
