@@ -538,6 +538,20 @@ def crystal_pair_blocks(n_crystals: int, pairs_per_block: int):
         offset += n_pairs
         first = last
 
+def crystal_pair_index(crystal_1: torch.Tensor, crystal_2: torch.Tensor, n_crystals: int) -> torch.Tensor:
+    """Index of each pair of crystals ``(crystal_1, crystal_2)``, ``crystal_1 < crystal_2``, in the order of ``torch.combinations(torch.arange(n_crystals), 2)`` (the order of :func:`crystal_pair_blocks` and of ``weights_sensitivity``). Computed with integers: in float32 the products round, and for the mMR (28,672 crystals) about 9 in 10 pairs were given a neighbouring pair's index.
+
+    Args:
+        crystal_1 (torch.Tensor): Lower crystal of each pair.
+        crystal_2 (torch.Tensor): Higher crystal of each pair.
+        n_crystals (int): Number of crystals.
+
+    Returns:
+        torch.Tensor: Index of each pair (int64).
+    """
+    crystal_1, crystal_2 = crystal_1.to(torch.long), crystal_2.to(torch.long)
+    return crystal_1 * (2 * n_crystals - crystal_1 - 1) // 2 + crystal_2 - crystal_1 - 1
+
 def all_pairs_to_sinogram(weights: torch.Tensor, info: dict, normalization: bool = False, pairs_per_chunk: int | None = None) -> torch.Tensor:
     """``listmode_to_sinogram`` of every pair of crystals of the scanner, with a weight for each pair (such as normalization weights), binned a block of pairs at a time.
 

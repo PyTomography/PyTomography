@@ -1,7 +1,7 @@
 """The list mode PET system matrix keeps its LORs on the projection device and hands them to the projector in
 sinogram order. Neither changes what is computed: these tests check that where the LORs are kept, and whether they
-are ordered, does not change the projections, that subsets stay consistent, and that the memory report does not
-promise less than a projection actually uses."""
+are ordered, does not change the projections, that subsets stay consistent, that the memory report does not
+promise less than a projection actually uses, and that each event gets its own crystal pair's normalization weight."""
 from __future__ import annotations
 
 import re
@@ -13,6 +13,7 @@ import torch
 import pytomography
 
 parallelproj_core = pytest.importorskip("parallelproj_core", reason="PET projection requires parallelproj 2")
+from pytomography.io.PET.shared import crystal_pair_index
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.PET import PETLMProjMeta, PETTOFMeta
 from pytomography.projectors.PET import PETLMSystemMatrix
@@ -168,3 +169,31 @@ def test_attenuation_scaling_without_weights_matches_attenuation_weights(tof):
     y = torch.rand(by_map.subset_indices_array[1].shape[0], generator=gen).to(DEV)
     assert torch.allclose(by_map.forward(x, 1), by_weights.forward(x, 1), rtol=1e-5)
     assert torch.allclose(by_map.backward(y, 1), by_weights.backward(y, 1), rtol=1e-4, atol=1e-6)
+
+
+def test_crystal_pair_index_is_the_combinations_order():
+    """The index of a crystal pair in ``torch.combinations`` order, exactly, up to the 411 million pairs of the mMR (in
+    float32, about 9 in 10 of the mMR's crystal pairs were given a neighbouring pair's normalization weight)."""
+    pairs = torch.combinations(torch.arange(40), 2)
+    assert torch.equal(crystal_pair_index(pairs[:, 0], pairs[:, 1], 40), torch.arange(pairs.shape[0]))
+    n = 28672                                                 # crystals of the Siemens Biograph mMR
+    gen = torch.Generator().manual_seed(2)
+    a, b = torch.randint(0, n, (2, 100_000), generator=gen).sort(dim=0).values
+    a, b = a[a < b], b[a < b]
+    counts = n - 1 - torch.arange(n)                          # pairs (i, j > i) of each crystal i
+    first_pair_of = torch.cumsum(counts, 0) - counts
+    assert torch.equal(crystal_pair_index(a.to(torch.int32), b.to(torch.int32), n), first_pair_of[a] + b - a - 1)
+
+
+def test_each_event_gets_its_crystal_pairs_normalization_weight():
+    """``_compute_sensitivity_projection(all_ids=False)``: the normalization weight of each event's crystal pair, whichever
+    crystal the event lists first."""
+    events = _events()
+    pairs = torch.combinations(torch.arange(N_DETECTORS), 2)
+    weights = torch.rand(pairs.shape[0], generator=torch.Generator().manual_seed(5)) + 0.5
+    pair_of = torch.full((N_DETECTORS, N_DETECTORS), -1)
+    pair_of[pairs[:, 0], pairs[:, 1]] = pair_of[pairs[:, 1], pairs[:, 0]] = torch.arange(pairs.shape[0])
+    assert (events[:, 0] > events[:, 1]).any() and (events[:, 0] < events[:, 1]).any()
+    sm = PETLMSystemMatrix(ObjectMeta(dr=(4, 4, 4), shape=(24, 24, 16)),
+                           PETLMProjMeta(events, INFO, weights_sensitivity=weights), N_splits=2)
+    assert torch.equal(sm._compute_sensitivity_projection(all_ids=False), weights[pair_of[events[:, 0], events[:, 1]]])

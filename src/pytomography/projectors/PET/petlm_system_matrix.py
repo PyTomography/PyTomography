@@ -8,7 +8,7 @@ from pytomography.projectors import SystemMatrix
 import math
 import numpy as np
 import parallelproj_core
-from pytomography.io.PET.shared import crystal_pair_blocks
+from pytomography.io.PET.shared import crystal_pair_blocks, crystal_pair_index
 from pytomography.utils.memory import block_size
 
 #: Factor applied to the memory estimates of :meth:`PETLMSystemMatrix.print_memory_usage`. Summing the arrays a
@@ -313,11 +313,15 @@ class PETLMSystemMatrix(SystemMatrix):
             return proj
         detector_ids = self.proj_meta.detector_ids
         proj = torch.ones(detector_ids.shape[0])
-        # Load normalization weights for the specific detector IDs: the norm factor of each event's crystal pair (maybe move this somewhere else)
+        # Load normalization weights for the specific detector IDs: the norm factor of each event's crystal pair, a block
+        # of events at a time (all 50.8M events of the mMR at once took about 2.5 GB of host temporaries)
         if self.proj_meta.weights_sensitivity is not None:
-            ids_sorted, _ = torch.sort(detector_ids[:,:2].cpu(), 1)
-            norm_factor_idxs = ((self.proj_meta.info['NrCrystalsPerRing'] * self.proj_meta.info['NrRings']-1)*ids_sorted[:,0] + ids_sorted[:,1] - ids_sorted[:,0]*(ids_sorted[:,0]+1)/2 - 1).to(torch.int)
-            proj *= self.proj_meta.weights_sensitivity.cpu()[norm_factor_idxs]
+            weights = self.proj_meta.weights_sensitivity.cpu()
+            n_crystals = self.proj_meta.info['NrCrystalsPerRing'] * self.proj_meta.info['NrRings']
+            for start in range(0, detector_ids.shape[0], 2**22):
+                ids_sorted, _ = torch.sort(detector_ids[start:start + 2**22, :2], 1)
+                index = crystal_pair_index(ids_sorted[:, 0], ids_sorted[:, 1], n_crystals).cpu()
+                proj[start:start + index.shape[0]] *= weights[index]
         # Scale the weights by attenuation image if its provided in the system matrix
         if self.attenuation_map is not None:
             proj *= self._compute_attenuation_probability_projection(detector_ids).cpu()
