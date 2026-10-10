@@ -84,6 +84,23 @@ class SystemMatrix():
         """
         raise NotImplementedError(f'{type(self).__name__} does not support filtered back projection')
 
+    def _fbp_memory_parts(self, projections: torch.Tensor, filter, **kwargs) -> list[MemoryPart]:
+        """The arrays :meth:`_fbp` would take with the same arguments, without running it and without the overheads
+        every estimate adds (:func:`pytomography.utils.memory.memory_estimate`): the projections, the image, and the
+        most its steps hold at once. It is called by
+        :meth:`pytomography.algorithms.FilteredBackProjection.estimate_memory`. System matrices with a :meth:`_fbp`
+        override it; this one raises.
+
+        Raises:
+            NotImplementedError: This system matrix has no filtered back projection.
+        """
+        raise NotImplementedError(f'{type(self).__name__} does not support filtered back projection')
+
+    def _fbp_memory_alternatives(self, projections: torch.Tensor, filter, **kwargs) -> list[tuple[str, list[MemoryPart]]]:
+        """Other settings of :meth:`_fbp` that take less memory, with their arrays, as ``(label, parts)``, for the "To use
+        less" line of :meth:`pytomography.algorithms.FilteredBackProjection.estimate_memory`. None by default."""
+        return []
+
     def _memory_parts(self, n_subsets: int, N_splits: int | None) -> list[MemoryPart]:
         """The arrays a reconstruction with this system matrix holds at its peak, without the overheads every estimate
         adds (:func:`pytomography.utils.memory.memory_estimate`): what it holds for the whole run, one subset's arrays and
