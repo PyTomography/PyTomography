@@ -25,6 +25,8 @@ MU = 0.02                                                      # per mm, about w
 CYLINDER = dict(radius=36.0, z0=-14.0, z1=14.0)
 SPHERES = [((10.0, 6.0, 0.0), 7.0, 0.004), ((-12.0, -9.0, 5.0), 6.0, -0.006)]
 OBJECT_META = ObjectMeta(dr=(2.0, 2.0, 2.0), shape=(48, 48, 14))
+# PyTomography's device as conftest.py set it: PYTOMOGRAPHY_TEST_DEVICE=cpu keeps it on the CPU on a machine with a GPU
+ON_GPU = torch.cuda.is_available() and torch.device(pytomography.device).type == 'cuda'
 
 
 def _helix(ffs=False, views_per_rotation=240, rotations=6, n_cols=72, n_rows=12, feed=12.0):
@@ -106,7 +108,7 @@ def test_helical_fbp_reconstructs_the_phantom_from_its_exact_line_integrals(ffs)
         assert image[core].mean() - MU == pytest.approx(dmu, rel=0.1)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="the fused kernel runs on CUDA")
+@pytest.mark.skipif(not ON_GPU, reason="the fused kernel runs on CUDA, and PyTomography's device is not a GPU")
 @pytest.mark.parametrize("ffs", [False, True], ids=["one focal spot", "flying focal spot"])
 def test_the_fused_kernel_matches_the_pytorch_back_projection(ffs):
     from pytomography.projectors.CT import _wfbp_cuda
@@ -119,6 +121,14 @@ def test_the_fused_kernel_matches_the_pytorch_back_projection(ffs):
     plain = FilteredBackProjection(proj, sm, slice_thickness=1.25, backend='torch')()
     assert stats['backend'] == 'cuda'
     assert float((fused - plain).abs().max()) < 1e-4 * MU
+
+
+def test_forcing_the_fused_kernel_where_it_cannot_run_says_why():
+    from pytomography.projectors.CT import _wfbp
+    meta = _helix(rotations=1)
+    X, Y = torch.zeros(2, 4, 4)
+    with pytest.raises(ValueError, match="needs CuPy and a CUDA device"):
+        _wfbp.fbp_helical(torch.zeros(meta.N_angles, *meta.shape), meta, X, Y, [0.0], window=None, backend='cuda', device='cpu')
 
 
 def test_helical_fbp_is_zero_outside_the_field_of_view_and_on_the_device():
@@ -236,7 +246,7 @@ def test_the_projectors_no_longer_accept_a_projection_type(which):
         sm.forward(torch.zeros(sm.object_meta.shape), projection_type='FBP')
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="measures CUDA memory")
+@pytest.mark.skipif(not ON_GPU, reason="measures CUDA memory, and PyTomography's device is not a GPU")
 def test_the_gpu_budget_bounds_the_peak():
     object_meta = ObjectMeta(dr=(1.0, 1.0, 2.0), shape=(96, 96, 14))
     meta = _helix()
