@@ -28,7 +28,14 @@ import pytomography
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.CT import CTConeBeamFlatPanelProjMeta
 from pytomography.projectors.CT import CTConeBeamFlatPanelSystemMatrix
-from pytomography.algorithms import SART
+from pytomography.algorithms import FilteredBackProjection, SART
+
+# Memory: the FDK and OS-SART reconstructions below print their estimates before they run (estimate_memory): their
+# peak RAM and GPU memory, what they are made of, and what to change to use less. They do not split their work by the
+# memory budget, so a lower RAM_GB changes nothing here; to use less RAM and GPU memory, set binning = 8 below (a grid
+# with eight times fewer voxels), or use fewer OS-SART subsets (each keeps an image on the GPU).
+RAM_GB = 25
+pytomography.set_memory_budget(RAM_GB)
 
 # %% 1. The scan
 folder = DATA / 'CT' / 'SophiaBeads-256' / 'SophiaBeads_256_averaged'
@@ -86,18 +93,22 @@ def sharpness(image):
 
 
 cors = np.round(np.arange(0.0, 0.5, 0.02), 2)  # mm
-trials = {cor: system_matrix_for(cor, 4).backward(proj, projection_type='FBP') for cor in cors}
+trials = {cor: FilteredBackProjection(proj, system_matrix_for(cor, 4), filter='ram-lak')() for cor in cors}
 scores = [sharpness(trials[cor]) for cor in cors]
 best_cor = float(cors[int(np.argmax(scores))])
 print(f"sharpest at COR = {best_cor} mm")
 
 # %% 5. FDK
 system_matrix = system_matrix_for(best_cor, n)
+fdk = FilteredBackProjection(proj, system_matrix, filter='ram-lak')
+print(fdk.estimate_memory())  # its peak RAM and GPU memory, before it runs
 t0 = time.time()
-recon_fdk = system_matrix.backward(proj, projection_type='FBP')
+recon_fdk = fdk()
 print(f"FDK: {time.time() - t0:.1f} s")
 
 # %% 6. OS-SART
+# OS-SART keeps one H_m^T 1 image per subset (on the GPU), so here fewer subsets take less memory
+print(system_matrix.estimate_memory(n_subsets=5, held={'projections': proj}))
 t0 = time.time()
 recon_sart = SART(system_matrix, proj, object_initial=recon_fdk.clamp(min=0))(n_iters=3, n_subsets=5)
 print(f"OS-SART 3 × 5: {time.time() - t0:.1f} s")
