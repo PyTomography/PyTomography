@@ -132,6 +132,7 @@ recon = OSEM(likelihood)(n_iters=4, n_subsets=8)
 install
 tutorials/index
 gallery
+architecture
 API <api/pytomography/index>
 Contribute <contributing/index>
 Migrate to v4 <migration>
