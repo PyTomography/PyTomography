@@ -16,7 +16,7 @@ from pathlib import Path
 # Tutorial data: the folder set by the PYTOMOGRAPHY_DATA environment variable (see Tutorial data in the docs)
 DATA = Path(os.environ.get("PYTOMOGRAPHY_DATA", "~/pytomography_data")).expanduser()
 # Results go here, never into the data folder
-OUTPUT = Path(os.environ.get("PYTOMOGRAPHY_OUTPUT", "pytomography_outputs")).expanduser() / "PET/GATE-mMR-Brain"
+OUTPUT = Path(os.environ.get("PYTOMOGRAPHY_OUTPUT", "pytomography_outputs")).expanduser() / "PET/GATE-mMR-BrainInWater"
 OUTPUT.mkdir(parents=True, exist_ok=True)
 
 from __future__ import annotations
@@ -38,14 +38,14 @@ import gc
 # Set this to True to recompute everything.
 LOAD_FROM_ROOT = False
 
-path = DATA / 'PET' / 'GATE-mMR-Brain'
+path = DATA / 'PET' / 'GATE-mMR-BrainInWater'
 # Macro path where PET scanner geometry file is defined
 macro_path = os.path.join(path, 'mMR_Geometry.mac')
 # Get information dictionary about the scanner
 info = gate.get_detector_info(path = macro_path,
     mean_interaction_depth=9, min_rsector_difference=0)
 # Paths to all ROOT files containing data
-paths = [os.path.join(path, f'all_physics/mMR_voxBrain_{i}.root') for i in range(1, 55) if i != 24]  # file 24 is empty
+paths = [os.path.join(path, f'simple_phantom/mMR_voxBrain_withSimplePhantom_{i}.root') for i in range(1, 55)]
 
 speed_of_light = 0.3 #mm/ps
 fwhm_tof_resolution = 550 * speed_of_light / 2 #ps to position along LOR
@@ -53,11 +53,26 @@ TOF_range = 1000 * speed_of_light #ps to position along LOR (full range)
 num_tof_bins = 21
 tof_meta = PETTOFMeta(num_tof_bins, TOF_range, fwhm_tof_resolution, n_sigmas=3)
 
+# %% How much memory this needs
+RAM_GB = 25 # memory (RAM) this tutorial may use, in GB (at least about 21)
+pytomography.set_memory_budget(RAM_GB)
+
+# Measured on Windows: besides one subset's data, expected counts and their ratio (about four arrays of a subset's
+# size, on the GPU), the final reconstruction holds about 15.5 GB: the normalization, randoms and sensitivity
+# sinograms of 1.65 GB each, the events, the scatter estimate, Python and CUDA, and memory PyTorch keeps for reuse.
+# At least 28 subsets keep a subset's arrays on the GPU small (1.2 GB each).
+from pytomography.utils.memory import subsets_for_budget
+sinogram_bytes = 224 * 449 * 4096 * num_tof_bins * 4 # one whole TOF sinogram (34.6 GB)
+n_subsets = subsets_for_budget(sinogram_bytes, arrays=4, held_bytes=15.5e9, minimum=28)
+n_iters = max(1, round(2 * 28 / n_subsets))
+print(f'{n_iters} iterations of {n_subsets} subsets')
+
 # %% Normalization Correction
 if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'normalization_sinogram.pt')):
     # The weights of every crystal pair are shared with the list mode tutorials, so reuse them if one of those has run
     if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'normalization_weights.pt')):
-        normalization_paths = [os.path.join(path, f'normalization_scan/mMR_Norm_{i}.root') for i in range(1,37)]
+        # the calibration scan is shared with the earlier simulation, in PET/GATE-mMR-Brain
+        normalization_paths = [os.path.join(DATA / 'PET' / 'GATE-mMR-Brain', f'normalization_scan/mMR_Norm_{i}.root') for i in range(1,37)]
         # Get eta in listmode format
         normalization_weights = gate.get_normalization_weights_cylinder_calibration(
             normalization_paths,
@@ -83,9 +98,23 @@ if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'detector_ids_tof21
     torch.save(detector_ids, os.path.join(OUTPUT, 'detector_ids_tof21bin_primary_only.pt'))
 detector_ids = torch.load(os.path.join(OUTPUT, 'detector_ids_tof21bin_primary_only.pt'))
 
-# The first run reads the ROOT files and caches each result in OUTPUT; later runs load the cache.
-# Set this to True to recompute everything.
-LOAD_FROM_ROOT = False
+if LOAD_FROM_ROOT or not all(os.path.exists(os.path.join(OUTPUT, f)) for f in ('detector_ids_randoms_true_tof21bin.pt', 'detector_ids_scatters_true_tof21bin.pt')):
+    detector_ids_randoms_true = gate.get_detector_ids_from_root(
+        paths,
+        info,
+        tof_meta = tof_meta,
+        randoms_only=True)
+    detector_ids_scatters_true = gate.get_detector_ids_from_root(
+        paths,
+        info,
+        tof_meta = tof_meta,
+        scatters_only=True)
+    detector_ids_randoms_true = detector_ids_randoms_true[detector_ids_randoms_true[:,2]>-1] # For TOF, only take events within the TOF bins
+    detector_ids_scatters_true = detector_ids_scatters_true[detector_ids_scatters_true[:,2]>-1] # For TOF, only take events within the TOF bins
+    torch.save(detector_ids_randoms_true, os.path.join(OUTPUT, 'detector_ids_randoms_true_tof21bin.pt'))
+    torch.save(detector_ids_scatters_true, os.path.join(OUTPUT, 'detector_ids_scatters_true_tof21bin.pt'))
+detector_ids_randoms_true = torch.load(os.path.join(OUTPUT, 'detector_ids_randoms_true_tof21bin.pt'))
+detector_ids_scatters_true = torch.load(os.path.join(OUTPUT, 'detector_ids_scatters_true_tof21bin.pt'))
 
 sinogram = gate.listmode_to_sinogram(detector_ids, info, tof_meta=tof_meta)
 
@@ -97,7 +126,7 @@ object_meta = ObjectMeta(
 # Get projection space metadata from PET geometry information dictionary and TOF metadata
 proj_meta = PETSinogramPolygonProjMeta(info, tof_meta=tof_meta)
 # Get attenuation map and PSF transform from the associated phantom
-atten_map = gate.get_attenuation_map_nifti(os.path.join(path, 'fdg_pet_phantom_umap.nii.gz'), object_meta).to(pytomography.dtype).to(pytomography.device)
+atten_map = gate.get_aligned_attenuation_map(os.path.join(path, 'umap_mMR_brainSimplePhantom.hv'), object_meta).to(pytomography.dtype).to(pytomography.device)
 psf_transform = GaussianFilter(3.) # 2mm gaussian blurring
 # Create system matrix.
 system_matrix = PETSinogramSystemMatrix(
@@ -107,7 +136,7 @@ system_matrix = PETSinogramSystemMatrix(
        sinogram_sensitivity = normalization_sinogram,
        N_splits=10,
        attenuation_map=atten_map,
-       device='cpu' # projections output on cpu, computation is still on GPU
+       device=pytomography.device # the projections of each subset stay on the GPU (device='cpu' keeps them in RAM: slower)
 )
 # Create likelihood
 likelihood = PoissonLogLikelihood(
@@ -116,7 +145,7 @@ likelihood = PoissonLogLikelihood(
 )
 # Reconstruct
 recon_algorithm = OSEM(likelihood)
-recon_primaryonly = recon_algorithm(n_iters=4, n_subsets=14)
+recon_primaryonly = recon_algorithm(n_iters=n_iters, n_subsets=n_subsets)
 # delete to save memory
 del(sinogram) 
 del(system_matrix) 
@@ -136,6 +165,7 @@ if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'detector_ids_tof21
 detector_ids = torch.load(os.path.join(OUTPUT, 'detector_ids_tof21bin_all_events.pt'))
 
 sinogram = gate.listmode_to_sinogram(detector_ids, info, tof_meta=tof_meta)
+del detector_ids # the sinogram keeps its own compact copy of the events (0.3 GB instead of 1.2 GB)
 
 # %% Randoms
 if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'detector_ids_delays.pt')):
@@ -152,7 +182,7 @@ sinogram_randoms_estimate = gate.smooth_randoms_sinogram(sinogram_randoms_estima
 sinogram_randoms_estimate = gate.randoms_sinogram_to_sinogramTOF(sinogram_randoms_estimate, tof_meta, coincidence_timing_width = 4300) # coinicidence timing window for this GATE simulation was set to 4300ps
 
 # %% Scatters
-atten_map = gate.get_attenuation_map_nifti(os.path.join(path, 'fdg_pet_phantom_umap.nii.gz'), object_meta).to(pytomography.dtype).to(pytomography.device)
+atten_map = gate.get_aligned_attenuation_map(os.path.join(path, 'umap_mMR_brainSimplePhantom.hv'), object_meta).to(pytomography.dtype).to(pytomography.device)
 normalization_sinogram = torch.load(os.path.join(OUTPUT, 'normalization_sinogram.pt')) # assumes this has been saved from the intro tutorial
 proj_meta = PETSinogramPolygonProjMeta(info, tof_meta)
 psf_transform = GaussianFilter(3.)
@@ -163,7 +193,7 @@ system_matrix = PETSinogramSystemMatrix(
        sinogram_sensitivity = normalization_sinogram,
        N_splits=10,
        attenuation_map=atten_map,
-       device='cpu' # projections output on cpu, rest is GPU
+       device=pytomography.device # the projections of each subset stay on the GPU
 )
 additive_term = sinogram_randoms_estimate.unsqueeze(-1) / system_matrix._compute_sensitivity_sinogram().cpu()
 likelihood = PoissonLogLikelihood(
@@ -172,7 +202,11 @@ likelihood = PoissonLogLikelihood(
         additive_term = additive_term
     )
 recon_algorithm = OSEM(likelihood)
-recon_without_scatter_estimation = recon_algorithm(4,14)
+recon_without_scatter_estimation = recon_algorithm(n_iters, n_subsets)
+# The likelihood keeps its last expected counts (one subset, 1.2 GB) and the additive term; the scatter estimate below
+# needs only the system matrix
+del likelihood, recon_algorithm, additive_term
+gc.collect()
 
 sinogram_scatter_estimate = sss.get_sss_scatter_estimate(
     object_meta = object_meta,
@@ -197,4 +231,4 @@ likelihood = PoissonLogLikelihood(
         additive_term = additive_term
     )
 recon_algorithm = OSEM(likelihood)
-recon_sinogram_TOF = recon_algorithm(4,14)
+recon_sinogram_TOF = recon_algorithm(n_iters, n_subsets)

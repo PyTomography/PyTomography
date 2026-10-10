@@ -6,8 +6,8 @@ a whole pipeline at a glance or run it as a script. Each file links to the full 
 These files are generated from the notebooks in `docs/source/notebooks` by `docs/tools/export_scripts.py`.
 Edit the notebook, then run that script; CI checks the two match.
 
-`data/` holds small files that tutorials read alongside their datasets, such as the fitted Ac-225 PSF model
-(`data/ac225_psf_model.json`). The data page of the docs says where each one goes.
+Each script downloads the data it reads with `pytomography.datasets.fetch()`; the Tutorial data page of the
+docs lists every dataset.
 
 ## SPECT
 
@@ -16,7 +16,7 @@ Edit the notebook, then run that script; CI checks the two match.
 | [`spect/01_simind_introduction.py`](spect/01_simind_introduction.py) | A complete OSEM pipeline on Monte Carlo data, from projections to a reconstructed image. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_siminddata.html) |
 | [`spect/02_dicom_introduction.py`](spect/02_dicom_introduction.py) | Reconstruct a phantom exported from a clinical scanner and compare with the vendor image. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_dicomdata.html) |
 | [`spect/03_reconstruction_algorithms.py`](spect/03_reconstruction_algorithms.py) | OSEM, BSREM, OSMAPOSL and KEM side by side on the same data. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_algorithms.html) |
-| [`spect/04_accuracy_against_known_truth.py`](spect/04_accuracy_against_known_truth.py) | Measure bias and noise in every organ of a simulated patient, with OSEM and BSREM. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_accuracy_known_truth.html) |
+| [`spect/04_accuracy_against_known_truth.py`](spect/04_accuracy_against_known_truth.py) | Measure bias and noise in each sphere of a simulated phantom, with OSEM and BSREM. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_accuracy_known_truth.html) |
 | [`spect/05_multiple_bed_positions.py`](spect/05_multiple_bed_positions.py) | Reconstruct several bed positions and stitch them into one volume. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_dicommultibed.html) |
 | [`spect/06_multiple_photopeaks.py`](spect/06_multiple_photopeaks.py) | Joint reconstruction over two photopeaks of the same isotope. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_dualpeak.html) |
 | [`spect/07_uncertainty_estimation.py`](spect/07_uncertainty_estimation.py) | Voxel and region uncertainty that comes out of the reconstruction itself. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_uncertainty_spect.html) |

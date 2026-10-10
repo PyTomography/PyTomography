@@ -16,7 +16,7 @@ from pathlib import Path
 # Tutorial data: the folder set by the PYTOMOGRAPHY_DATA environment variable (see Tutorial data in the docs)
 DATA = Path(os.environ.get("PYTOMOGRAPHY_DATA", "~/pytomography_data")).expanduser()
 # Results go here, never into the data folder
-OUTPUT = Path(os.environ.get("PYTOMOGRAPHY_OUTPUT", "pytomography_outputs")).expanduser() / "PET/GATE-mMR-Brain"
+OUTPUT = Path(os.environ.get("PYTOMOGRAPHY_OUTPUT", "pytomography_outputs")).expanduser() / "PET/GATE-mMR-BrainInWater"
 OUTPUT.mkdir(parents=True, exist_ok=True)
 
 from __future__ import annotations
@@ -33,18 +33,22 @@ import os
 from pytomography.transforms.shared import GaussianFilter
 import matplotlib.pyplot as plt
 
+# %% How much memory this needs
+RAM_GB = 25 # memory (RAM) this tutorial may use, in GB
+pytomography.set_memory_budget(RAM_GB)
+
 # The first run reads the ROOT files and caches each result in OUTPUT; later runs load the cache.
 # Set this to True to recompute everything.
 LOAD_FROM_ROOT = False
 
-path = DATA / 'PET' / 'GATE-mMR-Brain'
+path = DATA / 'PET' / 'GATE-mMR-BrainInWater'
 # Macro path where PET scanner geometry file is defined
 macro_path = os.path.join(path, 'mMR_Geometry.mac')
 # Get information dictionary about the scanner
 info = gate.get_detector_info(path = macro_path,
     mean_interaction_depth=9, min_rsector_difference=0)
 # Paths to all ROOT files containing data
-paths = [os.path.join(path, f'all_physics/mMR_voxBrain_{i}.root') for i in range(1, 55) if i != 24]  # file 24 is empty
+paths = [os.path.join(path, f'simple_phantom/mMR_voxBrain_withSimplePhantom_{i}.root') for i in range(1, 55)]
 
 info
 
@@ -52,7 +56,8 @@ info
 if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'normalization_sinogram.pt')):
     # The weights of every crystal pair are shared with the list mode tutorials, so reuse them if one of those has run
     if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'normalization_weights.pt')):
-        normalization_paths = [os.path.join(path, f'normalization_scan/mMR_Norm_{i}.root') for i in range(1,37)]
+        # the calibration scan is shared with the earlier simulation, in PET/GATE-mMR-Brain
+        normalization_paths = [os.path.join(DATA / 'PET' / 'GATE-mMR-Brain', f'normalization_scan/mMR_Norm_{i}.root') for i in range(1,37)]
         # Get eta in listmode format
         normalization_weights = gate.get_normalization_weights_cylinder_calibration(
             normalization_paths,
@@ -64,6 +69,7 @@ if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'normalization_sino
     normalization_weights = torch.load(os.path.join(OUTPUT, 'normalization_weights.pt'))
     normalization_sinogram = gate.get_norm_sinogram_from_listmode_data(normalization_weights, info)
     torch.save(normalization_sinogram, os.path.join(OUTPUT, 'normalization_sinogram.pt'))
+    del normalization_weights # the sinogram holds what the reconstructions need
 normalization_sinogram = torch.load(os.path.join(OUTPUT, 'normalization_sinogram.pt'))
 
 # %% Primary-Only Reconstruction
@@ -100,7 +106,7 @@ object_meta = ObjectMeta(
 # Get projection space metadata from PET geometry information dictionary
 proj_meta = PETSinogramPolygonProjMeta(info)
 # Get attenuation map and PSF transform from the associated phantom
-atten_map = gate.get_attenuation_map_nifti(os.path.join(path, 'fdg_pet_phantom_umap.nii.gz'), object_meta).to(pytomography.dtype).to(pytomography.device)
+atten_map = gate.get_aligned_attenuation_map(os.path.join(path, 'umap_mMR_brainSimplePhantom.hv'), object_meta).to(pytomography.dtype).to(pytomography.device)
 psf_transform = GaussianFilter(3) # 3mm gaussian blurring
 # Create system matrix
 system_matrix = PETSinogramSystemMatrix(
@@ -131,6 +137,7 @@ if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'detector_ids_all_e
 detector_ids = torch.load(os.path.join(OUTPUT, 'detector_ids_all_events.pt'))
 
 sinogram = gate.listmode_to_sinogram(detector_ids, info)
+del detector_ids # the sinogram holds what the reconstructions need
 
 # %% Randoms
 if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'detector_ids_delays.pt')):
@@ -144,9 +151,10 @@ detector_ids_delays= torch.load(os.path.join(OUTPUT, 'detector_ids_delays.pt'))
 sinogram_delays = gate.listmode_to_sinogram(detector_ids_delays, info)
 
 sinogram_randoms_estimate = gate.smooth_randoms_sinogram(sinogram_delays, info, sigma_r=4, sigma_theta=4, sigma_z=4)
+del sinogram_delays # only the smoothed estimate is used from here on
 
 # %% Scatters
-atten_map = gate.get_attenuation_map_nifti(os.path.join(path, 'fdg_pet_phantom_umap.nii.gz'), object_meta).to(pytomography.dtype).to(pytomography.device)
+atten_map = gate.get_aligned_attenuation_map(os.path.join(path, 'umap_mMR_brainSimplePhantom.hv'), object_meta).to(pytomography.dtype).to(pytomography.device)
 normalization_sinogram = torch.load(os.path.join(OUTPUT, 'normalization_sinogram.pt')) # assumes this has been saved from the intro tutorial
 proj_meta = PETSinogramPolygonProjMeta(info)
 psf_transform = GaussianFilter(3)
@@ -169,6 +177,8 @@ likelihood = PoissonLogLikelihood(
 
 recon_algorithm = OSEM(likelihood)
 recon_without_scatter_estimation = recon_algorithm(2,24)
+# The likelihood keeps its additive term, a whole sinogram; the scatter estimate below needs only the system matrix
+del likelihood, recon_algorithm, additive_term
 
 sinogram_scatter = sss.get_sss_scatter_estimate(
     object_meta = object_meta,

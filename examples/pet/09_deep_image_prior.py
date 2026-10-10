@@ -16,7 +16,7 @@ from pathlib import Path
 # Tutorial data: the folder set by the PYTOMOGRAPHY_DATA environment variable (see Tutorial data in the docs)
 DATA = Path(os.environ.get("PYTOMOGRAPHY_DATA", "~/pytomography_data")).expanduser()
 # Results go here, never into the data folder
-OUTPUT = Path(os.environ.get("PYTOMOGRAPHY_OUTPUT", "pytomography_outputs")).expanduser() / "PET/GATE-mMR-Brain"
+OUTPUT = Path(os.environ.get("PYTOMOGRAPHY_OUTPUT", "pytomography_outputs")).expanduser() / "PET/GATE-mMR-BrainInWater"
 OUTPUT.mkdir(parents=True, exist_ok=True)
 
 import torch
@@ -33,26 +33,32 @@ from pytomography.transforms.shared import GaussianFilter
 from pytomography.utils import sss
 import matplotlib.pyplot as plt
 import gc
+import copy
 import os
 import numpy as np
 import numpy as np
 from monai.transforms import ScaleIntensityd, CropForeground, Compose, DivisiblePadd, SpatialCropd, ThresholdIntensityd
 
-path = DATA / 'PET' / 'GATE-mMR-Brain'
+# %% How much memory this needs
+RAM_GB = 25 # memory (RAM) this tutorial may use, in GB
+NETWORK_GB = 7 # training the network takes about 7 GB of GPU memory, which on Windows counts as RAM too
+pytomography.set_memory_budget(RAM_GB - NETWORK_GB) # what the scatter estimate and the reconstructions may use
+
+path = DATA / 'PET' / 'GATE-mMR-BrainInWater'
 # Macro path where PET scanner geometry file is defined
 macro_path = os.path.join(path, 'mMR_Geometry.mac')
 # Get information dictionary about the scanner
 info = gate.get_detector_info(path = macro_path,
     mean_interaction_depth=9, min_rsector_difference=0)
 
-path = DATA / 'PET' / 'GATE-mMR-Brain'
+path = DATA / 'PET' / 'GATE-mMR-BrainInWater'
 # Macro path where PET scanner geometry file is defined
 macro_path = os.path.join(path, 'mMR_Geometry.mac')
 # Get information dictionary about the scanner
 info = gate.get_detector_info(path = macro_path,
     mean_interaction_depth=9, min_rsector_difference=0)
 # Paths to all ROOT files containing data
-paths = [os.path.join(path, f'all_physics/mMR_voxBrain_{i}.root') for i in range(1, 55)]; del(paths[23])  # file 24 is empty
+paths = [os.path.join(path, f'simple_phantom/mMR_voxBrain_withSimplePhantom_{i}.root') for i in range(1, 55)]
 
 speed_of_light = 0.3 #mm/ps
 fwhm_tof_resolution = 550 * speed_of_light / 2 #ps to position along LOR
@@ -62,7 +68,8 @@ tof_meta = PETTOFMeta(num_tof_bins, TOF_range, fwhm_tof_resolution, n_sigmas=3)
 
 # Cached in OUTPUT by the GATE list-mode TOF tutorial; compute any that is missing (this reads the ROOT files once)
 if not os.path.exists(os.path.join(OUTPUT, 'normalization_weights.pt')):
-    normalization_paths = [os.path.join(path, f'normalization_scan/mMR_Norm_{i}.root') for i in range(1,37)]
+    # the calibration scan is shared with the earlier simulation, in PET/GATE-mMR-Brain
+    normalization_paths = [os.path.join(DATA / 'PET' / 'GATE-mMR-Brain', f'normalization_scan/mMR_Norm_{i}.root') for i in range(1,37)]
     normalization_weights = gate.get_normalization_weights_cylinder_calibration(
         normalization_paths,
         info,
@@ -85,6 +92,7 @@ sinogram_randoms_estimate = gate.listmode_to_sinogram(
     detector_ids_delays,
     info
 )
+del detector_ids_delays # binned: the events are not needed again
 sinogram_randoms_estimate = gate.smooth_randoms_sinogram(
     sinogram_randoms_estimate,
     info,
@@ -108,14 +116,7 @@ object_meta = ObjectMeta(
     shape=(204,204,154) #voxels
 )
 # Get projection space metadata from PET geometry information dictionary
-proj_meta = PETLMProjMeta(
-    detector_ids,
-    info,
-    tof_meta=tof_meta,
-    weights_sensitivity=normalization_weights
-    )
-atten_map = gate.get_attenuation_map_nifti(os.path.join(path, 'fdg_pet_phantom_umap.nii.gz'), object_meta).to(pytomography.dtype).to(pytomography.device)
-normalization_weights = torch.load(os.path.join(OUTPUT, 'normalization_weights.pt'))
+atten_map = gate.get_aligned_attenuation_map(os.path.join(path, 'umap_mMR_brainSimplePhantom.hv'), object_meta).to(pytomography.dtype).to(pytomography.device)
 proj_meta = PETLMProjMeta(
     detector_ids,
     info,
@@ -179,6 +180,12 @@ likelihood = PoissonLogLikelihood(
     )
 recon_algorithm = OSEM(likelihood)
 recon_lm_tof = recon_algorithm(50,1)
+# The events' host copy (the system matrix keeps them on the GPU), the per-event estimates (in additive_term now) and
+# the normalization weights (used for the sensitivity image, computed above) are not needed again: freeing them
+# leaves room for the network
+del detector_ids, lm_randoms_estimate, lm_scatter_estimate, lm_norm, normalization_weights
+proj_meta.weights_sensitivity = None
+gc.collect()
 
 filter = GaussianFilter(3)
 filter.configure(object_meta, proj_meta)
@@ -297,12 +304,14 @@ class DIPPrior():
         self.n_epochs = n_epochs
         self.scale_factor = scale_factor
         self.lr = lr
-        self.max_iter = 20
+        self.max_iter = 20 # L-BFGS iterations per epoch
+        self.line_search_fn = None # L-BFGS line search: None (fixed step lr) or 'strong_wolfe'
         
     def fit(self, object):
         # This method trains the network for n_epochs at a learning rate of lr
         data = self.pipeline({'NM': object.unsqueeze(0), 'MR': self.anatomical_image.unsqueeze(0)})
-        optimizer_lfbgs = LBFGS(self.network.parameters(), lr=self.lr, max_iter=self.max_iter, history_size=100)
+        # history_size=10 as in the paper (100 kept 200 copies of the network's parameters on the GPU)
+        optimizer_lfbgs = LBFGS(self.network.parameters(), lr=self.lr, max_iter=self.max_iter, history_size=10, line_search_fn=self.line_search_fn)
         NM_truth = data['NM'].unsqueeze(0) * self.scale_factor
         network_input = data['MR'].unsqueeze(0)
         criterion = torch.nn.MSELoss()
@@ -377,15 +386,78 @@ dip_prior = DIPPrior(
     )
 
 dip_prior.fit(recon_lm_tof)
+# kept, so that the end of this tutorial can compare values of rho from the same starting point
+pretrained_state = copy.deepcopy(net.state_dict())
+pretrained_prediction = dip_prior.prior_object.clone()
 
-dip_prior.n_epochs = 10
-dip_prior.max_iter = 20
+dip_prior.n_epochs = 1
+dip_prior.max_iter = 10
 dip_prior.lr = 1
+dip_prior.line_search_fn = 'strong_wolfe'
 
+from scipy.ndimage import binary_erosion
+from pytomography.callbacks import Callback
+# grey and white matter, from the MR intensity classes, one voxel in from their edges
+mr = mri_aligned.cpu().numpy()
+grey = torch.tensor(binary_erosion((mr >= 180) & (mr < 195), np.ones((3, 3, 3)))).to(pytomography.device)
+white = torch.tensor(binary_erosion((mr >= 135) & (mr < 150), np.ones((3, 3, 3)))).to(pytomography.device)
+
+def contrast_noise(image):
+    """Mean grey matter over mean white matter (contrast), and the standard deviation over the mean in white matter (noise)."""
+    w = image[white]
+    return (image[grey].mean() / w.mean()).item(), (w.std() / w.mean()).item()
+
+class ContrastNoise(Callback):
+    """Records the contrast and noise of the image after every iteration."""
+    def __init__(self):
+        self.contrast, self.noise = [], []
+    def run(self, object, n_iter, n_subset=None):
+        c, n = contrast_noise(object)
+        self.contrast.append(c)
+        self.noise.append(n)
+        return object
+
+rho = 240
 recon_algorithm = DIPRecon(
     likelihood = likelihood,
     prior_network=dip_prior,
-    rho=5e5,
+    rho=rho,
 )
 
-recon_DIP = recon_algorithm(n_iters=100, subit1=2)
+curve_DIP = ContrastNoise()
+recon_DIP = recon_algorithm(n_iters=100, subit1=2, callback=curve_DIP)
+
+for name, image in (('OSEM', recon_lm_tof), ('OSEM, 3 mm filter', recon_lm_tof_filtered), ('Deep Image Prior', recon_DIP)):
+    c, n = contrast_noise(image)
+    print(f'{name:18s} contrast {c:.2f}, noise {n:.2f}')
+
+# %% Contrast against noise, and the choice of `rho`
+# post-filtered OSEM
+osem_curve = []
+for fwhm in (0, 2, 3, 4, 5, 6):
+    image = recon_lm_tof
+    if fwhm:
+        gauss = GaussianFilter(fwhm)
+        gauss.configure(object_meta, proj_meta)
+        image = gauss(recon_lm_tof)
+    osem_curve.append(contrast_noise(image))
+# the Deep Image Prior with larger values of rho, each from the pretrained network
+curves = {rho: curve_DIP}
+for rho_other in (2.4e3, 2.4e4, 2.4e5):
+    net.load_state_dict(pretrained_state)
+    dip_prior.prior_object = pretrained_prediction.clone()
+    curves[rho_other] = ContrastNoise()
+    DIPRecon(likelihood=likelihood, prior_network=dip_prior, rho=rho_other)(n_iters=30, subit1=2, callback=curves[rho_other])
+
+fig, ax = plt.subplots(figsize=(7, 4.5))
+ax.plot([n for c, n in osem_curve], [c for c, n in osem_curve], 'k--o', ms=4, label='OSEM 50x1, Gaussian filter 0-6 mm')
+c, n = contrast_noise(pretrained_prediction)
+ax.plot(n, c, 'ks', label='pretrained network')
+for r, curve in curves.items():
+    line, = ax.plot(curve.noise, curve.contrast, '.-', ms=3, lw=1,
+                    label=f'Deep Image Prior, rho = {r:g}' + (' (above, 100 iterations)' if r == rho else ' (30 iterations)'))
+    ax.plot(curve.noise[-1], curve.contrast[-1], 'o', color=line.get_color(), ms=6)
+ax.set_xlabel('noise in white matter (standard deviation / mean)')
+ax.set_ylabel('grey / white matter contrast')
+ax.grid(alpha=0.3)
+ax.legend(fontsize=8)
