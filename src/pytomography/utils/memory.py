@@ -79,8 +79,13 @@ def block_size(bytes_per_item: float, default: int, fraction: float = 1 / 8) -> 
     return max(1, int(min(pytomography.memory_budget * fraction, BLOCK_CAP_BYTES) // bytes_per_item))
 
 
+#: Without a memory budget, an array larger than this (bytes) is still computed one part at a time rather than held
+#: whole: a TOF sinogram of a clinical scanner (34.6 GB for the Siemens Biograph mMR with 21 TOF bins) never is.
+LAZY_WITHOUT_BUDGET_BYTES = 8e9
+
+
 def prefer_lazy(nbytes: float) -> bool:
-    """Whether an array of ``nbytes`` bytes should be computed one part at a time instead of held whole: when it would take more than a quarter of the memory budget. Never without a budget.
+    """Whether an array of ``nbytes`` bytes should be computed one part at a time instead of held whole: when it would take more than a quarter of the memory budget, or, without a budget, more than :data:`LAZY_WITHOUT_BUDGET_BYTES` (8 GB).
 
     Args:
         nbytes (float): Size of the whole array.
@@ -88,7 +93,9 @@ def prefer_lazy(nbytes: float) -> bool:
     Returns:
         bool: True if the array should be computed a part at a time.
     """
-    return pytomography.memory_budget is not None and nbytes > pytomography.memory_budget / 4
+    if pytomography.memory_budget is None:
+        return nbytes > LAZY_WITHOUT_BUDGET_BYTES
+    return nbytes > pytomography.memory_budget / 4
 
 
 def subsets_for_budget(projection_bytes: float, arrays: int = 3, held_bytes: float | None = None, minimum: int = 1) -> int:

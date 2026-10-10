@@ -71,7 +71,9 @@ def test_set_memory_budget():
 
 def test_block_and_subset_sizes(budget):
     budget(None)
-    assert memory.block_size(100, default=7) == 7 and not memory.prefer_lazy(1e12) and memory.subsets_for_budget(1e12, minimum=3) == 3
+    assert memory.block_size(100, default=7) == 7 and memory.subsets_for_budget(1e12, minimum=3) == 3
+    # without a budget, only an array over 8 GB is computed a part at a time (a TOF sinogram of a clinical scanner)
+    assert memory.prefer_lazy(34.6e9) and not memory.prefer_lazy(1.65e9)
     budget(2)                                         # an eighth is 0.25 GB
     assert memory.block_size(100, default=7) == 2.5 * 10**6
     budget(8)                                         # an eighth is 1 GB, above the 0.5 GB cap; a quarter is 2 GB; half is 4 GB
