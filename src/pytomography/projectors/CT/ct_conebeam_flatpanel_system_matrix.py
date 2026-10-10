@@ -58,15 +58,16 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
             xv, yv = torch.meshgrid(x, y, indexing='ij')
             post_weight = (self.proj_meta.DSO / (self.proj_meta.DSO + yv.unsqueeze(0) * torch.sin(self.proj_meta.angles.to(pytomography.device)).reshape((-1,1,1)) + xv.unsqueeze(0) * torch.cos(self.proj_meta.angles.to(pytomography.device)).reshape((-1,1,1))))**2
             self._FBP_postweight_component1 = post_weight.unsqueeze(-1)
-        # Weight that removes length scaling Joseph projector to make projector "unmatched" (see Ander Biguri thesis chapter 4)
+        # Weight that removes length scaling Joseph projector to make projector "unmatched" (see Ander Biguri thesis chapter 4).
+        # The length of l = (lx, ly, lz) and its product with d are summed over broadcast axes: three images at most,
+        # not the (Nx, Ny, Nz, 3) vectors and their products.
         d = -self.proj_meta.detector_orientations[idx].to(pytomography.device)
         source_pos = self.proj_meta.beam_locations[idx].to(pytomography.device)
-        lx = x - source_pos[0]
-        ly = y - source_pos[1]
-        lz = z - source_pos[2]
-        l_vec = torch.stack(torch.meshgrid(lx,ly,lz, indexing='ij'), dim=-1)
-        l = torch.norm(l_vec, dim=-1)
-        w = self.proj_meta.DSD**2 * l / ((l_vec*d).sum(dim=-1))**3 * dx*dy*dz / (du*dv)
+        lx = (x - source_pos[0])[:, None, None]
+        ly = (y - source_pos[1])[None, :, None]
+        lz = (z - source_pos[2])[None, None, :]
+        w = (lx ** 2 + ly ** 2 + lz ** 2).sqrt_()
+        w.div_((lx * d[0] + ly * d[1] + lz * d[2]).pow_(3)).mul_(self.proj_meta.DSD**2 * dx*dy*dz / (du*dv))
         return self._FBP_postweight_component1[idx] / w
     
     def set_n_subsets(self, n_subsets: int) -> list:
@@ -200,10 +201,13 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         for idx in range(self.proj_meta.N_angles):
             proj_i = projections[idx].to(self.device) * self._get_FBP_preweight(idx)   # one view at a time on the device
             proj_i = ramp_filter(proj_i, self.proj_meta.dr[0], window, dim=0)
-            # each view's back projection is weighted on its own before it is accumulated
+            # each view's back projection is weighted on its own before it is accumulated (in place: one image more)
             BP_i = torch.zeros_like(BP)
             self._back_project_view(BP_i, idx, proj_i)
-            BP[1:-1, 1:-1, 1:-1] += _crop(BP_i) * self._get_FBP_postweight(idx) * self._get_FBP_scale()
+            weighted = self._get_FBP_postweight(idx)
+            weighted.mul_(BP_i[1:-1, 1:-1, 1:-1]).mul_(self._get_FBP_scale())
+            BP[1:-1, 1:-1, 1:-1] += weighted
+            del BP_i, weighted
         return _crop(BP)
 
     def _fbp_memory_parts(self, projections: torch.Tensor, filter=None) -> list:
@@ -211,7 +215,7 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         :meth:`pytomography.algorithms.FilteredBackProjection.estimate_memory`. Held: the projections, the padded
         image, and the in-plane distance weight of every view, which the system matrix keeps for later calls. For each
         view: its back projection (a second padded image), its rays, its ramp filter's spectra, and its weights in 3D
-        (twelve images, measured); on the first view, while the in-plane weights of every view are computed, two more
+        (three images, measured); on the first view, while the in-plane weights of every view are computed, two more
         arrays of their size."""
         from pytomography.utils.memory import MemoryPart, nbytes
         image = int(np.prod(self.object_meta.shape)) * 4
@@ -227,7 +231,7 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
                 MemoryPart('image', **on(padded + image), scope='held'),
                 MemoryPart('distance weights of every view', **on(weights), scope='held'),
                 MemoryPart('one view: back projection, rays, distance weight',
-                           **on(max(padded + 28 * rays + spectra + 12 * image, 2 * weights)), scope='chunk')]
+                           **on(max(padded + 28 * rays + spectra + 3 * image, 2 * weights)), scope='chunk')]
 
     def _memory_parts(self, n_subsets: int = 1, N_splits: int | None = None) -> list:
         r"""The arrays of an ordered-subset reconstruction with this system matrix, as OS-SART takes them, for
