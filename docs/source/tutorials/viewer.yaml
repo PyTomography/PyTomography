@@ -236,11 +236,13 @@ tutorials:
     description: The network's image next to TOF list-mode OSEM, over the MR it was conditioned on
     credit: GATE simulation of the BigBrain FDG phantom (Belzunce and Reader 2020, Zenodo 8045458, CC BY 4.0)
     layers:
+    # DIP's grid is 1.25 mm (204 x 204 x 154): four PET images on it take about 27 MB, over the 15 MB budget, so they
+    # are averaged 2 x 2 x 2 to 2.5 mm, the same grid for all four (about 1 MB each). The MR keeps 1.25 mm.
     - {name: MR, kind: mr, array: mri_aligned, affine: vx.object_affine(object_meta), crop: body, units: a.u.}
-    - {name: DIP, label: Deep Image Prior, kind: pet, array: recon_DIP, affine: vx.object_affine(object_meta), units: a.u.}
-    - {name: OSEM, label: TOF list-mode OSEM, kind: pet, array: recon_lm_tof, affine: vx.object_affine(object_meta), units: a.u.}
-    - {name: OSEM filtered, label: "TOF list-mode OSEM, filtered", kind: pet, array: recon_lm_tof_filtered, affine: vx.object_affine(object_meta), units: a.u.}
-    - {name: Uncorrected, label: No scatter correction, kind: pet, array: recon_without_scatter_estimation, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: DIP, label: Deep Image Prior, kind: pet, array: recon_DIP, affine: vx.object_affine(object_meta), voxel_mm: 2.5, units: a.u.}
+    - {name: OSEM, label: TOF list-mode OSEM, kind: pet, array: recon_lm_tof, affine: vx.object_affine(object_meta), voxel_mm: 2.5, units: a.u.}
+    - {name: OSEM filtered, label: "TOF list-mode OSEM, filtered", kind: pet, array: recon_lm_tof_filtered, affine: vx.object_affine(object_meta), voxel_mm: 2.5, units: a.u.}
+    - {name: Uncorrected, label: No scatter correction, kind: pet, array: recon_without_scatter_estimation, affine: vx.object_affine(object_meta), voxel_mm: 2.5, units: a.u.}
 
   # ---------- CT ----------
   t_CT_GEN3:
