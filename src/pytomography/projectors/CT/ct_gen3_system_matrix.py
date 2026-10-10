@@ -27,6 +27,17 @@ def _crop(object: torch.Tensor) -> torch.Tensor:
     """Inverse of :func:`_pad`: removes the outer voxel on every face."""
     return object[1:-1, 1:-1, 1:-1].contiguous()
 
+def _saving_memory(system_matrix, candidates: list, n_subsets: int, N_splits: int | None) -> list:
+    """The (label, n_subsets, N_splits) ``candidates`` with which ``system_matrix._memory_parts`` saves RAM or GPU
+    memory compared with ``n_subsets`` and ``N_splits``: at least 5% of the two together, so that a few kilobytes of
+    one are not offered against far more of the other."""
+    def totals(n, s):
+        parts = system_matrix._memory_parts(n, s)
+        return sum(p.ram_bytes for p in parts), sum(p.gpu_bytes for p in parts)
+    ram, gpu = totals(n_subsets, N_splits)
+    least = 0.05 * (ram + gpu)
+    return [c for c in candidates if (lambda r, g: ram - r >= least or gpu - g >= least)(*totals(c[1], c[2]))]
+
 class CTGen3SystemMatrix(SystemMatrix):
     """System matrix for 3rd generation clinical DICOM scanners with cylindrical detector panels. For more information, see the DICOM-CTPD user manual.
 
@@ -204,20 +215,91 @@ class CTGen3SystemMatrix(SystemMatrix):
         Returns:
             torch.Tensor: Attenuation per mm on the object grid, on ``pytomography.device``.
         """
+        X, Y, z, z_offsets = self._fbp_grid(slice_thickness)
+        image = _wfbp.fbp_helical(projections, self.proj_meta, X, Y, z, window=filter, z_offsets=z_offsets, Q_weight=Q,
+                                  k_range=k_range, budget=gpu_budget, device=pytomography.device, stats=stats, backend=backend,
+                                  column_weights=column_weights)
+        return image if self._fov is None else image.mul_(self._fov.to(image.device))
+
+    def _fbp_grid(self, slice_thickness: float | None) -> tuple:
+        """The points :meth:`_fbp` reconstructs, X and Y (Nx, Ny) and z (Nz), at the voxel centres as the projector
+        places them (see ``origin``), and the offsets along z of the sub-slices that make up ``slice_thickness``."""
         (Nx, Ny, Nz), (dx, dy, dz) = self.object_meta.shape, self.object_meta.dr
         x = (torch.arange(Nx) - (Nx - 1) / 2) * dx
         y = (torch.arange(Ny) - (Ny - 1) / 2) * dy
-        z = (np.arange(Nz) - (Nz - 1) / 2) * dz              # voxel centres as the projector places them (see origin)
+        z = (np.arange(Nz) - (Nz - 1) / 2) * dz
         X, Y = torch.meshgrid(x, y, indexing='ij')
         if slice_thickness:
             n = max(1, int(np.ceil(slice_thickness / 0.25 - 1e-9)))
             z_offsets = tuple(((np.arange(n) + 0.5) / n - 0.5) * slice_thickness)
         else:
             z_offsets = (0.0,)
-        image = _wfbp.fbp_helical(projections, self.proj_meta, X, Y, z, window=filter, z_offsets=z_offsets, Q_weight=Q,
-                                  k_range=k_range, budget=gpu_budget, device=pytomography.device, stats=stats, backend=backend,
-                                  column_weights=column_weights)
-        return image if self._fov is None else image.mul_(self._fov.to(image.device))
+        return X, Y, z, z_offsets
+
+    def _fbp_memory_parts(self, projections: torch.Tensor, filter, slice_thickness: float | None = None,
+                          gpu_budget: float | None = None, Q: float = 0.6, k_range: int | None = None,
+                          stats: dict | None = None, backend: str = 'auto', column_weights: torch.Tensor | None = None) -> list:
+        """The memory :meth:`_fbp` takes with the same arguments, without running it, for
+        :meth:`pytomography.algorithms.FilteredBackProjection.estimate_memory` (see :func:`._wfbp.memory_parts`)."""
+        X, Y, z, z_offsets = self._fbp_grid(slice_thickness)
+        return _wfbp.memory_parts(projections, self.proj_meta, X, Y, z, z_offsets=z_offsets, k_range=k_range,
+                                  budget=gpu_budget, device=pytomography.device, backend=backend)
+
+    def _fbp_memory_alternatives(self, projections: torch.Tensor, filter, gpu_budget: float | None = None, **options) -> list:
+        """Ways to run :meth:`_fbp` in less memory, as (label, memory parts): a lower memory budget, which halves the
+        chunk of rebinned views on the host, and half the GPU budget. Both take longer and give the same image; each is
+        offered only if it saves memory."""
+        from pytomography.utils.memory import memory_budget_set, DEFAULT_BUDGET
+        total = lambda parts: sum(p.ram_bytes + p.gpu_bytes for p in parts)
+        parts = self._fbp_memory_parts(projections, filter, gpu_budget=gpu_budget, **options)
+        chunk = sum(p.ram_bytes for p in parts if p.name == 'rebinned views of one chunk')
+        alternatives = []
+        gb = float(f'{4 * chunk / 1e9:.1g}')                   # chunks of at most budget / 8: half the present chunk
+        if gb > 0:
+            with memory_budget_set(gb):
+                fewer = self._fbp_memory_parts(projections, filter, gpu_budget=gpu_budget, **options)
+            if total(fewer) < total(parts):
+                alternatives.append((f'set_memory_budget({gb:g})', fewer))
+        half = (DEFAULT_BUDGET if gpu_budget is None else gpu_budget) / 2
+        smaller = self._fbp_memory_parts(projections, filter, gpu_budget=half, **options)
+        if total(smaller) < total(parts):
+            alternatives.append((f'gpu_budget={half / 1e9:g}e9', smaller))
+        return alternatives
+
+    def _memory_parts(self, n_subsets: int = 1, N_splits: int | None = None) -> list:
+        r"""The arrays of an ordered-subset reconstruction with this system matrix, as OS-SART takes them, for
+        :meth:`estimate_memory` (which adds the projections, passed as ``held``). Held for the whole reconstruction:
+        the image, and one :math:`H_m^T 1` per subset, which :meth:`compute_normalization_factor` keeps on the host, an
+        image each, so that more subsets take more memory. For each subset: its projections (measured, predicted, of
+        ones, and their ratio) and the images of the update. For each projector call: the end points and values of its
+        rays (28 bytes a ray, at most :data:`_MAX_RAYS_PER_CALL` rays) and the padded image. The largest calls are those
+        of the initial object (:meth:`_get_object_initial`), which back projects every view in ``N_splits`` calls."""
+        from pytomography.utils.memory import MemoryPart
+        N_splits = self.N_splits if N_splits is None else N_splits
+        n = max(1, n_subsets)
+        image = int(np.prod(self.object_meta.shape)) * 4
+        padded = int(np.prod([s + 2 for s in self.object_meta.shape])) * 4
+        rays_per_view = int(np.prod(self.proj_meta.shape))
+        views = -(-self.proj_meta.N_angles // n)                    # in the largest subset
+        calls = lambda v: max(N_splits, -(-v * rays_per_view // _MAX_RAYS_PER_CALL))
+        rays = max(-(-v // calls(v)) * rays_per_view for v in (views, self.proj_meta.N_angles))
+        on = lambda device, b: dict(gpu_bytes=b) if torch.device(device).type == 'cuda' else dict(ram_bytes=b)
+        return [MemoryPart('image', **on(pytomography.device, image), scope='held'),
+                MemoryPart(f'H_m^T 1 of {n} subset{"s" if n > 1 else ""}', ram_bytes=n * image, scope='held'),
+                MemoryPart('projections of a subset: measured, predicted, of ones, ratio',
+                           **on(self.device, 4 * views * rays_per_view * 4), scope='subset'),
+                MemoryPart('images of an update', **on(pytomography.device, 3 * image), scope='subset'),
+                MemoryPart('projector call: rays and the padded image', **on(pytomography.device, 28 * rays + padded + image),
+                           scope='chunk')]
+
+    def _memory_alternatives(self, n_subsets: int, N_splits: int | None) -> list:
+        """Half and twice the subsets, and twice ``N_splits``, where they take less memory. Each subset keeps an
+        image on the host while its projections shrink with more subsets, so which way saves memory depends on the
+        scan; more projector calls take less on the GPU."""
+        N_splits = self.N_splits if N_splits is None else N_splits
+        candidates = [(f'{n_subsets // 2} subsets', n_subsets // 2, N_splits)] if n_subsets >= 2 else []
+        candidates += [(f'{2 * n_subsets} subsets', 2 * n_subsets, N_splits), (f'N_splits {2 * N_splits}', n_subsets, 2 * N_splits)]
+        return _saving_memory(self, candidates, n_subsets, N_splits)
 
     def forward(self, object, subset_idx=None):
         r"""Computes forward projection
