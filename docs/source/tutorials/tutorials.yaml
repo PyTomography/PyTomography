@@ -184,7 +184,7 @@ sections:
     topic: Systems
     summary: Read list-mode data in the open PETSIRD format.
     datasets:
-    - PET/PETSIRD-mIEC
+    - PET/PETSIRD-mMR-NEMA
   - notebook: t_PETGATE_DIP
     title: Deep Image Prior
     modality: PET
