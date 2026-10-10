@@ -78,7 +78,7 @@ html_css_files = [
     "css/pytomo.css",
 ]
 html_js_files = ["js/pytomo.js"]
-html_sidebars = {"index": [], "install": [], "migration": [], "ai": []}
+html_sidebars = {"index": [], "install": [], "migration": [], "ai": [], "architecture": []}
 html_context = {
     "github_user": "PyTomography",
     "github_repo": "PyTomography",
@@ -89,8 +89,9 @@ html_context = {
 html_theme_options = {
     "logo": {"text": "PyTomography"},
     "navbar_align": "left",
-    # Installation, Tutorials, Gallery, API and Contribute in the top bar; Migrate to v4, Concepts and the rest under More
-    "header_links_before_dropdown": 5,
+    # Installation, Tutorials, Gallery, Architecture, API and Contribute in the top bar; Migrate to v4, Concepts and the
+    # rest under More
+    "header_links_before_dropdown": 6,
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
     "icon_links": [
         {"name": "GitHub", "url": "https://github.com/PyTomography/PyTomography", "icon": "fa-brands fa-github"},
