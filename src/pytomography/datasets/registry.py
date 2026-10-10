@@ -137,6 +137,28 @@ DATASETS = {
              "size": 261908527, "md5": "a531de147927d3c58b038e08a7820ac8"},
         ],
     },
+    # The October 2024 re-simulation. The April 2024 simulation above has a GATE artefact (stripes) from its voxelized
+    # attenuating phantom. The tutorials move here when their notebooks switch to the new files.
+    "PET/GATE-mMR-BrainInWater": {
+        "title": "GATE simulation of an FDG brain source in a 23 cm water cube on a Siemens Biograph mMR",
+        "source": "PyTomography PET tutorial data, with the brain activity from Belzunce's phantom (Zenodo)",
+        "url": "https://doi.org/10.5281/zenodo.8045458",
+        "licence": "to be confirmed (the brain phantom: CC BY 4.0)",
+        "cite": "Belzunce MA. High-Resolution Heterogeneous Digital PET [18F]FDG Brain Phantom based on the BigBrain"
+                " Atlas. Zenodo (2018). doi:10.5281/zenodo.8045458",
+        "tutorials": [],
+        "status": "pending",
+        "note": "The GATE simulation (54 runs of 10 s: 116.9 million coincidences and 14.4 million delays) and its"
+                " water-cube attenuation map are being published on Zenodo; they can be downloaded once that record is"
+                " out. The MRI that the Deep Image Prior tutorial uses comes from Belzunce's record.",
+        "parts": [],
+        "extras": {
+            "mri": {"title": "MRI of the brain phantom, the prior of the Deep Image Prior tutorial", "parts": [
+                {"kind": "file", "url": "https://zenodo.org/records/8045458/files/fdg_pet_phantom_mri.nii.gz",
+                 "size": 471795384, "md5": "e7e899f16596cb95d69370103fd2ec7d"},
+            ]},
+        },
+    },
     "PET/GE-DMI-NEMA": {
         "title": "NEMA IQ phantom list mode from a GE Discovery MI PET/CT, with the scanner's corrections",
         "source": "Georg Schramm (Zenodo), with a sphere mask from PyTomography",
