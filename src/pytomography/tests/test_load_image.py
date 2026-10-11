@@ -514,3 +514,20 @@ def test_vendor_table():
         assert _vendors.manufacturer(ds) == vendor
     assert _vendors.manufacturer(pydicom.Dataset()) == ''
     assert {row['status'] for row in _vendors.table()} <= set(_vendors.STATUSES)
+
+
+def test_on_labels_that_overlap():
+    """A label made of several values (each overlap of labels has a value of its own): its coverage counts every
+    one of them, by value or by name."""
+    data = np.zeros((8, 8, 8), np.uint8)
+    data[1:5, 2:6, 2:6] = 1                      # only 'liver'
+    data[5:7, 2:6, 2:6] = 3                      # 'liver' and 'tumour'
+    data[7, 2:6, 2:6] = 2                        # only 'tumour'
+    source = Image(data, ObjectMeta(dr=1.0, shape=(8, 8, 8)).affine, labels={'liver': (1, 3), 'tumour': [2, 3]},
+                   frame='scanner')
+    grid = ObjectMeta(dr=1.0, shape=(8, 8, 8))
+    liver = source.on(grid, label='liver').cpu().numpy()
+    assert np.array_equal(liver, np.isin(data, (1, 3)).astype(np.float32))
+    assert np.array_equal(source.on(grid, label=(2, 3), mode='nearest').cpu().numpy(), np.isin(data, (2, 3)).astype(np.float32))
+    assert source.on(ObjectMeta(dr=2.0, shape=(4, 4, 4)), label='tumour').cpu().numpy().sum() == pytest.approx(48 / 8)
+    assert int(source.on(grid, label=[1, 3], threshold=0.5).sum()) == 6 * 4 * 4

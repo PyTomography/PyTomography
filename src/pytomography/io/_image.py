@@ -37,7 +37,9 @@ class Image():
         meta (dict, optional): what the source says about itself (KVP, Manufacturer, the series description...).
         frame (str, optional): ``'patient'`` when the affine is in the study's patient coordinates, ``'scanner'`` when
             the file only places the image relative to the scanner's centre. Defaults to ``'patient'``.
-        labels (dict, optional): for a label image (a mask or a segmentation), each label's name and value.
+        labels (dict, optional): for a label image (a mask or a segmentation), each label's name and its value, or
+            the tuple of every value whose voxels belong to it (when labels overlap, each overlap has a value of its
+            own).
 
     Attributes:
         centre (np.ndarray): the position of the image's centre in LPS mm.
@@ -109,8 +111,8 @@ class Image():
             mode (str): ``'auto'``: trilinear interpolation at the target voxel centres, or, along any axis where a
                 target voxel is more than 1.5 source voxels long, the mean over the target voxel (so a 1 mm CT on a
                 4.8 mm SPECT grid is averaged, not point sampled, #6). ``'nearest'``: the value of the nearest voxel.
-            label (int | str, optional): for a label image, the label (its value, or its name in ``labels``) whose
-                coverage is returned: the fraction of each target voxel inside it (0 or 1 with ``mode='nearest'``).
+            label (int | str | tuple, optional): for a label image, the label (its value, a tuple or list of values,
+                or its name in ``labels``) whose coverage is returned: the fraction of each target voxel inside it (0 or 1 with ``mode='nearest'``).
             threshold (float, optional): return a bool tensor, True where the resampled value (or coverage) is at
                 least ``threshold``.
             fill (float): the value outside the image. Defaults to 0.
@@ -131,6 +133,8 @@ class Image():
                 value = self.labels[label]
             else:
                 value = label
+            if isinstance(value, (list, tuple, np.ndarray)):
+                value = tuple(np.asarray(value).ravel().tolist())
         M = np.linalg.inv(self.affine) @ object_meta.affine      # target index -> source index
         out = _resample(self.data, M, tuple(object_meta.shape), mode, value, float(fill))
         out = out.to(pytomography.device)
@@ -172,11 +176,18 @@ def _chunk(bytes_per_slice: float) -> int:
     return block_size(bytes_per_slice, default=max(1, int(BLOCK_CAP_BYTES // max(bytes_per_slice, 1.0))))
 
 
+def _in_label(data: np.ndarray, value) -> np.ndarray:
+    """Where ``data`` holds the label ``value`` (one value, or a tuple of them), as float32 0 and 1."""
+    if isinstance(value, tuple):
+        return np.isin(data, value).astype(np.float32)
+    return (data == value).astype(np.float32)
+
+
 def _values(data: np.ndarray, value, fill: float) -> np.ndarray:
     """The source values to resample, as float32, minus ``fill`` (so that outside the image adds nothing): a label's
     indicator for a label."""
     if value is not None:
-        return (data == value).astype(np.float32) - np.float32(fill)
+        return _in_label(data, value) - np.float32(fill)
     return np.ascontiguousarray(data, dtype=np.float32) - np.float32(fill)
 
 
@@ -293,6 +304,6 @@ def _nearest(data, M, shape, value, fill) -> torch.Tensor:
         inside = np.all((index >= 0) & (index < n_source), axis=-1)
         index = np.clip(index, 0, n_source - 1)
         sampled = data[index[..., 0], index[..., 1], index[..., 2]]
-        sampled = (sampled == value).astype(np.float32) if value is not None else sampled.astype(np.float32)
+        sampled = _in_label(sampled, value) if value is not None else sampled.astype(np.float32)
         out[:, :, z0:z1] = torch.from_numpy(np.where(inside, sampled, np.float32(fill)).astype(np.float32))
     return out
