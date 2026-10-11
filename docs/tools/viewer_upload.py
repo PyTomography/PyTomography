@@ -6,7 +6,8 @@
 
 Each folder holds one subfolder per tutorial, as docs/tools/run_tutorials.py exports them (viewer_export.py); when a
 tutorial appears in several, the last folder wins. Every file is checked against its manifest (size and sha256) and
-each tutorial against the size budget before anything is uploaded.
+each tutorial against its size budget (its max_mb in docs/source/tutorials/viewer.yaml, else --max-mb) before anything
+is uploaded.
 
 --upload puts the files on the Hugging Face dataset (--repo, default PyTomography/tutorial-images) under PREFIX/, in
 one commit, with the token in HF_TOKEN; it needs `pip install huggingface_hub`. Pinning then writes
@@ -94,15 +95,17 @@ def main() -> int:
     ap.add_argument("--upload", action="store_true", help="upload to the Hugging Face dataset, then pin")
     ap.add_argument("--pin-only", action="store_true", help="pin images already on the host, at --revision")
     ap.add_argument("--revision", help="the host's commit to pin (with --pin-only)")
-    ap.add_argument("--max-mb", type=float, default=MAX_MB, help="size budget per tutorial")
+    ap.add_argument("--max-mb", type=float, default=MAX_MB, help="size budget of a tutorial whose viewer.yaml entry gives none")
     args = ap.parse_args()
 
     found = collect(args.folders)
     if not found:
         sys.exit("No exported tutorials in those folders.")
+    from viewer_export import load_specs  # noqa: PLC0415  (next to this file)
+    specs = load_specs(INDEX.parents[1])
     mans, bad, total = {}, False, 0
     for name, folder in found.items():
-        man, problems = check(name, folder, args.max_mb)
+        man, problems = check(name, folder, float(specs.get(name, {}).get("max_mb", args.max_mb)))
         mans[name] = man
         total += man.get("bytes", 0)
         print(f"{'FAIL' if problems else 'ok  '} {name:28s} {man.get('bytes', 0) / 1e6:5.1f} MB  {folder}" +
