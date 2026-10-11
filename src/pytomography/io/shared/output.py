@@ -1,21 +1,20 @@
 """Saving 3D images (reconstructions, attenuation maps, masks...) as NIfTI or DICOM, each voxel in its place in the patient.
 
-Every function takes the image as PyTomography stores it: axes (x, y, z), as a torch tensor or a numpy array (a
-leading axis of length 1 is dropped). Where its voxels are is a 4 x 4 matrix from voxel indices (i, j, k) to DICOM
-patient coordinates (LPS, in mm), given as ``affine``, or taken from ``object_meta`` by :func:`patient_affine`:
+Every writer takes the image in one of two forms:
 
-* ``object_meta.affine_matrix``, when the reader that made ``object_meta`` knows the patient frame (the SPECT DICOM
-  reader sets it from the projections);
-* otherwise the object centred on the scanner's axis, as PyTomography's projectors place it: voxel (i, j, k) at
-  ((i - (Lx - 1) / 2) dx, (j - (Ly - 1) / 2) dy, (k - (Lz - 1) / 2) dz). This is the case for simulated data
-  (SIMIND, GATE) and other data without a patient frame. SPECT voxel sizes are in cm and are converted to mm.
+* a torch tensor or numpy array with axes (x, y, z) (a leading axis of length 1 is dropped), and its ``object_meta``.
+  The voxels are where ``object_meta.affine`` says (LPS, mm), and ``object_meta.units``, ``object_meta.modality`` and
+  ``object_meta.frame`` say what the values are and whether the image is in the patient's frame;
+* an :class:`~pytomography.io.Image`, which carries its own affine (any orientation), units, modality and frame.
 
-``save_nifti`` writes one NIfTI-1 file in float32, with that matrix (converted to NIfTI's RAS) as its sform and qform.
+``save_nifti`` writes one NIfTI-1 file in float32, with the affine (converted to NIfTI's RAS) as its sform and qform:
+code 1 (scanner anatomy) for an image in the patient's frame, 2 (aligned) for one placed only relative to the scanner.
 ``save_dicom`` writes a DICOM series: one file per slice for PET (PT) and CT, or one multi-frame file for SPECT (NM).
 Values are stored as 16-bit integers over the full range (one slope, from the image's largest value) and read back
 within half a step; CT in HU is stored in whole HU. The slope is in the rescale tags, and for NM also in a Real World
-Value Mapping with the units. Given a ``reference`` (any DICOM file of the same acquisition: the projections, a CT slice, raw CT projections), the
-series joins that patient, study and frame of reference, so clinical viewers fuse it with the other images of the study.
+Value Mapping with the units. Given a ``reference`` (any DICOM file of the same acquisition: the projections, a CT slice,
+raw CT projections), the series joins that patient and study, and, for an image in the patient's frame, its frame of
+reference, so clinical viewers fuse it with the other images of the study.
 """
 from __future__ import annotations
 
@@ -62,52 +61,29 @@ VALID_FORM = {"PatientBirthDate": r"\d{8}", "PatientAge": r"\d{3}[DWMY]", "Patie
 
 # ---------- where the voxels are ----------
 
-def patient_affine(object_meta=None, affine=None) -> np.ndarray:
-    """The 4 x 4 matrix from voxel indices (i, j, k) to DICOM patient coordinates (LPS, mm).
-
-    Args:
-        object_meta (ObjectMeta, optional): the image's object metadata. Its ``affine_matrix`` is used when a reader
-            set one; otherwise the object is centred on the scanner's axis. SPECT voxel sizes (cm) become mm.
-        affine (array-like, optional): the matrix itself; it takes precedence over ``object_meta``.
-
-    Returns:
-        np.ndarray: the matrix, float64.
-    """
-    if affine is not None:
-        A = _numpy(affine).astype(float).reshape(4, 4)
-    elif object_meta is not None and getattr(object_meta, "affine_matrix", None) is not None:
-        A = _numpy(object_meta.affine_matrix).astype(float).reshape(4, 4)
-    elif object_meta is not None:
-        A = centred_affine(object_meta.dr, object_meta.shape, in_cm=_dr_in_cm(object_meta))
-    else:
-        raise ValueError("give the image's object_meta or its affine")
-    if not np.allclose(A[3], [0, 0, 0, 1]):
-        raise ValueError(f"not an affine matrix: last row {A[3]}")
-    return A
+def _source(image, object_meta) -> tuple:
+    """The image as a 3D numpy array (x, y, z), with its affine (voxel index to LPS mm), units, modality and frame,
+    from an :class:`~pytomography.io.Image` or from an array and its ``object_meta``."""
+    from .._image import Image
+    if isinstance(image, Image):
+        if object_meta is not None:
+            raise TypeError("an Image carries its own affine: pass it without object_meta")
+        return image.data, image.affine, image.units, image.modality, image.frame
+    if object_meta is None:
+        raise ValueError("give the image's object_meta (its affine, units and modality), or an io.Image")
+    arr = _volume(image)
+    if tuple(arr.shape) != tuple(object_meta.shape):
+        raise ValueError(f"the image's shape {tuple(arr.shape)} is not object_meta's {tuple(object_meta.shape)}")
+    return arr, object_meta.affine, object_meta.units, object_meta.modality, object_meta.frame
 
 
-def centred_affine(dr: Sequence[float], shape: Sequence[int], in_cm: bool = False) -> np.ndarray:
-    """The object centred on the scanner's axis: voxel (i, j, k) at ((i - (Lx - 1) / 2) dx, ...), in mm.
-
-    Args:
-        dr (Sequence[float]): voxel size along x, y and z.
-        shape (Sequence[int]): the object's shape (Lx, Ly, Lz).
-        in_cm (bool): True when dr is in cm (SPECT), so it is converted to mm.
-    """
-    d = np.asarray(dr, float) * (10.0 if in_cm else 1.0)
+def centred_affine(dr: Sequence[float], shape: Sequence[int]) -> np.ndarray:
+    """The grid centred on the scanner's centre: voxel (i, j, k) at ((i - (Lx - 1) / 2) dx, ...), in mm; the affine of
+    ``ObjectMeta(dr, shape)``."""
+    d = np.asarray(dr, float)
     A = np.diag([*d, 1.0])
     A[:3, 3] = [-(n - 1) / 2 * dk for n, dk in zip(shape, d)]
     return A
-
-
-def _dr_in_cm(object_meta) -> bool:
-    """SPECT object metadata keeps voxel sizes in cm; PET and CT in mm."""
-    from pytomography.metadata.SPECT import SPECTObjectMeta
-    return isinstance(object_meta, SPECTObjectMeta)
-
-
-def _frame_known(object_meta, affine) -> bool:
-    return affine is not None or (object_meta is not None and getattr(object_meta, "affine_matrix", None) is not None)
 
 
 def _numpy(x) -> np.ndarray:
@@ -127,31 +103,32 @@ def _volume(image) -> np.ndarray:
 
 # ---------- NIfTI ----------
 
-def save_nifti(image, path, object_meta=None, affine=None, units: str | None = None,
-               description: str | None = None):
+def save_nifti(image, path, object_meta=None, *, units: str | None = None, description: str | None = None):
     """Save a 3D image as a NIfTI-1 file (float32), with its place in the patient.
 
     Args:
-        image (torch.Tensor | np.ndarray): the image, axes (x, y, z).
+        image (torch.Tensor | np.ndarray | Image): the image, axes (x, y, z), or an :class:`~pytomography.io.Image`.
         path (str | Path): the file to write; ``.nii`` or ``.nii.gz`` (added when the name has neither).
-        object_meta (ObjectMeta, optional): where the voxels are (see :func:`patient_affine`).
-        affine (array-like, optional): the voxel-to-patient matrix (LPS, mm), instead of ``object_meta``.
+        object_meta (ObjectMeta, optional): the image's grid and where it is (needed for a tensor or an array).
         units (str, optional): the image's units, kept in the header's description (e.g. ``"counts"``, ``"Bq/mL"``).
+            Defaults to the units of ``object_meta`` or of the Image.
         description (str, optional): the rest of that description (80 characters in all).
 
     Returns:
         Path: the file written.
     """
     import nibabel as nib
-    arr = _volume(image).astype(np.float32)
-    A = LPS_TO_RAS @ patient_affine(object_meta, affine)
+    arr, A_lps, own_units, _, frame = _source(image, object_meta)
+    units = units if units is not None else own_units
+    arr = np.asarray(arr, dtype=np.float32)
+    A = LPS_TO_RAS @ A_lps
     path = Path(path)
     if not (path.name.endswith(".nii") or path.name.endswith(".nii.gz")):
         path = path.with_name(path.name + ".nii.gz")
     path.parent.mkdir(parents=True, exist_ok=True)
     img = nib.Nifti1Image(arr, A)
-    # 1 = scanner coordinates (a frame from the data); 2 = aligned to the scanner's axis (the centred default)
-    code = 1 if _frame_known(object_meta, affine) else 2
+    # 1 = scanner-based anatomical coordinates (the patient's frame); 2 = aligned (placed only relative to the scanner)
+    code = 1 if frame == "patient" else 2
     img.set_sform(A, code=code)
     img.set_qform(A, code=code)
     img.header.set_xyzt_units(xyz="mm")
@@ -231,8 +208,8 @@ def _base(modality: str, ref: Dataset | None, series_uid: str, frame_uid: str, s
             elem = ref[key]
             value = str(elem.value) if elem.value is not None else ""
             if key in VALID_FORM and value and not re.fullmatch(VALID_FORM[key], value):
-                elem = pydicom.DataElement(elem.tag, elem.VR, "")      # a new element: the reference stays as it was
-            ds[key] = elem
+                elem = pydicom.DataElement(elem.tag, elem.VR, "")
+            ds[key] = copy.deepcopy(elem)                               # a copy: the reference stays as it was
     if ref is None or "StudyInstanceUID" not in ref:
         ds.PatientName = getattr(ref, "PatientName", "") if ref is not None else "PyTomography"
         ds.PatientID = getattr(ref, "PatientID", "") if ref is not None else "PYTOMOGRAPHY"
@@ -280,25 +257,30 @@ def _file(ds: Dataset, path: Path) -> None:
     fds.save_as(str(path), enforce_file_format=True)
 
 
-def save_dicom(image, folder, object_meta=None, affine=None, modality: str | None = None, reference=None,
-               units: str | None = None, series_description: str = "PyTomography reconstruction",
-               series_number: int = 1000, overwrite: bool = False) -> list:
+def save_dicom(image, folder, object_meta=None, *, reference=None, units: str | None = None,
+               modality: str | None = None, slice_thickness: float | None = None,
+               series_description: str = "PyTomography reconstruction", series_number: int = 1000,
+               overwrite: bool = False) -> list:
     """Save a 3D image as a DICOM series, each voxel in its place in the patient.
 
     Args:
-        image (torch.Tensor | np.ndarray): the image, axes (x, y, z).
+        image (torch.Tensor | np.ndarray | Image): the image, axes (x, y, z), or an :class:`~pytomography.io.Image`.
         folder (str | Path): the folder to write into (created if needed).
-        object_meta (ObjectMeta, optional): where the voxels are (see :func:`patient_affine`).
-        affine (array-like, optional): the voxel-to-patient matrix (LPS, mm), instead of ``object_meta``.
-        modality (str, optional): ``"NM"`` (SPECT; one multi-frame file), ``"PT"`` (PET; one file per slice) or
-            ``"CT"`` (CT in HU; one file per slice). Defaults to ``"NM"`` for SPECT ``object_meta`` and ``"PT"``
-            otherwise; ``"PT"`` also saves a SPECT image as PET-style slices.
+        object_meta (ObjectMeta, optional): the image's grid and where it is (needed for a tensor or an array); its
+            units and modality are used unless given here.
         reference (str | Path | pydicom.Dataset | list, optional): a DICOM file of the same acquisition (projections,
-            a CT slice, raw CT projections). The series takes its patient, study and frame of reference, so it lines
-            up with that study's other images. Without one, the series gets a new study and frame of reference.
+            a CT slice, raw CT projections). The series takes its patient and study, and, for an image in the
+            patient's frame (``frame='patient'``), its frame of reference, so it lines up with that study's other
+            images. Without one, or for an image placed only relative to the scanner (``frame='scanner'``), the
+            series gets a new frame of reference.
         units (str, optional): the image's units, e.g. ``"counts"`` or ``"Bq/mL"`` (PET: written as DICOM's code,
-            CNTS or BQML). CT is in HU, rounded to whole numbers, unless units says otherwise (e.g. ``"1/mm"`` for
-            attenuation), which keeps fractional values.
+            CNTS or BQML). CT is in HU, rounded to whole numbers, unless the units say otherwise (e.g. ``"1/mm"`` for
+            attenuation), which keeps fractional values. Defaults to the units of ``object_meta`` or of the Image.
+        modality (str, optional): ``"NM"`` (SPECT; one multi-frame file), ``"PT"`` (PET; one file per slice) or
+            ``"CT"`` (one file per slice). Defaults to the modality of ``object_meta`` or of the Image; ``"PT"`` also
+            saves a SPECT image as PET-style slices.
+        slice_thickness (float, optional): the nominal thickness of a slice in mm, written as SliceThickness. This is
+            not the distance between slices (which the slices' positions give), and is left empty when not given.
         series_description (str): shown in DICOM viewers' series lists.
         series_number (int): the series number.
         overwrite (bool): replace DICOM files already in ``folder``. Defaults to False, which refuses to.
@@ -306,11 +288,14 @@ def save_dicom(image, folder, object_meta=None, affine=None, modality: str | Non
     Returns:
         list[Path]: the files written, in slice order.
     """
-    modality = (modality or ("NM" if _dr_in_cm(object_meta) else "PT")).upper()
+    arr, A, own_units, own_modality, frame = _source(image, object_meta)
+    units = units if units is not None else own_units
+    modality = modality if modality is not None else own_modality
+    if modality is None:
+        raise ValueError("the image's modality is unknown: pass modality='NM', 'PT' or 'CT' (or set object_meta.modality)")
+    modality = str(modality).upper()
     if modality not in SOP_CLASS:
         raise ValueError(f"modality must be one of {sorted(SOP_CLASS)}, not {modality!r}")
-    arr = _volume(image)
-    A = patient_affine(object_meta, affine)
     geo = _geometry(A, arr.shape)
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
@@ -322,13 +307,15 @@ def save_dicom(image, folder, object_meta=None, affine=None, modality: str | Non
     ref = _read_reference(reference)
     now = datetime.datetime.now()
     series_uid = generate_uid()
-    frame_uid = ref.FrameOfReferenceUID if ref is not None and "FrameOfReferenceUID" in ref else generate_uid()
+    # an image placed only relative to the scanner is not in the reference's frame of reference
+    in_frame = frame == "patient" and ref is not None and "FrameOfReferenceUID" in ref
+    frame_uid = ref.FrameOfReferenceUID if in_frame else generate_uid()
     pixels, slope, signed = _scaling(arr, modality, units)
     base = _base(modality, ref, series_uid, frame_uid, series_description, series_number, now)
     base.PixelRepresentation = 1 if signed else 0
     base.Rows, base.Columns = int(arr.shape[1]), int(arr.shape[0])       # rows run along y (j), columns along x (i)
     base.PixelSpacing = [_number(geo["dy"]), _number(geo["dx"])]         # between rows, between columns
-    base.SliceThickness = _number(geo["dz"])
+    base.SliceThickness = _number(float(slice_thickness)) if slice_thickness is not None else ""
     base.ImageOrientationPatient = [_number(c) for c in (*geo["row"], *geo["col"])]
     if modality == "NM":                       # NM gives real values through a Real World Value Mapping instead
         return [_write_nm(base, pixels, slope, geo, folder, ref, units)]
@@ -391,7 +378,7 @@ def _write_nm(base: Dataset, pixels: np.ndarray, slope: float, geo: dict, folder
     ds.FrameIncrementPointer = pydicom.tag.Tag(0x0054, 0x0080)          # SliceVector
     ds.SliceVector = list(range(1, len(order) + 1))
     ds.NumberOfSlices = len(order)
-    ds.SpacingBetweenSlices = base.SliceThickness
+    ds.SpacingBetweenSlices = _number(geo["dz"])
     detector = Dataset()
     detector.ImagePositionPatient = [_number(c) for c in geo["ipp"][order[0]]]
     detector.ImageOrientationPatient = base.ImageOrientationPatient

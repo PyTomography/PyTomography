@@ -148,9 +148,8 @@ def get_metadata(
     projections, angles, radii, _ = parse_projection_dataset(ds)
     shape_proj = (projections.shape[-3], projections.shape[-2], projections.shape[-1])
     shape_obj = (shape_proj[1], shape_proj[1], shape_proj[2])
-    object_meta = SPECTObjectMeta(dr, shape_obj)
+    object_meta = SPECTObjectMeta(dr, shape_obj, centre=_spect_projection_centre(ds, shape_obj), frame='patient')
     proj_meta = SPECTProjMeta((shape_proj[1], shape_proj[2]), (dx, dz), angles, radii)
-    object_meta.affine_matrix = _get_affine_spect_projections(file)
     proj_meta.filepath = file
     proj_meta.index_peak = index_peak
     return object_meta, proj_meta
@@ -547,6 +546,22 @@ def get_attenuation_map_from_CT_slices(
     CT = torch.tensor(CT).to(pytomography.dtype).to(pytomography.device)
     return CT
 
+def _spect_projection_centre(ds: Dataset, shape: Sequence[int]) -> tuple:
+    """Where the rotation axis and the middle projection row are in the patient (LPS, mm), for an object of
+    ``shape`` (Lr, Lr, Lz) on the projections' grid. The vendor rules are those of
+    :func:`_get_affine_spect_projections`."""
+    Sx, Sy, z_top = (float(v) for v in ds.DetectorInformationSequence[0].ImagePositionPatient)
+    dx = float(ds.PixelSpacing[0])
+    dz = float(ds.PixelSpacing[1])
+    Lr, _, Lz = shape
+    if Sy == 0:      # Siemens: IPP = (0, 0, z_top), the rotation axis at y = -TableHeight
+        cx, cy = Sx, -float(ds.RotationInformationSequence[0].TableHeight)
+    elif ds.Manufacturer == 'Mediso':
+        cx, cy = Sx + (Lr - 1) / 2 * dx, 0.0
+    else:            # GE: IPP is the centre of voxel (0, 0)
+        cx, cy = Sx + (Lr - 1) / 2 * dx, Sy + (Lr - 1) / 2 * dx
+    return (cx, cy, z_top - (Lz - 1) / 2 * dz)
+
 def _get_affine_spect_projections(filename: str) -> np.array:
     """Computes an affine matrix corresponding the coordinate system of a SPECT DICOM file of projections.
 
@@ -842,7 +857,7 @@ def save_dcm(
     ds.RescaleIntercept = 0  # required with RescaleSlope; without it, open_multifile can't read the series back
     pixel_data *= scale_factor
     pixel_data = pixel_data.round().astype(np.uint16)
-    # Where the voxels are: the matrix the reader gives the reconstruction (get_metadata's object_meta.affine_matrix),
+    # Where the voxels are: the matrix the reader gives the reconstruction (get_metadata's object_meta.affine),
     # so a saved image is where PyTomography put it, for every manufacturer; voxel k's slice is at Sz + k dz
     M = _get_affine_spect_projections(file_NM)
     dx, dy, dz = float(M[0, 0]), float(M[1, 1]), float(M[2, 2])
@@ -1031,8 +1046,8 @@ def get_starguide_patient_affine(files_CT: Sequence[str], object_meta: SPECTObje
     PyTomography places StarGuide's reconstruction and CT in a frame centred on the scan (see
     :func:`get_starguide_affine_CT` and :func:`get_starguide_affine_NM`), with the reconstruction's slices running head
     to foot. This puts that frame where the CT's own DICOM geometry is; on the tutorial's phantom it matches GE's own
-    reconstruction to 0.002 mm. Pass the result as ``affine`` to :func:`pytomography.io.save_dicom` or
-    :func:`pytomography.io.save_nifti`.
+    reconstruction to 0.002 mm. To save the reconstruction there, pass ``pytomography.io.Image(recon, affine)`` to
+    :func:`pytomography.io.save_dicom` or :func:`pytomography.io.save_nifti`.
 
     Args:
         files_CT (Sequence[str]): the CT files of the acquisition.
@@ -1041,13 +1056,13 @@ def get_starguide_patient_affine(files_CT: Sequence[str], object_meta: SPECTObje
     Returns:
         np.ndarray: the 4 x 4 voxel-to-patient matrix (LPS, mm).
     """
-    from ..shared.output import centred_affine
     A_ct = _get_affine_multifile(files_CT)                    # the CT's real geometry
     A_ct_centred = get_starguide_affine_CT(files_CT).copy()   # the same CT in PyTomography's centred frame, cm
     A_ct_centred[:3, :] *= 10
     flip_z = np.eye(4)
     flip_z[2, 2], flip_z[2, 3] = -1, object_meta.shape[2] - 1   # slice k is the (Lz - 1 - k)th from the bottom
-    return A_ct @ npl.inv(A_ct_centred) @ centred_affine(object_meta.dr, object_meta.shape, in_cm=True) @ flip_z
+    centred = SPECTObjectMeta(object_meta.dr, object_meta.shape).affine
+    return A_ct @ npl.inv(A_ct_centred) @ centred @ flip_z
 
 def get_starguide_attenuation_map_from_CT_slices(
     files_CT: Sequence[str],

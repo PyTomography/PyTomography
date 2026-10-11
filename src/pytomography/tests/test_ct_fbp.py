@@ -274,7 +274,7 @@ def test_c145_matches_the_scanner_images(data_dir):
     ps = float(scanner_meta.dr[0])
     object_meta = ObjectMeta(dr=(ps, ps, 1.0), shape=(512, 512, 40))
     system_matrix = CTGen3SystemMatrix(object_meta, meta)
-    affine = scanner_meta.affine_matrix.copy()
+    affine = scanner_meta.affine.copy()
     affine[:2, 3] += 0.5 * ps
     theirs = align_images_affine(np.zeros(object_meta.shape, np.float32), scanner.cpu().numpy(),
                                  meta.get_patient_affine(object_meta).numpy(), affine, cval=-3000)

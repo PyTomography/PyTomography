@@ -6,30 +6,35 @@ import torch
 from..metadata import ObjectMeta, ProjMeta
 
 class SPECTObjectMeta(ObjectMeta):
-    """Metadata for object space in SPECT imaging. Required for padding of object space during the rotate+sum method
+    """Object space of a SPECT reconstruction: an :class:`~pytomography.metadata.ObjectMeta` with the padding the
+    rotate-and-sum projectors need (so that nothing is cut off when the object is rotated).
 
     Args:
-        dr (list[float]): List of 3 elements specifying voxel dimensions in cm.
-        shape (list[int]): List of 3 elements [Lx, Ly, Lz] specifying the length of each dimension.
+        dr (Sequence[float]): voxel size along x, y and z, in cm.
+        shape (Sequence[int]): number of voxels [Lx, Ly, Lz]; Lx = Ly.
+        centre (Sequence[float], optional): where the rotation axis and the middle projection row are, in LPS mm.
+            Defaults to (0, 0, 0).
+        frame (str, optional): ``'patient'`` or ``'scanner'`` (see :class:`~pytomography.metadata.ObjectMeta`).
+            Defaults to ``'scanner'``.
+        units (str, optional): the units of the object's values. Defaults to ``'counts'``.
+        modality (str, optional): Defaults to ``'NM'``.
     """
-    def __init__(self, dr: list[float], shape: list[int]) -> None:
-        self.dr = dr
-        self.dx = dr[0]
-        self.dy = dr[1]
-        self.dz = dr[2]
-        self.shape = shape
-        self.compute_padded_shape()
-        self.recon_method = None
-        self.units = 'counts'
+    _mm_per_unit = 10.0     # dr in cm (until SPECT moves to mm); the affine and the centre are in mm
 
-    def compute_padded_shape(self) -> list:
-        """Computes the padded shape of an object required when rotating the object (to avoid anything getting cut off).
-        """
-        self.pad_size = compute_pad_size(self.shape[0])
-        x_padded = self.shape[0] + 2*self.pad_size
-        y_padded = self.shape[1] + 2*self.pad_size
-        z_padded = self.shape[2]
-        self.padded_shape = (int(x_padded), int(y_padded), int(z_padded)) 
+    def __init__(self, dr: Sequence[float], shape: Sequence[int], centre: Sequence[float] = (0.0, 0.0, 0.0),
+                 frame: str = 'scanner', units: str | None = 'counts', modality: str | None = 'NM') -> None:
+        super().__init__(dr, shape, centre=centre, frame=frame, units=units, modality=modality)
+        self.recon_method = None
+
+    @property
+    def pad_size(self) -> int:
+        """Voxels added on each side of x and y for rotations."""
+        return int(compute_pad_size(self.shape[0]))
+
+    @property
+    def padded_shape(self) -> tuple:
+        """The shape of the padded object."""
+        return (self.shape[0] + 2 * self.pad_size, self.shape[1] + 2 * self.pad_size, self.shape[2])
 
 class SPECTProjMeta(ProjMeta):
     """Metadata for projection space in SPECT imaging

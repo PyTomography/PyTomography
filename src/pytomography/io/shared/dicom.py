@@ -22,7 +22,7 @@ def _get_affine_multifile(files: Sequence[str]):
     """
     # Note: per DICOM convention z actually decreases as the z-index increases (initial z slices start with the head)
     ds = pydicom.dcmread(files[0])
-    dx, dy = ds.PixelSpacing
+    dy, dx = (float(v) for v in ds.PixelSpacing)     # between rows (y), between columns (x)
     dz = compute_slice_thickness_multifile(files)
     orientation = ds.ImageOrientationPatient
     Xxyz = orientation[:3]
@@ -130,11 +130,15 @@ def open_multifile(
     if not return_object_meta:
         return array
     else:
-        dx, dy = ds.PixelSpacing
+        dy, dx = (float(v) for v in ds.PixelSpacing)     # between rows (y), between columns (x)
         dz = compute_slice_thickness_multifile(files)
         shape = array.shape
-        object_meta = ObjectMeta(dr=(dx,dy,dz), shape=shape)
-        object_meta.affine_matrix = _get_affine_multifile(files)
+        A = _get_affine_multifile(files)
+        if not np.allclose(A[:3, :3], np.diag([dx, dy, dz]), atol=1e-4):
+            raise ValueError('open_multifile gives an ObjectMeta only for axial series with IOP [1, 0, 0, 0, 1, 0]')
+        centre = (A @ np.array([*((np.asarray(shape) - 1) / 2), 1.0]))[:3]
+        object_meta = ObjectMeta(dr=(dx, dy, dz), shape=shape, centre=centre, frame='patient',
+                                 units='HU' if ds.Modality == 'CT' else None, modality=ds.Modality)
         return array, object_meta
     
 def open_singlefile(file: str) -> torch.Tensor:
