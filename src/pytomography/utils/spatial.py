@@ -45,14 +45,14 @@ def rotate_detector_z(
 
     Args:
         x (torch.tensor[batch_size, Lx, Ly, Lz]): Tensor aligned with cartesian coordinate system specified
-        by the manual. 
+            by the manual.
         angles (torch.Tensor): The angles :math:`\beta` where the scanner is located for each element in the batch x.
         mode (str, optional): Method of interpolation used to get rotated object. Defaults to bilinear.
         negative (bool, optional): If True, applies an inverse rotation. In this case, the tensor
-        x is an object in a coordinate system aligned with :math:`\beta`, and the function rotates the
-        x back to the original cartesian coordinate system specified by the users manual. In particular, if one
-        uses this function on a tensor with negative=False, then applies this function to that returned
-        tensor with negative=True, it should return the same tensor. Defaults to False.
+            x is an object in a coordinate system aligned with :math:`\beta`, and the function rotates the
+            x back to the original cartesian coordinate system specified by the users manual. In particular, if one
+            uses this function on a tensor with negative=False, then applies this function to that returned
+            tensor with negative=True, it should return the same tensor. Defaults to False.
 
     Returns:
         torch.tensor[batch_size, Lx, Ly, Lz]: Rotated tensor.
