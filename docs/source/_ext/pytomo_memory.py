@@ -1,18 +1,18 @@
-"""The "Memory and speed" page (memory.md): tables generated at build time from the memory model's data, so that they
-read without JavaScript and appear in the page's Markdown copy for AI agents.
+"""The "Memory and speed" page (memory.md): its reference, formulas and sources, generated at build time from the memory
+model's data, so that they read without JavaScript and appear in the page's Markdown copy for AI agents.
 
-* ``.. memory-reference::`` the tutorials' reconstructions (``docs/tools/memory_reference_cases.json``): their size,
-  settings, the model's estimate (``docs/tools/memory_model.py`` evaluating ``_static/memory/model.json``) and what
-  they measured.
-* ``.. memory-scanners::`` PyTomography's sinogram of every scanner in ``_static/memory/pet_scanners.json``.
-* ``.. memory-formulas::`` every model of ``model.json``: its derived quantities, its parts and its settings (the
-  appendix of the formulas, which ``_static/memory/formulas.md`` writes out and the page includes).
-* ``.. memory-sources::`` where the scanner and GPU data come from.
+* ``.. memory-reference::`` two tabs: the tutorials' reconstructions (``docs/tools/memory_reference_cases.json``) with
+  the model's estimate (``docs/tools/memory_model.py`` evaluating ``_static/memory/model.json``) and what they measured;
+  PyTomography's sinogram of every scanner in ``_static/memory/pet_scanners.json``.
+* ``.. memory-formulas::`` one tab per topic or model: the text of ``_static/memory/formulas.md`` for it, and the
+  model's own derived quantities, parts and settings from ``model.json`` (collapsed).
+* ``.. memory-sources::`` where the scanner and GPU data come from (collapsed).
 
-Each directive builds Markdown and parses it with MyST, so the page and its ``_md/memory.md`` copy (and
-``llms-full.txt``) carry the same text: after ``pytomo_docs`` writes those copies, ``write_markdown`` here replaces each
-directive's fence in them with its Markdown, and each ``{include}`` with the file it includes. The calculator reads the
-reference cases at ``_static/memory/reference_cases.json``, copied from ``docs/tools`` at the end of the build.
+Each directive builds Markdown and parses it with MyST. On the page, tabs and collapsed parts are sphinx-design
+``tab-set`` and ``dropdown``: all their content is in the HTML. In the page's Markdown copy (``_md/memory.md``) and
+``llms-full.txt``, ``write_markdown`` replaces each directive's fence with the same Markdown, the tabs as headings.
+The calculator reads the reference cases at ``_static/memory/reference_cases.json``, copied from ``docs/tools`` at the
+end of the build.
 """
 from __future__ import annotations
 
@@ -29,6 +29,7 @@ from sphinx.util.docutils import SphinxDirective
 
 PAGE = "memory"
 STATIC = Path("_static") / "memory"
+FILES = ("model.json", "pet_scanners.json", "gpus.json", "formulas.md")
 
 
 def _tools(srcdir: Path) -> Path:
@@ -47,6 +48,7 @@ def _load(srcdir: Path) -> dict:
         "ref": json.loads((tools / "memory_reference_cases.json").read_text(encoding="utf8")),
         "scanners": json.loads((static / "pet_scanners.json").read_text(encoding="utf8")),
         "gpus": json.loads((static / "gpus.json").read_text(encoding="utf8")),
+        "formulas": (static / "formulas.md").read_text(encoding="utf8"),
     }
 
 
@@ -74,20 +76,41 @@ def _count(n: float) -> str:
     return f"{n:,.0f}"
 
 
-# ---------------------------------------------------------------------------------------------- reference table
+def _tabs(tabs: list, fmt: str, level: str = "###") -> str:
+    """Tabs [(label, Markdown)]: a sphinx-design tab set on the page, headings in the Markdown copy."""
+    out = []
+    if fmt == "html":
+        out += ["::::::{tab-set}", ""]
+        for label, body in tabs:
+            out += [f":::::{{tab-item}} {label}", "", body.strip(), "", ":::::", ""]
+        out.append("::::::")
+    else:
+        for label, body in tabs:
+            out += [f"{level} {label}", "", body.strip(), ""]
+    return "\n".join(out)
+
+
+def _collapsed(title: str, body: str, fmt: str, level: str = "####") -> str:
+    """A part shown on request: a sphinx-design dropdown on the page, a heading in the Markdown copy."""
+    if fmt == "html":
+        return "\n".join([f":::{{dropdown}} {title}", "", body.strip(), "", ":::"])
+    return "\n".join([f"{level} {title}", "", body.strip()])
+
+
+# ---------------------------------------------------------------------------------------------- reference
 def _size_text(model_id: str, p: dict) -> str:
     image = f"{p.get('Lx')}×{p.get('Ly')}×{p.get('Lz')}"
     if model_id.startswith("pet") or model_id == "sss":
-        text = f"{image}; {p.get('crystals_per_ring')} crystals × {p.get('rings')} rings"
+        text = f"{image}; {p.get('crystals_per_ring')}×{p.get('rings')}"
         if p.get("tof"):
-            text += f", TOF ({p['tof_bins']} bins)" if p.get("tof_bins") else ", TOF"
+            text += f", TOF {p['tof_bins']}" if p.get("tof_bins") else ", TOF"
         if p.get("events"):
             text += f"; {_count(p['events'])} events"
         return text
     if model_id.startswith("ct"):
-        return f"{image}; {p.get('views')} views of {p.get('det_cols')}×{p.get('det_rows')}"
+        return f"{image}; {p.get('views')} × {p.get('det_cols')}×{p.get('det_rows')}"
     if model_id == "starguide":
-        return f"{image}; {p.get('sg_views')} views at {p.get('sg_angles')} angles"
+        return f"{image}; {p.get('sg_views')} views"
     return f"{image}; {p.get('views')} views" + (f", {p['n_beds']} beds" if p.get("n_beds") else "")
 
 
@@ -103,20 +126,16 @@ def _settings_text(settings: dict) -> str:
     return ", ".join(f"{k} {value(k, v)}" for k, v in settings.items()) or "none"
 
 
-def reference_markdown(d: dict) -> str:
+def tutorials_markdown(d: dict) -> str:
     ref, model = d["ref"], d["model"]
     m = ref["machine"]
     lines = [
-        f"Estimated with each tutorial's own settings for the machine they ran on ({m['os'].title()}, {m['gpu']}, "
-        f"{m['ram_gb']} GB of RAM). *Measured* is the whole notebook's peak (RAM: committed memory; GPU: "
-        "`torch.cuda.max_memory_allocated`), which includes everything else the notebook keeps, so it can be above or "
-        "below one step's estimate. *Cell* is the reconstruction cell alone, where it was measured. Pick any of these "
-        "in the calculator's *Start from a tutorial* list.",
+        f"Each step estimated with its tutorial's settings ({m['os'].title()}, {m['gpu']}, {m['ram_gb']} GB). "
+        "Measured: the whole notebook's peak; cell: that cell alone, above what was held before it. GB, RAM / GPU.",
         "",
-        "| Tutorial | Step | Size | Settings | Estimate RAM / GPU (GB) | Measured RAM / GPU (GB) | Cell RAM / GPU (GB) |",
+        "| Tutorial | Step | Size | Settings | Estimate | Measured | Cell |",
         "|---|---|---|---|---|---|---|",
     ]
-    names = {x["id"]: x["title"] for x in model.models()}
     missing = []
     for c in ref["cases"]:
         meas = c["measured"]["tutorial"]
@@ -128,49 +147,84 @@ def reference_markdown(d: dict) -> str:
         params = {k: v for k, v in params.items() if k in known}
         e = model.estimate(c["model"], params, c.get("settings", {}))
         cell = c["measured"].get("cell")
-        cell_text = f"{_gb(cell['ram_peak_gb'] - cell['ram_before_gb'])} more / {_gb(cell['gpu_peak_torch_gb'])}" if cell else ""
+        cell_text = f"{_gb(cell['ram_peak_gb'] - cell['ram_before_gb'])} / {_gb(cell['gpu_peak_torch_gb'])}" if cell else ""
         lines.append(
-            f"| `{c['tutorial']}` | {_cell(c['step'])} ({_cell(names[c['model']].split(' (')[0])}) | {_cell(_size_text(c['model'], params))} "
+            f"| `{c['tutorial']}` | {_cell(c['step'])} | {_cell(_size_text(c['model'], params))} "
             f"| {_cell(_settings_text(e['settings']))} | {_gb(e['ram_gb'])} / {_gb(e['gpu_gb'])} | {_gb(meas['ram_gb'])} / {_gb(meas['gpu_gb'])} | {cell_text} |")
     if missing:
-        lines += ["", "Not modelled yet (the measured peak of the whole notebook, RAM / GPU):", ""]
-        for c in missing:
-            meas = c["measured"]["tutorial"]
-            lines.append(f"- `{c['tutorial']}`, {c['step']}: {_gb(meas['ram_gb'])} / {_gb(meas['gpu_gb'])} GB. {c.get('notes', '')}".rstrip())
+        lines += ["", "Not modelled yet (measured peak, RAM / GPU): " + "; ".join(
+            f"`{c['tutorial']}` {_gb(c['measured']['tutorial']['ram_gb'])} / {_gb(c['measured']['tutorial']['gpu_gb'])} GB" for c in missing) + "."]
     return "\n".join(lines) + "\n"
 
 
-# ------------------------------------------------------------------------------------------------- scanners
 TYPE_NAMES = {"PET/CT": "PET/CT", "PET/MR": "PET/MR", "total-body": "long axial FOV", "brain": "brain", "preclinical": "preclinical"}
 
 
 def scanners_markdown(d: dict) -> str:
     lines = [
-        "A PyTomography sinogram keeps every pair of rings (span 1): $C/2$ angles, $C+1$ radial bins and $R^2$ planes "
-        "for $C$ crystals per ring and $R$ rings, as float32, times the TOF bins. These are the sizes of one such "
-        "sinogram (the data, the sensitivity sinogram and a dense additive term are one each); a reconstruction holds "
-        "one subset of it at a time on the GPU.",
+        "A PyTomography sinogram keeps every ring pair: $C/2$ angles × $(C+1)$ radial bins × $R^2$ planes, float32, "
+        "times the TOF bins. Reconstruct long axial FOV scanners in list mode.",
         "",
-        "| Scanner | Type | Crystals × rings | Sinogram (angles × radial × planes) | GB without TOF | TOF |",
+        "| Scanner | Type | Crystals × rings | Sinogram | GB (no TOF) | TOF |",
         "|---|---|---|---|---|---|",
     ]
     for s in d["scanners"]:
         C, R = s.get("crystals_per_ring"), s.get("rings")
-        tof = f"yes, {s['tof_resolution_ps']:g} ps" if s.get("tof") and s.get("tof_resolution_ps") else ("yes" if s.get("tof") else "no")
+        tof = f"{s['tof_resolution_ps']:g} ps" if s.get("tof") and s.get("tof_resolution_ps") else ("yes" if s.get("tof") else "no")
         vb = (s.get("vendor_sinogram") or {}).get("tof_bins")
-        if vb:
-            tof += f" ({vb} bins: {_gb(4 * (C // 2) * (C + 1) * R * R * vb / 1e9)} GB)" if C and R else ""
+        if vb and C and R:
+            tof += f", {vb} bins: {_gb(4 * (C // 2) * (C + 1) * R * R * vb / 1e9)} GB"
         if not C or not R:
             lines.append(f"| {_cell(s['name'])} | {TYPE_NAMES.get(s['type'], s['type'])} | not published | | | {tof} |")
             continue
         size = 4 * (C // 2) * (C + 1) * R * R / 1e9
         lines.append(f"| {_cell(s['name'])} | {TYPE_NAMES.get(s['type'], s['type'])} | {C} × {R} | {C // 2} × {C + 1} × {R * R:,} | {_gb(size)} | {tof} |")
-    lines += ["", "For the long axial field of view scanners a sinogram of every ring pair is too large to hold: "
-              "reconstruct them in list mode (`PETLMSystemMatrix`)."]
     return "\n".join(lines) + "\n"
 
 
-# ------------------------------------------------------------------------------------------------- formulas
+def reference_markdown(d: dict, fmt: str = "html") -> str:
+    return _tabs([("Tutorials", tutorials_markdown(d)), ("PET scanners", scanners_markdown(d))], fmt)
+
+
+# ------------------------------------------------------------------------------------------------ formulas
+# Tabs of the formulas: (label, the formulas.md sections they take, by the start of their title, the models whose
+# model.json tables they show). Sections and models no tab names go to "Other".
+FORMULA_TABS = [
+    ("Estimate", ["How an estimate is built"], []),
+    ("Plan", ["How a plan is chosen"], []),
+    ("Algorithms", ["Reconstruction algorithms"], []),
+    ("PET sinogram", ["PET sinogram"], ["pet_sinogram"]),
+    ("PET list mode", ["PET list mode"], ["pet_listmode"]),
+    ("Scatter", ["Single scatter simulation"], ["sss"]),
+    ("CT helical", ["Helical CT OS-SART"], ["ct_helical_sart"]),
+    ("CT helical FBP", ["Helical CT filtered back projection"], ["ct_helical_fbp"]),
+    ("CT cone beam", ["Cone-beam CT"], ["ct_cone_sart", "ct_cone_fdk"]),
+    ("SPECT", ["SPECT (SPECTSystemMatrix)", "SPECT filtered back projection"], ["spect", "spect_fbp"]),
+    ("StarGuide", ["StarGuide"], ["starguide"]),
+    ("KEM", ["Kernel EM"], ["kem"]),
+    ("Multi-bed", ["Multi-bed"], ["spect_multibed"]),
+    ("Other", [], []),
+    ("Limits", ["What the formulas leave out"], []),
+]
+
+
+def _formula_sections(text: str) -> tuple:
+    """formulas.md as (its text before the first section, [(section title, Markdown)])."""
+    intro, sections, current, fenced = [], [], None, False
+    for line in text.splitlines():
+        if line.startswith("```"):
+            fenced = not fenced
+        if not fenced and line.startswith("# "):
+            continue
+        heading = None if fenced else re.match(r"## (.+)", line)
+        if heading:
+            current = [heading.group(1).strip(), []]
+            sections.append(current)
+            continue
+        (current[1] if current else intro).append(line)
+    return "\n".join(intro).strip(), [(t, "\n".join(b).strip()) for t, b in sections]
+
+
 def _derived_rows(group) -> list:
     if not group:
         return []
@@ -219,53 +273,69 @@ def _candidates_text(s: dict) -> str:
     return text
 
 
+def _model_tables(mj: dict, m: dict) -> str:
+    """One model of model.json as tables: its derived quantities, parts and settings."""
+    derived = []
+    for name in m.get("use", []):
+        derived += _derived_rows(mj["derived_sets"][name])
+    derived += _derived_rows(m.get("derived"))
+    body = [f"`{m['library']}`", ""]
+    if m.get("allocator_fraction") is not None:
+        body += [f"Allocator fraction on Windows: {m['allocator_fraction']:g}.", ""]
+    if derived:
+        body += ["| Derived | Expression |", "|---|---|"] + [f"| `{k}` | {_code(v)} |" for k, v in derived] + [""]
+    body += ["| Part | Scope | When | Bytes | Where |", "|---|---|---|---|---|"]
+    body += [f"| {_cell(n)} | {sc} | {w} | {sz} | {wh} |" for n, sc, w, sz, wh in _part_rows(mj, m["parts"])]
+    if m.get("settings"):
+        body += ["", "| Setting | Candidates, fastest first |", "|---|---|"]
+        for s in m["settings"]:
+            extra = f" Forced to {_code(s['force'])} when not null." if "force" in s else ""
+            body.append(f"| {_cell(s.get('label', s['name']))} | {_candidates_text(s)}{extra} |")
+    return "\n".join(body)
+
+
 def formulas_markdown(d: dict, fmt: str = "html") -> str:
     mj = d["model_json"]
-    lines = [
-        "Each model exactly as the calculator evaluates it, generated from the memory model file "
-        "(<a href=\"_static/memory/model.json\">model.json</a>) when the site is built: its derived quantities, its parts and its "
-        "settings, in the model's expression language (`c ? a : b` is a if c, else b; `**` is a power). "
-        "Sizes are in bytes. The overheads and the way a plan searches are as described above.",
-        "",
-        "Derived quantities every model uses:",
-        "",
-        "| Name | Expression |",
-        "|---|---|",
-    ]
-    lines += [f"| `{k}` | {_code(v)} |" for k, v in _derived_rows(mj.get("derived"))]
-    lines.append("")
-    for m in mj["models"]:
-        derived = []
-        for name in m.get("use", []):
-            derived += _derived_rows(mj["derived_sets"][name])
-        derived += _derived_rows(m.get("derived"))
-        body = [f"`{m['library']}`", ""]
-        if m.get("allocator_fraction") is not None:
-            body += [f"Allocator fraction on Windows: {m['allocator_fraction']:g}.", ""]
-        if derived:
-            body += ["| Derived | Expression |", "|---|---|"] + [f"| `{k}` | {_code(v)} |" for k, v in derived] + [""]
-        body += ["| Part | Scope | When | Bytes | Where |", "|---|---|---|---|---|"]
-        body += [f"| {_cell(n)} | {sc} | {w} | {sz} | {wh} |" for n, sc, w, sz, wh in _part_rows(mj, m["parts"])]
-        if m.get("settings"):
-            body += ["", "| Setting | Candidates, fastest first |", "|---|---|"]
-            for s in m["settings"]:
-                extra = f" Forced to {_code(s['force'])} when not null." if "force" in s else ""
-                body.append(f"| {_cell(s.get('label', s['name']))} | {_candidates_text(s)}{extra} |")
-        if fmt == "html":
-            lines += [f":::{{dropdown}} {m['title']}", ""] + body + ["", ":::", ""]
-        else:
-            lines += [f"#### {m['title']}", ""] + body + [""]
-    return "\n".join(lines)
+    intro, sections = _formula_sections(d["formulas"])
+    models = {m["id"]: m for m in mj["models"]}
+    used_sections, used_models, tabs = set(), set(), []
+    plan = []
+    for label, prefixes, ids in FORMULA_TABS:
+        mine = [s for s in sections if s[0] not in used_sections and any(s[0].startswith(p) for p in prefixes)]
+        used_sections.update(s[0] for s in mine)
+        ms = [models[i] for i in ids if i in models]
+        used_models.update(m["id"] for m in ms)
+        plan.append([label, mine, ms])
+    for entry in plan:                                         # what no tab names
+        if entry[0] == "Other":
+            entry[1] = [s for s in sections if s[0] not in used_sections]
+            entry[2] = [m for m in mj["models"] if m["id"] not in used_models]
+    level = "####" if fmt == "md" else ""
+    for label, mine, ms in plan:
+        parts = [intro] if label == FORMULA_TABS[0][0] and intro else []
+        for title, body in mine:
+            if fmt == "html":
+                body = body.replace("```math", "```{math}")
+            parts.append(f"**{title}**\n\n{body}" if len(mine) > 1 or label in ("Other",) else body)
+        full = []
+        if label == FORMULA_TABS[0][0]:
+            full.append("Every model starts from these:\n\n| Derived | Expression |\n|---|---|\n"
+                        + "\n".join(f"| `{k}` | {_code(v)} |" for k, v in _derived_rows(mj.get("derived"))))
+        for m in ms:
+            full.append(f"**{m['title']}**\n\n{_model_tables(mj, m)}")
+        if full:
+            parts.append(_collapsed("As the calculator evaluates it (model.json)",
+                                    "In the model's expression language: `c ? a : b` is a if c, else b; `**` is a power. "
+                                    "Sizes in bytes.\n\n" + "\n\n".join(full), fmt, level="####"))
+        if parts:
+            tabs.append((label, "\n\n".join(parts)))
+    return _tabs(tabs, fmt)
 
 
 # -------------------------------------------------------------------------------------------------- sources
-def sources_markdown(d: dict) -> str:
-    lines = [
-        "**PET scanners** (`pet_scanners.json`, compiled 11 October 2026). Each value comes from a NEMA performance "
-        "paper, a vendor page or STIR's scanner table; values computed from published numbers are marked in the file. "
-        "The sources of each scanner:",
-        "",
-    ]
+def sources_markdown(d: dict, fmt: str = "html") -> str:
+    lines = ["**PET scanners** (`pet_scanners.json`, 11 October 2026): NEMA performance papers, vendor pages and STIR's "
+             "scanner table; derived values are marked in the file.", ""]
     for s in d["scanners"]:
         links = [u for u in s.get("sources", []) if urlparse(u).scheme in ("http", "https")]
         local = len(s.get("sources", [])) - len(links)
@@ -276,29 +346,24 @@ def sources_markdown(d: dict) -> str:
     by_source = {}
     for g in d["gpus"]:
         if g.get("source"):
-            by_source.setdefault(g["source"], 0)
-            by_source[g["source"]] += 1
+            by_source[g["source"]] = by_source.get(g["source"], 0) + 1
     stand_ins = sum(1 for g in d["gpus"] if "or similar" in g["match"])
-    lines += ["", f"**GPUs** (`gpus.json`, {len(d['gpus']) - stand_ins} GPUs and {stand_ins} stand-ins that Firefox reports "
-              "in place of the real GPU, compiled 11 October 2026): names, memory sizes and the renderer-string fragments "
-              "the calculator matches, from the vendors' specification pages. `docs/tools/build_gpus.py` writes the file "
-              "from its hand-checked table (each row with its source) and checks that every known renderer string finds "
-              "its own entry; edit the table and run `python docs/tools/build_gpus.py` to update it. Sources:", ""]
+    lines += ["", f"**GPUs** (`gpus.json`, {len(d['gpus']) - stand_ins} GPUs and {stand_ins} Firefox stand-ins, "
+              "11 October 2026), from the vendors' pages. `python docs/tools/build_gpus.py` regenerates the file from "
+              "its table and checks the matching.", ""]
     for url, n in sorted(by_source.items(), key=lambda kv: (-kv[1], kv[0])):
-        lines.append(f"- [{urlparse(url).netloc.replace('www.', '')}{urlparse(url).path}]({url}) ({n} GPU{'s' if n > 1 else ''})")
-    lines += ["", "**Memory measurements**: the tutorial runs of 10 and 11 October 2026 (Windows 11, NVIDIA GeForce RTX 5090, "
-              "64 GB of RAM), recorded in `docs/tools/memory_reference_cases.json`."]
-    return "\n".join(lines) + "\n"
+        lines.append(f"- [{urlparse(url).netloc.replace('www.', '')}{urlparse(url).path}]({url}) ({n})")
+    lines += ["", "**Measurements**: the tutorial runs of 10 and 11 October 2026 (Windows 11, RTX 5090, 64 GB), in "
+              "`docs/tools/memory_reference_cases.json`."]
+    return _collapsed("Sources", "\n".join(lines), fmt, level="##")
 
 
 # ------------------------------------------------------------------------------------------------ directives
 GENERATORS = {
-    "memory-reference": lambda d, fmt: reference_markdown(d),
-    "memory-scanners": lambda d, fmt: scanners_markdown(d),
+    "memory-reference": reference_markdown,
     "memory-formulas": formulas_markdown,
-    "memory-sources": lambda d, fmt: sources_markdown(d),
+    "memory-sources": sources_markdown,
 }
-
 
 _CACHE: dict = {}
 
@@ -306,7 +371,7 @@ _CACHE: dict = {}
 def _data(env) -> dict:
     """The data, loaded once per build (kept out of the pickled environment)."""
     srcdir = Path(env.srcdir)
-    files = [srcdir / STATIC / n for n in ("model.json", "pet_scanners.json", "gpus.json")] + [_tools(srcdir) / "memory_reference_cases.json"]
+    files = [srcdir / STATIC / n for n in FILES] + [_tools(srcdir) / "memory_reference_cases.json"]
     key = (str(srcdir), tuple(f.stat().st_mtime for f in files))
     if key not in _CACHE:
         _CACHE.clear()
@@ -319,8 +384,8 @@ class MemoryDirective(SphinxDirective):
 
     def run(self):
         srcdir = Path(self.env.srcdir)
-        for dep in (STATIC / "model.json", STATIC / "pet_scanners.json", STATIC / "gpus.json"):
-            self.env.note_dependency(str(srcdir / dep))
+        for name in FILES:
+            self.env.note_dependency(str(srcdir / STATIC / name))
         self.env.note_dependency(str(_tools(srcdir) / "memory_reference_cases.json"))
         self.env.note_dependency(__file__)                     # this generator: the page is rebuilt when it changes
         text = GENERATORS[self.name](_data(self.env), "html")
@@ -329,22 +394,9 @@ class MemoryDirective(SphinxDirective):
         return [container]
 
 
-def _included(srcdir: Path, path: str, options: str) -> str:
-    """The Markdown an ``{include}`` fence stands for: the file from ``:start-line:``, its headings ``:heading-offset:``
-    levels down (not inside code fences)."""
-    opts = dict(re.findall(r":([a-z-]+):\s*([^\n]*)", options))
-    lines = (srcdir / path).read_text(encoding="utf8").splitlines()[int(opts.get("start-line", 0) or 0):]
-    offset, fenced, out = int(opts.get("heading-offset", 0) or 0), False, []
-    for line in lines:
-        if line.startswith("```"):
-            fenced = not fenced
-        out.append("#" * offset + line if offset and not fenced and re.match(r"#+ ", line) else line)
-    return "\n".join(out).strip()
-
-
 def write_markdown(app, exception):
-    """Replaces each directive's fence in the page's Markdown copy and llms-full.txt with its Markdown, and each
-    ``{include}`` with the file it includes; copies the reference cases next to the calculator."""
+    """Replaces each directive's fence in the page's Markdown copy and llms-full.txt with its Markdown (tabs and
+    collapsed parts as headings); copies the reference cases next to the calculator."""
     if exception or app.builder.format != "html":
         return
     srcdir, outdir = Path(app.srcdir), Path(app.outdir)
@@ -352,12 +404,10 @@ def write_markdown(app, exception):
     shutil.copyfile(_tools(srcdir) / "memory_reference_cases.json", outdir / STATIC / "reference_cases.json")
     d = _data(app.env)
     fence = re.compile(r"```\{(memory-[a-z]+)\}\s*\n```")
-    include = re.compile(r"```\{include\}\s+(_static/memory/\S+)\n((?::[a-z-]+:[^\n]*\n)*)```")
     for target in (outdir / "_md" / f"{PAGE}.md", outdir / "llms-full.txt"):
         if target.exists():
             text = target.read_text(encoding="utf8")
             text = fence.sub(lambda m: GENERATORS[m.group(1)](d, "md").rstrip(), text)
-            text = include.sub(lambda m: _included(srcdir, m.group(1), m.group(2)), text)
             target.write_text(text, encoding="utf8")
 
 

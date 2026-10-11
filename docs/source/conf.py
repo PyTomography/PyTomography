@@ -44,8 +44,6 @@ exclude_patterns = [
 nb_execution_mode = "off"
 nb_merge_streams = True
 myst_enable_extensions = ["dollarmath", "amsmath", "colon_fence", "deflist", "html_image", "attrs_inline"]
-# ```math fences are display math, as on GitHub (_static/memory/formulas.md, included by memory.md)
-myst_fence_as_directive = ["math"]
 myst_heading_anchors = 3
 
 # -- API reference -----------------------------------------------------------

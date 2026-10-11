@@ -249,6 +249,9 @@ console.log(`  ${hand}\n    -> fits=${rh.plan.fits} ${JSON.stringify(rh.plan.set
 const bad = Calc.decodeState(M, 'model=spect&ram=lots&Lx=-3&colour=blue&psf=gaussian', ref);
 check(same(bad.ignored.sort(), ['Lx', 'colour', 'ram']) && bad.user.psf === 'gaussian', 'bad link: ' + JSON.stringify(bad));
 check(Calc.decodeState(M, '', ref) === null && Calc.decodeState(M, '?', ref) === null, 'no query: null');
+check(Calc.decodeState(M, '?r=2&utm_source=x', ref) === null, 'a query without calculator keys is not a link');
+const mixed = Calc.decodeState(M, '?utm_source=x&ram=64', ref);
+check(mixed && mixed.machine.ram_gb === 64 && same(mixed.ignored, ['utm_source']), 'other keys beside calculator keys are reported: ' + JSON.stringify(mixed));
 // a preset alone loads the tutorial
 const dp = Calc.decodeState(M, 'preset=t_CT_GEN3/fbp', ref);
 check(dp.model === 'ct_helical_fbp' && dp.preset === 't_CT_GEN3/fbp' && dp.user.views === 9014, 'preset link: ' + JSON.stringify(dp));

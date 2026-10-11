@@ -179,7 +179,7 @@
         var key = stateKey(t.model, t.user, t.fixed);       // the same two changes in either order
         if (seen[key]) { return; }
         seen[key] = true;
-        pairs.push({kind: 'pair', label: label, detail: s.detail || t.detail, model: t.model, user: t.user, fixed: t.fixed, plan: t.plan});
+        pairs.push({kind: 'pair', label: label, short: s.short + ' + ' + t.short, detail: s.detail || t.detail, model: t.model, user: t.user, fixed: t.fixed, plan: t.plan});
       });
     });
     return sortChanges(pairs).concat(singles);
@@ -210,21 +210,21 @@
         if (v === now) { return; }
         if (!p.options.some(function (o) { return o.value === v; })) { return; }
         var u = Object.assign({}, user, oneKey(p.name, v));
-        out.push({kind: 'lever', label: p.label + ': ' + optionLabel(p, v), name: p.name, value: v,
+        out.push({kind: 'lever', label: p.label + ': ' + optionLabel(p, v), short: p.name + ' = ' + fmtValue(v), name: p.name, value: v,
           model: id, user: u, fixed: fixed, plan: planFor(M, id, paramsFor(M, id, u, b), b, fixed)});
       });
     });
     (SWITCHES[id] || []).forEach(function (s) {
       var target = modelInfo(M, s.to), f = {};
       Object.keys(fixed || {}).forEach(function (k) { if (settingNames(target).indexOf(k) >= 0) { f[k] = fixed[k]; } });
-      out.push({kind: 'model', label: 'Use ' + target.title, detail: s.why, model: s.to, user: user, fixed: f,
+      out.push({kind: 'model', label: 'Use ' + target.title, short: s.to, detail: s.why, model: s.to, user: user, fixed: f,
         plan: planFor(M, s.to, paramsFor(M, s.to, user, b), b, f)});
     });
     Object.keys(fixed || {}).forEach(function (k) {
       if (fixed[k] === null || fixed[k] === undefined) { return; }
       var f = Object.assign({}, fixed); delete f[k];
       var label = (info.settings.filter(function (s) { return s.name === k; })[0] || {label: k}).label;
-      out.push({kind: 'unfix', label: 'Let the plan choose ' + label, name: k, model: id, user: user, fixed: f,
+      out.push({kind: 'unfix', label: 'Let the plan choose ' + label, short: k + ' = auto', name: k, model: id, user: user, fixed: f,
         plan: planFor(M, id, params, b, f)});
     });
     var baseExcess = base ? base.excess_gb : Infinity;
@@ -239,16 +239,15 @@
   function settingNote(name, value, info) {
     switch (name) {
       case 'N_splits':
-        return value > 1 ? 'The projector runs in ' + value + ' GPU passes per subset. GPU splits cost time; more GPU memory lets it use fewer.'
-                         : 'The projector runs in one pass per subset: the fastest.';
+        return value > 1 ? value + ' GPU passes per subset: slower than one.' : 'one GPU pass per subset: the fastest.';
       case 'n_subsets':
-        return 'Subsets change the update as well as the memory: OSEM with more subsets converges in fewer iterations. Keep the number your protocol uses if you have one.';
+        return 'changes the update too: keep your protocol\'s number.';
       case 'gpu_budget':
-        return 'Bytes the filtered back projection may hold on the GPU at once. Smaller GPU batches cost time (up to 4.5 times in the helical FBP tutorial at an eighth of the budget).';
+        return 'GPU memory FBP holds at once: smaller is slower.';
       case 'memory_budget_gb':
-        return 'Host-side work is split to fit this; that costs little (helical FBP: 11.3 s to 12.5 s at 0.06 GB).';
+        return 'host-side work splits to fit: costs little.';
       case 'lazy':
-        return value ? 'The scatter estimate is kept lazy (interpolated per subset) rather than as a dense TOF sinogram.' : 'The scatter estimate is kept as a dense sinogram.';
+        return value ? 'scatter estimate interpolated per subset.' : 'scatter estimate held dense.';
       default:
         return '';
     }
@@ -373,12 +372,16 @@
   /** The calculator's inputs from a query string ('?a=1&b=2', 'a=1&b=2' or URLSearchParams). Returns null if it has no
    * keys; else {machine (only what the link gives), gpuName, model, user, keep (settings to keep, with a preset's),
    * auto (settings the plan chooses), preset, ignored: [keys that are not inputs, or have values that are not valid]}.
-   * Settings the link leaves out keep the calculator's defaults. */
+   * Settings the link leaves out keep the calculator's defaults. A query without any calculator key (a machine key,
+   * model, preset, or a parameter of some model) is not a link: null. */
   function decodeState(M, query, ref) {
     var sp = typeof query === 'string' ? new URLSearchParams(query.charAt(0) === '?' ? query.slice(1) : query) : query;
     var keys = [];
     sp.forEach(function (v, k) { if (keys.indexOf(k) < 0) { keys.push(k); } });
-    if (!keys.length) { return null; }
+    var inputs = {};
+    M.models().forEach(function (x) { x.params.forEach(function (p) { inputs[p.name] = true; }); x.settings.forEach(function (s) { inputs[s.name] = true; }); });
+    var isLink = keys.some(function (k) { return MACHINE_KEYS.indexOf(k) >= 0 || k === 'model' || k === 'preset' || inputs[k]; });
+    if (!isLink) { return null; }
     var out = {machine: {}, gpuName: null, model: null, user: {}, keep: {}, auto: [], preset: null, ignored: []};
     var models = M.models().map(function (x) { return x.id; });
     var model = sp.get('model');
