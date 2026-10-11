@@ -202,6 +202,7 @@ sections:
     data: DICOM
     topic: Basics
     summary: Filtered back projection of raw projections from a 3rd-generation clinical CT scanner, then the settings that reproduce the scanner's own images.
+    thumbnail: 3  # our FBP with the advanced settings beside the scanner's image; the last image is a line plot
     datasets:
     - CT/ldct-c145
   - notebook: t_CT_microct
