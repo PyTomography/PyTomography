@@ -119,6 +119,14 @@ sections:
     summary: Reconstruct myocardial perfusion data and reorient it to the short axis.
     datasets:
     - SPECT/Tc99m-Cardiac
+  - notebook: t_algorithms_measured
+    title: Reconstruction algorithms on measured data
+    modality: SPECT
+    data: DICOM
+    topic: Algorithms
+    summary: OSEM, OSMAPOSL, BSREM and KEM on a measured NEMA phantom, compared by sphere contrast, background noise and data fit at every iteration.
+    datasets:
+    - SPECT/Lu177-NEMA-SymT2
 - title: PET
   tutorials:
   - notebook: t_pet_introduction
@@ -212,6 +220,16 @@ sections:
     summary: FDK and OS-SART on a laboratory micro-CT scan of glass beads, with the centre of rotation found from the data.
     datasets:
     - CT/SophiaBeads-256
+  - notebook: t_fbp
+    title: 'Filtered back projection: SPECT and CT'
+    modality: Any
+    data: DICOM
+    topic: Algorithms
+    summary: One FilteredBackProjection for a SPECT phantom scan and a helical chest CT, with what the two share and what differs, next to OSEM and the scanner's image.
+    thumbnail: 1
+    datasets:
+    - SPECT/Lu177-NEMA-SymT2
+    - CT/ldct-c145
 - title: Building with PyTomography
   folder: development
   tutorials:

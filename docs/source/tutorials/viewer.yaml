@@ -162,6 +162,19 @@ tutorials:
     layers:
     - {name: SPECT, label: OSEM, kind: spect, array: recon, affine: object_meta.affine_matrix, units: counts, range: [0, 10]}
 
+  t_algorithms_measured:
+    title: Lu-177 NEMA phantom, measured, six reconstructions
+    description: BSREM, OSEM with and without a post-filter, OSMAPOSL and KEM after 40 iterations, and the scanner's reconstruction
+    credit: Siemens Symbia T2 scan of a NEMA IQ phantom (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
+    layers:
+    - {name: CT, kind: ct, array: vx.ct_dicom(files_CT), window: phantom, units: HU}
+    - {name: BSREM, label: "BSREM, beta 0.1", kind: spect, array: "recon_bsrem[beta_shown]", affine: object_meta.affine_matrix, units: counts}
+    - {name: OSEM, label: OSEM 40 × 8, kind: spect, array: recon_osem, affine: object_meta.affine_matrix, units: counts}
+    - {name: OSEMfilter, label: "OSEM 40 × 8, 10 mm filter", kind: spect, array: recon_osem_filtered, affine: object_meta.affine_matrix, units: counts}
+    - {name: OSMAPOSL, kind: spect, array: recon_osmaposl, affine: object_meta.affine_matrix, units: counts}
+    - {name: KEM, kind: spect, array: recon_kem, affine: object_meta.affine_matrix, units: counts}
+    - {name: Vendor, label: Scanner's reconstruction, kind: spect, array: recon_scanner, affine: object_meta.affine_matrix, units: counts}
+
   # ---------- PET ----------
   t_pet_introduction:
     title: FDG brain phantom (GATE, Siemens mMR)
@@ -286,6 +299,17 @@ tutorials:
     layers:
     - {name: SART, label: OS-SART, kind: mu, array: recon_sart, affine: "vx.centred(system_matrix.object_meta.dr, recon_sart.shape)", units: 1/mm}
     - {name: FDK, kind: mu, array: recon_fdk, affine: "vx.centred(system_matrix.object_meta.dr, recon_fdk.shape)", units: 1/mm}
+
+  # The SPECT half of this tutorial: the viewer shows one patient at a time, and t_CT_GEN3 already shows the chest CT
+  t_fbp:
+    title: Lu-177 NEMA phantom, filtered back projection
+    description: FBP with and without Chang's attenuation correction, next to OSEM with attenuation, PSF and scatter
+    credit: Siemens Symbia T2 scan of a NEMA IQ phantom (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
+    layers:
+    - {name: CT, kind: ct, array: vx.ct_dicom(files_CT), window: phantom, units: HU}
+    - {name: FBPChang, label: "FBP, Chang's attenuation correction", kind: spect, array: recon_fbp_chang, affine: object_meta.affine_matrix, units: counts}
+    - {name: FBP, label: "FBP, no attenuation correction", kind: spect, array: recon_fbp, affine: object_meta.affine_matrix, units: counts}
+    - {name: OSEM, label: OSEM 4 × 8, kind: spect, array: recon_osem, affine: object_meta.affine_matrix, units: counts}
 
   # ---------- Building with PyTomography ----------
   t_examplesystemmatrix:
