@@ -12,7 +12,7 @@ import pytomography
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.SPECT import SPECTObjectMeta, StarGuideProjMeta
 from .. import _vendors
-from .dicom import _acquisition_start, _energy_windows, _nuclide
+from .dicom import _acquisition_start, _check_position, _energy_windows, _nuclide
 
 #: The grid of GE's own StarGuide reconstructions: 196 x 196 x 112 voxels of the detector pixel size.
 DEFAULT_SHAPE = (196, 196, 112)
@@ -63,7 +63,9 @@ def read_starguide(files: Sequence[str], energy_window: int | None = None, *, fi
     * The head geometry comes from private tags (vendor rule 'ge-starguide'): each view's angle θ (used as β), and its
       radius and transaxial offset from the head's x, y (cm, converted to mm); times in ms become seconds.
     * Values are the stored values times the private Pixel Scale.
-    * Rows are flipped, so that z runs foot to head as for every other reader (the projector is symmetric in z).
+    * Rows are flipped as the heads' ImageOrientationPatient says (row 0 superior: flipped), so that z runs foot to
+      head as for every other reader (the projector is symmetric in z). The patient position is not used; a position
+      other than feet-first supine warns, as the private head geometry has been checked on FFS data only.
     * The grid is GE's (196 x 196 x 112 voxels of the detector pixel size) unless ``object_meta`` gives another. It is
       centred on the CT volume when ``files_CT`` are given (frame ``'patient'``, where GE's own reconstruction is),
       else on the scanner (frame ``'scanner'``).
@@ -84,6 +86,16 @@ def read_starguide(files: Sequence[str], energy_window: int | None = None, *, fi
     """
     _vendors.use('ge-starguide')
     datasets = _heads(files)
+    _check_position(datasets[0], str(files[0]), "PyTomography's reading of StarGuide's private head geometry")
+    columns_z = set()
+    for f, ds in zip(files, datasets):
+        iop = [float(v) for v in ds.DetectorInformationSequence[0].ImageOrientationPatient]
+        if abs(iop[5]) < 0.99:
+            raise ValueError(f'{f}: the projection rows do not run along z (IOP {iop})')
+        columns_z.add(iop[5] > 0)
+    if len(columns_z) > 1:
+        raise ValueError('the heads disagree on the direction of the projection rows')
+    rows_up = columns_z.pop()                                # row 0 inferior: no flip
     window, theta, x, y, times, frames = [], [], [], [], [], []
     for ds in datasets:
         window += list(np.asarray(ds.EnergyWindowVector, dtype=int))
@@ -104,7 +116,9 @@ def read_starguide(files: Sequence[str], energy_window: int | None = None, *, fi
         raise ValueError(f'the energy windows have different numbers of views: {counts}')
     first = window == windows[0]
     projections = np.stack([frames[window == w] for w in windows])            # [W, view, z, r]
-    projections = np.ascontiguousarray(np.swapaxes(projections[:, :, ::-1, :], 2, 3))  # z foot to head: [W, view, r, z]
+    if not rows_up:
+        projections = projections[:, :, ::-1, :]
+    projections = np.ascontiguousarray(np.swapaxes(projections, 2, 3))   # z foot to head: [W, view, r, z]
     projections = torch.tensor(projections).to(pytomography.dtype).to(pytomography.device)
     for w in windows[1:]:      # every window must have the same views
         if not (np.allclose(theta[window == w], theta[first]) and np.allclose(x[window == w], x[first])):

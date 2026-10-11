@@ -404,3 +404,28 @@ def test_subsampled_projection_space():
     assert proj_meta.shape == (12, 8, 6)
     from pytomography.io.SPECT.shared import subsample_projections
     assert subsample_projections(torch.ones(12, 8, 6), 2, 3, 1).shape == sub.shape
+
+
+def test_patient_position_from_the_codes_only_warns(tmp_path):
+    """GE NM files often have no PatientPosition, only the orientation codes (head first, supine): the position is
+    read from them for a warning, and nothing is placed by it (the IOPs place the views)."""
+    from pytomography.io.SPECT.dicom import patient_position
+    _write_nm(tmp_path / 'ffs.dcm')
+    ds = pydicom.dcmread(str(tmp_path / 'ffs.dcm'))
+    del ds.PatientPosition
+    modifier, orientation, gantry = Dataset(), Dataset(), Dataset()
+    modifier.CodeMeaning, orientation.CodeMeaning, gantry.CodeMeaning = 'supine', 'recumbent', 'headfirst'
+    orientation.PatientOrientationModifierCodeSequence = [modifier]
+    ds.PatientOrientationCodeSequence, ds.PatientGantryRelationshipCodeSequence = [orientation], [gantry]
+    assert patient_position(ds) == 'HFS'
+    ds.save_as(str(tmp_path / 'codes.dcm'))
+    with pytest.warns(UnverifiedVendorRule, match='HFS'):
+        from_codes = SPECT.read_dicom(str(tmp_path / 'codes.dcm'))
+    plain = _read(tmp_path / 'ffs.dcm')
+    assert torch.equal(from_codes[0], plain[0]) and np.allclose(from_codes[1].affine, plain[1].affine)
+    gantry.CodeMeaning = 'feet-first'
+    assert patient_position(ds) == 'FFS'
+    ds.PatientPosition = ''
+    assert patient_position(ds) == 'FFS'
+    del ds.PatientOrientationCodeSequence, ds.PatientGantryRelationshipCodeSequence
+    assert patient_position(ds) is None
