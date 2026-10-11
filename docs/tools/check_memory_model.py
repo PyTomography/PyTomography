@@ -246,9 +246,11 @@ def _listmode_system_matrix(p):
     sm.object_meta = ObjectMeta(dr=(2.0, 2.0, 2.0), shape=(int(p['Lx']), int(p['Ly']), int(p['Lz'])))
     pairs = crystals * (crystals - 1) // 2 if p.get('lm_weight_pairs') is None else int(p['lm_weight_pairs'])
     weights = None if p['lm_weights'] == 'none' else fake((pairs,), on_gpu=p['lm_weights'] == 'gpu')
+    kind = p.get('lm_sensitivity_ids', 'none')
+    sensitivity_ids = None if kind == 'none' else fake((pairs, 2), torch.int64 if kind == 'int64' else torch.int32)   # on the host
     sm.proj_meta = SimpleNamespace(detector_ids=fake((E, cols), dtype, on_gpu=cuda and p['lor_device'] == 'device'),
-                                   weights_sensitivity=weights, info={'NrCrystalsPerRing': int(p['crystals_per_ring'])},
-                                   shape=(E,))
+                                   weights_sensitivity=weights, detector_ids_sensitivity=sensitivity_ids,
+                                   info={'NrCrystalsPerRing': int(p['crystals_per_ring'])}, shape=(E,))
     sm.sort_events = bool(p['sort_events'])
     sm.output_device = p['device'] if p['proj_device'] == 'device' else 'cpu'
     sm.N_splits = int(p['N_splits'])
@@ -560,6 +562,56 @@ def build_starguide(p):
     return _with_prior_weight(_algorithm(p['algorithm'], sm, fake((V, 16, Lz), on_gpu=cuda), additive, p['prior']), p)
 
 
+def build_spect_extended(p):
+    """OSEM (or the algorithm of ``p``) of an ExtendedSystemMatrix of ``ext_n`` SPECT system matrices (each its own,
+    as for a photopeak each, or the same one), or of a MotionSystemMatrix with a deformation field pair per gate; the
+    projections and additive term are stacked, one set per system matrix."""
+    from pytomography.projectors import ExtendedSystemMatrix
+    from pytomography.projectors.shared import MotionSystemMatrix
+    from pytomography.transforms.shared import DVFMotionTransform
+    N = int(p['ext_n'])
+    first = _spect_system_matrix(p)
+    sms = [first] + [(_spect_system_matrix(p) if p['ext_distinct'] else first) for _ in range(N - 1)]
+    with _on_cpu():
+        if p['ext_motion']:
+            shape = (int(p['Lx']), int(p['Ly']), int(p['Lz']), 3)
+            transforms = [DVFMotionTransform(torch.zeros(shape), torch.zeros(shape)) for _ in range(N)]
+            sm = MotionSystemMatrix(sms, transforms)
+        else:
+            transforms = []
+            sm = ExtendedSystemMatrix(sms)
+    for t in transforms:
+        mark(t.dvf_forward, p['device'] == 'cuda')
+        mark(t.dvf_backward, p['device'] == 'cuda')
+    projections, additive = _spect_data(p)
+    stack = lambda x: None if x is None else fake((N, *x.shape), on_gpu=p['device'] == 'cuda')
+    return _with_prior_weight(_algorithm(p['algorithm'], sm, stack(projections), stack(additive), p['prior']), p)
+
+
+def build_spect_simind(p):
+    """OSEM (or the algorithm of ``p``) of a MonteCarloHybridSPECTSystemMatrix around the configuration's SPECT
+    system matrix (SIMIND is not needed to estimate: its path is not looked up)."""
+    from pytomography.projectors.SPECT import dualhead_system_matrix, MonteCarloHybridSPECTSystemMatrix
+    p['camera_path'] = True                              # this system matrix always starts from the camera path
+    base = _spect_system_matrix(p)
+    which = dualhead_system_matrix.shutil.which
+    dualhead_system_matrix.shutil.which = lambda name: 'simind'
+    try:
+        with _on_cpu():
+            amap = torch.zeros(base.object_meta.shape)
+            sm = MonteCarloHybridSPECTSystemMatrix(base.object_meta, base.proj_meta, n_events=10 ** 6, n_parallel=int(p['simind_parallel']),
+                                                   obj2obj_transforms=base.obj2obj_transforms, proj2proj_transforms=[],
+                                                   attenuation_map_140keV=amap, energy_window_params=['w'] * int(p['simind_windows']),
+                                                   primary_window_idx=0, isotope_names=['lu177'], isotope_ratios=[1.0], collimator_type='SY-ME',
+                                                   crystal_thickness=0.95, cover_thickness=0.1, backscatter_thickness=5.0)
+    finally:
+        dualhead_system_matrix.shutil.which = which
+    mark(amap, p['device'] == 'cuda')
+    _mark_transforms(sm.obj2obj_transforms, p['device'] == 'cuda')   # configured again by this system matrix
+    projections, additive = _spect_data(p)
+    return _with_prior_weight(_algorithm(p['algorithm'], sm, projections, additive, p['prior']), p)
+
+
 def _spect_settings(p):
     v = int(p.get('views', p.get('sg_angles', 1)))
     return [{'n_subsets': 1}, {'n_subsets': 8}, {'n_subsets': 3}, {'n_subsets': min(256, v)}]
@@ -643,7 +695,8 @@ def grid_pet_listmode(quick: bool) -> list:
                 scanner=[(448, 64), (504, 64), (64, 8), (760, 80), (840, 672)], image=[(128, 128, 96), (200, 200, 127), (440, 440, 159)],
                 tof=[False, True], events=[50_000_000, 2_000_000, 400_000_000, 1_500_000_000], id_bytes=[4, 8],
                 lor_device=['device', 'cpu'], proj_device=['device', 'cpu'], sort_events=[True, False],
-                lm_weights=['ram', 'gpu', 'none'], lm_weight_pairs=[None, 146_292_480], lm_additive=[True, False], algorithm=['OSEM', 'BSREM', 'MLEM', 'OSMAPOSL'],
+                lm_weights=['ram', 'gpu', 'none'], lm_weight_pairs=[None, 146_292_480], lm_sensitivity_ids=['none', 'int32', 'int64'],
+                lm_additive=[True, False], algorithm=['OSEM', 'BSREM', 'MLEM', 'OSMAPOSL'],
                 prior=[False, True], prior_weight=['euclidean', 'top_n_anatomy'], N_splits=[1, 10, 3])
     configs = tutorials + _sample(base, axes, 12 if quick else 60, 2)
     for p in configs:
@@ -795,6 +848,14 @@ CHECKERS = {
                    _spect_settings, budgets=((16, 8), (8, 2), (6, 1), (1000, 1000))),
     'spect_multibed': Checker('spect_multibed', build_spect_multibed, _spect_grid(11, n_beds=[2, 3, 1, 4]), _spect_settings,
                               budgets=((16, 8), (8, 2), (6, 1), (1000, 1000))),
+    'spect_extended': Checker('spect_extended', build_spect_extended,
+                              _spect_grid(12, tutorials=[dict(SPECT_BASE, views=96, n_radii=71, ext_n=2, ext_distinct=True, ext_motion=False)],   # t_dualpeak
+                                          ext_n=[2, 3, 1, 4], ext_distinct=[True, False], ext_motion=[False, True]),
+                              _spect_settings, budgets=((16, 8), (8, 2), (6, 1), (1000, 1000))),
+    'spect_simind': Checker('spect_simind', build_spect_simind,
+                            _spect_grid(13, tutorials=[dict(SPECT_BASE, views=96, n_radii=1, spect_additive=False, simind_windows=1, simind_parallel=24, n_subsets=16)],  # t_spect_mc
+                                        simind_windows=[1, 3, 6], simind_parallel=[24, 6, 90], camera_path=[True]),
+                            _spect_settings, budgets=((16, 8), (8, 2), (6, 1), (1000, 1000))),
 }
 
 
@@ -833,7 +894,7 @@ def mapping_checks() -> list:
     object_meta = ObjectMeta(dr=(4.0, 4.0, 4.0), shape=(32, 32, 6))
     base = dict(device='cpu', os='windows', gpu_free_gb=30, memory_budget_gb=None, Lx=32, Ly=32, Lz=6, crystals_per_ring=64,
                 rings=8, tof=True, tof_bins=5, events=n, id_bytes=4, lor_device='device', proj_device='device', sort_events=True,
-                lm_weights='ram', lm_additive=False, algorithm='OSEM', prior=False, N_splits=3, n_subsets=4,
+                lm_weights='ram', lm_sensitivity_ids='int32', lm_additive=False, algorithm='OSEM', prior=False, N_splits=3, n_subsets=4,
                 sensitivity=True, data='dense_ram', additive='none')
     tof_meta = PETTOFMeta(5, 300.0, 60.0, n_sigmas=3)
     with simulate(base):
@@ -850,8 +911,10 @@ def mapping_checks() -> list:
         c1 = torch.randint(0, 64 * 8, (n,), generator=gen)
         ids = torch.stack([c1, (c1 + 32) % (64 * 8), torch.randint(0, 5, (n,), generator=gen)], dim=1).to(torch.int32)
         weights = torch.rand(64 * 8 * (64 * 8 - 1) // 2)
+        pairs = torch.combinations(torch.arange(64 * 8, dtype=torch.int32))
         with simulate(base):
-            real = PETLMSystemMatrix(object_meta, PETLMProjMeta(ids, info, tof_meta=tof_meta, weights_sensitivity=weights),
+            real = PETLMSystemMatrix(object_meta, PETLMProjMeta(ids, info, tof_meta=tof_meta, weights_sensitivity=weights,
+                                                                detector_ids_sensitivity=pairs),
                                      N_splits=3, device='cpu', lor_device='cpu')
             stand_in = _listmode_system_matrix(base)
             a, b = real.estimate_memory(4), stand_in.estimate_memory(4)
@@ -859,7 +922,7 @@ def mapping_checks() -> list:
         PETLMSystemMatrix._backward_full = saved
     same = a.ram_gb == b.ram_gb and a.gpu_gb == b.gpu_gb and [(p.name, p.ram_bytes, p.gpu_bytes) for p in a.parts] == [(p.name, p.ram_bytes, p.gpu_bytes) for p in b.parts]
     ok &= same
-    lines.append(f"PETLMSystemMatrix (real, {n} events, TOF, sensitivity weights) and its stand-in: {a.ram_gb:.6f} / {b.ram_gb:.6f} GB RAM, {a.gpu_gb:.6f} / {b.gpu_gb:.6f} GB GPU: {'same' if same else 'DIFFERENT'}")
+    lines.append(f"PETLMSystemMatrix (real, {n} events, TOF, sensitivity weights and their detector IDs) and its stand-in: {a.ram_gb:.6f} / {b.ram_gb:.6f} GB RAM, {a.gpu_gb:.6f} / {b.gpu_gb:.6f} GB GPU: {'same' if same else 'DIFFERENT'}")
     # 4. a real KEM transform (32 x 32 x 16, size 3, one support image) and its stand-in
     from pytomography.projectors.shared import KEMSystemMatrix
     from pytomography.transforms.shared import KEMTransform
@@ -912,7 +975,7 @@ def check_model(model: MemoryModel, checker: Checker, quick: bool, js_cases: lis
     JavaScript comparison to ``js_cases``."""
     worst = {'ram': 0.0, 'gpu': 0.0}
     worst_case = None
-    estimates = plans = plan_mismatches = searched = unfit = 0
+    estimates = plans = plan_mismatches = searched = unfit = names_differ = 0
     failures = []
     configs = checker.grid(quick)
     names = {v['name'] for v in model.data['variables']}
@@ -938,6 +1001,10 @@ def check_model(model: MemoryModel, checker: Checker, quick: bool, js_cases: lis
                         failures.append(f"estimate {key}: model {a:.4f} GB, library {b:.4f} GB for {s} in {params}\n"
                                         f"    library parts {[(n, round(r, 4), round(g, 4)) for n, _, r, g in lib['parts']]}\n"
                                         f"    model parts   {[(q['name'], round(q['ram_gb'], 4), round(q['gpu_gb'], 4)) for q in mine['parts']]}")
+                if [q['name'] for q in mine['parts']] != [q[0] for q in lib['parts']]:
+                    names_differ += 1
+                    if names_differ <= 2:
+                        failures.append(f"part names: model {[q['name'] for q in mine['parts']]}, library {[q[0] for q in lib['parts']]}")
                 if not _settings_equal(mine['settings'], lib['settings']):
                     failures.append(f"estimate settings: model {mine['settings']}, library {lib['settings']} for {s} in {params}")
             fixed_list = checker.fixed(p) if callable(checker.fixed) else checker.fixed
@@ -956,7 +1023,7 @@ def check_model(model: MemoryModel, checker: Checker, quick: bool, js_cases: lis
                                     f"library {lib['settings']} fits={lib['fits']} ({lib['ram_gb']:.3f}, {lib['gpu_gb']:.3f} GB) in {params}")
     return {'model': checker.model_id, 'configurations': len(configs), 'estimates': estimates, 'plans': plans,
             'max_rel_ram': worst['ram'], 'max_rel_gpu': worst['gpu'], 'plan_mismatches': plan_mismatches,
-            'plans_searched': searched, 'plans_unfit': unfit,
+            'plans_searched': searched, 'plans_unfit': unfit, 'part_names_differ': names_differ,
             'failures': failures, 'worst_case': worst_case}
 
 
@@ -996,7 +1063,7 @@ const M = require(process.argv[2]);
 M.load(JSON.parse(fs.readFileSync(process.argv[3], 'utf8')));
 const cases = JSON.parse(fs.readFileSync(process.argv[4], 'utf8'));
 const out = cases.map(c => {
-  if (c.kind === 'estimate') { const e = M.estimate(c.model, c.params, c.settings); return {ram_gb: e.ram_gb, gpu_gb: e.gpu_gb, settings: e.settings, parts: e.parts.length}; }
+  if (c.kind === 'estimate') { const e = M.estimate(c.model, c.params, c.settings); return {ram_gb: e.ram_gb, gpu_gb: e.gpu_gb, settings: e.settings, parts: e.parts.map(p => p.name), code: M.code(c.model, c.params, c.settings)}; }
   const p = M.plan(c.model, c.params, c.ram_gb, c.gpu_gb, c.fixed);
   return {settings: p.settings, fits: p.fits, ram_gb: p.estimate.ram_gb, gpu_gb: p.estimate.gpu_gb, tried: p.options.length};
 });
@@ -1024,8 +1091,10 @@ def compare_js(model: MemoryModel, cases: list) -> dict:
             py = model.estimate(c['model'], c['params'], c['settings'])
             d = max(_rel(js['ram_gb'], py['ram_gb']), _rel(js['gpu_gb'], py['gpu_gb']) if py['gpu_gb'] else abs(js['gpu_gb']))
             s['max_rel'] = max(s['max_rel'], d)
-            if d > 1e-9 or not _settings_equal(js['settings'], py['settings']) or js['parts'] != len(py['parts']):
-                s['mismatches'].append(f"estimate {c}: js {js}, python {py['ram_gb']}, {py['gpu_gb']}, {py['settings']}")
+            names = [q['name'] for q in py['parts']]
+            code = model.code(c['model'], c['params'], c['settings'])
+            if d > 1e-9 or not _settings_equal(js['settings'], py['settings']) or js['parts'] != names or js['code'] != code:
+                s['mismatches'].append(f"estimate {c}: js {js}, python {py['ram_gb']}, {py['gpu_gb']}, {py['settings']}, {names}, {code!r}")
         else:
             py = model.plan(c['model'], c['params'], c['ram_gb'], c['gpu_gb'], c['fixed'])
             same = _settings_equal(js['settings'], py['settings']) and js['fits'] == py['fits'] and js['tried'] == len(py['options'])
@@ -1069,7 +1138,7 @@ def main(argv=None) -> int:
         print(f"{model_id:22s} {r['configurations']:4d} configurations, {r['estimates']:5d} estimates: max difference "
               f"RAM {100 * r['max_rel_ram']:.3f}%, GPU {100 * r['max_rel_gpu']:.3f}%; {r['plans']:4d} plans "
               f"({r['plans_searched']} beyond the first settings, {r['plans_unfit']} fitting nowhere), "
-              f"{r['plan_mismatches']} different ({r['seconds']:.0f} s)")
+              f"{r['plan_mismatches']} different; part names as the library's in {r['estimates'] - r['part_names_differ']} ({r['seconds']:.0f} s)")
         for f in r['failures'][:8]:
             print('    ' + f)
         if len(r['failures']) > 8:

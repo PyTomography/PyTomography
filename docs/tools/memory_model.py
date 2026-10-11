@@ -403,6 +403,8 @@ class MemoryModel:
             env[k] = _value(v)
         for k, v in (settings or {}).items():
             env[k] = _value(v)
+        for k, v in model.get('constants', {}).items():     # what this computation always uses, whatever is given
+            env[k] = _value(evaluate(v, env))
         for group in self.data.get('derived', []), *(self.derived_sets[name] for name in model.get('use', [])), model.get('derived', []):
             for name, expression in (group.items() if isinstance(group, Mapping) else group):
                 env[name] = evaluate(expression, env)

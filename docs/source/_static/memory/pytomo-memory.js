@@ -301,6 +301,8 @@
     paramsOf(m).forEach(function (p) { env[p.name] = value(p['default'] === undefined ? null : p['default']); });
     Object.keys(params || {}).forEach(function (k) { env[k] = value(params[k]); });
     Object.keys(settings || {}).forEach(function (k) { env[k] = value(settings[k]); });
+    var constants = m.constants || {};
+    Object.keys(constants).forEach(function (k) { env[k] = value(evaluate(constants[k], env)); });
     var groups = [data.derived].concat((m.use || []).map(function (n) { return data.derived_sets[n]; })).concat([m.derived]);
     groups.forEach(function (g) { eachDerived(g, function (k, expr) { env[k] = evaluate(expr, env); }); });
     return env;
