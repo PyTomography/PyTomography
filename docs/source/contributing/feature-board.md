@@ -9,4 +9,4 @@ These are the things we would most like someone to build. Every card says why it
 ```{feature-board}
 ```
 
-Have an idea that is not here? [Propose it on Discourse](https://pytomography.discourse.group/) or open an issue with the feature request template, and a maintainer will help scope it into a card.
+Have an idea that is not here? [Propose it in GitHub Discussions](https://github.com/PyTomography/PyTomography/discussions) or open an issue with the feature request template, and a maintainer will help scope it into a card.

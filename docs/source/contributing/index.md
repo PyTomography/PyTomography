@@ -20,9 +20,9 @@ How the test suite is organised, and the contract tests every new projector and 
 :::
 
 :::{grid-item-card} Ask a question
-:link: https://pytomography.discourse.group/
+:link: https://github.com/PyTomography/PyTomography/discussions
 
-Not sure where to start, or whether an idea fits? Ask on Discourse before you write code.
+Not sure where to start, or whether an idea fits? Ask in GitHub Discussions before you write code.
 :::
 ::::
 
