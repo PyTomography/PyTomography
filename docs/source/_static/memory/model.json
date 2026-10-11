@@ -1,0 +1,165 @@
+{
+  "schema": "pytomography-memory-model/1",
+  "library": "PyTomography PR #294 (feature/memory-estimates): estimate_memory() and plan_memory()",
+  "doc": [
+    "PyTomography's memory estimates as data. A browser (pytomo-memory.js) and Python (docs/tools/memory_model.py) evaluate this file the same way; docs/tools/check_memory_model.py proves both agree with the library.",
+    "variables: every input, with its label, unit, default, range or options. A model lists the ones it uses in 'params' and may change their defaults in 'defaults'. Booleans are true/false; options are strings; null means 'not set' (e.g. no memory budget).",
+    "derived: named expressions, evaluated in order after the parameters and settings: first the global 'derived', then each set the model names in 'use' (from 'derived_sets'), then the model's own 'derived'. Each may use the names before it.",
+    "parts: the arrays of the computation. Each part has a name ('{expr}' in it is replaced by the value), a scope ('held' for the whole run, 'subset' for one subset at a time, 'chunk' for projector or kernel temporaries), and either 'bytes' with 'on' (an expression: true puts the bytes on the GPU, false in RAM) or 'ram' and 'gpu' (bytes each). 'when' (optional) leaves the part out when false. {'include': name} inserts the parts of 'part_sets'[name].",
+    "combination: the peak is the sum of every part (all scopes together), plus the overheads below. GPU = sum of the GPU bytes. RAM = sum of the RAM bytes, and on Windows (gpu_counts_as_ram) the GPU bytes too.",
+    "overheads: 'fixed' (Python, PyTorch and CUDA: 3.7 GB on a CUDA device, 2.2 GB without), 'cuda_cache' (PyTorch's CUDA cache: 0.05 GB plus 20% of the GPU arrays, only if there are GPU arrays) and, on Windows, 'allocator' (memory PyTorch's allocators keep after freeing: a fraction of the RAM and GPU arrays, 0.35 by default, the model's 'allocator_fraction' if it has one).",
+    "settings: what a plan chooses, in the order it searches them (the first is the outer loop), each with its candidates fastest first. A setting is also a parameter of the same name: its present value. 'force' (optional): a value the setting always takes when not null (MLEM: one subset). 'report' (optional): the value the estimate reports and uses (e.g. lazy=null resolved). 'when' (optional): the setting exists only when true. 'type': 'bool' reports true/false.",
+    "candidates: {'items': [...], 'unique': bool, 'sort': 'asc'}; an item is {'value': expr, 'if': expr} or {'seq': {'var': k, 'from': expr, 'to': expr, 'value': expr, 'if': expr}} (k from..to inclusive; in 'if', 'value' is the item's value).",
+    "plan: every combination of the candidates in order (settings given as fixed keep their value); the first whose estimate fits both budgets (excess <= 1e-9 GB), else the one whose excess, max(0, RAM - RAM budget) + max(0, GPU - GPU budget), is least (the first of equals). On Windows the RAM budget covers the GPU memory too, since the estimate's RAM includes it.",
+    "expressions: numbers, 'strings', true, false, null, pi, names; + - * / % ** (right associative; % takes the sign of the divisor), comparisons < <= > >= == != (1 or 0), && || ! (1 or 0), cond ? a : b, parentheses; functions min, max, ceil, floor, abs, sqrt, log2, log10, sin, cos, asin, sig(x, n) (n significant digits, as Python's '%.ng'). All numbers are double precision."
+  ],
+  "overheads": {
+    "fixed": {"name": "Python, PyTorch and CUDA", "bytes": "cuda ? 3.7e9 : 2.2e9"},
+    "cuda_cache": {"name": "PyTorch's GPU cache (rounded and kept blocks)", "bytes": 0.05e9, "fraction": 0.2},
+    "allocator": {"name": "memory the allocators keep (Windows)", "fraction": 0.35},
+    "gpu_counts_as_ram": "windows"
+  },
+  "variables": [
+    {"name": "device", "label": "PyTomography's device", "default": "cuda", "options": [{"value": "cuda", "label": "GPU (CUDA)"}, {"value": "cpu", "label": "CPU only"}], "help": "pytomography.device: where the images and projector run."},
+    {"name": "os", "label": "Operating system", "default": "windows", "options": [{"value": "windows", "label": "Windows"}, {"value": "linux", "label": "Linux or macOS"}], "help": "On Windows, GPU memory PyTorch holds also counts as the process's RAM (committed memory)."},
+    {"name": "gpu_free_gb", "label": "GPU memory free at the start", "unit": "GB", "default": 30, "min": 0, "max": 192, "step": 0.5, "help": "Chunked steps take at most a quarter of it (pytomography.utils.gpu_budget)."},
+    {"name": "memory_budget_gb", "label": "Memory budget (set_memory_budget)", "unit": "GB", "default": null, "min": 0.01, "max": 2048, "step": 0.5, "type": "number_or_null", "help": "pytomography.set_memory_budget(gb); null for none."},
+    {"name": "Lx", "label": "Image size x", "unit": "voxels", "default": 128, "min": 1, "max": 4096, "step": 1},
+    {"name": "Ly", "label": "Image size y", "unit": "voxels", "default": 128, "min": 1, "max": 4096, "step": 1},
+    {"name": "Lz", "label": "Image size z", "unit": "voxels", "default": 128, "min": 1, "max": 4096, "step": 1},
+    {"name": "algorithm", "label": "Algorithm", "default": "OSEM", "options": [{"value": "OSEM", "label": "OSEM"}, {"value": "OSMAPOSL", "label": "OSMAPOSL"}, {"value": "BSREM", "label": "BSREM"}, {"value": "RBIEM", "label": "RBI-EM"}, {"value": "RBIMAP", "label": "RBI-MAP"}, {"value": "MLEM", "label": "MLEM (one subset)"}], "help": "BSREM, RBI-EM and RBI-MAP stack the H_m^T 1 of every subset; MLEM always uses one subset."},
+    {"name": "prior", "label": "Prior (e.g. RelativeDifferencePrior)", "type": "bool", "default": false, "options": [{"value": false, "label": "no"}, {"value": true, "label": "yes"}], "help": "For OSMAPOSL, BSREM and RBI-MAP."},
+    {"name": "n_subsets", "label": "Subsets (n_subsets)", "default": 1, "min": 1, "max": 1024, "step": 1},
+    {"name": "N_splits", "label": "Projector splits (N_splits)", "default": 1, "min": 1, "max": 1024, "step": 1},
+    {"name": "crystals_per_ring", "label": "Crystals per ring", "default": 448, "min": 8, "max": 2048, "step": 2, "help": "info['NrCrystalsPerRing'] (Siemens Biograph mMR: 448)."},
+    {"name": "rings", "label": "Rings", "default": 64, "min": 1, "max": 1024, "step": 1, "help": "info['NrRings'] (mMR: 64)."},
+    {"name": "tof", "label": "Time of flight", "type": "bool", "default": false, "options": [{"value": false, "label": "no"}, {"value": true, "label": "yes"}]},
+    {"name": "tof_bins", "label": "TOF bins", "default": 21, "min": 1, "max": 256, "step": 1},
+    {"name": "events", "label": "Events (prompts)", "unit": "events", "default": 50000000, "min": 0, "max": 2000000000, "step": 1000000},
+    {"name": "proj_device", "label": "Projections of a subset on", "default": "device", "options": [{"value": "device", "label": "the device"}, {"value": "cpu", "label": "the CPU (device='cpu')"}], "help": "The system matrix's device argument: where its projections are output."},
+    {"name": "sensitivity", "label": "Sensitivity sinogram (normalisation)", "type": "bool", "default": true, "options": [{"value": false, "label": "no"}, {"value": true, "label": "yes"}]},
+    {"name": "data", "label": "Measured sinogram", "default": "dense_ram", "options": [{"value": "dense_ram", "label": "dense, in RAM"}, {"value": "dense_gpu", "label": "dense, on the GPU"}, {"value": "lazy", "label": "lazy, binned from the events"}], "help": "listmode_to_sinogram(..., lazy=True) keeps the events (4 bytes each, 6 with TOF) instead of the sinogram."},
+    {"name": "additive", "label": "Additive term (randoms, scatter)", "default": "none", "options": [{"value": "none", "label": "none"}, {"value": "dense", "label": "dense sinogram (where the data is)"}, {"value": "lazy", "label": "lazy: randoms and SSS scatter"}], "help": "Lazy: (randoms + lazy SSS scatter) / sensitivity, as the TOF tutorials build it."},
+    {"name": "sss_step", "label": "SSS ring and crystal step", "default": 4, "min": 1, "max": 32, "step": 1, "help": "sinogram_interring_stepsize and sinogram_intraring_stepsize of the scatter estimate in a lazy additive term."},
+    {"name": "id_bytes", "label": "Bytes per detector ID", "default": 4, "options": [{"value": 4, "label": "4 (int32: GATE, GE HDF5)"}, {"value": 8, "label": "8 (int64: PETSIRD)"}], "help": "The dtype of the events' detector IDs; an event has two IDs, and a TOF bin with TOF."},
+    {"name": "lor_device", "label": "Events kept on", "default": "device", "options": [{"value": "device", "label": "the device"}, {"value": "cpu", "label": "the CPU (lor_device='cpu')"}], "help": "PETLMSystemMatrix(lor_device=...): where the events and the scanner table are kept."},
+    {"name": "sort_events", "label": "Sort events (sort_events)", "type": "bool", "default": true, "options": [{"value": false, "label": "no"}, {"value": true, "label": "yes"}], "help": "Each subset's events in sinogram order: faster projections, 4 bytes an event, and a build at the first projection."},
+    {"name": "lm_weights", "label": "Sensitivity weights of every crystal pair", "default": "ram", "options": [{"value": "none", "label": "none"}, {"value": "ram", "label": "in RAM"}, {"value": "gpu", "label": "on the GPU"}], "help": "PETLMProjMeta(weights_sensitivity=...): one float32 per pair of crystals (411 million pairs for the mMR)."},
+    {"name": "lm_additive", "label": "Additive term (one value per event)", "type": "bool", "default": true, "options": [{"value": false, "label": "no"}, {"value": true, "label": "yes"}]}
+  ],
+  "derived": {
+    "cuda": "device == 'cuda'",
+    "windows": "os == 'windows'",
+    "image": "4 * Lx * Ly * Lz",
+    "padded_image": "4 * (Lx + 2) * (Ly + 2) * (Lz + 2)",
+    "gpu_budget_default": "cuda ? min(1.5e9, 0.25 * gpu_free_gb * 1e9) : 1.5e9",
+    "memory_budget": "memory_budget_gb == null ? null : memory_budget_gb * 1e9"
+  },
+  "derived_sets": {
+    "pet_scanner": {
+      "N_theta": "floor(crystals_per_ring / 2)",
+      "N_r": "crystals_per_ring + 1",
+      "planes": "rings ** 2",
+      "sinogram": "4 * N_theta * N_r * planes"
+    },
+    "algorithm": {
+      "stacks_norm": "algorithm == 'BSREM' || algorithm == 'RBIEM' || algorithm == 'RBIMAP'"
+    }
+  },
+  "part_sets": {
+    "algorithm_parts": [
+      {"name": "prior: its copy of the image, field of view scale and gradient", "when": "prior", "bytes": "3 * image", "on": "cuda"},
+      {"name": "prior: temporaries of its gradient", "when": "prior", "scope": "subset", "bytes": "6 * image", "on": "cuda"},
+      {"name": "H_m^T 1 of the {n_subsets} subsets stacked, and their sum", "when": "stacks_norm && n_subsets > 1", "scope": "subset", "bytes": "(n_subsets + 1) * image", "on": "cuda"}
+    ]
+  },
+  "models": [
+    {
+      "id": "pet_sinogram",
+      "title": "PET sinogram reconstruction (PETSinogramSystemMatrix)",
+      "modality": "PET",
+      "library": "OSEM(PoissonLogLikelihood(PETSinogramSystemMatrix(...), sinogram, additive_term)).estimate_memory(n_subsets, N_splits) / .plan_memory(ram_gb, gpu_gb)",
+      "params": ["device", "os", "gpu_free_gb", "memory_budget_gb", "Lx", "Ly", "Lz", "crystals_per_ring", "rings", "tof", "tof_bins", "proj_device", "sensitivity", "data", "events", "additive", "sss_step", "algorithm", "prior", "N_splits", "n_subsets"],
+      "defaults": {"Lx": 128, "Ly": 128, "Lz": 96, "tof": true, "N_splits": 10, "n_subsets": 28, "data": "lazy", "additive": "lazy", "sss_step": 6, "events": 50000000, "memory_budget_gb": 25},
+      "use": ["pet_scanner", "algorithm"],
+      "allocator_fraction": 0.6,
+      "derived": {
+        "n_bins": "tof ? tof_bins : 1",
+        "proj_gpu": "proj_device == 'device' && cuda",
+        "lors": "ceil(N_theta / n_subsets) * N_r * planes",
+        "bytes_per_lor": "88 + 8 * n_bins",
+        "n_chunks": "max(N_splits, ceil(lors * bytes_per_lor / gpu_budget_default))",
+        "data_bytes": "data == 'lazy' ? (tof ? 6 : 4) * events + 8 * (N_theta + 1) : sinogram * n_bins",
+        "sss_rings": "ceil(rings / sss_step) + ((rings - 1) % sss_step == 0 ? 0 : 1)",
+        "additive_bytes": "additive == 'dense' ? sinogram * n_bins : additive == 'lazy' ? 2 * sinogram + 4 * N_theta * N_r * sss_rings ** 2 * n_bins : 0"
+      },
+      "parts": [
+        {"name": "sensitivity sinogram", "when": "sensitivity", "bytes": "sinogram", "on": "proj_gpu"},
+        {"name": "normalisation images ({n_subsets})", "gpu": "n_subsets * image"},
+        {"name": "image, update and attenuation map", "gpu": "4 * image"},
+        {"name": "data, expected counts, ratio and temporaries (one subset)", "scope": "subset", "bytes": "3 * 4 * lors * n_bins", "on": "proj_gpu"},
+        {"name": "projector chunk", "scope": "chunk", "gpu": "ceil(lors / n_chunks) * bytes_per_lor"},
+        {"name": "projections (the data)", "bytes": "data_bytes", "on": "data == 'dense_gpu'"},
+        {"name": "additive term", "when": "additive != 'none'", "bytes": "additive_bytes", "on": "additive == 'dense' && data == 'dense_gpu'"},
+        {"include": "algorithm_parts"}
+      ],
+      "settings": [
+        {"name": "N_splits", "label": "Projector splits (N_splits)", "candidates": {"items": [{"seq": {"var": "k", "from": "0", "to": "8", "value": "2 ** k"}}, {"value": "N_splits"}], "unique": true, "sort": "asc"}},
+        {"name": "n_subsets", "label": "Subsets (n_subsets)", "force": "algorithm == 'MLEM' ? 1 : null", "candidates": {"items": [{"seq": {"var": "k", "from": "1", "to": "min(256, N_theta)", "value": "k"}}]}}
+      ],
+      "code": [
+        "import pytomography",
+        "from pytomography.algorithms import {algorithm|raw}",
+        "pytomography.set_memory_budget({memory_budget_gb})",
+        "system_matrix.N_splits = {N_splits}  # your PETSinogramSystemMatrix",
+        "algorithm = {algorithm|raw}(likelihood)  # PoissonLogLikelihood(system_matrix, sinogram, additive_term=...)",
+        "print(algorithm.estimate_memory(n_subsets={n_subsets}))",
+        "recon = algorithm(n_iters=2, n_subsets={n_subsets})"
+      ]
+    },
+    {
+      "id": "pet_listmode",
+      "title": "PET list mode reconstruction (PETLMSystemMatrix)",
+      "modality": "PET",
+      "library": "OSEM(PoissonLogLikelihood(PETLMSystemMatrix(...), additive_term=...)).estimate_memory(n_subsets, N_splits) / .plan_memory(ram_gb, gpu_gb)",
+      "params": ["device", "os", "gpu_free_gb", "memory_budget_gb", "Lx", "Ly", "Lz", "crystals_per_ring", "rings", "tof", "events", "id_bytes", "lor_device", "proj_device", "sort_events", "lm_weights", "lm_additive", "algorithm", "prior", "N_splits", "n_subsets"],
+      "defaults": {"Lx": 128, "Ly": 128, "Lz": 96, "events": 50000000, "N_splits": 10, "n_subsets": 14, "memory_budget_gb": 25},
+      "use": ["pet_scanner", "algorithm"],
+      "allocator_fraction": 0.6,
+      "derived": {
+        "lor_gpu": "lor_device == 'device' && cuda",
+        "out_gpu": "proj_device == 'device' && cuda",
+        "id_row": "(tof ? 3 : 2) * id_bytes",
+        "events_s": "ceil(events / n_subsets)",
+        "crystals": "crystals_per_ring * rings",
+        "crystal_pairs": "crystals * (crystals - 1) / 2"
+      },
+      "parts": [
+        {"name": "events and their projector order", "bytes": "events * id_row + (sort_events ? 4 * events : 0)", "on": "lor_gpu"},
+        {"name": "sensitivity weights", "when": "lm_weights != 'none'", "bytes": "4 * crystal_pairs", "on": "lm_weights == 'gpu'"},
+        {"name": "sensitivity and normalisation images ({n_subsets})", "gpu": "(n_subsets + 1) * image"},
+        {"name": "image, update and attenuation map", "gpu": "4 * image"},
+        {"name": "expected counts, ratio and temporaries (one subset)", "scope": "subset", "bytes": "16 * events_s", "on": "out_gpu"},
+        {"name": "positions of the subset's events", "scope": "subset", "bytes": "8 * events_s", "on": "lor_gpu"},
+        {"name": "building a subset's projector order (its first projection)", "when": "sort_events", "scope": "subset", "bytes": "id_row * events_s + 130 * min(events_s, 2 ** 22) + 40 * min(events_s, 2 ** 24)", "on": "lor_gpu"},
+        {"name": "projector chunk", "scope": "chunk", "gpu": "ceil(events_s / N_splits) * 64"},
+        {"name": "projections (the data)", "bytes": "4", "on": "cuda"},
+        {"name": "additive term", "when": "lm_additive", "bytes": "4 * events", "on": "cuda"},
+        {"include": "algorithm_parts"}
+      ],
+      "settings": [
+        {"name": "N_splits", "label": "Projector splits (N_splits)", "candidates": {"items": [{"seq": {"var": "k", "from": "0", "to": "8", "value": "2 ** k"}}, {"value": "N_splits"}], "unique": true, "sort": "asc"}},
+        {"name": "n_subsets", "label": "Subsets (n_subsets)", "force": "algorithm == 'MLEM' ? 1 : null", "candidates": {"items": [{"seq": {"var": "k", "from": "1", "to": "256", "value": "k"}}]}}
+      ],
+      "code": [
+        "import pytomography",
+        "from pytomography.algorithms import {algorithm|raw}",
+        "pytomography.set_memory_budget({memory_budget_gb})",
+        "system_matrix.N_splits = {N_splits}  # your PETLMSystemMatrix",
+        "algorithm = {algorithm|raw}(likelihood)  # PoissonLogLikelihood(system_matrix, additive_term=...)",
+        "print(algorithm.estimate_memory(n_subsets={n_subsets}))",
+        "recon = algorithm(n_iters=4, n_subsets={n_subsets})"
+      ]
+    }
+  ]
+}
