@@ -6,8 +6,8 @@ import os
 PATH = '/disk1/pytomography_tutorial_data'
 
 data_path = os.path.join(PATH, 'simind_tutorial', 'lu177_SYME_jaszak')
-photopeak_path = os.path.join(data_path,'tot_w4.h00')
-attenuation_path = os.path.join(data_path, 'amap.h00')
+photopeak_path = os.path.join(data_path,'tot_w1.h00') # the 208 keV photopeak
+attenuation_path = os.path.join(data_path, 'amap.hct')
 
 object_meta, proj_meta = simind.get_metadata(photopeak_path)
 photopeak = simind.get_projections(photopeak_path)
