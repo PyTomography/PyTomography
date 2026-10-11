@@ -1,6 +1,6 @@
 {
   "schema": "pytomography-memory-model/1",
-  "library": "PyTomography PR #294 (feature/memory-estimates): estimate_memory() and plan_memory()",
+  "library": "PyTomography PR #294 (feature/memory-estimates, with fix/memory-estimates-cpu 6f8e5c9: PET arrays on the device in use, views at their own size, list mode sensitivity IDs): estimate_memory() and plan_memory()",
   "doc": [
     "PyTomography's memory estimates as data. A browser (pytomo-memory.js) and Python (docs/tools/memory_model.py) evaluate this file the same way; docs/tools/check_memory_model.py proves both agree with the library.",
     "variables: every input, with its label, unit, default, range or options. A model lists the ones it uses in 'params' and may change their defaults in 'defaults'. Booleans are true/false; options are strings; null means 'not set' (e.g. no memory budget).",
@@ -48,6 +48,7 @@
     {"name": "sort_events", "label": "Sort events (sort_events)", "type": "bool", "default": true, "options": [{"value": false, "label": "no"}, {"value": true, "label": "yes"}], "help": "Each subset's events in sinogram order: faster projections, 4 bytes an event, and a build at the first projection."},
     {"name": "lm_weights", "label": "Sensitivity weights of every crystal pair", "default": "ram", "options": [{"value": "none", "label": "none"}, {"value": "ram", "label": "in RAM"}, {"value": "gpu", "label": "on the GPU"}], "help": "PETLMProjMeta(weights_sensitivity=...): one float32 per pair of crystals (411 million pairs for the mMR)."},
     {"name": "lm_weight_pairs", "label": "Crystal pairs with a sensitivity weight", "default": null, "min": 0, "max": 10000000000, "step": 1, "type": "number_or_null", "help": "null: every pair of crystals (all PETSIRD and GATE weights); GE HDF5 gives fewer (146 million for the Discovery MI)."},
+    {"name": "lm_sensitivity_ids", "label": "Detector IDs of the weighted pairs", "default": "none", "options": [{"value": "none", "label": "not given (every pair)"}, {"value": "int32", "label": "given, int32 (GE HDF5)"}, {"value": "int64", "label": "given, int64"}], "help": "PETLMProjMeta(detector_ids_sensitivity=...): two IDs per weighted pair of crystals, kept in RAM."},
     {"name": "lm_additive", "label": "Additive term (one value per event)", "type": "bool", "default": true, "options": [{"value": false, "label": "no"}, {"value": true, "label": "yes"}]},
     {"name": "sss_input", "label": "Data of the scatter estimate", "default": "sinogram", "options": [{"value": "sinogram", "label": "a sinogram (PETSinogramSystemMatrix)"}, {"value": "listmode", "label": "list mode events (PETLMSystemMatrix)"}]},
     {"name": "sss_interring_step", "label": "Sampled rings: every", "unit": "rings", "default": 4, "min": 1, "max": 64, "step": 1, "help": "sinogram_interring_stepsize"},
@@ -190,10 +191,10 @@
       },
       "parts": [
         {"name": "sensitivity sinogram", "when": "sensitivity", "bytes": "sinogram", "on": "proj_gpu"},
-        {"name": "normalisation images ({n_subsets})", "gpu": "n_subsets * image"},
-        {"name": "image, update and attenuation map", "gpu": "4 * image"},
+        {"name": "normalisation images ({n_subsets})", "bytes": "n_subsets * image", "on": "cuda"},
+        {"name": "image, update and attenuation map", "bytes": "4 * image", "on": "cuda"},
         {"name": "data, expected counts, ratio and temporaries (one subset)", "scope": "subset", "bytes": "3 * 4 * lors * n_bins", "on": "proj_gpu"},
-        {"name": "projector chunk", "scope": "chunk", "gpu": "ceil(lors / n_chunks) * bytes_per_lor"},
+        {"name": "projector chunk", "scope": "chunk", "bytes": "ceil(lors / n_chunks) * bytes_per_lor", "on": "cuda"},
         {"name": "projections (the data)", "bytes": "data_bytes", "on": "data == 'dense_gpu'"},
         {"name": "additive term", "when": "additive != 'none'", "bytes": "additive_bytes", "on": "additive == 'dense' && data == 'dense_gpu'"},
         {"include": "algorithm_parts"}
@@ -217,7 +218,7 @@
       "title": "PET list mode reconstruction (PETLMSystemMatrix)",
       "modality": "PET",
       "library": "OSEM(PoissonLogLikelihood(PETLMSystemMatrix(...), additive_term=...)).estimate_memory(n_subsets, N_splits) / .plan_memory(ram_gb, gpu_gb)",
-      "params": ["device", "os", "gpu_free_gb", "memory_budget_gb", "Lx", "Ly", "Lz", "crystals_per_ring", "rings", "tof", "events", "id_bytes", "lor_device", "proj_device", "sort_events", "lm_weights", "lm_weight_pairs", "lm_additive", "algorithm", "prior", "prior_weight", "N_splits", "n_subsets"],
+      "params": ["device", "os", "gpu_free_gb", "memory_budget_gb", "Lx", "Ly", "Lz", "crystals_per_ring", "rings", "tof", "events", "id_bytes", "lor_device", "proj_device", "sort_events", "lm_weights", "lm_weight_pairs", "lm_sensitivity_ids", "lm_additive", "algorithm", "prior", "prior_weight", "N_splits", "n_subsets"],
       "defaults": {"Lx": 128, "Ly": 128, "Lz": 96, "events": 50000000, "N_splits": 10, "n_subsets": 14, "memory_budget_gb": 25},
       "use": ["pet_scanner", "algorithm"],
       "allocator_fraction": 0.6,
@@ -227,17 +228,19 @@
         "id_row": "(tof ? 3 : 2) * id_bytes",
         "events_s": "ceil(events / n_subsets)",
         "crystals": "crystals_per_ring * rings",
-        "crystal_pairs": "crystals * (crystals - 1) / 2"
+        "crystal_pairs": "crystals * (crystals - 1) / 2",
+        "weight_pairs": "lm_weight_pairs == null ? crystal_pairs : lm_weight_pairs"
       },
       "parts": [
         {"name": "events and their projector order", "bytes": "events * id_row + (sort_events ? 4 * events : 0)", "on": "lor_gpu"},
-        {"name": "sensitivity weights", "when": "lm_weights != 'none'", "bytes": "4 * (lm_weight_pairs == null ? crystal_pairs : lm_weight_pairs)", "on": "lm_weights == 'gpu'"},
-        {"name": "sensitivity and normalisation images ({n_subsets})", "gpu": "(n_subsets + 1) * image"},
-        {"name": "image, update and attenuation map", "gpu": "4 * image"},
+        {"name": "sensitivity weights", "when": "lm_weights != 'none'", "bytes": "4 * weight_pairs", "on": "lm_weights == 'gpu'"},
+        {"name": "detector IDs of the sensitivity weights", "when": "lm_sensitivity_ids != 'none'", "ram": "2 * (lm_sensitivity_ids == 'int64' ? 8 : 4) * weight_pairs"},
+        {"name": "sensitivity and normalisation images ({n_subsets})", "bytes": "(n_subsets + 1) * image", "on": "cuda"},
+        {"name": "image, update and attenuation map", "bytes": "4 * image", "on": "cuda"},
         {"name": "expected counts, ratio and temporaries (one subset)", "scope": "subset", "bytes": "16 * events_s", "on": "out_gpu"},
         {"name": "positions of the subset's events", "scope": "subset", "bytes": "8 * events_s", "on": "lor_gpu"},
         {"name": "building a subset's projector order (its first projection)", "when": "sort_events", "scope": "subset", "bytes": "id_row * events_s + 130 * min(events_s, 2 ** 22) + 40 * min(events_s, 2 ** 24)", "on": "lor_gpu"},
-        {"name": "projector chunk", "scope": "chunk", "gpu": "ceil(events_s / N_splits) * 64"},
+        {"name": "projector chunk", "scope": "chunk", "bytes": "ceil(events_s / N_splits) * 64", "on": "cuda"},
         {"name": "projections (the data)", "bytes": "4", "on": "cuda"},
         {"name": "additive term", "when": "lm_additive", "bytes": "4 * events", "on": "cuda"},
         {"include": "algorithm_parts"}

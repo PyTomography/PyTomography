@@ -17,6 +17,7 @@ Each part has a scope:
 The peak is the sum of all the parts, whatever their scope.
 Each part is in RAM or on the GPU.
 "On the device" means on the GPU when PyTomography's device is CUDA, and in RAM when it is the CPU.
+An array you pass in counts at its own size: a view (e.g. one energy window of a stacked tensor) counts as itself, not as the tensor it is taken from.
 
 Three overheads are added to every estimate:
 
@@ -100,10 +101,10 @@ The projector handles $b = 88 + 8T$ bytes a line, in $k = \max\left(s, \lceil \e
 | Part | Scope | Bytes | Where |
 |---|---|---|---|
 | sensitivity sinogram | held | $S$ | the projections' device |
-| normalisation images ($n$) | held | $nI$ | GPU (labelled GPU even on the CPU) |
-| image, update and attenuation map | held | $4I$ | GPU (labelled GPU even on the CPU) |
+| normalisation images ($n$) | held | $nI$ | device |
+| image, update and attenuation map | held | $4I$ | device |
 | data, expected counts, ratio and temporaries (one subset) | subset | $12\,\ell T$ | the projections' device |
-| projector chunk | chunk | $\lceil \ell / k \rceil\, b$ | GPU |
+| projector chunk | chunk | $\lceil \ell / k \rceil\, b$ | device |
 | projections (the data) | held | dense: $S T$; lazy: $(4 + 2[\mathrm{TOF}])\,E + 8(N_\theta + 1)$ | RAM, or GPU if dense there |
 | additive term | held | dense: $S T$; lazy: $2S + 4 N_\theta N_r R_s^2 T$ | where the data is; RAM if lazy |
 
@@ -124,12 +125,13 @@ A subset has $e = \lceil E/n \rceil$ events.
 |---|---|---|---|
 | events and their projector order | held | $E q w + 4E\,[\text{sort\_events}]$ | where the events are (`lor_device`) |
 | sensitivity weights | held | $4W$; $W$ = every crystal pair, $CR(CR-1)/2$, unless given | RAM or GPU |
-| sensitivity and normalisation images ($n$) | held | $(n+1) I$ | GPU |
-| image, update and attenuation map | held | $4I$ | GPU |
+| detector IDs of the sensitivity weights (`detector_ids_sensitivity`, e.g. GE HDF5) | held | $2W$ IDs: $8W$ (int32) or $16W$ (int64) | RAM |
+| sensitivity and normalisation images ($n$) | held | $(n+1) I$ | device |
+| image, update and attenuation map | held | $4I$ | device |
 | expected counts, ratio and temporaries (one subset) | subset | $16e$ | the projections' device |
 | positions of the subset's events | subset | $8e$ | where the events are |
 | building a subset's projector order (first projection) | subset | $q w e + 130 \min(e, 2^{22}) + 40 \min(e, 2^{24})$ | where the events are; with `sort_events` |
-| projector chunk | chunk | $64 \lceil e/s \rceil$ | GPU |
+| projector chunk | chunk | $64 \lceil e/s \rceil$ | device |
 | projections (the data) | held | 4 (a single value) | device |
 | additive term | held | $4E$ | device |
 
@@ -374,8 +376,26 @@ The SPECT parts (it always starts from the camera path), then, for $\omega$ ener
 
 ## What the formulas leave out
 
-- Whatever else the script keeps: other images, earlier reconstructions, data not passed to the reconstruction.
+- Whatever else the script keeps: other images, earlier reconstructions, data not passed to the reconstruction,
+  the larger tensor a view you pass in is taken from.
 - Callbacks (`DataStorageCallback`).
 - CUDA's library workspaces (cuFFT plans, cuBLAS) and the fragmentation of PyTorch's cache beyond the allowance above.
-- List mode: the detector IDs of the sensitivity pairs (`detector_ids_sensitivity`), which the GE reader keeps.
-- A tensor that is a view of a larger one counts as the larger one (e.g. one window of a stacked projections tensor).
+
+Some estimates are well above what was measured. They are left so: they are on the safe side.
+The measured peaks are those of the whole tutorial (Windows, RTX 5090, 10 Oct 2026), which also holds everything
+else the tutorial keeps. Estimate against measured, RAM / GPU in GB:
+
+| Estimate | Tutorial | Estimate | Measured (whole tutorial) |
+|---|---|---|---|
+| single scatter simulation, non-TOF sinogram | t_PETGATE_scat_sino | 25.0 / 5.2 | 23.7 / 1.7 |
+| single scatter simulation, 21 TOF bins, lazy | t_PETGATE_scat_sinoTOF | 21.4 / 6.8 | 19.8 / 5.6 |
+| single scatter simulation, list mode | t_PETGATE_scat_lm | 29.5 / 5.2 | 22.1 / 3.2 |
+| single scatter simulation, list mode, 21 TOF bins | t_PETGATE_scat_lmTOF | 24.9 / 4.8 | 22.9 / 5.2 |
+| single scatter simulation, list mode | t_PETSIRD | 28.7 / 6.2 | 21.9 / 2.9 |
+| StarGuide OSEM 10 x 10 | t_starguide | 8.1 / 3.4 | 5.3 / 1.1 |
+| SPECT with a PSF operator, OSEM 100 x 3 | t_ac225_dicom_recon | 4.8 / 0.9 | 4.9 / 0.5 |
+| SPECT with a PSF operator, OSEM 50 x 4 | t_ac225_simind_recon | 4.9 / 0.9 | 4.3 / 0.5 |
+
+The single scatter simulation's estimate is above the peak of the whole tutorial, of which it is one step.
+StarGuide's estimate is about 1.5 times the RAM and 3 times the GPU memory measured.
+With a PSF operator, the GPU estimate is about twice what was measured.

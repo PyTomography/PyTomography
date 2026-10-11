@@ -246,9 +246,11 @@ def _listmode_system_matrix(p):
     sm.object_meta = ObjectMeta(dr=(2.0, 2.0, 2.0), shape=(int(p['Lx']), int(p['Ly']), int(p['Lz'])))
     pairs = crystals * (crystals - 1) // 2 if p.get('lm_weight_pairs') is None else int(p['lm_weight_pairs'])
     weights = None if p['lm_weights'] == 'none' else fake((pairs,), on_gpu=p['lm_weights'] == 'gpu')
+    kind = p.get('lm_sensitivity_ids', 'none')
+    sensitivity_ids = None if kind == 'none' else fake((pairs, 2), torch.int64 if kind == 'int64' else torch.int32)   # on the host
     sm.proj_meta = SimpleNamespace(detector_ids=fake((E, cols), dtype, on_gpu=cuda and p['lor_device'] == 'device'),
-                                   weights_sensitivity=weights, info={'NrCrystalsPerRing': int(p['crystals_per_ring'])},
-                                   shape=(E,))
+                                   weights_sensitivity=weights, detector_ids_sensitivity=sensitivity_ids,
+                                   info={'NrCrystalsPerRing': int(p['crystals_per_ring'])}, shape=(E,))
     sm.sort_events = bool(p['sort_events'])
     sm.output_device = p['device'] if p['proj_device'] == 'device' else 'cpu'
     sm.N_splits = int(p['N_splits'])
@@ -693,7 +695,8 @@ def grid_pet_listmode(quick: bool) -> list:
                 scanner=[(448, 64), (504, 64), (64, 8), (760, 80), (840, 672)], image=[(128, 128, 96), (200, 200, 127), (440, 440, 159)],
                 tof=[False, True], events=[50_000_000, 2_000_000, 400_000_000, 1_500_000_000], id_bytes=[4, 8],
                 lor_device=['device', 'cpu'], proj_device=['device', 'cpu'], sort_events=[True, False],
-                lm_weights=['ram', 'gpu', 'none'], lm_weight_pairs=[None, 146_292_480], lm_additive=[True, False], algorithm=['OSEM', 'BSREM', 'MLEM', 'OSMAPOSL'],
+                lm_weights=['ram', 'gpu', 'none'], lm_weight_pairs=[None, 146_292_480], lm_sensitivity_ids=['none', 'int32', 'int64'],
+                lm_additive=[True, False], algorithm=['OSEM', 'BSREM', 'MLEM', 'OSMAPOSL'],
                 prior=[False, True], prior_weight=['euclidean', 'top_n_anatomy'], N_splits=[1, 10, 3])
     configs = tutorials + _sample(base, axes, 12 if quick else 60, 2)
     for p in configs:
@@ -891,7 +894,7 @@ def mapping_checks() -> list:
     object_meta = ObjectMeta(dr=(4.0, 4.0, 4.0), shape=(32, 32, 6))
     base = dict(device='cpu', os='windows', gpu_free_gb=30, memory_budget_gb=None, Lx=32, Ly=32, Lz=6, crystals_per_ring=64,
                 rings=8, tof=True, tof_bins=5, events=n, id_bytes=4, lor_device='device', proj_device='device', sort_events=True,
-                lm_weights='ram', lm_additive=False, algorithm='OSEM', prior=False, N_splits=3, n_subsets=4,
+                lm_weights='ram', lm_sensitivity_ids='int32', lm_additive=False, algorithm='OSEM', prior=False, N_splits=3, n_subsets=4,
                 sensitivity=True, data='dense_ram', additive='none')
     tof_meta = PETTOFMeta(5, 300.0, 60.0, n_sigmas=3)
     with simulate(base):
@@ -908,8 +911,10 @@ def mapping_checks() -> list:
         c1 = torch.randint(0, 64 * 8, (n,), generator=gen)
         ids = torch.stack([c1, (c1 + 32) % (64 * 8), torch.randint(0, 5, (n,), generator=gen)], dim=1).to(torch.int32)
         weights = torch.rand(64 * 8 * (64 * 8 - 1) // 2)
+        pairs = torch.combinations(torch.arange(64 * 8, dtype=torch.int32))
         with simulate(base):
-            real = PETLMSystemMatrix(object_meta, PETLMProjMeta(ids, info, tof_meta=tof_meta, weights_sensitivity=weights),
+            real = PETLMSystemMatrix(object_meta, PETLMProjMeta(ids, info, tof_meta=tof_meta, weights_sensitivity=weights,
+                                                                detector_ids_sensitivity=pairs),
                                      N_splits=3, device='cpu', lor_device='cpu')
             stand_in = _listmode_system_matrix(base)
             a, b = real.estimate_memory(4), stand_in.estimate_memory(4)
@@ -917,7 +922,7 @@ def mapping_checks() -> list:
         PETLMSystemMatrix._backward_full = saved
     same = a.ram_gb == b.ram_gb and a.gpu_gb == b.gpu_gb and [(p.name, p.ram_bytes, p.gpu_bytes) for p in a.parts] == [(p.name, p.ram_bytes, p.gpu_bytes) for p in b.parts]
     ok &= same
-    lines.append(f"PETLMSystemMatrix (real, {n} events, TOF, sensitivity weights) and its stand-in: {a.ram_gb:.6f} / {b.ram_gb:.6f} GB RAM, {a.gpu_gb:.6f} / {b.gpu_gb:.6f} GB GPU: {'same' if same else 'DIFFERENT'}")
+    lines.append(f"PETLMSystemMatrix (real, {n} events, TOF, sensitivity weights and their detector IDs) and its stand-in: {a.ram_gb:.6f} / {b.ram_gb:.6f} GB RAM, {a.gpu_gb:.6f} / {b.gpu_gb:.6f} GB GPU: {'same' if same else 'DIFFERENT'}")
     # 4. a real KEM transform (32 x 32 x 16, size 3, one support image) and its stand-in
     from pytomography.projectors.shared import KEMSystemMatrix
     from pytomography.transforms.shared import KEMTransform
