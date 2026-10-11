@@ -6,6 +6,7 @@ Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/
 It keeps the computation and leaves out the plots and explanations.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
+from __future__ import annotations
 import matplotlib
 matplotlib.use("Agg")  # no figure windows when run as a script
 
@@ -19,7 +20,6 @@ DATA = Path(os.environ.get("PYTOMOGRAPHY_DATA", "~/pytomography_data")).expandus
 OUTPUT = Path(os.environ.get("PYTOMOGRAPHY_OUTPUT", "pytomography_outputs")).expanduser() / "PET/GATE-mMR-BrainInWater"
 OUTPUT.mkdir(parents=True, exist_ok=True)
 
-from __future__ import annotations
 import torch
 import pytomography
 from pytomography.metadata import ObjectMeta

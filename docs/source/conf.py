@@ -95,7 +95,10 @@ html_theme_options = {
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
     "icon_links": [
         {"name": "GitHub", "url": "https://github.com/PyTomography/PyTomography", "icon": "fa-brands fa-github"},
-        {"name": "Discourse", "url": "https://pytomography.discourse.group/", "icon": "fa-solid fa-comments"},
+        {"name": "Questions (GitHub Discussions)", "url": "https://github.com/PyTomography/PyTomography/discussions",
+         "icon": "fa-solid fa-comments"},
+        {"name": "Discourse (older answers)", "url": "https://pytomography.discourse.group/",
+         "icon": "fa-brands fa-discourse"},
         {"name": "PyPI", "url": "https://pypi.org/project/pytomography/", "icon": "fa-brands fa-python"},
     ],
     "announcement": "You are reading the preview of the PyTomography 4.0 documentation. Release target: 30 October 2026.",

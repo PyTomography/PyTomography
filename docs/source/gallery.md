@@ -1,7 +1,7 @@
 (gallery-index)=
 # Gallery
 
-Images made with PyTomography. [Share yours on Discourse](https://pytomography.discourse.group/) and we will add it here with a credit and a link to your paper.
+Images made with PyTomography. [Share yours in GitHub Discussions](https://github.com/PyTomography/PyTomography/discussions) and we will add it here with a credit and a link to your paper.
 
 ## Figure 1: Lu-177 SPECT
 

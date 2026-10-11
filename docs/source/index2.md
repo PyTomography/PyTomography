@@ -45,9 +45,9 @@ If you want to use the PET reconstruction options available, you need to additio
 
 Be sure to check out  {doc}`usage` for some simple examples. If you wish to make a contribution, please read the {doc}`developers_guide`.
 
-## User Forum
+## Questions
 
-If you have any questions about how to use the software, feel free to ask them on the discourse page at [this link](https://pytomography.discourse.group/).
+If you have any questions about how to use the software, ask them in [GitHub Discussions](https://github.com/PyTomography/PyTomography/discussions). Older answers are on the [Discourse forum](https://pytomography.discourse.group/).
 
 ## Examples
 **Example 1**: *Reconstruction of Lu177-PSMA patient data using the available reconstruction algorithms.*
