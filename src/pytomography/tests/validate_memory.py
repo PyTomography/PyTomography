@@ -686,8 +686,8 @@ def run_child(spec: dict) -> dict:
     if cuda:
         total = torch.cuda.get_device_properties(0).total_memory
         cap = spec['gpu_cap_gb'] * 1e9
-        if spec.get('plan'):        # a plan's GPU budget holds the CUDA context too, which is outside PyTorch's allocator
-            cap -= getattr(memory, 'CUDA_CONTEXT_GPU_BYTES', 0.0)
+        cap -= getattr(memory, 'CUDA_CONTEXT_GPU_BYTES', 0.0)     # the cap (a plan's GPU budget, or the 10 GB limit) holds
+                                                                   # the CUDA context too, outside PyTorch's allocator
         result['pytorch_gpu_cap_gb'] = cap / 1e9
         torch.cuda.set_per_process_memory_fraction(max(0.0, min(1.0, cap / total)))
     mark('imported')
