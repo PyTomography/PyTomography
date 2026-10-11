@@ -178,8 +178,12 @@ FIXED_OVERHEAD_CPU_BYTES = 2.2e9
 #: (13% for more than 1 GB). Every estimate with GPU arrays adds this much and :data:`CUDA_CACHE_FRACTION` of them.
 CUDA_CACHE_BYTES = 0.05e9
 
-#: See :data:`CUDA_CACHE_BYTES`.
-CUDA_CACHE_FRACTION = 0.2
+#: See :data:`CUDA_CACHE_BYTES`. Measured by ``tests/validate_memory.py`` on 96 reconstructions of up to 8.6 GB
+#: reserved (11 Oct 2026), the memory reserved ran up to 34% of the estimated GPU arrays above the peak allocated (2.2 GB
+#: above 6.4 GB allocated for a TOF sinogram OSEM of a Biograph mMR-sized scanner; 0.64 GB above 1.99 GB with its
+#: projections on the host, where most of the GPU memory is the projector's chunks), when this was 0.2: two GPU
+#: estimates were low, by 2% and 6%.
+CUDA_CACHE_FRACTION = 0.35
 
 #: What each scope of a :class:`MemoryPart` means, in the order estimates print them.
 MEMORY_SCOPES = {

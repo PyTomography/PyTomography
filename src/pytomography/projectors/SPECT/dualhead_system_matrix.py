@@ -191,7 +191,9 @@ class SPECTSystemMatrix(SystemMatrix):
         norm_proj = torch.ones(self.proj_meta.shape).to(pytomography.device)
         if subset_idx is not None:
             norm_proj = self.get_projection_subset(norm_proj, subset_idx)
-        return self.backward(norm_proj, subset_idx)
+        # an image of its own: back projection returns a view of the padded object it was computed in (about twice the
+        # image for a 128^3 object), which a reconstruction would otherwise keep for each of its subsets
+        return self.backward(norm_proj, subset_idx).contiguous()
 
     def _memory_parts(self, n_subsets: int, N_splits: int | None = None) -> list[MemoryPart]:
         r"""What a reconstruction with this system matrix holds at its peak (see

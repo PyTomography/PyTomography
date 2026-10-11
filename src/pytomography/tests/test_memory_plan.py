@@ -420,6 +420,21 @@ def test_spect_estimate_counts_its_arrays():
         sm.plan_memory(ram_gb=10, gpu_gb=10, N_splits=2)
 
 
+def test_spect_normalisation_images_are_images_of_their_own():
+    """A SPECT reconstruction keeps an H_m^T 1 image for each subset, which its estimate counts as one image each: each
+    is an image of its own, not a view of the padded object back projection works in, which kept about twice the image
+    for each subset (found by validate_memory.py: a 128^3 OSEM with 30 subsets peaked at 1.14 times its GPU estimate)."""
+    sm = _spect(psf=False)
+    image = 4 * np.prod(sm.object_meta.shape)
+    assert np.prod(sm.object_meta.padded_shape) > np.prod(sm.object_meta.shape)
+    likelihood = _likelihood(sm)
+    likelihood._set_n_subsets(4)
+    assert len(likelihood.norm_BPs) == 4
+    assert all(norm.untyped_storage().nbytes() == image for norm in likelihood.norm_BPs)
+    likelihood._set_n_subsets(1)
+    assert likelihood.norm_BP.untyped_storage().nbytes() == image
+
+
 def test_spect_psf_operator_and_its_kernel_cache():
     from pytomography.transforms.SPECT import SPECTPSFTransform
     from pytomography.tests.test_psf2d_operator import _KernelOperator
