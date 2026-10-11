@@ -9,7 +9,7 @@ import math
 import numpy as np
 import parallelproj_core
 from pytomography.io.PET.shared import crystal_pair_blocks
-from pytomography.io.PET.scanner import crystal_pair_index
+from pytomography.io.PET.scanner import crystal_pair_index, rsector_difference
 from pytomography.utils.memory import MemoryPart, block_size
 
 #: Factor applied to the memory estimates of :meth:`PETLMSystemMatrix.print_memory_usage`. Summing the arrays a
@@ -413,10 +413,13 @@ class PETLMSystemMatrix(SystemMatrix):
             yield from crystal_pair_blocks(self.proj_meta.scanner_lut.shape[0], lors_per_block)
 
     def _sensitivity_weights(self, detector_ids: torch.Tensor, offset: int) -> torch.Tensor:
-        """Sensitivity weights :math:`w` of a block from ``_sensitivity_lor_blocks``: the normalization weight times the probability that the photons are not attenuated."""
+        """Sensitivity weights :math:`w` of a block from ``_sensitivity_lor_blocks``: the normalization weight times the probability that the photons are not attenuated, and 0 for crystal pairs closer than ``info['min_rsector_difference']`` rsectors, whose events the readers drop."""
         proj = torch.ones(detector_ids.shape[0])
         if self.proj_meta.weights_sensitivity is not None:
             proj *= self.proj_meta.weights_sensitivity[offset:offset + detector_ids.shape[0]].cpu()
+        info = getattr(self.proj_meta, 'info', None)
+        if info is not None and info.get('min_rsector_difference', 0):
+            proj *= (rsector_difference(detector_ids.cpu(), info) >= info['min_rsector_difference']).to(proj.dtype)
         if self.attenuation_map is not None:
             proj *= self._compute_attenuation_probability_projection(detector_ids).cpu()
         return proj

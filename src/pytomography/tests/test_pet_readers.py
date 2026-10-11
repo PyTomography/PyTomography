@@ -458,3 +458,18 @@ def test_ge_corrections(tmp_path):
     assert pair_ids.dtype == torch.int32
     assert pair_ids.tolist() == np.stack([544 * pairs[:, 1] + pairs[:, 0], 544 * pairs[:, 3] + pairs[:, 2]], 1).tolist()
     assert PET.read_ge_corrections(corrections, pairs=False)[2] is None
+
+
+def test_list_mode_sensitivity_leaves_out_pairs_closer_than_min_rsector_difference():
+    """The sensitivity image's crystal pairs that the readers' event filter drops get weight 0 (#15)."""
+    from types import SimpleNamespace
+    from pytomography.projectors.PET import PETLMSystemMatrix
+    info = scanner_info(crystalTransNr=4, crystalTransSpacing=4.0, crystalAxialNr=3, crystalAxialSpacing=5.0,
+                        moduleTransNr=1, moduleAxialNr=2, moduleAxialSpacing=16.0, rsectorTransNr=12, radius=98.0,
+                        min_rsector_difference=2)
+    pairs = torch.combinations(torch.arange(48), 2)
+    fake = SimpleNamespace(proj_meta=SimpleNamespace(weights_sensitivity=None, info=info), attenuation_map=None)
+    weights = PETLMSystemMatrix._sensitivity_weights(fake, pairs, 0)
+    assert torch.equal(weights, (rsector_difference(pairs, info) >= 2).float())
+    fake.proj_meta.info = scanner_info(info, min_rsector_difference=0)
+    assert torch.equal(PETLMSystemMatrix._sensitivity_weights(fake, pairs, 0), torch.ones(len(pairs)))
