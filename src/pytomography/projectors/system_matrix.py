@@ -479,11 +479,13 @@ class ExtendedSystemMatrix(SystemMatrix):
 
     def _memory_parts(self, n_subsets: int, N_splits: int | None) -> list[MemoryPart]:
         """What a reconstruction with this system matrix holds at its peak (see :meth:`SystemMatrix.estimate_memory`):
-        the arrays of the first system matrix, with its arrays of a subset counted twice for each of the :math:`N`
-        system matrices (each one's projection is kept, then they are stacked); what every other distinct system matrix
-        holds for the whole run (its own images included, which overestimates by those); the arrays the transforms keep
-        and their temporaries (twelve images, rounded up from a deformation's coordinates and resampling); and the
-        projections of ones of all :math:`N` that :meth:`compute_normalization_factor` back projects.
+        the arrays of the first system matrix, with its projections of a subset (the parts named ``projections ...``
+        or ``data ...``) counted twice for each of the :math:`N` system matrices (each one's projection is kept, then
+        they are stacked); the arrays every other distinct system matrix keeps of its own (its transforms', its
+        sensitivity, its events; not the images and caches of the reconstruction, which are shared); the arrays the
+        transforms keep and their temporaries (twelve images, rounded up from a deformation's coordinates and
+        resampling); and the projections of ones of all :math:`N` that :meth:`compute_normalization_factor` back
+        projects.
 
         Args:
             n_subsets (int): Number of subsets.
@@ -496,16 +498,19 @@ class ExtendedSystemMatrix(SystemMatrix):
         first = self.system_matrices[0]
         parts = []
         for part in first._memory_parts(n_subsets, N_splits):
-            if part.scope == 'subset':
+            if part.scope == 'subset' and part.name.startswith(('projections', 'data')):
                 parts.append(MemoryPart(f"{part.name}, for each of {N}, kept and stacked", 2 * N * part.ram_bytes, 2 * N * part.gpu_bytes, 'subset'))
             else:
                 parts.append(part)
+        shared = ('image', 'H_m^T 1', 'rotation grids', 'normalisation images', 'sensitivity and normalisation images')
         seen = {id(first)}
         for i, system_matrix in enumerate(self.system_matrices[1:], start=2):
             if id(system_matrix) in seen:
                 continue
             seen.add(id(system_matrix))
-            held = [p for p in system_matrix._memory_parts(n_subsets, N_splits) if p.scope == 'held']
+            held = [p for p in system_matrix._memory_parts(n_subsets, N_splits) if p.scope == 'held' and not p.name.startswith(shared)]
+            if not held:
+                continue
             parts.append(MemoryPart(f"system matrix {i}: what it holds", sum(p.ram_bytes for p in held), sum(p.gpu_bytes for p in held), 'held'))
         transforms = [t for t in list(self.obj2obj_transforms or []) + list(self.proj2proj_transforms or []) if t is not None]
         if transforms:

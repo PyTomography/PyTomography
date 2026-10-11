@@ -17,15 +17,16 @@ from typing import Sequence
 import shutil
 
 def _transform_memory(transform, object_shape: Sequence[int], n_views: int) -> tuple[float, float, float]:
-    """What an object-to-object transform of a SPECT system matrix keeps, and the temporaries of one call on objects of
-    ``object_shape``, in bytes: (RAM kept, GPU kept, temporaries on ``pytomography.device``).
+    """What an object-to-object transform of a SPECT system matrix keeps, and the most one call holds at once on objects
+    of ``object_shape``, its output included, in bytes: (RAM kept, GPU kept, call's peak on ``pytomography.device``).
+    Measured on a GPU for 128^3 and 182^3 objects (padded), where noted.
 
     * Attenuation: its map, and the rotated probability map of every view if it caches them (``cache_probabilities``).
       A call without the cache pads and rotates the map, scales it, sums it along the projection axis (flipped, summed,
-      flipped back, less half of itself) and takes the exponential, then multiplies: eight objects, rounded up from
-      the seven that can be alive at once.
-    * PSF with Gaussian layers: their kernels (one per radius); a call takes four objects (the copies the two
-      convolutions are given and their outputs).
+      flipped back, less half of itself) and takes the exponential, then multiplies: six objects (measured); with the
+      cache, the product only.
+    * PSF with Gaussian layers: their kernels (one per radius); a call takes three objects (measured: the copy a
+      convolution is given, its output and the next's).
     * PSF from an operator (:class:`~pytomography.transforms.SPECT.psf.PSF2D`): its grids, and the kernel spectrum of
       every radius if it caches them (``cache_kernel``); a call takes eight arrays of the zero padded object (signal, its
       spectrum, the kernel's, their product and the result, rounded up for the first call, which also runs the
@@ -42,7 +43,7 @@ def _transform_memory(transform, object_shape: Sequence[int], n_views: int) -> t
             cache = n_views * obj
             ram, gpu = (ram, gpu + cache) if on_gpu else (ram + cache, gpu)
             return ram, gpu, obj
-        return ram, gpu, 8 * obj
+        return ram, gpu, 6 * obj
     if isinstance(transform, SPECTPSFTransform):
         ram = gpu = temporaries = 0.0
         for layer in getattr(transform, 'layers', {}).values():
@@ -51,7 +52,7 @@ def _transform_memory(transform, object_shape: Sequence[int], n_views: int) -> t
                     if conv is not None:
                         r, g = nbytes(conv.weight)
                         ram, gpu = ram + r, gpu + g
-                temporaries = max(temporaries, 4 * obj)
+                temporaries = max(temporaries, 3 * obj)
             elif isinstance(layer, PSF2D):
                 r, g = tensor_bytes(layer)
                 k = int(layer.kernel_size)
@@ -201,7 +202,8 @@ class SPECTSystemMatrix(SystemMatrix):
         :func:`_transform_memory`). For a subset: its projections (measured, expected, additive term, of ones, and the
         padded copy back projection makes; at the start, the projections of ones of every view for :math:`H_m^T 1`),
         one more padded copy per projection transform, and the padded object, support and sum of a projection. For a
-        view: the rotated object and the transforms' temporaries, added up (rounded up: they run one after another).
+        view: the rotated object and the most one of the transforms holds at once (they run one after another, each
+        freeing its temporaries: rotation, attenuation and a Gaussian PSF together took seven padded objects, measured).
         ``N_splits`` does not apply.
 
         Args:
@@ -230,7 +232,7 @@ class SPECTSystemMatrix(SystemMatrix):
         ram = gpu = temporaries = 0.0
         for transform in self.obj2obj_transforms:
             r, g, t = _transform_memory(transform, padded_shape, n_views)
-            ram, gpu, temporaries = ram + r, gpu + g, temporaries + t
+            ram, gpu, temporaries = ram + r, gpu + g, max(temporaries, t)
         if self.obj2obj_transforms:
             parts.append(MemoryPart('what the object transforms keep', ram, gpu))
         if self.proj2proj_transforms:
@@ -239,7 +241,7 @@ class SPECTSystemMatrix(SystemMatrix):
         projections = max(5 * views * view_padded, n_views * view + 2 * views * view_padded) + len(self.proj2proj_transforms) * views * view_padded
         parts.append(MemoryPart('projections of a subset: measured, expected, additive term, of ones, padded copy', **on_device(device, projections), scope='subset'))
         parts.append(MemoryPart('padded object, support and sum of a projection', **on_device(device, 3 * padded), scope='subset'))
-        parts.append(MemoryPart("one view: rotated object and the transforms' temporaries", **on_device(device, 2 * padded + temporaries), scope='chunk'))
+        parts.append(MemoryPart("one view: rotated object and the transforms' temporaries", **on_device(device, padded + max(temporaries, padded)), scope='chunk'))
         return parts
 
     def _memory_alternatives(self, n_subsets: int, N_splits: int | None) -> list:
@@ -461,9 +463,10 @@ class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
         self.n_events = n_events
         self.n_parallel = n_parallel
 
-    #: Memory of one SIMIND process besides the maps and projections it keeps, in bytes, for memory estimates. An
-    #: assumption, rounded up, not measured: ``tests/calibrate_memory.py`` measures it (case ``simind``).
-    SIMIND_PROCESS_BYTES = 0.5e9
+    #: Memory of one SIMIND process besides the maps and projections it keeps, in bytes, for memory estimates. Measured
+    #: with ``tests/calibrate_memory.py`` (case ``simind``: 128^3 maps, 60 views, one window): about 10 MB a process,
+    #: maps and images included; rounded up.
+    SIMIND_PROCESS_BYTES = 0.05e9
 
     def _memory_parts(self, n_subsets: int, N_splits: int | None = None) -> list[MemoryPart]:
         """What a reconstruction with this system matrix holds at its peak: as :class:`SPECTSystemMatrix` (whose back
@@ -489,7 +492,7 @@ class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
         parts.append(MemoryPart('attenuation map at 140 keV', *nbytes(self.attenuation_map_140keV)))
         parts.append(MemoryPart('SIMIND maps and the projections of every window read back (host)',
                                 ram_bytes=2 * image + 4 * windows * views * view, scope='subset'))
-        parts.append(MemoryPart(f'SIMIND processes ({self.n_parallel}, not measured)',
+        parts.append(MemoryPart(f'SIMIND processes ({self.n_parallel})',
                                 ram_bytes=self.n_parallel * (self.SIMIND_PROCESS_BYTES + 2 * image + 3 * windows * views * view), scope='chunk'))
         return parts
 

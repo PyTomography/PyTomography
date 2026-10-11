@@ -291,9 +291,9 @@ class StarGuideSystemMatrix(SystemMatrix):
                  MemoryPart('rotation grids of every angle (cached)', **on_device(device, (2 + attenuations) * n_angles * Lx * Ly * 8))]
         ram = gpu = shared_temporaries = psf_temporaries = 0.0
         slab = 4.0 * B * Lx * W * Lz
-        for transform in shared_transforms:
+        for transform in shared_transforms:                           # one after another: the largest counts
             r, g, t = _transform_memory(transform, (Lx, Ly, Lz), n_angles)
-            ram, gpu, shared_temporaries = ram + r, gpu + g, shared_temporaries + t
+            ram, gpu, shared_temporaries = ram + r, gpu + g, max(shared_temporaries, t)
         for transform in psf_transforms:
             r, g, t = _transform_memory(transform, (Lx, W, Lz), n_views)
             ram, gpu = ram + r, gpu + g
