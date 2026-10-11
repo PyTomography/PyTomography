@@ -4,7 +4,8 @@
   "doc": [
     "PyTomography's memory estimates as data. A browser (pytomo-memory.js) and Python (docs/tools/memory_model.py) evaluate this file the same way; docs/tools/check_memory_model.py proves both agree with the library.",
     "variables: every input, with its label, unit, default, range or options. A model lists the ones it uses in 'params' and may change their defaults in 'defaults'. Booleans are true/false; options are strings; null means 'not set' (e.g. no memory budget).",
-    "derived: named expressions, evaluated in order after the parameters and settings: first the global 'derived', then each set the model names in 'use' (from 'derived_sets'), then the model's own 'derived'. Each may use the names before it.",
+    "constants (a model's, optional): values the computation always has, set over the parameters (e.g. the SIMIND system matrix always starts from the camera path).",
+    "derived: named expressions, evaluated in order after the parameters, settings and constants: first the global 'derived', then each set the model names in 'use' (from 'derived_sets'), then the model's own 'derived'. Each may use the names before it.",
     "parts: the arrays of the computation. Each part has a name ('{expr}' in it is replaced by the value), a scope ('held' for the whole run, 'subset' for one subset at a time, 'chunk' for projector or kernel temporaries), and either 'bytes' with 'on' (an expression: true puts the bytes on the GPU, false in RAM) or 'ram' and 'gpu' (bytes each). 'when' (optional) leaves the part out when false. {'include': name} inserts the parts of 'part_sets'[name]. 'repeat': {'var', 'from', 'to'} makes one part for each integer var from..to (e.g. one per bed).",
     "combination: the peak is the sum of every part (all scopes together), plus the overheads below. GPU = sum of the GPU bytes. RAM = sum of the RAM bytes, and on Windows (gpu_counts_as_ram) the GPU bytes too.",
     "overheads: 'fixed' (Python, PyTorch and CUDA: 3.7 GB on a CUDA device, 2.2 GB without), 'cuda_cache' (PyTorch's CUDA cache: 0.05 GB plus 20% of the GPU arrays, only if there are GPU arrays) and, on Windows, 'allocator' (memory PyTorch's allocators keep after freeing: a fraction of the RAM and GPU arrays, 0.35 by default, the model's 'allocator_fraction' if it has one).",
@@ -88,7 +89,12 @@
     {"name": "kem_support", "label": "KEM support images", "default": 1, "min": 0, "max": 16, "step": 1},
     {"name": "kem_kernel_on_gpu", "label": "KEM kernel on the GPU (kernel_on_gpu)", "type": "bool", "default": false, "options": [{"value": false, "label": "no (RAM)"}, {"value": true, "label": "yes"}]},
     {"name": "kem_support_on", "label": "KEM support images on", "default": "device", "options": [{"value": "device", "label": "the device"}, {"value": "ram", "label": "RAM"}]},
-    {"name": "n_beds", "label": "Bed positions", "default": 2, "min": 1, "max": 20, "step": 1}
+    {"name": "n_beds", "label": "Bed positions", "default": 2, "min": 1, "max": 20, "step": 1},
+    {"name": "ext_n", "label": "System matrices (energy windows or gates)", "default": 2, "min": 1, "max": 64, "step": 1, "help": "ExtendedSystemMatrix(system_matrices=[...]): one projection set each."},
+    {"name": "ext_distinct", "label": "Each its own system matrix", "type": "bool", "default": true, "options": [{"value": false, "label": "no (the same one)"}, {"value": true, "label": "yes (e.g. a photopeak each)"}], "help": "Distinct system matrices each keep their transforms (attenuation map and PSF of their energy)."},
+    {"name": "ext_motion", "label": "Motion transforms (DVFMotionTransform)", "type": "bool", "default": false, "options": [{"value": false, "label": "no"}, {"value": true, "label": "yes"}], "help": "MotionSystemMatrix: a forward and a backward deformation field (6 images) per gate."},
+    {"name": "simind_windows", "label": "SIMIND energy windows", "default": 1, "min": 1, "max": 32, "step": 1},
+    {"name": "simind_parallel", "label": "SIMIND processes at once (n_parallel)", "default": 24, "min": 1, "max": 512, "step": 1}
   ],
   "derived": {
     "cuda": "device == 'cuda'",
@@ -653,6 +659,65 @@
         "multibed = PGAAMultiBedSPECT(files_NM, [{algorithm|raw}(likelihood) for likelihood in likelihoods])  # one likelihood per bed",
         "print(multibed.estimate_memory(n_subsets={n_subsets}))",
         "recon = multibed(n_iters=4, n_subsets={n_subsets})"
+      ]
+    },
+    {
+      "id": "spect_extended",
+      "title": "Dual-peak or motion SPECT (ExtendedSystemMatrix, MotionSystemMatrix)",
+      "modality": "SPECT",
+      "library": "OSEM(PoissonLogLikelihood(ExtendedSystemMatrix([SPECTSystemMatrix(...), ...]), torch.stack(projections), torch.stack(additive))).estimate_memory(n_subsets) / .plan_memory(ram_gb, gpu_gb)",
+      "params": ["device", "os", "gpu_free_gb", "memory_budget_gb", "ext_n", "ext_distinct", "ext_motion", "Lx", "Ly", "Lz", "views", "proj_r", "proj_z", "attenuation", "cache_probabilities", "psf", "psf_kernel", "n_radii", "cache_kernel", "camera_path", "spect_additive", "algorithm", "prior", "prior_weight", "n_subsets"],
+      "defaults": {"views": 96, "n_subsets": 8, "n_radii": 71, "psf_kernel": 28},
+      "use": ["algorithm", "spect_grid", "spect"],
+      "parts": [
+        {"include": "spect_held_parts"},
+        {"name": "projections of a subset: measured, expected, additive term, of ones, padded copy, for each of {ext_n}, kept and stacked", "scope": "subset", "bytes": "2 * ext_n * subset_projections", "on": "cuda"},
+        {"name": "padded object, support and sum of a projection", "scope": "subset", "bytes": "3 * padded", "on": "cuda"},
+        {"name": "one view: rotated object and the transforms' temporaries", "scope": "chunk", "bytes": "padded + max(temporaries, padded)", "on": "cuda"},
+        {"repeat": {"var": "k", "from": "2", "to": "ext_distinct ? ext_n : 1"}, "name": "system matrix {k}: what it holds", "when": "has_transforms", "bytes": "kept", "on": "cuda"},
+        {"name": "arrays of the {ext_n} transforms", "when": "ext_motion", "bytes": "6 * ext_n * image", "on": "cuda"},
+        {"name": "a transform's temporaries", "when": "ext_motion", "scope": "chunk", "bytes": "12 * image", "on": "cuda"},
+        {"name": "projections of ones of all {ext_n} (for H^T 1)", "scope": "subset", "bytes": "4 * ext_n * views * Lr * Lzp", "on": "cuda"},
+        {"name": "projections (the data)", "bytes": "ext_n * data_bytes", "on": "cuda"},
+        {"name": "additive term", "when": "spect_additive", "bytes": "ext_n * data_bytes", "on": "cuda"},
+        {"include": "algorithm_parts"}
+      ],
+      "settings": [
+        {"name": "n_subsets", "label": "Subsets (n_subsets)", "force": "algorithm == 'MLEM' ? 1 : null", "candidates": {"items": [{"seq": {"var": "k", "from": "1", "to": "min(256, views)", "value": "k"}}]}}
+      ],
+      "code": [
+        "from pytomography.algorithms import {algorithm|raw}",
+        "algorithm = {algorithm|raw}(likelihood)  # PoissonLogLikelihood(ExtendedSystemMatrix([...]), torch.stack(projections), torch.stack(scatter))",
+        "print(algorithm.estimate_memory(n_subsets={n_subsets}))",
+        "recon = algorithm(n_iters=8, n_subsets={n_subsets})"
+      ]
+    },
+    {
+      "id": "spect_simind",
+      "title": "SPECT with SIMIND Monte Carlo scatter (MonteCarloHybridSPECTSystemMatrix)",
+      "modality": "SPECT",
+      "library": "OSEM(MonteCarloHybridSPECTPoissonLogLikelihood(MonteCarloHybridSPECTSystemMatrix(..., n_parallel=...), photopeak)).estimate_memory(n_subsets) / .plan_memory(ram_gb, gpu_gb)",
+      "params": ["device", "os", "gpu_free_gb", "memory_budget_gb", "Lx", "Ly", "Lz", "views", "proj_r", "proj_z", "attenuation", "cache_probabilities", "psf", "psf_kernel", "n_radii", "cache_kernel", "spect_additive", "simind_windows", "simind_parallel", "algorithm", "prior", "prior_weight", "n_subsets"],
+      "defaults": {"views": 96, "n_subsets": 16, "spect_additive": false, "psf_kernel": 27},
+      "constants": {"camera_path": "true"},
+      "use": ["algorithm", "spect_grid", "spect"],
+      "parts": [
+        {"include": "spect_held_parts"},
+        {"include": "spect_subset_parts"},
+        {"name": "attenuation map at 140 keV", "bytes": "image", "on": "cuda"},
+        {"name": "SIMIND maps and the projections of every window read back (host)", "scope": "subset", "ram": "2 * image + 4 * simind_windows * views_s * view"},
+        {"name": "SIMIND processes ({simind_parallel})", "scope": "chunk", "ram": "simind_parallel * (0.05e9 + 2 * image + 3 * simind_windows * views_s * view)"},
+        {"include": "spect_data_parts"},
+        {"include": "algorithm_parts"}
+      ],
+      "settings": [
+        {"name": "n_subsets", "label": "Subsets (n_subsets)", "force": "algorithm == 'MLEM' ? 1 : null", "candidates": {"items": [{"seq": {"var": "k", "from": "1", "to": "min(256, views)", "value": "k"}}]}}
+      ],
+      "code": [
+        "from pytomography.algorithms import {algorithm|raw}",
+        "algorithm = {algorithm|raw}(likelihood)  # MonteCarloHybridSPECTPoissonLogLikelihood(MonteCarloHybridSPECTSystemMatrix(..., n_parallel={simind_parallel}), photopeak)",
+        "print(algorithm.estimate_memory(n_subsets={n_subsets}))",
+        "recon = algorithm(n_iters=1, n_subsets={n_subsets})"
       ]
     }
   ]
