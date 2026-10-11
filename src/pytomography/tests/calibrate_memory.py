@@ -75,9 +75,9 @@ def _process_peak_bytes() -> float:
 
 
 class _ChildMemory:
-    """Polls the resident memory of this process's child processes named ``name`` (e.g. SIMIND) while it is open, and
-    keeps the largest total seen at once (``peak``, bytes). Needs psutil."""
-    def __init__(self, name: str, interval: float = 0.2):
+    """Polls the memory of this process's child processes named ``name`` (e.g. SIMIND) while it is open (resident, or
+    committed on Windows if more), and keeps the largest total seen at once (``peak``, bytes). Needs psutil."""
+    def __init__(self, name: str, interval: float = 0.05):
         self.name, self.interval, self.peak = name.lower(), interval, 0.0
         self._stop = threading.Event()
 
@@ -89,7 +89,8 @@ class _ChildMemory:
             for child in me.children(recursive=True):
                 try:
                     if self.name in child.name().lower():
-                        total += child.memory_info().rss
+                        info = child.memory_info()
+                        total += max(info.rss, getattr(info, 'private', 0))      # resident, or committed on Windows
                 except psutil.Error:
                     pass
             self.peak = max(self.peak, total)
@@ -352,10 +353,14 @@ def case_fbp_spect(scale):
     return _fbp_case(SPECTSystemMatrix([], [], object_meta, proj_meta), torch.rand(proj_meta.shape))
 
 
-def _sss_case(scale, N_splits: int):
+def _sss_case(scale, N_splits: int, fused: bool = True):
+    """Single scatter simulation of a cylinder, every second ring and crystal sampled. ``fused`` False uses PyTorch's
+    TOF kernel (whose size N_splits bounds) instead of the fused CuPy kernel (which ignores N_splits)."""
     from pytomography.metadata.PET import PETSinogramPolygonProjMeta, PETTOFMeta
     from pytomography.projectors.PET import PETSinogramSystemMatrix
     from pytomography.utils import sss
+    if not fused:
+        sss._sss_cuda.available = lambda *args, **kwargs: False         # this process only
     tof_meta = PETTOFMeta(9, 500.0, 60.0, n_sigmas=3)
     proj_meta = PETSinogramPolygonProjMeta(_pet_info(scale), tof_meta)
     object_meta = _pet_object(scale)
@@ -364,38 +369,45 @@ def _sss_case(scale, N_splits: int):
     attenuation, image = 0.0096 * body, body * (1 + torch.rand(object_meta.shape))
     sm = PETSinogramSystemMatrix(object_meta, proj_meta, N_splits=1, device='cpu')
     data = torch.poisson(torch.rand(*proj_meta.shape, tof_meta.num_bins))
-    arguments = dict(proj_data=data, tof_meta=tof_meta, sinogram_interring_stepsize=2, sinogram_intraring_stepsize=4,
+    arguments = dict(proj_data=data, tof_meta=tof_meta, sinogram_interring_stepsize=2, sinogram_intraring_stepsize=2,
                      N_splits=N_splits, lazy=True)
     estimate = sss.estimate_sss_memory(object_meta, proj_meta, sm, **arguments)
     return estimate, lambda: sss.get_sss_scatter_estimate(object_meta, proj_meta, image, attenuation, sm, **arguments)
 
 
 def case_sss_tof(scale):
-    """Single scatter simulation, 9 TOF bins, lazy, N_splits 1 (every second ring sampled)."""
+    """Single scatter simulation, 9 TOF bins, lazy, with the fused CuPy TOF kernel if CuPy is installed."""
     return _sss_case(scale, 1)
 
 
-def case_sss_tof_split(scale):
-    """Single scatter simulation, 9 TOF bins, lazy, N_splits 3."""
-    return _sss_case(scale, 3)
+def case_sss_tof_torch(scale):
+    """Single scatter simulation, 9 TOF bins, lazy, PyTorch's TOF kernel, N_splits 1."""
+    return _sss_case(scale, 1, fused=False)
+
+
+def case_sss_tof_torch_split(scale):
+    """Single scatter simulation, 9 TOF bins, lazy, PyTorch's TOF kernel, N_splits 3."""
+    return _sss_case(scale, 3, fused=False)
 
 
 def case_simind(scale):
-    """One Monte Carlo hybrid forward projection with SIMIND (Tc-99m, 64^3, 60 views, 2 processes, 1e5 photons):
-    measures SIMIND's own memory, which the estimate assumes (SIMIND_PROCESS_BYTES)."""
+    """Monte Carlo hybrid OSEM with SIMIND, one iteration of 2 subsets (Tc-99m, 128^3, 60 views, 2 processes, 1e6
+    photons): also measures SIMIND's own memory, which the estimate assumes (SIMIND_PROCESS_BYTES)."""
     import shutil
     if not shutil.which('simind'):
         raise RuntimeError('SIMIND is not on the PATH')
     from pytomography.projectors.SPECT import MonteCarloHybridSPECTSystemMatrix
-    object_meta, proj_meta = _spect_metas(scale / 4, n_views=60)
-    sm = MonteCarloHybridSPECTSystemMatrix(object_meta, proj_meta, n_events=int(1e5), n_parallel=2, obj2obj_transforms=[],
+    object_meta, proj_meta = _spect_metas(scale, n_views=60)
+    sm = MonteCarloHybridSPECTSystemMatrix(object_meta, proj_meta, n_events=int(1e6), n_parallel=2, obj2obj_transforms=[],
                                            proj2proj_transforms=[], attenuation_map_140keV=0.15 * torch.rand(object_meta.shape),
                                            energy_window_params=['126,154,0'], primary_window_idx=0, isotope_names=['tc99m'],
                                            isotope_ratios=[1.0], collimator_type='SY-LEHR', crystal_thickness=0.95,
                                            cover_thickness=0.1, backscatter_thickness=5.0, energy_resolution_140keV=9.0)
-    sm.set_n_subsets(1)
-    obj = torch.rand(object_meta.shape).to(pytomography.device)
-    return sm.estimate_memory(1), lambda: sm.forward(obj)
+    from pytomography.algorithms import OSEM
+    from pytomography.likelihoods import MonteCarloHybridSPECTPoissonLogLikelihood
+    projections = torch.poisson(10 * torch.rand(proj_meta.shape)).to(pytomography.device)
+    algorithm = OSEM(MonteCarloHybridSPECTPoissonLogLikelihood(sm, projections))
+    return algorithm.estimate_memory(n_subsets=2), lambda: algorithm(n_iters=1, n_subsets=2)
 
 
 CASES = {name[5:].replace('_', '-'): f for name, f in sorted(globals().items()) if name.startswith('case_')}
