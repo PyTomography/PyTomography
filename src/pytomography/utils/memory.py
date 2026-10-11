@@ -116,7 +116,8 @@ def prefer_lazy(nbytes: float) -> bool:
     return nbytes > pytomography.memory_budget / 4
 
 
-def subsets_for_budget(projection_bytes: float, arrays: int = 3, held_bytes: float | None = None, minimum: int = 1) -> int:
+def subsets_for_budget(projection_bytes: float, arrays: int = 3, held_bytes: float | None = None, minimum: int = 1,
+                       maximum: int | None = None) -> int:
     """Fewest subsets for which a reconstruction fits in the memory budget.
 
     A subset needs ``arrays`` arrays the size of one subset of the projections at once (a Poisson likelihood holds the
@@ -128,9 +129,14 @@ def subsets_for_budget(projection_bytes: float, arrays: int = 3, held_bytes: flo
         arrays (int, optional): Number of subset-sized arrays held at once. Defaults to 3.
         held_bytes (float | None, optional): Memory held besides them. Defaults to None (half the budget).
         minimum (int, optional): Fewest subsets to return. Defaults to 1.
+        maximum (int | None, optional): Most subsets there can be, such as the number of angles: each subset needs at
+            least one. Defaults to None (no limit).
 
     Returns:
         int: Number of subsets (``minimum`` without a budget).
+
+    Raises:
+        ValueError: The budget leaves nothing for the subsets, or even ``maximum`` subsets do not fit in it.
     """
     budget = pytomography.memory_budget
     if budget is None:
@@ -138,7 +144,13 @@ def subsets_for_budget(projection_bytes: float, arrays: int = 3, held_bytes: flo
     available = budget - (budget / 2 if held_bytes is None else held_bytes)
     if available <= 0:
         raise ValueError(f"the memory budget ({budget / 1e9:.1f} GB) leaves nothing for the subsets after the {held_bytes / 1e9:.1f} GB held: raise it with pytomography.set_memory_budget")
-    return max(minimum, math.ceil(arrays * projection_bytes / available))
+    n_subsets = max(minimum, math.ceil(arrays * projection_bytes / available))
+    if maximum is not None and n_subsets > maximum:
+        per_subset = arrays * projection_bytes / maximum            # the arrays of one subset, at the most subsets
+        least = 2 * per_subset if held_bytes is None else held_bytes + per_subset
+        raise ValueError(f"the memory budget ({budget / 1e9:.1f} GB) needs {n_subsets} subsets, but there can be at most {maximum}: "
+                         f"raise it to at least {math.ceil(least / 1e9)} GB with pytomography.set_memory_budget")
+    return n_subsets
 
 
 @contextmanager
