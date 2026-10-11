@@ -59,7 +59,7 @@ def test_estimate_adds_up_its_parts(gpu_as_ram):
 def test_memory_estimate_adds_the_overheads_to_the_alternatives_too(gpu_as_ram):
     parts = [MemoryPart('data', ram_bytes=4e9)]
     estimate = memory_estimate('test', parts, alternatives=[('fewer', [MemoryPart('data', ram_bytes=2e9)])])
-    overhead = memory.FIXED_OVERHEAD_BYTES / 1e9
+    overhead = memory.fixed_overhead_bytes() / 1e9
     allocator = memory.WINDOWS_ALLOCATOR_FRACTION if gpu_as_ram else 0
     assert estimate.ram_gb == pytest.approx(4 * (1 + allocator) + overhead)
     (label, alternative), = estimate.alternatives

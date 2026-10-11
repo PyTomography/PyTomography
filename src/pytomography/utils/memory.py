@@ -159,9 +159,27 @@ def memory_budget_set(gb: float | None):
         pytomography.memory_budget = previous
 
 
-#: Python, PyTorch and the CUDA context: the committed memory of a process after ``import pytomography`` and its first
-#: CUDA call, measured on Windows with an RTX 5090 (2.7 GB; ``import torch`` alone is 1.9 GB).
-FIXED_OVERHEAD_BYTES = 2.7e9
+#: Python, PyTorch and CUDA when PyTomography runs on a CUDA device: the committed memory of a reconstruction's process
+#: besides its arrays and PyTorch's caches. Measured on Windows with an RTX 5090 (10 Oct 2026): 1.85 GB once it has
+#: imported pytomography and made its first CUDA call (``import torch`` alone is 0.92 GB), 2.72 GB with parallelproj
+#: loaded, 3.03 GB with cuBLAS, cuFFT, cuDNN and CuPy used. CUDA then loads the code of each kind of kernel the first
+#: time it runs (0.42 GB for the first division, 0.17 GB for the first masked assignment), so a whole reconstruction's
+#: process holds more: 3.1 to 3.6 GB in the reconstructions of ``tests/calibrate_memory.py`` (most for SPECT and
+#: StarGuide, which use the most kinds of kernels), above their arrays and PyTorch's cache. Rounded up.
+FIXED_OVERHEAD_BYTES = 3.7e9
+
+#: Python and PyTorch when PyTomography runs on the CPU: 1.97 GB measured as for :data:`FIXED_OVERHEAD_BYTES` with no
+#: CUDA device (importing parallelproj still loads the CUDA runtime), rounded up.
+FIXED_OVERHEAD_CPU_BYTES = 2.2e9
+
+#: PyTorch's CUDA cache: what it holds (``torch.cuda.memory_reserved``) above the arrays in use. It rounds each block
+#: up (an array of 1 to 10 MB takes a 20 MB segment) and keeps freed blocks for reuse; in the reconstructions of
+#: ``tests/calibrate_memory.py`` the memory reserved ran 0.01 to 0.3 GB above the peak allocated, at most 30% above it
+#: (13% for more than 1 GB). Every estimate with GPU arrays adds this much and :data:`CUDA_CACHE_FRACTION` of them.
+CUDA_CACHE_BYTES = 0.05e9
+
+#: See :data:`CUDA_CACHE_BYTES`.
+CUDA_CACHE_FRACTION = 0.2
 
 #: What each scope of a :class:`MemoryPart` means, in the order estimates print them.
 MEMORY_SCOPES = {
@@ -200,9 +218,24 @@ def counts_gpu_as_ram() -> bool:
     return sys.platform == 'win32'
 
 
+def fixed_overhead_bytes(device: str | torch.device | None = None) -> float:
+    """Committed memory of Python, PyTorch and CUDA in a process running PyTomography on ``device`` (default
+    ``pytomography.device``): :data:`FIXED_OVERHEAD_BYTES` on a CUDA device, :data:`FIXED_OVERHEAD_CPU_BYTES` otherwise."""
+    device = torch.device(pytomography.device if device is None else device)
+    return FIXED_OVERHEAD_BYTES if device.type == 'cuda' else FIXED_OVERHEAD_CPU_BYTES
+
+
 def fixed_overhead() -> MemoryPart:
-    """Python, PyTorch and the CUDA context (:data:`FIXED_OVERHEAD_BYTES`), as the ``'overhead'`` part every estimate adds."""
-    return MemoryPart('Python, PyTorch and CUDA', ram_bytes=FIXED_OVERHEAD_BYTES, scope='overhead')
+    """Python, PyTorch and the CUDA context (:func:`fixed_overhead_bytes`), as the ``'overhead'`` part every estimate adds."""
+    return MemoryPart('Python, PyTorch and CUDA', ram_bytes=fixed_overhead_bytes(), scope='overhead')
+
+
+def cuda_cache(gpu_bytes: float) -> MemoryPart | None:
+    """PyTorch's CUDA cache above ``gpu_bytes`` of arrays (:data:`CUDA_CACHE_BYTES` and :data:`CUDA_CACHE_FRACTION` of
+    them), as an ``'overhead'`` part; None without GPU arrays."""
+    if gpu_bytes <= 0:
+        return None
+    return MemoryPart("PyTorch's GPU cache (rounded and kept blocks)", gpu_bytes=CUDA_CACHE_BYTES + CUDA_CACHE_FRACTION * gpu_bytes, scope='overhead')
 
 
 #: Memory PyTorch's CPU allocator keeps after tensors are freed, on Windows, as a fraction of the computation's own
@@ -214,9 +247,10 @@ WINDOWS_ALLOCATOR_FRACTION = 0.35
 def memory_estimate(title: str, parts: Sequence[MemoryPart], alternatives: Sequence[tuple] = (), allocator_fraction: float | None = None,
                     settings: Mapping | None = None) -> MemoryEstimate:
     """A :class:`MemoryEstimate` of a computation's own arrays (``parts``), with the overheads every estimate adds: Python,
-    PyTorch and CUDA (:func:`fixed_overhead`) and, on Windows, the memory PyTorch's allocator keeps after freeing
-    (:data:`WINDOWS_ALLOCATOR_FRACTION` of the arrays). The alternatives get the same overheads, so their totals compare
-    with the main one. The ``estimate_memory`` methods build their estimates with it.
+    PyTorch and CUDA (:func:`fixed_overhead`), PyTorch's CUDA cache above the GPU arrays (:func:`cuda_cache`) and, on
+    Windows, the memory PyTorch's allocator keeps after freeing (:data:`WINDOWS_ALLOCATOR_FRACTION` of the arrays). The
+    alternatives get the same overheads, so their totals compare with the main one. The ``estimate_memory`` methods
+    build their estimates with it.
 
     Args:
         title (str): What is estimated, with its settings.
@@ -234,6 +268,9 @@ def memory_estimate(title: str, parts: Sequence[MemoryPart], alternatives: Seque
     def with_overheads(parts):
         parts = list(parts)
         overheads = [fixed_overhead()]
+        cache = cuda_cache(sum(p.gpu_bytes for p in parts if p.scope != 'overhead'))
+        if cache is not None:
+            overheads.append(cache)
         if counts_gpu_as_ram():
             # what PyTorch's allocators keep after freeing (its CPU allocator, and its GPU cache, which Windows also counts)
             arrays = sum(p.ram_bytes + p.gpu_bytes for p in parts if p.scope != 'overhead')
@@ -560,7 +597,7 @@ def available_memory(device: str | torch.device | None = None) -> tuple[float, f
     """RAM and GPU memory, in GB, a computation in this process can plan for now: what is free on the machine, less a
     margin kept free for everything else (:data:`RAM_MARGIN_BYTES`, 16 GB, or :data:`RAM_MARGIN_FRACTION` of the RAM on
     machines with less than 64 GB; :data:`GPU_MARGIN_FRACTION` of the GPU). The RAM also includes the Python, PyTorch
-    and CUDA overhead this process already holds (at most :data:`FIXED_OVERHEAD_BYTES`), since every estimate counts it;
+    and CUDA overhead this process already holds (at most :func:`fixed_overhead_bytes`), since every estimate counts it;
     arrays the process already holds are not added back, since an estimate may not count them. The ``plan_memory``
     methods use it when they are not given budgets.
 
@@ -578,7 +615,7 @@ def available_memory(device: str | torch.device | None = None) -> tuple[float, f
     """
     total, available, process = _host_memory()
     margin = min(RAM_MARGIN_BYTES, RAM_MARGIN_FRACTION * total)
-    ram = max(0.0, available - margin + min(process, FIXED_OVERHEAD_BYTES))
+    ram = max(0.0, available - margin + min(process, fixed_overhead_bytes()))
     free, gpu_total = _gpu_memory(pytomography.device if device is None else device)
     gpu = max(0.0, free - GPU_MARGIN_FRACTION * gpu_total)
     return ram / 1e9, gpu / 1e9
