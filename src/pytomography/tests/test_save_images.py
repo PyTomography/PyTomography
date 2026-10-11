@@ -5,8 +5,7 @@ import pydicom
 import pytest
 import torch
 
-from pytomography.io import Image, save_dicom, save_nifti
-from pytomography.io.shared import open_multifile, _get_affine_multifile
+from pytomography.io import Image, load_image, save_dicom, save_nifti
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.SPECT import SPECTObjectMeta
 
@@ -121,10 +120,9 @@ def test_pytomography_reads_its_own_series(tmp_path):
     A = np.array([[0.8, 0, 0, -50], [0, 0.8, 0, -60], [0, 0, 2.5, -400], [0, 0, 0, 1]])
     x = np.round(_image(signed=True) * 10)
     files = save_dicom(Image(x, A, modality="CT"), tmp_path / "ct")
-    back = open_multifile([str(f) for f in files]).cpu().numpy()
-    A_back = _get_affine_multifile([str(f) for f in files])
-    assert back.shape == x.shape and np.allclose(A_back, A, atol=1e-4)
-    assert np.allclose(back, x)
+    back = load_image([str(f) for f in files])
+    assert back.shape == x.shape and np.allclose(back.affine, A, atol=1e-4)
+    assert np.allclose(back.data, x) and back.modality == "CT" and back.units == "HU"
 
 
 def test_reference_joins_the_study(tmp_path):
@@ -303,7 +301,7 @@ def test_save_dcm_scale_by_number_of_projections_reads_back(tmp_path, data_dir):
     dicom.save_dcm(str(tmp_path / "n"), x, file_NM, scale_by_number_projections=True)
     assert torch.equal(x, before)                                   # the caller's image is untouched
     files = sorted(str(f) for f in (tmp_path / "n").glob("*.dcm"))
-    back = open_multifile(files).cpu()
+    back = torch.from_numpy(load_image(files).data)
     assert torch.allclose(back, x, atol=0.51 / proj_meta.num_projections)
     with pytest.raises(ValueError, match="16 bits"):
         dicom.save_dcm(str(tmp_path / "big"), x * 1000, file_NM, scale_by_number_projections=True)
