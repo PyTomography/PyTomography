@@ -64,23 +64,82 @@ def diff_compton_cross_section(cos_theta: torch.Tensor, energy: torch.Tensor) ->
     P = 1 / (1+energy/511 * (1-cos_theta))
     return Re**2 / 2 * P * (1-P * sin_theta_2 + P**2)
 
+#: The detector's energy window and resolution when the scanner's ``info`` does not give them (see
+#: :func:`detector_energy_window`): a lower threshold of 430 keV, no upper limit, and a resolution of 15% FWHM at
+#: 511 keV. These are the values the scatter simulation always used, so data whose ``info`` has none of the keys (GATE,
+#: the GE scanners) get the same estimate as before, bit for bit.
+DEFAULT_ENERGY_WINDOW = {'energy_window_low': 430.0, 'energy_window_high': None, 'energy_resolution': 0.15}
+
+def detector_energy_window(info: dict) -> tuple[float, float | None, float]:
+    """The detector's energy window and energy resolution, as the scatter simulation reads them from the scanner's
+    ``info``:
+
+    * ``info['energy_window_low']``: the lower limit of the energy window, in keV;
+    * ``info['energy_window_high']``: its upper limit, in keV;
+    * ``info['energy_resolution']``: the FWHM of the photopeak at 511 keV, as a fraction of 511 keV (PETSIRD's
+      ``energy_resolution_at_511``).
+
+    The PETSIRD reader (:func:`pytomography.io.PET.petsird.get_detector_info`) gives all three, from the file. The
+    GATE and GE readers give none of them; set them in ``info`` to use a scanner's own values. Each key that is absent
+    (or None) takes its default on its own (:data:`DEFAULT_ENERGY_WINDOW`): 430 keV, no upper limit, 0.15.
+
+    Args:
+        info (dict): PET geometry information dictionary.
+
+    Raises:
+        ValueError: if the resolution is not between 0 and 1, or the upper limit is not above the lower one.
+
+    Returns:
+        tuple[float, float | None, float]: lower limit (keV), upper limit (keV, or None for no upper limit), resolution.
+    """
+    def value(key):
+        v = info.get(key)
+        v = DEFAULT_ENERGY_WINDOW[key] if v is None else v
+        return None if v is None else float(v)
+    low, high, resolution = value('energy_window_low'), value('energy_window_high'), value('energy_resolution')
+    if not 0 < resolution < 1:
+        raise ValueError(f"info['energy_resolution'] is the FWHM at 511 keV as a fraction of 511 keV (0.15 for 15%), "
+                         f"between 0 and 1; it is {resolution}. Set it to the scanner's value, or remove it to use 0.15")
+    if high is not None and not high > low:
+        raise ValueError(f"the energy window's upper limit (info['energy_window_high'] = {high} keV) must be above its "
+                         f"lower limit ({low} keV)")
+    return low, high, resolution
+
 def detector_efficiency(
     scatter_energy: torch.Tensor,
     energy_resolution: float = 0.15,
-    energy_threshhold: float = 430
+    energy_threshhold: float = 430,
+    energy_window_high: float | None = None
     ) -> torch.Tensor:
-    """Computes the probability a photon of given energy is detected within the energy limits of the detector
+    r"""Computes the probability a photon of given energy is detected within the energy window of the detector.
+
+    The measured energy of a photon of energy :math:`E` is Gaussian about :math:`E`, with a FWHM of
+    ``energy_resolution`` :math:`\times` 511 keV at every energy (the resolution is not scaled with the energy), so
+    :math:`\sigma = 511\,\mathrm{keV} \times` ``energy_resolution`` :math:`/ (2\sqrt{2\ln 2})`. The probability that it
+    falls in the window :math:`(E_\mathrm{low}, E_\mathrm{high})` is
+
+    .. math::
+
+        P = \frac{1}{2}\left[\mathrm{erf}\left(\frac{E_\mathrm{high} - E}{\sqrt{2}\sigma}\right)
+            - \mathrm{erf}\left(\frac{E_\mathrm{low} - E}{\sqrt{2}\sigma}\right)\right],
+
+    where the first term is 1 without an upper limit. The scatter simulation takes the three values from the scanner's
+    ``info`` (:func:`detector_energy_window`).
 
     Args:
-        scatter_energy (torch.Tensor): Energy of the photon impinging the detector
-        energy_resolution (float, optional): Energy resolution of the crystals (represented as a fraction of 511keV). This is the uncertainty of energy measurements. Defaults to 0.15.
-        energy_threshhold (float, optional): Lower limit of energies detected by the crystal which are registered as events. Defaults to 430.
+        scatter_energy (torch.Tensor): Energy of the photon impinging the detector, in keV
+        energy_resolution (float, optional): Energy resolution of the crystals: the FWHM at 511 keV, as a fraction of 511 keV. This is the uncertainty of energy measurements. Defaults to 0.15.
+        energy_threshhold (float, optional): Lower limit of the energy window, in keV: the lowest energy registered as an event. Defaults to 430.
+        energy_window_high (float | None, optional): Upper limit of the energy window, in keV. Defaults to None: no upper limit.
 
     Returns:
         torch.Tensor: Probability that the photon gets detected
     """
     sigma = 511 * energy_resolution / (2*np.sqrt(2*np.log(2)))
-    return 0.5 * (1 - torch.erf((energy_threshhold-scatter_energy) / (np.sqrt(2) * sigma)))
+    erf_low = torch.erf((energy_threshhold-scatter_energy) / (np.sqrt(2) * sigma))
+    if energy_window_high is None or energy_window_high == math.inf:
+        return 0.5 * (1 - erf_low)
+    return 0.5 * (torch.erf((energy_window_high-scatter_energy) / (np.sqrt(2) * sigma)) - erf_low)
 
 def _tof_efficiency(offset: torch.Tensor, tof_bins_dense_centers: torch.Tensor, sigma: float) -> torch.Tensor:
     """``tof_efficiency`` with the TOF resolution given as a Python float (so no device-to-host transfer per call)."""
@@ -305,9 +364,14 @@ def compute_sss_sparse_sinogram(
     ) -> SparseSinogram:
     """Generates a sparse single scatter simulation sinogram for non-TOF PET data.
 
+    The detector's energy window and resolution, which give the probability that a scattered photon is detected, come
+    from ``proj_meta.info`` (``energy_window_low`` and ``energy_window_high`` in keV, ``energy_resolution`` as the FWHM
+    at 511 keV over 511 keV, as the PETSIRD reader gives them; see :func:`detector_energy_window`). Each one that is
+    absent takes its default: 430 keV, no upper limit, 0.15.
+
     Args:
         object_meta (ObjectMeta): Object metadata corresponding to reconstructed PET image used in the simulation
-        proj_meta (ProjMeta): Projection metadata specifying the details of the PET scanner
+        proj_meta (ProjMeta): Projection metadata specifying the details of the PET scanner, including its energy window (see above)
         pet_image (torch.Tensor): PET image used to estimate the scatter
         attenuation_image (torch.Tensor): Attenuation map used in scatter simulation
         image_stepsize (int, optional): Stepsize in x/y/z between sampled scatter points. Defaults to 4.
@@ -325,6 +389,7 @@ def compute_sss_sparse_sinogram(
     voxel_size = _float32(np.array(object_meta.dr), pytomography.device)
     total_compton_cross_section_511keV = total_compton_cross_section(E_PET)
     voxel_volume = np.prod(object_meta.dr)
+    energy_low, energy_high, energy_resolution = detector_energy_window(proj_meta.info)
     positions, mu_values, detector_ids_scatter, scanner_LUT, idxA, idxB, rA, rB = _scatter_setup(object_meta, proj_meta, attenuation_image, image_stepsize, attenuation_cutoff, sinogram_interring_stepsize, sinogram_intraring_stepsize)
     attenuation_image = _float32(attenuation_image, pytomography.device)
     pet_image = _float32(pet_image, pytomography.device)
@@ -352,7 +417,7 @@ def compute_sss_sparse_sinogram(
         # Compute cos(scattering_angle) = cos(pi-angle_between_vectors) = -cos(angle_between_vectors)
         cos_theta = - (rSA*rSB).sum(axis=1) / rSA_norm / rSB_norm
         E_new = photon_energy_after_compton_scatter_511kev(cos_theta)
-        energy_efficiency = detector_efficiency(E_new)
+        energy_efficiency = detector_efficiency(E_new, energy_resolution, energy_low, energy_high)
         # Angle of impingement upon detectors (assumes circle, maybe fix later)
         cos_thetaA_incidence = (rSA[:,:2]*rA[:,:2]).sum(axis=1) / rSA_norm / rA_xy_norm
         cos_thetaB_incidence = (rSB[:,:2]*rB[:,:2]).sum(axis=1) / rSB_norm / rB_xy_norm
@@ -379,9 +444,12 @@ def compute_sss_sparse_sinogram_TOF(
     )->SparseSinogram:
     """Generates a sparse single scatter simulation sinogram for TOF PET data.
 
+    The detector's energy window and resolution come from ``proj_meta.info``, as in
+    :func:`compute_sss_sparse_sinogram` (defaults: 430 keV, no upper limit, 0.15).
+
     Args:
         object_meta (ObjectMeta): Object metadata corresponding to reconstructed PET image used in the simulation
-        proj_meta (ProjMeta): Projection metadata specifying the details of the PET scanner
+        proj_meta (ProjMeta): Projection metadata specifying the details of the PET scanner, including its energy window (see :func:`detector_energy_window`)
         pet_image (torch.Tensor): PET image used to estimate the scatter
         attenuation_image (torch.Tensor): Attenuation map used in scatter simulation
         tof_meta (PETTOFMeta): PET TOF Metadata corresponding to the sinogram estimate
@@ -402,6 +470,7 @@ def compute_sss_sparse_sinogram_TOF(
     voxel_size = _float32(np.array(object_meta.dr), pytomography.device)
     total_compton_cross_section_511keV = total_compton_cross_section(E_PET)
     voxel_volume = np.prod(object_meta.dr)
+    energy_low, energy_high, energy_resolution = detector_energy_window(proj_meta.info)
     positions, mu_values, detector_ids_scatter, scanner_LUT, idxA, idxB, rA, rB = _scatter_setup(object_meta, proj_meta, attenuation_image, image_stepsize, attenuation_cutoff, sinogram_interring_stepsize, sinogram_intraring_stepsize)
     attenuation_image = _float32(attenuation_image, pytomography.device)
     pet_image = _float32(pet_image, pytomography.device)
@@ -453,7 +522,7 @@ def compute_sss_sparse_sinogram_TOF(
         # Quantities that do not depend on the TOF bin
         cos_theta = - (rSA*rSB).sum(axis=1) / rSA_norm / rSB_norm
         E_new = photon_energy_after_compton_scatter_511kev(cos_theta)
-        energy_efficiency = detector_efficiency(E_new)
+        energy_efficiency = detector_efficiency(E_new, energy_resolution, energy_low, energy_high)
         # Angle of impingement upon detectors (assumes circle, maybe fix later)
         cos_thetaA_incidence = (rSA[:,:2]*rA[:,:2]).sum(axis=1) / rSA_norm / rA_xy_norm
         cos_thetaB_incidence = (rSB[:,:2]*rB[:,:2]).sum(axis=1) / rSB_norm / rB_xy_norm
@@ -680,9 +749,14 @@ def get_sss_scatter_estimate(
 ) -> torch.Tensor | LazySinogram:
     """Main function used to get SSS scatter estimation during PET reconstruction
 
+    The detector's energy window and resolution come from ``proj_meta.info``: ``energy_window_low`` and
+    ``energy_window_high`` in keV, and ``energy_resolution``, the FWHM at 511 keV as a fraction of 511 keV. The PETSIRD
+    reader gives them; without them (GATE and GE data, unless set by hand) the defaults are 430 keV, no upper limit and
+    0.15, each on its own (see :func:`detector_energy_window`).
+
     Args:
         object_meta (ObjectMeta): Object metadata corresponding to ``pet_image``.
-        proj_meta (ProjMeta): Projection metadata corresponding to ``proj_data``.
+        proj_meta (ProjMeta): Projection metadata corresponding to ``proj_data``, whose ``info`` gives the scanner's geometry and energy window.
         pet_image (torch.Tensor): Reconstructed PET image used to get SSS estimate
         attenuation_image (torch.Tensor): Attenuation map corresponding to PET image
         system_matrix (SystemMatrix): PET system matrix
