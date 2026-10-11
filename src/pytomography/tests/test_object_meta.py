@@ -37,7 +37,7 @@ def test_defaults_and_validation():
 
 
 def test_with_grid_keeps_the_centre_frame_and_class():
-    meta = SPECTObjectMeta(dr=(0.48, 0.48, 0.48), shape=(128, 128, 96), centre=(1.0, -150.0, 400.0), frame='patient')
+    meta = SPECTObjectMeta(dr=(4.8, 4.8, 4.8), shape=(128, 128, 96), centre=(1.0, -150.0, 400.0), frame='patient')
     new = meta.with_grid(shape=(64, 64, 48))
     assert type(new) is SPECTObjectMeta and new is not meta
     assert new.centre == meta.centre and new.frame == 'patient' and new.units == 'counts' and new.modality == 'NM'
@@ -59,10 +59,12 @@ def test_subsample_keeps_the_centre():
         meta.subsample(0)
 
 
-def test_spect_grid_in_cm_has_an_affine_in_mm():
-    meta = SPECTObjectMeta(dr=(0.48, 0.48, 0.48), shape=(128, 128, 96), centre=(0, -158.1, 414.9))
+def test_spect_grid_is_in_mm():
+    meta = SPECTObjectMeta(dr=(4.8, 4.8, 4.8), shape=(128, 128, 96), centre=(0, -158.1, 414.9))
     assert np.isclose(meta.affine[0, 0], 4.8)
     assert np.allclose(meta.affine @ [63.5, 63.5, 47.5, 1], [0, -158.1, 414.9, 1])
+    with pytest.warns(UserWarning, match='mm'):
+        SPECTObjectMeta(dr=(0.48, 0.48, 0.48), shape=(8, 8, 8))           # cm, as before PyTomography 4.0
 
 
 def test_dual_imshow_picks_the_slice_whose_centre_is_nearest():

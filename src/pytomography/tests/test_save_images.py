@@ -64,7 +64,7 @@ def _check_dicom(files, x, A, tol):
 
 
 def test_object_meta_places_the_image(tmp_path):
-    """A tensor saved with its object_meta lands where object_meta.affine says; SPECT voxel sizes (cm) become mm."""
+    """A tensor saved with its object_meta lands where object_meta.affine says."""
     nib = pytest.importorskip("nibabel")
     meta = ObjectMeta(dr=(2.0, 2.0, 3.0), shape=(12, 10, 7), centre=(5.0, -20.0, 300.0), frame='patient',
                       units='Bq/mL', modality='PT')
@@ -75,7 +75,7 @@ def test_object_meta_places_the_image(tmp_path):
     files = save_dicom(_image(), tmp_path / "pt", meta)
     _check_dicom(files, _image(), meta.affine, tol=float(_image().max()) / 65535 * 0.51 + 1e-6)
     assert pydicom.dcmread(str(files[0])).Units == "BQML"
-    S = SPECTObjectMeta(dr=(0.48, 0.48, 0.48), shape=(12, 10, 7))
+    S = SPECTObjectMeta(dr=(4.8, 4.8, 4.8), shape=(12, 10, 7))
     assert np.isclose(S.affine[0, 0], 4.8) and np.allclose(S.affine @ [5.5, 4.5, 3, 1], [0, 0, 0, 1])
 
 
@@ -180,7 +180,7 @@ def test_nm_scale_uses_16_bits_and_is_in_the_headers(tmp_path, signed):
 def test_nm_is_the_default_for_spect(tmp_path):
     """SPECT images are saved as NM unless PET-style slices are asked for; NM without a reference has the required
     (empty) radiopharmaceutical sequence."""
-    meta = SPECTObjectMeta(dr=(0.48, 0.48, 0.48), shape=(12, 10, 7))
+    meta = SPECTObjectMeta(dr=(4.8, 4.8, 4.8), shape=(12, 10, 7))
     [path] = save_dicom(_image(), tmp_path / "spect", meta)
     ds = pydicom.dcmread(str(path))
     assert ds.Modality == "NM" and "RadiopharmaceuticalInformationSequence" in ds
@@ -215,9 +215,9 @@ def test_slice_thickness_is_not_the_spacing(tmp_path):
 def test_subsampled_grid_saves_where_it_is(tmp_path):
     """#27: after subsample the voxel size and the origin written are the coarse grid's, centred where the fine
     grid was."""
-    fine = SPECTObjectMeta(dr=(0.48, 0.48, 0.48), shape=(24, 24, 14), centre=(3.0, -150.0, 400.0), frame="patient")
+    fine = SPECTObjectMeta(dr=(4.8, 4.8, 4.8), shape=(24, 24, 14), centre=(3.0, -150.0, 400.0), frame="patient")
     coarse = fine.subsample(2)
-    assert coarse.shape == (12, 12, 7) and np.allclose(coarse.dr, 0.96)
+    assert coarse.shape == (12, 12, 7) and np.allclose(coarse.dr, 9.6)
     [path] = save_dicom(_image((12, 12, 7)), tmp_path / "nm", coarse)
     ds = pydicom.dcmread(str(path))
     assert np.allclose([float(v) for v in ds.PixelSpacing], 9.6) and float(ds.SpacingBetweenSlices) == pytest.approx(9.6)
@@ -271,52 +271,30 @@ def _tutorial_data(data_dir, dataset, *path):
 
 @pytest.mark.data
 def test_starguide_frame_matches_ge_reconstruction(data_dir):
-    """PyTomography's StarGuide grid, placed through the CT, is where GE's own reconstruction of the same grid is."""
-    import os
-    from pytomography.io.SPECT import dicom
+    """read_starguide's grid, centred on the CT, is GE's own reconstruction's grid (as load_image reads it)."""
+    from pytomography.io import SPECT, load_image
     root = _tutorial_data(data_dir, "SPECT/Tc99m-NEMA-Starguide")
-    files_CT = [str(root / "CT_files" / f) for f in os.listdir(root / "CT_files")]
-    ge = pydicom.dcmread(str(root / "vendor_recon" / "i196884.NMDC.1"), stop_before_pixels=True)
-    meta = SPECTObjectMeta(dr=(float(ge.PixelSpacing[0]) / 10,) * 3, shape=(196, 196, 112))   # get_starguide_metadata's grid
-    A = dicom.get_starguide_patient_affine(files_CT, meta)
-    det = ge.DetectorInformationSequence[0]
-    row, col = np.array(det.ImageOrientationPatient[:3], float), np.array(det.ImageOrientationPatient[3:], float)
-    A_ge = np.eye(4)
-    A_ge[:3, 0] = row * float(ge.PixelSpacing[1])
-    A_ge[:3, 1] = col * float(ge.PixelSpacing[0])
-    A_ge[:3, 2] = np.cross(row, col) * float(ge.SpacingBetweenSlices)
-    A_ge[:3, 3] = np.array(det.ImagePositionPatient, float)
+    files_NM = sorted(str(f) for f in (root / "NM_files").iterdir()
+                      if pydicom.dcmread(str(f), stop_before_pixels=True).SeriesDescription == "NoFocus Cont")
+    files_CT = [str(f) for f in (root / "CT_files").iterdir()]
+    _, meta, _ = SPECT.read_starguide(files_NM, energy_window=0, files_CT=files_CT)
+    ge = load_image(root / "vendor_recon" / "i196884.NMDC.1")
     corners = np.array([[i, j, k, 1] for i in (0, 195) for j in (0, 195) for k in (0, 111)], float).T
-    assert np.abs(A @ corners - A_ge @ corners).max() < 0.01
-
-
-@pytest.mark.data
-def test_save_dcm_scale_by_number_of_projections_reads_back(tmp_path, data_dir):
-    """#230: with scale_by_number_projections the series reads back as the image itself, not N_proj times it."""
-    from pytomography.io.SPECT import dicom
-    file_NM = str(_tutorial_data(data_dir, "SPECT/Lu177-PSMA-GEDisc", "bed1_projections.dcm"))
-    object_meta, proj_meta = dicom.get_metadata(file_NM, index_peak=0)
-    x = torch.rand(object_meta.shape) * 100
-    before = x.clone()
-    dicom.save_dcm(str(tmp_path / "n"), x, file_NM, scale_by_number_projections=True)
-    assert torch.equal(x, before)                                   # the caller's image is untouched
-    files = sorted(str(f) for f in (tmp_path / "n").glob("*.dcm"))
-    back = torch.from_numpy(load_image(files).data)
-    assert torch.allclose(back, x, atol=0.51 / proj_meta.num_projections)
-    with pytest.raises(ValueError, match="16 bits"):
-        dicom.save_dcm(str(tmp_path / "big"), x * 1000, file_NM, scale_by_number_projections=True)
+    assert meta.frame == "patient" and np.abs(meta.affine @ corners - ge.affine @ corners).max() < 0.01
 
 
 @pytest.mark.data
 def test_projection_reader_applies_rescale(tmp_path, data_dir):
     """#232: projections stored with a rescale slope and intercept are read as their real values."""
-    from pytomography.io.SPECT import dicom
+    from pytomography.io import SPECT
     file_NM = str(_tutorial_data(data_dir, "SPECT/Lu177-PSMA-GEDisc", "bed1_projections.dcm"))
     ds = pydicom.dcmread(file_NM)
     ds.RescaleSlope, ds.RescaleIntercept = 1, 0                    # the stored values, whatever the file says
-    plain = dicom.parse_projection_dataset(ds)[0]
+    ds.save_as(str(tmp_path / "plain.dcm"))
     ds.RescaleSlope, ds.RescaleIntercept = 2.5, 3.0
-    scaled = dicom.parse_projection_dataset(ds)[0]
+    ds.save_as(str(tmp_path / "scaled.dcm"))
+    plain = SPECT.read_dicom(str(tmp_path / "plain.dcm"))[0]
+    scaled = SPECT.read_dicom(str(tmp_path / "scaled.dcm"))[0]
     assert torch.allclose(scaled, plain * 2.5 + 3.0)
 
 

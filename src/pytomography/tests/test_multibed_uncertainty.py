@@ -1,7 +1,7 @@
 """Uncertainty of the counts in a mask of an image stitched from two overlapping SPECT bed positions
-(PGAAMultiBedSPECT.compute_uncertainty and the stitching weights of dicom.stitch_multibed).
+(PGAAMultiBedSPECT.compute_uncertainty and the stitching weights of io.SPECT.stitch_beds).
 
-The beds are cut from one acquisition of a small phantom, the way dicom.load_multibed_projections fills each bed's
+The beds are cut from one acquisition of a small phantom, the way io.SPECT.read_dicom_beds fills each bed's
 projections: the two beds hold the same counts in their overlap. The mask spans the seam of the stitched image.
 References:
   * without PSF modelling every slice is reconstructed on its own, so the stitched image, and the uncertainty of its
@@ -15,54 +15,30 @@ from __future__ import annotations
 import numpy as np
 import pytest
 import torch
-from pydicom.dataset import Dataset, FileMetaDataset
-from pydicom.uid import ExplicitVRLittleEndian, generate_uid
 
 import pytomography
 from pytomography.algorithms import OSEM, PGAAMultiBedSPECT
 from pytomography.callbacks import DataStorageCallback
-from pytomography.io.SPECT import dicom
+from pytomography.io.SPECT import stitch_beds
 from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
 from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.transforms.SPECT import SPECTPSFTransform
 
-N, NA, LZ, SHIFT, DX = 8, 4, 12, 7, 0.4   # voxels across, angles, slices per bed, bed shift (slices), voxel size (cm)
+N, NA, LZ, SHIFT, DX = 8, 4, 12, 7, 4.0   # voxels across, angles, slices per bed, bed shift (slices), voxel size (mm)
 LZ_LONG = SHIFT + LZ                      # slices of the stitched image
 OFFSETS = [SHIFT, 0]                      # first slice of each bed in the stitched image: the upper bed is given first
 N_ITERS, N_SUBSETS = 2, 2
 SEAM = 10                                 # first stitched slice taken from the upper bed (midslice of the overlap)
 
 
-def _system_matrix(Lz, psf):
-    object_meta = SPECTObjectMeta([DX] * 3, (N, N, Lz))
-    proj_meta = SPECTProjMeta((N, Lz), [DX, DX], list(np.linspace(0, 360, NA, endpoint=False)), radii=[15.0] * NA)
-    transforms = [SPECTPSFTransform(psf_meta=SPECTPSFMeta((0.03, 0.1)))] if psf else []
+def _system_matrix(Lz, psf, first_slice=0):
+    """A bed whose first slice is slice ``first_slice`` of the stitched image."""
+    centre = (0.0, 0.0, 100.0 + (first_slice + (Lz - 1) / 2) * DX)
+    object_meta = SPECTObjectMeta([DX] * 3, (N, N, Lz), centre=centre, frame='patient')
+    proj_meta = SPECTProjMeta((N, Lz), [DX, DX], list(np.linspace(0, 360, NA, endpoint=False)), radii=[150.0] * NA)
+    transforms = [SPECTPSFTransform(psf_meta=SPECTPSFMeta((0.03, 1.0)))] if psf else []
     return SPECTSystemMatrix(obj2obj_transforms=transforms, proj2proj_transforms=[], object_meta=object_meta, proj_meta=proj_meta)
-
-
-def _bed_files(folder):
-    """Stand-ins for the beds' projection files: what stitch_multibed reads (z of each bed, slice spacing, size)."""
-    files = []
-    for name, offset in zip(['upper', 'lower'], OFFSETS):
-        meta = FileMetaDataset()
-        meta.MediaStorageSOPClassUID = '1.2.840.10008.5.1.4.1.1.20'
-        meta.MediaStorageSOPInstanceUID = generate_uid()
-        meta.TransferSyntaxUID = ExplicitVRLittleEndian
-        ds = Dataset()
-        ds.file_meta = meta
-        detector = Dataset()
-        detector.ImagePositionPatient = [0.0, 0.0, 100.0 + offset * DX * 10]
-        ds.DetectorInformationSequence = [detector]
-        ds.PixelSpacing = [DX * 10, DX * 10]
-        ds.Rows = N
-        path = str(folder / f'{name}.dcm')
-        try:
-            ds.save_as(path, enforce_file_format=True)
-        except TypeError:  # pydicom < 3
-            ds.save_as(path, write_like_original=False)
-        files.append(path)
-    return files
 
 
 def _phantom_and_mask():
@@ -95,9 +71,10 @@ def _likelihood(H, y, c, with_scatter_variance):
     return PoissonLogLikelihood(H, y, additive_term=0.5 * c, additive_term_variance_estimate=variance)
 
 
-def _multibed(files, beds, psf, with_scatter_variance=False):
-    algorithms = [OSEM(_likelihood(_system_matrix(LZ, psf), y, c, with_scatter_variance)) for y, c in beds]
-    multibed = PGAAMultiBedSPECT(files, algorithms)
+def _multibed(beds, psf, with_scatter_variance=False):
+    algorithms = [OSEM(_likelihood(_system_matrix(LZ, psf, offset), y, c, with_scatter_variance))
+                  for (y, c), offset in zip(beds, OFFSETS)]
+    multibed = PGAAMultiBedSPECT(algorithms)
     callbacks = [DataStorageCallback(a.likelihood, torch.clone(a.object_prediction)) for a in algorithms]
     image = multibed(N_ITERS, N_SUBSETS, callback=callbacks)
     return multibed, callbacks, image
@@ -111,11 +88,12 @@ def _stitch_weights_z():
     return w
 
 
-def test_stitching_weights_are_each_beds_own(tmp_path):
-    files = _bed_files(tmp_path)
+def test_stitching_weights_are_each_beds_own():
+    metas = [_system_matrix(LZ, False, offset).object_meta for offset in OFFSETS]
     recons = torch.rand(2, N, N, LZ, generator=torch.Generator().manual_seed(1)).to(pytomography.device)
-    stitched = dicom.stitch_multibed(recons, files)
-    weights, zs = dicom.stitch_multibed(recons, files, return_stitching_weights=True)
+    stitched, meta = stitch_beds(recons, metas)
+    weights, zs = stitch_beds(recons, metas, return_stitching_weights=True)
+    assert meta.shape == (N, N, LZ_LONG) and np.allclose(meta.affine @ [0, 0, 0, 1], metas[1].affine @ [0, 0, 0, 1])
     assert tuple(weights.shape) == (2, N, N, LZ)
     assert list(zs) == OFFSETS
     rebuilt = torch.zeros_like(stitched)
@@ -127,18 +105,17 @@ def test_stitching_weights_are_each_beds_own(tmp_path):
         assert torch.equal(weights[k][0, 0].cpu(), expected_z[k, OFFSETS[k]:OFFSETS[k] + LZ])
 
 
-def test_split_bed_without_psf_matches_one_long_bed(tmp_path):
+def test_split_bed_without_psf_matches_one_long_bed():
     """No PSF: each slice is reconstructed on its own, so two beds cut from one acquisition give the image and the
     uncertainty of one long bed."""
-    files = _bed_files(tmp_path)
     beds, mask = _data(psf=False)
-    multibed, callbacks, image = _multibed(files, beds, psf=False)
+    multibed, callbacks, image = _multibed(beds, psf=False)
     y_long = torch.cat([beds[1][0], beds[0][0][..., LZ - SHIFT:]], dim=-1)
     c_long = torch.cat([beds[1][1], beds[0][1][..., LZ - SHIFT:]], dim=-1)
     long_bed = OSEM(_likelihood(_system_matrix(LZ_LONG, psf=False), y_long, c_long, False))
     callback = DataStorageCallback(long_bed.likelihood, torch.clone(long_bed.object_prediction))
     image_long = long_bed(N_ITERS, N_SUBSETS, callback=callback)
-    inner = slice(1, LZ_LONG - 1)   # stitch_multibed leaves out the first and last slice of each bed
+    inner = slice(1, LZ_LONG - 1)   # stitch_beds leaves out the first and last slice of each bed
     assert torch.allclose(image[..., inner], image_long[..., inner], rtol=1e-4, atol=1e-4 * image_long.max().item())
     expected_abs, expected_pct = long_bed.compute_uncertainty(mask, callback, return_pct=True)
     uncertainty_abs, uncertainty_pct = multibed.compute_uncertainty(mask, callbacks, return_pct=True)
@@ -178,9 +155,8 @@ def _osem_dense(forward, backward, y, s):
 
 @pytest.mark.parametrize('shared, with_scatter_variance', [(True, False), (True, True), (False, True)])
 def test_split_bed_with_psf_matches_exact_linearised_variance(tmp_path, dense_bed_system, shared, with_scatter_variance):
-    files = _bed_files(tmp_path)
     beds, mask = _data(psf=True, shared=shared)
-    multibed, callbacks, image = _multibed(files, beds, psf=True, with_scatter_variance=with_scatter_variance)
+    multibed, callbacks, image = _multibed(beds, psf=True, with_scatter_variance=with_scatter_variance)
     uncertainty_abs, uncertainty_pct = multibed.compute_uncertainty(mask, callbacks, return_pct=True, include_additive_term=with_scatter_variance)
 
     # Reference: autograd through dense OSEM of both beds and the stitch

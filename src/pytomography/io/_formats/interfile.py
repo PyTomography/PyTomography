@@ -1,8 +1,8 @@
 """Interfile 3.3 headers and images, from any producer (SIMIND, GATE/STIR, Siemens JSRecon).
 
 Keys are matched exactly after normalisation (case, leading '!' or '%', spaces and the producers' spelling variants),
-and a missing key raises (#32). Comment lines (';') are not keys; SIMIND's ';#' comment keys, which hold facts found
-nowhere else (energy windows, the photon energy), are kept apart in ``Interfile.comments``.
+and a missing key raises (#32). Comment lines (';' or ';#') are not keys; SIMIND's comment keys, which hold facts found
+nowhere else (energy windows, the photon energy, the collimator), are kept apart in ``Interfile.comments``.
 """
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ class Interfile():
 
     Attributes:
         keys (dict): every key (normalised) and its value as written (the first one when a key repeats).
-        comments (dict): SIMIND's comment keys (lines starting ';#'), normalised the same way.
+        comments (dict): the keys of comment lines (starting ';' or ';#'), normalised the same way.
     """
     def __init__(self, path) -> None:
         self.path = Path(path)
@@ -50,10 +50,8 @@ class Interfile():
             if not stripped or ':=' not in stripped:
                 continue
             target = self.keys
-            if stripped.startswith(';'):
-                if not stripped.startswith(';#'):
-                    continue
-                target, stripped = self.comments, stripped[2:]
+            if stripped.startswith(';'):                 # a comment (SIMIND keeps facts in ';' and ';#' lines)
+                target, stripped = self.comments, stripped.lstrip(';#')
             key, value = stripped.split(':=', 1)
             key = normalise_key(key)
             value = value.strip()
@@ -70,7 +68,7 @@ class Interfile():
         return self._value(self.keys, key, kind, default, 'key')
 
     def comment(self, key: str, kind=str, default=_MISSING):
-        """The value of SIMIND comment key ``key`` (a ';#' line), like :meth:`get`."""
+        """The value of the comment key ``key`` (a ';' or ';#' line), like :meth:`get`."""
         return self._value(self.comments, key, kind, default, 'comment key')
 
     def get_all(self, key: str) -> list:

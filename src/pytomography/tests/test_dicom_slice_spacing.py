@@ -7,7 +7,7 @@ import pydicom
 import pytest
 
 from pytomography.io import load_image
-from pytomography.io.SPECT.dicom import get_starguide_affine_CT
+from pytomography.io.SPECT.starguide import _ct_centre_as_written
 
 
 def _affine(path):
@@ -81,7 +81,7 @@ def test_the_slice_thickness_is_the_last_resort_with_a_warning(tmp_path):
     assert M[2, 2] == pytest.approx(2.5)
 
 
-def test_the_starguide_ct_affine_uses_the_slice_positions(tmp_path):
+def test_the_starguide_ct_centre_uses_the_slice_positions(tmp_path):
     files = []
     for k in range(4):                                                    # 1 mm apart, 1.25 mm thick
         ds = pydicom.Dataset()
@@ -96,6 +96,5 @@ def test_the_starguide_ct_affine_uses_the_slice_positions(tmp_path):
         files.append(str(tmp_path / f'{k}.dcm'))
         _save(ds, files[-1])
     assert load_image(files).affine[2, 2] == pytest.approx(1.0)
-    affine = get_starguide_affine_CT(files)
-    assert affine[2, 2] == pytest.approx(0.1)                             # cm
-    assert affine[2, 3] == pytest.approx(-1.5 * 0.1)                      # centred: -(N - 1) dz / 2
+    centre = _ct_centre_as_written(files)                                   # where StarGuide's grid is centred
+    assert centre[2] == pytest.approx(-20.0 + 1.5)

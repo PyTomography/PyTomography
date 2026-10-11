@@ -36,13 +36,13 @@ def test_voxel_phantom_attenuates_photons():
     """A Lu-177 point source in the centre of a water cylinder of radius 10 cm: the unscattered photons in the 208 keV
     window are exp(-mu * 10 cm) of those in air, mu = 0.1365 /cm (water at 208 keV). Before entry 21 was set to 0,
     SIMIND V8.0 gave as many as in air."""
-    N, dx = 128, 0.48
+    N, dx = 128, 4.8
     object_meta = SPECTObjectMeta((dx, dx, dx), (N, N, N))
-    proj_meta = SPECTProjMeta((N, N), (dx, dx), np.array([0.0, 90.0]), radii=np.full(2, 25.0))
+    proj_meta = SPECTProjMeta((N, N), (dx, dx), np.array([0.0, 90.0]), radii=np.full(2, 250.0))
     i, j = np.meshgrid(np.arange(N), np.arange(N), indexing='ij')
     r = np.hypot(i - (N - 1) / 2, j - (N - 1) / 2) * dx
     water = torch.zeros((N, N, N))
-    water[torch.from_numpy(r < 10)] = 0.1538  # 1/cm, water at 140.5 keV: SIMIND's maps are at 140.5 keV
+    water[torch.from_numpy(r < 100)] = 0.01538  # 1/mm, water at 140.5 keV: SIMIND's maps are at 140.5 keV
     source = torch.zeros((N, N, N))
     source[63:65, 63:65, 63:65] = 1
     index_dict = simind_mc.get_simind_params_from_metadata(object_meta, proj_meta)

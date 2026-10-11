@@ -1,234 +1,158 @@
+"""SIMIND Monte Carlo projections (Interfile ``.h00`` headers and ``.a00`` data), one pair per energy window (and per
+organ when the source was simulated organ by organ)."""
 from __future__ import annotations
+
+import os
+import re
 from typing import Sequence
-from pathlib import Path
+
 import numpy as np
 import torch
-import torch.nn as nn
-import os
+
 import pytomography
-from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
-from pytomography.utils import get_mu_from_spectrum_interp, compute_EW_scatter
-from ..shared import get_header_value
+from pytomography.metadata.SPECT import EnergyWindow, SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
+from .. import _vendors
+from .._formats.interfile import Interfile
+from ._energy import _mu_per_mm, _psf_meta, photon_energy
 
-relation_dict = {'unsignedinteger': 'int',
-                 'shortfloat': 'float',
-                 'int': 'int'}
 
-def get_metadata(headerfile: str, corrfile: str | None = None):
-    """Obtains required metadata from a SIMIND header file.
+def simind_version(header: Interfile) -> int:
+    """The major version of the SIMIND that wrote ``header``: the number after 'V' in 'program version' (#30)."""
+    text = header.get('program version')
+    found = re.search(r'[vV]\s*(\d+)', text)
+    if not found:
+        raise ValueError(f"{header.path.name}: cannot read the SIMIND version from 'program version := {text}'")
+    return int(found.group(1))
 
-    Args:
-        headerfile (str): Path to the header file
-        corrfile (str, optional): .cor file used in SIMIND to specify radial positions for non-circular orbits. This needs to be provided for non-standard orbits.
 
-    Returns:
-        (SPECTObjectMeta, SPECTProjMeta, torch.Tensor[1, Ltheta, Lr, Lz]): Required information for reconstruction in PyTomography.
-    """
-    with open(headerfile) as f:
-        headerdata = f.readlines()
-    headerdata = np.array(headerdata)
-    simind_version = get_header_value(headerdata, 'program version ', str)
-    if float(simind_version[1:2])>=8:
-        scale_factor = 1/10 # convert all mm to cm
+def _mm_per_unit(header: Interfile) -> float:
+    """SIMIND's Radius and collimator keys are in cm before version 8 and in mm from version 8 on."""
+    _vendors.use('simind-units')
+    return 10.0 if simind_version(header) < 8 else 1.0
+
+
+def _header(path) -> Interfile:
+    header = Interfile(path)
+    if header.producer != 'simind':
+        raise ValueError(f'{header.path.name} was not written by SIMIND')
+    if 'number of projections' not in header:
+        raise ValueError(f'{header.path.name} holds no SIMIND projections (a density map is read with io.load_image)')
+    return header
+
+
+def _energy_window(header: Interfile) -> EnergyWindow:
+    """The window of a SIMIND projection file: its bounds (comment keys) and its photon energy (the nuclide's line in
+    it, else SIMIND's photon energy when inside it, else its centre)."""
+    lower = header.comment('energy window lower level', float)
+    upper = header.comment('energy window upper level', float)
+    nuclide = header.comment('radionuclide', default=None)
+    simulated = header.comment('simind: photon energy', float, default=None)
+    return EnergyWindow(header.path.stem, [(lower, upper)], photon_energy([(lower, upper)], nuclide, simulated))
+
+
+def _projections(header: Interfile) -> np.ndarray:
+    """The views of one file, [view, r, z] in acquisition order, z rows flipped to run foot to head."""
+    n = header.get('total number of images', int)
+    shape = (n, header.get('matrix size [2]', int), header.get('matrix size [1]', int))
+    data = header.read_data(int(np.prod(shape))).astype(np.float32).reshape(shape)
+    return np.transpose(data[:, ::-1], (0, 2, 1))          # row 0 is at +z
+
+
+def _geometry(header: Interfile, radii_file=None) -> dict:
+    _vendors.use('simind-projection-frame', header.path.name)
+    n = header.get('number of projections', int)
+    extent = header.get('extent of rotation', float)
+    start = header.get('start angle', float)
+    direction = header.get('direction of rotation').upper()
+    angles = np.linspace(-start, -start + extent, n, endpoint=False)
+    if direction == 'CW':
+        if start != 0:
+            _vendors.use('simind-clockwise-start', header.path.name)
+        angles = -angles
+    angles = angles % 360
+    if radii_file is not None:
+        radii = np.loadtxt(radii_file) * 10                  # SIMIND's .cor files are in cm
     else:
-        scale_factor = 1
-    proj_dim1 = get_header_value(headerdata, 'matrix size [1]', int)
-    proj_dim2 = get_header_value(headerdata, 'matrix size [2]', int)
-    dx = get_header_value(headerdata, 'scaling factor (mm/pixel) [1]', np.float32) / 10 # to mm
-    dz = get_header_value(headerdata, 'scaling factor (mm/pixel) [2]', np.float32) / 10 # to mm
-    dr = (dx, dx, dz)
-    extent_of_rotation = get_header_value(headerdata, 'extent of rotation', np.float32)
-    number_of_projections = get_header_value(headerdata, 'number of projections', int)
-    start_angle = get_header_value(headerdata, 'start angle', np.float32)
-    direction = get_header_value(headerdata, 'direction of rotation', str)
-    angles = np.linspace(-start_angle, -start_angle+extent_of_rotation, number_of_projections, endpoint=False)
-    if direction=='CW':
-        angles = -angles % 360
-    # Get radial positions
-    if corrfile is not None:
-        radii = np.loadtxt(corrfile)
-    else:
-        radius = get_header_value(headerdata, 'Radius', np.float32) * scale_factor
-        radii = np.ones(len(angles))*radius
-    shape_obj = (proj_dim1, proj_dim1, proj_dim2)
-    object_meta = SPECTObjectMeta(dr,shape_obj)
-    proj_meta = SPECTProjMeta((proj_dim1, proj_dim2), (dx,dz), angles, radii)
-    return object_meta, proj_meta
+        radius = header.get('radius', float, default=None)
+        if radius is None:
+            radius = header.comment('radius', float)
+        radii = np.full(n, radius * _mm_per_unit(header))
+    if len(radii) != n:
+        raise ValueError(f'{len(radii)} radii for {n} views')
+    order = np.argsort(angles, kind='stable')
+    duration = header.get('time per projection (sec)', float, default=None)
+    return dict(order=order, angles=angles[order], radii=radii[order],
+                dr=header.get('scaling factor (mm/pixel) [1]', float), dz=header.get('scaling factor (mm/pixel) [2]', float),
+                Lr=header.get('matrix size [1]', int), Lz=header.get('matrix size [2]', int), duration=duration,
+                nuclide=header.comment('radionuclide', default=None))
 
-def _get_projections_from_single_file(headerfile: str):
-    """Gets projection data from a SIMIND header file.
+
+def read_simind(headers, energy_window: int | None = None, *, weights: Sequence[float] | None = None,
+                radii_file: str | None = None):
+    """SIMIND projections in PyTomography's standard form.
+
+    * The version is read as an integer (V7 keys in cm, V8 and later mm, #30); lengths become mm.
+    * Views are sorted by angle (β as for DICOM); rows are flipped so that z runs foot to head.
+    * Every window's bounds and photon energy go into ``proj_meta.energy_windows`` (the window's nuclide line, not the
+      simulation's main photon energy, #2); the values are counts per second per MBq, 1 s per view.
+    * The grid is the projections' (Lr x Lr x Lz), centred on the rotation axis (frame ``'scanner'``).
 
     Args:
-        headerfile (str): Path to the header file
-        distance (str, optional): The units of measurements in the SIMIND file (this is required as input, since SIMIND uses mm/cm but doesn't specify). Defaults to 'cm'.
+        headers (str | Sequence[str] | Sequence[Sequence[str]]): the ``.h00`` file of one window, of every window, or
+            for each window the files of every organ (added up with ``weights``).
+        energy_window (int, optional): the window to return. Defaults to None: all of them.
+        weights (Sequence[float], optional): for organ-by-organ simulations, each organ's weight (e.g. its activity).
+        radii_file (str, optional): SIMIND's ``.cor`` file of the detector distances (cm) of a non-circular orbit.
 
     Returns:
-        (torch.Tensor[1, Ltheta, Lr, Lz]): Simulated SPECT projection data.
+        (torch.Tensor, SPECTObjectMeta, SPECTProjMeta): projections [W, θ, r, z] (or [θ, r, z] for one
+        ``energy_window``), the grid and the projection metadata.
     """
-    with open(headerfile) as f:
-        headerdata = f.readlines()
-    headerdata = np.array(headerdata)
-    num_proj = get_header_value(headerdata, 'total number of images', int)
-    proj_dim1 = get_header_value(headerdata, 'matrix size [1]', int)
-    proj_dim2 = get_header_value(headerdata, 'matrix size [2]', int)
-    number_format = get_header_value(headerdata, 'number format', str)
-    number_format= relation_dict[number_format]
-    num_bytes_per_pixel = get_header_value(headerdata, 'number of bytes per pixel', int)
-    imagefile = get_header_value(headerdata, 'name of data file', str)
-    dtype = eval(f'np.{number_format}{num_bytes_per_pixel*8}')
-    projections = np.fromfile(os.path.join(str(Path(headerfile).parent), imagefile), dtype=dtype)
-    projections = np.transpose(projections.reshape((num_proj,proj_dim2,proj_dim1))[:,::-1], (0,2,1))
-    projections = torch.tensor(projections.copy()).to(pytomography.device)
-    return projections
+    if isinstance(headers, (str, os.PathLike)):
+        headers = [headers]
+    windows = []
+    for entry in headers:
+        organs = [entry] if isinstance(entry, (str, os.PathLike)) else list(entry)
+        if weights is not None and len(weights) != len(organs):
+            raise ValueError(f'{len(weights)} weights for {len(organs)} organ files')
+        windows.append([_header(h) for h in organs])
+    first = windows[0][0]
+    g = _geometry(first, radii_file)
+    stacks = []
+    for organs in windows:
+        total = 0
+        for j, header in enumerate(organs):
+            views = _projections(header)
+            if views.shape != (len(g['angles']), g['Lr'], g['Lz']):
+                raise ValueError(f'{header.path.name}: shape {views.shape} differs from {first.path.name}')
+            total = total + views * (1.0 if weights is None else float(weights[j]))
+        stacks.append(total[g['order']])
+    projections = torch.tensor(np.stack(stacks)).to(pytomography.dtype).to(pytomography.device)
+    object_meta = SPECTObjectMeta((g['dr'], g['dr'], g['dz']), (g['Lr'], g['Lr'], g['Lz']), frame='scanner', units=None)
+    proj_meta = SPECTProjMeta((g['Lr'], g['Lz']), (g['dr'], g['dz']), g['angles'], g['radii'],
+                              energy_windows=[_energy_window(organs[0]) for organs in windows],
+                              frame_duration_s=g['duration'], nuclide=g['nuclide'], units='counts/s/MBq')
+    return (projections if energy_window is None else projections[energy_window]), object_meta, proj_meta
 
-def get_projections(headerfiles: str | Sequence[str], weights: float = None):
-    """Gets projection data from a SIMIND header file.
+
+def simind_psf(header: str, photon_keV: float | None = None, min_sigmas: float = 3) -> SPECTPSFMeta:
+    """The Gaussian collimator PSF (mm) of a SIMIND simulation, from the collimator and camera keys of its header, at
+    the photon energy of the header's window (or ``photon_keV``).
 
     Args:
-        headerfile (str): Path to the header file
-        distance (str, optional): The units of measurements in the SIMIND file (this is required as input, since SIMIND uses mm/cm but doesn't specify). Defaults to 'cm'.
+        header (str): a ``.h00`` file of the simulation (its window sets the photon energy).
+        photon_keV (float, optional): the photon energy, instead of the window's.
+        min_sigmas (float): kernel half-width in sigmas. Defaults to 3.
 
     Returns:
-        (torch.Tensor[1, Ltheta, Lr, Lz]): Simulated SPECT projection data.
+        SPECTPSFMeta: the PSF, in mm.
     """
-    if type(headerfiles) is str:
-        return _get_projections_from_single_file(headerfiles)
-    elif isinstance(headerfiles[0], Sequence) and not isinstance(headerfiles[0], str):
-        projections = []
-        for i, headerfiles_window_i in enumerate(headerfiles):
-            projections_window_i = []
-            for j, headerfiles_window_i_organ_j in enumerate(headerfiles_window_i):
-                projections_window_i_organ_j = get_projections(headerfiles_window_i_organ_j)
-                if weights is not None: projections_window_i_organ_j *= weights[j]
-                projections_window_i.append(projections_window_i_organ_j)
-            projections_window_i = torch.sum(torch.stack(projections_window_i), dim=0)
-            projections.append(projections_window_i)
-        projections = torch.stack(projections)
-        return projections.squeeze()
-    else:
-        projections = []
-        for i, headerfile in enumerate(headerfiles):
-            projections.append(get_projections(headerfile))
-        projections = torch.stack(projections)
-    return projections.squeeze()
-
-def get_energy_window_bounds(headerfile: str) -> tuple[float, float]:
-    """Computes the lower and upper bounds of the energy window from a SIMIND header file
-
-    Args:
-        headerfile (str): SIMIND header file
-
-    Returns:
-        tuple[float, float]: Lower and upper energies
-    """
-    with open(headerfile) as f:
-        headerdata = f.readlines()
-    headerdata = np.array(headerdata)
-    lwr = get_header_value(headerdata, 'energy window lower level', np.float32)
-    upr = get_header_value(headerdata, 'energy window upper level', np.float32)
-    return lwr, upr
-
-def get_energy_window_width(headerfile: str) -> float:
-    """Computes the energy window width from a SIMIND header file
-
-    Args:
-        headerfile (str): Headerfile corresponding to SIMIND data
-
-    Returns:
-        float: Energy window width
-    """
-    with open(headerfile) as f:
-        headerdata = f.readlines()
-    headerdata = np.array(headerdata)
-    lwr = get_header_value(headerdata, 'energy window lower level', np.float32)
-    upr = get_header_value(headerdata, 'energy window upper level', np.float32)
-    return upr - lwr
-
-def combine_projection_data(
-    headerfiles: Sequence[str],
-    weights: Sequence[float]
-    ):
-    """Takes in a list of SIMIND headerfiles corresponding to different simulated regions and adds the projection data together based on the `weights`.
-
-    Args:
-        headerfiles (Sequence[str]): List of filepaths corresponding to the SIMIND header files of different simulated regions
-        weights (Sequence[str]): Amount by which to weight each projection relative.
-
-    Returns:
-        (SPECTObjectMeta, SPECTProjMeta, torch.Tensor): Returns necessary object/projections metadata along with the projection data
-    """
-    projections = 0 
-    for headerfile, weight in zip(headerfiles, weights):
-        projections_i = get_projections(headerfile)
-        projections += projections_i * weight
-    return projections
-
-def get_attenuation_map(headerfile: str, smi_index_22: int = 3):
-    """Opens attenuation data from SIMIND output
-
-    Args:
-        headerfile (str): Path to header file
-        smi_index_22 (int, optional): Value of provided in the simind simulation tag: " in:x22,<idx>x " where <idx> is 3 (mu) or 5 (mu-castor). You can check what value this is by default (if you did not provide it) by looking at simind.ini in the simind/smc_dir folder. Defaults to 3.
-
-    Returns:
-        torch.Tensor[batch_size, Lx, Ly, Lz]: Tensor containing attenuation map required for attenuation correction in SPECT/PET imaging.
-    """
-    with open(headerfile) as f:
-        headerdata = f.readlines()
-    headerdata = np.array(headerdata)
-    matrix_size_1 = get_header_value(headerdata, 'matrix size [1]', int)
-    matrix_size_2 = get_header_value(headerdata, 'matrix size [2]', int)
-    matrix_size_3 = get_header_value(headerdata, 'matrix size [3]', int)
-    shape = (matrix_size_3, matrix_size_2, matrix_size_1)
-    imagefile = get_header_value(headerdata, 'name of data file', str)
-    CT = np.fromfile(os.path.join(str(Path(headerfile).parent), imagefile), dtype=np.float32)
-    # Flip "Z" ("X" in SIMIND) b/c "first density image located at +X" according to SIMIND manual
-    # Flip "Y" ("Z" in SIMIND) b/c axis convention is opposite for x22,5x (mu-castor format)
-    CT = np.transpose(CT.reshape(shape), (2,1,0))
-    if smi_index_22==5: # mu-castor format
-        CT = CT[:,::-1,::-1]
-    elif smi_index_22==3: # mu format
-        CT = CT[:,:,::-1]
-    CT = torch.tensor(CT.copy())
-    return CT.to(pytomography.device)
-
-def get_psfmeta_from_header(headerfile: str, min_sigmas=3):
-    """Obtains the SPECTPSFMeta data corresponding to a SIMIND simulation scan from the headerfile
-
-    Args:
-        headerfile (str): SIMIND headerfile.
-
-    Returns:
-        SPECTPSFMeta: SPECT PSF metadata required for PSF modeling in reconstruction.
-    """
-    # Newer version of simind have collimator dimensions in mm
-    with open(headerfile) as f:
-        headerdata = f.readlines()
-    headerdata = np.array(headerdata)
-    if float(get_header_value(headerdata, 'program version ', str)[1:2])>=8:
-        to_cm = 0.1
-    else:
-        to_cm = 1
-    
-    FWHM2sigma = 1/(2*np.sqrt(2*np.log(2)))
-    module_path = os.path.dirname(os.path.abspath(__file__))
-    with open(headerfile) as f:
-        headerdata = f.readlines()
-    headerdata = np.array(headerdata)
-    hole_diameter = get_header_value(headerdata, 'Collimator hole diameter', np.float32) * to_cm
-    hole_length = get_header_value(headerdata, 'Collimator thickness', np.float32) * to_cm
-    energy_keV = get_header_value(headerdata, 'Photon Energy', np.float32)
-    lead_attenuation = get_mu_from_spectrum_interp(os.path.join(module_path, '../../data/NIST_attenuation_data/lead.csv'), energy_keV)
-    collimator_slope = hole_diameter/(hole_length - (2/lead_attenuation)) * 1/(2*np.sqrt(2*np.log(2)))
-    try:
-        intrinsic_resolution_140keV = get_header_value(headerdata, 'Intrinsic FWHM for the camera', np.float32) * FWHM2sigma * to_cm
-        intrinsic_resolution = intrinsic_resolution_140keV * (140/energy_keV)**0.5
-    except:
-        intrinsic_resolution = 0
-    collimator_intercept = hole_diameter * FWHM2sigma
-    sigma_fit = lambda r, a, b, c: np.sqrt((a*r+b)**2+c**2)
-    sigma_fit_params = [collimator_slope, collimator_intercept, intrinsic_resolution]
-    return SPECTPSFMeta(
-        sigma_fit_params=sigma_fit_params,
-        sigma_fit=sigma_fit,
-        min_sigmas=min_sigmas)
+    h = _header(header)
+    unit = _mm_per_unit(h)
+    if photon_keV is None:
+        photon_keV = _energy_window(h).photon_keV
+    hole_diameter = h.comment('collimator hole diameter', float) * unit
+    hole_length = h.comment('collimator thickness', float) * unit
+    intrinsic_140 = h.comment('intrinsic fwhm for the camera', float, default=0.0) * unit
+    intrinsic = intrinsic_140 * (photon_keV / 140) ** -0.5
+    return _psf_meta(hole_diameter, hole_length, _mu_per_mm('lead', photon_keV), intrinsic, 'gaussian', min_sigmas)

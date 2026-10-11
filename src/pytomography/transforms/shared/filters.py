@@ -10,7 +10,8 @@ class GaussianFilter(Transform):
     """Applies a Gaussian smoothing filter to the reconstructed object with the specified full-width-half-max (FWHM)
 
     Args:
-        FWHM (float): Specifies the width of the gaussian
+        FWHM (float): Specifies the width of the gaussian, in the units of the object's voxel sizes: mm (SPECT, PET and
+            CT alike since PyTomography 4.0). One value, or one per axis.
         n_sigmas (float): Number of sigmas to include before truncating the kernel.
     """
     def __init__(self, FWHM: float | list, n_sigmas: float = 3):
@@ -29,6 +30,13 @@ class GaussianFilter(Transform):
         """
         self.object_meta = object_meta
         self.proj_meta = proj_meta
+        from pytomography.metadata.SPECT import SPECTObjectMeta
+        fwhm = [s * 2 * np.sqrt(2 * np.log(2)) for s in self.sigma]
+        if isinstance(object_meta, SPECTObjectMeta) and any(f < d for f, d in zip(fwhm, object_meta.dr)):
+            import warnings
+            warnings.warn(f'GaussianFilter: a FWHM of {[round(f, 3) for f in fwhm]} mm is less than one voxel '
+                          f'({object_meta.dr} mm); SPECT lengths are in mm since PyTomography 4.0 (2 cm is 20)',
+                          stacklevel=2)
         self._get_kernels()
         
     def _get_kernels(self):

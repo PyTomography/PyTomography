@@ -1,6 +1,8 @@
-"""Input/output functions for the SPECT imaging modality. Currently, the data types supported are SIMIND and DICOM files.
-"""
+"""Reading SPECT data into PyTomography's standard form: projections [W, θ, r, z] (z foot to head), an object grid
+in the patient's frame (``SPECTObjectMeta``, mm) and the projection metadata with every energy window, the frame
+duration, the start time and the nuclide."""
 
-from .simind import get_projections, get_attenuation_map
-from .dicom import get_projections, get_attenuation_map_from_file, get_attenuation_map_from_CT_slices, get_energy_window_scatter_estimate, get_psfmeta_from_scanner_params, CT_to_mumap
-from .shared import subsample_amap, subsample_projections_and_modify_metadata
+from .dicom import read_dicom, read_dicom_beds, stitch_beds
+from .starguide import read_starguide
+from .simind import read_simind, simind_psf
+from ._energy import energy_window_scatter, collimator_psf, fov_mask
