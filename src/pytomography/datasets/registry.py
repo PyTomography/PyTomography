@@ -12,6 +12,9 @@ A dataset has these fields::
     parts               what to download; every part is pinned by size and checksum
     extras              optional, named groups of parts that fetch(name, extras=[...]) adds
     status, note        "pending" while the data cannot be downloaded yet; note says why
+    geometry            facts about the data that the files do not record, which the readers use when they read the
+                        dataset's files: "gate" gives how the phantom sat in GATE's world (world_axes, world_origin
+                        in LPS mm; see pytomography.io.PET.read_gate)
     files               of a pending dataset: the files it will hold, {path: [size, sha256]}, pinned before they
                         can be downloaded; they become parts once they have addresses
 
@@ -188,6 +191,11 @@ DATASETS = {
         "licence": "to be confirmed (the phantom images: CC BY 4.0)",
         "cite": "Belzunce MA. High-Resolution Heterogeneous Digital PET [18F]FDG Brain Phantom based on the BigBrain"
                 " Atlas. Zenodo (2018). doi:10.5281/zenodo.8045458",
+        # GATE's world is the phantom's NIfTI flipped head to foot (GATE's x, y, z are the patient's L, P, I), with
+        # GATE's origin at the centre of the phantom's MR (fdg_pet_phantom_mri.nii.gz: its sform puts the centre of its
+        # middle voxel at RAS (0.35, -17.65, 22.35) mm): the audit of 11 Oct 2026 (pet_verify_gate*) placed the
+        # simulated annihilations on the MR, every axis flip worse
+        "geometry": {"gate": {"world_axes": "LPI", "world_origin": [-0.35, 17.65, 22.35]}},
         "tutorials": [],
         "status": "pending",
         "note": "The tutorials now read PET/GATE-mMR-BrainInWater, the October 2024 re-simulation. This dataset is"
@@ -211,6 +219,11 @@ DATASETS = {
         "licence": "to be confirmed (the brain phantom: CC BY 4.0)",
         "cite": "Belzunce MA. High-Resolution Heterogeneous Digital PET [18F]FDG Brain Phantom based on the BigBrain"
                 " Atlas. Zenodo (2018). doi:10.5281/zenodo.8045458",
+        # GATE's world is the phantom's NIfTI flipped head to foot (GATE's x, y, z are the patient's L, P, I), with
+        # GATE's origin at the centre of the phantom's MR (fdg_pet_phantom_mri.nii.gz: its sform puts the centre of its
+        # middle voxel at RAS (0.35, -17.65, 22.35) mm): the audit of 11 Oct 2026 (pet_verify_gate*) placed the
+        # simulated annihilations on the MR, every axis flip worse
+        "geometry": {"gate": {"world_axes": "LPI", "world_origin": [-0.35, 17.65, 22.35]}},
         "tutorials": ["t_pet_introduction", "t_PETGATE_scat_sino", "t_PETGATE_scat_sinoTOF", "t_PETGATE_scat_lm",
                       "t_PETGATE_scat_lmTOF", "t_PETGATE_DIP"],
         "status": "pending",
@@ -223,7 +236,7 @@ DATASETS = {
             **{f"simple_phantom/mMR_voxBrain_withSimplePhantom_{i}.root": run
                for i, run in enumerate(_GATE_BRAININWATER_RUNS, start=1)},
             # The water-cube attenuation map: 344 x 344 x 127 float32 voxels of 1.67475 x 1.67475 x 2.0315 mm in the .v
-            # file, with two Interfile headers, .hv (which gate.get_aligned_attenuation_map reads) and .ahv
+            # file, with two Interfile headers, .hv (which io.load_image and io.attenuation_map read) and .ahv
             "umap_mMR_brainSimplePhantom.hv":
                 [762, "53054ffa66434b06f83c2f787f317a6c0462d3288479d73ee8775e41c24a62ab"],
             "umap_mMR_brainSimplePhantom.ahv":
@@ -235,8 +248,9 @@ DATASETS = {
                 [2813, "6623f0e2f73c9e7e8a86e1ca2d7ca9eb2e3b231c2148bfd462816ef7d7fdbddb"],
             # The normalisation weight of each of the 411,027,456 crystal pairs (float32, torch.combinations order),
             # from the normalisation scan with gate.get_normalization_weights_cylinder_calibration(...,
-            # cylinder_radius=318, include_randoms=False), randoms left out since PyTomography #290. 88,983,552 are
-            # NaN: the pairs whose line passes outside the 318 mm calibration shell.
+            # cylinder_radius=318, include_randoms=False) (io.PET.gate_normalization since PyTomography 4), randoms
+            # left out since PyTomography #290. 88,983,552 are NaN: the pairs whose line passes outside the 318 mm
+            # calibration shell (io.PET.read_gate sets them to 0).
             "normalization_weights.npy":
                 [1644109952, "5f86af901a6c56abad7508f122a621f78497508ba989984b0f8f14a67309e12c"],
         },
