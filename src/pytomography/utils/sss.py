@@ -632,10 +632,14 @@ def interpolate_sparse_sinogram(
             del planes
         return out if tof_bins is not None else out[..., 0]
     shape = (N_theta, N_r, len(z1)*len(z2)) + ((len(bins),) if tof_bins is not None else ())
-    scatter_sinogram = LazySinogram(interpolate_z, shape, description="interpolated single scatter estimate", compute_on=interpolate_z)
     if lazy is None:
         lazy = prefer_lazy(4 * np.prod(shape))
-    return scatter_sinogram if lazy else scatter_sinogram.to_dense()
+    if not lazy:
+        # every angle straight into one sinogram (the values do not depend on how many angles are interpolated at
+        # once): LazySinogram.to_dense computed groups of up to 1 GB and copied them in, 1.7 GB of temporaries for
+        # the 1.65 GB sinogram of the mMR
+        return interpolate_z(torch.arange(N_theta))
+    return LazySinogram(interpolate_z, shape, description="interpolated single scatter estimate", compute_on=interpolate_z)
 
 def _masked(subset: torch.Tensor, projections, mask: torch.Tensor) -> torch.Tensor:
     """``subset * mask``, computed in the memory of ``subset`` when it is a tensor of its own (a copy that indexing
@@ -659,7 +663,8 @@ def scale_estimated_scatter(
     proj_data: torch.Tensor,
     attenuation_image: torch.Tensor,
     attenuation_image_cutoff: float = 0.004,
-    sinogram_random: torch.Tensor | None = None
+    sinogram_random: torch.Tensor | None = None,
+    in_place: bool = False
     ) -> torch.Tensor:
     """Given an interpolated (but unscaled) SSS sinogram/listmode, scales the scatter estimate by considering back projection of masked data. The mask corresponds to all locations below a certain attenuation value, where it is likely that all detected events are purely due to scatter.
 
@@ -672,6 +677,7 @@ def scale_estimated_scatter(
         attenuation_image (torch.Tensor): Attenuation map
         attenuation_image_cutoff (float, optional): Mask considers regions below this value (forward projected). In particular, the attenuation map is masked above this value, then forward projected. Regions equal to zero in the forward projection are considered for the mask. This allows for hollow regions within the attenuation map to still be considered. Defaults to 0.004.
         sinogram_random (torch.Tensor | None, optional): Projection data of estimated random events. Defaults to None.
+        in_place (bool, optional): Scale ``proj_scatter`` in its own memory when it is a tensor, and return it, instead of a scaled copy (a second 1.65 GB sinogram for the mMR without TOF). The values are the same. Defaults to False.
 
     Returns:
         torch.Tensor: Scaled SSS projection data (sinogram/listmode).
@@ -728,6 +734,8 @@ def scale_estimated_scatter(
     BP_scatter_estimated_mask = BP_total_mask - BP_random_mask
     BP_scatter_estimated_mask[BP_scatter_estimated_mask<0] = 0
     scale_factor = ((BP_scatter_mask*BP_scatter_estimated_mask).sum() / (BP_scatter_mask**2).sum()).item()
+    if in_place and isinstance(proj_scatter, torch.Tensor):
+        return proj_scatter.mul_(scale_factor)
     return scale_factor * proj_scatter
 
 def get_sss_scatter_estimate(
@@ -796,8 +804,9 @@ def get_sss_scatter_estimate(
         # The events as a lazy sinogram: the scaling reads one subset of angles at a time, and a dense TOF sinogram of
         # the mMR (21 TOF bins) is 34.6 GB. Their bins are found where the system matrix keeps them (its lor_device).
         proj_data = listmode_to_sinogram(proj_meta.detector_ids, proj_meta.info, tof_meta=tof_meta, lazy=True)
-    # Scale sinogram
-    proj_scatter = scale_estimated_scatter(scatter_sinogram_unscaled, system_matrix, proj_data, attenuation_image, attenuation_cutoff, sinogram_random = sinogram_random)
+    # Scale sinogram (in place: the unscaled estimate is this function's own, and is not needed after)
+    proj_scatter = scale_estimated_scatter(scatter_sinogram_unscaled, system_matrix, proj_data, attenuation_image, attenuation_cutoff, sinogram_random = sinogram_random, in_place=True)
+    del scatter_sinogram_unscaled
     # Release the GPU memory PyTorch keeps cached from the estimate (3.5 GB for the mMR with 21 TOF bins): on Windows it
     # also counts as the process's host memory
     if torch.cuda.is_available():

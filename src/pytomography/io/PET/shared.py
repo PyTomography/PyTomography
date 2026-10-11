@@ -5,7 +5,7 @@ import torch
 import numpy as np
 import pytomography
 from pytomography.utils import get_1d_gaussian_kernel
-from pytomography.utils.memory import block_size, prefer_lazy
+from pytomography.utils.memory import BLOCK_CAP_BYTES, block_size, prefer_lazy
 
 _GEOMETRY_CACHE: dict = {}
 
@@ -218,8 +218,10 @@ class LazySinogram:
         description (str, optional): What the sinogram holds, for its ``repr``. Defaults to ''.
         compute_on (Callable[[torch.Tensor, torch.device], torch.Tensor] | None, optional): Like ``compute``, but returns the angles as a new tensor on the device it is given, computed there. Defaults to None: :meth:`compute_at` computes on the CPU and copies.
     """
-    #: Largest group of angles computed at once when more than one group is asked for, in bytes.
-    chunk_bytes = 1e9
+    #: Largest group of angles computed at once when more than one group is asked for, in bytes: the cap of a block of
+    #: temporaries (:data:`pytomography.utils.memory.BLOCK_CAP_BYTES`, 0.5 GB). Looking the 107 million events of the
+    #: GATE mMR scan up in its lazy scatter estimate (21 TOF bins) in groups of 1 GB left 1.0 GB more committed on Windows.
+    chunk_bytes = BLOCK_CAP_BYTES
     dtype = torch.float32
     device = torch.device('cpu')
 
@@ -597,7 +599,7 @@ def _add_events(sinograms: Sequence[torch.Tensor], ids: torch.Tensor, weights: t
 def _listmode_to_dense_sinogram(detector_ids: torch.Tensor, info: dict, weights: torch.Tensor | None = None, normalization: bool = False, num_tof_bins: int | None = None, events_per_chunk: int | None = None) -> torch.Tensor:
     """``listmode_to_sinogram`` as one sinogram tensor, binned a chunk of events at a time.
 
-    Each chunk is added into one float32 sinogram on the CPU (two for a normalization sinogram), in the order of the events (``_add_events``), so the sinogram is the one binning all the events at once gives: counts are exact, and weighted sums are the same bit for bit, whatever the chunks. Binning all 117 million events of the GATE mMR brain scan at once took 9.6 GB of temporaries on top of the 1.65 GB sinogram on the CPU (10.6 GB with 3 TOF bins), and on Windows the process kept part of it committed after it was freed (2.2 GB, 4.8 GB with 3 TOF bins, and 14.5 GB after an earlier binning in the same process); a chunk at a time with a 16 GB budget, 0.3 GB, with 0.15 GB left. The bins of each chunk are found on the device the events are on (a list mode system matrix keeps them on the GPU), so the device holds one chunk's temporaries, not the sinogram.
+    Each chunk is added into one float32 sinogram on the CPU (two for a normalization sinogram), in the order of the events (``_add_events``), so the sinogram is the one binning all the events at once gives: counts are exact, and weighted sums are the same bit for bit, whatever the chunks. Binning all 117 million events of the GATE mMR brain scan at once took 9.6 GB of temporaries on top of the 1.65 GB sinogram on the CPU (10.6 GB with 3 TOF bins), and on Windows the process kept part of it committed after it was freed (2.2 GB, 4.8 GB with 3 TOF bins, and 12 GB after an earlier binning in the same process); a chunk at a time with a 16 GB budget, 0.3 GB. The bins of each chunk are found on the device the events are on (a list mode system matrix keeps them on the GPU), so the device holds one chunk's temporaries, not the sinogram.
 
     Args:
         detector_ids (torch.Tensor): [N, 2] detector IDs of the events, or [N, 3] with the TOF bin as the third column.
