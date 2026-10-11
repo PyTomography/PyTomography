@@ -72,12 +72,13 @@ def test_attenuation_map_of_a_ct_series(tmp_path):
     grid = ObjectMeta(dr=(4.0, 4.0, 4.0), shape=(20, 20, 10), centre=ct_meta.centre, frame="patient", modality="NM")
     mu = io.attenuation_map(files, grid, 208)
     assert mu.dtype == torch.float32 and tuple(mu.shape) == (20, 20, 10)
+    mu = mu.cpu()
     water = float(_hu.hu_to_mu(np.array([0.0]), 208, kvp=130, model="Symbia T16")[0])
     assert torch.allclose(mu[10, 10], torch.full((10,), water), rtol=1e-5)      # inside the cylinder
     assert float(mu[0, 0, 5]) < 1e-5                                             # air
     edge = mu[:, 10, 5].cpu().numpy()
     assert ((edge > 1e-5) & (edge < water * 0.999)).any()                         # averaged over the cylinder's edge
-    same = io.attenuation_map(io.load_image(files), grid, 208)
+    same = io.attenuation_map(io.load_image(files), grid, 208).cpu()
     assert torch.equal(mu, same)
     with pytest.raises(ValueError, match="energy_keV"):
         io.attenuation_map(files, grid)
