@@ -8,6 +8,8 @@ html[data-theme="dark"] { --mem-bad: #ff8f80; }
 .bd-article-container:has(.pt-mem) .bd-article > section > p, .bd-article-container:has(.pt-mem) .bd-article > section > section > p,
 .bd-article-container:has(.pt-mem) .bd-article > section > section > ul { max-width: 52rem; }
 .pt-mem-lede { color: var(--pt-ink-2); margin: -4px 0 14px; }
+/* no band behind a heading reached by its anchor (pydata-sphinx-theme: .bd-article :target > h2 { background: --pst-color-target }) */
+.bd-main .bd-content .bd-article-container:has(.pt-mem) .bd-article :target > :is(h1, .h1, h2, .h2, h3, .h3, h4, .h4, h5, .h5) { background-color: transparent; }
 
 /* ---------- frame, loading ---------- */
 .pt-mem { position: relative; margin: 0 0 34px; padding: 12px 0; border-top: 1px solid var(--pt-line); border-bottom: 1px solid var(--pt-line);
