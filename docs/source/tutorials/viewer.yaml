@@ -293,6 +293,17 @@ tutorials:
     - {name: SART, label: OS-SART, kind: mu, array: recon_sart, affine: "vx.centred(system_matrix.object_meta.dr, recon_sart.shape)", units: 1/mm, downsample: 3}
     - {name: FDK, kind: mu, array: recon_fdk, affine: "vx.centred(system_matrix.object_meta.dr, recon_fdk.shape)", units: 1/mm, downsample: 3}
 
+  # The SPECT half of this tutorial: the viewer shows one patient at a time, and t_CT_GEN3 already shows the chest CT
+  t_fbp:
+    title: Lu-177 NEMA phantom, filtered back projection
+    description: FBP with and without Chang's attenuation correction, next to OSEM with attenuation, PSF and scatter
+    credit: Siemens Symbia T2 scan of a NEMA IQ phantom (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
+    layers:
+    - {name: CT, kind: ct, array: vx.ct_dicom(files_CT), window: phantom, units: HU}
+    - {name: FBPChang, label: "FBP, Chang's attenuation correction", kind: spect, array: recon_fbp_chang, affine: object_meta.affine_matrix, units: counts}
+    - {name: FBP, label: "FBP, no attenuation correction", kind: spect, array: recon_fbp, affine: object_meta.affine_matrix, units: counts}
+    - {name: OSEM, label: OSEM 4 × 8, kind: spect, array: recon_osem, affine: object_meta.affine_matrix, units: counts}
+
   # ---------- Building with PyTomography ----------
   t_examplesystemmatrix:
     title: A new system matrix, on 3 × 3 × 3 voxels

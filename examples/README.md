@@ -47,6 +47,7 @@ docs lists every dataset.
 |---|---|
 | [`ct/01_dicom_ct_pd.py`](ct/01_dicom_ct_pd.py) | Filtered back projection of raw projections from a 3rd-generation clinical CT scanner, then the settings that reproduce the scanner's own images. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_CT_GEN3.html) |
 | [`ct/02_cone_beam_micro_ct.py`](ct/02_cone_beam_micro_ct.py) | FDK and OS-SART on a laboratory micro-CT scan of glass beads, with the centre of rotation found from the data. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_CT_microct.html) |
+| [`ct/03_filtered_back_projection_spect_and_ct.py`](ct/03_filtered_back_projection_spect_and_ct.py) | One FilteredBackProjection for a SPECT phantom scan and a helical chest CT, with what the two share and what differs, next to OSEM and the scanner's image. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_fbp.html) |
 
 ## Building with PyTomography
 
