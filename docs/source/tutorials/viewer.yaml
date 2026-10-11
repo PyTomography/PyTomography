@@ -109,7 +109,9 @@ tutorials:
     credit: Monte Carlo data simulated with SIMIND (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
     layers:
     - {name: Attenuation, kind: mu, array: amapIsotopeEnergy, affine: vx.simind_affine(object_meta), units: 1/cm}
-    - {name: MC, label: Monte Carlo scatter, kind: spect, array: recon_MC, affine: vx.simind_affine(object_meta), units: counts}
+    # The Monte Carlo reconstruction is in MBq s (SIMIND's projections are per MBq and second), the analytical one in
+    # counts: in their own units, so they don't share one colour scale (on the analytical one's, the MC image was black)
+    - {name: MC, label: Monte Carlo scatter, kind: spect, array: recon_MC, affine: vx.simind_affine(object_meta), units: MBq·s}
     - {name: Analytical, label: Analytical scatter, kind: spect, array: recon_analytical, affine: vx.simind_affine(object_meta), units: counts}
 
   t_spect_mc2:
