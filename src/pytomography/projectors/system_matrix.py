@@ -128,6 +128,22 @@ class SystemMatrix():
         """
         ...
 
+    @staticmethod
+    def _check_n_subsets(n_subsets: int, n_views: int, views: str = 'angles') -> None:
+        """Stops a partition into subsets that would leave a subset empty, with the most there can be.
+
+        Args:
+            n_subsets (int): Number of subsets asked for.
+            n_views (int): Number of views the projections are partitioned by (angles, projections).
+            views (str, optional): What the views are, for the message. Defaults to 'angles'.
+
+        Raises:
+            ValueError: ``n_subsets`` is less than 1 or more than ``n_views``.
+        """
+        if not 1 <= n_subsets <= n_views:
+            raise ValueError(f"{n_subsets} subsets of {n_views} {views}: each subset needs at least one, so use 1 to {n_views} subsets")
+
+
 class ExtendedSystemMatrix(SystemMatrix):
     def __init__(
         self,

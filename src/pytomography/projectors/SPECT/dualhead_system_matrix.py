@@ -84,6 +84,7 @@ class SPECTSystemMatrix(SystemMatrix):
         Args:
             n_subsets (int): number of subsets used in OSEM 
         """
+        self._check_n_subsets(n_subsets, self.proj_meta.shape[0], 'projections')
         indices = torch.arange(self.proj_meta.shape[0]).to(torch.long).to(pytomography.device)
         subset_indices_array = []
         for i in range(n_subsets):

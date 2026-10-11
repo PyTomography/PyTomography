@@ -240,6 +240,7 @@ class StarGuideSystemMatrix(SystemMatrix):
             n_subsets (int): number of subsets used in OSEM
         """
         indices_of_each_angle = [torch.where(self.proj_meta.angles == a)[0] for a in torch.unique(self.proj_meta.angles)]
+        self._check_n_subsets(n_subsets, len(indices_of_each_angle))
         subset_indicies_array = []
         for i in range(n_subsets):
             subset_indicies_array.append(torch.concatenate(indices_of_each_angle[i::n_subsets]))
