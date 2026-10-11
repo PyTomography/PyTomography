@@ -301,6 +301,7 @@
     paramsOf(m).forEach(function (p) { env[p.name] = value(p['default'] === undefined ? null : p['default']); });
     Object.keys(params || {}).forEach(function (k) { env[k] = value(params[k]); });
     Object.keys(settings || {}).forEach(function (k) { env[k] = value(settings[k]); });
+    env.cuda_projector = m.cuda_projector ? 1 : 0;          // projects with parallelproj (PET, CT, SSS)
     var constants = m.constants || {};
     Object.keys(constants).forEach(function (k) { env[k] = value(evaluate(constants[k], env)); });
     var groups = [data.derived].concat((m.use || []).map(function (n) { return data.derived_sets[n]; })).concat([m.derived]);
@@ -373,6 +374,8 @@
   function withOverheads(m, env, parts) {
     var o = data.overheads, res = parts.slice();
     res.push([o.fixed.name, 'overhead', num(evaluate(o.fixed.bytes, env)), 0]);
+    var context = o.cuda_context;
+    if (context && truthy(evaluate(context.when, env))) { res.push([context.name, 'overhead', 0, num(evaluate(context.gpu_bytes, env))]); }
     var gpuArrays = sum(parts, 3);
     if (gpuArrays > 0) { res.push([o.cuda_cache.name, 'overhead', 0, o.cuda_cache.bytes + o.cuda_cache.fraction * gpuArrays]); }
     if (truthy(evaluate(o.gpu_counts_as_ram, env))) {
