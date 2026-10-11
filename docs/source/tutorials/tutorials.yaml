@@ -119,6 +119,14 @@ sections:
     summary: Reconstruct myocardial perfusion data and reorient it to the short axis.
     datasets:
     - SPECT/Tc99m-Cardiac
+  - notebook: t_algorithms_measured
+    title: Reconstruction algorithms on measured data
+    modality: SPECT
+    data: DICOM
+    topic: Algorithms
+    summary: OSEM, OSMAPOSL, BSREM and KEM on a measured NEMA phantom, compared by sphere contrast, background noise and data fit at every iteration.
+    datasets:
+    - SPECT/Lu177-NEMA-SymT2
 - title: PET
   tutorials:
   - notebook: t_pet_introduction

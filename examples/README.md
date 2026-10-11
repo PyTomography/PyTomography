@@ -26,6 +26,7 @@ docs lists every dataset.
 | [`spect/11_ac_225_psf_modelling_simind.py`](spect/11_ac_225_psf_modelling_simind.py) | Alpha-emitter imaging with a Monte Carlo collimator response, including penetration. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_ac225_simind_recon.html) |
 | [`spect/12_ac_225_psf_modelling_dicom.py`](spect/12_ac_225_psf_modelling_dicom.py) | The Ac-225 PSF model applied to measured data. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_ac225_dicom_recon.html) |
 | [`spect/13_cardiac_reorientation.py`](spect/13_cardiac_reorientation.py) | Reconstruct myocardial perfusion data and reorient it to the short axis. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_CardiacReorientation.html) |
+| [`spect/14_reconstruction_algorithms_on_measured_data.py`](spect/14_reconstruction_algorithms_on_measured_data.py) | OSEM, OSMAPOSL, BSREM and KEM on a measured NEMA phantom, compared by sphere contrast, background noise and data fit at every iteration. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_algorithms_measured.html) |
 
 ## PET
 

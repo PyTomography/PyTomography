@@ -126,7 +126,7 @@ DATASETS = {
     "SPECT/Lu177-NEMA-SymT2": {
         "title": "Lu-177 NEMA IQ phantom on a Siemens Symbia T2, with CT and the scanner's reconstruction",
         **_SPECT_2025_DATASET,
-        "tutorials": ["t_dicomdata", "t_algorithms", "t_dualpeak", "t_spect_mc2", "t_fbp"],
+        "tutorials": ["t_dicomdata", "t_algorithms", "t_dualpeak", "t_spect_mc2", "t_algorithms_measured", "t_fbp"],
         "parts": [
             {"kind": "zip_range", **_SPECT_2025, "prefix": "SPECT/Lu177-NEMA-SymT2/",
              "ranges": [[710628303, 721637143, "c7d9149f2f52f6663fb2edbcc1cbcc16d84c4b914dbdc58e0cf4854b86ec2a98"]],
