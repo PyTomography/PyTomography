@@ -263,21 +263,20 @@ def test_c145_matches_the_scanner_images(data_dir):
     the scan: the GE central column read automatically, the per-column scale fitted to the scanner's own (STANDARD)
     images, and then soft tissue, fat and lung within 5 HU of those images, with no radial trend."""
     from scipy import ndimage
-    from pytomography.io.shared import open_multifile, align_images_affine
+    from scipy.ndimage import affine_transform
+    from pytomography.io import load_image
     folder = data_dir / 'CT' / 'ldct-c145'
     if not (folder / 'full_dose_projections').is_dir():
         pytest.skip('CT/ldct-c145 is not in the tutorial data folder')
     proj, meta = dicom_ct_pd.get_projections_and_metadata_gen3(folder / 'full_dose_projections', table_feed='pitch')
     assert float(meta.detector_centers_col_idx[0]) == pytest.approx(888 - 444.75)   # GE counts it from the other end
-    # the scanner's images on our grid; GE's ImagePositionPatient marks the corner of the first pixel, not its centre
-    scanner, scanner_meta = open_multifile(sorted(glob.glob(str(folder / 'full_dose_images' / '*.dcm'))), return_object_meta=True)
-    ps = float(scanner_meta.dr[0])
+    # the scanner's images on our grid (GE's corner ImagePositionPatient is a rule of the vendor table, #22)
+    scanner = load_image(sorted(glob.glob(str(folder / 'full_dose_images' / '*.dcm'))))
+    ps = float(scanner.voxel_size[0])
     object_meta = ObjectMeta(dr=(ps, ps, 1.0), shape=(512, 512, 40))
     system_matrix = CTGen3SystemMatrix(object_meta, meta)
-    affine = scanner_meta.affine.copy()
-    affine[:2, 3] += 0.5 * ps
-    theirs = align_images_affine(np.zeros(object_meta.shape, np.float32), scanner.cpu().numpy(),
-                                 meta.get_patient_affine(object_meta).numpy(), affine, cval=-3000)
+    to_scanner = np.linalg.inv(scanner.affine) @ meta.get_patient_affine(object_meta).numpy()
+    theirs = affine_transform(scanner.data, to_scanner, output_shape=object_meta.shape, order=1, cval=-3000)
     del scanner
     fit = preprocessing.fit_column_scale(proj, meta, system_matrix, meta.water_attenuation * (1 + theirs / 1000),
                                          filter='hann', slice_thickness=1.25)

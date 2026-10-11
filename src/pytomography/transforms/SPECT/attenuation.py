@@ -4,7 +4,6 @@ import torch
 import pytomography
 from pytomography.utils import rotate_detector_z, rev_cumsum, pad_object, unpad_object
 from pytomography.transforms import Transform
-from pytomography.io.shared import open_multifile
 from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta
 from pytomography.io.SPECT import get_attenuation_map_from_CT_slices
 
@@ -51,10 +50,7 @@ class SPECTAttenuationTransform(Transform):
 		elif filepath is None:
 			# Assumes CT is aligned with SPECT projections
 			self.attenuation_map = attenuation_map.to(self.device)
-		else:
-			# TODO: offer support for all input types
-			self.CT_unaligned_numpy = open_multifile(filepath)
-			# Will then get aligned with projections when configured
+		# with a filepath, the CT is read and aligned with the projections in configure
 		self.assume_padded = assume_padded
 		self.HU2mu_technique = HU2mu_technique
 	 

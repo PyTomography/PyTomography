@@ -23,15 +23,8 @@ from pytomography.utils import (
     compute_EW_scatter,
     get_mu_from_spectrum_interp,
 )
-from ..shared import (
-    open_multifile,
-    open_singlefile,
-    _get_affine_multifile,
-    _get_affine_single_file,
-    create_ds,
-    align_images_affine
-)
-from ..shared.dicom import compute_slice_thickness_multifile
+from ..shared import create_ds
+from .._load import load_image
 from .attenuation_map import get_HU2mu_conversion as get_HU2mu_conversion_old
 
 def parse_projection_dataset(
@@ -530,10 +523,10 @@ def get_attenuation_map_from_CT_slices(
         torch.Tensor: Tensor of shape [Lx, Ly, Lz] corresponding to attenuation map.
     """
 
-    CT = open_multifile(files_CT).cpu().numpy()
-    CT = CT_to_mumap(CT, files_CT, file_NM, index_peak, technique=HU2mu_technique, E_SPECT=E_SPECT)
+    ct = load_image(files_CT, reorient=False)
+    CT = CT_to_mumap(ct.data, files_CT, file_NM, index_peak, technique=HU2mu_technique, E_SPECT=E_SPECT)
     # Get affine matrix for alignment:
-    M_CT = _get_affine_multifile(files_CT)
+    M_CT = ct.affine
     M_NM = _get_affine_spect_projections(file_NM)
     M = npl.inv(M_CT) @ M_NM
     # Apply affine
@@ -721,7 +714,7 @@ def get_aligned_rtstruct(
     )
     files_CT = [os.path.join(dicom_series_path, file) for file in os.listdir(dicom_series_path)]
     mask = rtstruct.get_roi_mask_by_name(rt_struct_name).astype(float)
-    M_CT = _get_affine_multifile(files_CT)
+    M_CT = _ct_affine(files_CT)
     M_NM = _get_affine_spect_projections(file_NM)
     M = npl.inv(M_CT) @ M_NM
     mask_aligned = affine_transform(mask.transpose((1,0,2)), M, output_shape=shape, mode='constant', cval=0, order=1)
@@ -755,11 +748,34 @@ def get_aligned_nifti_mask(
         shape = object_meta.shape
     mask = (nib.load(file_nifti).get_fdata().transpose((1,0,2))[::-1]==mask_idx).astype(float)
     files_CT = [os.path.join(dicom_series_path, file) for file in os.listdir(dicom_series_path)]
-    M_CT = _get_affine_multifile(files_CT)
+    M_CT = _ct_affine(files_CT)
     M_NM = _get_affine_spect_projections(file_NM)
     M = npl.inv(M_CT) @ M_NM
     mask_aligned = affine_transform(mask.transpose((1,0,2))[:,:,::-1], M, output_shape=shape, mode='constant', cval=0, order=1)[:,:,::-1]
     return torch.tensor(mask_aligned>cutoff_value).to(pytomography.device)
+
+def _ct_affine(files_CT: Sequence[str]) -> np.ndarray:
+    """The affine of a CT series (voxel index to LPS mm), slices in ascending order along the slice normal, with the
+    vendor table's rules (GE's corner ImagePositionPatient). A mask drawn on the CT has the CT's pixels."""
+    return load_image(files_CT, reorient=False).affine
+
+
+def _ct_geometry_as_written(files_CT: Sequence[str]) -> tuple:
+    """The shape, voxel size (mm) and centre (LPS mm) of a CT series, from its headers, taking ImagePositionPatient as
+    the centre of the first pixel as written (GE's StarGuide reconstructions are centred on the CT this way)."""
+    headers = [pydicom.dcmread(f, stop_before_pixels=True) for f in files_CT]
+    headers = [ds for ds in headers if 'ImagePositionPatient' in ds]
+    iop = np.array(headers[0].ImageOrientationPatient, float)
+    row, col = iop[:3], iop[3:]
+    normal = np.cross(row, col)
+    positions = np.array(sorted((np.array(ds.ImagePositionPatient, float) for ds in headers), key=lambda p: p @ normal))
+    dy, dx = (float(v) for v in headers[0].PixelSpacing)
+    n = len(positions)
+    dz = float((positions[-1] - positions[0]) @ normal / (n - 1)) if n > 1 else float(headers[0].SliceThickness)
+    shape = (int(headers[0].Columns), int(headers[0].Rows), n)
+    centre = (positions[0] + positions[-1]) / 2 + (shape[0] - 1) / 2 * dx * row + (shape[1] - 1) / 2 * dy * col
+    return shape, (dx, dy, dz), centre
+
 
 def get_FOV_mask_from_projections(file_NM, projections=None, contraction=1):
     if projections is None:
@@ -854,7 +870,7 @@ def save_dcm(
     # Either way the stored integers are the image times scale_factor, so the slope gives the image back (#230: with
     # scale_by_number_projections it was 1, and values read back that many times too large)
     ds.RescaleSlope = 1/scale_factor
-    ds.RescaleIntercept = 0  # required with RescaleSlope; without it, open_multifile can't read the series back
+    ds.RescaleIntercept = 0  # required with RescaleSlope
     pixel_data *= scale_factor
     pixel_data = pixel_data.round().astype(np.uint16)
     # Where the voxels are: the matrix the reader gives the reconstruction (get_metadata's object_meta.affine),
@@ -1006,11 +1022,9 @@ def get_starguide_affine_CT(files_CT: Sequence[str]):
     Returns:
         np.array: Affine matrix for the CT acquisition
     """
-    ds = pydicom.dcmread(files_CT[0])
-    dx = dy = ds.PixelSpacing[0] / 10
     # the distance between slices, from their positions: SliceThickness differs from it when slices overlap or have gaps
-    dz = compute_slice_thickness_multifile(files_CT) / 10
-    shape = [*ds.pixel_array.shape, len(files_CT)]
+    shape, (dx, dy, dz), _ = _ct_geometry_as_written(files_CT)
+    dx, dy, dz = dx / 10, dy / 10, dz / 10
     Sx_CT = - (shape[0]-1) * dx / 2
     Sy_CT = - (shape[1]-1) * dy / 2
     Sz_CT = - (shape[2]-1) * dz / 2
@@ -1056,13 +1070,10 @@ def get_starguide_patient_affine(files_CT: Sequence[str], object_meta: SPECTObje
     Returns:
         np.ndarray: the 4 x 4 voxel-to-patient matrix (LPS, mm).
     """
-    A_ct = _get_affine_multifile(files_CT)                    # the CT's real geometry
-    A_ct_centred = get_starguide_affine_CT(files_CT).copy()   # the same CT in PyTomography's centred frame, cm
-    A_ct_centred[:3, :] *= 10
+    _, _, ct_centre = _ct_geometry_as_written(files_CT)     # GE's reconstruction is centred on the CT, as written
     flip_z = np.eye(4)
     flip_z[2, 2], flip_z[2, 3] = -1, object_meta.shape[2] - 1   # slice k is the (Lz - 1 - k)th from the bottom
-    centred = SPECTObjectMeta(object_meta.dr, object_meta.shape).affine
-    return A_ct @ npl.inv(A_ct_centred) @ centred @ flip_z
+    return SPECTObjectMeta(object_meta.dr, object_meta.shape, centre=ct_centre).affine @ flip_z
 
 def get_starguide_attenuation_map_from_CT_slices(
     files_CT: Sequence[str],
@@ -1084,7 +1095,7 @@ def get_starguide_attenuation_map_from_CT_slices(
        torch.Tensor: Attenuation map in units of 1/cm
     """
     object_meta, _ = get_starguide_metadata(files_NM, index_peak)
-    CT = open_multifile(files_CT).cpu().numpy()
+    CT = load_image(files_CT, reorient=False).data
     CT = CT_to_mumap(CT, files_CT, files_NM[0], index_peak=index_peak, technique='from_cortical_bone_fit', E_SPECT=E_SPECT)
     affine_CT = get_starguide_affine_CT(files_CT)
     affine_NM = get_starguide_affine_NM(files_NM)
