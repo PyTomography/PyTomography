@@ -57,12 +57,12 @@ def test_rotate_detector_z_negative_semantics_and_round_trip():
 
 
 def _system_matrix(cache):
-    dx = 0.5
+    dx = 5.0
     object_meta = SPECTObjectMeta([dx] * 3, (16, 16, 4))
     angles = list(range(0, 360, 30))
-    proj_meta = SPECTProjMeta((16, 4), [dx, dx], angles, radii=[10.0] * len(angles))
+    proj_meta = SPECTProjMeta((16, 4), [dx, dx], angles, radii=[100.0] * len(angles))
     gen = torch.Generator().manual_seed(2)
-    mu = (0.15 * torch.rand(16, 16, 4, generator=gen)).to(DEV)
+    mu = (0.015 * torch.rand(16, 16, 4, generator=gen)).to(DEV)
     att = SPECTAttenuationTransform(attenuation_map=mu, cache_probabilities=cache)
     sm = SPECTSystemMatrix(obj2obj_transforms=[att], proj2proj_transforms=[], object_meta=object_meta, proj_meta=proj_meta)
     return sm, att, mu

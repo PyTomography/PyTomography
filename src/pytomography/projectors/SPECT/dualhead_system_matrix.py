@@ -366,7 +366,7 @@ class SPECTSystemMatrix(SystemMatrix):
         window = get_fbp_filter(filter)
         # The projector samples r on the object grid (y, once rotated) and adds up the voxels along x: the ramp filter,
         # per mm of r, times the voxel length along x gives the object per voxel. Lengths in mm, the unit of the windows.
-        dx, dy = 10 * self.object_meta.dr[0], 10 * self.object_meta.dr[1]
+        dx, dy = self.object_meta.dr[0], self.object_meta.dr[1]
         weights = _view_weights(self.proj_meta.angles.tolist())
         phis = self._host_phis()
         boundary_box_bp = pad_object(torch.ones(self.object_meta.shape, device=pytomography.device), mode='back_project')

@@ -282,12 +282,12 @@ def _spect(n_views=60, shape=(32, 32, 16), cache_probabilities=False, psf=True, 
     from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
     from pytomography.projectors.SPECT import SPECTSystemMatrix
     from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
-    object_meta = SPECTObjectMeta([0.4] * 3, shape)
-    radii = 20.0 + (np.arange(n_views) % n_radii)
-    proj_meta = SPECTProjMeta((shape[1], shape[2]), [0.4, 0.4], list(np.linspace(0, 360, n_views, endpoint=False)), radii=radii)
-    transforms = [SPECTAttenuationTransform(torch.rand(shape) * 0.1, cache_probabilities=cache_probabilities)]
+    object_meta = SPECTObjectMeta([4.0] * 3, shape)
+    radii = 200.0 + 10 * (np.arange(n_views) % n_radii)
+    proj_meta = SPECTProjMeta((shape[1], shape[2]), [4.0, 4.0], list(np.linspace(0, 360, n_views, endpoint=False)), radii=radii)
+    transforms = [SPECTAttenuationTransform(torch.rand(shape) * 0.01, cache_probabilities=cache_probabilities)]
     if psf:
-        transforms.append(SPECTPSFTransform(SPECTPSFMeta((0.03, 0.1))))
+        transforms.append(SPECTPSFTransform(SPECTPSFMeta((0.03, 1.0))))
     return SPECTSystemMatrix(transforms, [], object_meta, proj_meta)
 
 
@@ -501,7 +501,7 @@ def test_kem_sart_and_multibed_reconstructions():
     sart = SART(sm, torch.rand(sm.proj_meta.shape))
     assert sart.estimate_memory(3).settings == {'n_subsets': 3} and sart.plan_memory(ram_gb=1000, gpu_gb=1000, n_subsets=5).fits
     beds = [OSEM(_likelihood(_spect(psf=False))) for _ in range(3)]
-    multibed = PGAAMultiBedSPECT(['bed1', 'bed2', 'bed3'], beds)
+    multibed = PGAAMultiBedSPECT(beds)
     estimate = multibed.estimate_memory(n_subsets=4)
     parts = _parts(estimate)
     assert {f'bed {k}: what its reconstruction holds' for k in (1, 2, 3)} <= set(parts)

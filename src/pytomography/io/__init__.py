@@ -10,4 +10,4 @@ from ._load import load_image
 from .shared.output import save_nifti, save_dicom
 from ._attenuation import attenuation_map
 from ._mask import load_mask
-from . import CT, PET
+from . import CT, PET, SPECT

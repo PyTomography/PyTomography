@@ -33,7 +33,8 @@ class StarGuideSystemMatrix(SystemMatrix):
         proj2proj_transforms = [],
     ):
         super().__init__(object_meta, proj_meta, obj2obj_transforms, proj2proj_transforms)
-        self.times = self.proj_meta.times.reshape(-1,1,1) / 1e3
+        # the projections are counts, the object counts per second: each view is the object's projection times its duration
+        self.frame_duration_s = torch.as_tensor(self.proj_meta.frame_duration_s, dtype=torch.float32, device=pytomography.device).reshape(-1,1,1)
         self._groups_cache = {}
 
     # ------------------------------------------------------------------ helpers
@@ -181,7 +182,7 @@ class StarGuideSystemMatrix(SystemMatrix):
             # translate: sample the detector columns from the slabs, then sum along the projection axis
             sampled = F.grid_sample(slabs.permute(0, 3, 1, 2).contiguous(), group['grid_fwd'], mode='bilinear', padding_mode='zeros', align_corners=True)   # [B, Lz, Lx, 16]
             projections[group['pos']] = sampled.sum(dim=2).permute(0, 2, 1)
-        return projections * self.times[idx]
+        return projections * self.frame_duration_s[idx]
 
     @torch.no_grad()
     def backward(
@@ -203,7 +204,7 @@ class StarGuideSystemMatrix(SystemMatrix):
         Lx, Ly, Lz = self.object_meta.shape
         psf_transforms, shared_transforms = self._psf_transforms(), self._shared_transforms()
         object = torch.zeros((Lx, Ly, Lz), device=pytomography.device)
-        proj = proj * self.times[idx]
+        proj = proj * self.frame_duration_s[idx]
         for group in groups:
             B, W = group['cols'].shape
             # every plane along the projection axis receives the view; transpose of the translation: sample the slab columns from the detector columns

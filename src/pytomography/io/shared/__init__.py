@@ -1,6 +1,3 @@
-"""Shared functionality between different imaging modalities. 
-"""
+"""Shared functionality between different imaging modalities: the image writers."""
 
-from .dicom_creation import create_ds
-from .interfile import get_header_value
 from .output import save_nifti, save_dicom
