@@ -1,0 +1,2657 @@
+[
+ {
+  "match": "rtx 5090 laptop",
+  "name": "GeForce RTX 5090 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 24,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://www.nvidia.com/en-us/geforce/laptops/compare/"
+ },
+ {
+  "match": "rtx 5080 laptop",
+  "name": "GeForce RTX 5080 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://www.nvidia.com/en-us/geforce/laptops/compare/"
+ },
+ {
+  "match": "rtx 5070 ti laptop",
+  "name": "GeForce RTX 5070 Ti Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://www.nvidia.com/en-us/geforce/laptops/compare/"
+ },
+ {
+  "match": "rtx 5070 laptop",
+  "name": "GeForce RTX 5070 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": [
+   12,
+   8
+  ],
+  "kind": "discrete",
+  "notes": "laptop; NVIDIA lists 12 GB and 8 GB versions",
+  "source": "https://www.nvidia.com/en-us/geforce/laptops/compare/"
+ },
+ {
+  "match": "rtx 5060 laptop",
+  "name": "GeForce RTX 5060 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://www.nvidia.com/en-us/geforce/laptops/compare/"
+ },
+ {
+  "match": "rtx 5050 laptop",
+  "name": "GeForce RTX 5050 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://www.nvidia.com/en-us/geforce/laptops/compare/"
+ },
+ {
+  "match": "rtx 5090 d v2",
+  "name": "GeForce RTX 5090 D v2",
+  "vendor": "NVIDIA",
+  "memory_gb": 24,
+  "kind": "discrete",
+  "notes": "China-market card",
+  "source": "https://www.nvidia.cn/geforce/graphics-cards/50-series/rtx-5090-d-v2/"
+ },
+ {
+  "match": "rtx 5090",
+  "name": "GeForce RTX 5090",
+  "vendor": "NVIDIA",
+  "memory_gb": 32,
+  "kind": "discrete",
+  "notes": "the China-market RTX 5090 D also matches here",
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 5080",
+  "name": "GeForce RTX 5080",
+  "vendor": "NVIDIA",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 5070 ti",
+  "name": "GeForce RTX 5070 Ti",
+  "vendor": "NVIDIA",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 5070",
+  "name": "GeForce RTX 5070",
+  "vendor": "NVIDIA",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 5060 ti",
+  "name": "GeForce RTX 5060 Ti",
+  "vendor": "NVIDIA",
+  "memory_gb": [
+   16,
+   8
+  ],
+  "kind": "discrete",
+  "notes": "16 GB and 8 GB versions; the renderer string does not say which",
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 5060",
+  "name": "GeForce RTX 5060",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 5050",
+  "name": "GeForce RTX 5050",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 4090 laptop",
+  "name": "GeForce RTX 4090 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://www.nvidia.com/en-us/geforce/laptops/compare/"
+ },
+ {
+  "match": "rtx 4080 laptop",
+  "name": "GeForce RTX 4080 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://www.nvidia.com/en-us/geforce/laptops/compare/"
+ },
+ {
+  "match": "rtx 4070 laptop",
+  "name": "GeForce RTX 4070 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://www.nvidia.com/en-us/geforce/laptops/compare/"
+ },
+ {
+  "match": "rtx 4060 laptop",
+  "name": "GeForce RTX 4060 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://www.nvidia.com/en-us/geforce/laptops/compare/"
+ },
+ {
+  "match": "rtx 4050 laptop",
+  "name": "GeForce RTX 4050 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 6,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://www.nvidia.com/en-us/geforce/laptops/compare/"
+ },
+ {
+  "match": "rtx 4090",
+  "name": "GeForce RTX 4090",
+  "vendor": "NVIDIA",
+  "memory_gb": 24,
+  "kind": "discrete",
+  "notes": "the China-market RTX 4090 D (also 24 GB) matches here too",
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 4080 super",
+  "name": "GeForce RTX 4080 SUPER",
+  "vendor": "NVIDIA",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 4080",
+  "name": "GeForce RTX 4080",
+  "vendor": "NVIDIA",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 4070 ti super",
+  "name": "GeForce RTX 4070 Ti SUPER",
+  "vendor": "NVIDIA",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 4070 ti",
+  "name": "GeForce RTX 4070 Ti",
+  "vendor": "NVIDIA",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 4070 super",
+  "name": "GeForce RTX 4070 SUPER",
+  "vendor": "NVIDIA",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 4070",
+  "name": "GeForce RTX 4070",
+  "vendor": "NVIDIA",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 4060 ti",
+  "name": "GeForce RTX 4060 Ti",
+  "vendor": "NVIDIA",
+  "memory_gb": [
+   16,
+   8
+  ],
+  "kind": "discrete",
+  "notes": "16 GB and 8 GB versions; the renderer string does not say which",
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 4060",
+  "name": "GeForce RTX 4060",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 3080 ti laptop",
+  "name": "GeForce RTX 3080 Ti Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://www.nvidia.com/en-us/geforce/laptops/30-series/"
+ },
+ {
+  "match": "rtx 3080 laptop",
+  "name": "GeForce RTX 3080 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": [
+   16,
+   8
+  ],
+  "kind": "discrete",
+  "notes": "laptop; 16 GB and 8 GB versions",
+  "source": "https://www.nvidia.com/en-us/geforce/laptops/30-series/"
+ },
+ {
+  "match": "rtx 3070 ti laptop",
+  "name": "GeForce RTX 3070 Ti Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://www.nvidia.com/en-us/geforce/laptops/30-series/"
+ },
+ {
+  "match": "rtx 3070 laptop",
+  "name": "GeForce RTX 3070 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://www.nvidia.com/en-us/geforce/laptops/30-series/"
+ },
+ {
+  "match": "rtx 3060 laptop",
+  "name": "GeForce RTX 3060 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 6,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://www.nvidia.com/en-us/geforce/laptops/30-series/"
+ },
+ {
+  "match": "rtx 3050 ti laptop",
+  "name": "GeForce RTX 3050 Ti Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://www.nvidia.com/en-us/geforce/laptops/30-series/"
+ },
+ {
+  "match": "rtx 3050 6gb laptop",
+  "name": "GeForce RTX 3050 6GB Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 6,
+  "kind": "discrete",
+  "notes": "laptop; renderer name assumed from NVIDIA's '6GB' product naming, not seen in a renderer list",
+  "source": "https://en.wikipedia.org/wiki/GeForce_RTX_30_series"
+ },
+ {
+  "match": "rtx 3050 laptop",
+  "name": "GeForce RTX 3050 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": [
+   4,
+   6
+  ],
+  "kind": "discrete",
+  "notes": "laptop; 4 GB and 6 GB versions (RTX 3050 A Laptop GPU, 4 GB, is not covered)",
+  "source": "https://www.nvidia.com/en-us/geforce/laptops/30-series/"
+ },
+ {
+  "match": "rtx 3090 ti",
+  "name": "GeForce RTX 3090 Ti",
+  "vendor": "NVIDIA",
+  "memory_gb": 24,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 3090",
+  "name": "GeForce RTX 3090",
+  "vendor": "NVIDIA",
+  "memory_gb": 24,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 3080 ti",
+  "name": "GeForce RTX 3080 Ti",
+  "vendor": "NVIDIA",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 3080",
+  "name": "GeForce RTX 3080",
+  "vendor": "NVIDIA",
+  "memory_gb": [
+   12,
+   10
+  ],
+  "kind": "discrete",
+  "notes": "12 GB and 10 GB versions",
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 3070 ti",
+  "name": "GeForce RTX 3070 Ti",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 3070",
+  "name": "GeForce RTX 3070",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 3060 ti",
+  "name": "GeForce RTX 3060 Ti",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 3060",
+  "name": "GeForce RTX 3060",
+  "vendor": "NVIDIA",
+  "memory_gb": [
+   12,
+   8
+  ],
+  "kind": "discrete",
+  "notes": "12 GB and 8 GB versions",
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 3050",
+  "name": "GeForce RTX 3050",
+  "vendor": "NVIDIA",
+  "memory_gb": [
+   8,
+   6
+  ],
+  "kind": "discrete",
+  "notes": "8 GB and 6 GB versions",
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 2080 ti",
+  "name": "GeForce RTX 2080 Ti",
+  "vendor": "NVIDIA",
+  "memory_gb": 11,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 2080 super",
+  "name": "GeForce RTX 2080 SUPER",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "the laptop part has the same name and 8 GB",
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 2080",
+  "name": "GeForce RTX 2080",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "the laptop part (incl. Max-Q) has the same name and 8 GB",
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 2070 super",
+  "name": "GeForce RTX 2070 SUPER",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "the laptop part has the same name and 8 GB",
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 2070",
+  "name": "GeForce RTX 2070",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "the laptop part (incl. Max-Q) has the same name and 8 GB",
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 2060 super",
+  "name": "GeForce RTX 2060 SUPER",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 2060 12gb",
+  "name": "GeForce RTX 2060 12GB",
+  "vendor": "NVIDIA",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": "renderer name assumed ('12GB' suffix), not seen in a renderer list",
+  "source": "https://en.wikipedia.org/wiki/GeForce_RTX_20_series"
+ },
+ {
+  "match": "rtx 2060",
+  "name": "GeForce RTX 2060",
+  "vendor": "NVIDIA",
+  "memory_gb": [
+   6,
+   12
+  ],
+  "kind": "discrete",
+  "notes": "6 GB and 12 GB versions; the laptop RTX 2060 (same name) has 6 GB",
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx 2050",
+  "name": "GeForce RTX 2050",
+  "vendor": "NVIDIA",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": "laptop-only part (name has no 'Laptop')",
+  "source": "https://en.wikipedia.org/wiki/GeForce_RTX_20_series"
+ },
+ {
+  "match": "titan rtx",
+  "name": "NVIDIA TITAN RTX",
+  "vendor": "NVIDIA",
+  "memory_gb": 24,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/GeForce_RTX_20_series"
+ },
+ {
+  "match": "gtx 1660 ti",
+  "name": "GeForce GTX 1660 Ti",
+  "vendor": "NVIDIA",
+  "memory_gb": 6,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "gtx 1660 super",
+  "name": "GeForce GTX 1660 SUPER",
+  "vendor": "NVIDIA",
+  "memory_gb": 6,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "gtx 1660",
+  "name": "GeForce GTX 1660",
+  "vendor": "NVIDIA",
+  "memory_gb": 6,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "gtx 1650 super",
+  "name": "GeForce GTX 1650 SUPER",
+  "vendor": "NVIDIA",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "gtx 1650",
+  "name": "GeForce GTX 1650",
+  "vendor": "NVIDIA",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "gtx 1630",
+  "name": "GeForce GTX 1630",
+  "vendor": "NVIDIA",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+ },
+ {
+  "match": "rtx pro 6000 blackwell",
+  "name": "NVIDIA RTX PRO 6000 Blackwell (Workstation, Max-Q, Server Edition)",
+  "vendor": "NVIDIA",
+  "memory_gb": 96,
+  "kind": "discrete",
+  "notes": "workstation; Server Edition also 96 GB",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "rtx pro 5500 blackwell",
+  "name": "NVIDIA RTX PRO 5500 Blackwell",
+  "vendor": "NVIDIA",
+  "memory_gb": 84,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "rtx pro 5000 blackwell generation laptop",
+  "name": "NVIDIA RTX PRO 5000 Blackwell Generation Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 24,
+  "kind": "discrete",
+  "notes": "workstation laptop; renderer name assumed by analogy with 'RTX 500 Ada Generation Laptop GPU'",
+  "source": "https://www.nvidia.com/en-gb/products/workstations/professional-laptops/compare/"
+ },
+ {
+  "match": "rtx pro 5000 blackwell",
+  "name": "NVIDIA RTX PRO 5000 Blackwell",
+  "vendor": "NVIDIA",
+  "memory_gb": [
+   48,
+   72
+  ],
+  "kind": "discrete",
+  "notes": "workstation; 48 GB and 72 GB versions",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "rtx pro 4500 blackwell",
+  "name": "NVIDIA RTX PRO 4500 Blackwell",
+  "vendor": "NVIDIA",
+  "memory_gb": 32,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "rtx pro 4000 blackwell generation laptop",
+  "name": "NVIDIA RTX PRO 4000 Blackwell Generation Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": "workstation laptop; renderer name assumed",
+  "source": "https://www.nvidia.com/en-gb/products/workstations/professional-laptops/compare/"
+ },
+ {
+  "match": "rtx pro 4000 blackwell",
+  "name": "NVIDIA RTX PRO 4000 Blackwell (incl. SFF Edition)",
+  "vendor": "NVIDIA",
+  "memory_gb": 24,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "rtx pro 3000 blackwell",
+  "name": "NVIDIA RTX PRO 3000 Blackwell Generation Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": "workstation laptop (laptop-only part)",
+  "source": "https://www.nvidia.com/en-gb/products/workstations/professional-laptops/compare/"
+ },
+ {
+  "match": "rtx pro 2000 blackwell generation laptop",
+  "name": "NVIDIA RTX PRO 2000 Blackwell Generation Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "workstation laptop; renderer name assumed",
+  "source": "https://www.nvidia.com/en-gb/products/workstations/professional-laptops/compare/"
+ },
+ {
+  "match": "rtx pro 2000 blackwell",
+  "name": "NVIDIA RTX PRO 2000 Blackwell",
+  "vendor": "NVIDIA",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "rtx pro 1000 blackwell",
+  "name": "NVIDIA RTX PRO 1000 Blackwell Generation Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "workstation laptop (laptop-only part)",
+  "source": "https://www.nvidia.com/en-gb/products/workstations/professional-laptops/compare/"
+ },
+ {
+  "match": "rtx pro 500 blackwell",
+  "name": "NVIDIA RTX PRO 500 Blackwell Generation Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 6,
+  "kind": "discrete",
+  "notes": "workstation laptop (laptop-only part)",
+  "source": "https://www.nvidia.com/en-gb/products/workstations/professional-laptops/compare/"
+ },
+ {
+  "match": "rtx 6000 ada",
+  "name": "NVIDIA RTX 6000 Ada Generation",
+  "vendor": "NVIDIA",
+  "memory_gb": 48,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "rtx 5880 ada",
+  "name": "NVIDIA RTX 5880 Ada Generation",
+  "vendor": "NVIDIA",
+  "memory_gb": 48,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://en.wikipedia.org/wiki/Quadro"
+ },
+ {
+  "match": "rtx 5000 ada generation laptop",
+  "name": "NVIDIA RTX 5000 Ada Generation Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": "workstation laptop",
+  "source": "https://www.nvidia.com/en-gb/products/workstations/professional-laptops/compare/"
+ },
+ {
+  "match": "rtx 5000 ada",
+  "name": "NVIDIA RTX 5000 Ada Generation",
+  "vendor": "NVIDIA",
+  "memory_gb": 32,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "rtx 4500 ada",
+  "name": "NVIDIA RTX 4500 Ada Generation",
+  "vendor": "NVIDIA",
+  "memory_gb": 24,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "rtx 4000 ada generation laptop",
+  "name": "NVIDIA RTX 4000 Ada Generation Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": "workstation laptop",
+  "source": "https://www.nvidia.com/en-gb/products/workstations/professional-laptops/compare/"
+ },
+ {
+  "match": "rtx 4000 sff ada",
+  "name": "NVIDIA RTX 4000 SFF Ada Generation",
+  "vendor": "NVIDIA",
+  "memory_gb": 20,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "rtx 4000 ada",
+  "name": "NVIDIA RTX 4000 Ada Generation",
+  "vendor": "NVIDIA",
+  "memory_gb": 20,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "rtx 3500 ada",
+  "name": "NVIDIA RTX 3500 Ada Generation Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": "workstation laptop (laptop-only part)",
+  "source": "https://www.nvidia.com/en-gb/products/workstations/professional-laptops/compare/"
+ },
+ {
+  "match": "rtx 3000 ada",
+  "name": "NVIDIA RTX 3000 Ada Generation Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "workstation laptop (laptop-only part)",
+  "source": "https://www.nvidia.com/en-gb/products/workstations/professional-laptops/compare/"
+ },
+ {
+  "match": "rtx 2000 ada generation laptop",
+  "name": "NVIDIA RTX 2000 Ada Generation Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "workstation laptop",
+  "source": "https://www.nvidia.com/en-gb/products/workstations/professional-laptops/compare/"
+ },
+ {
+  "match": "rtx 2000 ada",
+  "name": "NVIDIA RTX 2000 Ada Generation",
+  "vendor": "NVIDIA",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "rtx 1000 ada",
+  "name": "NVIDIA RTX 1000 Ada Generation Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 6,
+  "kind": "discrete",
+  "notes": "workstation laptop (laptop-only part)",
+  "source": "https://www.nvidia.com/en-gb/products/workstations/professional-laptops/compare/"
+ },
+ {
+  "match": "rtx 500 ada",
+  "name": "NVIDIA RTX 500 Ada Generation Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": "workstation laptop (laptop-only part)",
+  "source": "https://www.nvidia.com/en-gb/products/workstations/professional-laptops/compare/"
+ },
+ {
+  "match": "rtx a6000",
+  "name": "NVIDIA RTX A6000",
+  "vendor": "NVIDIA",
+  "memory_gb": 48,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "rtx a5500 laptop",
+  "name": "NVIDIA RTX A5500 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": "workstation laptop",
+  "source": "https://hothardware.com/news/nvidia-rtx-a5500-workstation-gpu-pro-workloads"
+ },
+ {
+  "match": "rtx a5500",
+  "name": "NVIDIA RTX A5500",
+  "vendor": "NVIDIA",
+  "memory_gb": 24,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "rtx a5000 laptop",
+  "name": "NVIDIA RTX A5000 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": "workstation laptop",
+  "source": "https://en.wikipedia.org/wiki/Quadro"
+ },
+ {
+  "match": "rtx a5000",
+  "name": "NVIDIA RTX A5000",
+  "vendor": "NVIDIA",
+  "memory_gb": 24,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "rtx a4500 laptop",
+  "name": "NVIDIA RTX A4500 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": "workstation laptop",
+  "source": "https://hothardware.com/news/nvidia-rtx-a5500-workstation-gpu-pro-workloads"
+ },
+ {
+  "match": "rtx a4500",
+  "name": "NVIDIA RTX A4500",
+  "vendor": "NVIDIA",
+  "memory_gb": 20,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "rtx a4000 laptop",
+  "name": "NVIDIA RTX A4000 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "workstation laptop",
+  "source": "https://en.wikipedia.org/wiki/Quadro"
+ },
+ {
+  "match": "rtx a4000",
+  "name": "NVIDIA RTX A4000",
+  "vendor": "NVIDIA",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "rtx a3000 12gb laptop",
+  "name": "NVIDIA RTX A3000 12GB Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": "workstation laptop; renderer name assumed",
+  "source": "https://hothardware.com/news/nvidia-rtx-a5500-workstation-gpu-pro-workloads"
+ },
+ {
+  "match": "rtx a3000 laptop",
+  "name": "NVIDIA RTX A3000 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": [
+   6,
+   12
+  ],
+  "kind": "discrete",
+  "notes": "workstation laptop; original 6 GB, later 12 GB version",
+  "source": "https://en.wikipedia.org/wiki/Quadro"
+ },
+ {
+  "match": "rtx a2000 8gb laptop",
+  "name": "NVIDIA RTX A2000 8GB Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "workstation laptop; renderer name assumed",
+  "source": "https://hothardware.com/news/nvidia-rtx-a5500-workstation-gpu-pro-workloads"
+ },
+ {
+  "match": "rtx a2000 laptop",
+  "name": "NVIDIA RTX A2000 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": [
+   4,
+   8
+  ],
+  "kind": "discrete",
+  "notes": "workstation laptop; original 4 GB, later 8 GB version",
+  "source": "https://en.wikipedia.org/wiki/Quadro"
+ },
+ {
+  "match": "rtx a2000 12gb",
+  "name": "NVIDIA RTX A2000 12GB",
+  "vendor": "NVIDIA",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "rtx a2000",
+  "name": "NVIDIA RTX A2000",
+  "vendor": "NVIDIA",
+  "memory_gb": [
+   6,
+   12
+  ],
+  "kind": "discrete",
+  "notes": "workstation; 6 GB and 12 GB versions",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "rtx a1000 laptop",
+  "name": "NVIDIA RTX A1000 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": "workstation laptop",
+  "source": "https://hothardware.com/news/nvidia-rtx-a5500-workstation-gpu-pro-workloads"
+ },
+ {
+  "match": "rtx a1000",
+  "name": "NVIDIA RTX A1000",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "rtx a500 laptop",
+  "name": "NVIDIA RTX A500 Laptop GPU",
+  "vendor": "NVIDIA",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": "workstation laptop",
+  "source": "https://hothardware.com/news/nvidia-rtx-a5500-workstation-gpu-pro-workloads"
+ },
+ {
+  "match": "rtx a400",
+  "name": "NVIDIA RTX A400",
+  "vendor": "NVIDIA",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "quadro rtx 8000",
+  "name": "Quadro RTX 8000",
+  "vendor": "NVIDIA",
+  "memory_gb": 48,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://en.wikipedia.org/wiki/Quadro"
+ },
+ {
+  "match": "quadro rtx 6000",
+  "name": "Quadro RTX 6000",
+  "vendor": "NVIDIA",
+  "memory_gb": 24,
+  "kind": "discrete",
+  "notes": "workstation; the mobile part is also 24 GB",
+  "source": "https://en.wikipedia.org/wiki/Quadro"
+ },
+ {
+  "match": "quadro rtx 5000",
+  "name": "Quadro RTX 5000",
+  "vendor": "NVIDIA",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": "workstation; the mobile part (incl. Max-Q) is also 16 GB",
+  "source": "https://en.wikipedia.org/wiki/Quadro"
+ },
+ {
+  "match": "quadro rtx 4000",
+  "name": "Quadro RTX 4000",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "workstation; the mobile part is also 8 GB",
+  "source": "https://en.wikipedia.org/wiki/Quadro"
+ },
+ {
+  "match": "quadro rtx 3000",
+  "name": "Quadro RTX 3000",
+  "vendor": "NVIDIA",
+  "memory_gb": 6,
+  "kind": "discrete",
+  "notes": "workstation laptop (mobile-only part)",
+  "source": "https://en.wikipedia.org/wiki/Quadro"
+ },
+ {
+  "match": "quadro t2000",
+  "name": "Quadro T2000",
+  "vendor": "NVIDIA",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": "workstation laptop",
+  "source": "https://en.wikipedia.org/wiki/Quadro"
+ },
+ {
+  "match": "quadro t1000",
+  "name": "Quadro T1000",
+  "vendor": "NVIDIA",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": "workstation laptop",
+  "source": "https://en.wikipedia.org/wiki/Quadro"
+ },
+ {
+  "match": "nvidia t1000 8gb",
+  "name": "NVIDIA T1000 8GB",
+  "vendor": "NVIDIA",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "nvidia t1000",
+  "name": "NVIDIA T1000",
+  "vendor": "NVIDIA",
+  "memory_gb": [
+   4,
+   8
+  ],
+  "kind": "discrete",
+  "notes": "workstation; 4 GB and 8 GB versions",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "nvidia t600",
+  "name": "NVIDIA T600",
+  "vendor": "NVIDIA",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "nvidia t400 4gb",
+  "name": "NVIDIA T400 4GB",
+  "vendor": "NVIDIA",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "nvidia t400",
+  "name": "NVIDIA T400",
+  "vendor": "NVIDIA",
+  "memory_gb": [
+   2,
+   4
+  ],
+  "kind": "discrete",
+  "notes": "workstation; 2 GB and 4 GB versions",
+  "source": "https://www.nvidia.com/en-us/design-visualization/desktop-graphics/"
+ },
+ {
+  "match": "gb300",
+  "name": "NVIDIA GB300 (Grace Blackwell Ultra)",
+  "vendor": "NVIDIA",
+  "memory_gb": null,
+  "kind": "datacenter",
+  "notes": "not confirmed: Google Cloud a4x-maxgpu-4g = 1,116 GB for 4 GPUs (279 GB each); getdeploying lists 288 GB",
+  "source": "https://docs.cloud.google.com/compute/docs/gpus"
+ },
+ {
+  "match": "b300",
+  "name": "NVIDIA B300 (Blackwell Ultra)",
+  "vendor": "NVIDIA",
+  "memory_gb": null,
+  "kind": "datacenter",
+  "notes": "not confirmed: DGX B300 = 2.1 TB for 8 GPUs; getdeploying lists 288 GB",
+  "source": "https://www.nvidia.com/en-us/data-center/dgx-b300/"
+ },
+ {
+  "match": "gb200",
+  "name": "NVIDIA GB200 (Grace Blackwell)",
+  "vendor": "NVIDIA",
+  "memory_gb": 186,
+  "kind": "datacenter",
+  "notes": "per GPU: GB200 superchip = 372 GB for 2 GPUs; NVL72 = 13.4 TB for 72 GPUs",
+  "source": "https://www.nvidia.com/en-us/data-center/gb200-nvl72/"
+ },
+ {
+  "match": "b200",
+  "name": "NVIDIA B200",
+  "vendor": "NVIDIA",
+  "memory_gb": 180,
+  "kind": "datacenter",
+  "notes": "per GPU: DGX B200 = 1,440 GB for 8 GPUs; 192 GB was quoted at the 2024 announcement",
+  "source": "https://www.nvidia.com/en-us/data-center/dgx-b200/"
+ },
+ {
+  "match": "b100",
+  "name": "NVIDIA B100",
+  "vendor": "NVIDIA",
+  "memory_gb": 192,
+  "kind": "datacenter",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Nvidia_Tesla"
+ },
+ {
+  "match": "gh200",
+  "name": "NVIDIA GH200 (Grace Hopper)",
+  "vendor": "NVIDIA",
+  "memory_gb": 96,
+  "kind": "datacenter",
+  "notes": "96 GB HBM3 GPU memory per getdeploying; a later version has more (not confirmed here)",
+  "source": "https://getdeploying.com/dataset/gpu-models/gpu-models.csv"
+ },
+ {
+  "match": "h200",
+  "name": "NVIDIA H200 (SXM and NVL)",
+  "vendor": "NVIDIA",
+  "memory_gb": 141,
+  "kind": "datacenter",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/data-center/h200/"
+ },
+ {
+  "match": "h100 nvl",
+  "name": "NVIDIA H100 NVL",
+  "vendor": "NVIDIA",
+  "memory_gb": 94,
+  "kind": "datacenter",
+  "notes": "94 GB usable; 188 GB for an NVLink pair",
+  "source": "https://www.nvidia.com/en-us/data-center/h100/"
+ },
+ {
+  "match": "h100",
+  "name": "NVIDIA H100 (SXM, PCIe)",
+  "vendor": "NVIDIA",
+  "memory_gb": 80,
+  "kind": "datacenter",
+  "notes": "SXM and PCIe are 80 GB; H100 NVL is 94 GB; Wikipedia also lists 64 GB and 96 GB SXM variants",
+  "source": "https://www.nvidia.com/en-us/data-center/h100/"
+ },
+ {
+  "match": "nvidia a100",
+  "name": "NVIDIA A100",
+  "vendor": "NVIDIA",
+  "memory_gb": [
+   80,
+   40
+  ],
+  "kind": "datacenter",
+  "notes": "80 GB and 40 GB versions (nvidia-smi names include 40GB/80GB)",
+  "source": "https://docs.cloud.google.com/compute/docs/gpus"
+ },
+ {
+  "match": "a10g",
+  "name": "NVIDIA A10G (AWS G5)",
+  "vendor": "NVIDIA",
+  "memory_gb": 24,
+  "kind": "datacenter",
+  "notes": "cloud (AWS)",
+  "source": "https://aws.amazon.com/ec2/instance-types/g5/"
+ },
+ {
+  "match": "nvidia a10",
+  "name": "NVIDIA A10",
+  "vendor": "NVIDIA",
+  "memory_gb": 24,
+  "kind": "datacenter",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/data-center/products/a10-gpu/"
+ },
+ {
+  "match": "nvidia a30",
+  "name": "NVIDIA A30",
+  "vendor": "NVIDIA",
+  "memory_gb": 24,
+  "kind": "datacenter",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Nvidia_Tesla"
+ },
+ {
+  "match": "nvidia a40",
+  "name": "NVIDIA A40",
+  "vendor": "NVIDIA",
+  "memory_gb": 48,
+  "kind": "datacenter",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/data-center/a40/"
+ },
+ {
+  "match": "nvidia l40s",
+  "name": "NVIDIA L40S",
+  "vendor": "NVIDIA",
+  "memory_gb": 48,
+  "kind": "datacenter",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/data-center/l40s/"
+ },
+ {
+  "match": "nvidia l40",
+  "name": "NVIDIA L40",
+  "vendor": "NVIDIA",
+  "memory_gb": 48,
+  "kind": "datacenter",
+  "notes": null,
+  "source": "https://www.nvidia.com/en-us/data-center/l40/"
+ },
+ {
+  "match": "nvidia l4",
+  "name": "NVIDIA L4",
+  "vendor": "NVIDIA",
+  "memory_gb": 24,
+  "kind": "datacenter",
+  "notes": "common Colab GPU",
+  "source": "https://www.nvidia.com/en-us/data-center/l4/"
+ },
+ {
+  "match": "tesla t4",
+  "name": "NVIDIA T4",
+  "vendor": "NVIDIA",
+  "memory_gb": 16,
+  "kind": "datacenter",
+  "notes": "common Colab GPU (free tier)",
+  "source": "https://www.nvidia.com/en-us/data-center/tesla-t4/"
+ },
+ {
+  "match": "nvidia t4",
+  "name": "NVIDIA T4",
+  "vendor": "NVIDIA",
+  "memory_gb": 16,
+  "kind": "datacenter",
+  "notes": "common Colab GPU (free tier)",
+  "source": "https://www.nvidia.com/en-us/data-center/tesla-t4/"
+ },
+ {
+  "match": "v100",
+  "name": "NVIDIA V100",
+  "vendor": "NVIDIA",
+  "memory_gb": [
+   32,
+   16
+  ],
+  "kind": "datacenter",
+  "notes": "32 GB and 16 GB versions; Google Cloud's V100 is 16 GB",
+  "source": "https://en.wikipedia.org/wiki/Nvidia_Tesla"
+ },
+ {
+  "match": "p100",
+  "name": "NVIDIA P100",
+  "vendor": "NVIDIA",
+  "memory_gb": [
+   16,
+   12
+  ],
+  "kind": "datacenter",
+  "notes": "16 GB and 12 GB (PCIe) versions",
+  "source": "https://en.wikipedia.org/wiki/Nvidia_Tesla"
+ },
+ {
+  "match": "nvidia gb10",
+  "name": "NVIDIA GB10 (DGX Spark and OEM versions)",
+  "vendor": "NVIDIA",
+  "memory_gb": [
+   128,
+   64
+  ],
+  "kind": "unified",
+  "notes": "unified LPDDR5X shared by CPU and GPU; 64 GB only from OEM partners",
+  "source": "https://www.nvidia.com/en-us/products/workstations/dgx-spark/"
+ },
+ {
+  "match": "mi355x",
+  "name": "AMD Instinct MI355X",
+  "vendor": "AMD",
+  "memory_gb": 288,
+  "kind": "datacenter",
+  "notes": null,
+  "source": "https://instinct.docs.amd.com/projects/system-acceptance/en/latest/gpus/mi355x.html"
+ },
+ {
+  "match": "mi350x",
+  "name": "AMD Instinct MI350X",
+  "vendor": "AMD",
+  "memory_gb": 288,
+  "kind": "datacenter",
+  "notes": null,
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "mi325x",
+  "name": "AMD Instinct MI325X",
+  "vendor": "AMD",
+  "memory_gb": 256,
+  "kind": "datacenter",
+  "notes": "first announced with 288 GB, shipped with 256 GB",
+  "source": "https://instinct.docs.amd.com/projects/system-acceptance/en/latest/gpus/mi325x.html"
+ },
+ {
+  "match": "mi300x",
+  "name": "AMD Instinct MI300X",
+  "vendor": "AMD",
+  "memory_gb": 192,
+  "kind": "datacenter",
+  "notes": null,
+  "source": "https://instinct.docs.amd.com/projects/system-acceptance/en/latest/gpus/mi300x.html"
+ },
+ {
+  "match": "mi300a",
+  "name": "AMD Instinct MI300A",
+  "vendor": "AMD",
+  "memory_gb": 128,
+  "kind": "datacenter",
+  "notes": "APU: the 128 GB HBM3 is shared by CPU and GPU",
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "mi250x",
+  "name": "AMD Instinct MI250X",
+  "vendor": "AMD",
+  "memory_gb": 128,
+  "kind": "datacenter",
+  "notes": "two GCDs; each appears as a separate 64 GB device",
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "mi250",
+  "name": "AMD Instinct MI250",
+  "vendor": "AMD",
+  "memory_gb": 128,
+  "kind": "datacenter",
+  "notes": "two GCDs; each appears as a separate 64 GB device",
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "mi210",
+  "name": "AMD Instinct MI210",
+  "vendor": "AMD",
+  "memory_gb": 64,
+  "kind": "datacenter",
+  "notes": null,
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "mi100",
+  "name": "AMD Instinct MI100",
+  "vendor": "AMD",
+  "memory_gb": 32,
+  "kind": "datacenter",
+  "notes": null,
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "ai pro r9700",
+  "name": "AMD Radeon AI PRO R9700 (incl. R9700S)",
+  "vendor": "AMD",
+  "memory_gb": 32,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "ai pro r9600d",
+  "name": "AMD Radeon AI PRO R9600D",
+  "vendor": "AMD",
+  "memory_gb": 32,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "radeon pro w7900",
+  "name": "AMD Radeon PRO W7900 (incl. Dual Slot)",
+  "vendor": "AMD",
+  "memory_gb": 48,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "radeon pro w7800 48gb",
+  "name": "AMD Radeon PRO W7800 48GB",
+  "vendor": "AMD",
+  "memory_gb": 48,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "radeon pro w7800",
+  "name": "AMD Radeon PRO W7800",
+  "vendor": "AMD",
+  "memory_gb": 32,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "radeon pro w7700",
+  "name": "AMD Radeon PRO W7700",
+  "vendor": "AMD",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "radeon pro w7600",
+  "name": "AMD Radeon PRO W7600",
+  "vendor": "AMD",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_Pro_W7000"
+ },
+ {
+  "match": "radeon pro w7500",
+  "name": "AMD Radeon PRO W7500",
+  "vendor": "AMD",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_Pro_W7000"
+ },
+ {
+  "match": "radeon pro w6800",
+  "name": "AMD Radeon PRO W6800",
+  "vendor": "AMD",
+  "memory_gb": 32,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_Pro_W6000"
+ },
+ {
+  "match": "radeon pro w6600",
+  "name": "AMD Radeon PRO W6600",
+  "vendor": "AMD",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_Pro_W6000"
+ },
+ {
+  "match": "radeon pro w6400",
+  "name": "AMD Radeon PRO W6400",
+  "vendor": "AMD",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_Pro_W6000"
+ },
+ {
+  "match": "radeon pro w6300",
+  "name": "AMD Radeon PRO W6300",
+  "vendor": "AMD",
+  "memory_gb": 2,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_Pro_W6000"
+ },
+ {
+  "match": "rx 9070 xt",
+  "name": "AMD Radeon RX 9070 XT",
+  "vendor": "AMD",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "rx 9070 gre",
+  "name": "AMD Radeon RX 9070 GRE",
+  "vendor": "AMD",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": "ROCm's table says 16 GB; Wikipedia and launch coverage say 12 GB (192-bit)",
+  "source": "https://en.wikipedia.org/wiki/Radeon_RX_9000_series"
+ },
+ {
+  "match": "rx 9070",
+  "name": "AMD Radeon RX 9070",
+  "vendor": "AMD",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "rx 9060 xt",
+  "name": "AMD Radeon RX 9060 XT",
+  "vendor": "AMD",
+  "memory_gb": [
+   16,
+   8
+  ],
+  "kind": "discrete",
+  "notes": "16 GB and 8 GB versions",
+  "source": "https://en.wikipedia.org/wiki/Radeon_RX_9000_series"
+ },
+ {
+  "match": "rx 9060",
+  "name": "AMD Radeon RX 9060",
+  "vendor": "AMD",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "rx 9050",
+  "name": "AMD Radeon RX 9050",
+  "vendor": "AMD",
+  "memory_gb": [
+   8,
+   4
+  ],
+  "kind": "discrete",
+  "notes": "8 GB and 4 GB versions",
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "rx 7900 xtx",
+  "name": "AMD Radeon RX 7900 XTX",
+  "vendor": "AMD",
+  "memory_gb": 24,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "rx 7900 xt",
+  "name": "AMD Radeon RX 7900 XT",
+  "vendor": "AMD",
+  "memory_gb": 20,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "rx 7900 gre",
+  "name": "AMD Radeon RX 7900 GRE",
+  "vendor": "AMD",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "rx 7900m",
+  "name": "AMD Radeon RX 7900M",
+  "vendor": "AMD",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_7000M"
+ },
+ {
+  "match": "rx 7800 xt",
+  "name": "AMD Radeon RX 7800 XT",
+  "vendor": "AMD",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "rx 7800m",
+  "name": "AMD Radeon RX 7800M",
+  "vendor": "AMD",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_7000M"
+ },
+ {
+  "match": "rx 7700 xt",
+  "name": "AMD Radeon RX 7700 XT",
+  "vendor": "AMD",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "rx 7700s",
+  "name": "AMD Radeon RX 7700S",
+  "vendor": "AMD",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_7000M"
+ },
+ {
+  "match": "rx 7700",
+  "name": "AMD Radeon RX 7700",
+  "vendor": "AMD",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "rx 7650 gre",
+  "name": "AMD Radeon RX 7650 GRE",
+  "vendor": "AMD",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_7000"
+ },
+ {
+  "match": "rx 7600m xt",
+  "name": "AMD Radeon RX 7600M XT",
+  "vendor": "AMD",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_7000M"
+ },
+ {
+  "match": "rx 7600m",
+  "name": "AMD Radeon RX 7600M",
+  "vendor": "AMD",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_7000M"
+ },
+ {
+  "match": "rx 7600s",
+  "name": "AMD Radeon RX 7600S",
+  "vendor": "AMD",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_7000M"
+ },
+ {
+  "match": "rx 7600 xt",
+  "name": "AMD Radeon RX 7600 XT",
+  "vendor": "AMD",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_7000"
+ },
+ {
+  "match": "rx 7600",
+  "name": "AMD Radeon RX 7600",
+  "vendor": "AMD",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html"
+ },
+ {
+  "match": "rx 7400",
+  "name": "AMD Radeon RX 7400",
+  "vendor": "AMD",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_7000"
+ },
+ {
+  "match": "rx 6950 xt",
+  "name": "AMD Radeon RX 6950 XT",
+  "vendor": "AMD",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000"
+ },
+ {
+  "match": "rx 6900 xt",
+  "name": "AMD Radeon RX 6900 XT",
+  "vendor": "AMD",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000"
+ },
+ {
+  "match": "rx 6850m xt",
+  "name": "AMD Radeon RX 6850M XT",
+  "vendor": "AMD",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000M"
+ },
+ {
+  "match": "rx 6800 xt",
+  "name": "AMD Radeon RX 6800 XT",
+  "vendor": "AMD",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000"
+ },
+ {
+  "match": "rx 6800m",
+  "name": "AMD Radeon RX 6800M",
+  "vendor": "AMD",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000M"
+ },
+ {
+  "match": "rx 6800s",
+  "name": "AMD Radeon RX 6800S",
+  "vendor": "AMD",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000M"
+ },
+ {
+  "match": "rx 6800",
+  "name": "AMD Radeon RX 6800",
+  "vendor": "AMD",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000"
+ },
+ {
+  "match": "rx 6750 gre 10gb",
+  "name": "AMD Radeon RX 6750 GRE 10GB",
+  "vendor": "AMD",
+  "memory_gb": 10,
+  "kind": "discrete",
+  "notes": "renderer name assumed",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000"
+ },
+ {
+  "match": "rx 6750 gre",
+  "name": "AMD Radeon RX 6750 GRE",
+  "vendor": "AMD",
+  "memory_gb": [
+   12,
+   10
+  ],
+  "kind": "discrete",
+  "notes": "12 GB and 10 GB versions",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000"
+ },
+ {
+  "match": "rx 6750 xt",
+  "name": "AMD Radeon RX 6750 XT",
+  "vendor": "AMD",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000"
+ },
+ {
+  "match": "rx 6700 xt",
+  "name": "AMD Radeon RX 6700 XT",
+  "vendor": "AMD",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000"
+ },
+ {
+  "match": "rx 6700m",
+  "name": "AMD Radeon RX 6700M",
+  "vendor": "AMD",
+  "memory_gb": 10,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000M"
+ },
+ {
+  "match": "rx 6700s",
+  "name": "AMD Radeon RX 6700S",
+  "vendor": "AMD",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000M"
+ },
+ {
+  "match": "rx 6700",
+  "name": "AMD Radeon RX 6700",
+  "vendor": "AMD",
+  "memory_gb": 10,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000"
+ },
+ {
+  "match": "rx 6650m xt",
+  "name": "AMD Radeon RX 6650M XT",
+  "vendor": "AMD",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000M"
+ },
+ {
+  "match": "rx 6650m",
+  "name": "AMD Radeon RX 6650M",
+  "vendor": "AMD",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000M"
+ },
+ {
+  "match": "rx 6650 xt",
+  "name": "AMD Radeon RX 6650 XT",
+  "vendor": "AMD",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000"
+ },
+ {
+  "match": "rx 6600 xt",
+  "name": "AMD Radeon RX 6600 XT",
+  "vendor": "AMD",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000"
+ },
+ {
+  "match": "rx 6600m",
+  "name": "AMD Radeon RX 6600M",
+  "vendor": "AMD",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000M"
+ },
+ {
+  "match": "rx 6600s",
+  "name": "AMD Radeon RX 6600S",
+  "vendor": "AMD",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": "laptop; Wikipedia table rowspan looked inconsistent here",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000M"
+ },
+ {
+  "match": "rx 6600",
+  "name": "AMD Radeon RX 6600",
+  "vendor": "AMD",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000"
+ },
+ {
+  "match": "rx 6550m",
+  "name": "AMD Radeon RX 6550M",
+  "vendor": "AMD",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000M"
+ },
+ {
+  "match": "rx 6550s",
+  "name": "AMD Radeon RX 6550S",
+  "vendor": "AMD",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000M"
+ },
+ {
+  "match": "rx 6500m",
+  "name": "AMD Radeon RX 6500M",
+  "vendor": "AMD",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000M"
+ },
+ {
+  "match": "rx 6500 xt",
+  "name": "AMD Radeon RX 6500 XT",
+  "vendor": "AMD",
+  "memory_gb": [
+   4,
+   8
+  ],
+  "kind": "discrete",
+  "notes": "4 GB and 8 GB versions",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000"
+ },
+ {
+  "match": "rx 6450m",
+  "name": "AMD Radeon RX 6450M",
+  "vendor": "AMD",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000M"
+ },
+ {
+  "match": "rx 6400",
+  "name": "AMD Radeon RX 6400",
+  "vendor": "AMD",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000"
+ },
+ {
+  "match": "rx 6300m",
+  "name": "AMD Radeon RX 6300M",
+  "vendor": "AMD",
+  "memory_gb": 2,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000M"
+ },
+ {
+  "match": "rx 6300",
+  "name": "AMD Radeon RX 6300",
+  "vendor": "AMD",
+  "memory_gb": 2,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Template:AMD_Radeon_RX_6000"
+ },
+ {
+  "match": "8060s graphics",
+  "name": "AMD Radeon 8060S (Ryzen AI Max, Strix Halo)",
+  "vendor": "AMD",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory)",
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(AMD)"
+ },
+ {
+  "match": "8050s graphics",
+  "name": "AMD Radeon 8050S (Ryzen AI Max, Strix Halo)",
+  "vendor": "AMD",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory)",
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(AMD)"
+ },
+ {
+  "match": "890m graphics",
+  "name": "AMD Radeon 890M",
+  "vendor": "AMD",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory)",
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(AMD)"
+ },
+ {
+  "match": "880m graphics",
+  "name": "AMD Radeon 880M",
+  "vendor": "AMD",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory)",
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(AMD)"
+ },
+ {
+  "match": "780m graphics",
+  "name": "AMD Radeon 780M",
+  "vendor": "AMD",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory)",
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(AMD)"
+ },
+ {
+  "match": "760m graphics",
+  "name": "AMD Radeon 760M",
+  "vendor": "AMD",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory)",
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(AMD)"
+ },
+ {
+  "match": "apple m6",
+  "name": "Apple M6",
+  "vendor": "Apple",
+  "memory_gb": [
+   16,
+   24,
+   32
+  ],
+  "kind": "unified",
+  "notes": "unified memory (Mac mini 2026)",
+  "source": "https://support.apple.com/en-us/128108"
+ },
+ {
+  "match": "apple m5 ultra",
+  "name": "Apple M5 Ultra",
+  "vendor": "Apple",
+  "memory_gb": [
+   96,
+   256,
+   512
+  ],
+  "kind": "unified",
+  "notes": "unified memory (Mac Studio)",
+  "source": "https://www.apple.com/mac-studio/specs/"
+ },
+ {
+  "match": "apple m5 max",
+  "name": "Apple M5 Max",
+  "vendor": "Apple",
+  "memory_gb": [
+   36,
+   48,
+   64,
+   128
+  ],
+  "kind": "unified",
+  "notes": "unified memory",
+  "source": "https://www.apple.com/macbook-pro/specs/"
+ },
+ {
+  "match": "apple m5 pro",
+  "name": "Apple M5 Pro",
+  "vendor": "Apple",
+  "memory_gb": [
+   24,
+   48,
+   64
+  ],
+  "kind": "unified",
+  "notes": "unified memory",
+  "source": "https://www.apple.com/macbook-pro/specs/"
+ },
+ {
+  "match": "apple m5",
+  "name": "Apple M5",
+  "vendor": "Apple",
+  "memory_gb": [
+   16,
+   24,
+   32
+  ],
+  "kind": "unified",
+  "notes": "unified memory (Mac); iPad Pro M5 is 12 or 16 GB per Wikipedia, but Safari on iPad reports only 'Apple GPU'",
+  "source": "https://www.apple.com/macbook-pro/specs/"
+ },
+ {
+  "match": "apple m4 max",
+  "name": "Apple M4 Max",
+  "vendor": "Apple",
+  "memory_gb": [
+   36,
+   48,
+   64,
+   128
+  ],
+  "kind": "unified",
+  "notes": "unified memory",
+  "source": "https://support.apple.com/en-us/121553"
+ },
+ {
+  "match": "apple m4 pro",
+  "name": "Apple M4 Pro",
+  "vendor": "Apple",
+  "memory_gb": [
+   24,
+   48,
+   64
+  ],
+  "kind": "unified",
+  "notes": "unified memory",
+  "source": "https://support.apple.com/en-us/121555"
+ },
+ {
+  "match": "apple m4",
+  "name": "Apple M4",
+  "vendor": "Apple",
+  "memory_gb": [
+   16,
+   24,
+   32
+  ],
+  "kind": "unified",
+  "notes": "unified memory (Mac); iPad Pro M4 is 8 or 16 GB per Wikipedia",
+  "source": "https://support.apple.com/en-us/121555"
+ },
+ {
+  "match": "apple m3 ultra",
+  "name": "Apple M3 Ultra",
+  "vendor": "Apple",
+  "memory_gb": [
+   96,
+   256,
+   512
+  ],
+  "kind": "unified",
+  "notes": "unified memory; Apple's Mac Studio (2025) page now lists 96/256 GB; 512 GB was offered at launch (Wikipedia)",
+  "source": "https://support.apple.com/en-us/122211"
+ },
+ {
+  "match": "apple m3 max",
+  "name": "Apple M3 Max",
+  "vendor": "Apple",
+  "memory_gb": [
+   36,
+   48,
+   64,
+   96,
+   128
+  ],
+  "kind": "unified",
+  "notes": "unified memory",
+  "source": "https://support.apple.com/en-us/117736"
+ },
+ {
+  "match": "apple m3 pro",
+  "name": "Apple M3 Pro",
+  "vendor": "Apple",
+  "memory_gb": [
+   18,
+   36
+  ],
+  "kind": "unified",
+  "notes": "unified memory",
+  "source": "https://support.apple.com/en-us/117736"
+ },
+ {
+  "match": "apple m3",
+  "name": "Apple M3",
+  "vendor": "Apple",
+  "memory_gb": [
+   8,
+   16,
+   24
+  ],
+  "kind": "unified",
+  "notes": "unified memory",
+  "source": "https://support.apple.com/en-us/118551"
+ },
+ {
+  "match": "apple m2 ultra",
+  "name": "Apple M2 Ultra",
+  "vendor": "Apple",
+  "memory_gb": [
+   64,
+   128,
+   192
+  ],
+  "kind": "unified",
+  "notes": "unified memory",
+  "source": "https://support.apple.com/en-us/111835"
+ },
+ {
+  "match": "apple m2 max",
+  "name": "Apple M2 Max",
+  "vendor": "Apple",
+  "memory_gb": [
+   32,
+   64,
+   96
+  ],
+  "kind": "unified",
+  "notes": "unified memory",
+  "source": "https://support.apple.com/en-us/111340"
+ },
+ {
+  "match": "apple m2 pro",
+  "name": "Apple M2 Pro",
+  "vendor": "Apple",
+  "memory_gb": [
+   16,
+   32
+  ],
+  "kind": "unified",
+  "notes": "unified memory",
+  "source": "https://support.apple.com/en-us/111340"
+ },
+ {
+  "match": "apple m2",
+  "name": "Apple M2",
+  "vendor": "Apple",
+  "memory_gb": [
+   8,
+   16,
+   24
+  ],
+  "kind": "unified",
+  "notes": "unified memory",
+  "source": "https://support.apple.com/en-us/111867"
+ },
+ {
+  "match": "apple m1 ultra",
+  "name": "Apple M1 Ultra",
+  "vendor": "Apple",
+  "memory_gb": [
+   64,
+   128
+  ],
+  "kind": "unified",
+  "notes": "unified memory",
+  "source": "https://support.apple.com/en-us/111900"
+ },
+ {
+  "match": "apple m1 max",
+  "name": "Apple M1 Max",
+  "vendor": "Apple",
+  "memory_gb": [
+   32,
+   64
+  ],
+  "kind": "unified",
+  "notes": "unified memory",
+  "source": "https://support.apple.com/en-us/111902"
+ },
+ {
+  "match": "apple m1 pro",
+  "name": "Apple M1 Pro",
+  "vendor": "Apple",
+  "memory_gb": [
+   16,
+   32
+  ],
+  "kind": "unified",
+  "notes": "unified memory",
+  "source": "https://support.apple.com/en-us/111902"
+ },
+ {
+  "match": "apple m1",
+  "name": "Apple M1",
+  "vendor": "Apple",
+  "memory_gb": [
+   8,
+   16
+  ],
+  "kind": "unified",
+  "notes": "unified memory",
+  "source": "https://support.apple.com/en-us/111883"
+ },
+ {
+  "match": "apple a18 pro",
+  "name": "Apple A18 Pro (MacBook Neo)",
+  "vendor": "Apple",
+  "memory_gb": 8,
+  "kind": "unified",
+  "notes": "unified memory (MacBook Neo)",
+  "source": "https://support.apple.com/en-us/126322"
+ },
+ {
+  "match": "arc(tm) pro b70",
+  "name": "Intel Arc Pro B70",
+  "vendor": "Intel",
+  "memory_gb": 32,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://en.wikipedia.org/wiki/Template:Intel_Arc_Battlemage_Workstation"
+ },
+ {
+  "match": "arc(tm) pro b60",
+  "name": "Intel Arc Pro B60",
+  "vendor": "Intel",
+  "memory_gb": 24,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://en.wikipedia.org/wiki/Template:Intel_Arc_Battlemage_Workstation"
+ },
+ {
+  "match": "arc(tm) pro b50",
+  "name": "Intel Arc Pro B50",
+  "vendor": "Intel",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://en.wikipedia.org/wiki/Template:Intel_Arc_Battlemage_Workstation"
+ },
+ {
+  "match": "arc(tm) pro a60m",
+  "name": "Intel Arc Pro A60M",
+  "vendor": "Intel",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "workstation laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:Intel_Arc_Alchemist_Workstation"
+ },
+ {
+  "match": "arc(tm) pro a60",
+  "name": "Intel Arc Pro A60",
+  "vendor": "Intel",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://en.wikipedia.org/wiki/Template:Intel_Arc_Alchemist_Workstation"
+ },
+ {
+  "match": "arc(tm) pro a50",
+  "name": "Intel Arc Pro A50",
+  "vendor": "Intel",
+  "memory_gb": 6,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://en.wikipedia.org/wiki/Template:Intel_Arc_Alchemist_Workstation"
+ },
+ {
+  "match": "arc(tm) pro a40",
+  "name": "Intel Arc Pro A40",
+  "vendor": "Intel",
+  "memory_gb": 6,
+  "kind": "discrete",
+  "notes": "workstation",
+  "source": "https://en.wikipedia.org/wiki/Template:Intel_Arc_Alchemist_Workstation"
+ },
+ {
+  "match": "arc(tm) pro a30m",
+  "name": "Intel Arc Pro A30M",
+  "vendor": "Intel",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": "workstation laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:Intel_Arc_Alchemist_Workstation"
+ },
+ {
+  "match": "arc(tm) b580",
+  "name": "Intel Arc B580",
+  "vendor": "Intel",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://www.intel.com/content/www/us/en/products/sku/241598/intel-arc-b580-graphics/specifications.html"
+ },
+ {
+  "match": "arc(tm) b570",
+  "name": "Intel Arc B570",
+  "vendor": "Intel",
+  "memory_gb": 10,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Template:Intel_Arc_Battlemage"
+ },
+ {
+  "match": "arc(tm) a770m",
+  "name": "Intel Arc A770M",
+  "vendor": "Intel",
+  "memory_gb": 16,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:Intel_Arc_Alchemist_Mobile"
+ },
+ {
+  "match": "arc(tm) a730m",
+  "name": "Intel Arc A730M",
+  "vendor": "Intel",
+  "memory_gb": 12,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:Intel_Arc_Alchemist_Mobile"
+ },
+ {
+  "match": "arc(tm) a570m",
+  "name": "Intel Arc A570M",
+  "vendor": "Intel",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:Intel_Arc_Alchemist_Mobile"
+ },
+ {
+  "match": "arc(tm) a550m",
+  "name": "Intel Arc A550M",
+  "vendor": "Intel",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:Intel_Arc_Alchemist_Mobile"
+ },
+ {
+  "match": "arc(tm) a530m",
+  "name": "Intel Arc A530M",
+  "vendor": "Intel",
+  "memory_gb": [
+   4,
+   8
+  ],
+  "kind": "discrete",
+  "notes": "laptop; 4 GB and 8 GB versions",
+  "source": "https://en.wikipedia.org/wiki/Template:Intel_Arc_Alchemist_Mobile"
+ },
+ {
+  "match": "arc(tm) a370m",
+  "name": "Intel Arc A370M",
+  "vendor": "Intel",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:Intel_Arc_Alchemist_Mobile"
+ },
+ {
+  "match": "arc(tm) a350m",
+  "name": "Intel Arc A350M",
+  "vendor": "Intel",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": "laptop",
+  "source": "https://en.wikipedia.org/wiki/Template:Intel_Arc_Alchemist_Mobile"
+ },
+ {
+  "match": "arc(tm) a770",
+  "name": "Intel Arc A770",
+  "vendor": "Intel",
+  "memory_gb": [
+   16,
+   8
+  ],
+  "kind": "discrete",
+  "notes": "16 GB and 8 GB versions; the renderer string does not say which",
+  "source": "https://www.intel.com/content/www/us/en/products/sku/229151/intel-arc-a770-graphics-16gb/specifications.html"
+ },
+ {
+  "match": "arc(tm) a750",
+  "name": "Intel Arc A750",
+  "vendor": "Intel",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Template:Intel_Arc_Alchemist"
+ },
+ {
+  "match": "arc(tm) a580",
+  "name": "Intel Arc A580",
+  "vendor": "Intel",
+  "memory_gb": 8,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Template:Intel_Arc_Alchemist"
+ },
+ {
+  "match": "arc(tm) a380",
+  "name": "Intel Arc A380",
+  "vendor": "Intel",
+  "memory_gb": 6,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Template:Intel_Arc_Alchemist"
+ },
+ {
+  "match": "arc(tm) a310",
+  "name": "Intel Arc A310",
+  "vendor": "Intel",
+  "memory_gb": 4,
+  "kind": "discrete",
+  "notes": null,
+  "source": "https://en.wikipedia.org/wiki/Template:Intel_Arc_Alchemist"
+ },
+ {
+  "match": "arc(tm) b390",
+  "name": "Intel Arc B390 (Panther Lake integrated)",
+  "vendor": "Intel",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory)",
+  "source": "https://en.wikipedia.org/wiki/Panther_Lake_(microprocessor)"
+ },
+ {
+  "match": "arc(tm) b370",
+  "name": "Intel Arc B370 (Panther Lake integrated)",
+  "vendor": "Intel",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory)",
+  "source": "https://en.wikipedia.org/wiki/Panther_Lake_(microprocessor)"
+ },
+ {
+  "match": "arc(tm) 140v",
+  "name": "Intel Arc 140V (Lunar Lake integrated)",
+  "vendor": "Intel",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory); the renderer string ends in the system RAM, e.g. '(16GB)'",
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(Intel)"
+ },
+ {
+  "match": "arc(tm) 130v",
+  "name": "Intel Arc 130V (Lunar Lake integrated)",
+  "vendor": "Intel",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory); the renderer string ends in the system RAM, e.g. '(8GB)'",
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(Intel)"
+ },
+ {
+  "match": "arc(tm) 140t",
+  "name": "Intel Arc 140T (Arrow Lake integrated)",
+  "vendor": "Intel",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory); the renderer string ends in the system RAM, e.g. '(16GB)'",
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(Intel)"
+ },
+ {
+  "match": "arc(tm) 130t",
+  "name": "Intel Arc 130T (Arrow Lake integrated)",
+  "vendor": "Intel",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory)",
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(Intel)"
+ },
+ {
+  "match": "arc(tm) pro graphics",
+  "name": "Intel Arc Pro Graphics (Core Ultra integrated)",
+  "vendor": "Intel",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory)",
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(Intel)"
+ },
+ {
+  "match": "intel(r) arc(tm) graphics",
+  "name": "Intel Arc Graphics (Core Ultra integrated)",
+  "vendor": "Intel",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory)",
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(Intel)"
+ },
+ {
+  "match": "iris(r) xe",
+  "name": "Intel Iris Xe Graphics",
+  "vendor": "Intel",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory)",
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(Intel)"
+ },
+ {
+  "match": "iris(r) plus",
+  "name": "Intel Iris Plus Graphics",
+  "vendor": "Intel",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory)",
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(Intel)"
+ },
+ {
+  "match": "iris(tm) plus",
+  "name": "Intel Iris Plus Graphics",
+  "vendor": "Intel",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory)",
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(Intel)"
+ },
+ {
+  "match": "uhd graphics",
+  "name": "Intel UHD Graphics",
+  "vendor": "Intel",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory)",
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(Intel)"
+ },
+ {
+  "match": "intel(r) hd graphics",
+  "name": "Intel HD Graphics",
+  "vendor": "Intel",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory)",
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(Intel)"
+ },
+ {
+  "match": "intel(r) graphics",
+  "name": "Intel Graphics (integrated)",
+  "vendor": "Intel",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory)",
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(Intel)"
+ },
+ {
+  "match": "radeon(tm)",
+  "name": "AMD Radeon integrated graphics",
+  "vendor": "AMD",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory); generic fallback for 'AMD Radeon(TM) ... Graphics' APUs",
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(AMD)"
+ },
+ {
+  "match": "radeon graphics",
+  "name": "AMD Radeon integrated graphics",
+  "vendor": "AMD",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "integrated; shares system RAM (no dedicated memory); generic fallback (Linux/Mesa form)",
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(AMD)"
+ },
+ {
+  "match": "apple gpu",
+  "name": "Apple GPU (Safari hides the chip)",
+  "vendor": "Apple",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "Safari/WebKit reports only 'Apple GPU'; ask the user which chip and memory",
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(Apple)"
+ }
+]
