@@ -8,7 +8,8 @@ from pytomography.projectors import SystemMatrix
 import math
 import numpy as np
 import parallelproj_core
-from pytomography.io.PET.shared import crystal_pair_blocks, crystal_pair_index
+from pytomography.io.PET.shared import crystal_pair_blocks
+from pytomography.io.PET.scanner import crystal_pair_index
 from pytomography.utils.memory import MemoryPart, block_size
 
 #: Factor applied to the memory estimates of :meth:`PETLMSystemMatrix.print_memory_usage`. Summing the arrays a

@@ -77,15 +77,6 @@ def _source(image, object_meta) -> tuple:
     return arr, object_meta.affine, object_meta.units, object_meta.modality, object_meta.frame
 
 
-def centred_affine(dr: Sequence[float], shape: Sequence[int]) -> np.ndarray:
-    """The grid centred on the scanner's centre: voxel (i, j, k) at ((i - (Lx - 1) / 2) dx, ...), in mm; the affine of
-    ``ObjectMeta(dr, shape)``."""
-    d = np.asarray(dr, float)
-    A = np.diag([*d, 1.0])
-    A[:3, 3] = [-(n - 1) / 2 * dk for n, dk in zip(shape, d)]
-    return A
-
-
 def _numpy(x) -> np.ndarray:
     if hasattr(x, "detach"):
         x = x.detach().cpu().numpy()

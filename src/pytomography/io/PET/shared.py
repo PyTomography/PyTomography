@@ -6,6 +6,7 @@ import numpy as np
 import pytomography
 from pytomography.utils import get_1d_gaussian_kernel
 from pytomography.utils.memory import BLOCK_CAP_BYTES, block_size, prefer_lazy
+from .scanner import scanner_lut as scanner_lut_of
 
 _GEOMETRY_CACHE: dict = {}
 
@@ -37,7 +38,10 @@ def sinogram_coordinates(info: dict) -> Sequence[torch.Tensor]:
     nr_rings = info['NrRings']
     nr_crystals_per_ring = info['NrCrystalsPerRing']
 
-    min_sector_difference = info['min_rsector_difference']
+    # The sinogram holds every crystal pair, whatever info['min_rsector_difference'] is: that is an event filter, which
+    # the readers apply (scanner.keep_rsector_difference). Leaving pairs out here, as before PyTomography 4, changed
+    # the radial bins without changing sinogram_to_spatial's geometry, so no pair landed in the bin that holds it.
+    min_sector_difference = 0
     min_crystal_difference = min_sector_difference * nr_modules_trans * nr_crystals_trans
 
     radial_size = nr_crystals_per_ring - 2 * (min_crystal_difference - 1) - 1
@@ -120,10 +124,10 @@ def sinogram_to_spatial(info: dict) -> Sequence[torch.Tensor]:
     """
     # a NumPy array (the same float32 values): copying rows of a tensor into the NumPy arrays below made NumPy 2 warn
     # that Tensor.__array__ takes no copy argument, once per crystal pair
-    scanner_lut = get_scanner_LUT(info).numpy()
-    nr_sectors_trans, nr_sectors_axial, nr_modules_axial, nr_modules_trans, nr_crystals_trans, nr_crystals_axial = info['rsectorTransNr'], info['rsectorAxialNr'], info['moduleAxialNr'], info['moduleTransNr'], info['crystalTransNr'], info['crystalAxialNr']
-    nr_rings = nr_sectors_axial * nr_modules_axial * nr_crystals_axial
-    nr_crystals_per_ring = nr_sectors_trans * nr_modules_trans * nr_crystals_trans
+    scanner_lut = scanner_lut_of(info).numpy()
+    nr_modules_trans, nr_crystals_trans = info['moduleTransNr'], info['crystalTransNr']
+    nr_rings = info['NrRings']
+    nr_crystals_per_ring = info['NrCrystalsPerRing']
     min_sector_difference = 0
     min_crystal_difference = min_sector_difference * nr_modules_trans * nr_crystals_trans
     radial_size = int(nr_crystals_per_ring - 2 * (min_crystal_difference - 1) - 1)
@@ -663,20 +667,6 @@ def crystal_pair_blocks(n_crystals: int, pairs_per_block: int):
         offset += n_pairs
         first = last
 
-def crystal_pair_index(crystal_1: torch.Tensor, crystal_2: torch.Tensor, n_crystals: int) -> torch.Tensor:
-    """Index of each pair of crystals ``(crystal_1, crystal_2)``, ``crystal_1 < crystal_2``, in the order of ``torch.combinations(torch.arange(n_crystals), 2)`` (the order of :func:`crystal_pair_blocks` and of ``weights_sensitivity``). Computed with integers: in float32 the products round, and for the mMR (28,672 crystals) about 9 in 10 pairs were given a neighbouring pair's index.
-
-    Args:
-        crystal_1 (torch.Tensor): Lower crystal of each pair.
-        crystal_2 (torch.Tensor): Higher crystal of each pair.
-        n_crystals (int): Number of crystals.
-
-    Returns:
-        torch.Tensor: Index of each pair (int64).
-    """
-    crystal_1, crystal_2 = crystal_1.to(torch.long), crystal_2.to(torch.long)
-    return crystal_1 * (2 * n_crystals - crystal_1 - 1) // 2 + crystal_2 - crystal_1 - 1
-
 def all_pairs_to_sinogram(weights: torch.Tensor, info: dict, normalization: bool = False, pairs_per_chunk: int | None = None) -> torch.Tensor:
     """``listmode_to_sinogram`` of every pair of crystals of the scanner, with a weight for each pair (such as normalization weights), binned a block of pairs at a time.
 
@@ -709,8 +699,9 @@ def all_pairs_to_sinogram(weights: torch.Tensor, info: dict, normalization: bool
     return sinogram.reshape(shape)
 
 def _sinogram_shape(info: dict) -> tuple:
-    """Shape (angles, radial bins, planes) of the sinogram of a scanner."""
-    return (int(info['NrCrystalsPerRing']/2), int(info['NrCrystalsPerRing'])+1, int((info['moduleAxialNr']*info['crystalAxialNr'])**2))
+    """Shape (angles, radial bins, planes) of the sinogram of a scanner: one plane per ordered pair of rings, whatever
+    parts (crystals, submodules, modules, rsectors) the rings are made of."""
+    return (int(info['NrCrystalsPerRing']/2), int(info['NrCrystalsPerRing'])+1, int(info['NrRings']**2))
 
 def _bin_keys(angular_radial: torch.Tensor, plane: torch.Tensor, shape: tuple) -> tuple:
     """Flat sinogram index of each event, and which events lie inside the sinogram (``torch.histogramdd``, used before, dropped the others; ``_add_events`` does too)."""
@@ -735,129 +726,6 @@ def _listmodeTOF_to_sinogramTOF(
         torch.Tensor: PET TOF sinogram
     """
     return _listmode_to_dense_sinogram(detector_ids, info, weights=weights, num_tof_bins=int(tof_meta.num_bins))
-
-def get_detector_ids_from_trans_axial_ids(
-    ids_trans_crystal: torch.Tensor,
-    ids_trans_submodule: torch.Tensor,
-    ids_trans_module: torch.Tensor,
-    ids_trans_rsector: torch.Tensor,
-    ids_axial_crystal: torch.Tensor,
-    ids_axial_submodule: torch.Tensor,
-    ids_axial_module: torch.Tensor,
-    ids_axial_rsector: torch.Tensor,
-    info: dict
-    ) -> torch.Tensor:
-    """Obtain detector IDs from individual part IDs
-
-    Args:
-        ids_trans_crystal (torch.Tensor): Transaxial crystal IDs
-        ids_trans_submodule (torch.Tensor): Transaxial submodule IDs
-        ids_trans_module (torch.Tensor): Transaxial module IDs
-        ids_trans_rsector (torch.Tensor): Transaxial rsector IDs
-        ids_axial_crystal (torch.Tensor): Axial crystal IDs
-        ids_axial_submodule (torch.Tensor): Axial submodule IDs 
-        ids_axial_module (torch.Tensor): Axial module IDs
-        ids_axial_rsector (torch.Tensor): Axial rsector IDs 
-        info (dict): PET geometry information dictionary
-
-    Returns:
-        torch.Tensor: Tensor containing (spatial) detector IDs
-    """
-    ids_ring = ids_axial_crystal +\
-        ids_axial_submodule * info['crystalAxialNr'] +\
-        ids_axial_module * info['crystalAxialNr'] * info['submoduleAxialNr'] +\
-        ids_axial_rsector * info['crystalAxialNr'] * info['submoduleAxialNr'] * info['moduleAxialNr']
-    ids_within_ring = ids_trans_crystal +\
-        ids_trans_submodule * info['crystalTransNr'] +\
-        ids_trans_module * info['crystalTransNr'] * info['submoduleTransNr'] +\
-        ids_trans_rsector * info['crystalTransNr'] * info['submoduleTransNr'] * info['moduleTransNr']
-    nb_crystal_per_ring = info['crystalTransNr'] * info['moduleTransNr'] * info['submoduleTransNr'] * info['rsectorTransNr']
-    ids_detector = ids_ring * nb_crystal_per_ring + ids_within_ring
-    return ids_detector
-
-def get_axial_trans_ids_from_info(
-    info: dict,
-    return_combinations: bool = False,
-    sort_by_detector_ids: bool = False
-    ):
-    """Get axial and transaxial IDs corresponding to each crystal in the scanner
-
-    Args:
-        info (dict): PET geometry information dictionary
-        return_combinations (bool, optional): Whether or not to return all possible combinations (crystal pairs). Defaults to False.
-        sort_by_detector_ids (bool, optional): Whether or not to sort by increasing detector IDs. Defaults to False.
-
-    Returns:
-        Sequence[torch.Tensor]: IDs corresponding to axial/transaxial components of each part
-    """
-    ids_trans_crystal = torch.arange(0, info['crystalTransNr'])
-    ids_axial_crystal = torch.arange(0, info['crystalAxialNr'])
-    ids_trans_submodule = torch.arange(0, info['submoduleTransNr'])
-    ids_axial_submodule = torch.arange(0, info['submoduleAxialNr'])
-    ids_trans_module = torch.arange(0, info['moduleTransNr'])
-    ids_axial_module = torch.arange(0, info['moduleAxialNr'])
-    ids_trans_rsector = torch.arange(0, info['rsectorTransNr'])
-    ids_axial_rsector = torch.arange(0, info['rsectorAxialNr'])
-    ids_trans_crystal, ids_axial_crystal, ids_trans_submodule, ids_axial_submodule, ids_trans_module, ids_axial_module, ids_trans_rsector, ids_axial_rsector = torch.cartesian_prod(ids_trans_crystal, ids_axial_crystal, ids_trans_submodule, ids_axial_submodule, ids_trans_module, ids_axial_module, ids_trans_rsector, ids_axial_rsector).T
-    if sort_by_detector_ids:
-        ids_detector = get_detector_ids_from_trans_axial_ids(ids_trans_crystal, ids_trans_submodule, ids_trans_module, ids_trans_rsector, ids_axial_crystal, ids_axial_submodule, ids_axial_module, ids_axial_rsector, info)
-        idx_sort = torch.argsort(ids_detector)
-        ids_trans_crystal = ids_trans_crystal[idx_sort]
-        ids_axial_crystal = ids_axial_crystal[idx_sort]
-        ids_trans_submodule = ids_trans_submodule[idx_sort]
-        ids_axial_submodule = ids_axial_submodule[idx_sort]
-        ids_trans_module = ids_trans_module[idx_sort]
-        ids_axial_module = ids_axial_module[idx_sort]
-        ids_trans_rsector = ids_trans_rsector[idx_sort]
-        ids_axial_rsector = ids_axial_rsector[idx_sort]
-    if return_combinations:
-        ids_trans_crystal = torch.combinations(ids_trans_crystal, 2)
-        ids_axial_crystal = torch.combinations(ids_axial_crystal, 2)
-        ids_trans_submodule = torch.combinations(ids_trans_submodule, 2)
-        ids_axial_submodule = torch.combinations(ids_axial_submodule, 2)
-        ids_trans_module = torch.combinations(ids_trans_module, 2)
-        ids_axial_module = torch.combinations(ids_axial_module, 2)
-        ids_trans_rsector = torch.combinations(ids_trans_rsector, 2)
-        ids_axial_rsector = torch.combinations(ids_axial_rsector, 2)
-    return ids_trans_crystal, ids_axial_crystal, ids_trans_submodule, ids_axial_submodule, ids_trans_module, ids_axial_module, ids_trans_rsector, ids_axial_rsector
-
-def get_scanner_LUT(info: dict):
-    """Obtains scanner lookup table (gives x/y/z coordinates for each detector ID)
-
-    Args:
-        info (dict): PET geometry information dictionary
-
-    Returns:
-        torch.Tensor[N_detectors, 3]: Lookup table
-    """
-    ids_trans_crystal, ids_axial_crystal, ids_trans_submodule, ids_axial_submodule, ids_trans_module, ids_axial_module, ids_trans_rsector, ids_axial_rsector = get_axial_trans_ids_from_info(info)
-    ids_detector = get_detector_ids_from_trans_axial_ids(ids_trans_crystal, ids_trans_submodule, ids_trans_module, ids_trans_rsector, ids_axial_crystal, ids_axial_submodule, ids_axial_module, ids_axial_rsector, info)
-    Z_modules = ids_axial_module * info['moduleAxialSpacing'] - (info['moduleAxialNr']-1) * info['moduleAxialSpacing'] / 2
-    Z_submodules = Z_modules + ids_axial_submodule * info['submoduleAxialSpacing'] - (info['submoduleAxialNr']-1) * info['submoduleAxialSpacing'] / 2
-    Z_crystals = Z_submodules + ids_axial_crystal * info['crystalAxialSpacing'] - (info['crystalAxialNr']-1) * info['crystalAxialSpacing'] / 2
-    # Get X/Y position of crystals
-    # Start by getting X/Y position inside a submodule aligned with the center of the scanner
-    Y_modules = ids_trans_module * info['moduleTransSpacing'] - (info['moduleTransNr']-1) * info['moduleTransSpacing'] / 2
-    Y_submodules = Y_modules + ids_trans_submodule * info['submoduleTransSpacing'] - (info['submoduleTransNr']-1) * info['submoduleTransSpacing'] / 2
-    Y_crystals = Y_submodules +ids_trans_crystal * info['crystalTransSpacing'] - (info['crystalTransNr']-1) * info['crystalTransSpacing'] / 2
-    X_crystals = info['radius'] * torch.ones(len(Y_crystals))
-    # Now apply rotation based on angle of the rsector
-    angle_rsector = ids_trans_rsector / info['rsectorTransNr'] * 2 * np.pi
-    rotation_matrices = torch.stack([
-        torch.cos(angle_rsector),
-        -torch.sin(angle_rsector),
-        torch.sin(angle_rsector),
-        torch.cos(angle_rsector)], dim=1).view(-1, 2, 2)
-    XY_crystals = torch.vstack([X_crystals, Y_crystals])
-    XY_crystals = torch.einsum('ijk,ki->ij', rotation_matrices, XY_crystals)
-    if info['firstCrystalAxis'] == 0: # crystal with index 0 along x axis
-        XY_crystals = XY_crystals.flip(dims=(1,))
-    # Stack all together (for some reason Z needs to be negative?)
-    XYZ_crystals = torch.vstack([XY_crystals.T, -Z_crystals.unsqueeze(0)]).T
-    # Now sort scanner LUT by ids_detector order
-    XYZ_crystals = XYZ_crystals[torch.argsort(ids_detector)]
-    
-    return XYZ_crystals
 
 def _lazy_sinogram_to_listmode(detector_ids: torch.Tensor, sinogram: LazySinogram, info: dict) -> torch.Tensor:
     """``sinogram_to_listmode`` of a :class:`LazySinogram`: the events are grouped by angle (``_events_by_angle``), and the sinogram is computed a group of angles at a time, so it is never held whole."""
@@ -986,22 +854,81 @@ def smooth_randoms_sinogram(
     sinogram_random_interp = sino[:,:,ix,iy]
     return sinogram_random_interp
 
+#: The speed of light the PET readers and corrections use, in mm/ps (c is 0.2998 mm/ps). A TOF position along an LOR
+#: is (t1 - t2) c / 2.
+SPEED_OF_LIGHT_MM_PER_PS = 0.3
+
 def randoms_sinogram_to_sinogramTOF(
-    sinogram_random: torch.Tenor,
+    sinogram_random: torch.Tensor,
     tof_meta: PETTOFMeta,
     coincidence_timing_width: float,
 ) -> torch.Tensor:
-    """Converts a non-TOF randoms sinogram to a TOF randoms sinogram.
+    """Converts a non-TOF randoms sinogram to a TOF randoms sinogram: randoms are spread evenly over the coincidence
+    window, so each TOF bin holds the fraction bin width / (c x coincidence window / 2 x 2) of them.
 
     Args:
-        sinogram_random (torch.Tenor): Randoms sinogram (non-TOF)
+        sinogram_random (torch.Tensor): Randoms sinogram (non-TOF); it is not changed.
         tof_meta (PETTOFMeta): PET TOF metadata
-        coincidence_timing_width (float): Coincidence timing width used for the acceptance of coincidence events
+        coincidence_timing_width (float): Coincidence timing width used for the acceptance of coincidence events, in ps
 
     Returns:
-        torch.Tensor: Randoms sinogram (TOF)
+        torch.Tensor: Randoms sinogram (TOF): a new tensor, the input times the fraction per bin. (Before
+        PyTomography 4 the input itself was scaled and returned.)
     """
-    sinogram_random *= tof_meta.bin_width / (2 * coincidence_timing_width * 0.3 / 2) # 
-    return sinogram_random
-    
+    return sinogram_random * (tof_meta.bin_width / (2 * coincidence_timing_width * SPEED_OF_LIGHT_MM_PER_PS / 2))
 
+def normalization_sinogram(weights: torch.Tensor, info: dict) -> torch.Tensor:
+    """The normalisation sinogram of a scanner: one weight per crystal pair, in ``torch.combinations`` order (the
+    ``weights_sensitivity`` a reader returns), binned as :func:`listmode_to_sinogram` bins events, with both orders of
+    each pair's crystals averaged. The pairs are binned a block at a time (:func:`all_pairs_to_sinogram`).
+
+    Args:
+        weights (torch.Tensor): weight of each crystal pair.
+        info (dict): the scanner's ``info``.
+
+    Returns:
+        torch.Tensor: the normalisation sinogram.
+    """
+    return all_pairs_to_sinogram(weights, info, normalization=True)
+
+def remove_events_outside(events: torch.Tensor, scanner_lut, object_meta) -> torch.Tensor:
+    r"""The events whose LOR crosses the reconstruction grid of ``object_meta``: the box of its voxels, centred on the
+    scanner's centre (the origin of the scanner lookup table). Events whose LOR misses the box project to zero, so
+    leaving them out changes no reconstruction; it saves their memory and time.
+
+    The test is the slab test of a line segment (from column 0's crystal to column 1's) against an axis-aligned box: the
+    segment crosses the box where its intervals inside the x, y and z slabs overlap. (``remove_events_out_of_bounds``,
+    before PyTomography 4, compared only some of the slabs, and kept LORs that miss the box.)
+
+    Args:
+        events (torch.Tensor): :math:`N \times 2` or :math:`N \times 3` events (detector ids, and the TOF bin).
+        scanner_lut (torch.Tensor | dict): the scanner lookup table (:func:`~pytomography.io.PET.scanner_lut`), or the
+            scanner's ``info``.
+        object_meta (ObjectMeta): the reconstruction grid (``dr`` and ``shape``, mm).
+
+    Returns:
+        torch.Tensor: the events whose LOR crosses the grid, in their order.
+    """
+    if isinstance(scanner_lut, dict):
+        scanner_lut = scanner_lut_of(scanner_lut)
+    lut = scanner_lut.to(device=events.device, dtype=torch.float64)
+    half = torch.tensor(np.asarray(object_meta.shape, dtype=np.float64) * np.asarray(object_meta.dr, dtype=np.float64) / 2,
+                        dtype=torch.float64, device=events.device)
+    keep = torch.empty(events.shape[0], dtype=torch.bool, device=events.device)
+    for start in range(0, events.shape[0], 2**22):
+        ids = events[start:start + 2**22, :2].to(torch.long)
+        origin = lut[ids[:, 0]]
+        direction = lut[ids[:, 1]] - origin
+        t1 = (-half - origin) / direction
+        t2 = (half - origin) / direction
+        enter = torch.minimum(t1, t2)
+        leave = torch.maximum(t1, t2)
+        # a segment parallel to a slab is inside it everywhere or nowhere
+        parallel = direction == 0
+        inside_slab = origin.abs() < half
+        enter = torch.where(parallel, torch.where(inside_slab, -torch.inf, torch.inf), enter)
+        leave = torch.where(parallel, torch.where(inside_slab, torch.inf, -torch.inf), leave)
+        t_in = torch.clamp(enter.max(dim=1).values, min=0)
+        t_out = torch.clamp(leave.min(dim=1).values, max=1)
+        keep[start:start + ids.shape[0]] = t_in < t_out
+    return events[keep]

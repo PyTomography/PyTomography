@@ -17,6 +17,7 @@ from pytomography.metadata import ObjectMeta
 from pytomography.projectors import SystemMatrix
 from pytomography.utils import memory
 from pytomography.utils.memory import MemoryEstimate, MemoryPart, MemoryPlan, plan_settings
+from pytomography.io.PET.scanner import scanner_info
 
 
 @pytest.fixture(autouse=True)
@@ -207,7 +208,7 @@ def test_available_memory_reads_this_machine():
 
 
 # ------------------------------------------------------------------ PET and CT system matrices
-INFO = dict(min_rsector_difference=0, crystal_length=20.0, radius=120.0, firstCrystalAxis=0,
+INFO = scanner_info(min_rsector_difference=0, crystal_length=20.0, radius=120.0, rsector0_angle_deg=90.0, transaxial_direction=-1, axial_direction=-1,
             rsectorTransNr=16, rsectorAxialNr=1, moduleTransNr=1, moduleAxialNr=2, moduleTransSpacing=0.0, moduleAxialSpacing=17.0,
             submoduleTransNr=1, submoduleAxialNr=1, submoduleTransSpacing=0.0, submoduleAxialSpacing=0.0,
             crystalTransNr=4, crystalAxialNr=4, crystalTransSpacing=4.0, crystalAxialSpacing=4.0,

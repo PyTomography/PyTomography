@@ -41,6 +41,7 @@ import torch
 
 import pytomography
 from pytomography.utils import memory
+from pytomography.io.PET.scanner import scanner_info
 
 
 # ------------------------------------------------------------------ measurement
@@ -236,7 +237,7 @@ def case_motion(scale):
 def _pet_info(scale):
     """A scanner of 256 crystals per ring and 16 rings (32 at scale 4)."""
     rings = 16 if scale < 4 else 32
-    return dict(min_rsector_difference=0, crystal_length=20.0, radius=300.0, firstCrystalAxis=0,
+    return scanner_info(min_rsector_difference=0, crystal_length=20.0, radius=300.0, rsector0_angle_deg=90.0, transaxial_direction=-1, axial_direction=-1,
                 rsectorTransNr=32, rsectorAxialNr=1, moduleTransNr=1, moduleAxialNr=rings // 8, moduleTransSpacing=0.0,
                 moduleAxialSpacing=33.0, submoduleTransNr=1, submoduleAxialNr=1, submoduleTransSpacing=0.0,
                 submoduleAxialSpacing=0.0, crystalTransNr=8, crystalAxialNr=8, crystalTransSpacing=4.0,

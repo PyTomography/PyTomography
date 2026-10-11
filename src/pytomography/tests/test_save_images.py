@@ -293,28 +293,6 @@ def test_starguide_frame_matches_ge_reconstruction(data_dir):
 
 
 @pytest.mark.data
-def test_gate_image_lands_on_its_phantom_nifti(tmp_path, data_dir):
-    """A reconstruction-sized image saved with the phantom's frame overlays the phantom's own NIfTI: sampling the
-    original MR at each saved voxel's position (through the two files' affines only) gives the saved value."""
-    nib = pytest.importorskip("nibabel")
-    from scipy.ndimage import map_coordinates
-    from pytomography.io.PET import gate
-    path = str(_tutorial_data(data_dir, "PET/GATE-mMR-Brain", "fdg_pet_phantom_mri.nii.gz"))
-    meta = ObjectMeta(dr=(2.0, 2.0, 2.0), shape=(100, 120, 110))
-    on_grid = gate.get_attenuation_map_nifti(path, meta).cpu().numpy() * 10   # the MR as the PET grid sees it
-    saved = nib.load(str(save_nifti(Image(on_grid, gate.get_patient_affine_from_nifti(path, meta)),
-                                    tmp_path / "mr_on_pet_grid.nii.gz")))
-    mr = nib.load(path)
-    rng = np.random.default_rng(0)
-    ijk = np.argwhere(on_grid > 0.2 * on_grid.max())
-    ijk = ijk[rng.choice(len(ijk), 2000, replace=False)]
-    world = saved.affine @ np.c_[ijk, np.ones(len(ijk))].T
-    src = np.linalg.inv(mr.affine) @ world
-    sampled = map_coordinates(np.asarray(mr.dataobj, np.float32), src[:3], order=1)
-    assert np.allclose(sampled, on_grid[tuple(ijk.T)], rtol=1e-3, atol=1e-3 * on_grid.max())
-
-
-@pytest.mark.data
 def test_save_dcm_scale_by_number_of_projections_reads_back(tmp_path, data_dir):
     """#230: with scale_by_number_projections the series reads back as the image itself, not N_proj times it."""
     from pytomography.io.SPECT import dicom

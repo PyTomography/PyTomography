@@ -1,6 +1,5 @@
 from __future__ import annotations
 import pytomography
-from pytomography.io.PET import shared
 from .pet_tof_metadata import PETTOFMeta
 
 class PETSinogramPolygonProjMeta():
@@ -15,10 +14,11 @@ class PETSinogramPolygonProjMeta():
         info: dict,
         tof_meta: PETTOFMeta | None = None
     ):  
+        from pytomography.io.PET.scanner import scanner_lut
+        from pytomography.io.PET.shared import sinogram_to_spatial
         self.info = info
-        scanner_LUT = shared.get_scanner_LUT(info)
-        self.scanner_lut = scanner_LUT
-        self.detector_coordinates, self.ring_coordinates = shared.sinogram_to_spatial(info)
+        self.scanner_lut = scanner_lut(info)
+        self.detector_coordinates, self.ring_coordinates = sinogram_to_spatial(info)
         self.detector_coordinates = self.detector_coordinates.to(pytomography.device)
         self.ring_coordinates = self.ring_coordinates.to(pytomography.device)
         self.shape = [self.detector_coordinates.shape[0], self.detector_coordinates.shape[1], self.ring_coordinates.shape[0]]

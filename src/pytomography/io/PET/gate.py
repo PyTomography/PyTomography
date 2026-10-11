@@ -1,602 +1,485 @@
+"""Read GATE simulations of PET scanners: the coincidences of GATE's ROOT output, with the scanner described by the
+simulation's geometry macro.
+
+:func:`read_gate` returns the events in PyTomography's standard form, with the object grid placed in the patient and
+the projection metadata (:class:`~pytomography.metadata.PET.PETLMProjMeta`)::
+
+    events, object_meta, proj_meta = io.PET.read_gate(root_files, 'mMR_Geometry.mac', doi_mm=9,
+                                                      object_meta=ObjectMeta(dr=(2, 2, 2), shape=(128, 128, 96)))
+
+GATE's world frame is whatever the simulation made it: the phantom sits in it wherever the simulation placed it. Two
+arguments say how: ``world_axes``, the patient direction (L or R, P or A, S or I) that GATE's +x, +y and +z point to,
+and ``world_origin``, where GATE's origin is in the patient's LPS coordinates (mm). The datasets PyTomography hosts
+record theirs in the dataset registry (``pytomography/datasets/registry.py``, a dataset's ``geometry``), and the reader
+uses them when it reads those files.
+
+:func:`gate_normalization` computes the normalisation weights of every crystal pair from a simulated calibration
+scan of a cylindrical shell.
+"""
 from __future__ import annotations
+
+import math
+import os
+import warnings
 from collections.abc import Sequence
+from pathlib import Path
+
+import numpy as np
+import torch
+import uproot
+
 import pytomography
 from pytomography.metadata import ObjectMeta
-import torch
-import numpy as np
-import numpy.linalg as npl
-import uproot
-import nibabel as nib
-from scipy.ndimage import affine_transform
-from ..shared import get_header_value, get_attenuation_map_interfile
+from pytomography.metadata.PET import PETLMProjMeta, PETTOFMeta
 from pytomography.utils.memory import block_size
-from .shared import listmode_to_sinogram, all_pairs_to_sinogram, crystal_pair_blocks, LazySinogram, sinogram_to_listmode, get_detector_ids_from_trans_axial_ids, get_axial_trans_ids_from_info, get_scanner_LUT, smooth_randoms_sinogram, randoms_sinogram_to_sinogramTOF
+from .scanner import (crystal_parts, detector_ids_from_parts, frame_keys_after, keep_rsector_difference,
+                      scanner_info, scanner_lut)
+from .shared import SPEED_OF_LIGHT_MM_PER_PS, crystal_pair_blocks
+from ._standard import default_grid, normalization_weights, reader_object_meta
 
-def get_aligned_attenuation_map(
-    headerfile: str,
-    object_meta: ObjectMeta
-    ) -> torch.tensor:
-    """Returns an aligned attenuation map in units of inverse mm for reconstruction. This assumes that the attenuation map shares the same center point with the reconstruction space.
+#: Patient directions, as unit vectors in LPS
+_DIRECTIONS = {"L": (1, 0, 0), "R": (-1, 0, 0), "P": (0, 1, 0), "A": (0, -1, 0), "S": (0, 0, 1), "I": (0, 0, -1)}
+#: GATE length units in mm
+_UNITS = {"nm": 1e-6, "um": 1e-3, "mm": 1.0, "cm": 10.0, "m": 1000.0}
+#: what ``events`` can ask for
+_KINDS = ("trues", "scatters", "randoms")
 
-    Args:
-        headerfile (str): Filepath to the header file of the attenuation map
-        object_meta (ObjectMeta): Object metadata providing spatial information about the reconstructed dimensions.
 
-    Returns:
-        torch.Tensor: Aligned attenuation map
-    """
-    amap = get_attenuation_map_interfile(headerfile).cpu().numpy()
-    # Load metadata
-    with open(headerfile) as f:
-        headerdata = f.readlines()
-    headerdata = np.array(headerdata)
-    dx = get_header_value(headerdata, 'scaling factor (mm/pixel) [1]', np.float32)
-    dy = get_header_value(headerdata, 'scaling factor (mm/pixel) [2]', np.float32)
-    dz = get_header_value(headerdata, 'scaling factor (mm/pixel) [3]', np.float32)
-    dr_amap = (dx, dy, dz)
-    shape_amap = amap.shape
-    object_origin_amap = (- np.array(shape_amap) / 2 + 0.5) * (np.array(dr_amap))
-    dr = object_meta.dr
-    shape = object_meta.shape
-    object_origin = object_origin = (- np.array(shape) / 2 + 0.5) * (np.array(dr))
-    M_PET = np.array([
-        [dr[0],0,0,object_origin[0]],
-        [0,dr[1],0,object_origin[1]],
-        [0,0,dr[2],object_origin[2]],
-        [0,0,0,1]
-    ])
-    M_CT = np.array([
-        [dr_amap[0],0,0,object_origin_amap[0]],
-        [0,dr_amap[1],0,object_origin_amap[1]],
-        [0,0,dr_amap[2],object_origin_amap[2]],
-        [0,0,0,1]
-    ])
-    amap = affine_transform(amap, npl.inv(M_CT)@M_PET, output_shape = shape, order=1)
-    amap = torch.tensor(amap, device=pytomography.device) / 10 # to mm^-1
-    return amap
-
-def get_detector_info(
-    path: str,
-    init_volume_name: str = 'crystal',
-    mean_interaction_depth: float = 0,
-    min_rsector_difference: int = 0
-    ) -> dict:
-    """Generates detector geometry information dictionary from GATE macro file
+def world_matrix(world_axes: str) -> np.ndarray:
+    """The 3 x 3 matrix that takes positions in GATE's world (mm) to the patient's LPS axes: column ``i`` is the
+    patient direction GATE's axis ``i`` points to.
 
     Args:
-        path (str): Path to GATE macro file that defines geometry: should end in ".mac"
-        init_volume_name (str, optional): Initial volume name in the GATE file. Defaults to 'crystal'.
-        mean_interaction_depth (float, optional): Mean interaction depth of photons within crystal. Defaults to 0.
-        min_rsector_difference (int, optional): Minimum r_sector difference for retained events. Defaults to 0.
+        world_axes (str): three letters, one per GATE axis (x, y, z), from L or R, P or A, and S or I: ``'LPS'`` when
+            GATE's axes are the patient's, ``'LPI'`` when GATE's z runs towards the feet. GATE's z, the scanner's axis,
+            must be the patient's head-foot axis.
 
     Returns:
-        dict: PET geometry information dictionary
+        np.ndarray: the matrix (a rotation or a reflection).
     """
-    with open(path) as f:
-        headerdata = f.readlines()
-    headerdata = np.array(headerdata)
-    parents = ['crystal', 'submodule', 'module', 'rsector', 'world']
-    positions = []
-    for parent in parents:
-        try:
-            x = get_header_value(headerdata, f'/gate/{parent}/placement/setTranslation', split_substr=None, split_idx=1)
-            y = get_header_value(headerdata, f'/gate/{parent}/placement/setTranslation', split_substr=None, split_idx=2)
-            z = get_header_value(headerdata, f'/gate/{parent}/placement/setTranslation', split_substr=None, split_idx=3)
-        except:
-            x = y = z = 0
-        positions.append([x,y,z])
-    positions = np.array(positions)
-    x_crystal, y_crystal, z_crystal = positions.sum(axis=0)
-    x_crystal = np.array([x_crystal])
-    y_crystal = np.array([y_crystal])
-    z_crystal = np.array([z_crystal])
-    # Get edges of crystal (assume original in +X) TODO: fix
-    info = {}
-    info['min_rsector_difference'] = min_rsector_difference
-    info['crystal_length'] = get_header_value(headerdata, f'/gate/{init_volume_name}/geometry/setXLength', split_substr=None, split_idx=1) 
-    info['radius'] = x_crystal[0] - info['crystal_length']/2 + mean_interaction_depth
-    for parent in parents:
-        repeaters = get_header_value(headerdata, f'/gate/{parent}/repeaters/insert', split_substr=None, split_idx=1, dtype=str, return_all=True)
-        if not(repeaters):
-            if parent=='submodule':
-                info['submoduleAxialNr'] = 1
-                info['submoduleAxialSpacing'] = 0
-                info['submoduleTransNr'] = 1
-                info['submoduleTransSpacing'] = 0
+    letters = str(world_axes).upper()
+    if len(letters) != 3 or any(c not in _DIRECTIONS for c in letters):
+        raise ValueError(f"world_axes must be three letters from L/R, P/A and S/I (e.g. 'LPS'), not {world_axes!r}")
+    matrix = np.array([_DIRECTIONS[c] for c in letters], dtype=np.float64).T
+    if abs(abs(np.linalg.det(matrix)) - 1) > 1e-9:
+        raise ValueError(f"world_axes {world_axes!r} names one patient axis twice")
+    if letters[2] not in "SI":
+        raise ValueError(f"GATE's z is the scanner's axis, which PyTomography takes as the patient's head-foot axis: "
+                         f"the third letter of world_axes must be S or I, not {letters[2]!r}")
+    return matrix
+
+
+def _parse_macro(macro) -> dict:
+    """The commands of a GATE macro: ``{command: [arguments of each time it is given]}``, comments dropped."""
+    commands: dict = {}
+    for line in Path(macro).read_text(errors="replace").splitlines():
+        line = line.split("#", 1)[0].strip()
+        if not line.startswith("/"):
             continue
+        command, *arguments = line.split()
+        commands.setdefault(command, []).append(arguments)
+    return commands
+
+
+def _lengths(arguments: Sequence[str], n: int, command: str) -> list[float]:
+    """The first ``n`` numbers of a GATE command, in mm (a unit after them, mm if there is none)."""
+    try:
+        values = [float(a) for a in arguments[:n]]
+    except ValueError:
+        raise ValueError(f"cannot read {n} numbers from {command} {' '.join(arguments)}") from None
+    unit = arguments[n] if len(arguments) > n else "mm"
+    if unit not in _UNITS:
+        raise ValueError(f"unknown length unit {unit!r} in {command} {' '.join(arguments)}")
+    return [v * _UNITS[unit] for v in values]
+
+
+def _last(commands: dict, command: str):
+    return commands[command][-1] if command in commands else None
+
+
+def _macro_info(macro, doi_mm: float = 0.0, crystal_volume: str = "crystal") -> tuple[dict, float]:
+    """The ring of a GATE cylindrical PET system, as ``info`` keys in GATE's world, from its geometry macro; and the
+    axial position of the rings' centre in GATE's world (mm)."""
+    commands = _parse_macro(macro)
+    levels = ("crystal", "submodule", "module", "rsector")
+    translation = np.zeros(3)
+    for level in levels:
+        arguments = _last(commands, f"/gate/{level}/placement/setTranslation")
+        if arguments is not None:
+            translation += _lengths(arguments, 3, f"/gate/{level}/placement/setTranslation")
+    if abs(translation[1]) > 1e-6:
+        raise NotImplementedError("PyTomography reads GATE scanners whose rsector is placed along +x (its translation"
+                                  f" has y = {translation[1]} mm)")
+    if translation[0] <= 0:
+        raise ValueError(f"the crystals of this macro are not placed away from the axis along +x ({translation} mm)")
+    length = _last(commands, f"/gate/{crystal_volume}/geometry/setXLength")
+    if length is None:
+        raise ValueError(f"the macro does not give the depth of its crystals (/gate/{crystal_volume}/geometry/setXLength)")
+    crystal_length = _lengths(length, 1, "setXLength")[0]
+    keys = {"crystal_length": crystal_length, "radius": translation[0] - crystal_length / 2 + doi_mm, "doi_mm": doi_mm}
+    first_angle = 0.0
+    for level in levels:
+        repeaters = [a[0] for a in commands.get(f"/gate/{level}/repeaters/insert", [])]
+        if not repeaters and level == "submodule":
+            keys.update(submoduleTransNr=1, submoduleTransSpacing=0.0, submoduleAxialNr=1, submoduleAxialSpacing=0.0)
         for repeater in repeaters:
-            if repeater=='cubicArray':
-                repeat_numbers = np.array([get_header_value(headerdata, f'/gate/{parent}/{repeater}/setRepeatNumber{coord}', split_substr=None, split_idx=1) for coord in ['X', 'Y', 'Z']])
-                repeat_vector = np.array([get_header_value(headerdata, f'/gate/{parent}/{repeater}/setRepeatVector', split_substr=None, split_idx=i) for i in range(1,4)])
-                idx_trans = np.argmax(repeat_numbers[:2])
-                info[f'{parent}TransNr'] = int(repeat_numbers[idx_trans])
-                info[f'{parent}TransSpacing'] = repeat_vector[idx_trans]
-                info[f'{parent}AxialNr'] = int(repeat_numbers[2])
-                info[f'{parent}AxialSpacing'] = repeat_vector[2]
-            elif repeater=='linear':
-                repeat_number = get_header_value(headerdata, f'/gate/{parent}/{repeater}/setRepeatNumber', split_substr=None, split_idx=1)
-                repeat_vector = [get_header_value(headerdata, f'/gate/{parent}/{repeater}/setRepeatVector', split_substr=None, split_idx=i) for i in range(1,4)]
-                # append to axial/trans information
-                info[f'{parent}AxialNr'] = int(repeat_number)
-                info[f'{parent}AxialSpacing'] = repeat_vector[2]
-            elif repeater=='ring':
-                repeat_number = get_header_value(headerdata, f'/gate/{parent}/{repeater}/setRepeatNumber', split_substr=None, split_idx=1)
-                # Repeat number for a ring is in the axial direction
-                info[f'{parent}TransNr'] = int(repeat_number)
-                info[f'{parent}AxialNr'] = 1
-    info['NrCrystalsPerRing'] = info['crystalTransNr'] * info['moduleTransNr'] * info['submoduleTransNr'] * info['rsectorTransNr']
-    info['NrRings'] = info['crystalAxialNr'] * info['submoduleAxialNr'] * info['moduleAxialNr'] * info['rsectorAxialNr']
-    info['firstCrystalAxis'] = 1
-    return info
-
-def get_axial_trans_ids_from_ROOT(
-    f: object,
-    info: dict,
-    j: int = None,
-    substr: str = 'Coincidences') -> Sequence[torch.Tensor]:
-    """Obtain transaxial and axial IDS (for crystals, submodules, modules, and rsectors) corresponding to each listmode event in an opened ROOT file
-
-    Args:
-        f (object): Opened ROOT file    
-        info (dict): PET geometry information dictionary
-        j (int, optional): Which of the detectors to consider in a coincidence event OR which detector to consider for a single (None). Defaults to None.
-        substr (str, optional): Whether to consider coincidences or singles. Defaults to 'Coincidences'.
-
-    Returns:
-        Sequence[torch.Tensor]: Sequence of IDs (transaxial/axial) for all components (crystals, submodules, modules, and rsectors)
-    """
-    if j is None:
-        idx_str = ''
-    else:
-        idx_str = f'{j+1}'
-    ids_rsector = torch.tensor(f[substr][f'rsectorID{idx_str}'].array(library="np"))
-    ids_module = torch.tensor(f[substr][f'moduleID{idx_str}'].array(library="np"))
-    ids_submodule = torch.tensor(f[substr][f'submoduleID{idx_str}'].array(library="np"))
-    ids_crystal = torch.tensor(f[substr][f'crystalID{idx_str}'].array(library="np"))
-    ids_trans_rsector = ids_rsector % info['rsectorTransNr']
-    ids_axial_rsector = ids_rsector // info['rsectorTransNr']
-    ids_trans_module = ids_module % info['moduleTransNr']
-    ids_axial_module = ids_module // info['moduleTransNr']
-    ids_trans_submodule = ids_submodule % info['submoduleTransNr']
-    ids_axial_submodule = ids_submodule // info['submoduleTransNr']
-    ids_trans_crystal = ids_crystal % info['crystalTransNr']
-    ids_axial_crystal = ids_crystal // info['crystalTransNr']
-    return ids_trans_crystal, ids_axial_crystal, ids_trans_submodule, ids_axial_submodule, ids_trans_module, ids_axial_module, ids_trans_rsector, ids_axial_rsector
-
-def get_detector_ids_from_root(
-    paths: Sequence[str],
-    info: dict,
-    tof_meta = None,
-    substr: str = 'Coincidences',
-    include_randoms: bool = True,
-    include_scatters: bool = True,
-    randoms_only: bool = False,
-    scatters_only: bool = False
-    ) -> torch.Tensor:
-    """Obtain detector IDs corresponding to each listmode event in a set of ROOT files
-
-    Args:
-        paths (Sequence[str]): List of ROOT files to consider
-        info (dict): PET geometry information dictionary
-        tof_meta (PETTOFMeta, optional): PET time of flight metadata for binning. If none, then TOF is not considered Defaults to None.
-        substr (str, optional): Name of events to consider in the ROOT file. Defaults to 'Coincidences'.
-        include_randoms (bool, optional): Whether or not to include random events in the returned listmode events. Defaults to True.
-        include_scatters (bool, optional): Whether or not to include scatter events in the returned listmode events. Defaults to True.
-        randoms_only (bool, optional): Flag to return only random events. Defaults to False.
-        scatters_only (bool, optional): Flag to return only scatter events. Defaults to False.
-
-    Returns:
-        torch.Tensor: Tensor of shape [N_events,2] (non-TOF) or [N_events,3] (TOF)
-    """
-    if tof_meta is not None:
-        TOF_bin_edges = tof_meta.bin_edges
-    detector_ids_trio = [[],[],[]]
-    for i,path in enumerate(paths):
-        print(i)
-        with uproot.open(path) as f:
-            N_events = f[substr]['sourcePosX1'].array(library='np').shape[0]
-            valid_indices = torch.ones(N_events).to(torch.bool)
-            if not(include_randoms) or randoms_only or not(include_scatters) or scatters_only:
-                xs1 = torch.tensor(f[substr]['sourcePosX1'].array(library='np'))
-                xs2 = torch.tensor(f[substr]['sourcePosX2'].array(library='np'))
-                ys1 = torch.tensor(f[substr]['sourcePosY1'].array(library='np'))
-                ys2 = torch.tensor(f[substr]['sourcePosY2'].array(library='np'))
-                zs1 = torch.tensor(f[substr]['sourcePosZ1'].array(library='np'))
-                zs2 = torch.tensor(f[substr]['sourcePosZ2'].array(library='np'))
-                random_indices = ~((xs1==xs2)*(ys1==ys2)*(zs1==zs2))
-            if not(include_scatters) or scatters_only:
-                scatter_raleigh_1 = torch.tensor(f['Coincidences']['RayleighPhantom1'].array(library='np'))
-                scatter_raleigh_2 = torch.tensor(f['Coincidences']['RayleighPhantom2'].array(library='np'))
-                scatter_compton_1 = torch.tensor(f['Coincidences']['comptonPhantom1'].array(library='np'))
-                scatter_compton_2 = torch.tensor(f['Coincidences']['comptonPhantom2'].array(library='np'))
-                scatter_indices = (scatter_raleigh_1+scatter_raleigh_2+scatter_compton_1+scatter_compton_2).to(torch.bool)
-                
-            # Adjust indices we're looking for based on the events we want
-            if randoms_only:
-                valid_indices *= random_indices
-            elif scatters_only:
-                # Only include scatter events that arent from randoms
-                valid_indices *= (scatter_indices)*(~random_indices)
+            base = f"/gate/{level}/{repeater}"
+            if repeater == "cubicArray":
+                numbers = [int(float(_last(commands, f"{base}/setRepeatNumber{c}")[0]))
+                           if f"{base}/setRepeatNumber{c}" in commands else 1 for c in "XYZ"]
+                vector = _lengths(_last(commands, f"{base}/setRepeatVector"), 3, f"{base}/setRepeatVector") \
+                    if f"{base}/setRepeatVector" in commands else [0.0, 0.0, 0.0]
+                if numbers[0] > 1:
+                    raise NotImplementedError(f"{level}s repeated along x (the depth of the crystals) are not supported")
+                keys.update({f"{level}TransNr": numbers[1], f"{level}TransSpacing": vector[1],
+                             f"{level}AxialNr": numbers[2], f"{level}AxialSpacing": vector[2]})
+            elif repeater == "linear":
+                number = int(float(_last(commands, f"{base}/setRepeatNumber")[0]))
+                vector = _lengths(_last(commands, f"{base}/setRepeatVector"), 3, f"{base}/setRepeatVector")
+                if abs(vector[0]) > 1e-9 or abs(vector[1]) > 1e-9:
+                    raise NotImplementedError(f"a linear repeater of {level}s must repeat along z, not {vector}")
+                keys.update({f"{level}AxialNr": number, f"{level}AxialSpacing": vector[2]})
+                keys.setdefault(f"{level}TransNr", 1)
+            elif repeater == "ring":
+                keys.update({f"{level}TransNr": int(float(_last(commands, f"{base}/setRepeatNumber")[0])),
+                             f"{level}AxialNr": 1})
+                if f"{base}/setFirstAngle" in commands:
+                    arguments = _last(commands, f"{base}/setFirstAngle")
+                    first_angle = float(arguments[0]) * (1.0 if len(arguments) < 2 or arguments[1].startswith("deg")
+                                                        else 180 / math.pi)
+                if f"{base}/setAngularSpan" in commands:
+                    arguments = _last(commands, f"{base}/setAngularSpan")
+                    span = float(arguments[0]) * (1.0 if len(arguments) < 2 or arguments[1].startswith("deg")
+                                                 else 180 / math.pi)
+                    if not math.isclose(span, 360.0):
+                        raise NotImplementedError(f"a ring of rsectors over {span} degrees is not a full ring")
             else:
-                if not(include_randoms):
-                    valid_indices *= ~random_indices
-                if not(include_scatters):
-                    valid_indices *= ~scatter_indices
-            for j in range(2):
-                ids_trans_crystal, ids_axial_crystal, ids_trans_submodule, ids_axial_submodule, ids_trans_module, ids_axial_module, ids_trans_rsector, ids_axial_rsector = get_axial_trans_ids_from_ROOT(f, info, j, substr)
-                detector_ids = get_detector_ids_from_trans_axial_ids(ids_trans_crystal, ids_trans_submodule, ids_trans_module, ids_trans_rsector, ids_axial_crystal, ids_axial_submodule, ids_axial_module, ids_axial_rsector, info)
-                detector_ids = detector_ids[valid_indices]
-                detector_ids_trio[j].append(detector_ids.to(torch.int32))
-            if tof_meta is not None:
-                t1 = f[substr]['time1'].array(library='np')
-                t2 = f[substr]['time2'].array(library='np')
-                tof_pos = 1e12*(t2 - t1) * 0.15 # ps to mm
-                detector_id = np.digitize(-tof_pos, TOF_bin_edges) - 1
-                # First see if only binning scatters/randoms
-                detector_id = detector_id[valid_indices]
-                detector_ids_trio[2].append(torch.tensor(detector_id))
-    
+                raise NotImplementedError(f"GATE's {repeater!r} repeater ({level}) is not supported")
+    keys["rsector0_angle_deg"] = first_angle
+    for level in levels[1:]:
+        keys.setdefault(f"{level}TransNr", 1)
+        keys.setdefault(f"{level}AxialNr", 1)
+    return keys, float(translation[2])
+
+
+def _registry_placement(root_files: Sequence) -> dict | None:
+    """How the phantom of a dataset PyTomography hosts sat in GATE's world, from the dataset registry: the ``gate``
+    entry of the dataset's ``geometry``, when the first ROOT file is one of the dataset's (by its name and size, or by
+    its folder in the data folder)."""
+    from pytomography.datasets import data_dir, registry
+    first = Path(root_files[0])
+    try:
+        size = first.stat().st_size
+        resolved = first.resolve()
+    except OSError:
+        return None
+    for name, entry in registry.DATASETS.items():
+        placement = entry.get("geometry", {}).get("gate")
+        if not placement:
+            continue
+        for path, pinned in entry.get("files", {}).items():
+            if Path(path).name == first.name and int(pinned[0]) == size:
+                return placement
+        try:
+            if resolved.is_relative_to((data_dir() / name).resolve()):
+                return placement
+        except OSError:
+            continue
+    return None
+
+
+def _branch(tree, name: str) -> np.ndarray:
+    return tree[name].array(library="np")
+
+
+def _event_kinds(tree) -> dict:
+    """Which coincidences of a tree are randoms (their two photons come from different annihilations) and scatters
+    (not randoms, with a Compton or Rayleigh interaction in the phantom), as boolean arrays."""
+    random = ~((_branch(tree, "sourcePosX1") == _branch(tree, "sourcePosX2"))
+               & (_branch(tree, "sourcePosY1") == _branch(tree, "sourcePosY2"))
+               & (_branch(tree, "sourcePosZ1") == _branch(tree, "sourcePosZ2")))
+    scattered = np.zeros(random.shape, dtype=bool)
+    for name in ("comptonPhantom1", "comptonPhantom2", "RayleighPhantom1", "RayleighPhantom2"):
+        scattered |= _branch(tree, name) != 0
+    return {"randoms": random, "scatters": scattered & ~random, "trues": ~scattered & ~random}
+
+
+def _crystal_ids(tree, info: dict, j: int) -> np.ndarray:
+    """Detector ids of single ``j`` (1 or 2) of every coincidence, from GATE's copy numbers (``crystalID`` is the
+    cubic array's copy number, transaxial fastest)."""
+    rsector, module, submodule, crystal = (_branch(tree, f"{level}ID{j}").astype(np.int64)
+                                           for level in ("rsector", "module", "submodule", "crystal"))
+    parts = []
+    for ids, level in ((crystal, "crystal"), (submodule, "submodule"), (module, "module"), (rsector, "rsector")):
+        parts += [ids % info[f"{level}TransNr"], ids // info[f"{level}TransNr"]]
+    return detector_ids_from_parts(*parts, info=info)
+
+
+def _kinds(events) -> tuple[str, Sequence[str] | None]:
+    """The tree and the kinds of coincidence ``events`` asks for (None: all of them)."""
+    if isinstance(events, str):
+        if events == "prompts":
+            return "Coincidences", None
+        if events == "delayeds":
+            return "delay", None
+        events = (events,)
+    kinds = tuple(events)
+    unknown = [k for k in kinds if k not in _KINDS]
+    if unknown or not kinds:
+        raise ValueError(f"events must be 'prompts', 'delayeds', or one or more of {_KINDS}, not {events!r}")
+    return "Coincidences", kinds
+
+
+def _read_events(root_files: Sequence, info: dict, tree_name: str, kinds, tof_meta: PETTOFMeta | None) -> torch.Tensor:
+    """int32 events [N, 2] (or [N, 3] with TOF bins) of the ROOT files, the coincidences of the kinds asked for."""
     if tof_meta is not None:
-        return torch.vstack([
-            torch.concatenate(detector_ids_trio[0]),
-            torch.concatenate(detector_ids_trio[1]),
-            torch.concatenate(detector_ids_trio[2])]).T
-    else:
-        return torch.vstack([
-            torch.concatenate(detector_ids_trio[0]),
-            torch.concatenate(detector_ids_trio[1])]).T
-        
-def get_symmetry_histogram_from_ROOTfile(
-    f: object,
-    info: dict,
-    substr: str = 'Coincidences',
-    include_randoms: bool = True
-    ) -> torch.Tensor:
-    """Obtains a histogram that exploits symmetries when computing normalization factors from calibration ROOT scans
-
-    Args:
-        f (object): Opened ROOT file
-        info (dict): PET geometry information dictionary
-        substr (str, optional): Name of events to consider in ROOT file. Defaults to 'Coincidences'.
-        include_randoms (bool, optional): Whether or not to include random events from data (coincidences whose two photons come from different annihilations). Defaults to True.
-
-    Returns:
-        torch.Tensor: Symmetry histogram
-    """
-    ids1_trans_crystal, ids1_axial_crystal, ids1_trans_submodule, ids1_axial_submodule, ids1_trans_module, ids1_axial_module, ids1_trans_rsector, ids1_axial_rsector = get_axial_trans_ids_from_ROOT(f, info, 0, substr= substr)
-    ids2_trans_crystal, ids2_axial_crystal, ids2_trans_submodule, ids2_axial_submodule, ids2_trans_module, ids2_axial_module, ids2_trans_rsector, ids2_axial_rsector = get_axial_trans_ids_from_ROOT(f, info, 1, substr= substr)
-    ids_trans_crystal = torch.vstack([ids1_trans_crystal, ids2_trans_crystal])
-    ids_axial_crystal = torch.vstack([ids1_axial_crystal, ids2_axial_crystal])
-    ids_axial_submodule = torch.vstack([ids1_axial_submodule, ids2_axial_submodule])
-    ids_axial_module = torch.vstack([ids1_axial_module, ids2_axial_module])
-    ids_trans_rsector = torch.vstack([ids1_trans_rsector, ids2_trans_rsector])
-    # Make sure smallest detector ID always comes first
-    detector_ids1 = get_detector_ids_from_trans_axial_ids(ids1_trans_crystal, ids1_trans_submodule, ids1_trans_module, ids1_trans_rsector, ids1_axial_crystal, ids1_axial_submodule, ids1_axial_module, ids1_axial_rsector, info)
-    detector_ids2 = get_detector_ids_from_trans_axial_ids(ids2_trans_crystal, ids2_trans_submodule, ids2_trans_module, ids2_trans_rsector, ids2_axial_crystal, ids2_axial_submodule, ids2_axial_module, ids2_axial_rsector, info)
-    detector_ids = torch.vstack([detector_ids1, detector_ids2])
-    idx_min = detector_ids.min(axis=0).indices
-    idx_max = detector_ids.max(axis=0).indices
-    # Compute histogram quantities
-    ids_delta_axial_submodule =  (
-        torch.take_along_dim(ids_axial_submodule, idx_max.unsqueeze(0), 0) \
-      - torch.take_along_dim(ids_axial_submodule, idx_min.unsqueeze(0), 0) )\
-      + (info['submoduleAxialNr'] - 1)
-    ids_delta_axial_module =  (
-        torch.take_along_dim(ids_axial_module, idx_max.unsqueeze(0), 0) \
-      - torch.take_along_dim(ids_axial_module, idx_min.unsqueeze(0), 0) )\
-      + (info['moduleAxialNr'] - 1)
-    ids_delta_trans_rsector =  (
-        torch.take_along_dim(ids_trans_rsector, idx_max.unsqueeze(0), 0) \
-      - torch.take_along_dim(ids_trans_rsector, idx_min.unsqueeze(0), 0) )\
-      % info['rsectorTransNr'] 
-    histo = torch.vstack([
-        torch.take_along_dim(ids_axial_crystal, idx_min.unsqueeze(0), 0),
-        torch.take_along_dim(ids_axial_crystal, idx_max.unsqueeze(0), 0),
-        torch.take_along_dim(ids_trans_crystal, idx_min.unsqueeze(0), 0),
-        torch.take_along_dim(ids_trans_crystal, idx_max.unsqueeze(0), 0),
-        ids_delta_axial_submodule,
-        ids_delta_axial_module,
-        ids_delta_trans_rsector
-    ]).T
-    if not include_randoms:
-        # keep the coincidences whose two photons come from the same annihilation (randoms come from two)
-        xs1 = torch.tensor(f[substr]['sourcePosX1'].array(library='np'))
-        xs2 = torch.tensor(f[substr]['sourcePosX2'].array(library='np'))
-        ys1 = torch.tensor(f[substr]['sourcePosY1'].array(library='np'))
-        ys2 = torch.tensor(f[substr]['sourcePosY2'].array(library='np'))
-        zs1 = torch.tensor(f[substr]['sourcePosZ1'].array(library='np'))
-        zs2 = torch.tensor(f[substr]['sourcePosZ2'].array(library='np'))
-        same_location_idxs = (xs1==xs2)*(ys1==ys2)*(zs1==zs2)
-        return histo[same_location_idxs]
-    else:
-        return histo
-
-def get_symmetry_histogram_all_combos(info: dict) -> torch.Tensor:
-    """Obtains the symmetry histogram for detector sensitivity corresponding to all possible detector pair combinations
-
-    This holds every pair at once (about 75 GB at the peak for the Siemens Biograph mMR); ``get_normalization_weights_cylinder_calibration`` goes through the pairs in blocks instead.
-
-    Args:
-        info (dict): PET geometry information dictionary
-
-    Returns:
-        torch.Tensor: Histogram corresponding to all possible detector pair combinations. This simply counts the number of detector pairs in each bin of the histogram.
-    """
-    ids_trans_crystal, ids_axial_crystal, ids_trans_submodule, ids_axial_submodule, ids_trans_module, ids_axial_module, ids_trans_rsector, ids_axial_rsector = get_axial_trans_ids_from_info(info, return_combinations=True, sort_by_detector_ids=True)
-    ids_delta_axial_submodule = (ids_axial_submodule[:,1] - ids_axial_submodule[:,0]) + (info['submoduleAxialNr'] - 1)
-    ids_delta_axial_module = (ids_axial_module[:,1] - ids_axial_module[:,0]) + (info['moduleAxialNr'] - 1)
-    ids_delta_trans_rsector = (ids_trans_rsector[:,1] - ids_trans_rsector[:,0]) % info['rsectorTransNr'] # because of circle
-    return torch.vstack([ids_axial_crystal[:,0], ids_axial_crystal[:,1], ids_trans_crystal[:,0], ids_trans_crystal[:,1], ids_delta_axial_submodule, ids_delta_axial_module, ids_delta_trans_rsector]).T
-
-def get_normalization_weights_cylinder_calibration(
-    paths: Sequence[str],
-    info: dict,
-    cylinder_radius: float,
-    include_randoms: bool = True,
-    ) -> torch.tensor:
-    """Function to get sensitivty factor from a cylindrical calibration phantom
-
-    The factor of every crystal pair (411 million for the Siemens Biograph mMR) is computed a block of pairs at a time, sized from the memory budget (:func:`pytomography.set_memory_budget`); computing all pairs at once took about 75 GB.
-
-    Args:
-        paths (Sequence[str]): List of paths corresponding to calibration scan
-        info (dict): PET geometry information dictionary
-        cylinder_radius (float): Radius of cylindrical phantom used in scan
-        include_randoms (bool, optional): Whether or not to include random events from the cylinder calibration. Defaults to True.
-
-
-    Returns:
-        torch.tensor: Sensitivty factor for all possible detector combinations
-    """
-    # Detector sensitivity correction factor (exploits symmetries): the calibration scan's coincidences, counted per symmetry class of crystal pairs
-    Nr_crystal_axial_bins = info['crystalAxialNr']
-    Nr_crystal_trans_bins = info['crystalTransNr']
-    Nr_delta_submodule_axial_bins = info['submoduleAxialNr'] * 2 - 1
-    Nr_delta_module_axial_bins = info['moduleAxialNr'] * 2 - 1
-    Nr_delta_rsector_trans_bins = info['rsectorTransNr'] # b/c circle
-    histo = torch.zeros([Nr_crystal_axial_bins, Nr_crystal_axial_bins, Nr_crystal_trans_bins, Nr_crystal_trans_bins, Nr_delta_submodule_axial_bins, Nr_delta_module_axial_bins, Nr_delta_rsector_trans_bins])
-    bin_edges = [torch.arange(x).to(torch.float32)-0.5 for x in [Nr_crystal_axial_bins+1, Nr_crystal_axial_bins+1, Nr_crystal_trans_bins+1, Nr_crystal_trans_bins+1, Nr_delta_submodule_axial_bins+1, Nr_delta_module_axial_bins+1, Nr_delta_rsector_trans_bins+1]]
-    for path in paths:
+        edges = tof_meta.bin_edges.double().numpy()
+    columns = []
+    for path in root_files:
         with uproot.open(path) as f:
-            vals = get_symmetry_histogram_from_ROOTfile(f, info, include_randoms=include_randoms)
-            histo += torch.histogramdd(vals.to(torch.float32), bin_edges)[0]
-    return _weights_from_symmetry_histogram(histo, info, cylinder_radius)
+            tree = f[tree_name]
+            keep = None
+            if kinds is not None:
+                flags = _event_kinds(tree)
+                keep = np.zeros(flags["trues"].shape, dtype=bool)
+                for kind in kinds:
+                    keep |= flags[kind]
+            ids = [_crystal_ids(tree, info, j) for j in (1, 2)]
+            if tof_meta is not None:
+                # (t1 - t2) c / 2: the position along the LOR from its midpoint towards column 1 (the second single)
+                position = (_branch(tree, "time1") - _branch(tree, "time2")) * 1e12 * SPEED_OF_LIGHT_MM_PER_PS / 2
+                tof_bin = np.digitize(position, edges) - 1
+                inside = (tof_bin >= 0) & (tof_bin < tof_meta.num_bins)
+                keep = inside if keep is None else keep & inside
+                ids.append(tof_bin)
+            block = np.stack(ids, axis=1)
+            if keep is not None:
+                block = block[keep]
+            columns.append(block.astype(np.int32))
+    width = 2 if tof_meta is None else 3
+    events = np.concatenate(columns) if columns else np.zeros((0, width), dtype=np.int32)
+    return torch.from_numpy(events)
+
+
+def read_gate(
+    root_files: str | os.PathLike | Sequence,
+    macro: str | os.PathLike,
+    *,
+    object_meta: ObjectMeta | None = None,
+    events: str | Sequence[str] = "prompts",
+    tof_meta: PETTOFMeta | None = None,
+    world_axes: str | None = None,
+    world_origin: Sequence[float] | None = None,
+    doi_mm: float = 0.0,
+    energy_window_keV: Sequence[float] | None = None,
+    energy_resolution: float | None = None,
+    normalization=None,
+    min_rsector_difference: int = 0,
+) -> tuple[torch.Tensor, ObjectMeta, PETLMProjMeta]:
+    r"""The coincidences of a GATE simulation of a cylindrical PET scanner, in PyTomography's standard form.
+
+    The scanner is read from the simulation's geometry macro: a ring of rsectors (GATE's ``ring`` repeater), each made
+    of modules, submodules and crystals (``cubicArray`` or ``linear`` repeaters), placed along +x. Each event's two
+    detector ids come from GATE's copy numbers. The scanner lookup table is in the object frame: GATE's world turned
+    to the patient's LPS axes by ``world_axes``. The grid is centred on the rings' centre, and ``object_meta.centre``
+    says where that is in the patient.
+
+    Args:
+        root_files (str | os.PathLike | Sequence): GATE's ROOT output, one file or several (their events are joined
+            in order).
+        macro (str | os.PathLike): the GATE macro that describes the scanner (``.mac``).
+        object_meta (ObjectMeta, optional): the reconstruction grid (``dr`` and ``shape``); its centre and frame are
+            set by the reader. Defaults to None: voxels half the crystal pitch, a square covering 80 % of the ring's
+            diameter, and every ring.
+        events (str | Sequence[str], optional): ``'prompts'`` (every coincidence), ``'delayeds'`` (the delayed
+            coincidence window, GATE's ``delay`` tree), or one or more of ``'trues'``, ``'scatters'`` (not random,
+            with a Compton or Rayleigh interaction in the phantom) and ``'randoms'`` (two photons from different
+            annihilations) of the prompts. Defaults to ``'prompts'``.
+        tof_meta (PETTOFMeta, optional): TOF bins to sort the events into, by (t1 - t2) c / 2; events outside the bins
+            are dropped. Defaults to None: no TOF.
+        world_axes (str, optional): the patient directions GATE's +x, +y and +z point to, e.g. ``'LPS'`` (GATE's world
+            is the patient's frame) or ``'LPI'`` (GATE's z runs towards the feet). Defaults to None: the placement the
+            dataset registry records for a hosted dataset, else ``'LPS'``.
+        world_origin (Sequence[float], optional): where GATE's origin lies in the patient's LPS coordinates (mm). With
+            it, ``object_meta.frame`` is ``'patient'``. Defaults to None: the registry's placement for a hosted
+            dataset; else GATE's origin is the origin, with ``frame='scanner'``.
+        doi_mm (float, optional): depth of interaction: the LORs end this far inside the crystals' inner face (mm).
+            Defaults to 0.
+        energy_window_keV (Sequence[float], optional): the simulation's energy window (low, high) in keV, which is in
+            the digitizer, not in the output (for the scatter estimate). Defaults to None.
+        energy_resolution (float, optional): the digitizer's energy resolution, the FWHM at 511 keV as a fraction of
+            511 keV. Defaults to None.
+        normalization (str | os.PathLike | np.ndarray | torch.Tensor, optional): normalisation weights of every
+            crystal pair, in ``torch.combinations`` order (a ``.npy`` file, or the array; see
+            :func:`gate_normalization`). Pairs whose weight is NaN (no calibration data) get 0, with a warning. They
+            become ``proj_meta.weights_sensitivity``. Defaults to None.
+        min_rsector_difference (int, optional): keep only events whose crystals are at least this many rsectors apart
+            around the ring (GATE's ``setMinSectorDifference``). Defaults to 0.
+
+    Returns:
+        tuple[torch.Tensor, ObjectMeta, PETLMProjMeta]: the events (int32 ``[N, 2]``, or ``[N, 3]`` with the TOF bin;
+        column 0 is the first single), the object grid (modality ``'PT'``, units ``'counts'``) and the projection
+        metadata (the events, ``info``, ``tof_meta`` and the normalisation weights).
+    """
+    if isinstance(root_files, (str, os.PathLike)):
+        root_files = [root_files]
+    root_files = list(root_files)
+    if not root_files:
+        raise ValueError("no ROOT files given")
+    gate_keys, axial_centre = _macro_info(macro, doi_mm=doi_mm)
+    placement = _registry_placement(root_files) if world_axes is None and world_origin is None else None
+    if placement is not None:
+        world_axes, world_origin = placement["world_axes"], placement.get("world_origin")
+    matrix = world_matrix(world_axes or "LPS")
+    frame = frame_keys_after(matrix, gate_keys.pop("rsector0_angle_deg"), 1, 1)
+    low, high = (None, None) if energy_window_keV is None else (float(energy_window_keV[0]), float(energy_window_keV[1]))
+    info = scanner_info(gate_keys, **frame, min_rsector_difference=min_rsector_difference,
+                        energy_window_low_keV=low, energy_window_high_keV=high, energy_resolution=energy_resolution)
+    tree, kinds = _kinds(events)
+    detector_ids = keep_rsector_difference(_read_events(root_files, info, tree, kinds, tof_meta), info)
+    centre = matrix @ np.array([0.0, 0.0, axial_centre]) + (np.zeros(3) if world_origin is None else np.asarray(world_origin, dtype=np.float64))
+    object_meta = reader_object_meta(object_meta, default_grid(info), centre=centre,
+                                     frame="scanner" if world_origin is None else "patient", modality="PT", units="counts")
+    weights = None if normalization is None else normalization_weights(normalization, info)
+    proj_meta = PETLMProjMeta(detector_ids, info, tof_meta=tof_meta, weights_sensitivity=weights)
+    return detector_ids, object_meta, proj_meta
+
+
+# ---------- normalisation from a calibration scan ----------
+
+def _symmetry_histogram_values(f, info: dict, tree: str = "Coincidences", include_randoms: bool = True) -> torch.Tensor:
+    """The seven symmetry-class coordinates of the coincidences of an opened ROOT file (as :func:`_symmetry_values`
+    gives them for crystal pairs), without the randoms unless ``include_randoms``."""
+    t = f[tree]
+    parts = []
+    for j in (1, 2):
+        rsector, module, submodule, crystal = (torch.from_numpy(_branch(t, f"{level}ID{j}").astype(np.int64))
+                                               for level in ("rsector", "module", "submodule", "crystal"))
+        p = []
+        for ids, level in ((crystal, "crystal"), (submodule, "submodule"), (module, "module"), (rsector, "rsector")):
+            p += [ids % info[f"{level}TransNr"], ids // info[f"{level}TransNr"]]
+        parts.append(p)
+    ids = torch.stack([detector_ids_from_parts(*p, info=info) for p in parts])
+    first = ids.argmin(dim=0)   # the crystal with the smaller id first, as in torch.combinations
+    a = [torch.where(first == 0, p0, p1) for p0, p1 in zip(*parts)]
+    b = [torch.where(first == 0, p1, p0) for p0, p1 in zip(*parts)]
+    values = _symmetry_values_of_parts(a, b, info)
+    if not include_randoms:
+        same = ((_branch(t, "sourcePosX1") == _branch(t, "sourcePosX2")) & (_branch(t, "sourcePosY1") == _branch(t, "sourcePosY2"))
+                & (_branch(t, "sourcePosZ1") == _branch(t, "sourcePosZ2")))
+        values = values[torch.from_numpy(same)]
+    return values
+
+
+def _symmetry_values_of_parts(a: Sequence[torch.Tensor], b: Sequence[torch.Tensor], info: dict) -> torch.Tensor:
+    """Symmetry-class coordinates of crystal pairs (``a`` the crystal with the smaller id), from their part ids in the
+    order of :func:`~pytomography.io.PET.scanner.crystal_parts`."""
+    tc_a, ac_a, ts_a, as_a, tm_a, am_a, tr_a, ar_a = a
+    tc_b, ac_b, ts_b, as_b, tm_b, am_b, tr_b, ar_b = b
+    return torch.vstack([ac_a, ac_b, tc_a, tc_b,
+                         (as_b - as_a) + (info["submoduleAxialNr"] - 1),
+                         (am_b - am_a) + (info["moduleAxialNr"] - 1),
+                         (tr_b - tr_a) % info["rsectorTransNr"]]).T
+
 
 def _symmetry_values(pairs: torch.Tensor, components: Sequence[torch.Tensor], info: dict) -> torch.Tensor:
-    """The seven symmetry-histogram coordinates of crystal pairs, as ``get_symmetry_histogram_all_combos`` gives them for all pairs: ``components`` are the crystals' trans/axial ids from ``get_axial_trans_ids_from_info(info, sort_by_detector_ids=True)``."""
-    trans_crystal, axial_crystal, trans_submodule, axial_submodule, trans_module, axial_module, trans_rsector, axial_rsector = components
-    a, b = pairs[:,0], pairs[:,1]
-    return torch.vstack([axial_crystal[a], axial_crystal[b], trans_crystal[a], trans_crystal[b],
-                         (axial_submodule[b] - axial_submodule[a]) + (info['submoduleAxialNr'] - 1),
-                         (axial_module[b] - axial_module[a]) + (info['moduleAxialNr'] - 1),
-                         (trans_rsector[b] - trans_rsector[a]) % info['rsectorTransNr']]).T
+    """The seven symmetry-histogram coordinates of crystal pairs ``(a, b)``, ``a < b``: ``components`` are the
+    crystals' part ids, ``crystal_parts(info, sort_by_detector_ids=True)``."""
+    return _symmetry_values_of_parts([c[pairs[:, 0]] for c in components], [c[pairs[:, 1]] for c in components], info)
 
-def _weights_from_symmetry_histogram(histo: torch.Tensor, info: dict, cylinder_radius: float, pairs_per_block: int | None = None) -> torch.Tensor:
-    """Normalization weight of every crystal pair (``torch.combinations`` order) from the calibration scan's symmetry histogram: the counts of the pair's symmetry class over the number of pairs in it, times the correction for the cylinder's non-uniform exposure.
 
-    All pairs at once took about 75 GB for the mMR (eight 6.6 GB lists of all pairs and a 23 GB table of their symmetry classes), so the pairs are gone through a block at a time, twice: to count the pairs in each class, then to compute their weights. The result is the same.
+def _symmetry_shape(info: dict) -> list[int]:
+    return [info["crystalAxialNr"], info["crystalAxialNr"], info["crystalTransNr"], info["crystalTransNr"],
+            info["submoduleAxialNr"] * 2 - 1, info["moduleAxialNr"] * 2 - 1, info["rsectorTransNr"]]
+
+
+def lor_radius(detector_ids: torch.Tensor, lut: torch.Tensor) -> torch.Tensor:
+    """Signed distance of each LOR from the scanner's axis, in the transaxial plane (mm): for a pair of crystals at
+    the same transaxial position, the distance of that position from the axis."""
+    x1, y1, _ = lut[detector_ids[:, 0]].T
+    x2, y2, _ = lut[detector_ids[:, 1]].T
+    return torch.where((x1 == x2) & (y1 == y2), torch.sqrt(x1**2 + y1**2),
+                       (x1 * y2 - y1 * x2) / torch.sqrt((x1 - x2)**2 + (y1 - y2)**2))
+
+
+def _weights_from_symmetry_histogram(histo: torch.Tensor, info: dict, cylinder_radius_mm: float,
+                                     pairs_per_block: int | None = None) -> torch.Tensor:
+    """Normalization weight of every crystal pair (``torch.combinations`` order) from the calibration scan's symmetry
+    histogram: the counts of the pair's symmetry class over the number of pairs in it, times the correction for the
+    cylinder's non-uniform exposure. NaN where the pair's LOR passes outside the cylinder.
+
+    All pairs at once took about 75 GB for the mMR (eight 6.6 GB lists of all pairs and a 23 GB table of their symmetry
+    classes), so the pairs are gone through a block at a time, twice: to count the pairs in each class, then to compute
+    their weights.
 
     Args:
         histo (torch.Tensor): Coincidences of the calibration scan per symmetry class.
-        info (dict): PET geometry information dictionary
-        cylinder_radius (float): Radius of cylindrical phantom used in scan
-        pairs_per_block (int | None, optional): Pairs processed at once. Defaults to None: as many as fit in an eighth of the memory budget (about 200 bytes each), or 2**22 without a budget.
+        info (dict): the scanner's ``info``.
+        cylinder_radius_mm (float): Radius of cylindrical phantom used in scan
+        pairs_per_block (int | None, optional): Pairs processed at once. Defaults to None: as many as fit in an eighth
+            of the memory budget (about 200 bytes each), or 2**22 without a budget.
 
     Returns:
         torch.Tensor: Weight of every crystal pair.
     """
-    scanner_LUT = get_scanner_LUT(info)
-    n_crystals = scanner_LUT.shape[0]
+    lut = scanner_lut(info)
+    n_crystals = lut.shape[0]
     if pairs_per_block is None:
         pairs_per_block = block_size(200, default=2**22)
-    components = get_axial_trans_ids_from_info(info, sort_by_detector_ids=True)
+    components = crystal_parts(info, sort_by_detector_ids=True)
     shape = histo.shape
 
     def flat_class(vals):
         index = torch.zeros(vals.shape[0], dtype=torch.long)
         for k, n in enumerate(shape):
-            index = index * n + vals[:,k]
+            index = index * n + vals[:, k]
         return index
     # number of crystal pairs in each symmetry class
-    N_bins = torch.zeros(histo.numel(), dtype=torch.long)
+    n_bins = torch.zeros(histo.numel(), dtype=torch.long)
     for _, pairs in crystal_pair_blocks(n_crystals, pairs_per_block):
-        N_bins += torch.bincount(flat_class(_symmetry_values(pairs, components, info)), minlength=histo.numel())
-    counts_per_pair = histo / N_bins.to(histo.dtype).reshape(shape)
+        n_bins += torch.bincount(flat_class(_symmetry_values(pairs, components, info)), minlength=histo.numel())
+    counts_per_pair = histo / n_bins.to(histo.dtype).reshape(shape)
     weights = torch.empty(n_crystals * (n_crystals - 1) // 2, dtype=counts_per_pair.dtype)
     for offset, pairs in crystal_pair_blocks(n_crystals, pairs_per_block):
         vals = _symmetry_values(pairs, components, info)
-        # Geometry correction factor for non-unform exposure from cylindrical shell
-        geometric_correction_factor = 1/(torch.sqrt(1-(torch.abs(get_radius(pairs, scanner_LUT)) / cylinder_radius )**2) + pytomography.delta)
-        weights[offset:offset + pairs.shape[0]] = counts_per_pair[tuple(vals.T)] * geometric_correction_factor
+        # the cylindrical shell exposes the LORs that cross it at a slant for longer
+        correction = 1 / (torch.sqrt(1 - (torch.abs(lor_radius(pairs, lut)) / cylinder_radius_mm)**2) + pytomography.delta)
+        weights[offset:offset + pairs.shape[0]] = counts_per_pair[tuple(vals.T)] * correction
     return weights
 
-def get_norm_sinogram_from_listmode_data(
-    weights_sensitivity: torch.Tensor,
-    info: dict
-) -> torch.Tensor:
-    """Obtains normalization "sensitivty" sinogram from listmode data
+
+def gate_normalization(root_files: str | os.PathLike | Sequence, info: dict, cylinder_radius_mm: float, *,
+                       include_randoms: bool = False) -> torch.Tensor:
+    """Normalisation weights of every crystal pair from a GATE simulation of a calibration scan: a uniform cylindrical
+    shell of radius ``cylinder_radius_mm`` centred on the scanner's axis.
+
+    The coincidences are counted per symmetry class of crystal pairs (the crystals' positions within their modules, and
+    their modules' and rsectors' differences), divided by the number of pairs in the class, and corrected for the
+    longer path of slanted LORs through the shell. The weight of every crystal pair (411 million for the Siemens
+    Biograph mMR) is computed a block of pairs at a time, sized from the memory budget
+    (:func:`pytomography.set_memory_budget`).
+
+    Pairs whose LOR passes outside the shell have no calibration data: their weight is 0, and a warning says how many
+    there are.
 
     Args:
-        weights_sensitivity (torch.Tensor): Sensitivty weight corresponding to all possible detector pairs
-        info (dict): PET geometry information dictionary
+        root_files (str | os.PathLike | Sequence): the calibration scan's ROOT files.
+        info (dict): the scanner's ``info`` (``proj_meta.info`` from :func:`read_gate`).
+        cylinder_radius_mm (float): radius of the calibration shell (mm).
+        include_randoms (bool, optional): count the random coincidences too. Defaults to False.
 
     Returns:
-        torch.Tensor: PET sinogram
+        torch.Tensor: float32 weight of every crystal pair, in ``torch.combinations`` order: pass it to
+        :func:`read_gate` as ``normalization``.
     """
-    # binned a block of crystal pairs at a time: all 411 million pairs of the mMR at once took tens of GB
-    return all_pairs_to_sinogram(weights_sensitivity, info, normalization=True)
-
-def get_norm_sinogram_from_root_data(
-    normalization_paths: Sequence[str],
-    info: dict,
-    cylinder_radius: float,
-    include_randoms: bool =True,
-) -> torch.Tensor:
-    """Obtain normalization "sensitivity" sinogram directly from ROOT files
-
-    Args:
-        normalization_paths (Sequence[str]): Paths to all ROOT files corresponding to calibration scan
-        info (dict): PET geometry information dictionary
-        cylinder_radius (float): Radius of cylinder used in calibration scan
-        include_randoms (bool, optional): Whether or not to include randoms in loaded data. Defaults to True.
-
-    Returns:
-        torch.Tensor: PET sinogram
-    """
-    eta = get_normalization_weights_cylinder_calibration(
-        normalization_paths,
-        info,
-        include_randoms=include_randoms,
-        cylinder_radius = cylinder_radius
-    )
-    return get_norm_sinogram_from_listmode_data(eta, info)
-
-
-def get_sinogram_from_root_data(
-    paths: Sequence[str],
-    info: dict,
-    include_randoms: bool = True,
-    include_scatters: bool = True,
-    randoms_only: bool = False,
-    scatters_only: bool = False
-) -> torch.Tensor:
-    """Get PET sinogram directly from ROOT data
-
-    Args:
-        paths (Sequence[str]): GATE generated ROOT files
-        info (dict): PET geometry information dictionary
-        include_randoms (bool, optional): Whether or not to include random events in the sinogram. Defaults to True.
-        include_scatters (bool, optional): Whether or not to include scatter events in the sinogram. Defaults to True.
-        randoms_only (bool, optional): Flag for only binning randoms. Defaults to False.
-        scatters_only (bool, optional): Flag for only binning scatters. Defaults to False.
-
-    Returns:
-        torch.Tensor: PET sinogram
-    """
-    detector_ids = get_detector_ids_from_root(
-        paths,
-        info,
-        include_randoms=include_randoms,
-        include_scatters=include_scatters,
-        randoms_only=randoms_only,
-        scatters_only=scatters_only,
-        TOF=False)
-    return listmode_to_sinogram(detector_ids, info)
-
-def get_radius(detector_ids: torch.tensor, scanner_LUT: torch.tensor) -> torch.tensor:
-    """Gets the radial position of all LORs
-
-    Args:
-        detector_ids (torch.tensor): Detector ID pairs corresponding to LORs
-        scanner_LUT (torch.tensor): scanner look up table
-
-    Returns:
-        torch.tensor: radii of all detector ID pairs provided
-    """
-    x1, y1, z1 = scanner_LUT[detector_ids[:,0]].T
-    x2, y2, z2 = scanner_LUT[detector_ids[:,1]].T
-    return torch.where(
-        (x1==x2)*(y1==y2),
-        torch.sqrt(x1**2+y1**2),
-        (x1*y2-y1*x2)/torch.sqrt((x1-x2)**2+(y1-y2)**2)
-    )
-    
-def get_angle(detector_ids: torch.tensor, scanner_LUT: torch.tensor) -> torch.tensor:
-    """Gets the angular position of all LORs
-
-    Args:
-        detector_ids (torch.tensor): Detector ID pairs corresponding to LORs
-        scanner_LUT (torch.tensor): scanner look up table
-
-    Returns:
-        torch.tensor: angle of all detector ID pairs provided
-    """
-    x1, y1, z1 = scanner_LUT[detector_ids[:,0]].T
-    x2, y2, z2 = scanner_LUT[detector_ids[:,1]].T
-    return torch.where(
-        (x1==x2)*(y1==y2),
-        torch.inf,
-        torch.arccos(torch.abs(x1-x2)/torch.sqrt((x1-x2)**2+(y1-y2)**2))
-    )
-
-# Removes all LORs not intersecting with reconstruction cube
-def remove_events_out_of_bounds(
-    detector_ids: torch.tensor,
-    scanner_LUT: torch.tensor,
-    object_meta: ObjectMeta
-    ) -> torch.tensor:
-    r"""Removes all detected LORs outside of the reconstruced volume given by ``object_meta``.
-
-    Args:
-        detector_ids (torch.tensor): :math:`N \times 2` (non-TOF) or :math:`N \times 3` (TOF) tensor that provides detector ID pairs (and TOF bin) for coincidence events.
-        scanner_LUT (torch.tensor): scanner lookup table that provides spatial coordinates for all detector ID pairs
-        object_meta (ObjectMeta): object metadata providing the region of reconstruction
-
-    Returns:
-        torch.tensor: all detector ID pairs corresponding to coincidence events
-    """
-    bmin = -torch.tensor(object_meta.shape) * torch.tensor(object_meta.dr) / 2
-    bmax = torch.tensor(object_meta.shape) * torch.tensor(object_meta.dr) / 2
-    bmin = bmin.to(detector_ids.device); bmax=bmax.to(detector_ids.device)
-    origin = scanner_LUT[detector_ids[:,0]]
-    direction = scanner_LUT[detector_ids[:,1]] - origin
-    t1 = torch.where(
-        direction>=0,
-        (bmin - origin) / direction,
-        (bmax - origin) / direction
-    )
-    t2 = torch.where(
-        direction>=0,
-        (bmax - origin) / direction,
-        (bmin - origin) / direction
-    )
-    intersect = (t1[:,0]>t2[:,1])+(t1[:,1]>t2[:,0])+((t1[:,0]>t2[:,2]))+(t1[:,2]>t2[:,0])
-    return detector_ids[~intersect]
-
-def get_attenuation_map_nifti(path, object_meta):
-    # If img is none, extract data from path
-    data = nib.load(path)
-    img = data.get_fdata()
-    Sx, Sy, Sz = -(np.array(img.shape)-1) / 2
-    dx, dy, dz = data.header['pixdim'][1:4]
-    # Convert from RAS to LPS space for DICOM
-    dx*=-1; dy*=-1
-    M_highres = np.zeros((4,4))
-    M_highres[0] = np.array([dx, 0, 0, Sx*dx])
-    M_highres[1] = np.array([0, dy, 0, Sy*dy])
-    M_highres[2] = np.array([0, 0, dz, Sz*dz])
-    M_highres[3] = np.array([0, 0, 0, 1])
-    dx, dy, dz = object_meta.dr
-    Sx, Sy, Sz = -(np.array(object_meta.shape)-1) / 2
-    M_pet = np.zeros((4,4))
-    M_pet[0] = np.array([dx, 0, 0, Sx*dx])
-    M_pet[1] = np.array([0, dy, 0, Sy*dy])
-    M_pet[2] = np.array([0, 0, dz, Sz*dz])
-    M_pet[3] = np.array([0, 0, 0, 1])
-    M = npl.inv(M_highres) @ M_pet
-    return torch.tensor(affine_transform(img, M, output_shape=object_meta.shape, mode='constant', order=1)) / 10
-
-
-def get_patient_affine_from_nifti(path: str, object_meta: ObjectMeta) -> np.ndarray:
-    """Where the voxels of a reconstruction on ``object_meta``'s grid are in the frame of the NIfTI image the GATE
-    phantom came from (its MR or attenuation map), so a saved reconstruction lands on that image in other software.
-
-    It is the placement :func:`get_attenuation_map_nifti` uses: both images centred on the scanner's axis, the NIfTI's
-    first two axes reversed (RAS to LPS). Pass the result as ``affine`` to :func:`pytomography.io.save_nifti` or
-    :func:`pytomography.io.save_dicom`.
-
-    Args:
-        path (str): the NIfTI file (e.g. the phantom's MR).
-        object_meta (ObjectMeta): the reconstruction's object metadata (voxel sizes in mm).
-
-    Returns:
-        np.ndarray: the 4 x 4 voxel-to-patient matrix (LPS, mm).
-    """
-    from ..shared.output import LPS_TO_RAS, centred_affine
-    img = nib.load(path)
-    n = np.asarray(img.shape[:3], float)
-    d = np.asarray(img.header['pixdim'][1:4], float) * [-1, -1, 1]   # RAS to LPS, as get_attenuation_map_nifti
-    M_nifti = np.diag([*d, 1.0])
-    M_nifti[:3, 3] = -(n - 1) / 2 * d
-    M_pet = centred_affine(object_meta.dr, object_meta.shape)
-    return LPS_TO_RAS @ img.affine @ npl.inv(M_nifti) @ M_pet
+    if isinstance(root_files, (str, os.PathLike)):
+        root_files = [root_files]
+    shape = _symmetry_shape(info)
+    histo = torch.zeros(shape)
+    edges = [torch.arange(n + 1).to(torch.float32) - 0.5 for n in shape]
+    for path in root_files:
+        with uproot.open(path) as f:
+            values = _symmetry_histogram_values(f, info, include_randoms=include_randoms)
+            histo += torch.histogramdd(values.to(torch.float32), edges)[0]
+    weights = _weights_from_symmetry_histogram(histo, info, cylinder_radius_mm)
+    return normalization_weights(weights, info, in_place=True)
