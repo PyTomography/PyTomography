@@ -25,7 +25,7 @@ class PoissonLogLikelihood(Likelihood):
         Args:
             object (torch.Tensor): Object :math:`f` on which the likelihood is computed
             subset_idx (int | None, optional): Specifies the subset for forward/back projection. If none, then forward/back projection is done over all subsets, and the entire projections :math:`g` are used. Defaults to None.
-            norm_BP_subset_method (str, optional): Specifies how :math:`H^T 1` is calculated when subsets are used. If 'subset_specific', then uses :math:`H_m^T 1`. If `average_of_subsets`, then uses the average of all :math:`H_m^T 1`s for any given subset (scaled to the relative size of the subset if subsets are not equal size). Defaults to 'subset_specific'.
+            norm_BP_subset_method (str, optional): Specifies how :math:`H^T 1` is calculated when subsets are used. If 'subset_specific', then uses :math:`H_m^T 1`. If `average_of_subsets`, then uses the average of all :math:`H_m^T 1`\ s for any given subset (scaled to the relative size of the subset if subsets are not equal size). Defaults to 'subset_specific'.
 
         Returns:
             torch.Tensor: The gradient of the Poisson likelihood.

@@ -95,8 +95,9 @@ def get_water_attenuation(path) -> float | None:
 
 
 def get_correction_flags(path) -> dict:
-    """The DICOM-CT-PD preprocessing flags (7039,1003-1009) of a projection file, e.g. ``{'beam hardening': True, ...,
-    'scatter': True}``: the corrections applied to the projections before they were exported."""
+    """The DICOM-CT-PD preprocessing flags (7039,1003-1009) of a projection file,
+    e.g. ``{'beam hardening': True, ..., 'scatter': True}``: the corrections applied to the projections before they
+    were exported."""
     ds = pydicom.dcmread(path, stop_before_pixels=True)
     flags = {}
     for element, name in CORRECTION_FLAGS.items():

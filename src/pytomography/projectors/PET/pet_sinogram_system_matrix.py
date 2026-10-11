@@ -288,7 +288,7 @@ class PETSinogramSystemMatrix(SystemMatrix):
         force_scale_by_sensitivity = False,
         force_nonTOF = False,
     ) -> torch.tensor:
-        """PET Sinogram back projection
+        r"""PET Sinogram back projection
 
         Args:
             proj (torch.tensor): Sinogram to be back projected

@@ -84,7 +84,7 @@ class SPECTPSFMeta():
         self.sigma_fit_params = sigma_fit_params
         self.sigma_fit = sigma_fit
         self.kernel_dimensions = kernel_dimensions
-        if shape is 'square':
+        if shape == 'square':
             self.min_sigmas = 1 # will include whole PSF
         else:
             self.min_sigmas = min_sigmas 
