@@ -23,6 +23,7 @@ import h5py
 import numpy as np
 import torch
 
+from pytomography.io import _vendors
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.PET import PETLMProjMeta, PETTOFMeta
 from .scanner import _table_row, keep_rsector_difference, scanner_info
@@ -30,15 +31,6 @@ from ._standard import default_grid, reader_object_meta
 
 #: rows of events read at once (the file's chunks hold 8 million)
 _BLOCK = 2**23
-
-
-def _vendor_rule(rule_id: str, source: str = ""):
-    """Looks a rule up in the vendor table (which warns when the rule is not verified)."""
-    try:
-        from pytomography.io import _vendors
-    except ImportError:   # the vendor table is not in this build yet
-        return None
-    return _vendors.use(rule_id, source)
 
 
 def _tof_meta(name: str) -> PETTOFMeta:
@@ -98,7 +90,7 @@ def read_ge_hdf5(listmode_file: str | os.PathLike, *, object_meta: ObjectMeta | 
         window from the file, and ``tof_meta``). GE's corrections (event weights, the additive term, the valid pairs
         and their weights) are read by :func:`read_ge_corrections`.
     """
-    _vendor_rule("ge-dmi-listmode", str(listmode_file))
+    _vendors.use("ge-dmi-listmode", str(listmode_file))   # a rule to check: it warns
     with h5py.File(listmode_file, "r") as f:
         low = _header_value(f, "HeaderData/AcqParameters/EDCATParameters/lower_energy_limit",
                             "HeaderData/AcqParameters/BackEndAcqFilters/minEnergyKeV")

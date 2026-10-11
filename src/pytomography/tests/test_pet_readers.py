@@ -473,3 +473,11 @@ def test_list_mode_sensitivity_leaves_out_pairs_closer_than_min_rsector_differen
     assert torch.equal(weights, (rsector_difference(pairs, info) >= 2).float())
     fake.proj_meta.info = scanner_info(info, min_rsector_difference=0)
     assert torch.equal(PETLMSystemMatrix._sensitivity_weights(fake, pairs, 0), torch.ones(len(pairs)))
+
+
+def test_ge_hdf5_warns_that_its_frame_is_to_check(tmp_path):
+    """GE's list mode frame is a vendor rule marked 'check' (left-right and head-foot unverified): it warns."""
+    from pytomography.io._vendors import UnverifiedVendorRule
+    path, _, _, _ = write_ge(tmp_path, [0])
+    with pytest.warns(UnverifiedVendorRule, match="Discovery MI"):
+        PET.read_ge_hdf5(path)

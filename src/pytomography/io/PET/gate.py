@@ -29,6 +29,7 @@ import torch
 import uproot
 
 import pytomography
+from pytomography.io import _vendors
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.PET import PETLMProjMeta, PETTOFMeta
 from pytomography.utils.memory import block_size
@@ -330,6 +331,7 @@ def read_gate(
     placement = _registry_placement(root_files) if world_axes is None and world_origin is None else None
     if placement is not None:
         world_axes, world_origin = placement["world_axes"], placement.get("world_origin")
+    _vendors.use("gate-world-frame", str(root_files[0]))
     matrix = world_matrix(world_axes or "LPS")
     frame = frame_keys_after(matrix, gate_keys.pop("rsector0_angle_deg"), 1, 1)
     low, high = (None, None) if energy_window_keV is None else (float(energy_window_keV[0]), float(energy_window_keV[1]))
