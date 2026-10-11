@@ -20,16 +20,16 @@ class FilteredBackProjection:
     Example:
         >>> image = FilteredBackProjection(projections, system_matrix, filter='hann')()
 
-        Args:
-            projections (torch.Tensor): Projections :math:`g` to reconstruct (line integrals for CT).
-            system_matrix (SystemMatrix): System matrix of the scan; it defines the geometry and the object grid.
-            filter (optional): Window applied on top of the ramp: a name (``'ram-lak'``, ``'shepp-logan'``, ``'hann'``,
-                ``'hamming'``, ``'cosine'``), an :class:`~pytomography.utils.FBPFilter` such as
-                :class:`~pytomography.utils.HannFilter` with a cut-off, or a function of the spatial frequency in cycles
-                per mm (for a SPECT Butterworth window of cut-off 0.5 cycles per cm and order 5,
-                ``lambda f: 1 / torch.sqrt(1 + (f / 0.05) ** 10)``). Defaults to ``'hann'``.
-            **options: Passed to the system matrix's ``_fbp``. For :class:`~pytomography.projectors.CT.CTGen3SystemMatrix`:
-                ``slice_thickness`` (mm), ``gpu_budget`` (bytes), ``Q`` (row weighting) and ``k_range``.
+    Args:
+        projections (torch.Tensor): Projections :math:`g` to reconstruct (line integrals for CT).
+        system_matrix (SystemMatrix): System matrix of the scan; it defines the geometry and the object grid.
+        filter (optional): Window applied on top of the ramp: a name (``'ram-lak'``, ``'shepp-logan'``, ``'hann'``,
+            ``'hamming'``, ``'cosine'``), an :class:`~pytomography.utils.FBPFilter` such as
+            :class:`~pytomography.utils.HannFilter` with a cut-off, or a function of the spatial frequency in cycles
+            per mm (for a SPECT Butterworth window of cut-off 0.5 cycles per cm and order 5,
+            ``lambda f: 1 / torch.sqrt(1 + (f / 0.05) ** 10)``). Defaults to ``'hann'``.
+        **options: Passed to the system matrix's ``_fbp``. For :class:`~pytomography.projectors.CT.CTGen3SystemMatrix`:
+            ``slice_thickness`` (mm), ``gpu_budget`` (bytes), ``Q`` (row weighting) and ``k_range``.
     """
     def __init__(
         self,
