@@ -5,8 +5,8 @@ through ``for_page``), and its gallery card a "View in 3D" button. The viewer op
 a "View ... in 3D" button follows the cell that computes each image (found from the image's expression in
 ``tutorials/viewer.yaml``), and opens the viewer on that image. A page loads only a small loader
 (``_static/viewer/pt-viewer-loader.js``);
-the viewer itself (``pt-viewer.js``, about 60 kB) and the images (a few MB, from the image host) load when a reader
-opens it.
+the viewer itself (``pt-viewer.js``, about 60 kB) and the images (a few MB, from the image host; the CT tutorials'
+full-resolution images a few hundred MB) load when a reader opens it, behind a loading screen with a progress bar.
 
 ``tutorials/viewer_images.json`` is written by ``docs/tools/viewer_upload.py`` when a release's images are uploaded::
 

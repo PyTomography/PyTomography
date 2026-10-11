@@ -5,7 +5,8 @@
 #   title, description:  shown above the viewer
 #   credit:              the data's source and licence, shown with the images
 #   setup:               optional Python run first, for imports the expressions need
-#   max_mb:              optional size budget (default 15 MB); larger CTs are averaged down to fit
+#   max_mb:              optional size budget (default 15 MB); larger CTs are averaged down to fit. The CT
+#                        tutorials raise it to show their reconstructions at full resolution (Luke, 11 Oct 2026)
 #   start_voxel:         optional [i, j, k] of the first SPECT or PET layer, as the tutorial indexes its array, where
 #                        the viewer opens (default: the hottest spot inside the anatomy)
 #   layers:              the images, drawn bottom to top. List every reconstruction the tutorial makes: the viewer's
@@ -20,7 +21,9 @@
 #     units:      shown in the readout
 #     colormap, range, opacity, window (ct: phantom | soft | bone | lung | full): display defaults. SPECT and PET
 #                 default to inferno from 0 to their hottest voxel inside the anatomy (CT above -500 HU), so a hot
-#                 voxel at the edge of the field of view doesn't set the scale.
+#                 voxel at the edge of the field of view doesn't set the scale. Without an anatomy image, nothing
+#                 bounds it: give `range: [0, p99.98]`, a percentile of the image's voxels (any end of a range can be
+#                 a number or "p<percentile>").
 #     crop:       body (CT default: where the image is above -500 HU, else 2% of its maximum) | base (SPECT and PET
 #                 default: the anatomy's extent) | none
 #     when:       optional Python condition, checked in the tutorial's namespace; the layer is exported only when it
@@ -108,7 +111,9 @@ tutorials:
     credit: Monte Carlo data simulated with SIMIND (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
     layers:
     - {name: Attenuation, kind: mu, array: amapIsotopeEnergy, affine: vx.simind_affine(object_meta), units: 1/cm}
-    - {name: MC, label: Monte Carlo scatter, kind: spect, array: recon_MC, affine: vx.simind_affine(object_meta), units: counts}
+    # The Monte Carlo reconstruction is in MBq s (SIMIND's projections are per MBq and second), the analytical one in
+    # counts: in their own units, so they don't share one colour scale (on the analytical one's, the MC image was black)
+    - {name: MC, label: Monte Carlo scatter, kind: spect, array: recon_MC, affine: vx.simind_affine(object_meta), units: MBq·s}
     - {name: Analytical, label: Analytical scatter, kind: spect, array: recon_analytical, affine: vx.simind_affine(object_meta), units: counts}
 
   t_spect_mc2:
@@ -233,9 +238,12 @@ tutorials:
     title: NEMA IQ phantom, GE Discovery MI
     description: BSREM and OSEM from the scanner's list mode, with time of flight
     credit: GE Discovery MI NEMA scan (Schramm, Zenodo 8404015, CC BY 4.0)
+    # No CT here to bound the scale, and BSREM has about 200 hot voxels (up to 2.3) in the first slice of the axial field
+    # of view, three times the phantom's hottest sphere (0.52), so its maximum would leave both images almost black. The
+    # 99.98th percentile (0.43 for BSREM, 0.44 for OSEM) lies above all but the spheres' hottest voxels.
     layers:
-    - {name: BSREM, kind: pet, array: recon_BSREM, affine: vx.object_affine(object_meta), units: a.u.}
-    - {name: OSEM, kind: pet, array: recon_OSEM, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: BSREM, kind: pet, array: recon_BSREM, affine: vx.object_affine(object_meta), units: a.u., range: [0, p99.98]}
+    - {name: OSEM, kind: pet, array: recon_OSEM, affine: vx.object_affine(object_meta), units: a.u., range: [0, p99.98]}
 
   t_uncertainty_pet:
     title: NEMA IQ phantom, GE Discovery MI
@@ -275,36 +283,27 @@ tutorials:
     description: Our reconstruction of the scanner's raw projections, in HU, beside the scanner's own
     credit: TCIA LDCT-and-Projection-data, case C145 (CC BY 4.0; see TCIA's data usage policy)
     credit_url: https://www.cancerimagingarchive.net/collection/ldct-and-projection-data/
+    # Full resolution (Luke, 11 Oct 2026): every image on the grid it was reconstructed on, 0.66 x 0.66 x 1 mm, about
+    # 280 MB for the three (each about 150 MB in the reader's memory), so this tutorial's budget is raised
+    max_mb: 300
     layers:
-    # Two versions of this tutorial: OS-SART now, and filtered back projection once #263 is in development (the CT
-    # chat's rewrite, which defines hu_matched). `when` picks the layers of whichever version ran.
-    # OS-SART: the reconstruction runs head to foot from the mean table position; the first and last 12 slices lack
-    # coverage.
-    - name: CT
-      label: OS-SART
-      kind: ct
-      when: "'hu_matched' not in globals()"
-      array: hu
-      affine: "np.array([[object_meta.dr[0], 0, 0, -(Nx - 1) / 2 * object_meta.dr[0]], [0, object_meta.dr[1], 0, -(Ny - 1) / 2 * object_meta.dr[1]], [0, 0, -object_meta.dr[2], source_z_mean + (Nz - 1) / 2 * object_meta.dr[2]], [0, 0, 0, 1]])"
-      slices: [":", ":", "12:-12"]
-      window: soft
-      voxel_mm: 2
-      units: HU
-    # FBP: our grid in the patient's frame comes from the projections; both FBP images share it (entry from the CT
-    # chat, tested with its draft). 2 x 2 x 3 mm for all three keeps axial views sharp, gives every image the reader
-    # switches between the same grid, and stays under 15 MB without halving one of them.
-    - {name: CT, label: FBP, kind: ct, when: "'hu_matched' in globals()", array: hu, affine: "proj_meta.get_patient_affine(object_meta).numpy()", window: soft, voxel_mm: [2, 2, 3], units: HU}
-    - {name: Matched, label: "FBP, advanced settings", kind: ct, when: "'hu_matched' in globals()", array: hu_matched, affine: "proj_meta.get_patient_affine(object_meta).numpy()", window: soft, voxel_mm: [2, 2, 3], units: HU}
-    - {name: Scanner, label: Scanner's reconstruction, kind: ct, when: "'hu_matched' in globals()", array: vx.ct_dicom(scanner_files), window: soft, voxel_mm: [2, 2, 3], units: HU}
-    - {name: Scanner, label: Scanner's reconstruction, kind: ct, when: "'hu_matched' not in globals()", array: vx.ct_dicom(scanner_files), window: soft, voxel_mm: 2, units: HU}
+    # Our grid in the patient's frame comes from the projections; both FBP images share it. The scanner's own images
+    # keep their grid, placed as the tutorial places them for its comparison (scanner_affine: GE's position is the
+    # corner of the first pixel), so switching between the images moves nothing.
+    - {name: CT, label: FBP, kind: ct, array: hu, affine: "proj_meta.get_patient_affine(object_meta).numpy()", window: soft, units: HU}
+    - {name: Matched, label: "FBP, advanced settings", kind: ct, array: hu_matched, affine: "proj_meta.get_patient_affine(object_meta).numpy()", window: soft, units: HU}
+    - {name: Scanner, label: Scanner's reconstruction, kind: ct, array: scanner, affine: scanner_affine, window: soft, units: HU}
 
   t_CT_microct:
     title: Glass beads, cone-beam micro-CT
     description: OS-SART started from FDK, as attenuation per mm
     credit: SophiaBeads Dataset Project (Coban and McDonald 2015, Zenodo 16474, CC BY-SA 4.0); these images are CC BY-SA 4.0 too
+    # Full resolution (Luke, 11 Oct 2026): 500 x 500 x 500 voxels of 0.064 mm, about 420 MB for the two (each 250 MB in
+    # the reader's memory), so this tutorial's budget is raised
+    max_mb: 450
     layers:
-    - {name: SART, label: OS-SART, kind: mu, array: recon_sart, affine: "vx.centred(system_matrix.object_meta.dr, recon_sart.shape)", units: 1/mm, downsample: 3}
-    - {name: FDK, kind: mu, array: recon_fdk, affine: "vx.centred(system_matrix.object_meta.dr, recon_fdk.shape)", units: 1/mm, downsample: 3}
+    - {name: SART, label: OS-SART, kind: mu, array: recon_sart, affine: "vx.centred(system_matrix.object_meta.dr, recon_sart.shape)", units: 1/mm}
+    - {name: FDK, kind: mu, array: recon_fdk, affine: "vx.centred(system_matrix.object_meta.dr, recon_fdk.shape)", units: 1/mm}
 
   # The SPECT half of this tutorial: the viewer shows one patient at a time, and t_CT_GEN3 already shows the chest CT
   t_fbp:

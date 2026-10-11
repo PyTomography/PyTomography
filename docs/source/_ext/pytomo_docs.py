@@ -51,11 +51,13 @@ def _write_thumbnails(app) -> None:
     srcdir = Path(app.srcdir)
     out = srcdir / THUMB_DIR
     out.mkdir(parents=True, exist_ok=True)
+    # tutorials.yaml chooses each thumbnail's image, so a change there counts as much as one to the notebook
+    yaml_mtime = (srcdir / "tutorials" / "tutorials.yaml").stat().st_mtime
     for section in app.env.pytomo_tutorials:
         for tut in section["tutorials"]:
             nb_path = srcdir / "notebooks" / f"{tut['notebook']}.ipynb"
             target = out / f"{tut['notebook']}.png"
-            if target.exists() and target.stat().st_mtime >= nb_path.stat().st_mtime:
+            if target.exists() and target.stat().st_mtime >= max(nb_path.stat().st_mtime, yaml_mtime):
                 continue  # unchanged, and rewriting would retrigger sphinx-autobuild
             nb = json.loads(nb_path.read_text(encoding="utf8"))
             images = [o["data"]["image/png"] for c in nb["cells"]
