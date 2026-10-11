@@ -176,8 +176,8 @@
         for(let i=0;i<n;i++)buf[r+i]=a[b0+i*st];const e0=buf[r],e1=buf[r+n-1];for(let i=0;i<r;i++){buf[i]=e0;buf[r+n+i]=e1;}
         for(let i=0;i<n;i++){let acc=0;for(let t=0;t<K;t++)acc+=k[t]*buf[i+t];a[b0+i*st]=acc;}}}
     self.postMessage({tag,data:a},[a.buffer]);};`;
-  // An image on the 3D view's coarse grid G (trilinear; NaN outside the image). This runs on the page, so the worker
-  // gets a few MB, not a copy of a whole full-resolution image.
+  // An image on the 3D view's coarse grid G (trilinear; NaN outside the image). The worker does it for small images;
+  // for a large one (a full-resolution CT) the page does, so the worker gets a few MB, not a copy of the whole image.
   function mipResample(G, img, sc, dims, aff) {
     const [nx, ny, nz] = dims, out = new Float32Array(G.gx * G.gy * G.gz), I = (a, b, c) => img[a + nx * (b + ny * c)];
     let n = 0;
@@ -202,9 +202,10 @@
   // turned about the scanner's z axis. With no overlay it is the DRR alone; at 0 degrees it is an anterior view.
   // Under a colour image the DRR is drawn at about half brightness, and the colour's opacity rises with intensity
   // (opacity x sqrt of its place between the limits), so hot spots stand out and cold background stays clear.
-  const MIP_SRC = `let G=null,ov=null,mu=null,dmax=1;
+  const MIP_SRC = `let G=null,ov=null,mu=null,dmax=1;${mipResample.toString()}
+  const onGrid=d=>d.vals||mipResample(G,d.img,d.sc,d.dims,d.aff);
   function density(kind,scale){return kind==='ct'?(v=>Number.isNaN(v)?0:Math.max(0,(v+1000)/1000)):(v=>Number.isNaN(v)?0:Math.max(0,v/scale));}
-  function setMu(d){const f=density(d.kind,d.scale||1);mu=d.vals;for(let i=0;i<mu.length;i++)mu[i]=f(mu[i]);let m=0;
+  function setMu(d){const f=density(d.kind,d.scale||1);mu=onGrid(d);for(let i=0;i<mu.length;i++)mu[i]=f(mu[i]);let m=0;
     for(let k=0;k<G.gz;k++)for(let j=0;j<G.gy;j++){let s=0;for(let i=0;i<G.gx;i++)s+=mu[i+G.gx*(j+G.gy*k)];if(s>m)m=s;}
     for(let k=0;k<G.gz;k++)for(let i=0;i<G.gx;i++){let s=0;for(let j=0;j<G.gy;j++)s+=mu[i+G.gx*(j+G.gy*k)];if(s>m)m=s;}dmax=Math.max(1e-6,m);}
   function render(p){const{gx,gy,gz}=G,cx=(gx-1)/2,cy=(gy-1)/2,W=Math.ceil(Math.hypot(gx,gy))+2,H=gz,c=Math.cos(p.th),s=Math.sin(p.th),hw=(W-1)/2,slab=gx*gy;
@@ -223,7 +224,7 @@
     if(d.cmd==='grid'){G=d.grid;ov=null;mu=null;}
     else if(d.cmd==='base'){if(G)setMu(d);}
     else if(d.cmd==='nobase'){mu=null;}
-    else if(d.cmd==='ov'){if(G){ov=d.vals;for(let i=0;i<ov.length;i++)if(Number.isNaN(ov[i]))ov[i]=0;}}
+    else if(d.cmd==='ov'){if(G){ov=onGrid(d);for(let i=0;i<ov.length;i++)if(Number.isNaN(ov[i]))ov[i]=0;}}
     else if(d.cmd==='noov'){ov=null;}
     else if(d.cmd==='render'&&G&&(ov||mu)){const f=render(d.p);self.postMessage({cmd:'frame',W:f.W,H:f.H,rgba:f.rgba,mm:G.h},[f.rgba.buffer]);}
     else if(d.cmd==='render')self.postMessage({cmd:'frame',W:0,H:0});};`;
@@ -748,9 +749,10 @@
     }
     function mipData(li, quiet) {
       if (!mWorker || !mipG || (li !== sel.base && li !== sel.overlay)) return;
-      const L = LAY[li], vals = mipResample(mipG, L.base, scOf(L), L.dims, L.aff);
-      if (L.role === 'overlay') mWorker.postMessage({cmd: 'ov', vals}, [vals.buffer]);
-      else mWorker.postMessage({cmd: 'base', vals, kind: L.m.kind, scale: L.m.kind === 'ct' ? 1 : Math.max(1e-12, L.max)}, [vals.buffer]);
+      const L = LAY[li], big = L.base.byteLength > 32e6;
+      const d = big ? {vals: mipResample(mipG, L.base, scOf(L), L.dims, L.aff)} : {img: L.base, sc: scOf(L), dims: L.dims, aff: L.aff};
+      const cmd = L.role === 'overlay' ? {cmd: 'ov'} : {cmd: 'base', kind: L.m.kind, scale: L.m.kind === 'ct' ? 1 : Math.max(1e-12, L.max)};
+      mWorker.postMessage(Object.assign(cmd, d), big ? [d.vals.buffer] : []);
       if (!quiet) requestMip();
     }
     function requestMip() {
