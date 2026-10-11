@@ -246,6 +246,307 @@ def build_pet_listmode(p):
     return _algorithm(p['algorithm'], sm, fake((1,), on_gpu=cuda), additive, p['prior'])
 
 
+def build_sss(p):
+    """The arguments of ``sss.estimate_sss_memory`` and ``sss.plan_sss_memory`` for a configuration: the scanner
+    (``proj_meta.info``), the data (a sinogram, dense or lazy, with its system matrix and sensitivity sinogram; or list
+    mode events with their PETLMSystemMatrix and sensitivity weights), the randoms and the TOF metadata."""
+    from pytomography.projectors.PET import PETSinogramSystemMatrix, PETLMSystemMatrix
+    from pytomography.io.PET.shared import LazySinogram
+    shape = _pet_shape(p)
+    tof = bool(p['tof'])
+    T = int(p['tof_bins']) if tof else 1
+    info = {'NrCrystalsPerRing': int(p['crystals_per_ring']), 'NrRings': int(p['rings'])}
+    full = shape + [T] if tof else shape
+    args = dict(object_meta=ObjectMeta(dr=(2.0, 2.0, 2.0), shape=(int(p['Lx']), int(p['Ly']), int(p['Lz']))),
+                tof_meta=SimpleNamespace(num_bins=T) if tof else None,
+                sinogram_random=fake(shape) if p['sss_randoms'] else None,
+                sinogram_interring_stepsize=int(p['sss_interring_step']), sinogram_intraring_stepsize=int(p['sss_intraring_step']),
+                num_dense_tof_bins=int(p['num_dense_tof_bins']))
+    if p['sss_input'] == 'listmode':
+        sm = PETLMSystemMatrix.__new__(PETLMSystemMatrix)
+        args['proj_meta'] = SimpleNamespace(info=info, detector_ids=fake((int(p['events']), 3 if tof else 2), torch.int32),
+                                            weights_sensitivity=fake((4,)) if p['sensitivity'] else None)
+        args['proj_data'] = None
+    else:
+        sm = PETSinogramSystemMatrix.__new__(PETSinogramSystemMatrix)
+        out_gpu = p['device'] == 'cuda' and p['proj_device'] == 'device'
+        sm.sinogram_sensitivity = fake(shape, on_gpu=out_gpu) if p['sensitivity'] else None
+        args['proj_meta'] = SimpleNamespace(info=info)
+        if p['data'] == 'lazy':
+            args['proj_data'] = LazySinogram(None, full, memory_bytes=(6 if tof else 4) * int(p['events']) + 8 * (shape[0] + 1))
+        else:
+            args['proj_data'] = fake(full, on_gpu=p['data'] == 'dense_gpu')
+    args['system_matrix'] = sm
+    return args
+
+
+def _estimate_sss(args, settings):
+    from pytomography.utils import sss
+    return _result(sss.estimate_sss_memory(**args, **settings))
+
+
+def _plan_sss(args, ram_gb, gpu_gb, fixed):
+    from pytomography.utils import sss
+    return _plan_result(sss.plan_sss_memory(**args, ram_gb=ram_gb, gpu_gb=gpu_gb, N_splits=fixed.get('N_splits'), lazy=fixed.get('lazy')))
+
+
+def _sss_settings(p):
+    out = [{'lazy': None, 'N_splits': 1}, {'lazy': True, 'N_splits': 1}, {'lazy': False, 'N_splits': 1}]
+    if p['tof']:
+        out += [{'lazy': True, 'N_splits': 3}, {'lazy': None, 'N_splits': int(p['tof_bins'])}, {'lazy': False, 'N_splits': 100}]
+    return out
+
+
+# ------------------------------------------------------------------------------------------------------------ CT
+def _ct_stand_in(cls, p):
+    """A CT system matrix as its ``_memory_parts`` read it: the object grid, the detector shape and number of views,
+    N_splits and the device its projections are output on."""
+    sm = cls.__new__(cls)
+    sm.object_meta = ObjectMeta(dr=(1.0, 1.0, 1.0), shape=(int(p['Lx']), int(p['Ly']), int(p['Lz'])))
+    sm.proj_meta = SimpleNamespace(shape=(int(p['det_cols']), int(p['det_rows'])), N_angles=int(p['views']))
+    sm.N_splits = int(p.get('N_splits', 1))
+    sm.device = p['device'] if p.get('proj_device', 'device') == 'device' else 'cpu'
+    return sm
+
+
+def _ct_projections(p):
+    return fake((int(p['views']), int(p['det_cols']), int(p['det_rows'])), on_gpu=p['ct_data'] == 'gpu' and p['device'] == 'cuda')
+
+
+def build_ct_helical_sart(p):
+    from pytomography.projectors.CT import CTGen3SystemMatrix
+    return _algorithm('SART', _ct_stand_in(CTGen3SystemMatrix, p), _ct_projections(p))
+
+
+def build_ct_cone_sart(p):
+    from pytomography.projectors.CT import CTConeBeamFlatPanelSystemMatrix
+    return _algorithm('SART', _ct_stand_in(CTConeBeamFlatPanelSystemMatrix, p), _ct_projections(p))
+
+
+def _ct_sart_settings(p):
+    return [{'N_splits': int(p['N_splits']), 'n_subsets': 1}, {'N_splits': 1, 'n_subsets': 8}, {'N_splits': 4, 'n_subsets': 5},
+            {'N_splits': 1, 'n_subsets': min(256, int(p['views']))}]
+
+
+def build_ct_cone_fdk(p):
+    from pytomography.algorithms import FilteredBackProjection
+    from pytomography.projectors.CT import CTConeBeamFlatPanelSystemMatrix
+    return FilteredBackProjection(_ct_projections(p), _ct_stand_in(CTConeBeamFlatPanelSystemMatrix, p), filter='ram-lak')
+
+
+def _helix_meta(p):
+    """A helical scan with the geometry of ``p`` (one focal spot), laid out as the DICOM-CT-PD reader makes it."""
+    from pytomography.metadata.CT import CTGen3ProjMeta
+    n, V = int(p['views']), int(p['views_per_rotation'])
+    phis = torch.arange(n, dtype=torch.float64) * (2 * np.pi / V)
+    zs = float(p['feed']) / (2 * np.pi) * phis
+    zero = torch.zeros(n)
+    cols, rows = int(p['det_cols']), int(p['det_rows'])
+    central = (cols + 1) / 2 if p.get('central_col') is None else float(p['central_col'])
+    return CTGen3ProjMeta(phis.float(), torch.full((n,), float(p['focal_radius'])), (zs - zs.mean()).float(), zero, zero, zero,
+                          torch.full((n,), central), torch.full((n,), (rows + 1) / 2), float(p['col_spacing_mm']) / float(p['dsd']),
+                          float(p['row_spacing_mm']), float(p['dsd']), shape=(cols, rows))
+
+
+def build_ct_helical_fbp(p):
+    """Filtered back projection of a CTGen3SystemMatrix built for real (on the CPU) on the scan's metadata, with
+    projections that are a stand-in of their shape and place."""
+    from pytomography.projectors.CT import CTGen3SystemMatrix
+    device = pytomography.device
+    pytomography.device = torch.device('cpu')                 # built on the CPU; the estimate is for the configuration's device
+    try:
+        sm = CTGen3SystemMatrix(ObjectMeta(dr=(float(p['dx']), float(p['dy']), 1.0), shape=(int(p['Lx']), int(p['Ly']), int(p['Lz']))),
+                                _helix_meta(p))
+    finally:
+        pytomography.device = device
+    return SimpleNamespace(sm=sm, projections=_ct_projections(p), slice_thickness=float(p['slice_thickness']) or None)
+
+
+def _estimate_ct_helical_fbp(obj, settings):
+    from pytomography.algorithms import FilteredBackProjection
+    from pytomography.utils.memory import memory_budget_set
+    with memory_budget_set(settings['memory_budget_gb']):
+        fbp = FilteredBackProjection(obj.projections, obj.sm, filter='hann', slice_thickness=obj.slice_thickness, gpu_budget=settings['gpu_budget'])
+        return _result(fbp.estimate_memory())
+
+
+def _plan_ct_helical_fbp(obj, ram_gb, gpu_gb, fixed):
+    from pytomography.algorithms import FilteredBackProjection
+    fbp = FilteredBackProjection(obj.projections, obj.sm, filter='hann', slice_thickness=obj.slice_thickness)
+    return _plan_result(fbp.plan_memory(ram_gb=ram_gb, gpu_gb=gpu_gb, **fixed))
+
+
+def _ct_helical_fbp_settings(p):
+    b = p['memory_budget_gb']
+    return [{'gpu_budget': 1.5e9, 'memory_budget_gb': b}, {'gpu_budget': 0.75e9, 'memory_budget_gb': 2.0},
+            {'gpu_budget': 0.1875e9, 'memory_budget_gb': 0.06}, {'gpu_budget': 4e9, 'memory_budget_gb': None}]
+
+
+def _estimate_fbp(fbp, settings):
+    return _result(fbp.estimate_memory())
+
+
+# ---------------------------------------------------------------------------------------------------------- SPECT
+@contextlib.contextmanager
+def _on_cpu():
+    """Builds real objects on the CPU, whatever device the configuration's estimate is for."""
+    device = pytomography.device
+    pytomography.device = torch.device('cpu')
+    try:
+        yield
+    finally:
+        pytomography.device = device
+
+
+def _mark_transforms(transforms, on_gpu: bool):
+    """Marks the tensors SPECT transforms keep as on the GPU when the configuration runs there (they are built on the
+    CPU here; a CUDA run builds them on the device)."""
+    from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
+    from pytomography.transforms.SPECT.psf import Seperable1DBlurNet, PSF2D
+    for t in transforms:
+        if isinstance(t, SPECTAttenuationTransform):
+            mark(t.attenuation_map, on_gpu)
+        elif isinstance(t, SPECTPSFTransform):
+            for layer in t.layers.values():
+                if isinstance(layer, Seperable1DBlurNet):
+                    for conv in (layer.layer_r, layer.layer_z):
+                        if conv is not None:
+                            mark(conv.weight, on_gpu)
+                elif isinstance(layer, PSF2D):
+                    for value in vars(layer).values():
+                        if isinstance(value, torch.Tensor):
+                            mark(value, on_gpu)
+
+
+def _psf_kernels(transforms) -> list:
+    """The 1D kernel sizes of the Gaussian PSF layers, per radius: (radial, axial)."""
+    from pytomography.transforms.SPECT import SPECTPSFTransform
+    from pytomography.transforms.SPECT.psf import Seperable1DBlurNet
+    out = []
+    for t in transforms:
+        if isinstance(t, SPECTPSFTransform):
+            for layer in t.layers.values():
+                if isinstance(layer, Seperable1DBlurNet):
+                    out.append((int(layer.layer_r.weight.shape[-1]), int(layer.layer_z.weight.shape[-1]) if layer.layer_z is not None else 0))
+    return out
+
+
+def _spect_system_matrix(p):
+    """A real SPECTSystemMatrix of the configuration (attenuation, Gaussian PSF or a PSF operator), built on the CPU;
+    its Gaussian kernel sizes go into ``p['psf_kernel']`` (their mean, which is what the model's parameter is)."""
+    from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
+    from pytomography.projectors.SPECT import SPECTSystemMatrix
+    from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
+    Lx, Ly, Lz, views = int(p['Lx']), int(p['Ly']), int(p['Lz']), int(p['views'])
+    Lr = Ly if p.get('proj_r') is None else int(p['proj_r'])
+    Lzp = Lz if p.get('proj_z') is None else int(p['proj_z'])
+    with _on_cpu():
+        object_meta = SPECTObjectMeta([0.48] * 3, (Lx, Ly, Lz))
+        radii = 22.0 + (np.arange(views) % int(p['n_radii'])) * 0.5
+        proj_meta = SPECTProjMeta((Lr, Lzp), [0.48, 0.48], list(np.linspace(0, 360, views, endpoint=False)), radii=radii)
+        transforms = []
+        if p['attenuation']:
+            transforms.append(SPECTAttenuationTransform(torch.zeros(Lx, Ly, Lz), cache_probabilities=bool(p['cache_probabilities'])))
+        if p['psf'] == 'gaussian':
+            transforms.append(SPECTPSFTransform(SPECTPSFMeta((0.03, 0.1))))
+        elif p['psf'] == 'operator':
+            transforms.append(SPECTPSFTransform(psf_operator=object(), cache_kernel=bool(p['cache_kernel'])))
+        sm = SPECTSystemMatrix(transforms, [], object_meta, proj_meta, object_initial_based_on_camera_path=bool(p['camera_path']))
+    _mark_transforms(transforms, p['device'] == 'cuda')
+    kernels = _psf_kernels(transforms)
+    if kernels:
+        p['psf_kernel'] = sum(r + z for r, z in kernels) / (2 * len(kernels))
+    return sm
+
+
+def _spect_data(p):
+    Lr = int(p['Ly']) if p.get('proj_r') is None else int(p['proj_r'])
+    Lzp = int(p['Lz']) if p.get('proj_z') is None else int(p['proj_z'])
+    cuda = p['device'] == 'cuda'
+    projections = fake((int(p['views']), Lr, Lzp), on_gpu=cuda)
+    return projections, (fake((int(p['views']), Lr, Lzp), on_gpu=cuda) if p['spect_additive'] else None)
+
+
+def build_spect(p):
+    sm = _spect_system_matrix(p)
+    projections, additive = _spect_data(p)
+    return _algorithm(p['algorithm'], sm, projections, additive, p['prior'])
+
+
+def build_spect_fbp(p):
+    from pytomography.algorithms import FilteredBackProjection
+    q = dict(p, attenuation=False, psf='none', camera_path=False, n_radii=1, cache_probabilities=False, cache_kernel=False, spect_additive=False)
+    return FilteredBackProjection(_spect_data(q)[0], _spect_system_matrix(q), filter='hann')
+
+
+def build_kem(p):
+    """KEM of a KEMSystemMatrix around a real SPECTSystemMatrix; the kernel transform is a stand-in of the arrays it
+    keeps (its kernel, size**3 images; its support images), checked against a real one in :func:`mapping_checks`."""
+    from pytomography.projectors.shared import KEMSystemMatrix
+    sm = _spect_system_matrix(p)
+    cuda = p['device'] == 'cuda'
+    shape = (int(p['Lx']), int(p['Ly']), int(p['Lz']))
+    s = int(p['kem_size'])
+    kem = KEMSystemMatrix.__new__(KEMSystemMatrix)
+    kem.system_matrix, kem.object_meta, kem.proj_meta = sm, sm.object_meta, sm.proj_meta
+    kem.kem_transform = SimpleNamespace(kernel=fake((s, s, s, *shape), on_gpu=cuda and p['kem_kernel_on_gpu']),
+                                        support_objects=[fake(shape, on_gpu=cuda and p['kem_support_on'] == 'device') for _ in range(int(p['kem_support']))])
+    projections, additive = _spect_data(p)
+    return _algorithm('KEM', kem, projections, additive)
+
+
+def build_spect_multibed(p):
+    from pytomography.algorithms import PGAAMultiBedSPECT
+    sm = _spect_system_matrix(p)
+    beds = []
+    for _ in range(int(p['n_beds'])):
+        projections, additive = _spect_data(p)
+        beds.append(_algorithm(p['algorithm'], sm, projections, additive, p['prior']))
+    return PGAAMultiBedSPECT([f'bed {k}' for k in range(len(beds))], beds)
+
+
+def build_starguide(p):
+    """OSEM (or the algorithm of ``p``) of a real StarGuideSystemMatrix (built on the CPU): ``sg_angles`` angles of
+    ``sg_views_per_angle`` views, ``n_radii`` distinct radii, attenuation and a Gaussian PSF as the tutorial makes
+    them. ``p['psf_kernel']`` becomes the largest kernel, the model's parameter."""
+    from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTPSFMeta, StarGuideProjMeta
+    from pytomography.projectors.SPECT import StarGuideSystemMatrix
+    from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
+    Lx, Ly, Lz = int(p['Lx']), int(p['Ly']), int(p['Lz'])
+    A, B = int(p['sg_angles']), int(p['sg_views_per_angle'])
+    V = A * B
+    gen = torch.Generator().manual_seed(0)
+    with _on_cpu():
+        object_meta = SPECTObjectMeta((0.25, 0.25, 0.25), (Lx, Ly, Lz))
+        angles = torch.tensor(np.repeat(np.linspace(0, 360, A, endpoint=False), B), dtype=torch.float32)
+        offsets = (torch.rand(V, generator=gen) * 2 - 1) * 8
+        radii = 15.0 + (np.arange(V) % int(p['n_radii'])) * 0.05
+        proj_meta = StarGuideProjMeta((V, 16, Lz), angles, 0.5 + torch.rand(V, generator=gen), offsets, radii)
+        transforms = []
+        if p['attenuation']:
+            transforms.append(SPECTAttenuationTransform(torch.zeros(Lx, Ly, Lz), assume_padded=False, cache_probabilities=bool(p['cache_probabilities'])))
+        if p['psf'] != 'none':
+            transforms.append(SPECTPSFTransform(SPECTPSFMeta((0.02, 0.05)), assume_padded=False))
+        sm = StarGuideSystemMatrix(object_meta, proj_meta, obj2obj_transforms=transforms)
+    _mark_transforms(transforms, p['device'] == 'cuda')
+    kernels = _psf_kernels(transforms)
+    if kernels:
+        p['psf_kernel'] = max(max(r, z) for r, z in kernels)
+        p['psf_kernel_mean'] = sum(r + z for r, z in kernels) / (2 * len(kernels))
+    cuda = p['device'] == 'cuda'
+    additive = fake((V, 16, Lz), on_gpu=cuda) if p['spect_additive'] else None
+    return _algorithm(p['algorithm'], sm, fake((V, 16, Lz), on_gpu=cuda), additive, p['prior'])
+
+
+def _spect_settings(p):
+    v = int(p.get('views', p.get('sg_angles', 1)))
+    return [{'n_subsets': 1}, {'n_subsets': 8}, {'n_subsets': 3}, {'n_subsets': min(256, v)}]
+
+
+def _starguide_settings(p):
+    return [{'n_subsets': 1}, {'n_subsets': 10}, {'n_subsets': 5}, {'n_subsets': min(256, int(p['sg_angles']))}]
+
+
 def _pet_listmode_settings(p):
     return [{'N_splits': int(p['N_splits']), 'n_subsets': 1}, {'N_splits': 10, 'n_subsets': 14},
             {'N_splits': 1, 'n_subsets': 256}, {'N_splits': 3, 'n_subsets': 21}]
@@ -331,9 +632,142 @@ def grid_pet_listmode(quick: bool) -> list:
     return configs
 
 
+def grid_sss(quick: bool) -> list:
+    base = dict(device='cuda', os='windows', gpu_free_gb=30, memory_budget_gb=25, cupy=True, Lx=128, Ly=128, Lz=96,
+                crystals_per_ring=448, rings=64, tof=True, tof_bins=21, sss_input='sinogram', events=50_000_000, data='lazy',
+                proj_device='device', sensitivity=True, sss_randoms=True, sss_interring_step=6, sss_intraring_step=6,
+                num_dense_tof_bins=25, lazy=None, N_splits=1)
+    tutorials = [dict(base),                                                                       # t_PETGATE_scat_sinoTOF
+                 dict(base, tof=False, data='dense_ram', proj_device='cpu', sss_interring_step=4, sss_intraring_step=4),   # t_PETGATE_scat_sino
+                 dict(base, tof=False, sss_input='listmode', events=97_000_000, sss_interring_step=4, sss_intraring_step=4),  # t_PETGATE_scat_lm
+                 dict(base, sss_input='listmode', events=97_000_000),                             # t_PETGATE_scat_lmTOF
+                 dict(base, tof=False, sss_input='listmode', crystals_per_ring=504, events=37_709_254, Lx=200, Ly=200, Lz=127,
+                      sss_interring_step=4, sss_intraring_step=4)]                                # t_PETSIRD
+    axes = dict(DEVICES, gpu_free_gb=[30, 4, 11.5], memory_budget_gb=[None, 25, 8, 64], cupy=[True, False],
+                scanner=[(448, 64), (504, 64), (64, 8), (760, 80), (840, 672)], image=[(128, 128, 96), (200, 200, 127), (64, 64, 32)],
+                tof=[False, True], tof_bins=[21, 13, 33, 80], sss_input=['sinogram', 'listmode'],
+                events=[50_000_000, 2_000_000, 400_000_000], data=['dense_ram', 'dense_gpu', 'lazy'], proj_device=['device', 'cpu'],
+                sensitivity=[True, False], sss_randoms=[True, False], sss_interring_step=[4, 6, 2, 3], sss_intraring_step=[4, 6, 2, 5],
+                num_dense_tof_bins=[25, 10], lazy=[None, True, False], N_splits=[1, 3])
+    configs = tutorials + _sample(base, axes, 12 if quick else 60, 3)
+    for p in configs:
+        if 'scanner' in p:
+            p['crystals_per_ring'], p['rings'] = p.pop('scanner')
+        if 'image' in p:
+            p['Lx'], p['Ly'], p['Lz'] = p.pop('image')
+    return configs
+
+
+CT_BASE = dict(device='cuda', os='windows', gpu_free_gb=30, memory_budget_gb=25, cupy=True, Lx=512, Ly=512, Lz=316, dx=0.662109,
+               dy=0.662109, views=9014, views_per_rotation=984, det_cols=888, det_rows=64, focal_radius=538.52, dsd=946.746,
+               col_spacing_mm=1.0239, central_col=443.25, row_spacing_mm=1.0988, feed=39.45, slice_thickness=1.25, ct_data='ram',
+               proj_device='device', gpu_budget=1.5e9, N_splits=1, n_subsets=8)
+CT_MICRO = dict(CT_BASE, Lx=500, Ly=500, Lz=500, views=255, det_cols=500, det_rows=500, ct_data='gpu', n_subsets=5)   # t_CT_microct
+
+
+def _ct_images(configs):
+    for p in configs:
+        if 'image' in p:
+            p['Lx'], p['Ly'], p['Lz'] = p.pop('image')
+        if 'detector' in p:
+            p['det_cols'], p['det_rows'] = p.pop('detector')
+    return configs
+
+
+def grid_ct_sart(quick: bool) -> list:
+    axes = dict(DEVICES, gpu_free_gb=[30, 4], memory_budget_gb=[None, 25], image=[(512, 512, 316), (256, 256, 128), (500, 500, 500), (1024, 1024, 600)],
+                views=[9014, 255, 720, 30000], detector=[(888, 64), (500, 500), (736, 16), (1024, 1024)], proj_device=['device', 'cpu'],
+                ct_data=['ram', 'gpu'], N_splits=[1, 4, 3])
+    return _ct_images([dict(CT_BASE), dict(CT_MICRO)] + _sample(CT_BASE, axes, 10 if quick else 40, 4))
+
+
+def grid_ct_helical_fbp(quick: bool) -> list:
+    axes = dict(DEVICES, gpu_free_gb=[30, 4, 2], memory_budget_gb=[None, 25, 4, 0.5], cupy=[True, False],
+                image=[(512, 512, 316), (256, 256, 128), (512, 512, 100), (768, 768, 400)],
+                views=[9014, 4000, 23000, 2000], views_per_rotation=[984, 1152, 720, 2304], detector=[(888, 64), (736, 16), (920, 96), (672, 32)],
+                focal_radius=[538.52, 595.0, 541.0], dsd=[946.746, 1085.6, 949.0], col_spacing_mm=[1.0239, 1.2858, 1.0],
+                central_col=[None, 443.25, 368.625], row_spacing_mm=[1.0988, 1.0, 0.6], feed=[39.45, 20.0, 55.0, 8.0],
+                slice_thickness=[1.25, 0.0, 3.0], ct_data=['ram', 'gpu'], dx=[0.662109, 0.977, 0.5])
+    configs = _ct_images([dict(CT_BASE)] + _sample(CT_BASE, axes, 10 if quick else 40, 5))
+    for p in configs:                                    # a central column inside the detector
+        if p.get('central_col') is not None and p['central_col'] > p['det_cols']:
+            p['central_col'] = None
+        p['dy'] = p['dx']
+    return configs
+
+
+def grid_ct_cone_fdk(quick: bool) -> list:
+    axes = dict(DEVICES, gpu_free_gb=[30, 4], image=[(500, 500, 500), (256, 256, 256), (1000, 1000, 1000), (512, 512, 4)],
+                views=[255, 720, 1800, 64], detector=[(500, 500), (1000, 1000), (2000, 2000), (64, 24)], ct_data=['gpu', 'ram'])
+    return _ct_images([dict(CT_MICRO)] + _sample(CT_MICRO, axes, 10 if quick else 30, 6))
+
+
+SPECT_BASE = dict(device='cuda', os='windows', gpu_free_gb=30, memory_budget_gb=None, Lx=128, Ly=128, Lz=128, views=120, proj_r=None,
+                  proj_z=None, attenuation=True, cache_probabilities=False, psf='gaussian', psf_kernel=31, n_radii=1, cache_kernel=False,
+                  camera_path=False, spect_additive=True, algorithm='OSEM', prior=False, n_subsets=8)
+
+
+def _spect_axes(**more):
+    axes = dict(DEVICES, image=[(128, 128, 128), (64, 64, 64), (128, 128, 100), (256, 256, 200)], views=[120, 96, 60, 128],
+                attenuation=[True, False], cache_probabilities=[False, True], psf=['gaussian', 'none', 'operator'],
+                n_radii=[1, 2, 120], cache_kernel=[False, True], camera_path=[False, True], spect_additive=[True, False],
+                algorithm=['OSEM', 'BSREM', 'OSMAPOSL', 'MLEM', 'RBIEM'], prior=[False, True], proj_r=[None, 128], proj_z=[None, 100])
+    axes.update(more)
+    return axes
+
+
+def _spect_grid(seed, base=SPECT_BASE, tutorials=(), **more):
+    def grid(quick: bool) -> list:
+        configs = [dict(t) for t in tutorials] + _sample(base, _spect_axes(**more), 8 if quick else 30, seed)
+        for p in configs:
+            if 'image' in p:
+                p['Lx'], p['Ly'], p['Lz'] = p.pop('image')
+            p['n_radii'] = min(p['n_radii'], p['views'])
+        return configs
+    return grid
+
+
+SPECT_TUTORIALS = [dict(SPECT_BASE, views=96, n_subsets=8),                                  # t_dicomdata (Lu-177 SymT2, 96 views)
+                   dict(SPECT_BASE, views=120, n_subsets=8, algorithm='BSREM', prior=True),  # t_algorithms
+                   dict(SPECT_BASE, views=120, psf='operator', n_subsets=4)]                 # t_ac225_simind_recon (PSF operator)
+SG_BASE = dict(SPECT_BASE, Lx=144, Ly=144, Lz=112, sg_angles=215, sg_views_per_angle=12, n_radii=2575, psf_kernel=17, n_subsets=10)
+
+
+def grid_starguide(quick: bool) -> list:
+    axes = dict(DEVICES, image=[(144, 144, 112), (128, 128, 100), (96, 96, 64)], sg_angles=[215, 30, 60], sg_views_per_angle=[12, 4, 8],
+                attenuation=[True, False], cache_probabilities=[False, True], psf=['gaussian', 'none'], n_radii=[2575, 1, 40],
+                spect_additive=[True, False], algorithm=['OSEM', 'BSREM', 'MLEM'], prior=[False, True])
+    configs = [dict(SG_BASE)] + _sample(SG_BASE, axes, 6 if quick else 20, 8)
+    for p in configs:
+        if 'image' in p:
+            p['Lx'], p['Ly'], p['Lz'] = p.pop('image')
+        p['n_radii'] = min(p['n_radii'], p['sg_angles'] * p['sg_views_per_angle'])
+    return configs
+
+
 CHECKERS = {
     'pet_sinogram': Checker('pet_sinogram', build_pet_sinogram, grid_pet_sinogram, _pet_sinogram_settings),
     'pet_listmode': Checker('pet_listmode', build_pet_listmode, grid_pet_listmode, _pet_listmode_settings),
+    'sss': Checker('sss', build_sss, grid_sss, _sss_settings, estimate=_estimate_sss, plan=_plan_sss,
+                   fixed=lambda p: [{}, {'lazy': True}] + ([{'N_splits': 2}] if p['tof'] else [])),
+    'ct_helical_sart': Checker('ct_helical_sart', build_ct_helical_sart, grid_ct_sart, _ct_sart_settings,
+                               fixed=({}, {'n_subsets': 8})),
+    'ct_helical_fbp': Checker('ct_helical_fbp', build_ct_helical_fbp, grid_ct_helical_fbp, _ct_helical_fbp_settings,
+                              estimate=_estimate_ct_helical_fbp, plan=_plan_ct_helical_fbp,
+                              budgets=((16, 8), (12, 2), (8, 1), (6, 0.5), (1000, 1000)), fixed=({}, {'gpu_budget': 0.75e9})),
+    'ct_cone_sart': Checker('ct_cone_sart', build_ct_cone_sart, grid_ct_sart, _ct_sart_settings),
+    'ct_cone_fdk': Checker('ct_cone_fdk', build_ct_cone_fdk, grid_ct_cone_fdk, lambda p: [{}], estimate=_estimate_fbp),
+    'spect': Checker('spect', build_spect, _spect_grid(7, tutorials=SPECT_TUTORIALS), _spect_settings,
+                     budgets=((16, 8), (6, 1), (5, 0.5), (4.5, 0.3), (1000, 1000))),
+    'spect_fbp': Checker('spect_fbp', build_spect_fbp, _spect_grid(9), lambda p: [{}], estimate=_estimate_fbp,
+                         budgets=((16, 8), (4, 0.3), (1000, 1000))),
+    'starguide': Checker('starguide', build_starguide, grid_starguide, _starguide_settings,
+                         budgets=((16, 8), (8, 2), (6, 1), (1000, 1000))),
+    'kem': Checker('kem', build_kem, _spect_grid(10, kem_size=[3, 5], kem_support=[1, 2, 0], kem_kernel_on_gpu=[False, True],
+                                                   kem_support_on=['device', 'ram']),
+                   _spect_settings, budgets=((16, 8), (8, 2), (6, 1), (1000, 1000))),
+    'spect_multibed': Checker('spect_multibed', build_spect_multibed, _spect_grid(11, n_beds=[2, 3, 1, 4]), _spect_settings,
+                              budgets=((16, 8), (8, 2), (6, 1), (1000, 1000))),
 }
 
 
@@ -428,10 +862,11 @@ def check_model(model: MemoryModel, checker: Checker, quick: bool, js_cases: lis
     estimates = plans = plan_mismatches = 0
     failures = []
     configs = checker.grid(quick)
+    names = {v['name'] for v in model.data['variables']}
     for p in configs:
-        params = {k: v for k, v in p.items() if k in {v['name'] for v in model.data['variables']} | {'cupy'}}
         with simulate(p):
-            obj = checker.build(p)
+            obj = checker.build(p)                       # may set parameters it measures (e.g. the PSF kernel size)
+            params = {k: v for k, v in p.items() if k in names}
             for s in checker.settings(p):
                 lib = checker.estimate(obj, s)
                 mine = model.estimate(checker.model_id, params, s)
@@ -449,7 +884,8 @@ def check_model(model: MemoryModel, checker: Checker, quick: bool, js_cases: lis
                                         f"    model parts   {[(q['name'], round(q['ram_gb'], 4), round(q['gpu_gb'], 4)) for q in mine['parts']]}")
                 if not _settings_equal(mine['settings'], lib['settings']):
                     failures.append(f"estimate settings: model {mine['settings']}, library {lib['settings']} for {s} in {params}")
-            for (ram_gb, gpu_gb), fixed in itertools.product(checker.budgets[:3] if quick else checker.budgets, checker.fixed):
+            fixed_list = checker.fixed(p) if callable(checker.fixed) else checker.fixed
+            for (ram_gb, gpu_gb), fixed in itertools.product(checker.budgets[:3] if quick else checker.budgets, fixed_list):
                 lib = checker.plan(obj, ram_gb, gpu_gb, fixed)
                 mine = model.plan(checker.model_id, params, ram_gb, gpu_gb, fixed)
                 js_cases.append({'kind': 'plan', 'model': checker.model_id, 'params': params, 'ram_gb': ram_gb, 'gpu_gb': gpu_gb, 'fixed': fixed})

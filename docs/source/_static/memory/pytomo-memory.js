@@ -177,6 +177,7 @@
     max: function () { var m = -Infinity; for (var i = 0; i < arguments.length; i++) { m = Math.max(m, num(arguments[i])); } return m; },
     ceil: function (x) { return Math.ceil(num(x)); },
     floor: function (x) { return Math.floor(num(x)); },
+    round: function (x) { x = num(x); return Math.abs(x % 1) === 0.5 ? 2 * Math.round(x / 2) : Math.round(x); },
     abs: function (x) { return Math.abs(num(x)); },
     sqrt: function (x) { return Math.sqrt(num(x)); },
     log2: function (x) { return Math.log2(num(x)); },
@@ -188,6 +189,7 @@
   };
   var CONSTANTS = { 'true': 1, 'false': 0, 'null': null, 'pi': Math.PI };
 
+  function text(x) { return x === null || x === undefined ? 'null' : String(x); }
   function truthy(x) { return x !== null && x !== undefined && x !== 0 && x !== ''; }
   function div(a, b) { if (b === 0) { return a === 0 ? NaN : (a > 0 ? Infinity : -Infinity); } return a / b; }
 
@@ -208,6 +210,7 @@
     var op = t[1], a = evalTree(t[2], env), b = evalTree(t[3], env);
     if (op === '==') { return a === b ? 1 : 0; }
     if (op === '!=') { return a === b ? 0 : 1; }
+    if (op === '+' && (typeof a === 'string' || typeof b === 'string')) { return text(a) + text(b); }
     a = num(a); b = num(b);
     switch (op) {
       case '+': return a + b;
@@ -334,20 +337,31 @@
     return template.replace(/\{([^}]*)\}/g, function (_, expr) { return fmt(out(evaluate(expr, env))); });
   }
 
+  function addPart(p, env, res) {
+    if ('when' in p && !truthy(evaluate(p.when, env))) { return; }
+    var ram, gpu;
+    if ('bytes' in p) {
+      var b = num(evaluate(p.bytes, env));
+      var onGpu = truthy(evaluate('on' in p ? p.on : 0, env));
+      ram = onGpu ? 0 : b; gpu = onGpu ? b : 0;
+    } else {
+      ram = num(evaluate('ram' in p ? p.ram : 0, env));
+      gpu = num(evaluate('gpu' in p ? p.gpu : 0, env));
+    }
+    res.push([name(p.name, env), p.scope || 'held', ram, gpu]);
+  }
+
   function ownParts(m, env) {
     var res = [];
     expand(m.parts).forEach(function (p) {
-      if ('when' in p && !truthy(evaluate(p.when, env))) { return; }
-      var ram, gpu;
-      if ('bytes' in p) {
-        var b = num(evaluate(p.bytes, env));
-        var onGpu = truthy(evaluate('on' in p ? p.on : 0, env));
-        ram = onGpu ? 0 : b; gpu = onGpu ? b : 0;
+      if ('repeat' in p) {
+        var r = p.repeat, lo = Math.trunc(num(evaluate(r.from, env))), hi = Math.trunc(num(evaluate(r.to, env)));
+        var local = Object.create(null);
+        Object.keys(env).forEach(function (k) { local[k] = env[k]; });
+        for (var k = lo; k <= hi; k++) { local[r['var']] = k; addPart(p, local, res); }
       } else {
-        ram = num(evaluate('ram' in p ? p.ram : 0, env));
-        gpu = num(evaluate('gpu' in p ? p.gpu : 0, env));
+        addPart(p, env, res);
       }
-      res.push([name(p.name, env), p.scope || 'held', ram, gpu]);
     });
     return res;
   }

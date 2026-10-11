@@ -19,9 +19,10 @@ the default model file.
 
 The expression language (also documented at the top of model.json): numbers (``1.5e9``), strings in double or single
 quotes, ``true``/``false`` (1 and 0), ``null``, ``pi``, names of parameters, derived quantities and settings; the
-operators ``+ - * / % **`` (``%`` takes the sign of the divisor, as in Python; ``**`` is right associative and binds
+operators ``+ - * / % **`` (``+`` also joins strings; ``%`` takes the sign of the divisor, as in Python; ``**`` is right associative and binds
 tighter than a unary minus on its left), comparisons ``< <= > >= == !=`` (giving 1 or 0), ``&& || !`` (giving 1 or 0),
-``cond ? a : b`` and parentheses; the functions ``min max ceil floor abs sqrt log2 log10 sin cos asin`` and
+``cond ? a : b`` and parentheses; the functions ``min max ceil floor round abs sqrt log2 log10 sin cos asin`` (``round`` to the nearest
+integer, halves to even as Python's) and
 ``sig(x, n)`` (``x`` rounded to ``n`` significant digits, as Python's ``float(f'{x:.ng}')``). Nothing else is
 evaluated: there is no access to Python objects.
 """
@@ -232,6 +233,7 @@ _FUNCTIONS = {
     'max': lambda *a: max(_num(x) for x in a),
     'ceil': lambda x: float(math.ceil(_num(x))),
     'floor': lambda x: float(math.floor(_num(x))),
+    'round': lambda x: float(round(_num(x))),
     'abs': lambda x: abs(_num(x)),
     'sqrt': lambda x: math.sqrt(_num(x)),
     'log2': lambda x: math.log2(_num(x)),
@@ -243,6 +245,15 @@ _FUNCTIONS = {
 }
 
 _CONSTANTS = {'true': 1.0, 'false': 0.0, 'null': None, 'pi': math.pi}
+
+
+def _text(x) -> str:
+    """A value joined to a string with ``+``: integers without a decimal point."""
+    if x is None:
+        return 'null'
+    if isinstance(x, float) and x.is_integer() and abs(x) < 2 ** 53:
+        return str(int(x))
+    return str(x)
 
 
 def _truthy(x) -> bool:
@@ -283,6 +294,8 @@ def _evaluate(tree, env: Mapping[str, Any]):
         return 1.0 if a == b else 0.0
     if op == '!=':
         return 0.0 if a == b else 1.0
+    if op == '+' and (isinstance(a, str) or isinstance(b, str)):
+        return _text(a) + _text(b)
     a, b = _num(a), _num(b)
     if op == '+':
         return a + b
@@ -419,17 +432,29 @@ class MemoryModel:
         """The model's own parts, as (name, scope, ram bytes, gpu bytes)."""
         parts = []
         for p in self._expand(model['parts']):
-            if 'when' in p and not _truthy(evaluate(p['when'], env)):
-                continue
-            if 'bytes' in p:
-                nbytes = _num(evaluate(p['bytes'], env))
-                on_gpu = _truthy(evaluate(p.get('on', 0), env))
-                ram, gpu = (0.0, nbytes) if on_gpu else (nbytes, 0.0)
+            if 'repeat' in p:
+                r = p['repeat']
+                lo, hi = int(_num(evaluate(r['from'], env))), int(_num(evaluate(r['to'], env)))
+                local = dict(env)
+                for k in range(lo, hi + 1):
+                    local[r['var']] = float(k)
+                    self._part(p, local, parts)
             else:
-                ram = _num(evaluate(p.get('ram', 0), env))
-                gpu = _num(evaluate(p.get('gpu', 0), env))
-            parts.append((self._name(p['name'], env), p.get('scope', 'held'), ram, gpu))
+                self._part(p, env, parts)
         return parts
+
+    def _part(self, p: Mapping, env: Mapping, parts: list) -> None:
+        """Adds part ``p`` as (name, scope, ram bytes, gpu bytes) to ``parts``, unless its ``when`` is false."""
+        if 'when' in p and not _truthy(evaluate(p['when'], env)):
+            return
+        if 'bytes' in p:
+            nbytes = _num(evaluate(p['bytes'], env))
+            on_gpu = _truthy(evaluate(p.get('on', 0), env))
+            ram, gpu = (0.0, nbytes) if on_gpu else (nbytes, 0.0)
+        else:
+            ram = _num(evaluate(p.get('ram', 0), env))
+            gpu = _num(evaluate(p.get('gpu', 0), env))
+        parts.append((self._name(p['name'], env), p.get('scope', 'held'), ram, gpu))
 
     def _expand(self, parts: list) -> list:
         """The parts with every ``{'include': name}`` replaced by the parts of ``part_sets[name]``."""
