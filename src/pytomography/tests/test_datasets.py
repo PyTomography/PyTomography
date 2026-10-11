@@ -562,6 +562,10 @@ def test_registry_entry(name):
         assert e["parts"] and e.get("cite")
     ids = [part_id(p) for p in e["parts"]]
     assert len(ids) == len(set(ids))
+    for rel, (size, digest) in e.get("files", {}).items():  # a pending dataset's files, pinned before they have URLs
+        assert e.get("status") == "pending", "a dataset that can be downloaded lists its files as parts"
+        assert not rel.startswith("/") and "\\" not in rel and ".." not in rel.split("/"), rel
+        assert isinstance(size, int) and size > 0 and re.fullmatch(r"[0-9a-f]{64}", digest), rel
     for part in e["parts"] + [p for x in e.get("extras", {}).values() for p in x["parts"]]:
         assert set(KINDS[part["kind"]]) <= set(part), part
         assert isinstance(part["size"], int) and part["size"] > 0
