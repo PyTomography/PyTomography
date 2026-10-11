@@ -1,0 +1,155 @@
+/* The "Memory and speed" page (loaded only by memory.md): the calculator (memory-ui.js) and the generated tables.
+   Minimal: no panels, sections separated by 1 px lines. Green and red mean only "fits" and "does not fit". */
+html { --mem-ok: var(--pt-ok); --mem-bad: #b42318; --mem-h: 1.85rem; --mem-label: 6.6rem; }
+html[data-theme="dark"] { --mem-bad: #ff8f80; }
+
+/* the page has neither sidebar; overflow: visible lets the results stick (the theme makes the article scroll) */
+.bd-container .bd-main .bd-content .bd-article-container:has(.pt-mem) { max-width: 82rem; overflow: visible; }
+.bd-article-container:has(.pt-mem) .bd-article > section > p, .bd-article-container:has(.pt-mem) .bd-article > section > section > p,
+.bd-article-container:has(.pt-mem) .bd-article > section > section > ul { max-width: 52rem; }
+.pt-mem-lede { color: var(--pt-ink-2); margin: -4px 0 14px; }
+/* no band behind a heading reached by its anchor (pydata-sphinx-theme: .bd-article :target > h2 { background: --pst-color-target }) */
+.bd-main .bd-content .bd-article-container:has(.pt-mem) .bd-article :target > :is(h1, .h1, h2, .h2, h3, .h3, h4, .h4, h5, .h5) { background-color: transparent; }
+
+/* ---------- frame, loading ---------- */
+.pt-mem { position: relative; margin: 0 0 34px; padding: 12px 0; border-top: 1px solid var(--pt-line); border-bottom: 1px solid var(--pt-line);
+  font-size: 0.86rem; color: var(--pt-ink); }
+/* while loading, the frame keeps the calculator's size, the bar near its top */
+.pt-mem.is-loading { min-height: 31rem; padding-top: 4rem; }
+@media (max-width: 900px) { .pt-mem.is-loading { min-height: 62rem; } }
+.pt-mem-loading { width: min(22rem, 80%); margin: 0 auto; text-align: center; }
+.pt-mem-progress { height: 2px; background: var(--pt-line); overflow: hidden; }
+.pt-mem-progress > span { display: block; height: 100%; width: 0; background: var(--pt-purple); transition: width 0.2s ease-out; }
+.pt-mem-loading-step { font-size: 0.8rem; color: var(--pt-muted); margin: 8px 0 0; }
+.pt-mem-static { color: var(--pt-ink-2); margin: 0; }
+.pt-mem-error { margin: 0; color: var(--mem-bad); }
+
+/* ---------- layout ---------- */
+.pt-mem-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+.pt-mem-in { padding-right: 20px; min-width: 0; }
+.pt-mem-out { padding-left: 20px; border-left: 1px solid var(--pt-line); min-width: 0; position: sticky; top: calc(var(--pst-header-height, 4rem) + 8px);
+  align-self: start; max-height: calc(100vh - var(--pst-header-height, 4rem) - 16px); overflow-y: auto; scrollbar-width: thin; }
+.pt-mem-sec + .pt-mem-sec, .pt-mem-adv { border-top: 1px solid var(--pt-line); margin-top: 9px; padding-top: 9px; }
+.pt-mem-sec[hidden] { display: none; }
+@media (max-width: 900px) {
+  .pt-mem-grid { grid-template-columns: minmax(0, 1fr); }
+  .pt-mem-in { padding-right: 0; }
+  .pt-mem-out { position: static; max-height: none; overflow: visible; padding: 12px 0 0; margin-top: 10px; border-left: 0; border-top: 1px solid var(--pt-line); }
+}
+
+/* ---------- inputs: label and controls on one line ---------- */
+.pt-mem-cells { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 18px; }
+.pt-mem-cell { display: grid; grid-template-columns: var(--mem-label) minmax(0, 1fr); align-items: center; gap: 8px; min-width: 0; }
+.pt-mem-cell.is-wide { grid-column: 1 / -1; }
+@media (max-width: 560px) { .pt-mem-cells { grid-template-columns: minmax(0, 1fr); } :root { --mem-label: 5.6rem; } }
+.pt-mem-l { font-weight: 500; color: var(--pt-ink-2); line-height: 1.2; display: flex; align-items: center; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
+.pt-mem-c { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.pt-mem-x { color: var(--pt-muted); font-size: 0.78rem; white-space: nowrap; }
+.pt-mem select, .pt-mem input[type="number"], .pt-mem input[type="search"] {
+  font: 0.84rem var(--pst-font-family-base); color: var(--pt-ink); background: var(--pt-surface); border: 1px solid var(--pt-line);
+  border-radius: 5px; height: var(--mem-h); padding: 0 6px; min-width: 0; }
+.pt-mem select { flex: 1 1 auto; max-width: 100%; padding-right: 2px; }
+.pt-mem input[type="search"] { flex: 1 1 8rem; }
+.pt-mem input[type="number"] { font-family: var(--pst-font-family-monospace); font-size: 0.8rem; width: 6.2rem; flex: 0 1 auto; }
+.pt-mem input.is-small { width: 4.1rem; }
+.pt-mem input.is-wide { width: 8.4rem; }
+.pt-mem .pt-mem-other { width: 5rem; }
+.pt-mem input::placeholder { color: var(--pt-muted); }
+.pt-mem select:focus-visible, .pt-mem input:focus-visible, .pt-mem button:focus-visible, .pt-mem summary:focus-visible, .pt-mem-i:focus-visible {
+  outline: 2px solid var(--pt-cyan); outline-offset: 1px; }
+.pt-mem input[aria-invalid="true"] { border-color: var(--mem-bad); }
+
+.pt-mem-seg { display: inline-flex; border: 1px solid var(--pt-line); border-radius: 5px; overflow: hidden; flex: none; height: var(--mem-h); }
+.pt-mem-seg button { border: 0; background: var(--pt-surface); color: var(--pt-ink-2); font: 500 0.8rem var(--pst-font-family-base); padding: 0 9px; cursor: pointer; }
+.pt-mem-seg button + button { border-left: 1px solid var(--pt-line); }
+.pt-mem-seg button[aria-pressed="true"] { background: var(--pt-ink); color: var(--pst-color-background); }
+
+.pt-mem-note { font-size: 0.78rem; color: var(--pt-muted); margin: 4px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 3px; }
+.pt-mem-in .pt-mem-note { padding-left: calc(var(--mem-label) + 8px); }
+@media (max-width: 560px) { .pt-mem-in .pt-mem-note { padding-left: 0; } }
+.pt-mem-chip { font: 500 0.76rem var(--pst-font-family-base); padding: 0 7px; height: 1.35rem; border-radius: 4px; border: 1px solid var(--pt-line);
+  background: var(--pt-surface); color: var(--pt-ink-2); cursor: pointer; }
+.pt-mem-chip[aria-pressed="true"] { background: var(--pt-ink); color: var(--pst-color-background); border-color: var(--pt-ink); }
+
+/* the (i) notes: shown on hover or focus */
+.pt-mem-i { position: relative; display: inline-grid; place-items: center; width: 13px; height: 13px; border-radius: 50%; flex: none;
+  border: 1px solid var(--pt-muted); color: var(--pt-muted); font: 600 9px/1 var(--pst-font-family-monospace); cursor: help; }
+.pt-mem-i::after { content: attr(data-tip); position: absolute; top: calc(100% + 6px); left: -8px; z-index: 30; width: max-content;
+  max-width: min(18rem, 80vw); padding: 6px 8px; border-radius: 5px; background: var(--pt-ink); color: var(--pst-color-background);
+  font: 400 0.75rem/1.4 var(--pst-font-family-base); white-space: normal; text-align: left; opacity: 0; pointer-events: none; transition: opacity 0.1s; }
+.pt-mem-i:hover::after, .pt-mem-i:focus::after { opacity: 1; }
+.pt-mem-out .pt-mem-i::after { left: auto; right: -8px; }
+
+.pt-mem-adv > summary, .pt-mem-more > summary { cursor: pointer; color: var(--pt-ink-2); font-size: 0.8rem; font-weight: 500; }
+.pt-mem-adv > .pt-mem-cells { margin-top: 8px; }
+
+/* ---------- results ---------- */
+.pt-mem-status { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.92rem; }
+.pt-mem-status b { font-family: var(--pst-font-family-heading); font-size: 1rem; }
+.pt-mem-status.is-ok b { color: var(--mem-ok); }
+.pt-mem-status.is-over b { color: var(--mem-bad); }
+.pt-mem-btn { font: 500 0.76rem var(--pst-font-family-base); padding: 1px 8px; border-radius: 4px; border: 1px solid var(--pt-line);
+  background: var(--pt-surface); color: var(--pt-purple); cursor: pointer; flex: none; }
+.pt-mem-btn:hover { border-color: var(--pt-purple); }
+.pt-mem-bar { display: grid; grid-template-columns: 2.6rem minmax(0, 1fr) auto; align-items: center; gap: 8px; margin-top: 7px; font-size: 0.8rem; }
+.pt-mem-bar-l { color: var(--pt-ink-2); display: flex; align-items: center; gap: 3px; }
+.pt-mem-bar-n { font: 0.76rem var(--pst-font-family-monospace); color: var(--pt-ink-2); }
+.pt-mem-track { height: 4px; border-radius: 2px; background: var(--pt-line); overflow: hidden; }
+.pt-mem-track > span { display: block; height: 100%; }
+.pt-mem-bar.is-ok .pt-mem-track > span { background: var(--mem-ok); }
+.pt-mem-bar.is-over .pt-mem-track > span { background: var(--mem-bad); }
+.pt-mem-set { margin: 9px 0 0; display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.pt-mem-set code, .pt-mem-list code { font-size: 0.76rem; }
+.pt-mem-out .pt-mem-note { margin-top: 6px; }
+.pt-mem-more { margin-top: 6px; }
+.pt-mem-more[open] > summary { margin-bottom: 4px; }
+.pt-mem-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 0.8rem; color: var(--pt-ink-2); }
+.pt-mem-list li { display: flex; gap: 6px; align-items: baseline; }
+.pt-mem-list li.is-ok code { color: var(--mem-ok); }
+.pt-mem-apply { border: 0; background: none; padding: 0; color: var(--pt-purple); font: 600 0.76rem var(--pst-font-family-base); cursor: pointer; flex: none; }
+.pt-mem-apply:hover { text-decoration: underline; }
+.pt-mem-parts { width: 100%; border-collapse: collapse; font-size: 0.76rem; }
+.pt-mem-parts th, .pt-mem-parts td { text-align: left; padding: 2px 6px 2px 0; border-bottom: 1px solid var(--pt-line); vertical-align: top; }
+.pt-mem-parts th { font-weight: 500; color: var(--pt-muted); }
+.pt-mem .pt-mem-num { text-align: right; font-family: var(--pst-font-family-monospace); white-space: nowrap; }
+.pt-mem-dim { color: var(--pt-muted); white-space: nowrap; }
+.pt-mem-code { position: relative; margin-top: 9px; }
+.pt-mem-code pre { margin: 0; padding: 7px 56px 7px 9px; font-size: 0.72rem; line-height: 1.5; overflow-x: auto; background: var(--pt-surface-2);
+  border: 1px solid var(--pt-line); border-radius: 5px; }
+.pt-mem-code code { background: none; border: 0; padding: 0; color: var(--pt-ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.pt-mem-copy { position: absolute; top: 4px; right: 4px; }
+
+/* phones: a status line that jumps to the results */
+.pt-mem-mini { display: none; }
+@media (max-width: 900px) {
+  .pt-mem-mini { position: fixed; left: 10px; right: 10px; bottom: 10px; z-index: 20; display: block; padding: 7px 12px; border-radius: 6px;
+    border: 1px solid var(--pt-line); border-left: 3px solid var(--mem-ok); background: var(--pt-surface); color: var(--pt-ink);
+    font: 500 0.82rem var(--pst-font-family-base); text-align: left; box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.5); cursor: pointer; }
+  .pt-mem-mini.is-over { border-left-color: var(--mem-bad); }
+  .pt-mem-mini[hidden] { display: none; }
+}
+
+/* ---------- the generated parts: tabs, tables, collapsed parts ---------- */
+/* thin underline tabs, no frame (the theme draws boxed tabs: .bd-content .sd-tab-set) */
+.bd-content :is(.pt-memory-reference, .pt-memory-formulas) .sd-tab-set > label { font-size: 0.82rem; font-weight: 500; padding: 0.3em 0.55em 0.35em;
+  margin: 0; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; color: var(--pt-ink-2); }
+.bd-content :is(.pt-memory-reference, .pt-memory-formulas) .sd-tab-set > label:hover { color: var(--pt-ink); background: none; }
+.bd-content :is(.pt-memory-reference, .pt-memory-formulas) .sd-tab-set > input:checked + label { border: 0; border-bottom: 2px solid var(--pt-purple);
+  border-radius: 0; color: var(--pt-ink); background: none; }
+.bd-content :is(.pt-memory-reference, .pt-memory-formulas) .sd-tab-set .sd-tab-content { border: 0; border-top: 1px solid var(--pt-line); border-radius: 0;
+  box-shadow: none; padding: 12px 0 0; background: none; }
+.pt-memory-reference table, .pt-memory-formulas table { font-size: 0.8rem; }
+.pt-memory-reference td, .pt-memory-formulas td { vertical-align: top; }
+.pt-memory-reference td:nth-child(n+5) { white-space: nowrap; }
+.bd-content .pt-memory-reference .sd-tab-set .sd-tab-content { max-height: 34rem; overflow: auto; }   /* long tables scroll in place */
+.pt-memory-formulas td code { white-space: normal; overflow-wrap: anywhere; }
+.pt-memory-formulas .sd-tab-content > p, .pt-memory-reference .sd-tab-content > p { max-width: 52rem; }
+/* collapsed parts: a line and a title, no card (the theme's dropdown shadow is !important) */
+.bd-content :is(.pt-memory-formulas, .pt-memory-sources) details.sd-dropdown { border: 0 !important; border-top: 1px solid var(--pt-line) !important;
+  border-radius: 0; box-shadow: none !important; background: none; margin: 10px 0 0; }
+.bd-content :is(.pt-memory-formulas, .pt-memory-sources) details.sd-dropdown > summary.sd-card-header { padding: 6px 0; font-size: 0.85rem;
+  font-weight: 500; background: none; border: 0; border-radius: 0; color: var(--pt-ink-2); }
+.pt-memory-formulas details.sd-dropdown > .sd-summary-content, .pt-memory-sources details.sd-dropdown > .sd-summary-content { padding: 4px 0 0; border: 0; }
+.pt-memory-sources li { font-size: 0.85rem; }
+
+@media (prefers-reduced-motion: reduce) { .pt-mem-progress > span, .pt-mem-i::after { transition: none; } }
