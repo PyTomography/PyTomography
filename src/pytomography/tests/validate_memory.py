@@ -1035,6 +1035,7 @@ def drive(args) -> None:
     lock = Lock(args.lock, 'validate_memory')
     sampler = GPUSampler()
     sampler.start()
+    time.sleep(2.0)                                     # a baseline of the GPU's use before the first case
     results_lock = threading.Lock()
 
     def record(result):
