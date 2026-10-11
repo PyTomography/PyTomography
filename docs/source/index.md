@@ -26,7 +26,7 @@ html_theme.sidebar_secondary.remove: true
 <section class="pt-modalities" aria-label="Supported modalities">
   <div><b>SPECT</b><span>DICOM from GE, Siemens and StarGuide, and SIMIND. Multiple beds and photopeaks, cardiac reorientation, hybrid Monte Carlo scatter.</span></div>
   <div><b>PET</b><span>GATE sinograms and list mode, time of flight, GE Discovery MI and PETSIRD. Randoms and single scatter simulation.</span></div>
-  <div><b>CT</b><span>DICOM-CT-PD projections from 3rd-generation clinical scanners, reconstructed with OS-SART.</span></div>
+  <div><b>CT</b><span>Raw DICOM-CT-PD projections from 3rd-generation clinical scanners, and cone-beam micro-CT. Helical filtered back projection, FDK and OS-SART.</span></div>
   <div><b>Your own system</b><span>Every system matrix is a forward and back projector you can replace, so new geometries, priors and networks reuse every algorithm.</span></div>
 </section>
 
@@ -83,7 +83,7 @@ recon = OSEM(likelihood)(n_iters=4, n_subsets=8)
     <a href="gallery.html#figure-1-lu-177-spect"><img src="_images/figure2.jpg" alt="Lu-177 PSMA SPECT reconstructed with four algorithms" loading="lazy"><span><b>Lu-177 PSMA SPECT</b>Four algorithms compared with a commercial reconstruction</span></a>
     <a href="gallery.html#figure-2-ac-225-spect"><img src="_images/ac225_patient_dual.jpg" alt="Ac-225 PSMA SPECT at four time points" loading="lazy"><span><b>Ac-225 PSMA SPECT</b>Monte Carlo PSF modelling and uncertainty over four time points</span></a>
     <a href="gallery.html#figure-3-pet-with-deep-image-prior"><img src="_images/figure4_left_hoz.jpg" alt="Brain PET reconstructed with OSEM and Deep Image Prior" loading="lazy"><span><b>PET with Deep Image Prior</b>Low-count TOF list mode with a network as the image model</span></a>
-    <a href="gallery.html#figure-4-clinical-ct-reconstruction"><img src="_images/CT_slice.png" alt="Clinical CT slice reconstructed with OS-SART" loading="lazy"><span><b>Clinical CT</b>OS-SART on raw DICOM-CT-PD projections</span></a>
+    <a href="gallery.html#figure-4-clinical-ct"><img src="_images/CT_slice.png" alt="Coronal slice of a clinical CT reconstructed from its raw projections" loading="lazy"><span><b>Clinical CT</b>Reconstructed from the scanner's raw DICOM-CT-PD projections</span></a>
   </div>
 </section>
 

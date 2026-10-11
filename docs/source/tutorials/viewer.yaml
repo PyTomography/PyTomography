@@ -21,7 +21,9 @@
 #     units:      shown in the readout
 #     colormap, range, opacity, window (ct: phantom | soft | bone | lung | full): display defaults. SPECT and PET
 #                 default to inferno from 0 to their hottest voxel inside the anatomy (CT above -500 HU), so a hot
-#                 voxel at the edge of the field of view doesn't set the scale.
+#                 voxel at the edge of the field of view doesn't set the scale. Without an anatomy image, nothing
+#                 bounds it: give `range: [0, p99.98]`, a percentile of the image's voxels (any end of a range can be
+#                 a number or "p<percentile>").
 #     crop:       body (CT default: where the image is above -500 HU, else 2% of its maximum) | base (SPECT and PET
 #                 default: the anatomy's extent) | none
 #     when:       optional Python condition, checked in the tutorial's namespace; the layer is exported only when it
@@ -236,9 +238,12 @@ tutorials:
     title: NEMA IQ phantom, GE Discovery MI
     description: BSREM and OSEM from the scanner's list mode, with time of flight
     credit: GE Discovery MI NEMA scan (Schramm, Zenodo 8404015, CC BY 4.0)
+    # No CT here to bound the scale, and BSREM has about 200 hot voxels (up to 2.3) in the first slice of the axial field
+    # of view, three times the phantom's hottest sphere (0.52), so its maximum would leave both images almost black. The
+    # 99.98th percentile (0.43 for BSREM, 0.44 for OSEM) lies above all but the spheres' hottest voxels.
     layers:
-    - {name: BSREM, kind: pet, array: recon_BSREM, affine: vx.object_affine(object_meta), units: a.u.}
-    - {name: OSEM, kind: pet, array: recon_OSEM, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: BSREM, kind: pet, array: recon_BSREM, affine: vx.object_affine(object_meta), units: a.u., range: [0, p99.98]}
+    - {name: OSEM, kind: pet, array: recon_OSEM, affine: vx.object_affine(object_meta), units: a.u., range: [0, p99.98]}
 
   t_uncertainty_pet:
     title: NEMA IQ phantom, GE Discovery MI

@@ -73,6 +73,10 @@ html_theme = "pydata_sphinx_theme"
 html_title = "PyTomography"
 html_logo = "images/PT1.png"
 html_favicon = "images/PT1.png"
+# _ext/pytomo_docs.py writes the gallery's thumbnails into _generated/thumbs when the build starts, but Sphinx drops a
+# missing html_static_path entry before that. _generated is gitignored, so on a fresh checkout (Read the Docs builds
+# from one every time) the thumbnails would never be copied: create the folder first.
+os.makedirs(os.path.join(os.path.dirname(os.path.abspath(__file__)), "_generated", "thumbs"), exist_ok=True)
 html_static_path = ["_static", "_generated"]
 html_css_files = [
     "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap",
