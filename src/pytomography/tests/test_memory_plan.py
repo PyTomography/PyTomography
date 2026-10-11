@@ -19,6 +19,13 @@ from pytomography.utils import memory
 from pytomography.utils.memory import MemoryEstimate, MemoryPart, MemoryPlan, plan_settings
 
 
+@pytest.fixture(autouse=True)
+def no_cuda_cache(monkeypatch):
+    """No allowance for PyTorch's CUDA cache, so that the toy budgets below are plain arithmetic (it has its own test)."""
+    monkeypatch.setattr(memory, "CUDA_CACHE_BYTES", 0.0)
+    monkeypatch.setattr(memory, "CUDA_CACHE_FRACTION", 0.0)
+
+
 @pytest.fixture(params=[False, True], ids=["linux", "windows"])
 def gpu_as_ram(request, monkeypatch):
     monkeypatch.setattr(memory, "counts_gpu_as_ram", lambda: request.param)
@@ -156,21 +163,38 @@ def test_plan_settings_with_nothing_to_choose():
 
 def test_available_memory_keeps_a_margin(monkeypatch):
     monkeypatch.setattr(memory, "_gpu_memory", lambda device: (20e9, 32e9))
-    monkeypatch.setattr(memory, "_host_memory", lambda: (64e9, 40e9, 3e9))     # 64 GB machine, 40 GB free, this process 3 GB
+    monkeypatch.setattr(memory, "_host_memory", lambda: (64e9, 40e9, 4e9))     # 64 GB machine, 40 GB free, this process 4 GB
     ram, gpu = memory.available_memory()
-    assert ram == pytest.approx(40 - 16 + memory.FIXED_OVERHEAD_BYTES / 1e9)    # 16 GB kept free; the overhead is ours
+    assert ram == pytest.approx(40 - 16 + memory.fixed_overhead_bytes() / 1e9)  # 16 GB kept free; the overhead is ours
     assert gpu == pytest.approx(20 - 0.05 * 32)
     monkeypatch.setattr(memory, "_host_memory", lambda: (16e9, 10e9, 1e9))     # a 16 GB laptop: a quarter kept free
     assert memory.available_memory()[0] == pytest.approx(10 - 4 + 1)
     monkeypatch.setattr(memory, "_host_memory", lambda: (16e9, 2e9, 1e9))
     assert memory.available_memory()[0] == 0
     # plans without budgets are for what is available
-    monkeypatch.setattr(memory, "_host_memory", lambda: (64e9, 40e9, 3e9))
+    monkeypatch.setattr(memory, "_host_memory", lambda: (64e9, 40e9, 4e9))
     plan = _ToySystemMatrix().plan_memory()
     assert plan.ram_gb == pytest.approx(ram) and plan.gpu_gb == pytest.approx(gpu)
     assert plan.budget_from == {'ram_gb': 'available', 'gpu_gb': 'available'} and 'available now' in str(plan)
     plan = _ToySystemMatrix().plan_memory(ram_gb=7)
     assert plan.ram_gb == 7 and plan.gpu_gb == pytest.approx(gpu) and plan.budget_from == {'ram_gb': 'given', 'gpu_gb': 'available'}
+
+
+def test_estimates_add_the_overheads_of_the_device(monkeypatch, gpu_as_ram):
+    """Python, PyTorch and CUDA take more with a CUDA device (its libraries are loaded), and GPU arrays bring
+    PyTorch's CUDA cache with them: a fixed amount and a fraction of the arrays."""
+    monkeypatch.setattr(memory, "CUDA_CACHE_BYTES", 0.1e9)
+    monkeypatch.setattr(memory, "CUDA_CACHE_FRACTION", 0.15)
+    assert memory.fixed_overhead_bytes('cuda') == memory.FIXED_OVERHEAD_BYTES > memory.fixed_overhead_bytes('cpu') == memory.FIXED_OVERHEAD_CPU_BYTES
+    for device in ('cpu', 'cuda'):
+        monkeypatch.setattr(pytomography, "device", torch.device(device))
+        estimate = memory.memory_estimate('test', [MemoryPart('image', gpu_bytes=2e9), MemoryPart('data', ram_bytes=1e9)])
+        parts = {p.name: p for p in estimate.parts}
+        assert parts['Python, PyTorch and CUDA'].ram_bytes == memory.fixed_overhead_bytes(device)
+        assert parts["PyTorch's GPU cache (rounded and kept blocks)"].gpu_bytes == pytest.approx(0.1e9 + 0.15 * 2e9)
+        assert estimate.gpu_gb == pytest.approx(2 + 0.1 + 0.3)
+    host_only = memory.memory_estimate('test', [MemoryPart('data', ram_bytes=1e9)])
+    assert all('GPU cache' not in p.name for p in host_only.parts) and host_only.gpu_gb == 0
 
 
 def test_available_memory_reads_this_machine():

@@ -30,7 +30,8 @@ def _parts(estimate: MemoryEstimate) -> dict:
 
 
 def _gpu(estimate: MemoryEstimate) -> float:
-    return sum(p.gpu_bytes for p in estimate.parts)
+    """The GPU memory of the estimate's arrays (not PyTorch's cache), against which the peak allocated is measured."""
+    return sum(p.gpu_bytes for p in estimate.parts if p.scope != 'overhead')
 
 
 def test_the_helical_fbp_estimate_counts_the_chunk_it_holds():
