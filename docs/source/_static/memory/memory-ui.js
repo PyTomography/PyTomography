@@ -462,7 +462,8 @@
       plan.push(gpuIn, el('span', {class: 'pt-mem-x', text: 'GB GPU'}));
     }
     var cells = [cell('Plan for', plan, {wide: true, tip: 'Like plan_memory(): installed less ' + gb(b.ram_margin_gb) + ' GB of RAM (16 GB, or a quarter below 64 GB) and 5% of the GPU. Lower it if other jobs run.'})];
-    (state.more || []).forEach(function (p) {
+    // projector_uses_gpu (parallelproj's CUDA build on a visible GPU) matters only with PyTomography on the CPU
+    (state.more || []).filter(function (p) { return p.name !== 'projector_uses_gpu' || b.device === 'cpu'; }).forEach(function (p) {
       cells.push(cell(shortLabel(p.label), [control(p, params[p.name], false)], {tip: p.help}));
     });
     f.append(el('div', {class: 'pt-mem-cells'}, cells));
