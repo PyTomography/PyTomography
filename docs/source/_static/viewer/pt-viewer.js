@@ -42,36 +42,68 @@
   const fmtMB = b => (b / 1e6).toFixed(b < 1e7 ? 1 : 0) + ' MB';
 
   // ---------- files ----------
-  async function fetchBytes(url, onBytes, signal) {
+  // A layer's .nii.gz is unpacked while it downloads, into one buffer of the size the manifest gives (the 352-byte
+  // header and the voxels), so neither the packed bytes nor a second copy of the voxels is ever kept: a full-resolution
+  // CT needs only its own size in memory. onFrac(f) reports the share of the file received so far.
+  const BPE = {uint8: 1, int8: 1, int16: 2, uint16: 2, int32: 4, uint32: 4, float32: 4, float64: 8};
+  const NO_UNPACK = 'this browser cannot unpack the images; Safari 16.4, Chrome 80, Firefox 113 or later can';
+  async function fetchNifti(url, m, onFrac, signal) {
     const r = await fetch(url, {signal});
-    if (!r.ok) throw new Error(`${url} answered ${r.status}`);
-    let u8;
-    if (onBytes && r.body && r.body.getReader) {
-      const rd = r.body.getReader(), parts = [];
-      let n = 0;
-      for (;;) {
-        const {done, value} = await rd.read();
-        if (done) break;
-        parts.push(value); n += value.length; onBytes(n);
-      }
-      u8 = new Uint8Array(n);
-      let o = 0;
-      for (const p of parts) { u8.set(p, o); o += p.length; }
-    } else u8 = new Uint8Array(await r.arrayBuffer());
+    if (!r.ok) throw new Error(`${m.file}: the server answered ${r.status}`);
+    const nvox = Array.isArray(m.shape) && m.shape.length === 3 ? m.shape[0] * m.shape[1] * m.shape[2] : 0;
+    const size = nvox && BPE[m.dtype] ? 352 + nvox * BPE[m.dtype] : 0;
+    if (!r.body || typeof r.body.getReader !== 'function') {
+      const u8 = await unpack(new Uint8Array(await r.arrayBuffer()));
+      onFrac(1);
+      return u8;
+    }
+    const rd = r.body.getReader();
+    let got = 0, expect = m.bytes || 0;
+    const next = async () => {
+      const x = await rd.read();
+      if (!x.done) { got += x.value.length; if (expect) onFrac(Math.min(1, got / expect)); }
+      return x;
+    };
+    const first = await next();
+    if (first.done) throw new Error(`${m.file} is empty`);
+    const head = first.value, gz = head[0] === 0x1f && head[1] === 0x8b;
+    // not packed: the server unpacked it on the way (Content-Encoding), or the prototype's base64 JSON
+    if (!gz && head[0] !== 0x7b && size) expect = size;
+    const src = new ReadableStream({
+      start(c) { c.enqueue(head); },
+      async pull(c) { const {done, value} = await next(); if (done) c.close(); else c.enqueue(value); },
+      cancel(e) { return rd.cancel(e); },
+    });
+    if (gz && typeof DecompressionStream === 'undefined') throw new Error(NO_UNPACK);
+    const u8 = await collect((gz ? src.pipeThrough(new DecompressionStream('gzip')) : src).getReader(), head[0] === 0x7b ? 0 : size);
+    onFrac(1);
+    return gz ? u8 : unpack(u8);
+  }
+  async function collect(rd, size) {
+    let buf = new Uint8Array(size || 1 << 22), o = 0;
+    for (;;) {
+      const {done, value} = await rd.read();
+      if (done) break;
+      if (o + value.length > buf.length) { const b = new Uint8Array(Math.max(2 * buf.length, o + value.length)); b.set(buf.subarray(0, o)); buf = b; }
+      buf.set(value, o); o += value.length;
+    }
+    return o === buf.length ? buf : buf.subarray(0, o);
+  }
+  async function unpack(u8) {
     if (u8[0] === 0x7b) {  // {"base64": ...}: for hosts that can't serve .nii.gz (the prototype's)
       const s = JSON.parse(new TextDecoder().decode(u8)).base64, b = atob(s);
       u8 = new Uint8Array(b.length);
       for (let i = 0; i < b.length; i++) u8[i] = b.charCodeAt(i);
     }
+    if (u8[0] === 0x1f && u8[1] === 0x8b) {
+      if (typeof DecompressionStream === 'undefined') throw new Error(NO_UNPACK);
+      u8 = new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+    }
     return u8;
   }
-  async function gunzip(u8) {
-    if (typeof DecompressionStream === 'undefined')
-      throw new Error('this browser cannot unpack the images; Safari 16.4, Chrome 80, Firefox 113 or later can');
-    return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
-  }
-  async function readNifti(u8, name) {
-    if (u8[0] === 0x1f && u8[1] === 0x8b) u8 = await gunzip(u8);
+  // The voxels stay as the file stores them (16-bit integers for every export), with the scale to physical values
+  // beside them (sc = [slope, intercept]; [1, 0] for HU): half the memory of 32-bit floats, and no copy.
+  function readNifti(u8, name) {
     const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
     if (dv.getInt32(0, true) !== 348) throw new Error(`${name} is not a little-endian NIfTI-1 file`);
     const dims = [1, 2, 3].map(i => Math.max(1, dv.getInt16(40 + 2 * i, true))), dtype = dv.getInt16(70, true);
@@ -86,13 +118,16 @@
       if (a !== b && Math.abs(aff[a][b]) > 1e-4 * Math.abs(aff[a][a])) throw new Error(`${name} is rotated against the scanner axes`);
     const T = {2: Uint8Array, 4: Int16Array, 8: Int32Array, 16: Float32Array, 64: Float64Array, 256: Int8Array, 512: Uint16Array, 768: Uint32Array}[dtype];
     if (!T) throw new Error(`${name} uses NIfTI data type ${dtype}, which the viewer does not read`);
-    const n = dims[0] * dims[1] * dims[2];
-    const raw = new T(u8.buffer.slice(u8.byteOffset + off, u8.byteOffset + off + n * T.BYTES_PER_ELEMENT));
-    const img = new Float32Array(n);
+    const n = dims[0] * dims[1] * dims[2], nb = n * T.BYTES_PER_ELEMENT, at = u8.byteOffset + off;
+    if (off < 348 || off + nb > u8.byteLength) throw new Error(`${name} is shorter than its header says`);
+    const img = at % T.BYTES_PER_ELEMENT === 0 ? new T(u8.buffer, at, n) : new T(u8.buffer.slice(at, at + nb));
     let mn = Infinity, mx = -Infinity;
-    for (let i = 0; i < n; i++) { const v = raw[i] * sl + it; img[i] = v; if (v < mn) mn = v; if (v > mx) mx = v; }
-    return {img, dims, aff, pd: [0, 1, 2].map(a => Math.abs(aff[a][a])), min: mn, max: mx};
+    for (let i = 0; i < n; i++) { const v = img[i]; if (v < mn) mn = v; if (v > mx) mx = v; }
+    const a = mn * sl + it, b = mx * sl + it;
+    return {img, sc: [sl, it], dims, aff, pd: [0, 1, 2].map(a => Math.abs(aff[a][a])), min: Math.min(a, b), max: Math.max(a, b)};
   }
+  const SC1 = [1, 0];
+  const scOf = L => L.base === L.img ? L.sc : SC1;   // the scale of what a layer is drawn from: smoothed data is in floats
 
   // ---------- matplotlib's "gaussian" interpolation: weights exp(-2 d^2) within 2 source pixels (sigma = 0.5 pixel) ----------
   const WCACHE = new Map();
@@ -128,31 +163,48 @@
   }
 
   // ---------- background workers ----------
-  // Smoothing: a separable 3D Gaussian with sigma per axis in voxels, always from the unsmoothed data
-  const SMOOTH_SRC = `self.onmessage=e=>{const{tag,data,dims,sig}=e.data;let a=data,b=new Float32Array(a.length);const[nx,ny,nz]=dims;
+  // Smoothing: a separable 3D Gaussian with sigma per axis in voxels, always from the unsmoothed data (as stored, with
+  // its scale sc), into 32-bit floats. Each line is copied into a buffer padded with its edge values, then filtered back
+  // in place: one image of floats, no clamping in the inner loop (a full-resolution CT: 1.5 s at 2 mm FWHM, 6 s at 10)
+  const SMOOTH_SRC = `self.onmessage=e=>{const{tag,data,sc,dims,sig}=e.data;const a=new Float32Array(data.length);
+    for(let i=0;i<a.length;i++)a[i]=data[i]*sc[0]+sc[1];const[nx,ny,nz]=dims;
     const lines=[[ny,nz,nx,nx*ny,1],[nx,nz,1,nx*ny,nx],[nx,ny,1,nx,nx*ny]];
-    for(let ax=0;ax<3;ax++){const s=sig[ax];if(!(s>0.05))continue;const r=Math.max(1,Math.ceil(3*s)),k=new Float32Array(2*r+1);let sum=0;
-      for(let t=-r;t<=r;t++){const w=Math.exp(-0.5*(t/s)*(t/s));k[t+r]=w;sum+=w;}for(let t=0;t<k.length;t++)k[t]/=sum;
-      const[n1,n2,s1,s2,st]=lines[ax],n=dims[ax];
+    for(let ax=0;ax<3;ax++){const s=sig[ax];if(!(s>0.05))continue;const r=Math.max(1,Math.ceil(3*s)),K=2*r+1,k=new Float32Array(K);let sum=0;
+      for(let t=-r;t<=r;t++){const w=Math.exp(-0.5*(t/s)*(t/s));k[t+r]=w;sum+=w;}for(let t=0;t<K;t++)k[t]/=sum;
+      const[n1,n2,s1,s2,st]=lines[ax],n=dims[ax],buf=new Float32Array(n+2*r);
       for(let p=0;p<n2;p++)for(let q=0;q<n1;q++){const b0=p*s2+q*s1;
-        for(let i=0;i<n;i++){let acc=0;for(let t=-r;t<=r;t++){let j=i+t;if(j<0)j=0;else if(j>=n)j=n-1;acc+=k[t+r]*a[b0+j*st];}b[b0+i*st]=acc;}}
-      const tmp=a;a=b;b=tmp;}
+        for(let i=0;i<n;i++)buf[r+i]=a[b0+i*st];const e0=buf[r],e1=buf[r+n-1];for(let i=0;i<r;i++){buf[i]=e0;buf[r+n+i]=e1;}
+        for(let i=0;i<n;i++){let acc=0;for(let t=0;t<K;t++)acc+=k[t]*buf[i+t];a[b0+i*st]=acc;}}}
     self.postMessage({tag,data:a},[a.buffer]);};`;
+  // An image on the 3D view's coarse grid G (trilinear; NaN outside the image). This runs on the page, so the worker
+  // gets a few MB, not a copy of a whole full-resolution image.
+  function mipResample(G, img, sc, dims, aff) {
+    const [nx, ny, nz] = dims, out = new Float32Array(G.gx * G.gy * G.gz), I = (a, b, c) => img[a + nx * (b + ny * c)];
+    let n = 0;
+    for (let k = 0; k < G.gz; k++) {
+      const fk = (G.z0 + k * G.h - aff[2][3]) / aff[2][2];
+      for (let j = 0; j < G.gy; j++) {
+        const fj = (G.y0 + j * G.h - aff[1][3]) / aff[1][1];
+        for (let i = 0; i < G.gx; i++, n++) {
+          const fi = (G.x0 + i * G.h - aff[0][3]) / aff[0][0];
+          if (!(fi >= 0 && fj >= 0 && fk >= 0 && fi <= nx - 1 && fj <= ny - 1 && fk <= nz - 1)) { out[n] = NaN; continue; }
+          const i0 = Math.floor(fi), j0 = Math.floor(fj), k0 = Math.floor(fk), i1 = Math.min(i0 + 1, nx - 1), j1 = Math.min(j0 + 1, ny - 1),
+            k1 = Math.min(k0 + 1, nz - 1), u = fi - i0, v = fj - j0, w = fk - k0;
+          const c0 = (I(i0, j0, k0) * (1 - u) + I(i1, j0, k0) * u) * (1 - v) + (I(i0, j1, k0) * (1 - u) + I(i1, j1, k0) * u) * v,
+            c1 = (I(i0, j0, k1) * (1 - u) + I(i1, j0, k1) * u) * (1 - v) + (I(i0, j1, k1) * (1 - u) + I(i1, j1, k1) * u) * v;
+          out[n] = (c0 * (1 - w) + c1 * w) * sc[0] + sc[1];
+        }
+      }
+    }
+    return out;
+  }
   // 3D view: the overlay's maximum intensity over a line integral of the base image (a DRR), on a coarse grid,
   // turned about the scanner's z axis. With no overlay it is the DRR alone; at 0 degrees it is an anterior view.
   // Under a colour image the DRR is drawn at about half brightness, and the colour's opacity rises with intensity
   // (opacity x sqrt of its place between the limits), so hot spots stand out and cold background stays clear.
   const MIP_SRC = `let G=null,ov=null,mu=null,dmax=1;
-  function resample(img,dims,aff,map){const[nx,ny,nz]=dims,out=new Float32Array(G.gx*G.gy*G.gz);let n=0;
-    for(let k=0;k<G.gz;k++){const fk=(G.z0+k*G.h-aff[2][3])/aff[2][2];for(let j=0;j<G.gy;j++){const fj=(G.y0+j*G.h-aff[1][3])/aff[1][1];
-      for(let i=0;i<G.gx;i++,n++){const fi=(G.x0+i*G.h-aff[0][3])/aff[0][0];
-        if(!(fi>=0&&fj>=0&&fk>=0&&fi<=nx-1&&fj<=ny-1&&fk<=nz-1)){out[n]=map(NaN);continue;}
-        const i0=Math.floor(fi),j0=Math.floor(fj),k0=Math.floor(fk),i1=Math.min(i0+1,nx-1),j1=Math.min(j0+1,ny-1),k1=Math.min(k0+1,nz-1),u=fi-i0,v=fj-j0,w=fk-k0;
-        const I=(a,b,c)=>img[a+nx*(b+ny*c)];
-        const c0=(I(i0,j0,k0)*(1-u)+I(i1,j0,k0)*u)*(1-v)+(I(i0,j1,k0)*(1-u)+I(i1,j1,k0)*u)*v,c1=(I(i0,j0,k1)*(1-u)+I(i1,j0,k1)*u)*(1-v)+(I(i0,j1,k1)*(1-u)+I(i1,j1,k1)*u)*v;
-        out[n]=map(c0*(1-w)+c1*w);}}}return out;}
   function density(kind,scale){return kind==='ct'?(v=>Number.isNaN(v)?0:Math.max(0,(v+1000)/1000)):(v=>Number.isNaN(v)?0:Math.max(0,v/scale));}
-  function setMu(d){mu=resample(d.img,d.dims,d.aff,density(d.kind,d.scale||1));let m=0;
+  function setMu(d){const f=density(d.kind,d.scale||1);mu=d.vals;for(let i=0;i<mu.length;i++)mu[i]=f(mu[i]);let m=0;
     for(let k=0;k<G.gz;k++)for(let j=0;j<G.gy;j++){let s=0;for(let i=0;i<G.gx;i++)s+=mu[i+G.gx*(j+G.gy*k)];if(s>m)m=s;}
     for(let k=0;k<G.gz;k++)for(let i=0;i<G.gx;i++){let s=0;for(let j=0;j<G.gy;j++)s+=mu[i+G.gx*(j+G.gy*k)];if(s>m)m=s;}dmax=Math.max(1e-6,m);}
   function render(p){const{gx,gy,gz}=G,cx=(gx-1)/2,cy=(gy-1)/2,W=Math.ceil(Math.hypot(gx,gy))+2,H=gz,c=Math.cos(p.th),s=Math.sin(p.th),hw=(W-1)/2,slab=gx*gy;
@@ -171,7 +223,7 @@
     if(d.cmd==='grid'){G=d.grid;ov=null;mu=null;}
     else if(d.cmd==='base'){if(G)setMu(d);}
     else if(d.cmd==='nobase'){mu=null;}
-    else if(d.cmd==='ov'){if(G)ov=resample(d.img,d.dims,d.aff,v=>Number.isNaN(v)?0:v);}
+    else if(d.cmd==='ov'){if(G){ov=d.vals;for(let i=0;i<ov.length;i++)if(Number.isNaN(ov[i]))ov[i]=0;}}
     else if(d.cmd==='noov'){ov=null;}
     else if(d.cmd==='render'&&G&&(ov||mu)){const f=render(d.p);self.postMessage({cmd:'frame',W:f.W,H:f.H,rgba:f.rgba,mm:G.h},[f.rgba.buffer]);}
     else if(d.cmd==='render')self.postMessage({cmd:'frame',W:0,H:0});};`;
@@ -212,7 +264,7 @@
       `<div class="ptv-stage"><div class="ptv-tiles" id="${id('tiles')}" data-view="multi">${tiles}` +
       `<div class="ptv-tile" data-v="mip"><canvas id="${id('mip')}" tabindex="0" aria-label="Rotating 3D view; drag to turn it"></canvas><span class="ptv-tl" id="${id('miplab')}">3D</span>` +
       `<div class="ptv-mipbar"><button type="button" class="ptv-btn" id="${id('rot')}" aria-pressed="true">Rotating</button></div></div></div>` +
-      `<div class="ptv-loading" id="${id('loading')}" role="status">Loading the images…</div></div>` +
+      `</div>` +
       `<div class="ptv-status"><div class="ptv-cbar"><span id="${id('cbLo')}"></span><div class="ptv-grad" id="${id('cbGrad')}"></div><span id="${id('cbHi')}"></span></div>` +
       `<div class="ptv-read"><span id="${id('readout')}">–</span><span id="${id('where')}"></span></div></div></div>` +
       `<aside class="ptv-rail" id="${id('rail')}" aria-label="Viewer controls">` +
@@ -225,10 +277,30 @@
       `<p class="ptv-note">Smooth display draws each SPECT or PET image as matplotlib's <code>interpolation="gaussian"</code> does (σ = half a voxel); ` +
       `CT is drawn bilinearly. Smoothing is a separate 3D Gaussian, with this full width at half maximum, applied to that image's data; the upper limit follows the smoothed image until you set it yourself. ` +
       `Values below the lower limit of the colour image are see-through.</p></details>` +
-      `<p class="ptv-err" id="${id('err')}" role="status" aria-live="polite"></p></aside></div>`;
+      `<p class="ptv-err" id="${id('err')}" role="status" aria-live="polite"></p></aside>` +
+      // Until every image is downloaded, unpacked and drawn, a loading screen covers the whole viewer below the header,
+      // with a progress bar (Luke, 11 Oct 2026: a proper loading bar, never a viewer that fills in piece by piece)
+      `<div class="ptv-loading" id="${id('loading')}"><div class="ptv-ld">` +
+      `<p class="ptv-ld-what" id="${id('ldWhat')}" role="status">Loading the images…</p>` +
+      `<div class="ptv-prog" id="${id('ldBar')}" role="progressbar" aria-label="Loading the images" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">` +
+      `<div class="ptv-prog-fill" id="${id('ldFill')}"></div></div>` +
+      `<p class="ptv-ld-num" id="${id('ldNum')}"></p></div></div></div>`;
     const $ = s => document.getElementById(id(s));
     const err = m => { const e = $('err'); if (e) e.textContent = m || ''; };
-    const setLoading = t => { const l = $('loading'); if (!l) return; l.hidden = !t; if (t) l.textContent = t; };
+    function loadShow(what, frac, num) {
+      $('ldWhat').textContent = what;
+      const p = Math.round(clamp(frac, 0, 1) * 1000) / 10;
+      $('ldFill').style.width = p + '%';
+      $('ldBar').setAttribute('aria-valuenow', String(Math.round(p)));
+      $('ldNum').textContent = num || '';
+    }
+    function loadFail(e) {
+      if (!alive) return;
+      $('loading').dataset.state = 'error';
+      $('ldWhat').textContent = 'The images did not load.';
+      $('ldNum').textContent = `${e && e.message || e}. Close the viewer and open it again to try once more.`;
+    }
+    $('ctl').disabled = true;
 
     const api = {
       el: root,
@@ -278,8 +350,10 @@
     if (opt.maximized) document.documentElement.classList.add('ptv-noscroll');
 
     // ---------- the manifest and its layers ----------
-    let man, LAY = [];
+    let man, LAY = [], fetching = true, total = 0;
     const manUrl = typeof opt.manifest === 'string' ? new URL(opt.manifest, location.href).href : null;
+    const roleOf = m => m.role || ROLE[m.kind] || 'base';
+    const vox = pd => { const p = pd.map(x => +x.toFixed(2)); return (p[0] === p[1] && p[1] === p[2] ? String(p[0]) : p.join(' × ')) + ' mm'; };
     try {
       if (manUrl) {
         const r = await fetch(manUrl, abort ? {signal: abort.signal} : undefined);
@@ -288,24 +362,62 @@
       } else man = opt.manifest;
       if (!man || !Array.isArray(man.layers) || !man.layers.length) throw new Error('the manifest lists no images');
       const fileBase = opt.base ? new URL(opt.base, location.href).href : manUrl || location.href;
+      // the header as it will be once the images are in (title, facts, credit, Image switch), so nothing moves when
+      // the loading screen goes
       $('title').textContent = opt.title || man.title || man.tutorial || 'Images';
-      const total = man.layers.reduce((s, l) => s + (l.bytes || 0), 0), got = man.layers.map(() => 0);
-      const progress = () => { if (total) setLoading(`Loading the images… ${fmtMB(got.reduce((a, b) => a + b, 0))} of ${fmtMB(total)}`); };
+      const facts = [];
+      if (man.description) facts.push(man.description);
+      facts.push(man.layers.map(m => m.name + (Array.isArray(m.voxel_mm) ? ' ' + vox(m.voxel_mm.map(Math.abs)) : '')).join(' · '));
+      $('facts').textContent = facts.join(' · ');
+      if (man.credit) {      // the data's source and licence
+        const c = $('credit');
+        c.append('Data: ');
+        if (/^https:[/][/]/.test(man.credit_url || '')) { const a = document.createElement('a'); a.href = man.credit_url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = man.credit; c.append(a); }
+        else c.append(man.credit);
+      }
+      $('meta').title = $('meta').textContent;   // the line is cut to the width; its whole text on hover
+      const roles = man.layers.map(roleOf), nOv = roles.filter(r => r === 'overlay').length;
+      const hr = nOv > 1 ? 'overlay' : roles.length - nOv > 1 ? 'base' : null;
+      if (hr) {
+        $('pick').innerHTML = man.layers.map((m, i) => roles[i] === hr ? `<option value="${i}">${esc(m.label || m.name)}</option>` : '').join('');
+        const w = opt.layer ? man.layers.findIndex((m, i) => m.name === opt.layer && roles[i] === hr) : -1;
+        if (w >= 0) $('pick').value = String(w);
+        $('pick').disabled = true; $('pickWrap').hidden = false;
+      }
+      // each image unpacked as it arrives; the bar shows the bytes received of the manifest's total
+      total = man.layers.reduce((s, l) => s + (l.bytes || 0), 0);
+      const frac = man.layers.map(() => 0);
+      let queued = false;
+      const progress = () => {
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(() => {
+          queued = false;
+          if (!alive || !fetching) return;
+          const got = man.layers.reduce((s, l, i) => s + frac[i] * (l.bytes || 0), 0);
+          loadShow('Loading the images…', total ? got / total : frac.reduce((a, b) => a + b, 0) / frac.length,
+            total ? `${fmtMB(got)} of ${fmtMB(total)}` : '');
+        });
+      };
       progress();
-      const loaded = await Promise.all(man.layers.map(async (m, i) => {
-        const u8 = await fetchBytes(new URL(m.file, fileBase).href, n => { got[i] = n; progress(); }, abort && abort.signal);
-        return readNifti(u8, m.file);
-      }));
+      const get = async (m, i) => readNifti(await fetchNifti(new URL(m.file, fileBase).href, m, f => { frac[i] = f; progress(); },
+        abort && abort.signal), m.file);
+      // large images one at a time, which keeps the memory used while they unpack near their own size (a full-
+      // resolution CT: under 1 GB at the peak for 450-500 MB of images, against 2.5-3.6 GB when all came at once as
+      // 32-bit floats); small ones together
+      let loaded = [];
+      if (total > 50e6) for (const [i, m] of man.layers.entries()) loaded.push(await get(m, i));
+      else loaded = await Promise.all(man.layers.map(get));
       if (!alive) return api;
-      LAY = loaded.map((d, i) => {
-        const m = man.layers[i], role = m.role || ROLE[m.kind] || 'base';
-        return Object.assign(d, {m, role, base: d.img, ver: 0, set: null});
-      });
+      LAY = loaded.map((d, i) => Object.assign(d, {m: man.layers[i], role: roles[i], base: d.img, ver: 0, set: null}));
     } catch (e) {
-      if (alive) setLoading('The images did not load: ' + (e && e.message || e));
+      fetching = false;
+      if (abort) abort.abort();   // the other images stop downloading
+      loadFail(e);
       return api;
     }
-    setLoading('');
+    fetching = false;
+    loadShow('Preparing the views…', 1, total ? fmtMB(total) : '');
     const idx = role => LAY.map((L, i) => L.role === role ? i : -1).filter(i => i >= 0);
     const OVS = idx('overlay'), BASES = idx('base');
     const hasBase = BASES.length > 0;
@@ -338,18 +450,6 @@
       return s;
     };
     const sel = firstSel();
-    const facts = [];
-    if (man.description) facts.push(man.description);
-    const vox = pd => { const p = pd.map(x => +x.toFixed(2)); return (p[0] === p[1] && p[1] === p[2] ? String(p[0]) : p.join(' × ')) + ' mm'; };
-    facts.push(LAY.map(L => `${L.m.name} ${vox(L.pd)}`).join(' · '));
-    $('facts').textContent = facts.join(' · ');
-    if (man.credit) {      // the data's source and licence
-      const c = $('credit');
-      c.append('Data: ');
-      if (/^https:[/][/]/.test(man.credit_url || '')) { const a = document.createElement('a'); a.href = man.credit_url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = man.credit; c.append(a); }
-      else c.append(man.credit);
-    }
-    $('meta').title = $('meta').textContent;   // the line is cut to the width; its whole text on hover
 
     // ---------- geometry: scanner coordinates (RAS mm) ----------
     const ext = (L, ax) => { const a = L.aff[ax][ax], b = L.aff[ax][3], n = L.dims[ax], e1 = b - 0.5 * a, e2 = b + (n - 0.5) * a; return [Math.min(e1, e2), Math.max(e1, e2)]; };
@@ -366,12 +466,12 @@
     const S = {P: startP(), zoom: 1, pan: [0, 0, 0], view: 'multi', smooth: true};
 
     function sliceOf(L, vn, k) {
-      const V = VIEWS[vn], a = L.aff, d = L.dims, n = V.n, b = L.base;
+      const V = VIEWS[vn], a = L.aff, d = L.dims, n = V.n, b = L.base, [s0, s1] = scOf(L);
       const au = V.u[0], av = V.v[0], nu = d[au], nv = d[av], fu = V.u[1] * a[au][au] < 0, fv = V.v[1] * a[av][av] < 0;
       const st = [1, d[0], d[0] * d[1]], data = new Float32Array(nu * nv);
       for (let r = 0; r < nv; r++) {
         const iv = fv ? nv - 1 - r : r;
-        for (let c = 0; c < nu; c++) { const iu = fu ? nu - 1 - c : c; data[r * nu + c] = b[iu * st[au] + iv * st[av] + k * st[n]]; }
+        for (let c = 0; c < nu; c++) { const iu = fu ? nu - 1 - c : c; data[r * nu + c] = b[iu * st[au] + iv * st[av] + k * st[n]] * s0 + s1; }
       }
       const U = sortPair(ext(L, au).map(x => V.u[1] * x)), Vv = sortPair(ext(L, av).map(x => V.v[1] * x));
       return {w: nu, h: nv, data, U, V: Vv};
@@ -451,7 +551,8 @@
     function valueAt(L, mm) {
       const a = L.aff, d = L.dims, ijk = [0, 1, 2].map(ax => Math.round((mm[ax] - a[ax][3]) / a[ax][ax]));
       if (ijk.some((v, ax) => v < 0 || v >= d[ax])) return NaN;
-      return L.base[ijk[0] + d[0] * (ijk[1] + d[1] * ijk[2])];
+      const [s0, s1] = scOf(L);
+      return L.base[ijk[0] + d[0] * (ijk[1] + d[1] * ijk[2])] * s0 + s1;
     }
     const fmtV = (v, L) => !Number.isFinite(v) ? '–' : L.m.kind === 'ct' ? String(Math.round(v)) : fmtN(v);
     function drawStatus() {
@@ -576,13 +677,18 @@
       if (gBusy) { gNext = job; return; }
       runJob(job);
     }
+    // while a job runs, the Smoothing value of its image shows "…" (a full-resolution CT takes a few seconds)
+    const fwOut = li => document.getElementById(id((LAY[li].role === 'overlay' ? 'o' : 'b') + 'FwV'));
     function runJob(job) {
       gBusy = true;
-      gWorker.postMessage({tag: job.tag, data: LAY[job.li].img.slice(), dims: job.dims, sig: job.sig});
+      const L = LAY[job.li], o = fwOut(job.li);
+      if (o) o.classList.add('ptv-busy');
+      gWorker.postMessage({tag: job.tag, data: L.img.slice(), sc: L.sc, dims: job.dims, sig: job.sig});
     }
     if (gWorker) gWorker.onmessage = e => {
       const {tag, data} = e.data, li = Math.floor(tag / 65536);
       gBusy = false;
+      root.querySelectorAll('.ptv-busy').forEach(x => x.classList.remove('ptv-busy'));
       if (gNext && alive) { const j = gNext; gNext = null; runJob(j); }
       if (!alive || !LAY[li] || tag % 65536 !== pending[li]) return;
       LAY[li].base = data; LAY[li].smoothed = asked[li]; LAY[li].ver++; followHi(li); invalidate(); mipData(li);
@@ -591,25 +697,25 @@
     // spot (the starting point, or this image's hottest voxel) drops, so smoothed spheres keep their brightness and
     // visibly spread, instead of only dimming.
     function hotMm(L) {
-      if (!L.hot) { let k = 0; for (let i = 1; i < L.img.length; i++) if (L.img[i] > L.img[k]) k = i;
+      if (!L.hot) { const g = L.sc[0] < 0 ? -1 : 1; let k = 0; for (let i = 1; i < L.img.length; i++) if (g * L.img[i] > g * L.img[k]) k = i;
         const d = L.dims, ijk = [k % d[0], Math.floor(k / d[0]) % d[1], Math.floor(k / (d[0] * d[1]))];
         L.hot = [0, 1, 2].map(a => L.aff[a][a] * ijk[a] + L.aff[a][3]); }
       return L.hot;
     }
-    function meanAt(arr, L, mm) {   // the mean over the 3 x 3 x 3 voxels around a point
+    function meanAt(arr, sc, L, mm) {   // the mean over the 3 x 3 x 3 voxels around a point, in physical units
       const a = L.aff, d = L.dims, c = [0, 1, 2].map(ax => Math.round((mm[ax] - a[ax][3]) / a[ax][ax]));
       let s = 0, n = 0;
       for (let k = c[2] - 1; k <= c[2] + 1; k++) for (let j = c[1] - 1; j <= c[1] + 1; j++) for (let i = c[0] - 1; i <= c[0] + 1; i++) {
         if (i < 0 || j < 0 || k < 0 || i >= d[0] || j >= d[1] || k >= d[2]) continue;
         s += arr[i + d[0] * (j + d[1] * k)]; n++;
       }
-      return n ? s / n : NaN;
+      return n ? s / n * sc[0] + sc[1] : NaN;
     }
     function followHi(li) {
       const L = LAY[li];
       if (L.role !== 'overlay' || !L.set.hiAuto) return;
-      const start = Array.isArray(man.start_mm) && Number.isFinite(meanAt(L.img, L, man.start_mm)) ? man.start_mm : hotMm(L);
-      const before = meanAt(L.img, L, start), after = meanAt(L.base, L, start);
+      const start = Array.isArray(man.start_mm) && Number.isFinite(meanAt(L.img, L.sc, L, man.start_mm)) ? man.start_mm : hotMm(L);
+      const before = meanAt(L.img, L.sc, L, start), after = meanAt(L.base, scOf(L), L, start);
       const r = L.base === L.img || !(before > 0) ? 1 : after / before;
       L.set.hi = defaults(L).hi * r;
       LAY.forEach(M => { if (M.set === L.set) M.ver++; });
@@ -624,23 +730,27 @@
     const mipShown = () => !!mipCv.offsetParent && mipSeen;
     function mipGrid() {
       const ext3 = FRAME.map(([a, b]) => b - a), shown = [sel.base, sel.overlay].filter(i => i >= 0).map(i => LAY[i]);
-      const h = Math.max(2, ...shown.map(L => Math.min(...L.pd)).concat([Math.max(...ext3) / 128]));
+      // the finest voxel shown, but at most 128 steps across: no 2 mm floor, so a micro-CT's 3D view is as sharp as a
+      // patient's (its 32 mm field of view was 16 steps across)
+      const h = Math.max(...shown.map(L => Math.min(...L.pd)).concat([Math.max(...ext3) / 128]));
       return {h, x0: FRAME[0][0] + h / 2, y0: FRAME[1][0] + h / 2, z0: FRAME[2][0] + h / 2,
         gx: Math.max(1, Math.floor(ext3[0] / h)), gy: Math.max(1, Math.floor(ext3[1] / h)), gz: Math.max(1, Math.floor(ext3[2] / h))};
     }
+    let mipG = null;
     function mipAll() {
       if (!mWorker) return;
-      mWorker.postMessage({cmd: 'grid', grid: mipGrid()});
+      mipG = mipGrid();
+      mWorker.postMessage({cmd: 'grid', grid: mipG});
       // both images first, then one frame, so the first frame already has its colour image
       if (sel.base >= 0) mipData(sel.base, true); else mWorker.postMessage({cmd: 'nobase'});
       if (sel.overlay >= 0) mipData(sel.overlay, true); else mWorker.postMessage({cmd: 'noov'});
       requestMip();
     }
     function mipData(li, quiet) {
-      if (!mWorker || (li !== sel.base && li !== sel.overlay)) return;
-      const L = LAY[li];
-      if (L.role === 'overlay') mWorker.postMessage({cmd: 'ov', img: L.base, dims: L.dims, aff: L.aff});
-      else mWorker.postMessage({cmd: 'base', img: L.base, dims: L.dims, aff: L.aff, kind: L.m.kind, scale: L.m.kind === 'ct' ? 1 : Math.max(1e-12, L.max)});
+      if (!mWorker || !mipG || (li !== sel.base && li !== sel.overlay)) return;
+      const L = LAY[li], vals = mipResample(mipG, L.base, scOf(L), L.dims, L.aff);
+      if (L.role === 'overlay') mWorker.postMessage({cmd: 'ov', vals}, [vals.buffer]);
+      else mWorker.postMessage({cmd: 'base', vals, kind: L.m.kind, scale: L.m.kind === 'ct' ? 1 : Math.max(1e-12, L.max)}, [vals.buffer]);
       if (!quiet) requestMip();
     }
     function requestMip() {
@@ -651,10 +761,13 @@
       mWorker.postMessage({cmd: 'render', p: {th: mipTheta * Math.PI / 180, lut: LUT[O ? O.cmap : 'gray'] || LUT.gray, lo: O ? O.lo : 0, hi: O ? O.hi : 1,
         op: O ? (B ? Math.min(1, 0.4 + O.op) : 1) : 0, ctw: B ? B.op : 0, smooth: S.smooth}});
     }
+    let mipFirst = null;
+    const mipReady = new Promise(ok => { mipFirst = ok; });
     if (mWorker) mWorker.onmessage = e => {
       const d = e.data;
       mipBusy = false;
       if (!alive) return;
+      if (mipFirst) { mipFirst(); mipFirst = null; }
       if (d.W) { mipOff.width = d.W; mipOff.height = d.H; mipOff.getContext('2d').putImageData(new ImageData(d.rgba, d.W, d.H), 0, 0); mipFrame = true; drawMip(); }
       if (mipAgain) { mipAgain = false; requestMip(); }
     };
@@ -781,6 +894,15 @@
     }
     const cardO = card('overlay'), cardB = card('base');
     function pickLayer(role, li) {
+      // the image left behind drops its smoothed copy (32-bit floats, twice its own size): only the images on screen
+      // keep one, so smoothing a large CT and switching between images doesn't add up
+      const was = sel[role];
+      if (was >= 0 && was !== li) {
+        const P = LAY[was];
+        pending[was]++;
+        if (gNext && gNext.li === was) gNext = null;
+        if (P.base !== P.img) { P.base = P.img; P.smoothed = 0; P.ver++; }
+      }
       sel[role] = li; setFrame(); clampP();
       Object.values(TILE).forEach(T => T.cache.clear());
       const L = LAY[li];
@@ -793,7 +915,7 @@
     if (headRole) {
       const list = headRole === 'overlay' ? OVS : BASES;
       $('pick').innerHTML = list.map(i => `<option value="${i}">${esc(LAY[i].m.label || LAY[i].m.name)}</option>`).join('');
-      $('pickWrap').hidden = false;
+      $('pickWrap').hidden = false; $('pick').disabled = false;
       $('pick').value = String(sel[headRole]);
       on($('pick'), 'change', () => pickLayer(headRole, +$('pick').value));
     }
@@ -827,6 +949,13 @@
     };
     on($('reset'), 'click', () => reset());
     reset();
+    // the loading screen goes once the views are drawn: the slices (two frames from now) and the 3D view's first
+    // picture, when it is on screen (at most 15 s later)
+    await new Promise(ok => requestAnimationFrame(() => requestAnimationFrame(ok)));
+    if (alive && mWorker && mipShown()) await Promise.race([mipReady, new Promise(ok => setTimeout(ok, 15000))]);
+    if (!alive) return api;
+    $('loading').hidden = true;
+    $('ctl').disabled = false;
     return api;
   }
 
