@@ -140,3 +140,10 @@ recon_kem = recon_algorithm_kem(40,8)
 # %% Comparison
 recons = [recon_OSEM, recon_osmaposl, recon_bsrem, recon_kem]
 recon_names = ['OSEM', 'OSMAPOSL', 'BSREM', 'KEM']
+
+# %% Save the images
+from pytomography.io import save_dicom
+
+for name, recon in zip(recon_names, recons):
+    save_dicom(recon, OUTPUT / 't_algorithms' / name, object_meta, reference=file_NM if TYPE == 'DICOM' else None,
+               series_description=name, overwrite=True)

@@ -87,3 +87,9 @@ uncertainty_abs, uncertainty_pct = recon_algorithm.compute_uncertainty(
 )
 
 print(f'Estimated uncertainty in large sphere: {uncertainty_pct:.2f}%')
+
+# %% Save the images
+from pytomography.io import save_dicom
+
+saved = save_dicom(recon_OSEM, OUTPUT / 't_uncertainty_pet' / 'osem', object_meta, series_description='OSEM 2x34',
+                   overwrite=True)

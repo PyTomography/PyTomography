@@ -11,16 +11,16 @@ import matplotlib
 matplotlib.use("Agg")  # no figure windows when run as a script
 
 # %% GATE (Listmode Reconstruction; Without Time of Flight)
-import os
-from pathlib import Path
+from pytomography import datasets
 
-# Tutorial data: the folder set by the PYTOMOGRAPHY_DATA environment variable (see Tutorial data in the docs)
-DATA = Path(os.environ.get("PYTOMOGRAPHY_DATA", "~/pytomography_data")).expanduser()
+# The tutorial data: downloaded the first time it runs (see Tutorial data in the docs)
+datasets.fetch("PET/GATE-mMR-BrainInWater")
+DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_data
 # Results go here, never into the data folder
-OUTPUT = Path(os.environ.get("PYTOMOGRAPHY_OUTPUT", "pytomography_outputs")).expanduser() / "PET/GATE-mMR-BrainInWater"
-OUTPUT.mkdir(parents=True, exist_ok=True)
+OUTPUT = datasets.output_dir("PET/GATE-mMR-BrainInWater")
 
 import torch
+import numpy as np
 import pytomography
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.PET import PETLMProjMeta
@@ -54,20 +54,11 @@ paths = [os.path.join(path, f'simple_phantom/mMR_voxBrain_withSimplePhantom_{i}.
 info
 
 # %% Normalization Correction
-if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'normalization_weights.pt')):
-    # the calibration scan is shared with the earlier simulation, in PET/GATE-mMR-Brain
-    normalization_paths = [os.path.join(DATA / 'PET' / 'GATE-mMR-Brain', f'normalization_scan/mMR_Norm_{i}.root') for i in range(1,37)]
-
-    # Get normalization weights for all possible detector ID pairs
-    normalization_weights = gate.get_normalization_weights_cylinder_calibration(
-        normalization_paths,
-        info,
-        cylinder_radius = 318, # mm (radius of calibration cylindrical shell,
-        include_randoms=False 
-    )
-
-    torch.save(normalization_weights, os.path.join(OUTPUT, 'normalization_weights.pt'))
-normalization_weights = torch.load(os.path.join(OUTPUT, 'normalization_weights.pt'))
+# The weights come with the dataset. They were computed from the calibration scan (36 ROOT files, 46 GB, in
+# PET/GATE-mMR-Brain/normalization_scan) with randoms left out (PyTomography PR #290):
+# normalization_weights = gate.get_normalization_weights_cylinder_calibration(
+#     normalization_paths, info, cylinder_radius=318, include_randoms=False)  # shell radius in mm
+normalization_weights = torch.from_numpy(np.load(os.path.join(path, 'normalization_weights.npy')))
 
 # %% Primary-Only Reconstruction
 if LOAD_FROM_ROOT or not os.path.exists(os.path.join(OUTPUT, 'detector_ids_primary_only.pt')):
@@ -203,3 +194,10 @@ likelihood = PoissonLogLikelihood(
     )
 recon_algorithm = OSEM(likelihood)
 recon_lm_nontof = recon_algorithm(4,14)
+
+# %% Save the images
+from pytomography.io import save_dicom
+
+affine_mr = gate.get_patient_affine_from_nifti(os.path.join(path, 'fdg_pet_phantom_mri.nii.gz'), object_meta)
+saved = save_dicom(recon_lm_nontof, OUTPUT / 't_PETGATE_scat_lm' / 'osem', affine=affine_mr, modality='PT',
+                   series_description='List-mode OSEM, scatter and randoms corrected', overwrite=True)

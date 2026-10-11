@@ -153,3 +153,10 @@ system_matrix = SPECTSystemMatrix(
 likelihood = PoissonLogLikelihood(system_matrix, photopeak, additive_TEW)
 algorithm = OSEM(likelihood)
 recon_analytical = algorithm(n_iters=1, n_subsets=16)
+
+# %% Save the images
+from pytomography.io import save_dicom
+
+for name, image in [('monte_carlo', recon_MC), ('analytical', recon_analytical)]:
+    save_dicom(image, OUTPUT / 't_spect_mc' / name, object_meta, series_description=f'{ISOTOPE} OSEM, {name}',
+               overwrite=True)

@@ -93,3 +93,9 @@ reconstructed_image = recon_algorithm(
     n_iters=4,
     n_subsets=8,
 )
+
+# %% Save the images
+from pytomography.io import save_dicom
+
+saved = save_dicom(reconstructed_image, OUTPUT / 't_siminddata' / 'osem', object_meta,
+                   series_description='OSEM 4x8', overwrite=True)

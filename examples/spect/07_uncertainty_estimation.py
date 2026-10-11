@@ -139,3 +139,10 @@ liver_mask = dicom.get_aligned_rtstruct(
 uncertainty_abs, uncertainty_pct = recon_algo.compute_uncertainty(liver_mask, callbacks, return_pct=True)
 
 print(f'Estimated uncertainty in {mask_name}: {uncertainty_pct:.2f}%')
+
+# %% Save the images
+from pytomography.io import save_dicom
+
+for name, image in [('osem_bed2', recon_OSEM), ('osem_stitched', reconstructed_image_multibed)]:
+    save_dicom(image, OUTPUT / 't_uncertainty_spect' / name, object_meta, reference=file_NM,
+               series_description=name, overwrite=True)

@@ -104,3 +104,10 @@ reconbad = perform_reconstruction(psf_transform)
 
 recons = [reconbad, recon_1Dfit]
 titles = ['Gaussian PSF', 'Full PSF']
+
+# %% Save the images
+from pytomography.io import save_dicom
+
+for name, image in [('full_psf', recon_1Dfit), ('gaussian_psf', reconbad)]:
+    save_dicom(image, OUTPUT / 't_ac225_simind_recon' / name, object_meta, series_description=f'OSEM 50x4, {name}',
+               overwrite=True)

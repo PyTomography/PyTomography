@@ -156,3 +156,10 @@ for ax, image, title in zip(axes, images, ['Truth', f'OSEM {n_iters}×{n_subsets
     ax.set_title(title)
     ax.axis('off')
 fig.colorbar(im, ax=axes, shrink=0.8, label='MBq/mL')
+
+# %% Save the images
+from pytomography.io import save_dicom
+
+for name, recon in [('OSEM', recon_osem), ('BSREM', recon_bsrem)]:
+    save_dicom(recon * activity / recon.sum() / voxel_mL, OUTPUT / 't_accuracy_known_truth' / name, object_meta,
+               units='MBq/mL', series_description=f'{name} {n_iters}x{n_subsets}', overwrite=True)

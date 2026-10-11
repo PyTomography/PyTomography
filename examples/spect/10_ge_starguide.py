@@ -76,3 +76,10 @@ recon_pytomography = reconstruction_algorithm(n_iters=10, n_subsets=10)
 ds_recon = pydicom.dcmread(os.path.join(PATH, 'Tc99m-NEMA-Starguide', 'vendor_recon', 'i196884.NMDC.1'))
 recon_vendor = ds_recon.pixel_array * ds_recon[0x0011,0x103b].value
 recon_vendor = np.transpose(recon_vendor, (2,1,0))
+
+# %% Save the images
+from pytomography.io import save_dicom
+
+saved = save_dicom(recon_pytomography, OUTPUT / 't_starguide' / 'osem',
+                   affine=dicom.get_starguide_patient_affine(files_CT, object_meta), modality='NM',
+                   reference=files_CT[0], units='counts/s', series_description='OSEM 10x10', overwrite=True)
