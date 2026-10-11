@@ -95,7 +95,10 @@ class FilteredBackProjection:
         :class:`~pytomography.utils.memory.MemoryPlan`. The settings are those the "To use less" line of
         :meth:`estimate_memory` lowers, none of which changes the image: for helical CT
         (:class:`~pytomography.projectors.CT.CTGen3SystemMatrix`), ``gpu_budget`` (bytes, an option of this class) and
-        ``memory_budget_gb`` (:func:`pytomography.set_memory_budget`), largest first. Cone-beam and SPECT filtered back
+        ``memory_budget_gb`` (:func:`pytomography.set_memory_budget`), largest first. The memory budget comes down first,
+        to its smallest if need be, before the GPU budget: smaller chunks of rebinned views cost little time, a smaller GPU
+        budget a lot (case C145 on an RTX 5090: 11 s as it is, 13 s with a memory budget of 0.06 GB, 50 s with a GPU budget
+        of 0.19 GB, an eighth). Cone-beam and SPECT filtered back
         projection have nothing to choose: their plan says whether the reconstruction fits. Without budgets, the plan is
         for what is free on this machine now; on Windows GPU memory counts as RAM too. If nothing fits, the plan has
         ``fits`` False and the settings that come closest; it does not raise.
