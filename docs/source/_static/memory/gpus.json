@@ -1,5 +1,80 @@
 [
  {
+  "match": "geforce gtx 980, or similar",
+  "name": "NVIDIA GPU (Firefox shows a stand-in)",
+  "vendor": "NVIDIA",
+  "memory_gb": null,
+  "kind": "discrete",
+  "notes": "Firefox reports one of a few stand-in models (here 'GeForce GTX 980, or similar') instead of the real GPU, so the model and its memory are unknown: pick your GPU or its memory",
+  "source": "https://searchfox.org/mozilla-central/source/dom/canvas/SanitizeRenderer.cpp",
+  "aliases": [
+   "geforce gtx 980 direct3d11 vs_5_0 ps_5_0), or similar",
+   "geforce gtx 480, or similar",
+   "geforce gtx 480 direct3d11 vs_5_0 ps_5_0), or similar",
+   "geforce 8800 gtx, or similar",
+   "geforce 8800 gtx direct3d11 vs_5_0 ps_5_0), or similar",
+   "nvidia tegra, or similar"
+  ]
+ },
+ {
+  "match": "radeon r9 200 series, or similar",
+  "name": "AMD GPU (Firefox shows a stand-in)",
+  "vendor": "AMD",
+  "memory_gb": null,
+  "kind": "discrete",
+  "notes": "Firefox reports one of a few stand-in models (here 'Radeon R9 200 Series, or similar') instead of the real GPU, so the model and its memory are unknown: pick your GPU or its memory",
+  "source": "https://searchfox.org/mozilla-central/source/dom/canvas/SanitizeRenderer.cpp",
+  "aliases": [
+   "radeon r9 200 series direct3d11 vs_5_0 ps_5_0), or similar",
+   "radeon hd 5850, or similar",
+   "radeon hd 5850 direct3d11 vs_5_0 ps_5_0), or similar",
+   "radeon hd 3200 graphics, or similar",
+   "radeon hd 3200 graphics direct3d11 vs_5_0 ps_5_0), or similar"
+  ]
+ },
+ {
+  "match": "intel(r) hd graphics, or similar",
+  "name": "Intel GPU (Firefox shows a stand-in)",
+  "vendor": "Intel",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "Firefox reports one of a few stand-in models (here 'Intel(R) HD Graphics, or similar') instead of the real GPU, so the model and its memory are unknown: pick your GPU or its memory",
+  "source": "https://searchfox.org/mozilla-central/source/dom/canvas/SanitizeRenderer.cpp",
+  "aliases": [
+   "intel(r) hd graphics direct3d11 vs_5_0 ps_5_0), or similar",
+   "intel(r) hd graphics 400, or similar",
+   "intel(r) hd graphics 400 direct3d11 vs_5_0 ps_5_0), or similar",
+   "intel(r) arc(tm) a750 graphics, or similar",
+   "intel(r) arc(tm) a750 graphics direct3d11 vs_5_0 ps_5_0), or similar",
+   "intel 945gm, or similar",
+   "intel 945gm direct3d11 vs_5_0 ps_5_0), or similar"
+  ]
+ },
+ {
+  "match": "apple m1, or similar",
+  "name": "Apple GPU (Firefox shows a stand-in)",
+  "vendor": "Apple",
+  "memory_gb": null,
+  "kind": "unified",
+  "notes": "Firefox reports every Apple chip as 'Apple M1, or similar': pick your chip or its memory",
+  "source": "https://searchfox.org/mozilla-central/source/dom/canvas/SanitizeRenderer.cpp",
+  "aliases": [
+   "apple m1, unspecified version), or similar"
+  ]
+ },
+ {
+  "match": ", or similar",
+  "name": "GPU (Firefox shows a stand-in)",
+  "vendor": "unknown",
+  "memory_gb": null,
+  "kind": "discrete",
+  "notes": "Firefox reports one of a few stand-in models (here '..., or similar') instead of the real GPU, so the model and its memory are unknown: pick your GPU or its memory",
+  "source": "https://searchfox.org/mozilla-central/source/dom/canvas/SanitizeRenderer.cpp",
+  "aliases": [
+   "generic renderer"
+  ]
+ },
+ {
   "match": "rtx 5090 laptop",
   "name": "GeForce RTX 5090 Laptop GPU",
   "vendor": "NVIDIA",
@@ -2580,7 +2655,10 @@
   "memory_gb": null,
   "kind": "unified",
   "notes": "integrated; shares system RAM (no dedicated memory)",
-  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(Intel)"
+  "source": "https://web3dsurvey.com/webgl/vendors/Google%20Inc.%20(Intel)",
+  "aliases": [
+   "intel(r) xe graphics"
+  ]
  },
  {
   "match": "iris(r) plus",
