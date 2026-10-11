@@ -10,6 +10,6 @@ any reader's events and ``info``."""
 from .scanner import scanner_info, scanner_lut, crystal_pair_index
 from .shared import (listmode_to_sinogram, sinogram_to_listmode, smooth_randoms_sinogram, randoms_sinogram_to_sinogramTOF,
                      normalization_sinogram, remove_events_outside, LazySinogram)
-from .gate import read_gate, gate_normalization
+from .gate import read_gate, gate_normalization, gate_image
 from .petsird import read_petsird
 from .ge import read_ge_hdf5, read_ge_corrections

@@ -12,6 +12,7 @@ import numpy as np
 import pytest
 import torch
 
+from pytomography import io
 from pytomography.io import PET
 
 pytestmark = pytest.mark.data
@@ -182,23 +183,10 @@ def test_ge_bed_is_posterior(data_dir):
     assert attenuating[1] - activity[1] > 5, (activity, attenuating)
 
 
-def _siemens_mu_map(path):
-    """The Siemens mMR attenuation map (JSRecon Interfile), centred on the scanner, as (mu in 1/cm, voxel size)."""
-    keys = {}
-    for line in open(path).read().splitlines():
-        if ":=" in line:
-            k, v = line.split(":=", 1)
-            keys[k.strip().lstrip("!").lower()] = v.strip()
-    shape = [int(keys[f"matrix size[{k}]"]) for k in (1, 2, 3)]
-    dr = [float(keys[f"scale factor (mm/pixel) [{k}]"]) for k in (1, 2, 3)]
-    mu = np.fromfile(str(path)[:-4], dtype="<f4").reshape(shape[::-1]).transpose(2, 1, 0)
-    return mu, np.array(dr)
-
-
 def test_petsird_events_centre_on_the_siemens_attenuation_map(data_dir):
     """The PETSIRD mMR NEMA prompts in the patient's LPS (up '+x', towards the bed '+z', HFS), against the Siemens
-    attenuation map centred on the scanner: the activity's x centre (least squares over the LORs) is the phantom's,
-    within 2 mm; mirrored in x it would be 58 mm off."""
+    attenuation map read by io.attenuation_map (centred on the scanner, 1/cm in its header): the activity's x centre
+    (least squares over the LORs) is the phantom's, within 2 mm; mirrored in x it would be 58 mm off."""
     from pytomography.io.PET import petsird
     path = _file(data_dir, "PET/PETSIRD-mMR-NEMA", "mMR_NEMA_norm.petsird")
     mu_path = _file(data_dir, "PET/PETSIRD-mMR-NEMA", "20170809_NEMA_MUMAP_UCL.v.hdr")
@@ -212,9 +200,11 @@ def test_petsird_events_centre_on_the_siemens_attenuation_map(data_dir):
     d /= np.linalg.norm(d, axis=1, keepdims=True)
     n = np.stack([-d[:, 1], d[:, 0]], 1)
     activity = np.linalg.solve(n.T @ n, n.T @ (a[:, :2] * n).sum(1))
-    mu, dr = _siemens_mu_map(mu_path)
-    body = mu > 0.05
-    x = (np.arange(mu.shape[0]) - (mu.shape[0] - 1) / 2) * dr[0]
+    from pytomography.metadata import ObjectMeta
+    grid = ObjectMeta(dr=(2.08626, 2.08626, 2.03125), shape=(200, 200, 127), modality="PT")
+    mu = io.attenuation_map(mu_path, grid).cpu().numpy()                 # 1/mm at 511 keV, from the Siemens header
+    body = mu > 0.005
+    x = (np.arange(200) - 99.5) * 2.08626
     phantom_x = (x[:, None, None] * body).sum() / body.sum()
     assert abs(activity[0] - phantom_x) < 2, (activity, phantom_x)
     assert abs(phantom_x) > 20                                     # the phantom is off centre: a mirror would show

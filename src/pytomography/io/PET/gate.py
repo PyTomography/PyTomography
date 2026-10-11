@@ -344,7 +344,49 @@ def read_gate(
                                      frame="scanner" if world_origin is None else "patient", modality="PT", units="counts")
     weights = None if normalization is None else normalization_weights(normalization, info)
     proj_meta = PETLMProjMeta(detector_ids, info, tof_meta=tof_meta, weights_sensitivity=weights)
+    # how GATE's world sat in the patient, for images in GATE's world (gate_image)
+    proj_meta.world_axes = "LPS" if world_axes is None else str(world_axes).upper()
+    proj_meta.world_origin = None if world_origin is None else tuple(float(v) for v in world_origin)
     return detector_ids, object_meta, proj_meta
+
+
+def gate_image(source, proj_meta: PETLMProjMeta, *, units: str | None = None,
+               placement_mm: Sequence[float] = (0.0, 0.0, 0.0)):
+    """An image in a GATE simulation's world (a voxelised phantom or attenuation map, e.g. GATE/STIR Interfile ``.hv``),
+    placed in the patient frame of :func:`read_gate`'s ``object_meta``: through ``world_axes`` and ``world_origin``,
+    which ``proj_meta`` keeps.
+
+    GATE centres a voxelised phantom on its placement (``/gate/<phantom>/placement/setTranslation``), with its axes
+    along GATE's x, y and z; :func:`~pytomography.io.load_image` reads such a file centred, with its axes as LPS
+    (the vendor rule 'gate-stir-interfile-image'), in the frame ``'scanner'``. Here it is moved to where the simulation
+    put it. Use the image with :func:`~pytomography.io.attenuation_map` or :meth:`~pytomography.io.Image.on`. (An image
+    with its own patient geometry, such as the phantom's NIfTI, needs none of this: load it with ``load_image``.)
+
+    Args:
+        source: the image file (anything :func:`~pytomography.io.load_image` reads), or an
+            :class:`~pytomography.io.Image` read from it.
+        proj_meta (PETLMProjMeta): from :func:`read_gate`.
+        units (str, optional): the units of the image's values when the file does not say (``'1/cm'`` for a GATE mu
+            map). Defaults to None.
+        placement_mm (Sequence[float], optional): where the image's centre was in GATE's world (the phantom's
+            placement). Defaults to GATE's origin.
+
+    Returns:
+        Image: the image, in the patient frame when ``read_gate`` had a ``world_origin`` (else ``'scanner'``).
+    """
+    from pytomography.io import Image, load_image
+    image = source if isinstance(source, Image) else load_image(source, units=units)
+    if units is not None:
+        image.units = units
+    matrix = world_matrix(getattr(proj_meta, "world_axes", "LPS"))
+    origin = getattr(proj_meta, "world_origin", None)
+    to_patient = np.eye(4)
+    to_patient[:3, :3] = matrix
+    to_patient[:3, 3] = matrix @ np.asarray(placement_mm, dtype=np.float64) + (0 if origin is None else np.asarray(origin))
+    centred = image.affine.copy()
+    centred[:3, 3] -= image.centre                        # the image centred on GATE's origin
+    return Image(image.data, to_patient @ centred, units=image.units, modality=image.modality, meta=image.meta,
+                 frame="scanner" if origin is None else "patient", labels=image.labels)
 
 
 # ---------- normalisation from a calibration scan ----------

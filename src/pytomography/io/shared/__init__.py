@@ -2,5 +2,5 @@
 """
 
 from .dicom_creation import create_ds
-from .interfile import get_header_value, get_attenuation_map_interfile
+from .interfile import get_header_value
 from .output import save_nifti, save_dicom

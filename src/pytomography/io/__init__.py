@@ -8,3 +8,6 @@ take the place of the voxels from ``object_meta`` or from an :class:`Image`."""
 from ._image import Image
 from ._load import load_image
 from .shared.output import save_nifti, save_dicom
+from ._attenuation import attenuation_map
+from ._mask import load_mask
+from . import CT, PET
