@@ -354,6 +354,28 @@ def test_lazy_scatter_estimate_equals_dense(tof, small_chunks):
 
 @needs_kernels
 @pytest.mark.parametrize("tof", [False, True])
+def test_scatter_scaled_in_place_equals_a_scaled_copy(tof):
+    """get_sss_scatter_estimate scales its own dense estimate in place, instead of making a scaled copy (a second
+    1.65 GB sinogram for the mMR without TOF): scale_estimated_scatter(in_place=True) returns the tensor it is given,
+    scaled as the copy is. A lazy estimate is scaled lazily, as before."""
+    activity, attenuation = _phantom()
+    sm = _sinogram_system_matrix(tof, attenuation)
+    data = shared.listmode_to_sinogram(_events(60000, tof, seed=16), INFO, tof_meta=_tof_meta(tof))
+    randoms = torch.rand(SHAPE, generator=torch.Generator().manual_seed(17)) * 0.01
+    unscaled = torch.rand(data.shape, generator=torch.Generator().manual_seed(18))
+    copy = sss.scale_estimated_scatter(unscaled, sm, data, attenuation, sinogram_random=randoms)
+    assert copy.data_ptr() != unscaled.data_ptr()
+    own = unscaled.clone()
+    scaled = sss.scale_estimated_scatter(own, sm, data, attenuation, sinogram_random=randoms, in_place=True)
+    assert scaled is own and not torch.equal(own, unscaled)
+    assert _close(scaled, copy)                               # the scale factor is fitted to back projections
+    lazy = sss.scale_estimated_scatter(LazySinogram(lambda angles: unscaled[angles], unscaled.shape), sm, data, attenuation,
+                                       sinogram_random=randoms, in_place=True)
+    assert isinstance(lazy, LazySinogram) and _close(lazy.to_dense(), copy)
+
+
+@needs_kernels
+@pytest.mark.parametrize("tof", [False, True])
 def test_lazy_list_mode_scatter_estimate_equals_dense(tof, small_chunks):
     """The scatter estimate cell of the list mode tutorials: the events, looked up in the lazy estimate, get the same values."""
     activity, attenuation = _phantom()
