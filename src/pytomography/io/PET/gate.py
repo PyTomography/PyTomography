@@ -276,6 +276,7 @@ def read_gate(
     energy_resolution: float | None = None,
     normalization=None,
     min_rsector_difference: int = 0,
+    crystal_volume: str = "crystal",
 ) -> tuple[torch.Tensor, ObjectMeta, PETLMProjMeta]:
     r"""The coincidences of a GATE simulation of a cylindrical PET scanner, in PyTomography's standard form.
 
@@ -316,6 +317,8 @@ def read_gate(
             become ``proj_meta.weights_sensitivity``. Defaults to None.
         min_rsector_difference (int, optional): keep only events whose crystals are at least this many rsectors apart
             around the ring (GATE's ``setMinSectorDifference``). Defaults to 0.
+        crystal_volume (str, optional): the GATE volume of the crystals, whose ``setXLength`` is their depth. Defaults
+            to ``'crystal'``.
 
     Returns:
         tuple[torch.Tensor, ObjectMeta, PETLMProjMeta]: the events (int32 ``[N, 2]``, or ``[N, 3]`` with the TOF bin;
@@ -327,7 +330,7 @@ def read_gate(
     root_files = list(root_files)
     if not root_files:
         raise ValueError("no ROOT files given")
-    gate_keys, axial_centre = _macro_info(macro, doi_mm=doi_mm)
+    gate_keys, axial_centre = _macro_info(macro, doi_mm=doi_mm, crystal_volume=crystal_volume)
     placement = _registry_placement(root_files) if world_axes is None and world_origin is None else None
     if placement is not None:
         world_axes, world_origin = placement["world_axes"], placement.get("world_origin")
