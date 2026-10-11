@@ -302,6 +302,34 @@ def test_pet_estimates_on_a_cpu_device_are_in_ram_and_plans_fit_without_a_gpu(mo
     assert sm.estimate_memory(**plan_cuda.settings).ram_gb <= cuda[(4, 2)].ram_gb + 1e-9
 
 
+@pytest.mark.parametrize("uses_gpu", [False, True], ids=["no CUDA projector", "parallelproj CUDA build on a visible GPU"])
+def test_parallelproj_on_the_cpu_device_counts_a_cuda_context(uses_gpu, monkeypatch):
+    """With PyTomography on the CPU device, parallelproj's CUDA build still projects on a visible GPU, which makes a CUDA
+    context: the estimates of the computations that project with parallelproj (PET, CT, the single scatter simulation)
+    then count the overhead of a CUDA process, and SPECT's (PyTorch only) does not. Found by validate_memory.py: a PET
+    sinogram OSEM on the CPU device committed 4.06 GB against 3.82 GB estimated with the CPU overhead."""
+    pytest.importorskip("parallelproj_core")
+    from pytomography.metadata.PET import PETSinogramPolygonProjMeta, PETTOFMeta
+    from pytomography.projectors.CT import CTGen3SystemMatrix
+    from pytomography.tests.test_ct_fbp import OBJECT_META, _helix
+    from pytomography.utils import sss
+    projector_uses_gpu = memory.projector_uses_gpu
+    monkeypatch.setattr(memory, "projector_uses_gpu", lambda device=None: uses_gpu)
+    _on(monkeypatch, 'cpu')
+    overhead = lambda estimate: _parts(estimate)['Python, PyTorch and CUDA'].ram_bytes
+    expected = memory.FIXED_OVERHEAD_BYTES if uses_gpu else memory.FIXED_OVERHEAD_CPU_BYTES
+    pet = _pet_sinogram_system_matrix()
+    assert overhead(pet.estimate_memory(4)) == expected
+    assert overhead(_pet_listmode_system_matrix(monkeypatch).estimate_memory(4)) == expected
+    assert overhead(CTGen3SystemMatrix(OBJECT_META, _helix(), device='cpu').estimate_memory(4)) == expected
+    tof_meta = PETTOFMeta(5, 300.0, 60.0, n_sigmas=3)
+    assert overhead(sss.estimate_sss_memory(PET_OBJECT, PETSinogramPolygonProjMeta(INFO, tof_meta), tof_meta=tof_meta)) == expected
+    assert overhead(_spect().estimate_memory(4)) == memory.FIXED_OVERHEAD_CPU_BYTES
+    # a plan with no GPU budget still fits: the context is counted as RAM, where Windows counts it
+    assert pet.plan_memory(ram_gb=1000, gpu_gb=0).fits
+    assert not projector_uses_gpu('cuda')                            # on a CUDA device the overhead is the CUDA one anyway
+
+
 def test_list_mode_counts_the_detector_ids_of_its_sensitivity_weights(monkeypatch):
     """A list mode system matrix given the lines of response of its sensitivity (detector_ids_sensitivity, which the
     GE HDF5 reader gives) keeps their detector IDs: they are counted, where they are."""

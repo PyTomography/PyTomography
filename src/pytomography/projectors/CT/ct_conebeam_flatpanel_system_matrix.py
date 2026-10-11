@@ -18,6 +18,11 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
             N_splits (int, optional): Splits up computation of forward/back projection to save GPU memory. Defaults to 1.
             device (str, optional): Device on which projections are output. Defaults to pytomography.device.
         """
+    #: Memory estimates: this system matrix projects with parallelproj, whose CUDA build makes a CUDA context (and
+    #: runs on the GPU) also when PyTomography's device is the CPU, if a CUDA device is visible
+    #: (:func:`~pytomography.utils.memory.projector_uses_gpu`).
+    memory_cuda_projector = True
+
     def __init__(
         self,
         object_meta: ObjectMeta,

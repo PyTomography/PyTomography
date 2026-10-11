@@ -229,7 +229,8 @@ class SystemMatrix():
                 alternative = {key: value for key, value in (('n_subsets', k), ('N_splits', s if s is not None else N_splits)) if key in settings}
                 others.append((label, list(self._memory_parts(k, s)) + list(held) + more(k), alternative))
         return memory_estimate(title, list(self._memory_parts(n_subsets, N_splits)) + list(held) + more(n_subsets), others,
-                               allocator_fraction=getattr(self, 'memory_allocator_fraction', None), settings=dict(settings))
+                               allocator_fraction=getattr(self, 'memory_allocator_fraction', None), settings=dict(settings),
+                               cuda_projector=getattr(self, 'memory_cuda_projector', False))
 
     def estimate_memory(self, n_subsets: int = 1, N_splits: int | None = None, held: Sequence | Mapping = ()) -> MemoryEstimate:
         """The predicted peak RAM and GPU memory of a reconstruction with this system matrix, for ``n_subsets`` subsets
@@ -466,6 +467,11 @@ class ExtendedSystemMatrix(SystemMatrix):
     def memory_allocator_fraction(self) -> float | None:
         """The Windows allowance of the first system matrix's memory estimates (see :func:`~pytomography.utils.memory.memory_estimate`)."""
         return getattr(self.system_matrices[0], 'memory_allocator_fraction', None)
+
+    @property
+    def memory_cuda_projector(self) -> bool:
+        """Whether the first system matrix projects with parallelproj (see :func:`~pytomography.utils.memory.memory_estimate`)."""
+        return getattr(self.system_matrices[0], 'memory_cuda_projector', False)
 
     def _max_subsets(self) -> int:
         return self.system_matrices[0]._max_subsets()

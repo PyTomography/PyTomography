@@ -701,7 +701,9 @@ class PGAAMultiBedSPECT(PreconditionedGradientAscentAlgorithm):
 
     def _bed_estimate(self, settings: dict, alternatives: bool = True) -> MemoryEstimate:
         n = settings['n_subsets']
-        return memory_estimate(f"{self._memory_title()}: {n} subset{'' if n == 1 else 's'}", self._bed_parts(settings), settings=settings)
+        sm = self.reconstruction_algorithms[0].likelihood.system_matrix
+        return memory_estimate(f"{self._memory_title()}: {n} subset{'' if n == 1 else 's'}", self._bed_parts(settings), settings=settings,
+                               cuda_projector=getattr(sm, 'memory_cuda_projector', False))
 
     def estimate_memory(self, n_subsets: int | None = None, N_splits: int | None = None) -> MemoryEstimate:
         """The predicted peak RAM and GPU memory of the reconstruction of every bed, for ``n_subsets`` subsets: what each

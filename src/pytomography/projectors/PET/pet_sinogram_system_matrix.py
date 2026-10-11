@@ -31,6 +31,11 @@ class PETSinogramSystemMatrix(SystemMatrix):
     #: estimates then come within 15% of the measured peaks.
     memory_allocator_fraction = 0.6
 
+    #: Memory estimates: this system matrix projects with parallelproj, whose CUDA build makes a CUDA context (and
+    #: runs on the GPU) also when PyTomography's device is the CPU, if a CUDA device is visible
+    #: (:func:`~pytomography.utils.memory.projector_uses_gpu`).
+    memory_cuda_projector = True
+
     def __init__(
         self,
         object_meta: ObjectMeta,

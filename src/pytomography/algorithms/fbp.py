@@ -66,7 +66,8 @@ class FilteredBackProjection:
         with budget:
             parts = sm._fbp_memory_parts(self.projections, self.filter, **options)
             others = sm._fbp_memory_alternatives(self.projections, self.filter, **options) if alternatives else []
-        return memory_estimate(f'Filtered back projection ({type(sm).__name__})', parts, others, settings=settings)
+        return memory_estimate(f'Filtered back projection ({type(sm).__name__})', parts, others, settings=settings,
+                               cuda_projector=getattr(sm, 'memory_cuda_projector', False))
 
     def estimate_memory(self) -> MemoryEstimate:
         """The peak memory (RAM and GPU) this reconstruction will take, without running it: what it holds (the
