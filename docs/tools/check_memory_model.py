@@ -136,6 +136,22 @@ def _algorithm(name: str, system_matrix, projections=None, additive=None, prior:
     return algorithm
 
 
+def _anatomy_weight(p):
+    """A TopNAnatomyNeighbourWeight as its prior's estimate reads it (its tensors, checked against a real one in
+    :func:`mapping_checks`): the anatomical image, where the configuration keeps it, and which of the 27 neighbours
+    count, a byte each on the host."""
+    from pytomography.priors.nearest_neighbour import EuclideanNeighbourWeight
+    shape = (int(p['Lx']), int(p['Ly']), int(p['Lz']))
+    return SimpleNamespace(eucliden_neighbour_weight=EuclideanNeighbourWeight(), anatomy_image=fake(shape, on_gpu=p['device'] == 'cuda'),
+                           N=8, inclusion_image=fake((3, 3, 3, *shape), torch.bool))
+
+
+def _with_prior_weight(algorithm, p):
+    if algorithm.prior is not None and p.get('prior_weight') == 'top_n_anatomy':
+        algorithm.prior.weight = _anatomy_weight(p)
+    return algorithm
+
+
 def _result(estimate) -> dict:
     return {'ram_gb': estimate.ram_gb, 'gpu_gb': estimate.gpu_gb, 'settings': dict(estimate.settings),
             'parts': [(p.name, p.scope, p.ram_bytes / 1e9, p.gpu_bytes / 1e9) for p in estimate.parts]}
@@ -206,7 +222,7 @@ def build_pet_sinogram(p):
         randoms = fake(shape)
         sensitivity = fake(shape + [1] if tof else shape)
         additive = ((randoms.unsqueeze(-1) if tof else randoms) + scatter) / sensitivity
-    return _algorithm(p['algorithm'], sm, data, additive, p['prior'])
+    return _with_prior_weight(_algorithm(p['algorithm'], sm, data, additive, p['prior']), p)
 
 
 def _pet_sinogram_settings(p):
@@ -243,7 +259,7 @@ def build_pet_listmode(p):
     cuda = p['device'] == 'cuda'
     sm = _listmode_system_matrix(p)
     additive = fake((int(p['events']),), on_gpu=cuda) if p['lm_additive'] else None
-    return _algorithm(p['algorithm'], sm, fake((1,), on_gpu=cuda), additive, p['prior'])
+    return _with_prior_weight(_algorithm(p['algorithm'], sm, fake((1,), on_gpu=cuda), additive, p['prior']), p)
 
 
 def build_sss(p):
@@ -470,7 +486,7 @@ def _spect_data(p):
 def build_spect(p):
     sm = _spect_system_matrix(p)
     projections, additive = _spect_data(p)
-    return _algorithm(p['algorithm'], sm, projections, additive, p['prior'])
+    return _with_prior_weight(_algorithm(p['algorithm'], sm, projections, additive, p['prior']), p)
 
 
 def build_spect_fbp(p):
@@ -501,7 +517,7 @@ def build_spect_multibed(p):
     beds = []
     for _ in range(int(p['n_beds'])):
         projections, additive = _spect_data(p)
-        beds.append(_algorithm(p['algorithm'], sm, projections, additive, p['prior']))
+        beds.append(_with_prior_weight(_algorithm(p['algorithm'], sm, projections, additive, p['prior']), p))
     return PGAAMultiBedSPECT([f'bed {k}' for k in range(len(beds))], beds)
 
 
@@ -535,7 +551,7 @@ def build_starguide(p):
         p['psf_kernel_mean'] = sum(r + z for r, z in kernels) / (2 * len(kernels))
     cuda = p['device'] == 'cuda'
     additive = fake((V, 16, Lz), on_gpu=cuda) if p['spect_additive'] else None
-    return _algorithm(p['algorithm'], sm, fake((V, 16, Lz), on_gpu=cuda), additive, p['prior'])
+    return _with_prior_weight(_algorithm(p['algorithm'], sm, fake((V, 16, Lz), on_gpu=cuda), additive, p['prior']), p)
 
 
 def _spect_settings(p):
@@ -599,7 +615,7 @@ def grid_pet_sinogram(quick: bool) -> list:
                 scanner=[(448, 64), (504, 64), (64, 8), (760, 80), (640, 120)], image=[(128, 128, 96), (200, 200, 127), (440, 440, 159), (64, 64, 32)],
                 tof=[False, True], tof_bins=[21, 13, 33], proj_device=['device', 'cpu'], sensitivity=[True, False],
                 data=['dense_ram', 'dense_gpu', 'lazy'], additive=['none', 'dense', 'lazy'], sss_step=[4, 6, 2],
-                algorithm=['OSEM', 'BSREM', 'MLEM', 'OSMAPOSL', 'RBIEM'], prior=[False, True], N_splits=[1, 10, 3],
+                algorithm=['OSEM', 'BSREM', 'MLEM', 'OSMAPOSL', 'RBIEM'], prior=[False, True], prior_weight=['euclidean', 'top_n_anatomy'], N_splits=[1, 10, 3],
                 events=[50_000_000, 2_000_000, 400_000_000])
     configs = tutorials + _sample(base, axes, 12 if quick else 60, 1)
     for p in configs:
@@ -622,7 +638,7 @@ def grid_pet_listmode(quick: bool) -> list:
                 tof=[False, True], events=[50_000_000, 2_000_000, 400_000_000, 1_500_000_000], id_bytes=[4, 8],
                 lor_device=['device', 'cpu'], proj_device=['device', 'cpu'], sort_events=[True, False],
                 lm_weights=['ram', 'gpu', 'none'], lm_additive=[True, False], algorithm=['OSEM', 'BSREM', 'MLEM', 'OSMAPOSL'],
-                prior=[False, True], N_splits=[1, 10, 3])
+                prior=[False, True], prior_weight=['euclidean', 'top_n_anatomy'], N_splits=[1, 10, 3])
     configs = tutorials + _sample(base, axes, 12 if quick else 60, 2)
     for p in configs:
         if 'scanner' in p:
@@ -711,7 +727,8 @@ def _spect_axes(**more):
     axes = dict(DEVICES, image=[(128, 128, 128), (64, 64, 64), (128, 128, 100), (256, 256, 200)], views=[120, 96, 60, 128],
                 attenuation=[True, False], cache_probabilities=[False, True], psf=['gaussian', 'none', 'operator'],
                 n_radii=[1, 2, 120], cache_kernel=[False, True], camera_path=[False, True], spect_additive=[True, False],
-                algorithm=['OSEM', 'BSREM', 'OSMAPOSL', 'MLEM', 'RBIEM'], prior=[False, True], proj_r=[None, 128], proj_z=[None, 100])
+                algorithm=['OSEM', 'BSREM', 'OSMAPOSL', 'MLEM', 'RBIEM'], prior=[False, True], prior_weight=['euclidean', 'top_n_anatomy'],
+                proj_r=[None, 128], proj_z=[None, 100])
     axes.update(more)
     return axes
 
@@ -736,7 +753,7 @@ SG_BASE = dict(SPECT_BASE, Lx=144, Ly=144, Lz=112, sg_angles=215, sg_views_per_a
 def grid_starguide(quick: bool) -> list:
     axes = dict(DEVICES, image=[(144, 144, 112), (128, 128, 100), (96, 96, 64)], sg_angles=[215, 30, 60], sg_views_per_angle=[12, 4, 8],
                 attenuation=[True, False], cache_probabilities=[False, True], psf=['gaussian', 'none'], n_radii=[2575, 1, 40],
-                spect_additive=[True, False], algorithm=['OSEM', 'BSREM', 'MLEM'], prior=[False, True])
+                spect_additive=[True, False], algorithm=['OSEM', 'BSREM', 'MLEM'], prior=[False, True], prior_weight=['euclidean', 'top_n_anatomy'])
     configs = [dict(SG_BASE)] + _sample(SG_BASE, axes, 6 if quick else 20, 8)
     for p in configs:
         if 'image' in p:
@@ -833,6 +850,32 @@ def mapping_checks() -> list:
     same = a.ram_gb == b.ram_gb and a.gpu_gb == b.gpu_gb and [(p.name, p.ram_bytes, p.gpu_bytes) for p in a.parts] == [(p.name, p.ram_bytes, p.gpu_bytes) for p in b.parts]
     ok &= same
     lines.append(f"PETLMSystemMatrix (real, {n} events, TOF, sensitivity weights) and its stand-in: {a.ram_gb:.6f} / {b.ram_gb:.6f} GB RAM, {a.gpu_gb:.6f} / {b.gpu_gb:.6f} GB GPU: {'same' if same else 'DIFFERENT'}")
+    # 4. a real KEM transform (32 x 32 x 16, size 3, one support image) and its stand-in
+    from pytomography.projectors.shared import KEMSystemMatrix
+    from pytomography.transforms.shared import KEMTransform
+    q = dict(SPECT_BASE, device='cpu', Lx=32, Ly=32, Lz=16, views=60, psf='none', kem_size=3, kem_support=1,
+             kem_kernel_on_gpu=False, kem_support_on='device')
+    with simulate(q):
+        sm = _spect_system_matrix(q)
+        real = KEMSystemMatrix(sm, KEMTransform([torch.rand(32, 32, 16)], size=3))
+        stand_in = build_kem(q).likelihood.system_matrix
+        a, b = real.estimate_memory(4), stand_in.estimate_memory(4)
+    same = a.ram_gb == b.ram_gb and a.gpu_gb == b.gpu_gb and [(p.name, p.ram_bytes, p.gpu_bytes) for p in a.parts] == [(p.name, p.ram_bytes, p.gpu_bytes) for p in b.parts]
+    ok &= same
+    lines.append(f"KEMSystemMatrix (real KEMTransform, 32 x 32 x 16, size 3) and its stand-in: {a.ram_gb:.6f} / {b.ram_gb:.6f} GB RAM, {a.gpu_gb:.6f} / {b.gpu_gb:.6f} GB GPU: {'same' if same else 'DIFFERENT'}")
+    # 5. a real TopNAnatomyNeighbourWeight (after set_object_meta, as an algorithm's constructor calls it) and its stand-in
+    from pytomography.priors import RelativeDifferencePrior
+    from pytomography.priors.nearest_neighbour import TopNAnatomyNeighbourWeight
+    q = dict(q, prior=True, prior_weight='top_n_anatomy', algorithm='BSREM')
+    with simulate(q):
+        sm = _spect_system_matrix(q)
+        real = _algorithm('BSREM', sm, *_spect_data(q))
+        real.prior = RelativeDifferencePrior(beta=1.0, weight=TopNAnatomyNeighbourWeight(torch.rand(32, 32, 16), N_neighbours=8))
+        real.prior.set_object_meta(sm.object_meta)
+        a, b = real.estimate_memory(4), build_spect(q).estimate_memory(4)
+    same = a.ram_gb == b.ram_gb and a.gpu_gb == b.gpu_gb
+    ok &= same
+    lines.append(f"BSREM with a RelativeDifferencePrior of TopNAnatomyNeighbourWeight (real) and its stand-in: {a.ram_gb:.6f} / {b.ram_gb:.6f} GB RAM, {a.gpu_gb:.6f} / {b.gpu_gb:.6f} GB GPU: {'same' if same else 'DIFFERENT'}")
     return ok, lines
 
 
@@ -859,7 +902,7 @@ def check_model(model: MemoryModel, checker: Checker, quick: bool, js_cases: lis
     JavaScript comparison to ``js_cases``."""
     worst = {'ram': 0.0, 'gpu': 0.0}
     worst_case = None
-    estimates = plans = plan_mismatches = 0
+    estimates = plans = plan_mismatches = searched = unfit = 0
     failures = []
     configs = checker.grid(quick)
     names = {v['name'] for v in model.data['variables']}
@@ -867,8 +910,11 @@ def check_model(model: MemoryModel, checker: Checker, quick: bool, js_cases: lis
         with simulate(p):
             obj = checker.build(p)                       # may set parameters it measures (e.g. the PSF kernel size)
             params = {k: v for k, v in p.items() if k in names}
-            for s in checker.settings(p):
+            adaptive = []                                # budgets just above the estimates of other settings: the plan must search
+            for i, s in enumerate(checker.settings(p)):
                 lib = checker.estimate(obj, s)
+                if 1 <= i <= 2:
+                    adaptive.append((lib['ram_gb'] + 1e-6, lib['gpu_gb'] + 1e-6))
                 mine = model.estimate(checker.model_id, params, s)
                 js_cases.append({'kind': 'estimate', 'model': checker.model_id, 'params': params, 'settings': s})
                 estimates += 1
@@ -885,11 +931,14 @@ def check_model(model: MemoryModel, checker: Checker, quick: bool, js_cases: lis
                 if not _settings_equal(mine['settings'], lib['settings']):
                     failures.append(f"estimate settings: model {mine['settings']}, library {lib['settings']} for {s} in {params}")
             fixed_list = checker.fixed(p) if callable(checker.fixed) else checker.fixed
-            for (ram_gb, gpu_gb), fixed in itertools.product(checker.budgets[:3] if quick else checker.budgets, fixed_list):
+            budgets = list(checker.budgets[:3] if quick else checker.budgets) + adaptive
+            for (ram_gb, gpu_gb), fixed in itertools.product(budgets, fixed_list):
                 lib = checker.plan(obj, ram_gb, gpu_gb, fixed)
                 mine = model.plan(checker.model_id, params, ram_gb, gpu_gb, fixed)
                 js_cases.append({'kind': 'plan', 'model': checker.model_id, 'params': params, 'ram_gb': ram_gb, 'gpu_gb': gpu_gb, 'fixed': fixed})
                 plans += 1
+                searched += lib['tried'] > 1                 # the first settings tried did not fit
+                unfit += not lib['fits']
                 if not _settings_equal(mine['settings'], lib['settings']) or mine['fits'] != lib['fits']:
                     plan_mismatches += 1
                     failures.append(f"plan for {ram_gb} GB RAM, {gpu_gb} GB GPU (fixed {fixed}): model {mine['settings']} "
@@ -897,6 +946,7 @@ def check_model(model: MemoryModel, checker: Checker, quick: bool, js_cases: lis
                                     f"library {lib['settings']} fits={lib['fits']} ({lib['ram_gb']:.3f}, {lib['gpu_gb']:.3f} GB) in {params}")
     return {'model': checker.model_id, 'configurations': len(configs), 'estimates': estimates, 'plans': plans,
             'max_rel_ram': worst['ram'], 'max_rel_gpu': worst['gpu'], 'plan_mismatches': plan_mismatches,
+            'plans_searched': searched, 'plans_unfit': unfit,
             'failures': failures, 'worst_case': worst_case}
 
 
@@ -972,7 +1022,8 @@ def main(argv=None) -> int:
         bad = max(r['max_rel_ram'], r['max_rel_gpu']) > TOLERANCE or r['plan_mismatches'] or r['failures']
         failed |= bool(bad)
         print(f"{model_id:22s} {r['configurations']:4d} configurations, {r['estimates']:5d} estimates: max difference "
-              f"RAM {100 * r['max_rel_ram']:.3f}%, GPU {100 * r['max_rel_gpu']:.3f}%; {r['plans']:4d} plans, "
+              f"RAM {100 * r['max_rel_ram']:.3f}%, GPU {100 * r['max_rel_gpu']:.3f}%; {r['plans']:4d} plans "
+              f"({r['plans_searched']} beyond the first settings, {r['plans_unfit']} fitting nowhere), "
               f"{r['plan_mismatches']} different ({r['seconds']:.0f} s)")
         for f in r['failures'][:8]:
             print('    ' + f)

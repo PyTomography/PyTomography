@@ -29,6 +29,7 @@
     {"name": "Lz", "label": "Image size z", "unit": "voxels", "default": 128, "min": 1, "max": 4096, "step": 1},
     {"name": "algorithm", "label": "Algorithm", "default": "OSEM", "options": [{"value": "OSEM", "label": "OSEM"}, {"value": "OSMAPOSL", "label": "OSMAPOSL"}, {"value": "BSREM", "label": "BSREM"}, {"value": "RBIEM", "label": "RBI-EM"}, {"value": "RBIMAP", "label": "RBI-MAP"}, {"value": "MLEM", "label": "MLEM (one subset)"}], "help": "BSREM, RBI-EM and RBI-MAP stack the H_m^T 1 of every subset; MLEM always uses one subset."},
     {"name": "prior", "label": "Prior (e.g. RelativeDifferencePrior)", "type": "bool", "default": false, "options": [{"value": false, "label": "no"}, {"value": true, "label": "yes"}], "help": "For OSMAPOSL, BSREM and RBI-MAP."},
+    {"name": "prior_weight", "label": "Prior's neighbour weights", "default": "euclidean", "options": [{"value": "euclidean", "label": "by distance (EuclideanNeighbourWeight)"}, {"value": "top_n_anatomy", "label": "from an anatomical image (TopNAnatomyNeighbourWeight)"}], "help": "TopNAnatomyNeighbourWeight keeps the anatomical image (on the device) and which of the 27 neighbours count (a byte each, in RAM)."},
     {"name": "n_subsets", "label": "Subsets (n_subsets)", "default": 1, "min": 1, "max": 1024, "step": 1},
     {"name": "N_splits", "label": "Projector splits (N_splits)", "default": 1, "min": 1, "max": 1024, "step": 1},
     {"name": "crystals_per_ring", "label": "Crystals per ring", "default": 448, "min": 8, "max": 2048, "step": 2, "help": "info['NrCrystalsPerRing'] (Siemens Biograph mMR: 448)."},
@@ -136,6 +137,7 @@
   "part_sets": {
     "algorithm_parts": [
       {"name": "prior: its copy of the image, field of view scale and gradient", "when": "prior", "bytes": "3 * image", "on": "cuda"},
+      {"name": "prior: its neighbour weights", "when": "prior && prior_weight == 'top_n_anatomy'", "ram": "27 * Lx * Ly * Lz + (cuda ? 0 : image)", "gpu": "cuda ? image : 0"},
       {"include": "algorithm_subset_parts"}
     ],
     "algorithm_subset_parts": [
@@ -165,7 +167,7 @@
       "title": "PET sinogram reconstruction (PETSinogramSystemMatrix)",
       "modality": "PET",
       "library": "OSEM(PoissonLogLikelihood(PETSinogramSystemMatrix(...), sinogram, additive_term)).estimate_memory(n_subsets, N_splits) / .plan_memory(ram_gb, gpu_gb)",
-      "params": ["device", "os", "gpu_free_gb", "memory_budget_gb", "Lx", "Ly", "Lz", "crystals_per_ring", "rings", "tof", "tof_bins", "proj_device", "sensitivity", "data", "events", "additive", "sss_step", "algorithm", "prior", "N_splits", "n_subsets"],
+      "params": ["device", "os", "gpu_free_gb", "memory_budget_gb", "Lx", "Ly", "Lz", "crystals_per_ring", "rings", "tof", "tof_bins", "proj_device", "sensitivity", "data", "events", "additive", "sss_step", "algorithm", "prior", "prior_weight", "N_splits", "n_subsets"],
       "defaults": {"Lx": 128, "Ly": 128, "Lz": 96, "tof": true, "N_splits": 10, "n_subsets": 28, "data": "lazy", "additive": "lazy", "sss_step": 6, "events": 50000000, "memory_budget_gb": 25},
       "use": ["pet_scanner", "algorithm"],
       "allocator_fraction": 0.6,
@@ -208,7 +210,7 @@
       "title": "PET list mode reconstruction (PETLMSystemMatrix)",
       "modality": "PET",
       "library": "OSEM(PoissonLogLikelihood(PETLMSystemMatrix(...), additive_term=...)).estimate_memory(n_subsets, N_splits) / .plan_memory(ram_gb, gpu_gb)",
-      "params": ["device", "os", "gpu_free_gb", "memory_budget_gb", "Lx", "Ly", "Lz", "crystals_per_ring", "rings", "tof", "events", "id_bytes", "lor_device", "proj_device", "sort_events", "lm_weights", "lm_additive", "algorithm", "prior", "N_splits", "n_subsets"],
+      "params": ["device", "os", "gpu_free_gb", "memory_budget_gb", "Lx", "Ly", "Lz", "crystals_per_ring", "rings", "tof", "events", "id_bytes", "lor_device", "proj_device", "sort_events", "lm_weights", "lm_additive", "algorithm", "prior", "prior_weight", "N_splits", "n_subsets"],
       "defaults": {"Lx": 128, "Ly": 128, "Lz": 96, "events": 50000000, "N_splits": 10, "n_subsets": 14, "memory_budget_gb": 25},
       "use": ["pet_scanner", "algorithm"],
       "allocator_fraction": 0.6,
@@ -503,7 +505,7 @@
       "title": "SPECT reconstruction (SPECTSystemMatrix)",
       "modality": "SPECT",
       "library": "OSEM(PoissonLogLikelihood(SPECTSystemMatrix([attenuation, psf], [], object_meta, proj_meta), projections, additive_term)).estimate_memory(n_subsets) / .plan_memory(ram_gb, gpu_gb)",
-      "params": ["device", "os", "gpu_free_gb", "memory_budget_gb", "Lx", "Ly", "Lz", "views", "proj_r", "proj_z", "attenuation", "cache_probabilities", "psf", "psf_kernel", "n_radii", "cache_kernel", "camera_path", "spect_additive", "algorithm", "prior", "n_subsets"],
+      "params": ["device", "os", "gpu_free_gb", "memory_budget_gb", "Lx", "Ly", "Lz", "views", "proj_r", "proj_z", "attenuation", "cache_probabilities", "psf", "psf_kernel", "n_radii", "cache_kernel", "camera_path", "spect_additive", "algorithm", "prior", "prior_weight", "n_subsets"],
       "defaults": {"views": 120, "n_subsets": 8},
       "use": ["algorithm", "spect_grid", "spect"],
       "parts": [
@@ -549,7 +551,7 @@
       "title": "StarGuide SPECT reconstruction (StarGuideSystemMatrix)",
       "modality": "SPECT",
       "library": "OSEM(PoissonLogLikelihood(StarGuideSystemMatrix(object_meta, proj_meta, [attenuation, psf]), projections, additive_term)).estimate_memory(n_subsets) / .plan_memory(ram_gb, gpu_gb)",
-      "params": ["device", "os", "gpu_free_gb", "memory_budget_gb", "Lx", "Ly", "Lz", "sg_angles", "sg_views_per_angle", "attenuation", "cache_probabilities", "psf", "psf_kernel", "psf_kernel_mean", "n_radii", "spect_additive", "algorithm", "prior", "n_subsets"],
+      "params": ["device", "os", "gpu_free_gb", "memory_budget_gb", "Lx", "Ly", "Lz", "sg_angles", "sg_views_per_angle", "attenuation", "cache_probabilities", "psf", "psf_kernel", "psf_kernel_mean", "n_radii", "spect_additive", "algorithm", "prior", "prior_weight", "n_subsets"],
       "defaults": {"Lx": 144, "Ly": 144, "Lz": 112, "psf_kernel": 17, "n_radii": 2575, "n_subsets": 10},
       "use": ["algorithm"],
       "derived": {
@@ -626,14 +628,16 @@
       "title": "Multi-bed SPECT reconstruction (PGAAMultiBedSPECT)",
       "modality": "SPECT",
       "library": "PGAAMultiBedSPECT(files_NM, [OSEM(likelihood_bed_1), ...]).estimate_memory(n_subsets) / .plan_memory(ram_gb, gpu_gb)",
-      "params": ["device", "os", "gpu_free_gb", "memory_budget_gb", "n_beds", "Lx", "Ly", "Lz", "views", "proj_r", "proj_z", "attenuation", "cache_probabilities", "psf", "psf_kernel", "n_radii", "cache_kernel", "camera_path", "spect_additive", "algorithm", "prior", "n_subsets"],
+      "params": ["device", "os", "gpu_free_gb", "memory_budget_gb", "n_beds", "Lx", "Ly", "Lz", "views", "proj_r", "proj_z", "attenuation", "cache_probabilities", "psf", "psf_kernel", "n_radii", "cache_kernel", "camera_path", "spect_additive", "algorithm", "prior", "prior_weight", "n_subsets"],
       "defaults": {"views": 120, "n_subsets": 8},
       "use": ["algorithm", "spect_grid", "spect"],
       "derived": {
-        "spect_held": "(4 + n_subsets) * image + grids + (has_transforms ? kept : 0) + data_bytes + (spect_additive ? data_bytes : 0) + (prior ? 3 * image : 0)"
+        "anatomy_weights": "prior && prior_weight == 'top_n_anatomy'",
+        "bed_held_device": "(4 + n_subsets) * image + grids + (has_transforms ? kept : 0) + data_bytes + (spect_additive ? data_bytes : 0) + (prior ? 3 * image : 0) + (anatomy_weights ? image : 0)",
+        "bed_held_ram": "anatomy_weights ? 27 * Lx * Ly * Lz : 0"
       },
       "parts": [
-        {"repeat": {"var": "bed", "from": "1", "to": "n_beds"}, "name": "bed {bed}: what its reconstruction holds", "bytes": "spect_held", "on": "cuda"},
+        {"repeat": {"var": "bed", "from": "1", "to": "n_beds"}, "name": "bed {bed}: what its reconstruction holds", "ram": "(cuda ? 0 : bed_held_device) + bed_held_ram", "gpu": "cuda ? bed_held_device : 0"},
         {"include": "spect_subset_parts"},
         {"include": "algorithm_subset_parts"},
         {"name": "the beds' images, stacked, and the stitched image", "scope": "subset", "bytes": "3 * n_beds * image", "on": "cuda"}
