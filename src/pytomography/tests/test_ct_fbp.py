@@ -197,7 +197,8 @@ def test_conebeam_fdk_with_the_rotation_axis_off_the_central_ray():
     truth = MU * (np.hypot(X, Y) <= 30.0) + dmu * (to_sphere <= radius)
     safe = (np.hypot(X, Y) < 24.0) & (np.abs(to_sphere - radius) > 4)
     err = (image.cpu().numpy() - truth)[safe] / MU
-    assert abs(err.mean()) < 0.01 and np.abs(err).max() < 0.05
+    # measured on an RTX 5090: mean -0.0008, max 0.020; with v3's weight, mean 0.0043, max 0.045
+    assert abs(err.mean()) < 0.002 and np.abs(err).max() < 0.03
 
 
 def test_the_column_scale_is_fitted_back_from_a_reference_image():
