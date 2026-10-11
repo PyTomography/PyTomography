@@ -127,6 +127,15 @@ sections:
     summary: OSEM, OSMAPOSL, BSREM and KEM on a measured NEMA phantom, compared by sphere contrast, background noise and data fit at every iteration.
     datasets:
     - SPECT/Lu177-NEMA-SymT2
+  - notebook: t_fbp_spect
+    title: Filtered back projection (SPECT)
+    modality: SPECT
+    data: DICOM
+    topic: Algorithms
+    summary: Filtered back projection of a Lu-177 NEMA phantom scan, with Chang's attenuation correction, next to OSEM.
+    thumbnail: 0
+    datasets:
+    - SPECT/Lu177-NEMA-SymT2
 - title: PET
   tutorials:
   - notebook: t_pet_introduction
@@ -221,15 +230,14 @@ sections:
     summary: FDK and OS-SART on a laboratory micro-CT scan of glass beads, with the centre of rotation found from the data.
     datasets:
     - CT/SophiaBeads-256
-  - notebook: t_fbp
-    title: 'Filtered back projection: SPECT and CT'
-    modality: Any
+  - notebook: t_fbp_ct
+    title: 'Filtered back projection (CT): windows and memory'
+    modality: CT
     data: DICOM
     topic: Algorithms
-    summary: One FilteredBackProjection for a SPECT phantom scan and a helical chest CT, with what the two share and what differs, next to OSEM and the scanner's image.
+    summary: Helical filtered back projection of a clinical chest CT with six windows, their noise against resolution, and the memory settings that fit a given machine.
     thumbnail: 1
     datasets:
-    - SPECT/Lu177-NEMA-SymT2
     - CT/ldct-c145
 - title: Building with PyTomography
   folder: development
