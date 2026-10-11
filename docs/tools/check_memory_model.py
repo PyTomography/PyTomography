@@ -51,6 +51,7 @@ from memory_model import MemoryModel, DEFAULT_MODEL  # noqa: E402
 
 TOLERANCE = 0.01
 JS = os.path.join(HERE, '..', 'source', '_static', 'memory', 'pytomo-memory.js')
+REFERENCE = os.path.join(HERE, 'memory_reference_cases.json')
 
 
 # ------------------------------------------------------------------------------------------------ simulated devices
@@ -243,7 +244,8 @@ def _listmode_system_matrix(p):
     crystals = int(p['crystals_per_ring']) * int(p['rings'])
     sm = PETLMSystemMatrix.__new__(PETLMSystemMatrix)
     sm.object_meta = ObjectMeta(dr=(2.0, 2.0, 2.0), shape=(int(p['Lx']), int(p['Ly']), int(p['Lz'])))
-    weights = None if p['lm_weights'] == 'none' else fake((crystals * (crystals - 1) // 2,), on_gpu=p['lm_weights'] == 'gpu')
+    pairs = crystals * (crystals - 1) // 2 if p.get('lm_weight_pairs') is None else int(p['lm_weight_pairs'])
+    weights = None if p['lm_weights'] == 'none' else fake((pairs,), on_gpu=p['lm_weights'] == 'gpu')
     sm.proj_meta = SimpleNamespace(detector_ids=fake((E, cols), dtype, on_gpu=cuda and p['lor_device'] == 'device'),
                                    weights_sensitivity=weights, info={'NrCrystalsPerRing': int(p['crystals_per_ring'])},
                                    shape=(E,))
@@ -530,11 +532,15 @@ def build_starguide(p):
     from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
     Lx, Ly, Lz = int(p['Lx']), int(p['Ly']), int(p['Lz'])
     A, B = int(p['sg_angles']), int(p['sg_views_per_angle'])
-    V = A * B
+    V = A * B if p.get('sg_views') is None else int(p['sg_views'])
+    # the first angle has the most views, B; the others share the rest (as the scanner's irregular angles do)
+    rest = np.full(A - 1, (V - B) // max(A - 1, 1)) + (np.arange(A - 1) < (V - B) % max(A - 1, 1))
+    counts = np.concatenate([[B], rest]).astype(int) if A > 1 else np.array([V])
+    assert counts.max() == B and counts.sum() == V and counts.min() >= 1, 'views per angle'
     gen = torch.Generator().manual_seed(0)
     with _on_cpu():
         object_meta = SPECTObjectMeta((0.25, 0.25, 0.25), (Lx, Ly, Lz))
-        angles = torch.tensor(np.repeat(np.linspace(0, 360, A, endpoint=False), B), dtype=torch.float32)
+        angles = torch.tensor(np.repeat(np.linspace(0, 360, A, endpoint=False), counts), dtype=torch.float32)
         offsets = (torch.rand(V, generator=gen) * 2 - 1) * 8
         radii = 15.0 + (np.arange(V) % int(p['n_radii'])) * 0.05
         proj_meta = StarGuideProjMeta((V, 16, Lz), angles, 0.5 + torch.rand(V, generator=gen), offsets, radii)
@@ -637,7 +643,7 @@ def grid_pet_listmode(quick: bool) -> list:
                 scanner=[(448, 64), (504, 64), (64, 8), (760, 80), (840, 672)], image=[(128, 128, 96), (200, 200, 127), (440, 440, 159)],
                 tof=[False, True], events=[50_000_000, 2_000_000, 400_000_000, 1_500_000_000], id_bytes=[4, 8],
                 lor_device=['device', 'cpu'], proj_device=['device', 'cpu'], sort_events=[True, False],
-                lm_weights=['ram', 'gpu', 'none'], lm_additive=[True, False], algorithm=['OSEM', 'BSREM', 'MLEM', 'OSMAPOSL'],
+                lm_weights=['ram', 'gpu', 'none'], lm_weight_pairs=[None, 146_292_480], lm_additive=[True, False], algorithm=['OSEM', 'BSREM', 'MLEM', 'OSMAPOSL'],
                 prior=[False, True], prior_weight=['euclidean', 'top_n_anatomy'], N_splits=[1, 10, 3])
     configs = tutorials + _sample(base, axes, 12 if quick else 60, 2)
     for p in configs:
@@ -747,18 +753,22 @@ def _spect_grid(seed, base=SPECT_BASE, tutorials=(), **more):
 SPECT_TUTORIALS = [dict(SPECT_BASE, views=96, n_subsets=8),                                  # t_dicomdata (Lu-177 SymT2, 96 views)
                    dict(SPECT_BASE, views=120, n_subsets=8, algorithm='BSREM', prior=True),  # t_algorithms
                    dict(SPECT_BASE, views=120, psf='operator', n_subsets=4)]                 # t_ac225_simind_recon (PSF operator)
-SG_BASE = dict(SPECT_BASE, Lx=144, Ly=144, Lz=112, sg_angles=215, sg_views_per_angle=12, n_radii=2575, psf_kernel=17, n_subsets=10)
+SG_BASE = dict(SPECT_BASE, Lx=196, Ly=196, Lz=112, sg_angles=360, sg_views_per_angle=13, sg_views=2575, n_radii=2575, psf_kernel=21, n_subsets=10)   # t_starguide
 
 
 def grid_starguide(quick: bool) -> list:
-    axes = dict(DEVICES, image=[(144, 144, 112), (128, 128, 100), (96, 96, 64)], sg_angles=[215, 30, 60], sg_views_per_angle=[12, 4, 8],
+    axes = dict(DEVICES, image=[(196, 196, 112), (128, 128, 100), (96, 96, 64)], sg_angles=[360, 30, 60], sg_views_per_angle=[13, 4, 12],
+                sg_views=[None, 2575, 300],
                 attenuation=[True, False], cache_probabilities=[False, True], psf=['gaussian', 'none'], n_radii=[2575, 1, 40],
                 spect_additive=[True, False], algorithm=['OSEM', 'BSREM', 'MLEM'], prior=[False, True], prior_weight=['euclidean', 'top_n_anatomy'])
     configs = [dict(SG_BASE)] + _sample(SG_BASE, axes, 6 if quick else 20, 8)
     for p in configs:
         if 'image' in p:
             p['Lx'], p['Ly'], p['Lz'] = p.pop('image')
-        p['n_radii'] = min(p['n_radii'], p['sg_angles'] * p['sg_views_per_angle'])
+        A, B = p['sg_angles'], p['sg_views_per_angle']
+        if p.get('sg_views') is not None and not (B + A - 1 <= p['sg_views'] <= A * B):
+            p['sg_views'] = None                           # views that cannot make these angles
+        p['n_radii'] = min(p['n_radii'], A * B if p.get('sg_views') is None else p['sg_views'])
     return configs
 
 
@@ -950,6 +960,34 @@ def check_model(model: MemoryModel, checker: Checker, quick: bool, js_cases: lis
             'failures': failures, 'worst_case': worst_case}
 
 
+def check_reference_cases(model: MemoryModel, js_cases: list) -> tuple:
+    """The tutorials' configurations (``memory_reference_cases.json``): the model's estimate against the library's for
+    each, and both against what the tutorial measured."""
+    with open(REFERENCE, encoding='utf-8') as f:
+        reference = json.load(f)
+    names = {v['name'] for v in model.data['variables']}
+    rows, worst, failures = [], 0.0, []
+    for case in reference['cases']:
+        if not case.get('model'):
+            continue
+        m = model.by_id[case['model']]
+        p = {q['name']: q.get('default') for q in model._params_of(m)}
+        p.update(reference.get('defaults', {}))
+        p.update(case['params'])
+        checker = CHECKERS[case['model']]
+        with simulate(p):
+            lib = checker.estimate(checker.build(p), case['settings'])
+        params = {k: v for k, v in p.items() if k in names}
+        mine = model.estimate(case['model'], params, case['settings'])
+        js_cases.append({'kind': 'estimate', 'model': case['model'], 'params': params, 'settings': case['settings']})
+        d = max(_rel(mine['ram_gb'], lib['ram_gb']), _rel(mine['gpu_gb'], lib['gpu_gb']) if lib['gpu_gb'] > 1e-6 else abs(mine['gpu_gb'] - lib['gpu_gb']))
+        worst = max(worst, d)
+        if d > TOLERANCE:
+            failures.append(f"{case['id']}: model {mine['ram_gb']:.3f} / {mine['gpu_gb']:.3f} GB, library {lib['ram_gb']:.3f} / {lib['gpu_gb']:.3f} GB")
+        rows.append((case['id'], mine['ram_gb'], mine['gpu_gb'], lib['ram_gb'], lib['gpu_gb'], case.get('measured', {})))
+    return rows, worst, failures
+
+
 def run_js(cases: list) -> list:
     """The JavaScript evaluator's results for ``cases``, run with node."""
     driver = r"""
@@ -1012,6 +1050,13 @@ def main(argv=None) -> int:
     failed = not ok
     js_cases = []
     rows = []
+    # every model evaluates and plans with its own defaults alone (no parameter missing from its list)
+    for m in model.models():
+        model.estimate(m['id'])
+        model.plan(m['id'], {}, 16, 8)
+        js_cases += [{'kind': 'estimate', 'model': m['id'], 'params': {}, 'settings': {}},
+                     {'kind': 'plan', 'model': m['id'], 'params': {}, 'ram_gb': 16, 'gpu_gb': 8, 'fixed': {}}]
+    print(f"Every model evaluates and plans with its defaults ({len(model.models())} models).")
     for model_id, checker in CHECKERS.items():
         if args.model and model_id not in args.model:
             continue
@@ -1029,6 +1074,18 @@ def main(argv=None) -> int:
             print('    ' + f)
         if len(r['failures']) > 8:
             print(f"    ... {len(r['failures']) - 8} more")
+    if not args.model:
+        rows_ref, worst_ref, failures_ref = check_reference_cases(model, js_cases)
+        print(f"Reference cases (the tutorials): {len(rows_ref)}, max difference model vs library {100 * worst_ref:.3f}%")
+        print(f"  {'case':34s} {'model RAM / GPU':>16s}  {'library':>13s}  {'tutorial peak':>13s}  {'cell peak (RAM above start / GPU)':>34s}")
+        for case_id, mr, mg, lr, lg, measured in rows_ref:
+            t = measured.get('tutorial', {})
+            c = measured.get('cell')
+            cell = f"{c['ram_peak_gb'] - c['ram_before_gb']:.2f} / {c['gpu_peak_torch_gb']:.2f}" if c else ''
+            print(f"  {case_id:34s} {mr:7.2f} / {mg:5.2f}  {lr:6.2f} / {lg:5.2f}  {t.get('ram_gb', 0):6.1f} / {t.get('gpu_gb', 0):5.2f}  {cell:>34s}")
+        for f in failures_ref:
+            print('    ' + f)
+        failed |= bool(failures_ref)
     js = {}
     if not args.no_js and js_cases:
         js = compare_js(model, js_cases)

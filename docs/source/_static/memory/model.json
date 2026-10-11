@@ -46,6 +46,7 @@
     {"name": "lor_device", "label": "Events kept on", "default": "device", "options": [{"value": "device", "label": "the device"}, {"value": "cpu", "label": "the CPU (lor_device='cpu')"}], "help": "PETLMSystemMatrix(lor_device=...): where the events and the scanner table are kept."},
     {"name": "sort_events", "label": "Sort events (sort_events)", "type": "bool", "default": true, "options": [{"value": false, "label": "no"}, {"value": true, "label": "yes"}], "help": "Each subset's events in sinogram order: faster projections, 4 bytes an event, and a build at the first projection."},
     {"name": "lm_weights", "label": "Sensitivity weights of every crystal pair", "default": "ram", "options": [{"value": "none", "label": "none"}, {"value": "ram", "label": "in RAM"}, {"value": "gpu", "label": "on the GPU"}], "help": "PETLMProjMeta(weights_sensitivity=...): one float32 per pair of crystals (411 million pairs for the mMR)."},
+    {"name": "lm_weight_pairs", "label": "Crystal pairs with a sensitivity weight", "default": null, "min": 0, "max": 10000000000, "step": 1, "type": "number_or_null", "help": "null: every pair of crystals (all PETSIRD and GATE weights); GE HDF5 gives fewer (146 million for the Discovery MI)."},
     {"name": "lm_additive", "label": "Additive term (one value per event)", "type": "bool", "default": true, "options": [{"value": false, "label": "no"}, {"value": true, "label": "yes"}]},
     {"name": "sss_input", "label": "Data of the scatter estimate", "default": "sinogram", "options": [{"value": "sinogram", "label": "a sinogram (PETSinogramSystemMatrix)"}, {"value": "listmode", "label": "list mode events (PETLMSystemMatrix)"}]},
     {"name": "sss_interring_step", "label": "Sampled rings: every", "unit": "rings", "default": 4, "min": 1, "max": 64, "step": 1, "help": "sinogram_interring_stepsize"},
@@ -80,8 +81,9 @@
     {"name": "cache_kernel", "label": "Cache the PSF operator's kernel (cache_kernel)", "type": "bool", "default": false, "options": [{"value": false, "label": "no"}, {"value": true, "label": "yes"}], "help": "SPECTPSFTransform(psf_operator=..., cache_kernel=True): one kernel spectrum per radius, kept on the device."},
     {"name": "camera_path", "label": "Initial object from the camera path", "type": "bool", "default": false, "options": [{"value": false, "label": "no"}, {"value": true, "label": "yes"}], "help": "SPECTSystemMatrix(object_initial_based_on_camera_path=True): one more rotation grid per view."},
     {"name": "spect_additive", "label": "Additive term (scatter)", "type": "bool", "default": true, "options": [{"value": false, "label": "no"}, {"value": true, "label": "yes"}]},
-    {"name": "sg_angles", "label": "Projection angles", "default": 215, "min": 1, "max": 10000, "step": 1, "help": "StarGuide: the distinct angles; subsets are made of whole angles."},
-    {"name": "sg_views_per_angle", "label": "Views per angle (detector heads)", "default": 12, "min": 1, "max": 64, "step": 1},
+    {"name": "sg_angles", "label": "Projection angles", "default": 360, "min": 1, "max": 10000, "step": 1, "help": "StarGuide: the distinct angles; subsets are made of whole angles."},
+    {"name": "sg_views_per_angle", "label": "Most views at one angle", "default": 13, "min": 1, "max": 64, "step": 1, "help": "StarGuide: views (detector head positions) at the angle that has most."},
+    {"name": "sg_views", "label": "Views (all angles)", "default": null, "min": 1, "max": 100000, "step": 1, "type": "number_or_null", "help": "null: angles times the most views at one angle."},
     {"name": "kem_size", "label": "KEM neighbourhood (size)", "default": 3, "min": 1, "max": 15, "step": 2, "help": "KEMTransform(size=...): the kernel keeps size**3 images."},
     {"name": "kem_support", "label": "KEM support images", "default": 1, "min": 0, "max": 16, "step": 1},
     {"name": "kem_kernel_on_gpu", "label": "KEM kernel on the GPU (kernel_on_gpu)", "type": "bool", "default": false, "options": [{"value": false, "label": "no (RAM)"}, {"value": true, "label": "yes"}]},
@@ -93,8 +95,7 @@
     "windows": "os == 'windows'",
     "image": "4 * Lx * Ly * Lz",
     "padded_image": "4 * (Lx + 2) * (Ly + 2) * (Lz + 2)",
-    "gpu_budget_default": "cuda ? min(1.5e9, 0.25 * gpu_free_gb * 1e9) : 1.5e9",
-    "memory_budget": "memory_budget_gb == null ? null : memory_budget_gb * 1e9"
+    "gpu_budget_default": "cuda ? min(1.5e9, 0.25 * gpu_free_gb * 1e9) : 1.5e9"
   },
   "derived_sets": {
     "pet_scanner": {
@@ -210,7 +211,7 @@
       "title": "PET list mode reconstruction (PETLMSystemMatrix)",
       "modality": "PET",
       "library": "OSEM(PoissonLogLikelihood(PETLMSystemMatrix(...), additive_term=...)).estimate_memory(n_subsets, N_splits) / .plan_memory(ram_gb, gpu_gb)",
-      "params": ["device", "os", "gpu_free_gb", "memory_budget_gb", "Lx", "Ly", "Lz", "crystals_per_ring", "rings", "tof", "events", "id_bytes", "lor_device", "proj_device", "sort_events", "lm_weights", "lm_additive", "algorithm", "prior", "prior_weight", "N_splits", "n_subsets"],
+      "params": ["device", "os", "gpu_free_gb", "memory_budget_gb", "Lx", "Ly", "Lz", "crystals_per_ring", "rings", "tof", "events", "id_bytes", "lor_device", "proj_device", "sort_events", "lm_weights", "lm_weight_pairs", "lm_additive", "algorithm", "prior", "prior_weight", "N_splits", "n_subsets"],
       "defaults": {"Lx": 128, "Ly": 128, "Lz": 96, "events": 50000000, "N_splits": 10, "n_subsets": 14, "memory_budget_gb": 25},
       "use": ["pet_scanner", "algorithm"],
       "allocator_fraction": 0.6,
@@ -224,7 +225,7 @@
       },
       "parts": [
         {"name": "events and their projector order", "bytes": "events * id_row + (sort_events ? 4 * events : 0)", "on": "lor_gpu"},
-        {"name": "sensitivity weights", "when": "lm_weights != 'none'", "bytes": "4 * crystal_pairs", "on": "lm_weights == 'gpu'"},
+        {"name": "sensitivity weights", "when": "lm_weights != 'none'", "bytes": "4 * (lm_weight_pairs == null ? crystal_pairs : lm_weight_pairs)", "on": "lm_weights == 'gpu'"},
         {"name": "sensitivity and normalisation images ({n_subsets})", "gpu": "(n_subsets + 1) * image"},
         {"name": "image, update and attenuation map", "gpu": "4 * image"},
         {"name": "expected counts, ratio and temporaries (one subset)", "scope": "subset", "bytes": "16 * events_s", "on": "out_gpu"},
@@ -259,6 +260,7 @@
       "use": ["pet_scanner"],
       "allocator_fraction": 0.6,
       "derived": {
+        "memory_budget": "memory_budget_gb == null ? null : memory_budget_gb * 1e9",
         "T": "tof ? tof_bins : 1",
         "listmode": "sss_input == 'listmode'",
         "proj_gpu": "proj_device == 'device' && cuda",
@@ -379,6 +381,7 @@
       "params": ["device", "os", "gpu_free_gb", "cupy", "Lx", "Ly", "Lz", "dx", "dy", "views", "views_per_rotation", "det_cols", "det_rows", "focal_radius", "dsd", "col_spacing_mm", "central_col", "row_spacing_mm", "feed", "slice_thickness", "ct_data", "gpu_budget", "memory_budget_gb"],
       "defaults": {"Lx": 512, "Ly": 512, "Lz": 316, "central_col": 443.25, "slice_thickness": 1.25, "memory_budget_gb": 25},
       "derived": {
+        "memory_budget": "memory_budget_gb == null ? null : memory_budget_gb * 1e9",
         "dphi_det": "col_spacing_mm / dsd",
         "c_col": "central_col == null ? (det_cols + 1) / 2 : central_col",
         "gamma_max": "min(abs(1 - c_col), abs(det_cols - c_col)) * dphi_det",
@@ -551,11 +554,11 @@
       "title": "StarGuide SPECT reconstruction (StarGuideSystemMatrix)",
       "modality": "SPECT",
       "library": "OSEM(PoissonLogLikelihood(StarGuideSystemMatrix(object_meta, proj_meta, [attenuation, psf]), projections, additive_term)).estimate_memory(n_subsets) / .plan_memory(ram_gb, gpu_gb)",
-      "params": ["device", "os", "gpu_free_gb", "memory_budget_gb", "Lx", "Ly", "Lz", "sg_angles", "sg_views_per_angle", "attenuation", "cache_probabilities", "psf", "psf_kernel", "psf_kernel_mean", "n_radii", "spect_additive", "algorithm", "prior", "prior_weight", "n_subsets"],
-      "defaults": {"Lx": 144, "Ly": 144, "Lz": 112, "psf_kernel": 17, "n_radii": 2575, "n_subsets": 10},
+      "params": ["device", "os", "gpu_free_gb", "memory_budget_gb", "Lx", "Ly", "Lz", "sg_angles", "sg_views_per_angle", "sg_views", "attenuation", "cache_probabilities", "psf", "psf_kernel", "psf_kernel_mean", "n_radii", "spect_additive", "algorithm", "prior", "prior_weight", "n_subsets"],
+      "defaults": {"Lx": 196, "Ly": 196, "Lz": 112, "sg_views": 2575, "psf_kernel": 21, "n_radii": 2575, "n_subsets": 10},
       "use": ["algorithm"],
       "derived": {
-        "V": "sg_angles * sg_views_per_angle",
+        "V": "sg_views == null ? sg_angles * sg_views_per_angle : sg_views",
         "B": "sg_views_per_angle",
         "subset_views": "min(V, ceil(sg_angles / n_subsets) * B)",
         "sg_view": "4 * 16 * Lz",
