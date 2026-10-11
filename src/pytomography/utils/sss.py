@@ -25,7 +25,7 @@ from pytomography.projectors import SystemMatrix
 _POINTS_PER_PROJECTION = 32
 
 def total_compton_cross_section(energy: torch.Tensor) -> torch.Tensor:
-    """Computes the total compton cross section of interaction :math:`\sigma` at the given photon energies
+    r"""Computes the total compton cross section of interaction :math:`\sigma` at the given photon energies
 
     Args:
         energy (torch.Tensor): Energies of photons considered
