@@ -215,17 +215,21 @@ class LazySinogram:
         shape (Sequence[int]): Shape of the whole sinogram; the first dimension is the angles.
         description (str, optional): What the sinogram holds, for its ``repr``. Defaults to ''.
         compute_on (Callable[[torch.Tensor, torch.device], torch.Tensor] | None, optional): Like ``compute``, but returns the angles as a new tensor on the device it is given, computed there. Defaults to None: :meth:`compute_at` computes on the CPU and copies.
+        memory_bytes (float, optional): Host memory the sinogram keeps to compute itself (e.g. its events), in bytes, for memory estimates (:attr:`memory_bytes`). Defaults to 0.
     """
     #: Largest group of angles computed at once when more than one group is asked for, in bytes.
     chunk_bytes = 1e9
     dtype = torch.float32
     device = torch.device('cpu')
 
-    def __init__(self, compute, shape: Sequence[int], description: str = '', compute_on=None) -> None:
+    def __init__(self, compute, shape: Sequence[int], description: str = '', compute_on=None, memory_bytes: float = 0) -> None:
         self._compute = compute
         self._compute_on = compute_on
         self.shape = torch.Size(shape)
         self.description = description
+        #: Host memory (bytes) the sinogram keeps to compute itself: its events, its interpolation samples, the tensors
+        #: its arithmetic holds. Memory estimates count this instead of the size of the whole sinogram.
+        self.memory_bytes = float(memory_bytes)
 
     @property
     def ndim(self) -> int:
@@ -345,6 +349,7 @@ class LazySinogram:
             other_at = lambda angles: other[angles]
             other_on = lambda angles, device: other.compute_at(angles, device)
             shape = torch.broadcast_shapes(self.shape, other.shape)
+            other_bytes = other.memory_bytes
         elif isinstance(other, torch.Tensor) and other.ndim > 0:
             if other.ndim != self.ndim or other.shape[0] != self.shape[0]:
                 raise ValueError(f"cannot combine a LazySinogram of shape {tuple(self.shape)} with a tensor of shape {tuple(other.shape)}: "
@@ -352,10 +357,12 @@ class LazySinogram:
             other_at = lambda angles: other[angles.to(other.device)].to(self.device)
             other_on = lambda angles, device: other[angles.to(other.device)].to(device)
             shape = torch.broadcast_shapes(self.shape, other.shape)
+            other_bytes = other.untyped_storage().nbytes() if other.device.type == 'cpu' else 0
         elif isinstance(other, (int, float, np.number)) or (isinstance(other, torch.Tensor) and other.ndim == 0):
             other_at = lambda angles: other
             other_on = lambda angles, device: other
             shape = self.shape
+            other_bytes = 0
         else:
             return NotImplemented
         if reflected:
@@ -364,7 +371,7 @@ class LazySinogram:
         else:
             compute = lambda angles: op(self[angles], other_at(angles))
             compute_on = lambda angles, device: op(self.compute_at(angles, device), other_on(angles, device))
-        return LazySinogram(compute, shape, description=self.description, compute_on=compute_on)
+        return LazySinogram(compute, shape, description=self.description, compute_on=compute_on, memory_bytes=self.memory_bytes + other_bytes)
 
     def __add__(self, other):
         return self._combine(other, torch.add)
@@ -513,7 +520,8 @@ def _listmode_to_lazy_sinogram(detector_ids: torch.Tensor, info: dict, tof_meta:
         sinogram = torch.zeros(len(angles) * bins_per_angle, dtype=torch.float32, device=device)
         sinogram.index_add_(0, local, values)   # on the CPU, adds the events in order, like bincount
         return sinogram.reshape(len(angles), *out_shape)
-    return LazySinogram(compute, (shape[0], *out_shape), description=f"binned from {int(offsets[-1]):,} list mode events", compute_on=compute)
+    kept = within_angle.nbytes + offsets.nbytes + (0 if tof_bin is None else tof_bin.nbytes) + (0 if weights is None else weights.nbytes)
+    return LazySinogram(compute, (shape[0], *out_shape), description=f"binned from {int(offsets[-1]):,} list mode events", compute_on=compute, memory_bytes=kept)
 
 def listmode_to_sinogram(
     detector_ids: torch.Tensor,

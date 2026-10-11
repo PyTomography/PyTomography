@@ -29,6 +29,8 @@ from pytomography.utils.fourier_filters import ramp_filter_response
 
 #: bytes per element of the back projection's 4D (views x Nx x Ny x z) temporaries, at their peak
 _BYTES_PER_4D_ELEMENT = 40
+#: the same on the CPU, where they take more (measured), for :func:`memory_parts`
+_BYTES_PER_4D_ELEMENT_CPU = 60
 
 
 def view_groups(meta) -> list:
@@ -315,3 +317,78 @@ def fbp_helical(proj: torch.Tensor, meta, X: torch.Tensor, Y: torch.Tensor, Z: n
     if cuda:   # hand back the GPU memory of the stages: on Windows it also counts against the host's committed memory
         torch.cuda.empty_cache()
     return out
+
+
+def memory_parts(proj: torch.Tensor, meta, X: torch.Tensor, Y: torch.Tensor, Z: np.ndarray, z_offsets=(0.0,),
+                 k_range: int | None = None, budget: float | None = None, device=None, backend: str = 'auto') -> list:
+    """The memory :func:`fbp_helical` takes with the same arguments, as a list of
+    :class:`~pytomography.utils.memory.MemoryPart`, without running it. Held for the whole reconstruction: the
+    projections (and a float32 copy on the host if they are anywhere else) and the image. At most one chunk at a time:
+    its rebinned views on the host, and the largest buffers of its stages (rebinning, filtering, back projection) on
+    the device. The chunk sizes are those the stages compute, from the memory budget (:func:`views_per_chunk`) and the
+    GPU budget, for each focal spot group; the largest group counts."""
+    from pytomography.utils.memory import MemoryPart, nbytes
+    from . import _wfbp_cuda
+    device = torch.device(pytomography.device if device is None else device)
+    Z = np.asarray(Z, dtype=np.float64)
+    (Nx, Ny), Nz = X.shape, len(Z)
+    n_views, ncol, nrow = proj.shape
+    image = Nx * Ny * Nz * 4
+    uniform = Nz < 2 or np.allclose(np.diff(Z), float(Z[1] - Z[0]), rtol=1e-6, atol=1e-6)
+    use_cuda = backend == 'cuda' or (backend == 'auto' and uniform and _wfbp_cuda.available(device)
+                                      and (k_range is None or k_range <= _wfbp_cuda.MAX_K_RANGE))
+    dt = float(meta.source_rhos.double().mean()) * abs(float(meta.col_det_spacing))
+    r_fov = float(torch.sqrt(X.double() ** 2 + Y.double() ** 2).max())
+    available = gpu_budget(budget, device)
+    cuda = device.type == 'cuda'
+    rebinned, rebin, filt, bp, rebin_host, filt_host, runs = 0, 0, 0, 0, 0, 0, 0
+    for idx in view_groups(meta):
+        geo = group_geometry(meta, idx)
+        theta, t, _ = parallel_grid(geo, dt)
+        J, M = len(theta), len(t)
+        chunk = views_per_chunk(J, M * nrow * 4)
+        runs += -(-J // chunk)
+        rebinned = max(rebinned, chunk * M * nrow * 4)
+        # rebin_to_parallel: the fan views a chunk of parallel views needs (gathered on the host, then on the device),
+        # six arrays of the chunk's size on the device, and the chunk copied back
+        fan_span = int(np.ceil(2 * geo['gamma_max'] / abs(geo['dbeta']))) + 3
+        c = min(chunk, int(max(1, min(256, available // (ncol * nrow * 4 + 6 * M * nrow * 4) - fan_span))))
+        fan = (c + fan_span + 3) * ncol * nrow * 4
+        rebin = max(rebin, fan + 6 * c * M * nrow * 4)
+        rebin_host = max(rebin_host, fan + c * M * nrow * 4)
+        # ramp_filter: the padded spectra on the device, and the filtered chunk copied back
+        n_pad = int(2 ** np.ceil(np.log2(2 * M)))
+        per_view = M * nrow * 4 * 2 + n_pad * nrow * 8 * 3
+        c = min(chunk, int(max(1, min(1024, available // per_view))))
+        filt = max(filt, c * per_view)
+        filt_host = max(filt_host, c * M * nrow * 4)
+        # back projection: the fused kernel's accumulator and its batch of views, or PyTorch's rays and 4D z chunks
+        k = k_range if k_range is not None else partner_range(geo, r_fov, theta, max(abs(o) for o in z_offsets))
+        if use_cuda and k <= _wfbp_cuda.MAX_K_RANGE:
+            Jb = int(max(1, min(128, (available - 2 * image) // (M * nrow * 4 * 2))))
+            bp = max(bp, image + min(Jb, chunk) * M * nrow * 4)
+        else:
+            rays = 6 * Nx * Ny * 4 * 4 * (2 * k + 1)
+            nz_chunk = int(max(1, (available - image - rays) // (_BYTES_PER_4D_ELEMENT * 4 * Nx * Ny)))
+            per_element = _BYTES_PER_4D_ELEMENT if cuda else _BYTES_PER_4D_ELEMENT_CPU
+            bp = max(bp, rays + per_element * 4 * Nx * Ny * min(nz_chunk, Nz))
+    # On the GPU, PyTorch's cache keeps the rebinning's buffers while the filter takes its own, and the back projection
+    # reuses the filter's (measured: the GPU memory PyTorch holds peaks at the image, the rebinning and the filter).
+    # Host memory that a stage frees stayed with the process on Windows (measured: the back projection's buffers were
+    # still committed while the next chunk was filtered), so on the host the buffers of stages that run more than once
+    # are added up: the host copies on a GPU run, and on a CPU run, where the host copies are the stages' own buffers,
+    # the stages themselves when there is more than one chunk. Elsewhere this may overestimate.
+    if cuda:
+        stages, host = rebin + max(filt, bp), rebin_host + filt_host
+    else:
+        stages, host = (rebin + filt + bp) if runs > 1 else max(rebin, filt, bp), 0
+    on_device = (lambda n: dict(gpu_bytes=n)) if cuda else (lambda n: dict(ram_bytes=n))
+    ram, gpu = nbytes(proj)
+    parts = [MemoryPart('projections', ram_bytes=ram, gpu_bytes=gpu, scope='held')]
+    if proj.device.type != 'cpu' or proj.dtype != torch.float32:
+        parts.append(MemoryPart('projections: float32 copy on the host', ram_bytes=n_views * ncol * nrow * 4, scope='held'))
+    parts += [MemoryPart('image', **on_device(image), scope='held'),
+              MemoryPart('rebinned views of one chunk', ram_bytes=rebinned, scope='chunk'),
+              MemoryPart('views being rebinned or filtered', ram_bytes=host, scope='chunk'),
+              MemoryPart('rebinning, filtering and back projection buffers', **on_device(stages), scope='chunk')]
+    return [p for p in parts if p.ram_bytes or p.gpu_bytes]

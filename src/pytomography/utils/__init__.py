@@ -4,4 +4,4 @@ from .spatial import rotate_detector_z, compute_pad_size, pad_proj, pad_object, 
 from .nist_data import dual_sqrt_exponential, get_E_mu_data_from_datasheet, get_mu_from_spectrum_interp
 from .scatter import compute_EW_scatter
 from .fourier_filters import FBPFilter, RamLakFilter, SheppLoganFilter, HannFilter, GeneralizedHammingFilter, CosineFilter, TabulatedFilter, get_fbp_filter, ramp_filter
-from .memory import gpu_budget, PeakMemory
+from .memory import gpu_budget, PeakMemory, MemoryEstimate, MemoryPlan, available_memory
