@@ -233,6 +233,7 @@ class Case:
     def __init__(self, algorithm=None, n_subsets: int = 1, system_matrix=None):
         self.algorithm, self.n_subsets, self.sm = algorithm, n_subsets, system_matrix
         self.settings = {}
+        self.iterations = 0         # > 0: step() runs this many whole iterations in one call, as a reconstruction does
 
     def estimate(self):
         kwargs = {'n_subsets': self.n_subsets}
@@ -258,7 +259,9 @@ class Case:
                 sm._event_order(k)
 
     def step(self):
-        if type(self.algorithm).__name__ == 'MLEM':     # one subset: an iteration is its subiteration
+        if self.iterations:
+            self.algorithm(self.iterations, self.n_subsets)
+        elif type(self.algorithm).__name__ == 'MLEM':   # one subset: an iteration is its subiteration
             self.algorithm(1)
         else:
             self.algorithm(1, self.n_subsets, n_subset_specific=0)
@@ -640,6 +643,9 @@ def build_multibed(p: dict) -> Case:
                 a._set_n_subsets(self.n_subsets)
 
         def step(self):                     # PGAAMultiBedSPECT.__call__ for its first subset (j = 0) of one iteration
+            if self.iterations:
+                self.result = multibed(self.iterations, self.n_subsets)
+                return
             recons = [a(1, self.n_subsets, n_subset_specific=0) for a in algorithms]
             self.result = dicom.stitch_multibed(recons=torch.stack(recons), files_NM=multibed.files_NM)
     return MultiBedCase(None, p.get('n_subsets', 8))
@@ -679,7 +685,11 @@ def run_child(spec: dict) -> dict:
         marks[name] = entry
     if cuda:
         total = torch.cuda.get_device_properties(0).total_memory
-        torch.cuda.set_per_process_memory_fraction(min(1.0, spec['gpu_cap_gb'] * 1e9 / total))
+        cap = spec['gpu_cap_gb'] * 1e9
+        if spec.get('plan'):        # a plan's GPU budget holds the CUDA context too, which is outside PyTorch's allocator
+            cap -= getattr(memory, 'CUDA_CONTEXT_GPU_BYTES', 0.0)
+        result['pytorch_gpu_cap_gb'] = cap / 1e9
+        torch.cuda.set_per_process_memory_fraction(max(0.0, min(1.0, cap / total)))
     mark('imported')
     p = dict(spec['params'])
     plan_budget = spec.get('plan')                       # {'ram_gb', 'gpu_gb'} for a plan case
@@ -691,6 +701,7 @@ def run_child(spec: dict) -> dict:
     try:
         t0 = time.perf_counter()
         case = BUILDERS[spec['model']](p)
+        case.iterations = int(p.get('iterations', 0))
         if cuda:
             torch.cuda.synchronize()
             torch.cuda.empty_cache()                     # the data's making is not the reconstruction's
@@ -741,11 +752,12 @@ def run_child(spec: dict) -> dict:
                 torch.cuda.synchronize()
             times.append(time.perf_counter() - t0)
             mark(f'step{k + 1}')
-            if times[0] >= 2.0 or spec['model'] in ('sss', 'fbp') or spec.get('one_step'):
+            if times[0] >= 2.0 or spec['model'] in ('sss', 'fbp') or spec.get('one_step') or case.iterations:
                 break
-        result['t_sub_first_s'] = times[0]
-        result['t_sub_s'] = min(times)
-        result['t_iter_s'] = min(times) * case.subiterations
+        per_call = max(1, case.iterations * case.subiterations)     # subiterations in a call of step()
+        result['t_sub_first_s'] = times[0] / per_call
+        result['t_sub_s'] = min(times) / per_call
+        result['t_iter_s'] = min(times) / per_call * case.subiterations
         result['ok'] = True
     except BaseException as error:                       # an allocation past a cap is a failure of that case
         result['error'] = f"{type(error).__name__}: {str(error)[:400]}"
@@ -867,6 +879,22 @@ def cases(full: bool) -> list[dict]:
         C.append(_c(f'multibed/{beds}x128', 'multibed', 'estimate', f'{beds}x128', dict(n=128, beds=beds, n_subsets=8)))
     if full:
         C.append(_c('motion/4x128', 'motion', 'estimate', '4x128', dict(n=128, gates=4, n_subsets=8)))
+    # ---------------------------------------------------------------- two whole iterations in one call (the steady state)
+    if full:
+        steady = [('pet-sino/L/nontof', 'pet-sino', dict(scanner='L', n_subsets=14)),
+                  ('pet-sino/L/tof21/lazy/subsets56', 'pet-sino', dict(scanner='L', tof=21, lazy=True, events=3e7, n_subsets=56, out='cuda')),
+                  ('pet-lm/L/tof21/1e+08', 'pet-lm', dict(scanner='L', tof=21, events=1e8, n_subsets=10)),
+                  ('pet-lm/M/tof15/3e7/subsets16', 'pet-lm', dict(scanner='M', tof=15, events=3e7, n_subsets=16)),
+                  ('ct-helical/M/sart', 'ct', dict(helical['M'], geometry='helical', n_subsets=24)),
+                  ('ct-cone/S/sart', 'ct', dict(cone['S'], geometry='cone', n_subsets=24)),
+                  ('spect/256/att-psf', 'spect', dict(n=256, n_subsets=8)),
+                  ('spect/192/bsrem-rdp', 'spect', dict(n=192, n_subsets=8, algorithm='BSREM')),
+                  ('starguide/256x200', 'starguide', dict(n=256, lz=200, n_subsets=5)),
+                  ('kem/192', 'kem', dict(n=192, n_subsets=8, psf=None)),
+                  ('multibed/3x128', 'multibed', dict(n=128, beds=3, n_subsets=8)),
+                  ('motion/4x128', 'motion', dict(n=128, gates=4, n_subsets=8))]
+        for name, model, params in steady:
+            C.append(_c(f'{name}/2-iterations', model, 'estimate', name.split('/')[1], dict(params, iterations=2)))
     # ---------------------------------------------------------------- plans (run under caps of their budgets)
     plans = [('pet-lm/L/tof21/3e7', 'pet-lm', dict(scanner='L', tof=21, events=3e7, n_subsets=8)),
              ('pet-sino/L/tof21/lazy/3e7', 'pet-sino', dict(scanner='L', tof=21, lazy=True, events=3e7, n_subsets=28, out='cuda'))]
@@ -1104,7 +1132,7 @@ def _load(out: Path) -> list[dict]:
 def _settings_text(r: dict) -> str:
     p = dict(r.get('params', {}))
     spec = r.get('spec', {})
-    keys = ['n_subsets', 'N_splits', 'tof', 'events', 'lazy', 'out', 'lor_device', 'sort_events', 'algorithm', 'psf',
+    keys = ['iterations', 'n_subsets', 'N_splits', 'tof', 'events', 'lazy', 'out', 'lor_device', 'sort_events', 'algorithm', 'psf',
             'cache_probabilities', 'gpu_budget', 'fused', 'beds', 'gates', 'weights_sensitivity', 'lazy_data', 'listmode']
     if r.get('ran_settings'):
         p.update(r['ran_settings'])
@@ -1112,8 +1140,9 @@ def _settings_text(r: dict) -> str:
         for k, v in r['estimate']['settings'].items():
             p.setdefault(k, v)
     parts = []
+    shown_when_false = ('sort_events', 'fused', 'lazy')        # settings whose False is not their default
     for k in keys:
-        if k in p and p[k] not in (None, False, ''):
+        if k in p and p[k] not in (None, '') and (p[k] is not False or k in shown_when_false):
             v = p[k]
             parts.append(f"{k}={v:.0e}" if k == 'events' else f"{k}={v:g}" if isinstance(v, float) else f"{k}={v}")
     for k in ('memory_budget_gb', 'memory_budget'):
@@ -1149,13 +1178,15 @@ def write_report(out: Path, args=None) -> None:
         lines += [notes.read_text(encoding='utf-8').rstrip(), '']
     # summary
     worst = {}
-    failures = []
+    failures, smi_over = [], []
     for r in est:
         e, m = r['estimate'], r['measured']
         rr = _ratio(m.get('process_peak_gb'), e['ram_gb'])
         rg = _ratio(m.get('gpu_reserved_gb'), e['gpu_gb']) if e['gpu_gb'] else None
         model = r['id'].split('/')[0]
-        w = worst.setdefault(model, {'ram': 0, 'gpu': 0, 'ram_id': '', 'gpu_id': '', 'min_ram': 9, 'n': 0})
+        w = worst.setdefault(model, {'ram': 0, 'gpu': 0, 'ram_id': '', 'gpu_id': '', 'min_ram': 9, 'n': 0, 'smi': 0})
+        if e['gpu_gb'] and m.get('nvidia_smi_delta_gb'):
+            w['smi'] = max(w['smi'], m['nvidia_smi_delta_gb'] / e['gpu_gb'])
         w['n'] += 1
         if rr is not None and rr > w['ram']:
             w['ram'], w['ram_id'] = rr, r['id']
@@ -1165,10 +1196,15 @@ def write_report(out: Path, args=None) -> None:
             w['gpu'], w['gpu_id'] = rg, r['id']
         if (rr or 0) > 1 or (rg or 0) > 1:
             failures.append(r)
-    lines += ['## Summary of the estimates', '', '| model | runs | worst RAM ratio | (run) | loosest RAM ratio | worst GPU ratio | (run) |',
-              '|---|---|---|---|---|---|---|']
+        if e['gpu_gb'] and (m.get('nvidia_smi_delta_gb') or 0) > e['gpu_gb']:
+            smi_over.append(r)
+    lines += ['## Summary of the estimates', '',
+              'Ratios are measured / estimated: peak commit / `ram_gb`, PyTorch reserved / `gpu_gb`, and the GPU use nvidia-smi '
+              'showed above its level before the run / `gpu_gb` (device-wide, so other processes on the GPU can add to it).', '',
+              '| model | runs | worst RAM ratio | (run) | loosest RAM ratio | worst GPU ratio | (run) | worst nvidia-smi ratio |',
+              '|---|---|---|---|---|---|---|---|']
     for model, w in sorted(worst.items()):
-        lines.append(f"| {model} | {w['n']} | {w['ram']:.2f} | {w['ram_id']} | {w['min_ram']:.2f} | {_fmt(w['gpu'] or None)} | {w['gpu_id']} |")
+        lines.append(f"| {model} | {w['n']} | {w['ram']:.2f} | {w['ram_id']} | {w['min_ram']:.2f} | {_fmt(w['gpu'] or None)} | {w['gpu_id']} | {_fmt(w['smi'] or None)} |")
     lines.append('')
     if failures:
         lines += ['**Estimates below the measured peak:**', '']
@@ -1179,7 +1215,16 @@ def write_report(out: Path, args=None) -> None:
                          f"({m.get('gpu_reserved_gb', 0) - e['gpu_gb']:+.2f} GB)")
         lines.append('')
     else:
-        lines += ['No estimate was below its measured peak.', '']
+        lines += ['No estimate was below its measured peak (commit, PyTorch reserved).', '']
+    if smi_over:
+        lines += [f"**GPU use by nvidia-smi above the GPU estimate** ({len(smi_over)} runs; device-wide, so a job of another "
+                  "process can add to it):", '']
+        for r in smi_over:
+            lines.append(f"- {r['id']}: {r['measured']['nvidia_smi_delta_gb']:.2f} GB against {r['estimate']['gpu_gb']:.2f} GB "
+                         f"(PyTorch reserved {r['measured'].get('gpu_reserved_gb', 0):.2f} GB)")
+        lines.append('')
+    elif any(r['measured'].get('nvidia_smi_delta_gb') for r in est):
+        lines += ['The GPU use nvidia-smi showed was within the GPU estimate in every run.', '']
     errors = [r for r in results if r.get('part') == 'estimate' and 'error' in r]
     skipped = [r for r in results if r.get('part') == 'estimate' and r.get('skipped')]
     if errors:
@@ -1193,14 +1238,15 @@ def write_report(out: Path, args=None) -> None:
     for r in est:
         by_model.setdefault(r['id'].split('/')[0], []).append(r)
     for model, rows in sorted(by_model.items()):
-        lines += [f"### {model}", '', '| run | size | settings | est RAM | peak commit | ratio | est GPU | reserved | ratio | allocated | nvidia-smi | setup s | subiteration s | iteration s |',
-                  '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|']
+        lines += [f"### {model}", '', '| run | size | settings | est RAM | peak commit | ratio | est GPU | reserved | ratio | allocated | nvidia-smi | ratio | setup s | subiteration s | iteration s |',
+                  '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|']
         for r in rows:
             e, m = r['estimate'], r['measured']
             lines.append(f"| {r['id']} | {r.get('size', '')} | {_settings_text(r)} | {e['ram_gb']:.2f} | {m['process_peak_gb']:.2f} | "
                          f"{_fmt(_ratio(m['process_peak_gb'], e['ram_gb']))} | {e['gpu_gb']:.2f} | {_fmt(m.get('gpu_reserved_gb'))} | "
                          f"{_fmt(_ratio(m.get('gpu_reserved_gb'), e['gpu_gb']) if e['gpu_gb'] else None)} | {_fmt(m.get('gpu_allocated_gb'))} | "
-                         f"{_fmt(m.get('nvidia_smi_delta_gb'))} | {_fmt(r.get('t_setup_s'), 1)} | {_fmt(r.get('t_sub_s'))} | {_fmt(r.get('t_iter_s'), 1)} |")
+                         f"{_fmt(m.get('nvidia_smi_delta_gb'))} | {_fmt(_ratio(m.get('nvidia_smi_delta_gb'), e['gpu_gb']) if e['gpu_gb'] and m.get('nvidia_smi_delta_gb') else None)} | "
+                         f"{_fmt(r.get('t_setup_s'), 1)} | {_fmt(r.get('t_sub_s'))} | {_fmt(r.get('t_iter_s'), 1)} |")
         lines.append('')
     # speed tables
     groups = {}
@@ -1223,29 +1269,41 @@ def write_report(out: Path, args=None) -> None:
     plan_rows = [r for r in results if r.get('part') in ('plan', 'cpu')]
     if plan_rows:
         lines += ['## Plans under caps of their budgets', '',
-                  'For each budget (RAM GB / GPU GB), `plan_memory` chose the settings; each distinct plan was run under caps of '
-                  'the tightest budget that chose it (committed memory capped by a job object, PyTorch GPU memory by '
-                  '`set_per_process_memory_fraction`), with `set_memory_budget(ram_gb)`. Where nothing fit, the closest settings '
-                  'of the largest such budget were run under its caps too, which should fail.', '',
-                  '| case | budget | plan fits | settings | est RAM | est GPU | peak commit | GPU reserved | result | subiteration s |',
-                  '|---|---|---|---|---|---|---|---|---|---|']
-        for r in sorted(plan_rows, key=lambda r: r['run_id']):
-            budget = r.get('spec', {}).get('plan', {})
-            p = r.get('plan', {})
-            m = r.get('measured', {})
-            kind = r['run_id'].split('@')[-1]
-            if kind.startswith('plan'):
-                outcome = 'planned' if 'error' not in r else 'ERROR ' + r['error'][:80]
-            elif kind.startswith('run'):
-                outcome = 'fit' if r.get('ok') else ('BROKE ITS CAP' if r.get('oom') else 'ERROR') + ': ' + r.get('error', '')[:120]
-            else:
-                outcome = ('failed at its cap, as planned' if r.get('oom') else 'ERROR: ' + r.get('error', '')[:120]) if not r.get('ok') \
-                    else 'ran within the budget although planned not to fit'
-            settings = json.dumps(r.get('ran_settings') or p.get('settings'))
-            lines.append(f"| {r['id']} | {budget.get('ram_gb')} / {budget.get('gpu_gb')} | {p.get('fits')} | {settings} | "
-                         f"{_fmt(p.get('ram_gb'))} | {_fmt(p.get('gpu_gb'))} | {_fmt(m.get('process_peak_gb')) if not kind.startswith('plan') else '-'} | "
-                         f"{_fmt(m.get('gpu_reserved_gb')) if not kind.startswith('plan') else '-'} | {outcome} | {_fmt(r.get('t_sub_s'))} |")
-        lines.append('')
+                  'For each budget (RAM GB / GPU GB) `plan_memory` chose the settings (with `set_memory_budget(ram_gb)`). Each '
+                  'distinct plan that fits was then run under caps of the smallest RAM and GPU budgets that chose it, which it '
+                  "fits in all: committed memory capped by a Windows job object, PyTorch's GPU memory by "
+                  '`set_per_process_memory_fraction`. A run that goes over a cap fails. Where nothing fit, the closest '
+                  'settings of the largest such budget were run under its caps too, to check that they do not fit.', '']
+        for case_id in sorted({r['run_id'].split('@')[0] for r in plan_rows}):
+            runs = sorted((r for r in plan_rows if r['run_id'].split('@')[0] == case_id), key=lambda r: r['run_id'])
+            planned = next((r for r in runs if r['run_id'].endswith('@plans')), None)
+            lines += [f"### {case_id}", '']
+            if planned and planned.get('plans'):
+                lines += ['| RAM / GPU budget | fits | settings chosen | est RAM | est GPU |', '|---|---|---|---|---|']
+                for q in planned['plans']:
+                    lines.append(f"| {q['ram_budget']} / {q['gpu_budget']} | {'yes' if q['fits'] else 'no'} | {json.dumps(q['settings'])} | "
+                                 f"{q['ram_gb']:.2f} | {q['gpu_gb']:.2f} |")
+                lines.append('')
+            elif planned and 'error' in planned:
+                lines += [f"Planning failed: {planned['error'][:200]}", '']
+            lines += ['| run under caps (RAM / GPU GB) | settings | est RAM | est GPU | peak commit | GPU reserved | result | subiteration s |',
+                      '|---|---|---|---|---|---|---|---|']
+            for r in runs:
+                kind = r['run_id'].split('@')[-1]
+                if kind == 'plans':
+                    continue
+                budget = r.get('spec', {}).get('plan', {})
+                e, m = r.get('estimate') or {}, r.get('measured', {})
+                if kind.startswith('run'):
+                    outcome = 'fit' if r.get('ok') else ('BROKE ITS CAP' if r.get('oom') else 'ERROR') + ': ' + r.get('error', '')[:120]
+                elif not r.get('ok'):
+                    outcome = 'did not fit: stopped at its cap, as planned' if r.get('oom') else 'ERROR: ' + r.get('error', '')[:120]
+                else:
+                    outcome = 'fit after all (planned not to)'
+                settings = json.dumps(r.get('ran_settings') or r.get('spec', {}).get('settings'))
+                lines.append(f"| {budget.get('ram_gb')} / {budget.get('gpu_gb')} | {settings} | {_fmt(e.get('ram_gb'))} | {_fmt(e.get('gpu_gb'))} | "
+                             f"{_fmt(m.get('process_peak_gb'))} | {_fmt(m.get('gpu_reserved_gb'))} | {outcome} | {_fmt(r.get('t_sub_s'))} |")
+            lines.append('')
     (out / 'report.md').write_text('\n'.join(lines), encoding='utf-8')
     print(f"wrote {out / 'report.md'} and {out / 'results.json'}")
 
