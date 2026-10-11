@@ -1,5 +1,5 @@
-"""Stitching weights of dicom.stitch_multibed, which PGAAMultiBedSPECT.compute_uncertainty uses to split a mask
-of the stitched image between two overlapping SPECT bed positions.
+"""Uncertainty of the counts in a mask of an image stitched from two overlapping SPECT bed positions
+(PGAAMultiBedSPECT.compute_uncertainty and the stitching weights of dicom.stitch_multibed).
 
 The beds are cut from one acquisition of a small phantom, the way dicom.load_multibed_projections fills each bed's
 projections: the two beds hold the same counts in their overlap. The mask spans the seam of the stitched image.
@@ -125,3 +125,95 @@ def test_stitching_weights_are_each_beds_own(tmp_path):
     expected_z = _stitch_weights_z()
     for k in range(2):
         assert torch.equal(weights[k][0, 0].cpu(), expected_z[k, OFFSETS[k]:OFFSETS[k] + LZ])
+
+
+def test_split_bed_without_psf_matches_one_long_bed(tmp_path):
+    """No PSF: each slice is reconstructed on its own, so two beds cut from one acquisition give the image and the
+    uncertainty of one long bed."""
+    files = _bed_files(tmp_path)
+    beds, mask = _data(psf=False)
+    multibed, callbacks, image = _multibed(files, beds, psf=False)
+    y_long = torch.cat([beds[1][0], beds[0][0][..., LZ - SHIFT:]], dim=-1)
+    c_long = torch.cat([beds[1][1], beds[0][1][..., LZ - SHIFT:]], dim=-1)
+    long_bed = OSEM(_likelihood(_system_matrix(LZ_LONG, psf=False), y_long, c_long, False))
+    callback = DataStorageCallback(long_bed.likelihood, torch.clone(long_bed.object_prediction))
+    image_long = long_bed(N_ITERS, N_SUBSETS, callback=callback)
+    inner = slice(1, LZ_LONG - 1)   # stitch_multibed leaves out the first and last slice of each bed
+    assert torch.allclose(image[..., inner], image_long[..., inner], rtol=1e-4, atol=1e-4 * image_long.max().item())
+    expected_abs, expected_pct = long_bed.compute_uncertainty(mask, callback, return_pct=True)
+    uncertainty_abs, uncertainty_pct = multibed.compute_uncertainty(mask, callbacks, return_pct=True)
+    assert uncertainty_abs == pytest.approx(expected_abs, rel=1e-3)
+    assert uncertainty_pct == pytest.approx(expected_pct, rel=1e-3)
+
+
+@pytest.fixture(scope='module')
+def dense_bed_system():
+    """The bed's system matrix with PSF as dense matrices: forward projection [n_proj, n_obj] and back projection
+    [n_obj, n_proj] (each a column per unit vector; back projection is the transpose of forward projection only to
+    interpolation accuracy)."""
+    H = _system_matrix(LZ, psf=True)
+    n_obj, n_proj = N * N * LZ, NA * N * LZ
+    def unit(n, i, shape):
+        e = torch.zeros(n, device=pytomography.device)
+        e[i] = 1
+        return e.reshape(shape)
+    forward = torch.stack([H.forward(unit(n_obj, i, (N, N, LZ))).reshape(-1).cpu() for i in range(n_obj)], 1)
+    backward = torch.stack([H.backward(unit(n_proj, j, (NA, N, LZ))).reshape(-1).cpu() for j in range(n_proj)], 1)
+    return forward.double(), backward.double()
+
+
+def _osem_dense(forward, backward, y, s):
+    """OSEM as OSEM(PoissonLogLikelihood) does it, with dense matrices: differentiable."""
+    angle = torch.arange(forward.shape[0]) // (N * LZ)
+    f = torch.ones(forward.shape[1], dtype=torch.float64)
+    for _ in range(N_ITERS):
+        for m in range(N_SUBSETS):
+            rows = angle % N_SUBSETS == m
+            H_m, HT_m = forward[rows], backward[:, rows]
+            norm = HT_m.sum(dim=1)
+            ratio = y[rows] / (H_m @ f + s[rows] + pytomography.delta)
+            f = torch.clamp(f + f / (norm + pytomography.delta) * (HT_m @ ratio - norm), min=0)
+    return f
+
+
+@pytest.mark.parametrize('shared, with_scatter_variance', [(True, False), (True, True), (False, True)])
+def test_split_bed_with_psf_matches_exact_linearised_variance(tmp_path, dense_bed_system, shared, with_scatter_variance):
+    files = _bed_files(tmp_path)
+    beds, mask = _data(psf=True, shared=shared)
+    multibed, callbacks, image = _multibed(files, beds, psf=True, with_scatter_variance=with_scatter_variance)
+    uncertainty_abs, uncertainty_pct = multibed.compute_uncertainty(mask, callbacks, return_pct=True, include_additive_term=with_scatter_variance)
+
+    # Reference: autograd through dense OSEM of both beds and the stitch
+    forward, backward = dense_bed_system
+    w = _stitch_weights_z().double()
+    ys = [y.double().reshape(-1).clone().requires_grad_(True) for y, _ in beds]
+    cs = [c.double().reshape(-1).clone().requires_grad_(True) for _, c in beds]
+    counts = 0
+    for k, offset in enumerate(OFFSETS):
+        mask_k = (mask.cpu().double() * w[k])[..., offset:offset + LZ].reshape(-1)
+        counts = counts + (_osem_dense(forward, backward, ys[k], 0.5 * cs[k]) * mask_k).sum()
+    counts.backward()
+    assert (image * mask).sum().item() == pytest.approx(counts.item(), rel=1e-4)
+    def variance(values, grads, data_variance):
+        """sum over measured bins of variance * (derivative)^2; shared bins once, with the beds' derivatives added"""
+        if not shared:
+            return sum((data_variance * v.double().reshape(-1) * g ** 2).sum().item() for v, g in zip(values, grads))
+        total = torch.zeros(NA, N, LZ_LONG, dtype=torch.float64)
+        data = torch.zeros(NA, N, LZ_LONG, dtype=torch.float64)
+        for v, g, offset in zip(values, grads, OFFSETS):
+            total[..., offset:offset + LZ] += g.reshape(NA, N, LZ)
+            data[..., offset:offset + LZ] = v.double()
+        return (data_variance * data * total ** 2).sum().item()
+    var_reference = variance([y for y, _ in beds], [y.grad for y in ys], 1.0)
+    if with_scatter_variance:
+        # d/dc = 0.5 d/ds and var(c) = c: the same as var(s) = c/4 with d/ds
+        var_reference += variance([c for _, c in beds], [c.grad for c in cs], 1.0)
+    reference = np.sqrt(var_reference)
+    assert uncertainty_abs == pytest.approx(reference, rel=1e-3)
+    assert uncertainty_pct == pytest.approx(100 * reference / counts.item(), rel=1e-3)
+    if shared:
+        # the beds' covariance matters here: adding the beds' variances as if independent is well off
+        var_independent = sum((y.double().reshape(-1) * g.grad ** 2).sum().item() for (y, _), g in zip(beds, ys))
+        if with_scatter_variance:
+            var_independent += sum((c.double().reshape(-1) * g.grad ** 2).sum().item() for (_, c), g in zip(beds, cs))
+        assert abs(np.sqrt(var_independent) / reference - 1) > 0.02
