@@ -847,8 +847,9 @@ def estimate_sss_memory(
     * the sparse estimate: per sampled line of response, its geometry, the probability of every TOF bin and the
       temporaries of a scatter point; and, for TOF without the fused CUDA kernel, the TOF kernel of
       ceil(T / ``N_splits``) bins by ``num_dense_tof_bins`` pieces, which is what ``N_splits`` bounds;
-    * the interpolation over angle and radius: the sampled values, the radial basis function system (five matrices of
-      the sampled positions squared, rounded up) and its evaluation in chunks of 8192 positions;
+    * the interpolation over angle and radius: the sampled values, the radial basis function system (3.5 matrices of
+      the sampled positions squared: the system, the distances, the kernel and the solver's copy; 3.3 measured) and its
+      evaluation in chunks of 8192 positions;
     * for a dense estimate, the interpolation over the ring pairs, a GPU budget at a time;
     * the scaling: a subset of angles of the data and the estimate (TOF), of the mask, randoms and sensitivity (not
       TOF), and the projector's chunk, in as many subsets as :func:`scale_estimated_scatter` uses.
@@ -912,7 +913,7 @@ def estimate_sss_memory(
     values = 4.0 * s['rtheta'] * s['sampled_planes'] * T
     system = 4.0 * (s['rtheta'] + 3) ** 2
     steps.append(('interpolation over angle and radius', rtheta + 32.0 * s['crystal_pairs'],
-                  3 * values + max(5 * system, 3 * 4.0 * c * (s['rtheta'] + 3) + 2 * 4.0 * c * s['sampled_planes'] * T)))
+                  3 * values + max(3.5 * system, 3 * 4.0 * c * (s['rtheta'] + 3) + 2 * 4.0 * c * s['sampled_planes'] * T)))
     if not lazy:                                            # as many angles at once as the GPU budget holds (interpolate_z)
         per_angle = 3 * 4.0 * s['N_r'] * s['planes'] * T
         angles = min(s['N_theta'], max(1, int(gpu_budget(device=device) // per_angle)))
@@ -931,9 +932,10 @@ def estimate_sss_memory(
     host_step = max(steps, key=lambda step: step[1])
     if host_step[1] > 0:
         parts.append(MemoryPart(f'largest step on the host: {host_step[0]}', ram_bytes=host_step[1], scope='chunk'))
-    # On the GPU the steps are added up, which is conservative: PyTorch's cache keeps each step's blocks until the
-    # estimate ends, and reuses them only for arrays that fit in them (after the GATE mMR estimate with 21 TOF bins it
-    # held 3.5 GB; not measured step by step yet, see tests/calibrate_memory.py)
+    # On the GPU the steps are added up: PyTorch's cache keeps the blocks of each step, of other sizes than the next
+    # step's, until the estimate ends. Measured in tests/calibrate_memory.py, the memory reserved was 1.6 times the
+    # peak allocated with the fused TOF kernel and 2.3 times with PyTorch's in three groups of TOF bins (the largest
+    # step alone would have been 1.2 times too little); after the GATE mMR estimate with 21 TOF bins it held 3.5 GB
     for name, _, on_gpu in steps:
         if on_gpu > 0:
             parts.append(MemoryPart(f'{name} (GPU)', gpu_bytes=on_gpu, scope='chunk'))
@@ -962,7 +964,8 @@ def plan_sss_memory(
     """The fastest settings of :func:`get_sss_scatter_estimate` with the same arguments that fit in ``ram_gb`` of RAM and
     ``gpu_gb`` of GPU memory, as a :class:`~pytomography.utils.memory.MemoryPlan`, from :func:`estimate_sss_memory`.
     It chooses ``lazy`` (a dense estimate first: it is read faster afterwards) and, with TOF, ``N_splits`` (the fewest
-    groups of TOF bins first: with more, the TOF kernel is computed twice). A setting given (not None) is kept. Without
+    groups of TOF bins first: with more, the TOF kernel is computed twice; with the fused CUDA kernel, used on a GPU
+    when CuPy is installed, ``N_splits`` changes nothing). A setting given (not None) is kept. Without
     budgets, the plan is for what is free on this machine now; on Windows GPU memory counts as RAM too. If nothing
     fits, the plan has ``fits`` False and the settings that come closest; it does not raise.
 

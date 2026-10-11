@@ -271,6 +271,16 @@ class PETLMSystemMatrix(SystemMatrix):
         parts.append(MemoryPart('image, update and attenuation map', gpu_bytes=4 * image_bytes))
         events = math.ceil(n_events / n_subsets)
         parts.append(MemoryPart('expected counts, ratio and temporaries (one subset)', **where(self.output_device, 4 * 4 * events), scope='subset'))
+        # where each of the subset's events is among all the events, taken where the IDs are once per projection
+        parts.append(MemoryPart("positions of the subset's events", **where(ids.device, 8 * events), scope='subset'))
+        if self.sort_events and getattr(self.proj_meta, 'info', None) is not None:
+            # the first projection of each subset builds its projector order (_event_order) where the events are: the
+            # subset's detector IDs, and per event of a block of 2**22 the long-integer crystal and ring indices, their
+            # sort, the sinogram coordinates and the key (about 130 bytes), then the argsort of a run of 2**24 keys (the
+            # keys, the order and the sort's buffers, about 40 bytes); 146 bytes an event measured for 1.25M events
+            id_bytes = ids.element_size() * ids.shape[1]
+            build = id_bytes * events + 130 * min(events, 2**22) + 40 * min(events, _SORT_RUN)
+            parts.append(MemoryPart("building a subset's projector order (its first projection)", **where(ids.device, build), scope='subset'))
         splits = self.N_splits if N_splits is None else N_splits
         parts.append(MemoryPart('projector chunk', gpu_bytes=float(math.ceil(events / splits) * 64), scope='chunk'))   # LOR ends, ids, TOF bins, values
         return parts

@@ -311,7 +311,7 @@ def test_spect_estimate_counts_its_arrays():
     cached = _parts(_spect(cache_probabilities=True).estimate_memory(4))
     assert _bytes(cached['what the object transforms keep']) == pytest.approx(kept + 60 * padded)
     view = _bytes(four["one view: rotated object and the transforms' temporaries"])
-    assert view == 2 * padded + 8 * padded + 4 * padded                                   # rotation, attenuation, PSF
+    assert view == padded + 6 * padded                     # the rotated object, and the attenuation's six (the PSF's three)
     assert sm.estimate_memory(4).settings == {'n_subsets': 4} and list(sm._memory_settings()) == ['n_subsets']
     assert sm._memory_settings()['n_subsets'][1] == list(range(1, 61))
     with pytest.raises(ValueError, match="has no setting N_splits"):
@@ -351,7 +351,7 @@ def test_monte_carlo_hybrid_adds_simind(monkeypatch):
                                            primary_window_idx=1, isotope_names=['lu177'], isotope_ratios=[1.0], collimator_type='SY-ME',
                                            crystal_thickness=0.95, cover_thickness=0.1, backscatter_thickness=5.0)
     parts = _parts(sm.estimate_memory(4))
-    simind = parts['SIMIND processes (6, not measured)']
+    simind = parts['SIMIND processes (6)']
     assert simind.ram_bytes >= 6 * sm.SIMIND_PROCESS_BYTES and simind.scope == 'chunk'
     assert parts['attenuation map at 140 keV'].ram_bytes == 4 * np.prod(base.object_meta.shape)
     assert sm.estimate_memory(4).ram_gb > base.estimate_memory(4).ram_gb
