@@ -104,11 +104,32 @@
     var cuda = Calc.cudaCapable(gpu) && mem.length > 0;
     var s = {
       machine: {ram_gb: 32, os: os, device: cuda ? 'cuda' : 'cpu', gpu_gb: cuda ? mem[0] : 0, ram_plan_gb: null, gpu_plan_gb: null},
-      gpuName: gpu ? gpu.name : '', detected: {renderer: renderer, gpu: gpu, os: Calc.detectOs(navigator)},
-      modality: 'PET', model: 'pet_sinogram', user: {}, keep: {}, preset: ''
+      gpuName: gpu && !Calc.isStandIn(gpu) ? gpu.name : '', detected: {renderer: renderer, gpu: gpu, os: Calc.detectOs(navigator)},
+      modality: 'PET', model: 'pet_sinogram', user: {}, keep: {}, preset: '', fromLink: false, linkIgnored: [], dirty: false
     };
     resetKeep(s);
+    // a link to a setup (?ram=64&os=linux&gpu=24&model=pet_listmode&...): what it gives replaces the defaults
+    var link = null;
+    try { link = Calc.decodeState(M, location.search, data.ref); } catch (e) { link = null; }
+    if (link) {
+      Object.keys(link.machine).forEach(function (k) { s.machine[k] = link.machine[k]; });
+      if (link.machine.os === 'macos' && !('device' in link.machine)) { s.machine.device = 'cpu'; s.machine.gpu_gb = 0; }
+      if (link.gpuName !== null) { s.gpuName = link.gpuName; } else if ('gpu_gb' in link.machine) { s.gpuName = ''; }   // the link's GPU, not this browser's
+      if (link.model) {
+        s.model = link.model; s.modality = Calc.modelInfo(M, link.model).modality;
+        s.user = link.user; s.preset = link.preset || '';
+        resetKeep(s);
+        Object.keys(link.keep).forEach(function (k) { s.keep[k] = link.keep[k]; });
+        link.auto.forEach(function (k) { delete s.keep[k]; });
+      }
+      s.fromLink = true; s.linkIgnored = link.ignored;
+    }
     return s;
+  }
+
+  /** This setup as a link: the page's address with the inputs as its query (memory-calc.js encodeState). */
+  function linkUrl() {
+    return location.origin + location.pathname + '?' + Calc.encodeState(M, state) + '#calculator';
   }
 
   function resetKeep(s) {
@@ -199,7 +220,7 @@
     // GPU: name (searchable), memory
     var listId = nextId('gpus'), nameId = nextId('gpu');
     var datalist = el('datalist', {id: listId});
-    data.gpus.forEach(function (g) { datalist.append(el('option', {value: g.name})); });
+    data.gpus.forEach(function (g) { if (!Calc.isStandIn(g)) { datalist.append(el('option', {value: g.name})); } });
     var nameInput = el('input', {id: nameId, type: 'search', list: listId, autocomplete: 'off', spellcheck: 'false', placeholder: 'Search, e.g. RTX 4090, A100, M3', value: state.gpuName});
     nameInput.addEventListener('change', function () { pickGpuByName(nameInput.value); });
     var memId = nextId('gpumem');
@@ -267,7 +288,9 @@
   function detectedText() {
     var d = state.detected, g = gpuByName(state.gpuName);
     var parts = [];
-    if (d.gpu) {
+    if (d.gpu && Calc.isStandIn(d.gpu)) {
+      parts.push('Your browser reports <code>' + esc(d.renderer) + '</code>. ' + esc(d.gpu.notes) + '.');
+    } else if (d.gpu) {
       parts.push('Detected from your browser: <b>' + esc(d.gpu.name) + '</b>.');
     } else if (d.renderer) {
       parts.push('Your browser reports <code>' + esc(d.renderer) + '</code>, which is not in the list: pick your GPU or its memory.');
@@ -282,7 +305,7 @@
       } else if (mem.length === 0) {
         parts.push('Its memory is shared with the system: pick how much to plan for.');
       }
-      if (g.notes) { parts.push('<span class="pt-mem-muted">(' + esc(g.notes) + ')</span>'); }
+      if (g.notes && !Calc.isStandIn(g)) { parts.push('<span class="pt-mem-muted">' + (g === d.gpu ? '' : esc(g.name) + ': ') + esc(g.notes) + '.</span>'); }
     }
     parts.push('Browsers report a GPU\'s name at most, never its memory; nothing is sent anywhere.');
     return parts.join(' ');
@@ -522,6 +545,7 @@
 
   // ---------------------------------------------------------------------------------------------- results
   function update() {
+    state.dirty = true;
     // a short debounce: typing a number does not recompute at every key (a large plan takes a few hundred ms)
     clearTimeout(timer);
     timer = setTimeout(drawResults, 80);
@@ -557,6 +581,23 @@
       return;
     }
     var p = r.plan, info = Calc.modelInfo(M, state.model), out = [];
+
+    // a link to this setup
+    var copyLink = el('button', {type: 'button', class: 'pt-mem-linkbtn', text: 'Copy link to this setup'});
+    copyLink.addEventListener('click', function () {
+      var url = linkUrl();
+      var done = function () { copyLink.textContent = 'Link copied'; setTimeout(function () { copyLink.textContent = 'Copy link to this setup'; }, 1600); };
+      var fail = function () { window.prompt('Copy this link:', url); };
+      if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(url).then(done, fail); } else { fail(); }
+    });
+    out.push(el('div', {class: 'pt-mem-results-head'}, [el('span', {class: 'pt-mem-results-title', text: 'Result'}), copyLink]));
+    if (state.fromLink && !state.dirty) {
+      out.push(el('p', {class: 'pt-mem-hint pt-mem-fromlink', text: 'Set up from the link.' + (state.linkIgnored.length
+        ? ' Not used: ' + state.linkIgnored.join(', ') + ' (not inputs of this reconstruction, or not valid values).' : '')}));
+    }
+    if (state.fromLink || state.dirty) {
+      try { history.replaceState(null, '', linkUrl()); } catch (e) { /* file:// or a sandbox: the button still works */ }
+    }
 
     // status
     var keptNames = Object.keys(state.keep);

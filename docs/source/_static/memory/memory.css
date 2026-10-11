@@ -5,9 +5,20 @@
 html { --mem-ok: var(--pt-ok); --mem-bad: #b42318; --mem-ok-wash: #e7f4ec; --mem-bad-wash: #fdecea; --mem-radius: 12px; }
 html[data-theme="dark"] { --mem-bad: #ff8f80; --mem-ok-wash: #15281f; --mem-bad-wash: #331b1a; }
 
-/* overflow: visible lets the results column stick (the theme makes the article a scroll container) */
-.bd-container .bd-main .bd-content .bd-article-container:has(.pt-mem) { max-width: 74rem; overflow: visible; }
+/* The page has neither sidebar (memory.md's front matter, conf.py), so the calculator takes the full content width.
+   overflow: visible lets the results column stick (the theme makes the article a scroll container). */
+.bd-container .bd-main .bd-content .bd-article-container:has(.pt-mem) { max-width: 82rem; overflow: visible; }
 .pt-mem-lede { font-size: 1.08rem; color: var(--pt-ink-2); max-width: 50rem; }
+.bd-article-container:has(.pt-mem) .bd-article > section > p, .bd-article-container:has(.pt-mem) .bd-article > section > section > p,
+.bd-article-container:has(.pt-mem) .bd-article > section > section > ul { max-width: 52rem; }
+
+/* the page's contents, in place of the right-hand table of contents */
+.pt-mem-toc { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; margin: 4px 0 26px; padding: 0; list-style: none; }
+.pt-mem-toc li { margin: 0; }
+.pt-mem-toc .pt-mem-toc-label { font: 500 0.7rem var(--pst-font-family-monospace); letter-spacing: 0.08em; text-transform: uppercase; color: var(--pt-muted); margin-right: 4px; }
+.pt-mem-toc a { display: inline-block; font: 500 0.85rem var(--pst-font-family-base); padding: 4px 11px; border-radius: 99px; border: 1px solid var(--pt-line);
+  background: var(--pt-surface); color: var(--pt-ink-2) !important; text-decoration: none !important; }
+.pt-mem-toc a:hover { border-color: var(--pt-purple); color: var(--pt-ink) !important; }
 
 /* ---------- the calculator's frame and its loading state ---------- */
 .pt-mem { position: relative; margin: 18px 0 30px; border: 1px solid var(--pt-line); border-radius: var(--mem-radius); background: var(--pt-surface); }
@@ -103,6 +114,12 @@ html[data-theme="dark"] { --mem-bad: #ff8f80; --mem-ok-wash: #15281f; --mem-bad-
 @media (max-width: 480px) { .pt-mem-setting { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .pt-mem-setting .pt-mem-label { grid-column: 1 / -1; } }
 
 /* ---------- results ---------- */
+.pt-mem-results-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 0 10px; }
+.pt-mem-results-title { font: 500 0.7rem var(--pst-font-family-monospace); letter-spacing: 0.1em; text-transform: uppercase; color: var(--pt-muted); }
+.pt-mem-linkbtn { font: 600 0.8rem var(--pst-font-family-base); padding: 5px 11px; border-radius: 7px; border: 1px solid var(--pt-purple);
+  background: var(--pt-surface); color: var(--pt-purple); cursor: pointer; }
+.pt-mem-linkbtn:hover { background: var(--pt-purple); color: var(--pt-on-accent); }
+.pt-mem-fromlink { margin: -4px 0 10px; }
 .pt-mem-status { border-radius: 10px; padding: 12px 14px; border: 1px solid; }
 .pt-mem-status p { margin: 0; font-size: 0.92rem; color: var(--pt-ink); }
 .pt-mem-status .pt-mem-status-title { font: 800 1.3rem var(--pst-font-family-heading); margin-bottom: 2px; }

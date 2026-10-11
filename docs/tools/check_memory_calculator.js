@@ -8,8 +8,9 @@
  * 2. PET scanners: the sinogram sizes of pet_scanners.json in PyTomography's convention (mMR 224 x 449 x 4096, 1.65 GB).
  * 3. Tutorial presets: each tutorial's reconstruction, loaded as the calculator loads it, gives the estimate that
  *    memory_model.py (the Python evaluator the library is checked against) gives for the reference case.
- * 4. Plans: the calculator's own plan search (used on the CPU) chooses what PyTomoMemory.plan chooses with a GPU.
+ * 4. Plans: the calculator's plans are PyTomoMemory.plan's, and on the CPU every model keeps everything in RAM.
  * 5. Budgets, operating systems and recommendations.
+ * 6. Links: every input survives a link (encodeState, decodeState), and a hand-written link gives what it says.
  * Exits 1 if anything fails. */
 'use strict';
 const path = require('path');
@@ -42,6 +43,15 @@ const RENDERERS = [
   ['ANGLE (NVIDIA Corporation, NVIDIA GeForce RTX 3080/PCIe/SSE2, OpenGL 4.5.0)', 'GeForce RTX 3080', [10, 12]],
   ['ANGLE (AMD, AMD Radeon RX 7900 XTX (0x0000744C) Direct3D11 vs_5_0 ps_5_0, D3D11)', 'AMD Radeon RX 7900 XTX', [24]],
   ['ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)', 'Intel UHD Graphics', []],
+  ['ANGLE (Intel, Mesa Intel(R) Xe Graphics (TGL GT2), OpenGL 4.6)', 'Intel Iris Xe Graphics', []],
+  ['Mesa Intel(R) Xe Graphics (TGL GT2)', 'Intel Iris Xe Graphics', []],
+  // Firefox reports a stand-in model, not the GPU: the vendor is known, the model and its memory are not
+  ['ANGLE (NVIDIA, NVIDIA GeForce GTX 980 Direct3D11 vs_5_0 ps_5_0), or similar', 'NVIDIA GPU (Firefox shows a stand-in)', []],
+  ['NVIDIA GeForce GTX 480, or similar', 'NVIDIA GPU (Firefox shows a stand-in)', []],
+  ['ANGLE (AMD, Radeon R9 200 Series Direct3D11 vs_5_0 ps_5_0), or similar', 'AMD GPU (Firefox shows a stand-in)', []],
+  ['ANGLE (Intel, Intel(R) Arc(TM) A750 Graphics Direct3D11 vs_5_0 ps_5_0), or similar', 'Intel GPU (Firefox shows a stand-in)', []],
+  ['Apple M1, or similar', 'Apple GPU (Firefox shows a stand-in)', []],
+  ['Generic Renderer', 'GPU (Firefox shows a stand-in)', []],
   ['Apple GPU', null, []],
   ['', null, []],
 ];
@@ -51,6 +61,7 @@ for (const [renderer, name, mem] of RENDERERS) {
   const gotMem = Calc.gpuMemoryChoices(g);
   const okName = name === null ? (got === null || /apple gpu/i.test(got)) : got === name;
   check(okName, `${JSON.stringify(renderer)} -> ${got} (expected ${name})`);
+  if (/or similar|Generic Renderer/.test(renderer)) { check(Calc.isStandIn(g), `${renderer}: a stand-in`); }
   if (name !== null) { check(JSON.stringify(gotMem) === JSON.stringify(mem), `${name} memory ${JSON.stringify(gotMem)} (expected ${JSON.stringify(mem)})`); }
   console.log(`  ${(renderer || '(none)').slice(0, 72).padEnd(72)} -> ${got || 'no match'}${gotMem.length ? ' (' + gotMem.join(' or ') + ' GB)' : ''}`);
 }
@@ -121,25 +132,34 @@ if (expected) {
 }
 
 // ------------------------------------------------------------------------------------------------- 4. plans
-console.log('4. The calculator\'s plan search against PyTomoMemory.plan');
+console.log('4. Plans are PyTomoMemory.plan\'s; on the CPU everything is in RAM');
 let plans = 0;
 for (const info of M.models()) {
-  const params = Calc.paramsFor(M, info.id, {}, { device: 'cuda', os: 'windows', gpu_free_gb: 24, memory_budget_gb: 16 });
-  for (const ram of [3, 6, 12, 24, 48, 1000]) {
-    for (const gpu of [0.5, 2, 8, 24]) {
-      const b = { device: 'cuda', os: 'windows', ram_plan_gb: ram, gpu_plan_gb: gpu };
-      const fixedSets = [{}, info.settings.some((s) => s.name === 'n_subsets') ? { n_subsets: 4 } : {}];
-      for (const fixed of fixedSets) {
-        const a = M.plan(info.id, params, ram, gpu, fixed);
-        const s = Calc.searchPlan(M, info.id, params, fixed, b);
-        plans += 1;
-        check(JSON.stringify(a.settings) === JSON.stringify(s.settings) && a.fits === s.fits && a.options.length === s.options.length,
-          `${info.id} at ${ram} GB / ${gpu} GB ${JSON.stringify(fixed)}: plan ${JSON.stringify(a.settings)} ${a.fits}, search ${JSON.stringify(s.settings)} ${s.fits}`);
+  for (const device of ['cuda', 'cpu']) {
+    for (const os of ['windows', 'linux']) {
+      const b0 = Calc.budgets({ ram_gb: 64, gpu_gb: device === 'cuda' ? 24 : 0, os, device });
+      const params = Calc.paramsFor(M, info.id, {}, b0);
+      if (device === 'cpu') {
+        const e = M.estimate(info.id, params, {});
+        check(e.gpu_gb === 0, `${info.id} on the CPU (${os}): ${e.gpu_gb} GB on the GPU`);
+      }
+      for (const ram of [3, 12, 48, 1000]) {
+        for (const gpu of device === 'cuda' ? [0.5, 4, 24] : [0]) {
+          const b = Object.assign({}, b0, { ram_plan_gb: ram, gpu_plan_gb: gpu });
+          const fixedSets = [{}, info.settings.some((s) => s.name === 'n_subsets') ? { n_subsets: 4 } : {}];
+          for (const fixed of fixedSets) {
+            const a = M.plan(info.id, params, ram, gpu, fixed);
+            const s = Calc.planFor(M, info.id, params, b, fixed);
+            plans += 1;
+            check(JSON.stringify(a.settings) === JSON.stringify(s.settings) && a.fits === s.fits && (s.fits ? s.excess_gb === 0 : s.excess_gb > 0),
+              `${info.id} ${device} at ${ram} GB / ${gpu} GB ${JSON.stringify(fixed)}: plan ${JSON.stringify(a.settings)} ${a.fits}, calculator ${JSON.stringify(s.settings)} ${s.fits}`);
+          }
+        }
       }
     }
   }
 }
-console.log(`  ${plans} plans compared over ${M.models().length} models`);
+console.log(`  ${plans} plans over ${M.models().length} models, GPU and CPU, Windows and Linux`);
 
 // ------------------------------------------------------------------------------------------- 5. the rest
 console.log('5. Budgets, operating systems, recommendations');
@@ -169,10 +189,69 @@ r = Calc.recommend(M, 'pet_sinogram', Object.assign({ events: 500e6 }, quadra), 
 check(!r.plan.fits && r.suggestions.length > 0 && r.suggestions[0].model === 'pet_listmode', 'Quadra TOF sinogram: does not fit; list mode suggested first');
 console.log(`  Quadra TOF sinogram on 512 GB / 80 GB: fits=${r.plan.fits}; first suggestion: ${r.suggestions[0] && r.suggestions[0].label} (fits=${r.suggestions[0] && r.suggestions[0].plan.fits}, ${r.suggestions[0] && r.suggestions[0].plan.ram_gb.toFixed(0)} GB RAM)`);
 
-// CPU only: GPU parts are counted in RAM
-const cpu = Calc.recommend(M, 'spect', {}, Calc.budgets({ ram_gb: 16, gpu_gb: 0, os: 'linux', device: 'cpu' }), { n_subsets: 8 });
-const raw = M.estimate('spect', cpu.params, cpu.plan.settings);
-check(close(cpu.plan.ram_gb, raw.ram_gb + raw.gpu_gb, 1e-12) && cpu.plan.gpu_gb === 0, 'CPU: RAM includes the GPU parts');
+// CPU only: the plan's estimate, with nothing on the GPU
+for (const id of ['pet_sinogram', 'pet_listmode', 'spect']) {
+  const cpu = Calc.recommend(M, id, {}, Calc.budgets({ ram_gb: 16, gpu_gb: 0, os: 'linux', device: 'cpu' }), {});
+  const raw = M.estimate(id, cpu.params, cpu.plan.settings);
+  check(cpu.plan.ram_gb === raw.ram_gb && cpu.plan.gpu_gb === 0, `${id} on the CPU: ${cpu.plan.ram_gb} GB RAM, ${cpu.plan.gpu_gb} GB GPU`);
+}
+
+// ------------------------------------------------------------------------------------------------- 6. links
+console.log('6. Links');
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+let links = 0;
+const machines = [
+  { ram_gb: 64, os: 'windows', device: 'cuda', gpu_gb: 32, ram_plan_gb: null, gpu_plan_gb: null },
+  { ram_gb: 16, os: 'macos', device: 'cpu', gpu_gb: 0, ram_plan_gb: 10, gpu_plan_gb: null },
+  { ram_gb: 512, os: 'linux', device: 'cuda', gpu_gb: 80, ram_plan_gb: null, gpu_plan_gb: 70 },
+];
+const states = [];
+for (const c of ref.cases) {
+  if (!c.model) { continue; }
+  const pre = Calc.presetFromCase(c);
+  states.push({ model: pre.model, user: pre.user, keep: { n_subsets: pre.settings.n_subsets }, preset: c.id });
+}
+for (const info of M.models()) {
+  states.push({ model: info.id, user: {}, keep: {}, preset: '' });
+  // every option of every parameter, one at a time
+  for (const p of info.params) {
+    if (!p.options || Calc.MACHINE_PARAMS.includes(p.name) || info.settings.some((s) => s.name === p.name)) { continue; }
+    for (const o of p.options) { states.push({ model: info.id, user: { [p.name]: o.value }, keep: {}, preset: '' }); }
+  }
+}
+states.forEach((st, i) => {
+  const machine = machines[i % machines.length];
+  const state = Object.assign({ machine, gpuName: i % 2 ? 'GeForce RTX 4090' : '' }, st);
+  if (!Calc.modelInfo(M, state.model).settings.some((s) => s.name === 'n_subsets')) { state.keep = {}; }
+  for (const k of Object.keys(state.keep)) { if (state.keep[k] === undefined) { delete state.keep[k]; } }
+  const q = Calc.encodeState(M, state);
+  const d = Calc.decodeState(M, q, ref);
+  const want = Calc.paramsFor(M, state.model, state.user, null), got = Calc.paramsFor(M, d.model, d.user, null);
+  const m = Object.assign({ device: 'cuda', ram_plan_gb: null, gpu_plan_gb: null }, d.machine);
+  const machineOk = m.ram_gb === machine.ram_gb && m.os === machine.os && m.device === machine.device && (m.gpu_gb || 0) === (machine.gpu_gb || 0)
+    && (m.ram_plan_gb || null) === (machine.ram_plan_gb || null) && (m.gpu_plan_gb || null) === (machine.gpu_plan_gb || null);
+  links += 1;
+  check(d.model === state.model && same(want, got) && same(d.keep || {}, state.keep) && machineOk && d.ignored.length === 0
+    && (d.gpuName || '') === state.gpuName && (d.preset || '') === (state.preset || ''),
+    `link ${i} (${state.model}) did not survive: ${q}\n    ${JSON.stringify(d)}`);
+});
+console.log(`  ${links} setups survive a link (every tutorial, every model, every option of every input)`);
+
+// a link written by hand, as an AI agent would: a 128 GB Linux workstation with a 24 GB GPU, the Quadra in list mode
+const hand = 'ram=128&os=linux&gpu=24&model=pet_listmode&crystals_per_ring=760&rings=320&tof=true&events=500000000&n_subsets=20&N_splits=auto';
+const dh = Calc.decodeState(M, '?' + hand, ref);
+check(dh.model === 'pet_listmode' && dh.user.crystals_per_ring === 760 && dh.user.tof === true && dh.user.events === 5e8
+  && same(dh.keep, { n_subsets: 20 }) && dh.machine.ram_gb === 128 && dh.machine.os === 'linux' && dh.machine.gpu_gb === 24 && dh.ignored.length === 0,
+  'hand-written link: ' + JSON.stringify(dh));
+const rh = Calc.recommend(M, dh.model, dh.user, Calc.budgets(Object.assign({ device: 'cuda' }, dh.machine)), dh.keep);
+console.log(`  ${hand}\n    -> fits=${rh.plan.fits} ${JSON.stringify(rh.plan.settings)} ${Calc.fmtGb(rh.plan.ram_gb)} GB RAM, ${Calc.fmtGb(rh.plan.gpu_gb)} GB GPU`);
+// unknown keys and bad values are reported, not used
+const bad = Calc.decodeState(M, 'model=spect&ram=lots&Lx=-3&colour=blue&psf=gaussian', ref);
+check(same(bad.ignored.sort(), ['Lx', 'colour', 'ram']) && bad.user.psf === 'gaussian', 'bad link: ' + JSON.stringify(bad));
+check(Calc.decodeState(M, '', ref) === null && Calc.decodeState(M, '?', ref) === null, 'no query: null');
+// a preset alone loads the tutorial
+const dp = Calc.decodeState(M, 'preset=t_CT_GEN3/fbp', ref);
+check(dp.model === 'ct_helical_fbp' && dp.preset === 't_CT_GEN3/fbp' && dp.user.views === 9014, 'preset link: ' + JSON.stringify(dp));
 
 console.log(`\n${checks} checks, ${failures} failed`);
 process.exit(failures ? 1 : 0);

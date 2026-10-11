@@ -6,10 +6,12 @@
  *   PyTomoMemoryCalc.matchGpu(renderer, gpus)          // the gpus.json entry of a WebGL renderer string, or null
  *   PyTomoMemoryCalc.budgets(machine)                  // what to plan for: RAM and GPU budgets, device, os
  *   PyTomoMemoryCalc.paramsFor(M, id, user, budgets)   // the model's parameters: defaults, the user's, the machine's
- *   PyTomoMemoryCalc.recommend(M, id, user, budgets, fixed) // plan + effective peaks + suggestions + Python
+ *   PyTomoMemoryCalc.recommend(M, id, user, budgets, fixed) // the plan, suggestions and Python
  *   PyTomoMemoryCalc.scannerParams(scanner)            // crystals_per_ring, rings, tof, tof_bins of a scanner
  *   PyTomoMemoryCalc.sinogram(C, R, tofBins)           // a PyTomography sinogram's shape and size
  *   PyTomoMemoryCalc.caseEstimate(M, ref, c)           // a tutorial's estimate with its own settings and machine
+ *   PyTomoMemoryCalc.encodeState(M, state)             // the calculator's inputs as a query string (a shareable link)
+ *   PyTomoMemoryCalc.decodeState(M, query, ref)        // ... and back
  */
 (function (root, factory) {
   'use strict';
@@ -31,16 +33,23 @@
   // Parameters the "Your machine" inputs set, not the reconstruction's.
   var MACHINE_PARAMS = ['device', 'os', 'gpu_free_gb', 'memory_budget_gb'];
 
-  /** The first entry of gpus.json whose `match` is a substring of the lower-cased renderer string (the file is ordered
-   * so that the first match wins, e.g. "rtx 5090 laptop" before "rtx 5090"); null if none matches. */
+  /** The first entry of gpus.json whose `match`, or one of its `aliases`, is a substring of the lower-cased renderer
+   * string (the file is ordered so that the first match wins, e.g. "rtx 5090 laptop" before "rtx 5090", and Firefox's
+   * stand-ins ", or similar" before everything); null if none matches. docs/tools/build_gpus.py writes the file. */
   function matchGpu(renderer, gpus) {
     if (!renderer || !gpus) { return null; }
     var s = String(renderer).toLowerCase();
     for (var i = 0; i < gpus.length; i++) {
-      if (gpus[i].match && s.indexOf(gpus[i].match) >= 0) { return gpus[i]; }
+      var g = gpus[i];
+      if (g.match && s.indexOf(g.match) >= 0) { return g; }
+      var aliases = g.aliases || [];
+      for (var j = 0; j < aliases.length; j++) { if (s.indexOf(aliases[j]) >= 0) { return g; } }
     }
     return null;
   }
+
+  /** Whether an entry is a browser's stand-in rather than a GPU (Firefox's ", or similar", Safari's "Apple GPU"). */
+  function isStandIn(gpu) { return !!gpu && (/or similar/.test(gpu.match) || gpu.match === 'apple gpu'); }
 
   /** The GPU's memory sizes in GB, smallest first ([] if it shares the system's RAM or is unknown). */
   function gpuMemoryChoices(gpu) {
@@ -112,66 +121,19 @@
     return params;
   }
 
-  /** Peak RAM and GPU memory of an estimate as the machine sees them. With CUDA: as estimated (on Windows the RAM
-   * already includes the GPU memory). On the CPU, the parts the model puts on the GPU are in RAM too. */
-  function effective(e, b) {
-    if (b.device === 'cuda') { return {ram_gb: e.ram_gb, gpu_gb: e.gpu_gb}; }
-    return {ram_gb: e.ram_gb + (b.os === 'windows' ? 0 : e.gpu_gb), gpu_gb: 0};
-  }
-
-  function excess(eff, b) {
-    return Math.max(0, eff.ram_gb - b.ram_plan_gb) + (b.device === 'cuda' ? Math.max(0, eff.gpu_gb - b.gpu_plan_gb) : 0);
-  }
-
-  /** The search of PyTomoMemory.plan (model.json's "plan": every combination of the candidates, the first setting the
-   * outer loop; the first that fits, else the least excess), with a fit test of our own: used on the CPU, where the
-   * GPU parts count as RAM. With the CUDA test it gives the same settings as PyTomoMemory.plan. */
-  function searchPlan(M, id, params, fixed, b) {
-    var cands = M.candidates(id, params), names = Object.keys(cands);
-    var present = M.estimate(id, params, {}).settings;
-    var lists = names.map(function (n) {
-      if (fixed && fixed[n] !== null && fixed[n] !== undefined) {
-        var forcedValue = M.estimate(id, params, oneKey(n, fixed[n])).settings[n];
-        return [forcedValue];                     // the value it keeps, or the one a 'force' imposes (MLEM: 1 subset)
-      }
-      return cands[n].length ? cands[n] : [present[n]];
-    });
-    var idx = names.map(function () { return 0; });
-    var total = lists.reduce(function (a, l) { return a * l.length; }, 1);
-    var options = [], chosen = null, closest = null, least = Infinity;
-    for (var count = 0; count < total; count++) {
-      var trial = {};
-      names.forEach(function (n, i) { trial[n] = lists[i][idx[i]]; });
-      var e = M.estimate(id, params, trial), eff = effective(e, b), ex = excess(eff, b);
-      var fits = ex <= 1e-9;
-      options.push({settings: e.settings, ram_gb: eff.ram_gb, gpu_gb: eff.gpu_gb, fits: fits});
-      if (fits) { chosen = trial; break; }
-      if (ex < least) { closest = trial; least = ex; }
-      for (var j = lists.length - 1; j >= 0; j--) { idx[j]++; if (idx[j] < lists[j].length) { break; } idx[j] = 0; }
-    }
-    var settings = chosen !== null ? chosen : (closest || {});
-    var est = M.estimate(id, params, settings);
-    return {settings: est.settings, estimate: est, fits: chosen !== null, options: options};
-  }
-
   function oneKey(k, v) { var o = {}; o[k] = v; return o; }
 
-  /** The plan for this machine: PyTomoMemory.plan with a CUDA GPU, our own search on the CPU. */
+  /** The plan for this machine: PyTomoMemory.plan for the RAM and GPU budgets (no GPU memory on the CPU: the model puts
+   * every array in RAM there), keeping the settings in `fixed` that the model has at these inputs. */
   function planFor(M, id, params, b, fixed) {
-    var p;
-    if (b.device === 'cuda') {
-      var keep = {}, names = settingNames(modelInfo(M, id)), cands = M.candidates(id, params);
-      Object.keys(fixed || {}).forEach(function (k) {
-        if (names.indexOf(k) >= 0 && k in cands && fixed[k] !== null && fixed[k] !== undefined) { keep[k] = fixed[k]; }
-      });
-      var r = M.plan(id, params, b.ram_plan_gb, b.gpu_plan_gb, keep);
-      p = {settings: r.settings, estimate: r.estimate, fits: r.fits, options: r.options};
-    } else {
-      p = searchPlan(M, id, params, fixed, b);
-    }
-    var eff = effective(p.estimate, b);
-    p.ram_gb = eff.ram_gb; p.gpu_gb = eff.gpu_gb; p.excess_gb = excess(eff, b);
-    return p;
+    var keep = {}, cands = M.candidates(id, params);
+    Object.keys(fixed || {}).forEach(function (k) {
+      if (k in cands && fixed[k] !== null && fixed[k] !== undefined) { keep[k] = fixed[k]; }
+    });
+    var r = M.plan(id, params, b.ram_plan_gb, b.device === 'cuda' ? b.gpu_plan_gb : 0, keep);
+    var e = r.estimate;
+    return {settings: r.settings, estimate: e, fits: r.fits, options: r.options, ram_gb: e.ram_gb, gpu_gb: e.gpu_gb,
+      excess_gb: Math.max(0, e.ram_gb - r.ram_gb) + Math.max(0, e.gpu_gb - r.gpu_gb)};
   }
 
   // ------------------------------------------------------------------------------------------------ suggestions
@@ -354,6 +316,129 @@
     return M.estimate(c.model, params, c.settings || {});
   }
 
+  // ------------------------------------------------------------------------------------------------ the link
+  // The calculator's inputs as a query string, so that a setup can be shared and an AI agent can link to one:
+  //   machine:   ram (GB installed), os (windows, linux, macos), gpu (GB of GPU memory, or none), gpu_name,
+  //              ram_plan and gpu_plan (GB to plan for, when not the default margins)
+  //   what:      model (an id of model.json), preset (a tutorial case of reference_cases.json, applied first)
+  //   inputs:    every parameter of the model by its name in model.json (Lx, crystals_per_ring, tof, events, ...)
+  //   settings:  by name (n_subsets, N_splits, gpu_budget, ...): a value is kept, auto lets the plan choose
+  // Values: numbers, true and false, option values as in model.json, auto for "not set" (null).
+  var MACHINE_KEYS = ['ram', 'os', 'gpu', 'gpu_name', 'ram_plan', 'gpu_plan'];
+
+  function fmtValue(v) {
+    if (v === null || v === undefined) { return 'auto'; }
+    if (typeof v === 'boolean') { return v ? 'true' : 'false'; }
+    return String(v);
+  }
+
+  /** state = {machine: {ram_gb, os, device, gpu_gb, ram_plan_gb, gpu_plan_gb}, gpuName, model, user, keep, preset}:
+   * the query string (without '?'), every input of the model included. */
+  function encodeState(M, state) {
+    var m = state.machine, q = [];
+    function add(k, v) { q.push(encodeURIComponent(k) + '=' + encodeURIComponent(fmtValue(v))); }
+    add('ram', m.ram_gb);
+    add('os', m.os);
+    add('gpu', m.device === 'cuda' && m.gpu_gb > 0 ? m.gpu_gb : 'none');
+    if (state.gpuName) { add('gpu_name', state.gpuName); }
+    if (isNum(m.ram_plan_gb)) { add('ram_plan', m.ram_plan_gb); }
+    if (isNum(m.gpu_plan_gb)) { add('gpu_plan', m.gpu_plan_gb); }
+    add('model', state.model);
+    if (state.preset) { add('preset', state.preset); }
+    var info = modelInfo(M, state.model), params = paramsFor(M, state.model, state.user, null), names = settingNames(info);
+    info.params.forEach(function (p) {
+      if (MACHINE_PARAMS.indexOf(p.name) >= 0 || names.indexOf(p.name) >= 0) { return; }
+      add(p.name, params[p.name]);
+    });
+    names.forEach(function (n) {
+      var kept = state.keep && Object.prototype.hasOwnProperty.call(state.keep, n) && state.keep[n] !== null && state.keep[n] !== undefined;
+      add(n, kept ? state.keep[n] : 'auto');
+    });
+    return q.join('&');
+  }
+
+  /** A parameter's value from its text in a link, or undefined if it is not one of its values. */
+  function parseValue(p, raw) {
+    if (p.options) {
+      for (var i = 0; i < p.options.length; i++) { if (fmtValue(p.options[i].value) === raw) { return p.options[i].value; } }
+      return undefined;
+    }
+    if (raw === 'auto' || raw === 'null' || raw === '') { return p.type === 'number_or_null' ? null : undefined; }
+    var n = +raw;
+    if (!isFinite(n)) { return undefined; }
+    if ((p.min !== undefined && p.min !== null && n < p.min) || (p.max !== undefined && p.max !== null && n > p.max)) { return undefined; }
+    return n;
+  }
+
+  /** The calculator's inputs from a query string ('?a=1&b=2', 'a=1&b=2' or URLSearchParams). Returns null if it has no
+   * keys; else {machine (only what the link gives), gpuName, model, user, keep (settings to keep, with a preset's),
+   * auto (settings the plan chooses), preset, ignored: [keys that are not inputs, or have values that are not valid]}.
+   * Settings the link leaves out keep the calculator's defaults. */
+  function decodeState(M, query, ref) {
+    var sp = typeof query === 'string' ? new URLSearchParams(query.charAt(0) === '?' ? query.slice(1) : query) : query;
+    var keys = [];
+    sp.forEach(function (v, k) { if (keys.indexOf(k) < 0) { keys.push(k); } });
+    if (!keys.length) { return null; }
+    var out = {machine: {}, gpuName: null, model: null, user: {}, keep: {}, auto: [], preset: null, ignored: []};
+    var models = M.models().map(function (x) { return x.id; });
+    var model = sp.get('model');
+    var c = null;
+    if (sp.get('preset') && ref) {
+      c = (ref.cases || []).filter(function (x) { return x.id === sp.get('preset') && x.model; })[0] || null;
+      if (!c) { out.ignored.push('preset'); }
+    }
+    if (c) {
+      var pre = presetFromCase(c);
+      out.preset = c.id; out.user = pre.user; out.keep = {};
+      if ('n_subsets' in pre.settings) { out.keep.n_subsets = pre.settings.n_subsets; }
+      if (!model) { model = c.model; }
+      if (model !== c.model) { out.preset = null; }
+    }
+    if (model && models.indexOf(model) < 0) { out.ignored.push('model'); model = null; }
+    if (!model && !c) {
+      var anyInput = keys.some(function (k) { return MACHINE_KEYS.indexOf(k) < 0 && k !== 'model' && k !== 'preset'; });
+      if (anyInput) { model = models[0]; }
+    }
+    out.model = model;
+    // the machine
+    var ram = +sp.get('ram');
+    if (sp.has('ram')) { if (ram > 0 && isFinite(ram)) { out.machine.ram_gb = ram; } else { out.ignored.push('ram'); } }
+    if (sp.has('os')) { if (['windows', 'linux', 'macos'].indexOf(sp.get('os')) >= 0) { out.machine.os = sp.get('os'); } else { out.ignored.push('os'); } }
+    if (sp.has('gpu')) {
+      var g = sp.get('gpu');
+      if (g === 'none' || g === '0') { out.machine.device = 'cpu'; out.machine.gpu_gb = 0; }
+      else if (+g > 0 && isFinite(+g)) { out.machine.device = 'cuda'; out.machine.gpu_gb = +g; }
+      else { out.ignored.push('gpu'); }
+    }
+    if (sp.has('gpu_name')) { out.gpuName = sp.get('gpu_name'); }
+    ['ram_plan', 'gpu_plan'].forEach(function (k) {
+      if (!sp.has(k)) { return; }
+      var v = +sp.get(k);
+      if (v > 0 && isFinite(v)) { out.machine[k + '_gb'] = v; } else { out.ignored.push(k); }
+    });
+    // the reconstruction's inputs and settings
+    if (model) {
+      var info = modelInfo(M, model), names = settingNames(info), byName = {};
+      info.params.forEach(function (p) { byName[p.name] = p; });
+      keys.forEach(function (k) {
+        if (MACHINE_KEYS.indexOf(k) >= 0 || k === 'model' || k === 'preset') { return; }
+        var raw = sp.get(k), p = byName[k];
+        if (names.indexOf(k) >= 0) {
+          if (raw === 'auto') { delete out.keep[k]; out.auto.push(k); return; }
+          var v = parseValue(p || {name: k}, raw);
+          if (v === undefined || v === null) { out.ignored.push(k); } else { out.keep[k] = v; }
+          return;
+        }
+        if (!p || MACHINE_PARAMS.indexOf(k) >= 0) { out.ignored.push(k); return; }
+        var val = parseValue(p, raw);
+        if (val === undefined) { out.ignored.push(k); } else { out.user[k] = val; }
+      });
+    } else {
+      keys.forEach(function (k) { if (MACHINE_KEYS.indexOf(k) < 0 && k !== 'model' && k !== 'preset') { out.ignored.push(k); } });
+    }
+    return out;
+  }
+
   // -------------------------------------------------------------------------------------------------- display
   function fmtGb(x) {
     if (x === null || x === undefined || !isFinite(x)) { return '–'; }
@@ -380,9 +465,9 @@
   return {
     RAM_SIZES: RAM_SIZES, GPU_SIZES: GPU_SIZES, MACHINE_PARAMS: MACHINE_PARAMS, LEVERS: LEVERS,
     RAM_MARGIN_GB: RAM_MARGIN_GB, RAM_MARGIN_FRACTION: RAM_MARGIN_FRACTION, GPU_MARGIN_FRACTION: GPU_MARGIN_FRACTION,
-    matchGpu: matchGpu, gpuMemoryChoices: gpuMemoryChoices, cudaCapable: cudaCapable, detectOs: detectOs,
-    budgets: budgets, modelInfo: modelInfo, paramsFor: paramsFor, effective: effective, searchPlan: searchPlan,
-    planFor: planFor, suggestions: suggestions, recommend: recommend, settingNote: settingNote,
+    matchGpu: matchGpu, isStandIn: isStandIn, gpuMemoryChoices: gpuMemoryChoices, cudaCapable: cudaCapable, detectOs: detectOs,
+    budgets: budgets, modelInfo: modelInfo, paramsFor: paramsFor, planFor: planFor,
+    encodeState: encodeState, decodeState: decodeState, MACHINE_KEYS: MACHINE_KEYS, suggestions: suggestions, recommend: recommend, settingNote: settingNote,
     sinogram: sinogram, scannerParams: scannerParams, scannerFor: scannerFor,
     presetFromCase: presetFromCase, caseEstimate: caseEstimate,
     fmtGb: fmtGb, fmtCount: fmtCount, fmtSetting: fmtSetting

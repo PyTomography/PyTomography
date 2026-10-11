@@ -5,13 +5,14 @@ read without JavaScript and appear in the page's Markdown copy for AI agents.
   settings, the model's estimate (``docs/tools/memory_model.py`` evaluating ``_static/memory/model.json``) and what
   they measured.
 * ``.. memory-scanners::`` PyTomography's sinogram of every scanner in ``_static/memory/pet_scanners.json``.
-* ``.. memory-formulas::`` every model of ``model.json``: its derived quantities, its parts and its settings.
+* ``.. memory-formulas::`` every model of ``model.json``: its derived quantities, its parts and its settings (the
+  appendix of the formulas, which ``_static/memory/formulas.md`` writes out and the page includes).
 * ``.. memory-sources::`` where the scanner and GPU data come from.
 
 Each directive builds Markdown and parses it with MyST, so the page and its ``_md/memory.md`` copy (and
 ``llms-full.txt``) carry the same text: after ``pytomo_docs`` writes those copies, ``write_markdown`` here replaces each
-directive's fence in them with its Markdown. The calculator reads the reference cases at
-``_static/memory/reference_cases.json``, copied from ``docs/tools`` at the end of the build.
+directive's fence in them with its Markdown, and each ``{include}`` with the file it includes. The calculator reads the
+reference cases at ``_static/memory/reference_cases.json``, copied from ``docs/tools`` at the end of the build.
 """
 from __future__ import annotations
 
@@ -220,15 +221,11 @@ def _candidates_text(s: dict) -> str:
 
 def formulas_markdown(d: dict, fmt: str = "html") -> str:
     mj = d["model_json"]
-    o = mj["overheads"]
     lines = [
-        "Generated from `model.json`. Sizes are in bytes; names are the model's parameters (the calculator's inputs) and "
-        "the derived quantities above them. Every part counts at the peak. The total adds the overheads: "
-        f"{o['fixed']['name']} ({_code(o['fixed']['bytes'])} bytes), {o['cuda_cache']['name']} "
-        f"({o['cuda_cache']['bytes'] / 1e9:g} GB plus {o['cuda_cache']['fraction']:g} of the GPU arrays, when there are any) and, "
-        f"on Windows, {o['allocator']['name']} ({o['allocator']['fraction']:g} of the arrays, or the model's own fraction). "
-        "On Windows the GPU total is added to the RAM total. A plan tries the settings' candidates in order, the first "
-        "setting as the outer loop, and takes the first that fits.",
+        "Each model exactly as the calculator evaluates it, generated from the memory model file "
+        "(<a href=\"_static/memory/model.json\">model.json</a>) when the site is built: its derived quantities, its parts and its "
+        "settings, in the model's expression language (`c ? a : b` is a if c, else b; `**` is a power). "
+        "Sizes are in bytes. The overheads and the way a plan searches are as described above.",
         "",
         "Derived quantities every model uses:",
         "",
@@ -257,7 +254,7 @@ def formulas_markdown(d: dict, fmt: str = "html") -> str:
         if fmt == "html":
             lines += [f":::{{dropdown}} {m['title']}", ""] + body + ["", ":::", ""]
         else:
-            lines += [f"### {m['title']}", ""] + body + [""]
+            lines += [f"#### {m['title']}", ""] + body + [""]
     return "\n".join(lines)
 
 
@@ -281,8 +278,12 @@ def sources_markdown(d: dict) -> str:
         if g.get("source"):
             by_source.setdefault(g["source"], 0)
             by_source[g["source"]] += 1
-    lines += ["", f"**GPUs** (`gpus.json`, {len(d['gpus'])} GPUs, compiled 11 October 2026): names, memory sizes and the "
-              "renderer-string fragments the calculator matches, from the vendors' specification pages:", ""]
+    stand_ins = sum(1 for g in d["gpus"] if "or similar" in g["match"])
+    lines += ["", f"**GPUs** (`gpus.json`, {len(d['gpus']) - stand_ins} GPUs and {stand_ins} stand-ins that Firefox reports "
+              "in place of the real GPU, compiled 11 October 2026): names, memory sizes and the renderer-string fragments "
+              "the calculator matches, from the vendors' specification pages. `docs/tools/build_gpus.py` writes the file "
+              "from its hand-checked table (each row with its source) and checks that every known renderer string finds "
+              "its own entry; edit the table and run `python docs/tools/build_gpus.py` to update it. Sources:", ""]
     for url, n in sorted(by_source.items(), key=lambda kv: (-kv[1], kv[0])):
         lines.append(f"- [{urlparse(url).netloc.replace('www.', '')}{urlparse(url).path}]({url}) ({n} GPU{'s' if n > 1 else ''})")
     lines += ["", "**Memory measurements**: the tutorial runs of 10 and 11 October 2026 (Windows 11, NVIDIA GeForce RTX 5090, "
@@ -328,9 +329,22 @@ class MemoryDirective(SphinxDirective):
         return [container]
 
 
+def _included(srcdir: Path, path: str, options: str) -> str:
+    """The Markdown an ``{include}`` fence stands for: the file from ``:start-line:``, its headings ``:heading-offset:``
+    levels down (not inside code fences)."""
+    opts = dict(re.findall(r":([a-z-]+):\s*([^\n]*)", options))
+    lines = (srcdir / path).read_text(encoding="utf8").splitlines()[int(opts.get("start-line", 0) or 0):]
+    offset, fenced, out = int(opts.get("heading-offset", 0) or 0), False, []
+    for line in lines:
+        if line.startswith("```"):
+            fenced = not fenced
+        out.append("#" * offset + line if offset and not fenced and re.match(r"#+ ", line) else line)
+    return "\n".join(out).strip()
+
+
 def write_markdown(app, exception):
-    """Replaces each directive's fence in the page's Markdown copy and llms-full.txt with its Markdown, and copies the
-    reference cases next to the calculator."""
+    """Replaces each directive's fence in the page's Markdown copy and llms-full.txt with its Markdown, and each
+    ``{include}`` with the file it includes; copies the reference cases next to the calculator."""
     if exception or app.builder.format != "html":
         return
     srcdir, outdir = Path(app.srcdir), Path(app.outdir)
@@ -338,10 +352,12 @@ def write_markdown(app, exception):
     shutil.copyfile(_tools(srcdir) / "memory_reference_cases.json", outdir / STATIC / "reference_cases.json")
     d = _data(app.env)
     fence = re.compile(r"```\{(memory-[a-z]+)\}\s*\n```")
+    include = re.compile(r"```\{include\}\s+(_static/memory/\S+)\n((?::[a-z-]+:[^\n]*\n)*)```")
     for target in (outdir / "_md" / f"{PAGE}.md", outdir / "llms-full.txt"):
         if target.exists():
             text = target.read_text(encoding="utf8")
             text = fence.sub(lambda m: GENERATORS[m.group(1)](d, "md").rstrip(), text)
+            text = include.sub(lambda m: _included(srcdir, m.group(1), m.group(2)), text)
             target.write_text(text, encoding="utf8")
 
 

@@ -1,8 +1,23 @@
+---
+html_theme.sidebar_secondary.remove: true
+---
+
 # Memory and speed
 
 <link rel="stylesheet" href="_static/memory/memory.css">
 
 <p class="pt-mem-lede">This page answers how much RAM and GPU memory a PyTomography reconstruction needs, and which settings make it fit your machine while running as fast as possible. If you can run Python on the machine, <code>plan_memory()</code> reads what is free and is exact; this page estimates from what you tell it.</p>
+
+<ul class="pt-mem-toc" aria-label="On this page">
+<li class="pt-mem-toc-label">On this page</li>
+<li><a href="#for-ai-agents">For AI agents</a></li>
+<li><a href="#calculator">Calculator</a></li>
+<li><a href="#reference-the-tutorials">Reference: the tutorials</a></li>
+<li><a href="#pet-scanners">PET scanners</a></li>
+<li><a href="#how-memory-is-controlled">How memory is controlled</a></li>
+<li><a href="#formulas">Formulas</a></li>
+<li><a href="#sources">Sources</a></li>
+</ul>
 
 ## For AI agents
 
@@ -23,11 +38,32 @@ Without Python on the target machine, use the same model the calculator uses. It
 |---|---|
 | <a href="_static/memory/model.json"><code>_static/memory/model.json</code></a> | The memory model: every estimate and plan of the library as expressions, with its schema in the header. |
 | <a href="_static/memory/pytomo-memory.js"><code>_static/memory/pytomo-memory.js</code></a> | Its evaluator: `models()`, `estimate(id, params, settings)`, `plan(id, params, ram_gb, gpu_gb, fixed)`, `code(...)`. |
+| <a href="_static/memory/formulas.md"><code>_static/memory/formulas.md</code></a> | The same estimates written out as formulas (the [Formulas](#formulas) section below). |
 | <a href="_static/memory/pet_scanners.json"><code>_static/memory/pet_scanners.json</code></a> | 26 PET scanners: geometry, PyTomography `info` dicts, TOF and sensitivity, with sources. |
-| <a href="_static/memory/gpus.json"><code>_static/memory/gpus.json</code></a> | 278 GPUs with their memory, in the order that matches a WebGL renderer string. |
+| <a href="_static/memory/gpus.json"><code>_static/memory/gpus.json</code></a> | 278 GPUs with their memory, and the stand-ins Firefox reports, in the order that matches a WebGL renderer string. |
 | <a href="_static/memory/reference_cases.json"><code>_static/memory/reference_cases.json</code></a> | The tutorials' reconstructions as model inputs, with their measured peaks. |
 
-The [formulas](#formulas) below are generated from the same `model.json`, which the repository's `docs/tools/check_memory_model.py` checks against the library's own `estimate_memory()` and `plan_memory()` (within 1%).
+The repository's `docs/tools/check_memory_model.py` checks `model.json` against the library's own `estimate_memory()` and `plan_memory()` (every estimate within 1%, every plan the same), and the formulas below are written from it.
+
+### Link to a setup
+
+The calculator's inputs are in its link, so a setup can be shared, and an agent can send someone to one. The **Copy link to this setup** button gives every input of the present one. For example, a 128 GB Linux workstation with a 24 GB GPU and the Biograph Vision Quadra in list mode:
+
+<p><a href="memory.html?ram=128&amp;os=linux&amp;gpu=24&amp;model=pet_listmode&amp;crystals_per_ring=760&amp;rings=320&amp;tof=true&amp;events=500000000&amp;n_subsets=20#calculator"><code>memory.html?ram=128&amp;os=linux&amp;gpu=24&amp;model=pet_listmode&amp;crystals_per_ring=760&amp;rings=320&amp;tof=true&amp;events=500000000&amp;n_subsets=20</code></a></p>
+
+| Key | Value |
+|---|---|
+| `ram` | RAM installed, in GB. |
+| `os` | `windows`, `linux` or `macos`. |
+| `gpu` | GPU memory in GB, or `none` to run on the CPU. |
+| `gpu_name` | The GPU's name as in `gpus.json` (shown only; optional). |
+| `ram_plan`, `gpu_plan` | GB to plan for, in place of what is installed less the margins `plan_memory()` keeps (16 GB of RAM, or a quarter of it below 64 GB; 5% of the GPU). |
+| `model` | A model's `id` in `model.json`, such as `pet_sinogram`, `pet_listmode`, `sss`, `ct_helical_fbp`, `ct_cone_fdk`, `spect` or `starguide`. |
+| `preset` | A tutorial's case `id` in `reference_cases.json`, such as `t_CT_GEN3/fbp`. It is loaded first, and the other keys change it. |
+| a parameter | Any parameter of the model, by its `name` in `model.json`: `Lx`, `crystals_per_ring`, `tof`, `events`, `algorithm`, … A number, `true` or `false`, or one of its options' `value`; `auto` for "not set". Parameters left out take the model's defaults. |
+| a setting | `n_subsets`, `N_splits`, `gpu_budget`, `memory_budget_gb` or `lazy`, as the model has them: a value is kept, and `auto` lets the plan choose. Left out, `n_subsets` keeps the model's default and the others are chosen. |
+
+Keys that are not inputs of the model, and values that are not valid, are listed under the result and not used.
 
 ## Calculator
 
@@ -65,15 +101,12 @@ The [formulas](#formulas) below are generated from the same `model.json`, which 
 
 ## Formulas
 
-Sizes are in bytes; images and projections are float32 (4 bytes). With an image of $L_x \times L_y \times L_z$ voxels, $C$ crystals per ring, $R$ rings, $T$ TOF bins (1 without TOF), $M$ subsets and $E$ events:
+```{include} _static/memory/formulas.md
+:start-line: 2
+:heading-offset: 1
+```
 
-- an image takes $4 L_x L_y L_z$;
-- a PET sinogram (every ring pair) takes $4 \lfloor C/2 \rfloor (C+1) R^2 T$, and a reconstruction holds three of one subset's share at a time (data, expected counts and their ratio): $3 \cdot 4 \lceil \lfloor C/2 \rfloor / M \rceil (C+1) R^2 T$;
-- the PET projector works on chunks of lines of response, $88 + 8T$ bytes each, in at least $N_\text{splits}$ passes and in chunks no bigger than the GPU budget, $\min(1.5\ \text{GB},\ \tfrac14\ \text{free GPU memory})$;
-- list mode keeps $E \cdot (2\ \text{or}\ 3) \cdot b$ for the events' detector IDs ($b$ = 4 or 8 bytes; 3 with TOF), $4E$ more to sort them, and $4 \cdot \tfrac{CR(CR-1)}{2}$ for a sensitivity weight per crystal pair (118 GB for the Biograph Vision Quadra);
-- the peak is the sum of every part, plus 3.7 GB for Python, PyTorch and CUDA (2.2 GB on the CPU), plus PyTorch's GPU cache ($0.05\ \text{GB} + 0.2 \times$ the GPU arrays); on Windows the GPU memory is added to the RAM, with the memory the allocators keep (a fraction of the arrays).
-
-Every model in full, as the calculator evaluates it:
+### Every model in full
 
 ```{memory-formulas}
 ```
