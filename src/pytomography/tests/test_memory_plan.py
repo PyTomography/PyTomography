@@ -24,6 +24,7 @@ def no_cuda_cache(monkeypatch):
     """No allowance for PyTorch's CUDA cache, so that the toy budgets below are plain arithmetic (it has its own test)."""
     monkeypatch.setattr(memory, "CUDA_CACHE_BYTES", 0.0)
     monkeypatch.setattr(memory, "CUDA_CACHE_FRACTION", 0.0)
+    monkeypatch.setattr(memory, "CUDA_CONTEXT_GPU_BYTES", 0.0)
 
 
 @pytest.fixture(params=[False, True], ids=["linux", "windows"])
@@ -195,6 +196,30 @@ def test_estimates_add_the_overheads_of_the_device(monkeypatch, gpu_as_ram):
         assert estimate.gpu_gb == pytest.approx(2 + 0.1 + 0.3)
     host_only = memory.memory_estimate('test', [MemoryPart('data', ram_bytes=1e9)])
     assert all('GPU cache' not in p.name for p in host_only.parts) and host_only.gpu_gb == 0
+
+
+def test_gpu_estimates_count_the_cuda_context(monkeypatch, gpu_as_ram):
+    """On a CUDA device, the CUDA context and its libraries hold GPU memory outside PyTorch's allocator, which nvidia-smi
+    shows and torch.cuda.memory_reserved does not (0.57 GB measured): GPU estimates count it. On Windows, where it is
+    committed memory too and already in the fixed overhead, ram_gb stays the same. Found by validate_memory.py: the GPU's
+    use ran above estimates without it in 37 of 121 reconstructions, by up to 0.54 GB."""
+    monkeypatch.setattr(memory, "CUDA_CONTEXT_GPU_BYTES", 0.6e9)
+    arrays = [MemoryPart('image', gpu_bytes=2e9), MemoryPart('data', ram_bytes=1e9)]
+    monkeypatch.setattr(pytomography, "device", torch.device('cuda'))
+    with_context = memory.memory_estimate('test', arrays)
+    monkeypatch.setattr(memory, "CUDA_CONTEXT_GPU_BYTES", 0.0)
+    without = memory.memory_estimate('test', arrays)
+    assert with_context.gpu_gb == pytest.approx(without.gpu_gb + 0.6)
+    assert with_context.ram_gb == pytest.approx(without.ram_gb)           # Windows: moved from RAM to GPU; elsewhere: GPU only
+    context = {p.name: p for p in with_context.parts}['CUDA context and libraries on the GPU (outside PyTorch)']
+    assert context.gpu_bytes == 0.6e9 and context.scope == 'overhead'
+    fixed = {p.name: p for p in with_context.parts}['Python, PyTorch and CUDA']
+    assert fixed.ram_bytes == pytest.approx(memory.FIXED_OVERHEAD_BYTES - (0.6e9 if gpu_as_ram else 0.0))
+    # not on the CPU device
+    monkeypatch.setattr(memory, "CUDA_CONTEXT_GPU_BYTES", 0.6e9)
+    monkeypatch.setattr(pytomography, "device", torch.device('cpu'))
+    assert memory.cuda_context() is None
+    assert all('CUDA context' not in p.name for p in memory.memory_estimate('test', arrays).parts)
 
 
 def test_available_memory_reads_this_machine():

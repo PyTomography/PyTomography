@@ -185,6 +185,16 @@ CUDA_CACHE_BYTES = 0.05e9
 #: estimates were low, by 2% and 6%.
 CUDA_CACHE_FRACTION = 0.35
 
+#: GPU memory a process running PyTomography on a CUDA device holds outside PyTorch's allocator, which
+#: ``torch.cuda.memory_reserved`` does not show but nvidia-smi does: the CUDA context, with the code of its kernels and
+#: the libraries' (parallelproj, cuFFT, cuBLAS, cuDNN, CuPy). Measured with nvidia-smi on an RTX 5090 with CUDA 13 (11 Oct
+#: 2026): 0.57 GB at the first CUDA call, 0.57 to 0.64 GB with every library a reconstruction uses; in the reconstructions
+#: of ``tests/validate_memory.py`` the GPU's use ran a median 0.57 GB above PyTorch's reserved memory, which took 37 of
+#: 121 of them above estimates that did not count it (by up to 0.54 GB). Rounded up. Estimates on a CUDA device add it
+#: to the GPU memory; on Windows, where it is part of the process's committed memory too (in
+#: :data:`FIXED_OVERHEAD_BYTES`), it is taken out of the RAM overhead so that ``ram_gb`` does not count it twice.
+CUDA_CONTEXT_GPU_BYTES = 0.65e9
+
 #: What each scope of a :class:`MemoryPart` means, in the order estimates print them.
 MEMORY_SCOPES = {
     'held': 'held for the whole run',
@@ -268,6 +278,15 @@ def fixed_overhead(cuda_projector: bool = False) -> MemoryPart:
     return MemoryPart('Python, PyTorch and CUDA', ram_bytes=fixed_overhead_bytes(cuda_projector=cuda_projector), scope='overhead')
 
 
+def cuda_context(device: str | torch.device | None = None) -> MemoryPart | None:
+    """The GPU memory of the CUDA context and libraries (:data:`CUDA_CONTEXT_GPU_BYTES`) on ``device`` (default
+    ``pytomography.device``), as an ``'overhead'`` part; None on other devices."""
+    device = torch.device(pytomography.device if device is None else device)
+    if device.type != 'cuda':
+        return None
+    return MemoryPart('CUDA context and libraries on the GPU (outside PyTorch)', gpu_bytes=CUDA_CONTEXT_GPU_BYTES, scope='overhead')
+
+
 def cuda_cache(gpu_bytes: float) -> MemoryPart | None:
     """PyTorch's CUDA cache above ``gpu_bytes`` of arrays (:data:`CUDA_CACHE_BYTES` and :data:`CUDA_CACHE_FRACTION` of
     them), as an ``'overhead'`` part; None without GPU arrays."""
@@ -285,7 +304,9 @@ WINDOWS_ALLOCATOR_FRACTION = 0.35
 def memory_estimate(title: str, parts: Sequence[MemoryPart], alternatives: Sequence[tuple] = (), allocator_fraction: float | None = None,
                     settings: Mapping | None = None, cuda_projector: bool = False) -> MemoryEstimate:
     """A :class:`MemoryEstimate` of a computation's own arrays (``parts``), with the overheads every estimate adds: Python,
-    PyTorch and CUDA (:func:`fixed_overhead`), PyTorch's CUDA cache above the GPU arrays (:func:`cuda_cache`) and, on
+    PyTorch and CUDA (:func:`fixed_overhead`), on a CUDA device the GPU memory of the CUDA context and libraries
+    (:func:`cuda_context`, taken out of the RAM overhead on Windows, where that includes it), PyTorch's CUDA cache above
+    the GPU arrays (:func:`cuda_cache`) and, on
     Windows, the memory PyTorch's allocator keeps after freeing (:data:`WINDOWS_ALLOCATOR_FRACTION` of the arrays). The
     alternatives get the same overheads, so their totals compare with the main one. The ``estimate_memory`` methods
     build their estimates with it.
@@ -309,6 +330,12 @@ def memory_estimate(title: str, parts: Sequence[MemoryPart], alternatives: Seque
     def with_overheads(parts):
         parts = list(parts)
         overheads = [fixed_overhead(cuda_projector)]
+        context = cuda_context()
+        if context is not None:
+            if counts_gpu_as_ram():
+                # Windows counts it in the committed memory the fixed overhead was measured as: counted once, as GPU memory
+                overheads[0].ram_bytes = max(0.0, overheads[0].ram_bytes - context.gpu_bytes)
+            overheads.append(context)
         cache = cuda_cache(sum(p.gpu_bytes for p in parts if p.scope != 'overhead'))
         if cache is not None:
             overheads.append(cache)
