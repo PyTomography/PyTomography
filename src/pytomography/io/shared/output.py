@@ -20,6 +20,7 @@ series joins that patient, study and frame of reference, so clinical viewers fus
 from __future__ import annotations
 
 import copy
+import re
 import warnings
 import datetime
 from pathlib import Path
@@ -45,12 +46,18 @@ PET_UNITS = {"counts": "CNTS", "cnts": "CNTS", "bq/ml": "BQML", "bqml": "BQML", 
 # The image's units as UCUM codes (NM images give their real values through a Real World Value Mapping)
 UCUM = {"counts": ("{counts}", "counts"), "cnts": ("{counts}", "counts"), "bq/ml": ("Bq/mL", "becquerels/milliliter"),
         "bqml": ("Bq/mL", "becquerels/milliliter"), "kbq/ml": ("kBq/mL", "kilobecquerels/milliliter"),
-        "counts/s": ("{counts}/s", "counts per second"), "mbq/ml": ("MBq/mL", "megabecquerels/milliliter")}
-# Copied from the reference, when it has them, so the series joins its patient, study and frame of reference
+        "counts/s": ("{counts}/s", "counts per second"), "mbq/ml": ("MBq/mL", "megabecquerels/milliliter"),
+        # activity times time, e.g. a system matrix scaled by a sensitivity in counts per second per MBq
+        "mbq.s": ("MBq.s", "megabecquerel seconds"), "mbq·s": ("MBq.s", "megabecquerel seconds")}
+# Copied from the reference, when it has them, so the series joins its patient, study and frame of reference (not
+# Other Patient IDs or Ethnic Group, which the standard retired in 2017 and 2025)
 PATIENT_STUDY = ["PatientName", "PatientID", "PatientBirthDate", "PatientSex", "PatientAge", "PatientSize", "PatientWeight",
-                 "IssuerOfPatientID", "OtherPatientIDs", "EthnicGroup", "StudyInstanceUID", "StudyDate", "StudyTime",
+                 "IssuerOfPatientID", "StudyInstanceUID", "StudyDate", "StudyTime",
                  "StudyID", "StudyDescription", "AccessionNumber", "ReferringPhysicianName", "FrameOfReferenceUID",
                  "PositionReferenceIndicator", "PatientPosition", "BodyPartExamined"]
+# The form these must have; some anonymisers write values DICOM doesn't allow (e.g. "0" for a date), which are copied
+# as empty instead
+VALID_FORM = {"PatientBirthDate": r"\d{8}", "PatientAge": r"\d{3}[DWMY]", "PatientSex": r"[MFO]"}
 
 
 # ---------- where the voxels are ----------
@@ -221,7 +228,11 @@ def _base(modality: str, ref: Dataset | None, series_uid: str, frame_uid: str, s
     ds.SpecificCharacterSet = "ISO_IR 100"
     for key in PATIENT_STUDY:
         if ref is not None and key in ref:
-            ds[key] = ref[key]
+            elem = ref[key]
+            value = str(elem.value) if elem.value is not None else ""
+            if key in VALID_FORM and value and not re.fullmatch(VALID_FORM[key], value):
+                elem = pydicom.DataElement(elem.tag, elem.VR, "")      # a new element: the reference stays as it was
+            ds[key] = elem
     if ref is None or "StudyInstanceUID" not in ref:
         ds.PatientName = getattr(ref, "PatientName", "") if ref is not None else "PyTomography"
         ds.PatientID = getattr(ref, "PatientID", "") if ref is not None else "PYTOMOGRAPHY"
@@ -327,6 +338,8 @@ def save_dicom(image, folder, object_meta=None, affine=None, modality: str | Non
         base.RescaleType = "HU" if _is_hu(modality, units) else "US"   # US: unspecified (e.g. attenuation per mm)
         base.KVP = getattr(ref, "KVP", "") if ref is not None else ""
         base.AcquisitionNumber = 1
+        if "PatientPosition" not in base:      # required for CT (type 2C), empty when unknown (e.g. a micro-CT sample)
+            base.PatientPosition = ""
     else:
         base.ImageType = ["DERIVED", "PRIMARY"]
         base.Units = PET_UNITS.get((units or "counts").lower(), "CNTS")
@@ -340,8 +353,10 @@ def save_dicom(image, folder, object_meta=None, affine=None, modality: str | Non
         base.AcquisitionTime = getattr(ref, "AcquisitionTime", base.ContentTime) if ref is not None else base.ContentTime
         base.ActualFrameDuration = int(getattr(ref, "ActualFrameDuration", 0) or 0) if ref is not None else 0   # ms
         base.CollimatorType = "NONE"                                       # PET: no collimator
-        if ref is not None and "RadiopharmaceuticalInformationSequence" in ref:
-            base.RadiopharmaceuticalInformationSequence = ref.RadiopharmaceuticalInformationSequence
+        # PET Isotope module: required, and empty when unknown (simulated data, or a reference without one)
+        base.RadiopharmaceuticalInformationSequence = (ref.RadiopharmaceuticalInformationSequence if ref is not None
+                                                       and "RadiopharmaceuticalInformationSequence" in ref
+                                                       else DicomSequence([]))
         _patient_orientation(base, ref)
     files = []
     for k in range(arr.shape[2]):

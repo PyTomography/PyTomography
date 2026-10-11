@@ -273,6 +273,40 @@ def test_projection_reader_applies_rescale(tmp_path, data_dir):
     assert torch.allclose(scaled, plain * 2.5 + 3.0)
 
 
+def test_required_attributes_without_a_reference(tmp_path):
+    """Without a reference (simulated PET, a micro-CT sample), PET has the required, empty Radiopharmaceutical
+    Information Sequence and CT the required, empty Patient Position, as the standard's validator asks."""
+    pt = pydicom.dcmread(str(save_dicom(_image(), tmp_path / "pt", affine=AFFINES[0], modality="PT")[0]))
+    assert "RadiopharmaceuticalInformationSequence" in pt and len(pt.RadiopharmaceuticalInformationSequence) == 0
+    ct = pydicom.dcmread(str(save_dicom(_image(), tmp_path / "ct", affine=AFFINES[0], modality="CT", units="1/mm")[0]))
+    assert "PatientPosition" in ct and ct.PatientPosition == ""
+
+
+def test_reference_values_dicom_does_not_allow_are_left_empty(tmp_path):
+    """An anonymised reference with "0" for the birth date, sex and age: the series gets them empty (the reference is
+    untouched), and the retired Other Patient IDs and Ethnic Group are not copied."""
+    ref = pydicom.Dataset()
+    ref.PatientName, ref.PatientID = "Anon", "0"
+    ref.PatientBirthDate, ref.PatientSex, ref.PatientAge = "0", "0", "0"
+    ref.OtherPatientIDs, ref.EthnicGroup = "X-1", "unknown"
+    ref.StudyInstanceUID, ref.FrameOfReferenceUID = pydicom.uid.generate_uid(), pydicom.uid.generate_uid()
+    [path] = save_dicom(_image(), tmp_path / "nm", affine=AFFINES[0], modality="NM", reference=ref)
+    ds = pydicom.dcmread(str(path))
+    assert (ds.PatientBirthDate, ds.PatientSex, ds.PatientAge) == ("", "", "")
+    assert "OtherPatientIDs" not in ds and "EthnicGroup" not in ds
+    assert (ds.PatientName, ds.StudyInstanceUID) == ("Anon", ref.StudyInstanceUID)
+    assert ref.PatientBirthDate == "0"
+    ref.PatientBirthDate, ref.PatientSex, ref.PatientAge = "19700101", "F", "055Y"
+    [path] = save_dicom(_image(), tmp_path / "nm", affine=AFFINES[0], modality="NM", reference=ref, overwrite=True)
+    ds = pydicom.dcmread(str(path))
+    assert (ds.PatientBirthDate, ds.PatientSex, ds.PatientAge) == ("19700101", "F", "055Y")
+
+
+def test_nm_units_in_megabecquerel_seconds(tmp_path):
+    [path] = save_dicom(_image(), tmp_path / "nm", affine=AFFINES[0], modality="NM", units="MBq.s")
+    assert pydicom.dcmread(str(path)).RealWorldValueMappingSequence[0].MeasurementUnitsCodeSequence[0].CodeValue == "MBq.s"
+
+
 def test_ct_in_other_units_keeps_fractions(tmp_path):
     """CT in HU is rounded to whole HU; attenuation per mm (micro-CT) keeps its fractional values."""
     mu = _image() / 2000                                                        # about 0 to 0.2 per mm
