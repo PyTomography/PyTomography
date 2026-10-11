@@ -14,7 +14,7 @@ It runs on the CPU and allocates no full-size array: the library's estimates are
 metadata and tiny or 'meta' tensors standing in for the data (only shapes, dtypes and devices are read). Estimates for a
 CUDA device are made without a GPU as PyTorch's tests of them are: ``pytomography.device`` is set to CUDA,
 ``torch.cuda.mem_get_info`` gives the free memory of the configuration, and tensors that would be on the GPU report it
-(their ``device`` is CUDA, or they are marked). A few 'mapping checks' first build the real objects at small size
+(their ``device`` is CUDA, or they are marked); ``memory.projector_uses_gpu`` says what the configuration says. A few 'mapping checks' first build the real objects at small size
 (sinogram metadata, a lazy sinogram from events, a list mode system matrix, a KEM transform) to show that the
 stand-ins give the library's numbers.
 
@@ -104,7 +104,7 @@ def simulate(p: dict):
     from pytomography.utils import _sss_cuda, sss
     from pytomography.projectors.CT import _wfbp_cuda
     saved = (pytomography.device, pytomography.memory_budget, memory.counts_gpu_as_ram, torch.cuda.mem_get_info,
-             _sss_cuda.available, _wfbp_cuda.available)
+             _sss_cuda.available, _wfbp_cuda.available, memory.projector_uses_gpu)
     cuda = p.get('device', 'cuda') == 'cuda'
     cupy = bool(p.get('cupy', True))
     pytomography.device = torch.device('cuda' if cuda else 'cpu')
@@ -116,12 +116,15 @@ def simulate(p: dict):
     torch.cuda.mem_get_info = lambda device=None: (free, 96e9)
     _sss_cuda.available = lambda device, num_tof_bins: torch.device(device).type == 'cuda' and num_tof_bins <= _sss_cuda.MAX_TOF_BINS and cupy
     _wfbp_cuda.available = lambda device: torch.device(device).type == 'cuda' and cupy
+    # parallelproj's CUDA build on a visible GPU, with PyTomography on the CPU
+    uses_gpu = bool(p.get('projector_uses_gpu', False))
+    memory.projector_uses_gpu = lambda device=None: uses_gpu and torch.device(pytomography.device if device is None else device).type != 'cuda'
     _patch_nbytes()
     try:
         yield
     finally:
         (pytomography.device, pytomography.memory_budget, memory.counts_gpu_as_ram, torch.cuda.mem_get_info,
-         _sss_cuda.available, _wfbp_cuda.available) = saved
+         _sss_cuda.available, _wfbp_cuda.available, memory.projector_uses_gpu) = saved
 
 
 def _algorithm(name: str, system_matrix, projections=None, additive=None, prior: bool = False):
@@ -451,6 +454,33 @@ def _psf_kernels(transforms) -> list:
     return out
 
 
+def _set_kernel_sizes(transforms, mean: float, largest: int | None, on_gpu: bool) -> None:
+    """Gives the Gaussian PSF layers of ``transforms`` the 1D kernel sizes of a configuration that states them (the
+    tutorials' reference cases, whose kernels come from their collimators and orbits): their mean ``mean`` over the
+    radii and both axes and, if given, the largest ``largest`` (that of the first radius). Only the layers' convolution
+    weights change, to zeros of those sizes (the estimates read their sizes, not their values)."""
+    from pytomography.transforms.SPECT import SPECTPSFTransform
+    from pytomography.transforms.SPECT.psf import Seperable1DBlurNet
+    layers = [layer for t in transforms if isinstance(t, SPECTPSFTransform)
+              for layer in t.layers.values() if isinstance(layer, Seperable1DBlurNet)]
+    if not layers:
+        return
+    slots = 2 * len(layers)                                 # a radial and an axial kernel per radius
+    total = int(round(2 * mean * len(layers)))
+    sizes = []
+    if largest is not None:
+        sizes, total, slots = [int(largest), int(largest)], total - 2 * int(largest), slots - 2
+    base, extra = divmod(total, slots)
+    sizes += [base + (1 if i < extra else 0) for i in range(slots)]
+    for i, layer in enumerate(layers):
+        for axis, k in (('layer_r', sizes[2 * i]), ('layer_z', sizes[2 * i + 1])):
+            conv = getattr(layer, axis)
+            if conv is not None:
+                conv.weight = torch.nn.Parameter(torch.zeros(conv.weight.shape[0], 1, k), requires_grad=False)
+                conv.kernel_size = (k,)
+                mark(conv.weight, on_gpu)
+
+
 def _spect_system_matrix(p):
     """A real SPECTSystemMatrix of the configuration (attenuation, Gaussian PSF or a PSF operator), built on the CPU;
     its Gaussian kernel sizes go into ``p['psf_kernel']`` (their mean, which is what the model's parameter is)."""
@@ -473,6 +503,8 @@ def _spect_system_matrix(p):
             transforms.append(SPECTPSFTransform(psf_operator=object(), cache_kernel=bool(p['cache_kernel'])))
         sm = SPECTSystemMatrix(transforms, [], object_meta, proj_meta, object_initial_based_on_camera_path=bool(p['camera_path']))
     _mark_transforms(transforms, p['device'] == 'cuda')
+    if p.get('_kernels_given'):
+        _set_kernel_sizes(transforms, float(p['psf_kernel']), None, p['device'] == 'cuda')
     kernels = _psf_kernels(transforms)
     if kernels:
         p['psf_kernel'] = sum(r + z for r, z in kernels) / (2 * len(kernels))
@@ -553,6 +585,9 @@ def build_starguide(p):
             transforms.append(SPECTPSFTransform(SPECTPSFMeta((0.02, 0.05)), assume_padded=False))
         sm = StarGuideSystemMatrix(object_meta, proj_meta, obj2obj_transforms=transforms)
     _mark_transforms(transforms, p['device'] == 'cuda')
+    if p.get('_kernels_given'):
+        mean = p['psf_kernel'] if p.get('psf_kernel_mean') is None else p['psf_kernel_mean']
+        _set_kernel_sizes(transforms, float(mean), int(p['psf_kernel']), p['device'] == 'cuda')
     kernels = _psf_kernels(transforms)
     if kernels:
         p['psf_kernel'] = max(max(r, z) for r, z in kernels)
@@ -608,6 +643,8 @@ def build_spect_simind(p):
         dualhead_system_matrix.shutil.which = which
     mark(amap, p['device'] == 'cuda')
     _mark_transforms(sm.obj2obj_transforms, p['device'] == 'cuda')   # configured again by this system matrix
+    if p.get('_kernels_given'):
+        _set_kernel_sizes(sm.obj2obj_transforms, float(p['psf_kernel']), None, p['device'] == 'cuda')
     projections, additive = _spect_data(p)
     return _with_prior_weight(_algorithm(p['algorithm'], sm, projections, additive, p['prior']), p)
 
@@ -660,7 +697,7 @@ def _sample(base: dict, axes: dict, n: int, seed: int) -> list:
 
 
 # --------------------------------------------------------------------------------------------------- the grids
-DEVICES = {'device': ['cuda', 'cpu'], 'os': ['windows', 'linux']}
+DEVICES = {'device': ['cuda', 'cpu'], 'os': ['windows', 'linux'], 'projector_uses_gpu': [False, True]}
 
 
 def grid_pet_sinogram(quick: bool) -> list:
@@ -1041,9 +1078,13 @@ def check_reference_cases(model: MemoryModel, js_cases: list) -> tuple:
         p = {q['name']: q.get('default') for q in model._params_of(m)}
         p.update(reference.get('defaults', {}))
         p.update(case['params'])
+        stated = {k: p[k] for k in ('psf_kernel', 'psf_kernel_mean') if k in case['params']}
+        p['_kernels_given'] = bool(stated)                   # the tutorial's PSF kernel sizes, not a synthetic orbit's
         checker = CHECKERS[case['model']]
         with simulate(p):
             lib = checker.estimate(checker.build(p), case['settings'])
+        for k, v in stated.items():                          # the builder realises them exactly
+            assert abs(p[k] - v) < 1e-9, (case['id'], k, p[k], v)
         params = {k: v for k, v in p.items() if k in names}
         mine = model.estimate(case['model'], params, case['settings'])
         js_cases.append({'kind': 'estimate', 'model': case['model'], 'params': params, 'settings': case['settings']})

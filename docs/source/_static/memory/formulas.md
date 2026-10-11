@@ -19,21 +19,33 @@ Each part is in RAM or on the GPU.
 "On the device" means on the GPU when PyTomography's device is CUDA, and in RAM when it is the CPU.
 An array you pass in counts at its own size: a view (e.g. one energy window of a stacked tensor) counts as itself, not as the tensor it is taken from.
 
-Three overheads are added to every estimate:
+Four overheads are added to every estimate:
 
-- **Python, PyTorch and CUDA**: $F = 3.7$ GB with a CUDA device, $2.2$ GB without (measured on Windows).
-- **PyTorch's GPU cache**: $0.05$ GB plus 20% of the GPU arrays, if there are any.
+- **Python, PyTorch and CUDA** (RAM): $F = 3.7$ GB with a CUDA device, $2.2$ GB without (measured on Windows).
+  PET, CT and the scatter estimate project with parallelproj. Its CUDA build runs on a visible CUDA GPU even when
+  PyTomography's device is the CPU, and makes a CUDA context there (`projector_uses_gpu()`): they take 3.7 GB then too.
+- **The CUDA context and libraries** (GPU, CUDA device only): $0.65$ GB that nvidia-smi shows and PyTorch does not.
+  On Windows it is also part of the 3.7 GB, so there $F = 3.7 - 0.65 = 3.05$ GB and the RAM is the same.
+- **PyTorch's GPU cache**: $0.05$ GB plus 35% of the GPU arrays, if there are any.
 - **Memory the allocators keep (Windows only)**: a fraction $a$ of all the arrays, RAM and GPU.
   $a = 0.35$, and $a = 0.6$ for PET (sinogram, list mode, scatter), measured on the PET tutorials.
 
 On Windows, GPU memory that PyTorch holds also counts as the process's RAM. So the RAM there includes the GPU.
 
 ```math
-\mathrm{GPU} = G + [G > 0]\,(0.05\,\mathrm{GB} + 0.2\,G), \qquad G = \sum_{\text{parts}} g_p
+\mathrm{GPU} = G + [\text{CUDA}]\,0.65\,\mathrm{GB} + [G > 0]\,(0.05\,\mathrm{GB} + 0.35\,G), \qquad G = \sum_{\text{parts}} g_p
 ```
 
 ```math
 \mathrm{RAM} = \sum_{\text{parts}} r_p + F + [\text{Windows}]\left(a \sum_{\text{parts}} (r_p + g_p) + \mathrm{GPU}\right)
+```
+
+```math
+F = \begin{cases}
+3.7\,\mathrm{GB} - [\text{Windows}]\,0.65\,\mathrm{GB} & \text{CUDA device} \\
+3.7\,\mathrm{GB} & \text{CPU device, PET, CT or scatter, parallelproj on a visible GPU} \\
+2.2\,\mathrm{GB} & \text{otherwise}
+\end{cases}
 ```
 
 Some steps split their work by a GPU budget.
@@ -379,23 +391,25 @@ The SPECT parts (it always starts from the camera path), then, for $\omega$ ener
 - Whatever else the script keeps: other images, earlier reconstructions, data not passed to the reconstruction,
   the larger tensor a view you pass in is taken from.
 - Callbacks (`DataStorageCallback`).
-- CUDA's library workspaces (cuFFT plans, cuBLAS) and the fragmentation of PyTorch's cache beyond the allowance above.
+- CUDA's library workspaces (cuFFT plans, cuBLAS) beyond the context's 0.65 GB, and the fragmentation of PyTorch's
+  cache beyond the allowance above.
 
 Some estimates are well above what was measured. They are left so: they are on the safe side.
 The measured peaks are those of the whole tutorial (Windows, RTX 5090, 10 Oct 2026), which also holds everything
-else the tutorial keeps. Estimate against measured, RAM / GPU in GB:
+else the tutorial keeps. The measured GPU memory is PyTorch's peak allocated: it leaves out the CUDA context
+(0.65 GB) and PyTorch's cache, which the estimates count. Estimate against measured, RAM / GPU in GB:
 
 | Estimate | Tutorial | Estimate | Measured (whole tutorial) |
 |---|---|---|---|
-| single scatter simulation, non-TOF sinogram | t_PETGATE_scat_sino | 25.0 / 5.2 | 23.7 / 1.7 |
-| single scatter simulation, 21 TOF bins, lazy | t_PETGATE_scat_sinoTOF | 21.4 / 6.8 | 19.8 / 5.6 |
-| single scatter simulation, list mode | t_PETGATE_scat_lm | 29.5 / 5.2 | 22.1 / 3.2 |
-| single scatter simulation, list mode, 21 TOF bins | t_PETGATE_scat_lmTOF | 24.9 / 4.8 | 22.9 / 5.2 |
-| single scatter simulation, list mode | t_PETSIRD | 28.7 / 6.2 | 21.9 / 2.9 |
-| StarGuide OSEM 10 x 10 | t_starguide | 8.1 / 3.4 | 5.3 / 1.1 |
-| SPECT with a PSF operator, OSEM 100 x 3 | t_ac225_dicom_recon | 4.8 / 0.9 | 4.9 / 0.5 |
-| SPECT with a PSF operator, OSEM 50 x 4 | t_ac225_simind_recon | 4.9 / 0.9 | 4.3 / 0.5 |
+| single scatter simulation, non-TOF sinogram | t_PETGATE_scat_sino | 25.6 / 6.5 | 23.7 / 1.7 |
+| single scatter simulation, 21 TOF bins, lazy | t_PETGATE_scat_sinoTOF | 22.2 / 8.3 | 19.8 / 5.6 |
+| single scatter simulation, list mode | t_PETGATE_scat_lm | 30.1 / 6.5 | 22.1 / 3.2 |
+| single scatter simulation, list mode, 21 TOF bins | t_PETGATE_scat_lmTOF | 25.5 / 6.0 | 22.9 / 5.2 |
+| single scatter simulation, list mode | t_PETSIRD | 29.5 / 7.6 | 21.9 / 2.9 |
+| StarGuide OSEM 10 x 10 | t_starguide | 6.5 / 2.9 | 5.3 / 1.1 |
+| SPECT with a PSF operator, OSEM 100 x 3 | t_ac225_dicom_recon | 4.9 / 1.6 | 4.9 / 0.5 |
+| SPECT with a PSF operator, OSEM 50 x 4 | t_ac225_simind_recon | 5.0 / 1.7 | 4.3 / 0.5 |
 
 The single scatter simulation's estimate is above the peak of the whole tutorial, of which it is one step.
-StarGuide's estimate is about 1.5 times the RAM and 3 times the GPU memory measured.
-With a PSF operator, the GPU estimate is about twice what was measured.
+StarGuide's estimate is about 1.2 times the RAM and 2.6 times the GPU memory measured.
+With a PSF operator, the GPU estimate is about 3 times PyTorch's measured peak.
