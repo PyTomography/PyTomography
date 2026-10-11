@@ -5,7 +5,7 @@ import torch
 import numpy as np
 import pytomography
 from pytomography.utils import get_1d_gaussian_kernel
-from pytomography.utils.memory import block_size, prefer_lazy
+from pytomography.utils.memory import block_size, prefer_lazy, tensor_nbytes
 
 _GEOMETRY_CACHE: dict = {}
 
@@ -357,7 +357,7 @@ class LazySinogram:
             other_at = lambda angles: other[angles.to(other.device)].to(self.device)
             other_on = lambda angles, device: other[angles.to(other.device)].to(device)
             shape = torch.broadcast_shapes(self.shape, other.shape)
-            other_bytes = other.untyped_storage().nbytes() if other.device.type == 'cpu' else 0
+            other_bytes = tensor_nbytes(other) if other.device.type == 'cpu' else 0
         elif isinstance(other, (int, float, np.number)) or (isinstance(other, torch.Tensor) and other.ndim == 0):
             other_at = lambda angles: other
             other_on = lambda angles, device: other

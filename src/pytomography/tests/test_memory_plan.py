@@ -264,6 +264,80 @@ def test_pet_listmode_plan(monkeypatch, gpu_as_ram):
     _roundtrip(plan)
 
 
+def _on(monkeypatch, device: str):
+    """Estimates for a CUDA or a CPU device, whatever this machine has: the device, and for CUDA the free GPU memory
+    the GPU budget of a chunked step reads (30 GB)."""
+    monkeypatch.setattr(pytomography, "device", torch.device(device))
+    if device == 'cuda':
+        monkeypatch.setattr(torch.cuda, "mem_get_info", lambda device=None: (30e9, 32e9))
+
+
+@pytest.mark.parametrize("model", ["pet sinogram", "pet list mode"])
+def test_pet_estimates_on_a_cpu_device_are_in_ram_and_plans_fit_without_a_gpu(model, monkeypatch):
+    """With PyTomography on the CPU, the images and the projector's chunk of a PET reconstruction are in RAM: the
+    estimate has no GPU memory (and no allowance for PyTorch's CUDA cache), and a plan fits with a GPU budget of 0. The
+    parts are the same arrays as on a CUDA device, where they are GPU memory; and on Windows, where that GPU memory
+    counts as RAM too, a CUDA plan chooses the settings the CPU plan chooses for the same arrays."""
+    sm = _pet_sinogram_system_matrix() if model == "pet sinogram" else _pet_listmode_system_matrix(monkeypatch)
+    monkeypatch.setattr(memory, "counts_gpu_as_ram", lambda: True)
+    _on(monkeypatch, 'cpu')
+    cpu = {s: sm.estimate_memory(*s) for s in ((1, 1), (4, 2), (8, 1))}
+    assert all(e.gpu_gb == 0 and all('GPU cache' not in p.name for p in e.parts) for e in cpu.values())
+    plan = sm.plan_memory(ram_gb=1000, gpu_gb=0)
+    assert plan.fits and plan.settings == {'N_splits': 1, 'n_subsets': 1}
+    _on(monkeypatch, 'cuda')
+    cuda = {s: sm.estimate_memory(*s) for s in cpu}
+    for s in cpu:
+        arrays = lambda e: {p.name: p.ram_bytes + p.gpu_bytes for p in e.parts if p.scope != 'overhead'}
+        assert arrays(cuda[s]) == arrays(cpu[s])                      # the same arrays, only where they are differs
+        on_gpu = {p.name for p in cuda[s].parts if p.gpu_bytes > 0 and p.scope != 'overhead'}
+        assert any(name.startswith(('normalisation images', 'sensitivity and normalisation images')) for name in on_gpu)
+        assert {'image, update and attenuation map', 'projector chunk'} <= on_gpu
+    # the budgets of the arrays of 4 subsets and 2 splits on each device: both plans choose those settings
+    _on(monkeypatch, 'cpu')
+    plan_cpu = sm.plan_memory(ram_gb=cpu[(4, 2)].ram_gb + 1e-9, gpu_gb=0)
+    _on(monkeypatch, 'cuda')
+    plan_cuda = sm.plan_memory(ram_gb=cuda[(4, 2)].ram_gb + 1e-9, gpu_gb=math.inf)
+    assert plan_cpu.fits and plan_cuda.fits and plan_cpu.settings == plan_cuda.settings
+    assert sm.estimate_memory(**plan_cuda.settings).ram_gb <= cuda[(4, 2)].ram_gb + 1e-9
+
+
+def test_list_mode_counts_the_detector_ids_of_its_sensitivity_weights(monkeypatch):
+    """A list mode system matrix given the lines of response of its sensitivity (detector_ids_sensitivity, which the
+    GE HDF5 reader gives) keeps their detector IDs: they are counted, where they are."""
+    pytest.importorskip("parallelproj_core")
+    from pytomography.metadata.PET import PETLMProjMeta
+    from pytomography.projectors.PET import PETLMSystemMatrix
+    monkeypatch.setattr(PETLMSystemMatrix, "_backward_full", lambda self, N_splits=20: torch.zeros(self.object_meta.shape))
+    gen = torch.Generator().manual_seed(0)
+    n = INFO['NrCrystalsPerRing'] * INFO['NrRings']
+    d0 = torch.randint(0, n, (3000,), generator=gen)
+    ids = torch.stack([d0, (d0 + n // 2) % n], dim=1)
+    pairs = torch.combinations(torch.arange(n, dtype=torch.int32))[:20000]
+    proj_meta = PETLMProjMeta(ids, INFO, detector_ids_sensitivity=pairs, weights_sensitivity=torch.rand(20000))
+    sm = PETLMSystemMatrix(PET_OBJECT, proj_meta, N_splits=2, device='cpu', lor_device='cpu')
+    parts = _parts(sm.estimate_memory(4))
+    assert parts['detector IDs of the sensitivity weights'].ram_bytes == 20000 * 2 * 4
+    assert parts['sensitivity weights'].ram_bytes == 20000 * 4
+    without = PETLMSystemMatrix(PET_OBJECT, PETLMProjMeta(ids, INFO), N_splits=2, device='cpu', lor_device='cpu')
+    assert 'detector IDs of the sensitivity weights' not in _parts(without.estimate_memory(4))
+
+
+def test_a_view_counts_at_its_own_size():
+    """A view of a larger tensor counts at its own size: the larger tensor is the caller's (e.g. the projections of
+    every energy window, of which a reconstruction gets one). An expanded view counts no more than what it repeats."""
+    windows = torch.zeros(3, 60, 32, 16)
+    assert memory.nbytes(windows[1]) == (4.0 * 60 * 32 * 16, 0.0)
+    assert memory.nbytes(windows) == (4.0 * 3 * 60 * 32 * 16, 0.0)
+    x = torch.arange(5.0)
+    holder = type('Holder', (), {})()
+    holder.grid = x[None].expand(1000, 5)
+    holder.ids = torch.zeros(100, 3, dtype=torch.int64)[:, :2]
+    assert memory.tensor_bytes(holder) == (4.0 * 5 + 8.0 * 100 * 2, 0.0)
+    sm = _spect(psf=False)                                    # a reconstruction given one window of three
+    assert _parts(sm.estimate_memory(4, held={'photopeak': windows[1]}))['photopeak'].ram_bytes == 4.0 * 60 * 32 * 16
+
+
 def test_ct_plan_finds_the_fewest_subsets_when_memory_rises_with_them():
     pytest.importorskip("parallelproj_core")
     from pytomography.projectors.CT import CTGen3SystemMatrix

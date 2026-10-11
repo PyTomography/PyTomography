@@ -286,19 +286,35 @@ def memory_estimate(title: str, parts: Sequence[MemoryPart], alternatives: Seque
     return MemoryEstimate(title, with_overheads(parts), others, settings=settings)
 
 
+def tensor_nbytes(x: torch.Tensor) -> float:
+    """Bytes of a tensor's own elements: its number of elements times their size. A view counts at its own size, not
+    its base tensor's: a larger base (e.g. the projections of every energy window that ``photopeak = projections[0]``
+    is taken from) is kept by the caller, not by the computation. An expanded view (stride 0) counts no more than the
+    storage it repeats.
+
+    Args:
+        x (torch.Tensor): The tensor.
+
+    Returns:
+        float: Bytes.
+    """
+    return float(min(x.numel() * x.element_size(), x.untyped_storage().nbytes()))
+
+
 def nbytes(x) -> tuple[float, float]:
-    """Memory an array keeps, as (RAM bytes, GPU bytes): a tensor's storage on its device, or what a
-    :class:`~pytomography.io.PET.shared.LazySinogram` keeps (``memory_bytes``, on the host); 0 for anything else."""
+    """Memory an array keeps, as (RAM bytes, GPU bytes): a tensor's elements (:func:`tensor_nbytes`) on its device, or
+    what a :class:`~pytomography.io.PET.shared.LazySinogram` keeps (``memory_bytes``, on the host); 0 for anything
+    else."""
     if isinstance(x, torch.Tensor):
-        size = x.untyped_storage().nbytes()
-        return (0.0, float(size)) if x.device.type == 'cuda' else (float(size), 0.0)
+        size = tensor_nbytes(x)
+        return (0.0, size) if x.device.type == 'cuda' else (size, 0.0)
     return float(getattr(x, 'memory_bytes', 0)), 0.0
 
 
 def tensor_bytes(obj, exclude: Sequence[str] = ()) -> tuple[float, float]:
     """Memory the tensors an object keeps as attributes take, as (RAM bytes, GPU bytes): its tensor attributes and the
-    tensors in its list, tuple and dict attributes (one level deep), each storage counted once. Estimates use it for the
-    arrays of transforms they do not know in detail.
+    tensors in its list, tuple and dict attributes (one level deep), each at its own size (:func:`tensor_nbytes`) and
+    each counted once. Estimates use it for the arrays of transforms they do not know in detail.
 
     Args:
         obj: Any object (None gives 0).
@@ -312,8 +328,7 @@ def tensor_bytes(obj, exclude: Sequence[str] = ()) -> tuple[float, float]:
     def add(x):
         nonlocal ram, gpu
         if isinstance(x, torch.Tensor):
-            storage = x.untyped_storage()
-            key = (str(x.device), storage.data_ptr(), storage.nbytes())
+            key = (str(x.device), x.data_ptr(), tensor_nbytes(x))
             if key not in seen:
                 seen.add(key)
                 r, g = nbytes(x)
