@@ -192,61 +192,58 @@ tutorials:
     - {name: OSEM, label: OSEM 4 × 8, kind: spect, array: recon_osem, affine: object_meta.affine_matrix, units: counts}
 
   # ---------- PET ----------
+  # The GATE tutorials show the phantom's MR on their own grid: read_gate placed the grid on it (the dataset registry),
+  # and .on() averages the 0.4 mm MR over each 2 mm voxel, so the viewer gets 6 MB instead of 540 MB.
   t_pet_introduction:
     title: FDG brain phantom (GATE, Siemens mMR)
     description: The same true coincidences reconstructed as list mode and as sinograms, over the phantom's MR
     credit: GATE simulation of the BigBrain FDG phantom (Belzunce and Reader 2020, Zenodo 8045458, CC BY 4.0)
-    setup: import os
     layers:
-    - {name: MR, kind: mr, array: "vx.nifti_centred(os.path.join(path, 'fdg_pet_phantom_mri.nii.gz'), 2.0)", crop: body, units: a.u.}
-    - {name: List mode, kind: pet, array: recon_lm, affine: vx.object_affine(object_meta), units: a.u.}
-    - {name: Sinogram, kind: pet, array: recon_sino, affine: vx.object_affine(object_meta), units: a.u.}
-    - {name: MLEM list mode, kind: pet, array: mlem_lm, affine: vx.object_affine(object_meta), units: a.u.}
-    - {name: MLEM sinogram, kind: pet, array: mlem_sino, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: MR, kind: mr, array: "io.load_image(path / 'fdg_pet_phantom_mri.nii.gz').on(object_meta)", affine: object_meta.affine, crop: body, units: a.u.}
+    - {name: List mode, kind: pet, array: recon_lm, affine: object_meta.affine, units: a.u.}
+    - {name: Sinogram, kind: pet, array: recon_sino, affine: object_meta.affine, units: a.u.}
+    - {name: MLEM list mode, kind: pet, array: mlem_lm, affine: object_meta.affine, units: a.u.}
+    - {name: MLEM sinogram, kind: pet, array: mlem_sino, affine: object_meta.affine, units: a.u.}
 
   t_PETGATE_scat_sino:
     title: FDG brain phantom, sinogram with scatter
     description: Non-TOF sinogram reconstruction with scatter and randoms correction, next to the true coincidences only
     credit: GATE simulation of the BigBrain FDG phantom (Belzunce and Reader 2020, Zenodo 8045458, CC BY 4.0)
-    setup: import os
     layers:
-    - {name: MR, kind: mr, array: "vx.nifti_centred(os.path.join(path, 'fdg_pet_phantom_mri.nii.gz'), 2.0)", crop: body, units: a.u.}
-    - {name: Corrected, label: Scatter and randoms corrected, kind: pet, array: recon_sinogram_noTOF, affine: vx.object_affine(object_meta), units: a.u.}
-    - {name: Trues, label: True coincidences only, kind: pet, array: recon_primaryonly, affine: vx.object_affine(object_meta), units: a.u.}
-    - {name: Uncorrected, label: No scatter correction, kind: pet, array: recon_without_scatter_estimation, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: MR, kind: mr, array: "io.load_image(path / 'fdg_pet_phantom_mri.nii.gz').on(object_meta)", affine: object_meta.affine, crop: body, units: a.u.}
+    - {name: Corrected, label: Scatter and randoms corrected, kind: pet, array: recon_sinogram_noTOF, affine: object_meta.affine, units: a.u.}
+    - {name: Trues, label: True coincidences only, kind: pet, array: recon_primaryonly, affine: object_meta.affine, units: a.u.}
+    - {name: Uncorrected, label: No scatter correction, kind: pet, array: recon_without_scatter_estimation, affine: object_meta.affine, units: a.u.}
 
   t_PETGATE_scat_sinoTOF:
     title: FDG brain phantom, TOF sinogram with scatter
     description: Time-of-flight sinogram reconstruction with TOF scatter estimation
     credit: GATE simulation of the BigBrain FDG phantom (Belzunce and Reader 2020, Zenodo 8045458, CC BY 4.0)
-    setup: import os
     layers:
-    - {name: MR, kind: mr, array: "vx.nifti_centred(os.path.join(path, 'fdg_pet_phantom_mri.nii.gz'), 2.0)", crop: body, units: a.u.}
-    - {name: Corrected, label: Scatter and randoms corrected, kind: pet, array: recon_sinogram_TOF, affine: vx.object_affine(object_meta), units: a.u.}
-    - {name: Trues, label: True coincidences only, kind: pet, array: recon_primaryonly, affine: vx.object_affine(object_meta), units: a.u.}
-    - {name: Uncorrected, label: No scatter correction, kind: pet, array: recon_without_scatter_estimation, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: MR, kind: mr, array: "io.load_image(path / 'fdg_pet_phantom_mri.nii.gz').on(object_meta)", affine: object_meta.affine, crop: body, units: a.u.}
+    - {name: Corrected, label: Scatter and randoms corrected, kind: pet, array: recon_sinogram_TOF, affine: object_meta.affine, units: a.u.}
+    - {name: Trues, label: True coincidences only, kind: pet, array: recon_primaryonly, affine: object_meta.affine, units: a.u.}
+    - {name: Uncorrected, label: No scatter correction, kind: pet, array: recon_without_scatter_estimation, affine: object_meta.affine, units: a.u.}
 
   t_PETGATE_scat_lm:
     title: FDG brain phantom, list mode with scatter
     description: Non-TOF list-mode reconstruction with scatter and randoms correction
     credit: GATE simulation of the BigBrain FDG phantom (Belzunce and Reader 2020, Zenodo 8045458, CC BY 4.0)
-    setup: import os
     layers:
-    - {name: MR, kind: mr, array: "vx.nifti_centred(os.path.join(path, 'fdg_pet_phantom_mri.nii.gz'), 2.0)", crop: body, units: a.u.}
-    - {name: Corrected, label: Scatter and randoms corrected, kind: pet, array: recon_lm_nontof, affine: vx.object_affine(object_meta), units: a.u.}
-    - {name: Trues, label: True coincidences only, kind: pet, array: recon_primaryonly, affine: vx.object_affine(object_meta), units: a.u.}
-    - {name: Uncorrected, label: No scatter correction, kind: pet, array: recon_without_scatter_estimation, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: MR, kind: mr, array: "io.load_image(path / 'fdg_pet_phantom_mri.nii.gz').on(object_meta)", affine: object_meta.affine, crop: body, units: a.u.}
+    - {name: Corrected, label: Scatter and randoms corrected, kind: pet, array: recon_lm_nontof, affine: object_meta.affine, units: a.u.}
+    - {name: Trues, label: True coincidences only, kind: pet, array: recon_primaryonly, affine: object_meta.affine, units: a.u.}
+    - {name: Uncorrected, label: No scatter correction, kind: pet, array: recon_without_scatter_estimation, affine: object_meta.affine, units: a.u.}
 
   t_PETGATE_scat_lmTOF:
     title: FDG brain phantom, TOF list mode with scatter
     description: Time-of-flight list-mode reconstruction with TOF scatter estimation
     credit: GATE simulation of the BigBrain FDG phantom (Belzunce and Reader 2020, Zenodo 8045458, CC BY 4.0)
-    setup: import os
     layers:
-    - {name: MR, kind: mr, array: "vx.nifti_centred(os.path.join(path, 'fdg_pet_phantom_mri.nii.gz'), 2.0)", crop: body, units: a.u.}
-    - {name: Corrected, label: Scatter and randoms corrected, kind: pet, array: recon_lm_tof, affine: vx.object_affine(object_meta), units: a.u.}
-    - {name: Trues, label: True coincidences only, kind: pet, array: recon_primaryonly, affine: vx.object_affine(object_meta), units: a.u.}
-    - {name: Uncorrected, label: No scatter correction, kind: pet, array: recon_without_scatter_estimation, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: MR, kind: mr, array: "io.load_image(path / 'fdg_pet_phantom_mri.nii.gz').on(object_meta)", affine: object_meta.affine, crop: body, units: a.u.}
+    - {name: Corrected, label: Scatter and randoms corrected, kind: pet, array: recon_lm_tof, affine: object_meta.affine, units: a.u.}
+    - {name: Trues, label: True coincidences only, kind: pet, array: recon_primaryonly, affine: object_meta.affine, units: a.u.}
+    - {name: Uncorrected, label: No scatter correction, kind: pet, array: recon_without_scatter_estimation, affine: object_meta.affine, units: a.u.}
 
   t_GE_HDF5:
     title: NEMA IQ phantom, GE Discovery MI
@@ -256,27 +253,26 @@ tutorials:
     # of view, three times the phantom's hottest sphere (0.52), so its maximum would leave both images almost black. The
     # 99.98th percentile (0.43 for BSREM, 0.44 for OSEM) lies above all but the spheres' hottest voxels.
     layers:
-    - {name: BSREM, kind: pet, array: recon_BSREM, affine: vx.object_affine(object_meta), units: a.u., range: [0, p99.98]}
-    - {name: OSEM, kind: pet, array: recon_OSEM, affine: vx.object_affine(object_meta), units: a.u., range: [0, p99.98]}
+    - {name: BSREM, kind: pet, array: recon_BSREM, affine: object_meta.affine, units: a.u., range: [0, p99.98]}
+    - {name: OSEM, kind: pet, array: recon_OSEM, affine: object_meta.affine, units: a.u., range: [0, p99.98]}
 
   t_uncertainty_pet:
     title: NEMA IQ phantom, GE Discovery MI
     description: The OSEM reconstruction whose uncertainty the tutorial estimates
     credit: GE Discovery MI NEMA scan (Schramm, Zenodo 8404015, CC BY 4.0)
     layers:
-    - {name: OSEM, kind: pet, array: recon_OSEM, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: OSEM, kind: pet, array: recon_OSEM, affine: object_meta.affine, units: a.u.}
 
   t_PETSIRD:
     title: NEMA IQ phantom, Siemens Biograph mMR (PETSIRD)
     description: List-mode OSEM with and without scatter correction, over the scan's attenuation map
     credit: Siemens Biograph mMR scan of a NEMA IQ phantom (Thomas and Sanderson, UCL; Zenodo 1304454, CC BY-SA 4.0), converted to PETSIRD 0.9.1; these images are CC BY-SA 4.0 too
     layers:
-    # All three are on the tutorial's grid, whose axes are LPS turned by info['petsird_alignment_deg'] (0.35 degrees)
-    # about the scanner's axis (its grid_affine). The viewer takes only axis-aligned images, so the grid is placed
-    # unturned, which moves no voxel of the phantom by more than 1 mm.
-    - {name: Attenuation, kind: mu, array: mu_map, affine: vx.object_affine(object_meta), crop: body, units: 1/cm}
-    - {name: Scatter corrected, label: "OSEM, scatter and randoms corrected", kind: pet, array: recon_with_scatter, affine: vx.object_affine(object_meta), units: a.u.}
-    - {name: No scatter correction, label: "OSEM, randoms corrected, no scatter correction", kind: pet, array: recon_without_scatter, affine: vx.object_affine(object_meta), units: a.u.}
+    # All three are on the tutorial's grid, whose axes are the patient's (read_petsird turns its description of the
+    # scanner, not the grid)
+    - {name: Attenuation, kind: mu, array: attenuation_map, affine: object_meta.affine, crop: body, units: 1/mm}
+    - {name: Scatter corrected, label: "OSEM, scatter and randoms corrected", kind: pet, array: recon_with_scatter, affine: object_meta.affine, units: a.u.}
+    - {name: No scatter correction, label: "OSEM, randoms corrected, no scatter correction", kind: pet, array: recon_without_scatter, affine: object_meta.affine, units: a.u.}
 
   t_PETGATE_DIP:
     title: FDG brain phantom, Deep Image Prior
@@ -285,11 +281,11 @@ tutorials:
     layers:
     # DIP's grid is 1.25 mm (204 x 204 x 154): four PET images on it take about 27 MB, over the 15 MB budget, so they
     # are averaged 2 x 2 x 2 to 2.5 mm, the same grid for all four (about 1 MB each). The MR keeps 1.25 mm.
-    - {name: MR, kind: mr, array: mri_aligned, affine: vx.object_affine(object_meta), crop: body, units: a.u.}
-    - {name: DIP, label: Deep Image Prior, kind: pet, array: recon_DIP, affine: vx.object_affine(object_meta), voxel_mm: 2.5, units: a.u.}
-    - {name: OSEM, label: TOF list-mode OSEM, kind: pet, array: recon_lm_tof, affine: vx.object_affine(object_meta), voxel_mm: 2.5, units: a.u.}
-    - {name: OSEM filtered, label: "TOF list-mode OSEM, filtered", kind: pet, array: recon_lm_tof_filtered, affine: vx.object_affine(object_meta), voxel_mm: 2.5, units: a.u.}
-    - {name: Uncorrected, label: No scatter correction, kind: pet, array: recon_without_scatter_estimation, affine: vx.object_affine(object_meta), voxel_mm: 2.5, units: a.u.}
+    - {name: MR, kind: mr, array: mri_aligned, affine: object_meta.affine, crop: body, units: a.u.}
+    - {name: DIP, label: Deep Image Prior, kind: pet, array: recon_DIP, affine: object_meta.affine, voxel_mm: 2.5, units: a.u.}
+    - {name: OSEM, label: TOF list-mode OSEM, kind: pet, array: recon_lm_tof, affine: object_meta.affine, voxel_mm: 2.5, units: a.u.}
+    - {name: OSEM filtered, label: "TOF list-mode OSEM, filtered", kind: pet, array: recon_lm_tof_filtered, affine: object_meta.affine, voxel_mm: 2.5, units: a.u.}
+    - {name: Uncorrected, label: No scatter correction, kind: pet, array: recon_without_scatter_estimation, affine: object_meta.affine, voxel_mm: 2.5, units: a.u.}
 
   # ---------- CT ----------
   t_CT_GEN3:
@@ -301,12 +297,12 @@ tutorials:
     # 280 MB for the three (each about 150 MB in the reader's memory), so this tutorial's budget is raised
     max_mb: 300
     layers:
-    # Our grid in the patient's frame comes from the projections; both FBP images share it. The scanner's own images
-    # keep their grid, placed as the tutorial places them for its comparison (scanner_affine: GE's position is the
-    # corner of the first pixel), so switching between the images moves nothing.
-    - {name: CT, label: FBP, kind: ct, array: hu, affine: "proj_meta.get_patient_affine(object_meta).numpy()", window: soft, units: HU}
-    - {name: Matched, label: "FBP, advanced settings", kind: ct, array: hu_matched, affine: "proj_meta.get_patient_affine(object_meta).numpy()", window: soft, units: HU}
-    - {name: Scanner, label: Scanner's reconstruction, kind: ct, array: scanner, affine: scanner_affine, window: soft, units: HU}
+    # Our grid in the patient's frame comes from the projections (object_meta, from the reader with the scanner's table
+    # feed; the first FBP's grid lies 0.36 mm from it along the table). The scanner's own images keep their grid, as
+    # io.load_image places them, so switching between the images moves nothing.
+    - {name: CT, label: FBP, kind: ct, array: hu, affine: object_meta.affine, window: soft, units: HU}
+    - {name: Matched, label: "FBP, advanced settings", kind: ct, array: hu_matched, affine: object_meta.affine, window: soft, units: HU}
+    - {name: Scanner, label: Scanner's reconstruction, kind: ct, image: scanner, window: soft, units: HU}
 
   t_CT_microct:
     title: Glass beads, cone-beam micro-CT
@@ -316,8 +312,8 @@ tutorials:
     # the reader's memory), so this tutorial's budget is raised
     max_mb: 450
     layers:
-    - {name: SART, label: OS-SART, kind: mu, array: recon_sart, affine: "vx.centred(system_matrix.object_meta.dr, recon_sart.shape)", units: 1/mm}
-    - {name: FDK, kind: mu, array: recon_fdk, affine: "vx.centred(system_matrix.object_meta.dr, recon_fdk.shape)", units: 1/mm}
+    - {name: SART, label: OS-SART, kind: mu, array: recon_sart, affine: system_matrix.object_meta.affine, units: 1/mm}
+    - {name: FDK, kind: mu, array: recon_fdk, affine: system_matrix.object_meta.affine, units: 1/mm}
 
   t_fbp_ct:
     title: Chest CT, filtered back projection with two windows
@@ -325,13 +321,12 @@ tutorials:
     credit: TCIA LDCT-and-Projection-data, case C145 (CC BY 4.0; see TCIA's data usage policy)
     credit_url: https://www.cancerimagingarchive.net/collection/ldct-and-projection-data/
     # Full resolution, like t_CT_GEN3: every image on the grid it was reconstructed on, 0.66 x 0.66 x 1 mm. The
-    # scanner's images keep their own grid, placed with the tutorial's scanner_affine (GE's position is the corner of
-    # the first pixel).
+    # scanner's images keep their own grid, as io.load_image places them.
     max_mb: 350
     layers:
-    - {name: Hann, label: "FBP, Hann", kind: ct, array: hu, affine: ct_affine, window: soft, units: HU}
-    - {name: RamLak, label: "FBP, Ram-Lak", kind: ct, array: hu_ramlak, affine: ct_affine, window: soft, units: HU}
-    - {name: Scanner, label: Scanner's reconstruction, kind: ct, array: scanner, affine: scanner_affine, window: soft, units: HU}
+    - {name: Hann, label: "FBP, Hann", kind: ct, array: hu, affine: object_meta.affine, window: soft, units: HU}
+    - {name: RamLak, label: "FBP, Ram-Lak", kind: ct, array: hu_ramlak, affine: object_meta.affine, window: soft, units: HU}
+    - {name: Scanner, label: Scanner's reconstruction, kind: ct, image: scanner, window: soft, units: HU}
 
   # ---------- Building with PyTomography ----------
   t_examplesystemmatrix:
@@ -341,8 +336,8 @@ tutorials:
     layers:
     # The tutorial's last reconstructions, from its list-mode example (its `recon` has the same settings as
     # recon_1subset). Its voxels are 1.5 units of no stated length, placed here as mm.
-    - {name: 1 subset, label: "List-mode OSEM, 1 subset", kind: image, array: recon_1subset, affine: vx.object_affine(object_meta), units: a.u.}
-    - {name: 2 subsets, label: "List-mode OSEM, 2 subsets", kind: image, array: recon_2subsets, affine: vx.object_affine(object_meta), units: a.u.}
+    - {name: 1 subset, label: "List-mode OSEM, 1 subset", kind: image, array: recon_1subset, affine: object_meta.affine, units: a.u.}
+    - {name: 2 subsets, label: "List-mode OSEM, 2 subsets", kind: image, array: recon_2subsets, affine: object_meta.affine, units: a.u.}
 
   # t_dicom_algorithms has no entry: it is an unfinished draft that reconstructs nothing (its fourth cell does not
   # parse), it is not in tutorials.yaml, and conf.py leaves it out of the docs, so the runner never runs it.

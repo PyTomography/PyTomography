@@ -17,74 +17,49 @@ DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_da
 # Results go here, never into the data folder
 OUTPUT = datasets.output_dir("CT/SophiaBeads-256")
 
-import configparser
 import time
 import numpy as np
 import torch
-import torch.nn.functional as F
 import matplotlib.pyplot as plt
-from PIL import Image
 import pytomography
-from pytomography.metadata import ObjectMeta
+from pytomography import io
 from pytomography.metadata.CT import CTConeBeamFlatPanelProjMeta
 from pytomography.projectors.CT import CTConeBeamFlatPanelSystemMatrix
 from pytomography.algorithms import FilteredBackProjection, SART
 
 # Memory: the FDK and OS-SART reconstructions below print their estimates before they run (estimate_memory): their
-# peak RAM and GPU memory, what they are made of, and what to change to use less. They do not split their work by the
-# memory budget, so a lower RAM_GB changes nothing here; to use less RAM and GPU memory, set binning = 8 below (a grid
-# with eight times fewer voxels), or use fewer OS-SART subsets (each keeps an image on the GPU).
+# peak RAM and GPU memory, what they are made of, and what to change to use less. The tutorial peaks at about 13 GB of
+# RAM and 7 GB of GPU memory (measured on Windows). Its reconstructions do not split their work by the memory budget,
+# so a lower RAM_GB changes nothing here: with binning = 4 it needs about 13 GB whatever RAM_GB is. To use less RAM and
+# GPU memory, set binning = 8 below (a grid with eight times fewer voxels), or use fewer OS-SART subsets (each keeps an
+# image on the GPU).
 RAM_GB = 25
 pytomography.set_memory_budget(RAM_GB)
 
 # %% 1. The scan
 folder = DATA / 'CT' / 'SophiaBeads-256' / 'SophiaBeads_256_averaged'
-scan = configparser.ConfigParser()
-scan.optionxform = str  # keep the keys' capitals
-scan.read(folder / 'SophiaBeads_256_averaged.xtekct')
-scan = scan['XTekCT']
-source_to_axis = float(scan['SrcToObject'])      # mm
-source_to_detector = float(scan['SrcToDetector'])  # mm
-pixel = float(scan['DetectorPixelSizeX'])          # mm
-white_level = float(scan['WhiteLevel'])            # detector reading with nothing in the beam
-n_projections = int(scan['Projections'])
-
-# One line per projection, e.g. "2:	-000.001" (degrees), after a header line
-lines = (folder / 'SophiaBeads_256_averaged.ang').read_text().splitlines()[1:]
-angles_deg = np.array([float(line.split(':')[1]) for line in lines if line.strip()])
-
-magnification = source_to_detector / source_to_axis
-print(f"{n_projections} projections {abs(np.diff(angles_deg).mean()):.2f}° apart, "
-      f"{scan['DetectorPixelsX']} × {scan['DetectorPixelsY']} pixels of {pixel} mm, magnification {magnification:.2f}")
-
-# %% 2. Projections
 binning = 4  # 8 gives a grid with eight times fewer voxels, if your GPU has less than 8 GB of memory
 
 t0 = time.time()
-projections = []
-for i in range(1, n_projections + 1):
-    reading = np.array(Image.open(folder / f'SophiaBeads_256_averaged_{i:04d}.tif'), dtype=np.float32)
-    reading = F.avg_pool2d(torch.from_numpy(reading)[None, None], binning)[0, 0]
-    projections.append(-torch.log(reading.clamp(min=1) / white_level))
-# PyTomography wants (angle, detector column, detector row)
-proj = torch.stack(projections).transpose(1, 2).contiguous().to(pytomography.device)
+proj, object_meta, proj_meta = io.CT.read_nikon(folder, binning=binning)
+proj = proj.to(pytomography.device)
+magnification = proj_meta.DSD / proj_meta.DSO
+step = np.degrees(float(torch.diff(proj_meta.angles).abs().mean()))
+print(f"{len(proj_meta.angles)} projections {step:.2f}° apart, binned to {proj.shape[1]} × {proj.shape[2]} pixels of "
+      f"{proj_meta.dr[0]:.1f} mm, magnification {magnification:.2f}")
 print(f"projections {tuple(proj.shape)} read in {time.time() - t0:.0f} s")
 
 # %% 3. Geometry
-pixel_binned = pixel * binning
-voxel = pixel_binned / magnification
-n = 2000 // binning
-thetas = -torch.tensor(angles_deg) * np.pi / 180
+n = object_meta.shape[0]  # 500 voxels across
 
 
 def system_matrix_for(cor, n_slices):
-    proj_meta = CTConeBeamFlatPanelProjMeta(
-        thetas, torch.zeros(n_projections),
-        detector_radius=source_to_detector - source_to_axis,
-        beam_radius=source_to_axis,
-        shape=(n, n), dr=(pixel_binned, pixel_binned), COR=cor)
-    object_meta = ObjectMeta(dr=(voxel, voxel, voxel), shape=(n, n, n_slices))
-    return CTConeBeamFlatPanelSystemMatrix(object_meta, proj_meta)
+    """read_nikon's geometry with the rotation axis cor mm from the central ray, on n_slices central slices of its grid"""
+    proj_meta_cor = CTConeBeamFlatPanelProjMeta(
+        proj_meta.angles, proj_meta.z_locations,
+        detector_radius=proj_meta.detector_radius, beam_radius=proj_meta.beam_radius,
+        shape=proj_meta.shape, dr=proj_meta.dr, COR=cor)
+    return CTConeBeamFlatPanelSystemMatrix(object_meta.with_grid(shape=(n, n, n_slices)), proj_meta_cor)
 
 # %% 4. The centre of rotation
 def sharpness(image):
@@ -120,7 +95,5 @@ for recon, name in [(recon_fdk, 'FDK'), (recon_sart, 'OS-SART')]:
     print(f"{name:8s} air: mean {float(a.mean()):+.4f} mm^-1, standard deviation {float(a.std()):.4f} mm^-1")
 
 # %% Save the images
-from pytomography.io import save_dicom
-
-saved = save_dicom(recon_sart, OUTPUT / 't_CT_microct' / 'os_sart', system_matrix.object_meta, modality='CT',
-                   units='1/mm', series_description='OS-SART 3x5 from FDK', overwrite=True)
+saved = io.save_dicom(recon_sart, OUTPUT / 't_CT_microct' / 'os_sart', system_matrix.object_meta,
+                      series_description='OS-SART 3x5 from FDK', overwrite=True)
