@@ -174,7 +174,8 @@ def _pet_shape(p) -> list:
 def _pet_info(C: int, R: int, crystals_trans: int = 8, crystals_axial: int = 8) -> dict:
     """A scanner geometry dictionary of ``C`` crystals per ring and ``R`` rings, in blocks of ``crystals_trans`` by
     ``crystals_axial`` crystals (the mMR's layout for C=448, R=64)."""
-    return dict(min_rsector_difference=0, crystal_length=20.0, radius=328.0, firstCrystalAxis=0,
+    return dict(min_rsector_difference=0, crystal_length=20.0, radius=328.0, rsector0_angle_deg=90.0,
+                transaxial_direction=-1, axial_direction=-1,
                 rsectorTransNr=C // crystals_trans, rsectorAxialNr=1, moduleTransNr=1, moduleAxialNr=R // crystals_axial,
                 moduleTransSpacing=0.0, moduleAxialSpacing=32.25, submoduleTransNr=1, submoduleAxialNr=1,
                 submoduleTransSpacing=0.0, submoduleAxialSpacing=0.0, crystalTransNr=crystals_trans,
@@ -461,14 +462,14 @@ def _spect_system_matrix(p):
     Lr = Ly if p.get('proj_r') is None else int(p['proj_r'])
     Lzp = Lz if p.get('proj_z') is None else int(p['proj_z'])
     with _on_cpu():
-        object_meta = SPECTObjectMeta([0.48] * 3, (Lx, Ly, Lz))
-        radii = 22.0 + (np.arange(views) % int(p['n_radii'])) * 0.5
-        proj_meta = SPECTProjMeta((Lr, Lzp), [0.48, 0.48], list(np.linspace(0, 360, views, endpoint=False)), radii=radii)
+        object_meta = SPECTObjectMeta([4.8] * 3, (Lx, Ly, Lz))   # mm
+        radii = 220.0 + (np.arange(views) % int(p['n_radii'])) * 5.0
+        proj_meta = SPECTProjMeta((Lr, Lzp), [4.8, 4.8], list(np.linspace(0, 360, views, endpoint=False)), radii=radii)
         transforms = []
         if p['attenuation']:
             transforms.append(SPECTAttenuationTransform(torch.zeros(Lx, Ly, Lz), cache_probabilities=bool(p['cache_probabilities'])))
         if p['psf'] == 'gaussian':
-            transforms.append(SPECTPSFTransform(SPECTPSFMeta((0.03, 0.1))))
+            transforms.append(SPECTPSFTransform(SPECTPSFMeta((0.03, 1.0))))   # sigma = 0.03 d + 1 mm
         elif p['psf'] == 'operator':
             transforms.append(SPECTPSFTransform(psf_operator=object(), cache_kernel=bool(p['cache_kernel'])))
         sm = SPECTSystemMatrix(transforms, [], object_meta, proj_meta, object_initial_based_on_camera_path=bool(p['camera_path']))
@@ -522,7 +523,7 @@ def build_spect_multibed(p):
     for _ in range(int(p['n_beds'])):
         projections, additive = _spect_data(p)
         beds.append(_with_prior_weight(_algorithm(p['algorithm'], sm, projections, additive, p['prior']), p))
-    return PGAAMultiBedSPECT([f'bed {k}' for k in range(len(beds))], beds)
+    return PGAAMultiBedSPECT(beds)
 
 
 def build_starguide(p):
@@ -541,16 +542,16 @@ def build_starguide(p):
     assert counts.max() == B and counts.sum() == V and counts.min() >= 1, 'views per angle'
     gen = torch.Generator().manual_seed(0)
     with _on_cpu():
-        object_meta = SPECTObjectMeta((0.25, 0.25, 0.25), (Lx, Ly, Lz))
+        object_meta = SPECTObjectMeta((2.5, 2.5, 2.5), (Lx, Ly, Lz))   # mm
         angles = torch.tensor(np.repeat(np.linspace(0, 360, A, endpoint=False), counts), dtype=torch.float32)
-        offsets = (torch.rand(V, generator=gen) * 2 - 1) * 8
-        radii = 15.0 + (np.arange(V) % int(p['n_radii'])) * 0.05
+        offsets = (torch.rand(V, generator=gen) * 2 - 1) * 80   # mm
+        radii = 150.0 + (np.arange(V) % int(p['n_radii'])) * 0.5
         proj_meta = StarGuideProjMeta((V, 16, Lz), angles, 0.5 + torch.rand(V, generator=gen), offsets, radii)
         transforms = []
         if p['attenuation']:
             transforms.append(SPECTAttenuationTransform(torch.zeros(Lx, Ly, Lz), assume_padded=False, cache_probabilities=bool(p['cache_probabilities'])))
         if p['psf'] != 'none':
-            transforms.append(SPECTPSFTransform(SPECTPSFMeta((0.02, 0.05)), assume_padded=False))
+            transforms.append(SPECTPSFTransform(SPECTPSFMeta((0.02, 0.5)), assume_padded=False))   # sigma = 0.02 d + 0.5 mm
         sm = StarGuideSystemMatrix(object_meta, proj_meta, obj2obj_transforms=transforms)
     _mark_transforms(transforms, p['device'] == 'cuda')
     kernels = _psf_kernels(transforms)
