@@ -69,7 +69,7 @@ crystal_thickness = 0.9525 # thickness in crystal in cm (NaI)
 # 200 million events take about 20 minutes on 90 CPU cores, and 45 minutes on 24. Fewer events run faster
 # but give a noisier Monte Carlo estimate.
 n_events = 200e6
-n_parallel = os.cpu_count()  # SIMIND processes run at once, one per CPU core
+n_parallel = max(1, os.cpu_count() - 4)  # SIMIND processes run at once, one per core; 4 cores left for the rest of the computer
 
 system_matrix = MonteCarloHybridSPECTSystemMatrix(
     object_meta,
