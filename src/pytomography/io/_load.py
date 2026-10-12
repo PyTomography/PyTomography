@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from pytomography.metadata.metadata import FRAMES
 from ._image import Image, reorient_to_lps
 
 
@@ -31,7 +32,8 @@ def _kind(path: Path) -> str:
     return 'dicom'
 
 
-def load_image(source, *, layout: str | None = None, units: str | None = None, reorient: bool = True) -> Image:
+def load_image(source, *, layout: str | None = None, units: str | None = None, reorient: bool = True,
+               frame: str | None = None) -> Image:
     """Read an image file into an :class:`~pytomography.io.Image`: its values (x, y, z, on the CPU), its affine
     (voxel index to LPS mm), its units, modality and what the source says about itself.
 
@@ -50,6 +52,11 @@ def load_image(source, *, layout: str | None = None, units: str | None = None, r
             map), or to override what it says.
         reorient (bool): permute and flip the axes (never interpolating) so that i, j and k run as close as possible
             to +x, +y and +z (patient left, posterior, superior). Defaults to True.
+        frame (str, optional): ``'patient'`` or ``'scanner'``, to override the frame the file implies. Files say it
+            where their format allows: a NIfTI's sform (or qform) code, 1 for ``'patient'`` and any other for
+            ``'scanner'`` (what :func:`~pytomography.io.save_nifti` writes); a NRRD's ``pytomography_frame:=`` field
+            (``'patient'`` without one); DICOM is always ``'patient'``; Interfile ``'scanner'``. Defaults to None:
+            the file's.
 
     Returns:
         Image: the image.
@@ -77,6 +84,10 @@ def load_image(source, *, layout: str | None = None, units: str | None = None, r
             fields = interfile.read_image(path, layout=layout)
         else:
             fields = dicom.read_series(path)
+    if frame is not None:
+        if frame not in FRAMES:
+            raise ValueError(f"frame must be one of {FRAMES}, not {frame!r}")
+        fields['frame'] = frame
     image = Image(**fields)
     if units is not None:
         image.units = units

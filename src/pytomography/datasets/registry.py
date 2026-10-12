@@ -274,9 +274,9 @@ DATASETS = {
              "md5": "192ca209456f080ab95d03a1ee41d00c", "unpacked": 16719773369},
             # 3D Slicer mask of the six spheres, made for the PET uncertainty tutorial. Its origin was corrected for
             # PyTomography 4's upright GE frame (docs/tools/fix_ge_sphere_mask.py, 11 Oct 2026): it was drawn by index on
-            # version 3's upside-down grid
-            {"kind": "package", "file": "fdg_spheres.seg.nrrd", "size": 11413,
-             "sha256": "4bef1646eebf9a451fe384684176d8c9a009d8693de7324f4c78d6c0d6cdd75d"},
+            # version 3's upside-down grid. Its pytomography_frame:=scanner field puts it in the GE grid's frame
+            {"kind": "package", "file": "fdg_spheres.seg.nrrd", "size": 11441,
+             "sha256": "f5e6e172f2216b9870eaa43b48eb3cb52afa5d2ac3e52fee00a0020792ceed96"},
         ],
     },
     # The 60-minute NEMA scan of Zenodo 1304454 converted to PETSIRD 0.9.1 with ETSI's STIR2PETSIRD (October 2026). It

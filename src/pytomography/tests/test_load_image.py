@@ -274,6 +274,21 @@ def test_nifti_round_trip_through_save_nifti(tmp_path):
     assert np.allclose(image.object_meta.affine, meta.affine)
 
 
+@pytest.mark.parametrize('frame', ['patient', 'scanner'])
+def test_nifti_frame_from_its_xform_code(tmp_path, frame):
+    """save_nifti writes sform code 1 for frame 'patient' and 2 for 'scanner', and load_image reads them back as such;
+    frame= overrides what the file says."""
+    nib = pytest.importorskip('nibabel')
+    meta = ObjectMeta(dr=2.0, shape=SHAPE, centre=(1, 2, 3), frame=frame, units='Bq/mL', modality='PT')
+    path = save_nifti(_phantom(), tmp_path / 'r', meta)
+    assert int(nib.load(str(path)).get_sform(coded=True)[1]) == (1 if frame == 'patient' else 2)
+    assert load_image(path).frame == frame
+    other = 'scanner' if frame == 'patient' else 'patient'
+    assert load_image(path, frame=other).frame == other
+    with pytest.raises(ValueError, match='frame'):
+        load_image(path, frame='world')
+
+
 # ---------- Interfile ----------
 
 def _interfile(tmp_path, name, data_lps, header_lines, dtype='<f4', offset=0, layout=None):
@@ -368,6 +383,37 @@ def test_nrrd(tmp_path, space, encoding):
     image = load_image(tmp_path / 'seg.seg.nrrd')
     _check_markers(image, A_lps)
     assert image.labels == {'liver': 100, 'spleen': 200} and image.units == 'label'
+    assert image.frame == 'patient'                       # no pytomography_frame field
+
+
+def _nrrd_with_frame(path, frame):
+    header = ['NRRD0004', 'type: short', 'dimension: 3', 'space: left-posterior-superior', 'sizes: 12 10 8',
+              'space directions: (2,0,0) (0,2,0) (0,0,3)', 'kinds: domain domain domain', 'endian: little',
+              'encoding: raw', 'space origin: (-11,-9,-10.5)', 'Segment0_Name:=sphere', 'Segment0_LabelValue:=100']
+    if frame is not None:
+        header.append(f'pytomography_frame:={frame}')
+    raw = np.ascontiguousarray(_phantom(dtype=np.int16).transpose(2, 1, 0)).astype('<i2').tobytes()
+    path.write_bytes(('\n'.join(header) + '\n\n').encode() + raw)
+    return path
+
+
+@pytest.mark.parametrize('frame', ['scanner', 'patient', None])
+def test_nrrd_frame_field(tmp_path, frame):
+    """A NRRD says its frame with the key-value field pytomography_frame:= (the GE sphere mask, drawn on a grid with no
+    patient frame, says 'scanner'); without it the image is in the patient's frame. frame= overrides either."""
+    path = _nrrd_with_frame(tmp_path / 'mask.seg.nrrd', frame)
+    image = load_image(path)
+    _check_markers(image, _centred((2, 2, 3)))
+    assert image.frame == (frame or 'patient')
+    assert load_image(path, frame='scanner').frame == 'scanner'
+    with warnings.catch_warnings():
+        warnings.simplefilter('error')                     # same frame: no warning
+        image.on(ObjectMeta(dr=2.0, shape=SHAPE, frame=frame or 'patient'))
+
+
+def test_nrrd_frame_field_must_be_a_frame(tmp_path):
+    with pytest.raises(ValueError, match='pytomography_frame'):
+        load_image(_nrrd_with_frame(tmp_path / 'mask.nrrd', 'gantry'))
 
 
 # ---------- Image.on ----------
@@ -493,6 +539,8 @@ def test_interfile_and_nrrd_tutorial_files(data_dir):
     assert mu.units == '1/cm' and mu.shape == (344, 344, 127) and 0.09 < float(np.percentile(mu.data, 99.9)) < 0.11
     seg = load_image(_data(data_dir, 'PET', 'GE-DMI-NEMA', 'fdg_spheres.seg.nrrd'))
     assert seg.labels == {f'Segment_{n}': n for n in range(1, 9)} and set(np.unique(seg.data)) <= set(range(9))
+    # drawn on the GE grid (192 x 192 x 71, 2.78 mm, centred on the scanner's axis, no patient frame)
+    assert seg.frame == 'scanner' and np.allclose(seg.centre, 0.0, atol=1e-6) and np.allclose(seg.voxel_size, 2.78)
     xcat = load_image(_data(data_dir, 'SPECT', 'SIMIND-MultiOrgan', 'multi_projections', 'mu208.hct'), layout='mu-castor')
     assert xcat.units == '1/cm' and xcat.voxel_size == (3.0, 3.0, 3.0)
 

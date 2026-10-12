@@ -169,6 +169,22 @@ def test_load_mask_of_a_nifti_label_image(tmp_path):
         io.load_mask(Image(np.full((3, 3, 3), 0.5), np.eye(4)))
 
 
+def test_load_mask_frame(tmp_path):
+    """A mask's frame is its file's (nibabel's default sform code 2 is 'scanner'); frame= overrides it, without
+    changing an Image passed in."""
+    nib = pytest.importorskip("nibabel")
+    labels = np.zeros((6, 6, 4), np.int16)
+    labels[1:3, 2:4, 1:3] = 1
+    nib.save(nib.Nifti1Image(labels, np.diag([-2.0, -2.0, 2.0, 1.0])), str(tmp_path / "labels.nii.gz"))
+    assert io.load_mask(tmp_path / "labels.nii.gz").frame == "scanner"
+    mask = io.load_mask(tmp_path / "labels.nii.gz", frame="patient")
+    assert mask.frame == "patient"
+    source = Image(labels, np.eye(4), frame="scanner")
+    assert io.load_mask(source, frame="patient").frame == "patient" and source.frame == "scanner"
+    with pytest.raises(ValueError, match="frame"):
+        io.load_mask(source, frame="gantry")
+
+
 def test_load_mask_of_an_rtstruct_with_overlapping_rois(tmp_path):
     """An RTSTRUCT drawn on a CT: each ROI comes back on the CT's own voxels, and two ROIs that overlap both keep the
     voxels they share."""

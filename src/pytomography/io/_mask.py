@@ -7,6 +7,7 @@ from pathlib import Path
 
 import numpy as np
 
+from pytomography.metadata.metadata import FRAMES
 from ._image import Image, reorient_to_lps
 
 
@@ -91,7 +92,7 @@ def _rtstruct(path: Path, reference, rois) -> Image:
                                  labels=labels))
 
 
-def load_mask(source, *, reference=None, rois=None) -> Image:
+def load_mask(source, *, reference=None, rois=None, frame: str | None = None) -> Image:
     """Regions of interest as a label image, to put on any grid with ``.on(object_meta, label=...)``::
 
         liver = io.load_mask(file_RT, reference=files_CT).on(object_meta, label='liver', threshold=0.5)
@@ -108,14 +109,21 @@ def load_mask(source, *, reference=None, rois=None) -> Image:
         reference: for an RTSTRUCT, the CT series it was drawn on: its folder, or its files (in one folder).
         rois (Sequence[str], optional): for an RTSTRUCT, the ROIs to draw (each takes a few seconds). Defaults to None:
             all of them.
+        frame (str, optional): ``'patient'`` or ``'scanner'``, to override the frame the file implies (see
+            :func:`~pytomography.io.load_image`; an RTSTRUCT has its CT's). Defaults to None: the file's.
 
     Returns:
         Image: integer labels (``units='label'``), with ``labels``: name -> value (or values).
     """
+    if frame is not None and frame not in FRAMES:
+        raise ValueError(f"frame must be one of {FRAMES}, not {frame!r}")
     if not isinstance(source, Image) and not isinstance(source, (list, tuple)):
         path = Path(os.fspath(source))
         if _is_rtstruct(path):
-            return _rtstruct(path, reference, rois)
+            mask = _rtstruct(path, reference, rois)
+            if frame is not None:
+                mask.frame = frame
+            return mask
     if rois is not None:
         raise ValueError("rois= is for RTSTRUCT files; use label= of Image.on to pick a label")
     from ._load import load_image
@@ -127,4 +135,4 @@ def load_mask(source, *, reference=None, rois=None) -> Image:
     if not labels:
         labels = {str(int(v)): int(v) for v in np.unique(data) if v != 0}
     return Image(data.astype(np.int32), image.affine, units="label", modality=image.modality, meta=image.meta,
-                 frame=image.frame, labels=labels)
+                 frame=image.frame if frame is None else frame, labels=labels)

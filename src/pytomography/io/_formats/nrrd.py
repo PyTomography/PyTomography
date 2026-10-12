@@ -1,4 +1,7 @@
-"""NRRD images and 3D Slicer segmentations (.nrrd, .seg.nrrd, .nhdr): the header's space, directions and origin."""
+"""NRRD images and 3D Slicer segmentations (.nrrd, .seg.nrrd, .nhdr): the header's space, directions and origin.
+
+The image is in the patient's frame unless the header has the key-value field ``pytomography_frame:=scanner`` (an
+image placed only relative to the scanner's centre, such as a mask drawn on a reconstruction with no patient frame)."""
 from __future__ import annotations
 
 import gzip
@@ -6,6 +9,8 @@ import re
 from pathlib import Path
 
 import numpy as np
+
+from pytomography.metadata.metadata import FRAMES
 
 _TYPES = {'signed char': 'i1', 'int8': 'i1', 'int8_t': 'i1', 'uchar': 'u1', 'unsigned char': 'u1', 'uint8': 'u1',
           'uint8_t': 'u1', 'short': 'i2', 'short int': 'i2', 'signed short': 'i2', 'signed short int': 'i2',
@@ -97,5 +102,9 @@ def read_image(path) -> dict:
         labels[name] = int(pairs[f'Segment{n}_LabelValue'])
         n += 1
     meta = {'nrrd_space': fields.get('space'), 'kinds': fields.get('kinds')}
+    # NRRD has no field for it: PyTomography's own key, for an image placed only relative to the scanner's centre
+    frame = pairs.get('pytomography_frame', 'patient').strip()
+    if frame not in FRAMES:
+        raise ValueError(f"{path.name}: pytomography_frame:={frame}; it must be one of {FRAMES}")
     return dict(data=np.array(data), affine=A, units='label' if labels else None, modality=None, meta=meta,
-                frame='patient', labels=labels or None)
+                frame=frame, labels=labels or None)
