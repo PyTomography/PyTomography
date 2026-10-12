@@ -79,7 +79,8 @@ _RULES = [
                "insert's axis, the spheres' shells, the whole phantom registered), the SPECT is 2.1 mm from the CT "
                'with M and 3.7 mm without, and the turns fitted to the CT (0.6 to 0.8 degrees about z, -0.4 about x) '
                "match M's (0.53, -0.70). With M, PyTomography's OSEM and Siemens' reconstruction, put on the grid by "
-               "its own header, agree with no shift (0.06 voxel, NCC 0.998).", 'verified'),
+               "its own header, agree with no shift (0.06 voxel, NCC 0.998). Ac225-NEMA-SymT2 is inconclusive: its 60 mm "
+               "sphere is 6.5 mm from its CT shell without M and 8.5 mm with it (very low counts).", 'verified'),
     VendorRule('siemens-ct-image-y-origin', 'Siemens', 'CT images (DICOM)',
                "The patient y origin is the table: the image centre is at y = -TableHeight (ImagePositionPatient "
                "follows the standard, so images need no correction; raw data that refer to the isocentre do).",
