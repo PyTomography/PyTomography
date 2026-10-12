@@ -56,15 +56,14 @@ energy_window_params
 isotope_names = ['lu177'] # isotope we want to simulate
 isotope_ratios = [1] # ratio of isotopes (in this case only 1)
 collimator_type = 'SY-ME' # collimator type to use
-# The thicknesses go to SIMIND as they are, so they are in SIMIND's unit, cm
-cover_thickness = 0.1 # cover thickness in cm (aluminum assumed)
-backscatter_thickness = 6.6 # backscatter thickness in cm (pyrex)
+cover_thickness_mm = 1.0 # cover thickness in mm (aluminum assumed)
+backscatter_thickness_mm = 66.0 # backscatter thickness in mm (pyrex)
 advanced_energy_resolution_model='siemens'
 # if the energy resolution model above is not used, then
 # the energy resolution needs to be provided at 140keV in
 # units of percent.
 energy_resolution_140keV = 10 # %
-crystal_thickness = 0.9525 # thickness in crystal in cm (NaI)
+crystal_thickness_mm = 9.525 # thickness of the crystal in mm (NaI)
 
 # 200 million events take about 20 minutes on 90 CPU cores, and 45 minutes on 24. Fewer events run faster
 # but give a noisier Monte Carlo estimate.
@@ -82,9 +81,9 @@ system_matrix = MonteCarloHybridSPECTSystemMatrix(
     isotope_names=isotope_names,
     isotope_ratios=isotope_ratios,
     collimator_type=collimator_type,
-    crystal_thickness=crystal_thickness,
-    cover_thickness=cover_thickness,
-    backscatter_thickness=backscatter_thickness,
+    crystal_thickness_mm=crystal_thickness_mm,
+    cover_thickness_mm=cover_thickness_mm,
+    backscatter_thickness_mm=backscatter_thickness_mm,
     advanced_energy_resolution_model=advanced_energy_resolution_model,
     advanced_collimator_modeling=True,
     n_events=n_events,

@@ -83,11 +83,11 @@ print(reconstruction_algorithm.estimate_memory(n_subsets=8))
 
 reconstructed_object = reconstruction_algorithm(n_iters=4, n_subsets=8)
 
-recon_vendor = io.load_image(os.path.join(PATH, 'scanner_recon.dcm')).data / proj_meta.num_projections  # on our grid
+recon_vendor = io.load_image(os.path.join(PATH, 'scanner_recon.dcm')).on(object_meta) / proj_meta.num_projections
 
 idx_z = 61
 slice_pytomography = reconstructed_object.cpu()[:,:,idx_z].T
-slice_vendor = recon_vendor[:,:,idx_z].T
+slice_vendor = recon_vendor.cpu()[:,:,idx_z].T
 
 # %% Save the images
 saved = io.save_dicom(reconstructed_object, OUTPUT / 't_dicomdata' / 'osem', object_meta, reference=file_NM,

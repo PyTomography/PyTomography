@@ -97,8 +97,8 @@ photopeak = torch.stack([photopeak113, photopeak208], dim=0)
 scatter = torch.stack([scatter113, scatter208], dim=0)
 likelihood = PoissonLogLikelihood(system_matrix, photopeak, scatter)
 
-print(OSEM(PoissonLogLikelihood(system_matrix208, photopeak208, scatter208)).estimate_memory(n_subsets=8))
 recon_algo = OSEM(likelihood)
+print(recon_algo.estimate_memory(n_subsets=8))
 recon_OSEM = recon_algo(n_iters = 8, n_subsets=8)
 
 float(proj_meta.frame_duration_s[0])  # seconds

@@ -97,9 +97,8 @@ elif ISOTOPE == 'y90':
     isotope_ratios = [1]
     collimator_type = 'SY-HE'
 
-# The three thicknesses go to SIMIND as they are, so they are in SIMIND's unit, cm
-cover_thickness = 0.1 # cm, assumed to be aluminum
-backscatter_thickness = 6.6 # cm, assumed to be pyrex
+cover_thickness_mm = 1.0 # assumed to be aluminum
+backscatter_thickness_mm = 66.0 # assumed to be pyrex
 # the argument below is optional, only siemens currently implemented.
 # if not provided, then assumes energy resolution is proportional to
 # 1/sqrt(E)
@@ -108,7 +107,7 @@ advanced_energy_resolution_model='siemens'
 # the energy resolution needs to be provided at 140keV in
 # units of percent.
 energy_resolution_140keV = 10 # %
-crystal_thickness = 0.9525  # cm, assumed to be NaI
+crystal_thickness_mm = 9.525  # assumed to be NaI
 
 energy_window_params = simind_mc.get_energy_window_params_simind(files_NM[1])
 energy_window_params
@@ -129,9 +128,9 @@ system_matrix = MonteCarloHybridSPECTSystemMatrix(
         isotope_names=isotope_names,
         isotope_ratios=isotope_ratios,
         collimator_type=collimator_type,
-        crystal_thickness=crystal_thickness,
-        cover_thickness=cover_thickness,
-        backscatter_thickness=backscatter_thickness,
+        crystal_thickness_mm=crystal_thickness_mm,
+        cover_thickness_mm=cover_thickness_mm,
+        backscatter_thickness_mm=backscatter_thickness_mm,
         advanced_energy_resolution_model=advanced_energy_resolution_model,
         advanced_collimator_modeling=True, # include septal penetration/scatter
         n_events=n_events,

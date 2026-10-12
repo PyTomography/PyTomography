@@ -56,9 +56,9 @@ system_matrix = SPECTSystemMatrix(obj2obj_transforms=[att_transform, psf_transfo
                                   object_meta=object_meta, proj_meta=proj_meta)
 likelihood = PoissonLogLikelihood(system_matrix, photopeak, scatter)
 
-# the scanner's reconstruction: made on our grid, voxel for voxel (see the DICOM introduction)
+# the scanner's reconstruction, put on our grid by its own place in the patient
 scanner = io.load_image(path / 'scanner_recon.dcm')
-recon_scanner = torch.tensor(scanner.data / proj_meta.num_projections, dtype=torch.float32, device=pytomography.device)
+recon_scanner = scanner.on(object_meta) / proj_meta.num_projections
 print(f"{photopeak.sum():.3g} counts in the photopeak; the scanner's reconstruction: {scanner.meta['ConvolutionKernel'][0]}")
 
 # %% 2. Where the spheres are

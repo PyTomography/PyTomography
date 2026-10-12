@@ -58,7 +58,7 @@ tutorials:
     layers:
     - {name: CT, kind: ct, image: io.load_image(files_CT), window: phantom, units: HU}
     - {name: OSEM, label: PyTomography OSEM 4 × 8, kind: spect, array: reconstructed_object, affine: object_meta.affine, units: counts}
-    # the scanner's reconstruction is on our grid voxel for voxel (see the tutorial), so it is shown on object_meta's
+    # the scanner's reconstruction, put on our grid by its own header (io.load_image(...).on(object_meta)) in the tutorial
     - {name: Vendor, label: Scanner's reconstruction, kind: spect, array: recon_vendor, affine: object_meta.affine, units: counts}
 
   t_algorithms:
@@ -176,7 +176,7 @@ tutorials:
     - {name: OSEMfilter, label: "OSEM 40 × 8, 10 mm filter", kind: spect, array: recon_osem_filtered, affine: object_meta.affine, units: counts}
     - {name: OSMAPOSL, kind: spect, array: recon_osmaposl, affine: object_meta.affine, units: counts}
     - {name: KEM, kind: spect, array: recon_kem, affine: object_meta.affine, units: counts}
-    # the scanner's reconstruction is on our grid voxel for voxel (see t_dicomdata), so it is shown on object_meta's
+    # the scanner's reconstruction, put on our grid by its own header (io.load_image(...).on(object_meta)) in the tutorial
     - {name: Vendor, label: Scanner's reconstruction, kind: spect, array: recon_scanner, affine: object_meta.affine, units: counts}
 
   t_fbp_spect:
