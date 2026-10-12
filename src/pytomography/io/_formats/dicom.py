@@ -1,9 +1,9 @@
 """DICOM images: series of one slice per file (CT, MR, PT...) and single multi-frame files (NM reconstructions,
 PyTomography's own NM output, enhanced multi-frame), each with its full geometry.
 
-The fixes over the readers this replaces: PixelSpacing is (between rows, between columns) = (dy, dx) (#20); slices are
-sorted along the slice normal, whatever its direction, and non-axial series work (#21); GE CT's corner
-ImagePositionPatient is a vendor rule (#22); NM files keep their geometry in the Detector Information Sequence (#23).
+The fixes over the readers this replaces: PixelSpacing is (between rows, between columns) = (dy, dx); slices are
+sorted along the slice normal, whatever its direction, and non-axial series work; GE CT's corner
+ImagePositionPatient is a vendor rule; NM files keep their geometry in the Detector Information Sequence.
 """
 from __future__ import annotations
 

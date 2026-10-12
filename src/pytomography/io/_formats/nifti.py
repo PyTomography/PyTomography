@@ -1,4 +1,4 @@
-"""NIfTI-1 and NIfTI-2 images: the file's own affine (sform, else qform), from RAS to LPS (#38)."""
+"""NIfTI-1 and NIfTI-2 images: the file's own affine (sform, else qform), from RAS to LPS."""
 from __future__ import annotations
 
 import re

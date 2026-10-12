@@ -56,7 +56,7 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         z = (torch.arange(-Nz/2+0.5, Nz/2+0.5, 1)*dz).to(pytomography.device)
         # Typical post-weight from FDK algorithm: (DSO / U)^2, with U the voxel's distance from the source along the
         # central ray, DSO + (x - ax) cos(theta) + (y - ay) sin(theta) measured from the rotation axis. (Before
-        # PyTomography 4 the axis was added instead of subtracted, which put U off by 2 COR sin(theta), #8.)
+        # PyTomography 4 the axis was added instead of subtracted, which put U off by 2 COR sin(theta).)
         if self._FBP_postweight_component1 is None:
             xv, yv = torch.meshgrid(x - ax, y - ay, indexing='ij')
             post_weight = (self.proj_meta.DSO / (self.proj_meta.DSO + yv.unsqueeze(0) * torch.sin(self.proj_meta.angles.to(pytomography.device)).reshape((-1,1,1)) + xv.unsqueeze(0) * torch.cos(self.proj_meta.angles.to(pytomography.device)).reshape((-1,1,1))))**2

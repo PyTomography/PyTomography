@@ -90,7 +90,7 @@ def test_ge_kidney_masks_land_on_the_kidneys(data_dir):
 
 
 def test_multibed_masks_on_the_stitched_grid(data_dir):
-    """GE, two beds (v3, #1): on the stitched grid, the lungs drawn on the CT hold lung attenuation and the liver soft
+    """GE, two beds (v3): on the stitched grid, the lungs drawn on the CT hold lung attenuation and the liver soft
     tissue (with the mask on the wrong bed they were 354 mm off)."""
     root = _folder(data_dir, 'Lu177-PSMA-GEDisc')
     files_CT = sorted(str(f) for f in (root / 'CT').iterdir())
@@ -140,7 +140,7 @@ def test_starguide_matches_ge_reconstruction(data_dir):
 
 
 def test_simind_xcat_lungs_with_the_mu_castor_layout(data_dir):
-    """SIMIND XCAT (v6, v6b, #4): reconstructions of the lung sources lie on the lungs of the density map read with
+    """SIMIND XCAT (v6, v6b): reconstructions of the lung sources lie on the lungs of the density map read with
     layout 'mu-castor' (index 22 = 5); with 'mu' (the old default) they do not."""
     root = _folder(data_dir, 'SIMIND-MultiOrgan', 'multi_projections')
     for organ in ('r_lung', 'l_lung'):

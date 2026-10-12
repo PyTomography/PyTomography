@@ -1,5 +1,5 @@
 """ObjectMeta: the grid of an object and where it is in the patient (LPS, mm). The affine is derived from the grid, so
-it cannot go stale (#27); with_grid and subsample keep the centre and the frame."""
+it cannot go stale; with_grid and subsample keep the centre and the frame."""
 import numpy as np
 import pytest
 import torch
@@ -48,7 +48,7 @@ def test_with_grid_keeps_the_centre_frame_and_class():
 
 
 def test_subsample_keeps_the_centre():
-    """#27: the coarse grid's voxels are larger and fewer, its centre where the fine grid's was."""
+    """The coarse grid's voxels are larger and fewer, its centre where the fine grid's was."""
     meta = ObjectMeta(dr=(2.0, 2.0, 3.0), shape=(10, 11, 8), centre=(5, 6, 7), frame='patient', units='Bq/mL', modality='PT')
     coarse = meta.subsample(2)
     assert coarse.dr == (4.0, 4.0, 6.0) and coarse.shape == (5, 5, 4)
@@ -68,7 +68,7 @@ def test_spect_grid_is_in_mm():
 
 
 def test_dual_imshow_picks_the_slice_whose_centre_is_nearest():
-    """#40: with 4.8 mm SPECT slices over 1.25 mm CT slices, the CT slice is the one whose centre is nearest the SPECT
+    """With 4.8 mm SPECT slices over 1.25 mm CT slices, the CT slice is the one whose centre is nearest the SPECT
     slice's centre (the old choice from slice edges was 1.4 slices off)."""
     spect = ObjectMeta(dr=(4.8, 4.8, 4.8), shape=(4, 4, 10), centre=(0, 0, 0)).affine
     ct = ObjectMeta(dr=(1.0, 1.0, 1.25), shape=(4, 4, 40), centre=(0, 0, 0.37)).affine

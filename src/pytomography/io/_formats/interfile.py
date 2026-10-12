@@ -1,7 +1,7 @@
 """Interfile 3.3 headers and images, from any producer (SIMIND, GATE/STIR, Siemens JSRecon).
 
 Keys are matched exactly after normalisation (case, leading '!' or '%', spaces and the producers' spelling variants),
-and a missing key raises (#32). Comment lines (';' or ';#') are not keys; SIMIND's comment keys, which hold facts found
+and a missing key raises. Comment lines (';' or ';#') are not keys; SIMIND's comment keys, which hold facts found
 nowhere else (energy windows, the photon energy, the collimator), are kept apart in ``Interfile.comments``.
 """
 from __future__ import annotations
@@ -150,9 +150,9 @@ def read_image(path, layout: str | None = None) -> dict:
     the producers PyTomography reads states a patient position. Producer rules (the vendor table):
 
     * SIMIND density and attenuation maps (``.hct``): ``layout`` (``'mu'`` or ``'mu-castor'``, simind.ini index 22)
-      is required, because the header does not record it (#4); values in 1/cm for attenuation maps.
+      is required, because the header does not record it; values in 1/cm for attenuation maps.
     * Siemens JSRecon (``.v.hdr``): 'quantification units' gives the units.
-    * GATE/STIR (``.hv``): 'first pixel offset' is kept in ``meta`` only; the orientation is unverified (#13).
+    * GATE/STIR (``.hv``): 'first pixel offset' is kept in ``meta`` only; the orientation is unverified.
     """
     from .. import _vendors
     header = Interfile(path)

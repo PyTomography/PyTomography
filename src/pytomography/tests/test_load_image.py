@@ -82,7 +82,7 @@ def _series(tmp_path, A, name='s', modality='CT', x=None, **edits):
 @pytest.mark.parametrize('A', [AXIAL, AXIAL_FLIPPED_X, CORONAL, SAGITTAL, NON_SQUARE],
                          ids=['axial', 'axial-x-flipped-normal-down', 'coronal', 'sagittal', 'non-square-pixels'])
 def test_dicom_series_any_orientation(tmp_path, A):
-    """#20, #21: PixelSpacing is (dy, dx); slices sort along the normal whatever its direction; coronal and sagittal
+    """PixelSpacing is (dy, dx); slices sort along the normal whatever its direction; coronal and sagittal
     series are read (all were wrong or singular before)."""
     files = _series(tmp_path, A)
     image = load_image(tmp_path / 's')
@@ -99,7 +99,7 @@ def test_dicom_series_any_orientation(tmp_path, A):
 
 
 def test_dicom_series_ge_ipp_is_the_corner(tmp_path):
-    """#22: GE CT writes the corner of the first pixel; the vendor table moves it to the centre (half a pixel)."""
+    """GE CT writes the corner of the first pixel; the vendor table moves it to the centre (half a pixel)."""
     A = NON_SQUARE
     files = _series(tmp_path, A, Manufacturer='GE MEDICAL SYSTEMS')
     for f in files:                                    # what GE writes: the corner
@@ -165,7 +165,7 @@ def test_dicom_series_ignores_non_images(tmp_path):
 # ---------- DICOM single file ----------
 
 def test_dicom_single_file_reads_pytomography_nm(tmp_path):
-    """#23: PyTomography's own NM output (geometry in the Detector Information Sequence) reads back, units included."""
+    """PyTomography's own NM output (geometry in the Detector Information Sequence) reads back, units included."""
     for A in (AXIAL, AXIAL_FLIPPED_X):
         [path] = save_dicom(Image(_phantom(), A, modality='NM', units='counts'), tmp_path / str(A[0, 0]))
         image = load_image(path)
@@ -243,7 +243,7 @@ def test_dicom_projections_are_refused(tmp_path):
 
 @pytest.mark.parametrize('case', ['oblique-sform', 'qfac-minus-1', 'off-centre', 'qform-only'])
 def test_nifti_uses_its_affine(tmp_path, case):
-    """#38: the sform (else the qform) places the image, from RAS to LPS."""
+    """The sform (else the qform) places the image, from RAS to LPS."""
     nib = pytest.importorskip('nibabel')
     A_lps = AXIAL.copy()
     A_lps[:3, 3] += [17, -23, 300] if case == 'off-centre' else 0
@@ -314,7 +314,7 @@ SIMIND = ['!originating system := simind', 'program version := V8.0', '!matrix s
           '!matrix size [3] := 8', 'scaling factor (mm/pixel) [1] := 2.0', 'scaling factor (mm/pixel) [2] := 2.0',
           'scaling factor (mm/pixel) [3] := 3.0', '!number format := short float', '!number of bytes per pixel := 4',
           'imagedata byte order := LITTLEENDIAN', ';# Units of data (ECT) := mu',
-          '; matrix size [1] := 999']                                  # a plain comment is not a key (#32)
+          '; matrix size [1] := 999']                                  # a plain comment is not a key
 SIEMENS = ['%SMS-MI header name space:=image subheader', 'image data byte order:=BIGENDIAN', 'number format:=signed integer',
            '!number of bytes per pixel:=2', 'matrix size[1]:=12', 'matrix size[2]:=10', 'matrix size[3]:=8',
            'scale factor (mm/pixel) [1]:=2.0', 'scale factor (mm/pixel) [2]:=2.0', 'scale factor (mm/pixel) [3]:=3.0',
@@ -327,7 +327,7 @@ STIR = ['!number format := float', '!number of bytes per pixel := 4', 'imagedata
 
 @pytest.mark.parametrize('layout', ['mu', 'mu-castor'])
 def test_interfile_simind_layouts(tmp_path, layout):
-    """#4: both SIMIND layouts of an asymmetric map read back the same LPS map; the layout is required."""
+    """Both SIMIND layouts of an asymmetric map read back the same LPS map; the layout is required."""
     path = _interfile(tmp_path, 'amap', _phantom(), SIMIND, layout=layout)
     image = load_image(path, layout=layout)
     _check_markers(image, _centred((2, 2, 3)))
@@ -344,7 +344,7 @@ def test_interfile_siemens_big_endian_int16_with_offset(tmp_path):
 
 
 def test_interfile_gate_stir_is_centred_and_warns(tmp_path):
-    """GATE/STIR .hv: no SIMIND flips (#13); the offsets are kept, not used; the rule is unverified, so it warns."""
+    """GATE/STIR .hv: no SIMIND flips; the offsets are kept, not used; the rule is unverified, so it warns."""
     path = _interfile(tmp_path, 'umap', _phantom(), STIR)
     with pytest.warns(UnverifiedVendorRule):
         image = load_image(path, units='1/cm')
@@ -353,7 +353,7 @@ def test_interfile_gate_stir_is_centred_and_warns(tmp_path):
 
 
 def test_interfile_missing_key_raises(tmp_path):
-    """#32: a missing key raises, instead of giving False."""
+    """A missing key raises, instead of giving False."""
     path = _interfile(tmp_path, 'bad', _phantom(), [l for l in STIR if 'scaling factor (mm/pixel) [3]' not in l])
     with pytest.raises(KeyError, match='scaling factor'):
         with warnings.catch_warnings():
@@ -419,7 +419,7 @@ def test_nrrd_frame_field_must_be_a_frame(tmp_path):
 # ---------- Image.on ----------
 
 def test_on_averages_when_downsampling():
-    """#6: a 1 mm image on a 4 mm grid is the mean over each 4 mm voxel, not a point sample."""
+    """A 1 mm image on a 4 mm grid is the mean over each 4 mm voxel, not a point sample."""
     rng = np.random.default_rng(0)
     data = rng.random((16, 16, 16)).astype(np.float32)
     source = Image(data, ObjectMeta(dr=1.0, shape=(16, 16, 16)).affine, frame="scanner")
@@ -511,7 +511,7 @@ def _data(data_dir, *path):
 
 @pytest.mark.data
 def test_ge_ct_centre_is_round_with_the_corner_rule(data_dir):
-    """#22: GE's Optima CT540 (Lu177-PSMA-GEDisc) is centred on round numbers only with the corner rule."""
+    """GE's Optima CT540 (Lu177-PSMA-GEDisc) is centred on round numbers only with the corner rule."""
     ct = load_image(_data(data_dir, 'SPECT', 'Lu177-PSMA-GEDisc', 'CT'))
     assert ct.modality == 'CT' and ct.units == 'HU' and ct.shape[:2] == (512, 512)
     assert np.allclose(ct.centre[:2], 0, atol=0.01)

@@ -110,7 +110,7 @@ class Image():
             object_meta (ObjectMeta): the target grid.
             mode (str): ``'auto'``: trilinear interpolation at the target voxel centres, or, along any axis where a
                 target voxel is more than 1.5 source voxels long, the mean over the target voxel (so a 1 mm CT on a
-                4.8 mm SPECT grid is averaged, not point sampled, #6). ``'nearest'``: the value of the nearest voxel.
+                4.8 mm SPECT grid is averaged, not point sampled). ``'nearest'``: the value of the nearest voxel.
             label (int | str | tuple, optional): for a label image, the label (its value, a tuple or list of values,
                 or its name in ``labels``) whose coverage is returned: the fraction of each target voxel inside it (0 or 1 with ``mode='nearest'``).
             threshold (float, optional): return a bool tensor, True where the resampled value (or coverage) is at

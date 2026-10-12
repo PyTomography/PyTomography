@@ -17,7 +17,7 @@ from ._energy import _mu_per_mm, _psf_meta, photon_energy
 
 
 def simind_version(header: Interfile) -> int:
-    """The major version of the SIMIND that wrote ``header``: the number after 'V' in 'program version' (#30)."""
+    """The major version of the SIMIND that wrote ``header``: the number after 'V' in 'program version'."""
     text = header.get('program version')
     found = re.search(r'[vV]\s*(\d+)', text)
     if not found:
@@ -91,10 +91,10 @@ def read_simind(headers, energy_window: int | None = None, *, weights: Sequence[
                 radii_file: str | None = None):
     """SIMIND projections in PyTomography's standard form.
 
-    * The version is read as an integer (V7 keys in cm, V8 and later mm, #30); lengths become mm.
+    * The version is read as an integer (V7 keys in cm, V8 and later mm); lengths become mm.
     * Views are sorted by angle (β as for DICOM); rows are flipped so that z runs foot to head.
     * Every window's bounds and photon energy go into ``proj_meta.energy_windows`` (the window's nuclide line, not the
-      simulation's main photon energy, #2); the values are counts per second per MBq, 1 s per view.
+      simulation's main photon energy); the values are counts per second per MBq, 1 s per view.
     * The grid is the projections' (Lr x Lr x Lz), centred on the rotation axis (frame ``'scanner'``).
 
     Args:

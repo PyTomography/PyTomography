@@ -58,7 +58,7 @@ def read_nikon(folder, *, binning: int = 1, cor_mm: float = 0.0, object_meta: Ob
       and v along its rows (v = 0 is the top of the radiograph, +z).
     * The angles: the ``.ang`` file's, negated (the stage turns the sample).
     * The rotation axis lies ``cor_mm`` from the central ray, at (0, -cor_mm) in the object frame; the grid is centred
-      on the central ray of the first view (v4.1 centres it on the axis, #37).
+      on the central ray of the first view (v4.1 centres it on the axis).
 
     Args:
         folder (str | os.PathLike): the scan's folder.

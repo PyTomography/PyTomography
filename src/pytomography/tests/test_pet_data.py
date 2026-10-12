@@ -148,7 +148,7 @@ def test_ge_tof_sign_images_the_spheres(data_dir):
 def test_ge_bed_is_posterior(data_dir):
     """GE's attenuation factors of one direct plane (they include the bed), on the reader's lookup table: their
     attenuation-weighted centre lies posterior (+y) of the activity's centre, where the bed is under a supine
-    phantom. Before PyTomography 4 it lay at -y: the images were upside down (#5)."""
+    phantom. Before PyTomography 4 it lay at -y: the images were upside down."""
     h5py = pytest.importorskip("h5py")
     events, _, proj_meta = PET.read_ge_hdf5(_ge(data_dir, "LIST0000.BLF"))
     lut = proj_meta.scanner_lut.double().numpy()

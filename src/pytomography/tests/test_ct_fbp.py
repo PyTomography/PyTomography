@@ -180,7 +180,7 @@ def test_conebeam_fdk_reconstructs_the_phantom_in_the_central_slices(n_cols):
 
 
 def test_conebeam_fdk_with_the_rotation_axis_off_the_central_ray():
-    """#8: with the rotation axis 8 mm from the central ray (the axis at (0, -8) mm), FDK's distance weight takes each
+    """With the rotation axis 8 mm from the central ray (the axis at (0, -8) mm), FDK's distance weight takes each
     voxel's distance from the source along the central ray from the axis, and the phantom comes back as without an
     offset. (The weight before PyTomography 4 was off by 2 COR sin(theta): 8 % here, a modulation in the image.)"""
     angles = torch.linspace(0, 2 * np.pi, 121)[:-1]
@@ -297,7 +297,7 @@ def test_c145_matches_the_scanner_images(data_dir):
     assert object_meta.frame == 'patient' and object_meta.centre[2] == pytest.approx(meta.z_center)
     system_matrix = CTGen3SystemMatrix(object_meta, meta)
     # the scanner's images on our grid, by the two files' geometry alone (GE's corner ImagePositionPatient is a rule
-    # of the vendor table, #22; k runs foot to head in both)
+    # of the vendor table; k runs foot to head in both)
     theirs = scanner.on(object_meta, fill=-3000).cpu().numpy()
     fit = preprocessing.fit_column_scale(proj, meta, system_matrix, meta.water_attenuation * (1 + theirs / 1000),
                                          filter='hann', slice_thickness=1.25)

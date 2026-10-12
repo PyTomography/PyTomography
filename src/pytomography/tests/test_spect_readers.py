@@ -4,7 +4,7 @@ headers of each version, energy windows, collimator PSFs, multi-bed stitching.
 The NM files hold projections made by PyTomography's own projector from three point markers, written as a Siemens or
 GE camera would: DICOM angles (β - 180), rows and columns in the order the heads' ImageOrientationPatient say, the
 vendor's ImagePositionPatient. Reading a file must give back the projections, the angles and radii, and the grid's
-place in the patient; a reconstruction must put the markers back within one voxel (#24, #25, #26)."""
+place in the patient; a reconstruction must put the markers back within one voxel."""
 from __future__ import annotations
 
 import datetime
@@ -26,7 +26,7 @@ from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.metadata.SPECT import EnergyWindow, SPECTObjectMeta, SPECTProjMeta
 from pytomography.projectors.SPECT import SPECTSystemMatrix
 
-LR, LZ, DR, DZ = 24, 20, 4.0, 6.0                  # columns, rows, column and row spacing (mm): non-square (#24)
+LR, LZ, DR, DZ = 24, 20, 4.0, 6.0                  # columns, rows, column and row spacing (mm): non-square
 CENTRE = (0.0, -150.0, 400.0)
 MARKERS = {(17, 8, 5): 100.0, (6, 18, 9): 200.0, (12, 5, 15): 300.0}      # voxel index: value, off-centre on each axis
 WINDOWS = [('Lu177 208', (187.2, 228.8)), ('lower', (166.4, 187.2)), ('upper', (228.8, 249.6))]
@@ -211,7 +211,7 @@ def test_reconstruction_puts_the_markers_back(tmp_path):
 
 
 def test_frames_are_counted_and_rotations_refused(tmp_path):
-    """#26: a missing frame, a second rotation or a gated file without a time slot is refused, not truncated."""
+    """A missing frame, a second rotation or a gated file without a time slot is refused, not truncated."""
     _write_nm(tmp_path / 'short.dcm', drop_frames=1)
     with pytest.raises(ValueError, match='frames'):
         _read(tmp_path / 'short.dcm')
@@ -298,7 +298,7 @@ def _simind(tmp_path, name, version='V8.0', radius='150.0', direction='CCW', sta
 
 @pytest.mark.parametrize('version, radius', [('V7.0.3', '15.0'), ('V8.0', '150.0'), ('V10.1', '150.0')])
 def test_simind_versions_and_units(tmp_path, version, radius):
-    """#30: the version is an integer, so V10 reads its mm keys as mm."""
+    """The version is an integer, so V10 reads its mm keys as mm."""
     header = _simind(tmp_path, 'tot_w1', version=version, radius=radius)
     projections, object_meta, proj_meta = SPECT.read_simind(header)
     assert projections.shape == (1, 12, LR, LZ) and np.allclose(proj_meta.radii, 150.0)
@@ -322,7 +322,7 @@ def test_simind_clockwise_views_are_sorted_and_warn_with_a_start_angle(tmp_path)
 
 
 def test_simind_windows_and_organs(tmp_path):
-    """Every window's bounds and photon energy (the nuclide's line, not SIMIND's photon energy, #2); organs added up
+    """Every window's bounds and photon energy (the nuclide's line, not SIMIND's photon energy); organs added up
     with their weights."""
     w1 = _simind(tmp_path, 'tot_w1')
     w4 = _simind(tmp_path, 'tot_w4', window=(101.7, 124.3))
@@ -360,7 +360,7 @@ def test_energy_window_scatter_takes_the_widths_from_proj_meta():
 
 
 def test_square_hole_psf_matches_the_collimator():
-    """#9: the 'square' PSF of a square-hole collimator is, along r, the response averaged over the hole lattice: a
+    """The 'square' PSF of a square-hole collimator is, along r, the response averaged over the hole lattice: a
     triangle reaching zero at the geometric resolution D (L + d) / L, which is also its FWHM."""
     from pytomography.io.SPECT._energy import _psf_meta
     from pytomography.transforms.SPECT.psf import get_1D_PSF_layer_square

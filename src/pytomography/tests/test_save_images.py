@@ -191,7 +191,7 @@ def test_nm_is_the_default_for_spect(tmp_path):
 
 
 def test_the_modality_comes_from_object_meta(tmp_path):
-    """#41: a CT object_meta saves as CT without being told; an object_meta with no modality must be told one."""
+    """A CT object_meta saves as CT without being told; an object_meta with no modality must be told one."""
     meta = ObjectMeta(dr=(1.0, 1.0, 2.0), shape=(12, 10, 7), centre=(0, 0, -50), frame="patient", units="HU",
                       modality="CT")
     files = save_dicom(np.round(_image(signed=True) * 10), tmp_path / "ct", meta)
@@ -202,7 +202,7 @@ def test_the_modality_comes_from_object_meta(tmp_path):
 
 
 def test_slice_thickness_is_not_the_spacing(tmp_path):
-    """#41: SliceThickness is written only when given; the spacing is in the slices' positions."""
+    """SliceThickness is written only when given; the spacing is in the slices' positions."""
     meta = ObjectMeta(dr=(1.0, 1.0, 1.0), shape=(12, 10, 7), modality="CT", units="HU")
     x = np.round(_image(signed=True) * 10)
     ds = pydicom.dcmread(str(save_dicom(x, tmp_path / "a", meta)[0]))
@@ -213,7 +213,7 @@ def test_slice_thickness_is_not_the_spacing(tmp_path):
 
 
 def test_subsampled_grid_saves_where_it_is(tmp_path):
-    """#27: after subsample the voxel size and the origin written are the coarse grid's, centred where the fine
+    """After subsample the voxel size and the origin written are the coarse grid's, centred where the fine
     grid was."""
     fine = SPECTObjectMeta(dr=(4.8, 4.8, 4.8), shape=(24, 24, 14), centre=(3.0, -150.0, 400.0), frame="patient")
     coarse = fine.subsample(2)

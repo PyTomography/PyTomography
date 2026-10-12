@@ -1,5 +1,5 @@
 """The CT readers on files written here (CPU): DICOM-CT-PD with its private tags as VR UN and as explicit VR, its
-vendor rules and checks (#34, #36), the patient frame with k foot to head; Nikon XTek cone beam (axis order, angle
+vendor rules and checks, the patient frame with k foot to head; Nikon XTek cone beam (axis order, angle
 sign, flat field, binning); HU."""
 from __future__ import annotations
 

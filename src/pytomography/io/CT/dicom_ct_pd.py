@@ -82,7 +82,7 @@ def tag(ds, name: str, default=_REQUIRED):
 
 
 def _check(ds, n_columns: int, n_rows: int) -> None:
-    """Raises for a scan PyTomography cannot model (#36): a detector that is not cylindrical, a geometry that is not a
+    """Raises for a scan PyTomography cannot model: a detector that is not cylindrical, a geometry that is not a
     fan beam, or rows and columns that disagree with the image."""
     shape = str(tag(ds, 'detector_shape', 'CYLINDRICAL')).upper()
     if shape != 'CYLINDRICAL':
@@ -178,7 +178,7 @@ def _table_feed(source_phis: torch.Tensor, source_zs: torch.Tensor) -> float:
 
 def _check_patient_frame(ds, vendor: str) -> None:
     """The patient frame of DICOM-CT-PD: verified for GE scans, feet first supine; other positions raise, other vendors
-    warn (Siemens images put their y origin on the table, which the projections do not record, #34)."""
+    warn (Siemens images put their y origin on the table, which the projections do not record)."""
     position = ds.get('PatientPosition')
     if position != 'FFS':
         raise NotImplementedError(f"the patient frame of DICOM-CT-PD is verified for feet first supine (FFS) scans only; "
@@ -213,7 +213,7 @@ def read_dicom_ct_pd(folder, *, object_meta: ObjectMeta | None = None, table_fee
     acquisition order (``InstanceNumber``).
 
     The geometry comes from the files' private tags, decoded whatever their VR and checked: the detector must be
-    cylindrical and the projections fan beam (#36). The detector's central column is DetectorCentralElement (7031,1033),
+    cylindrical and the projections fan beam. The detector's central column is DetectorCentralElement (7031,1033),
     except that GE counts it from the other end of the detector, from zero, so that its central column is ``n_columns -
     DetectorCentralElement`` (443.25 rather than 444.75 on TCIA LDCT-and-Projection-data cases C145 and C001, GE
     Discovery CT750 HD): ``central_column='auto'`` applies this for GE (the vendor table's 'ge-ct-pd-central-column').
@@ -222,7 +222,7 @@ def read_dicom_ct_pd(folder, *, object_meta: ObjectMeta | None = None, table_fee
 
     The patient frame (``object_meta.centre``, ``frame='patient'``) is verified for GE scans, feet first supine: other
     patient positions raise, and other vendors warn (Siemens images put their y origin on the table, which the
-    projections do not record, #34).
+    projections do not record).
 
     By default rays that expect fewer than ``low_signal_photons`` photons (from (7033,1065) PhotonStatistics) are
     filtered with :func:`~pytomography.io.CT.preprocessing.filter_low_signal`, which removes most of the streaks of

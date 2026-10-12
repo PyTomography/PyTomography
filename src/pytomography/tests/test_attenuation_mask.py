@@ -110,7 +110,7 @@ def test_a_mu_map_in_1_per_cm_on_a_pet_grid(tmp_path):
 
 
 def test_the_water_check_catches_a_map_made_for_another_energy(tmp_path):
-    """#2: a map of water at 208 keV used for 113 keV (or in the wrong units) warns."""
+    """A map of water at 208 keV used for 113 keV (or in the wrong units) warns."""
     path = _siemens_map(tmp_path, WATER_208 * 10)
     grid = ObjectMeta(dr=(2.0, 2.0, 3.0), shape=(12, 10, 8), modality="NM")
     with warnings.catch_warnings():

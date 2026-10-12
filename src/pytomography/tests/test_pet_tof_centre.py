@@ -1,4 +1,4 @@
-"""#7: the projector's TOF bins are the readers' bins, for an even number of bins too. A point on one LOR, projected
+"""The projector's TOF bins are the readers' bins, for an even number of bins too. A point on one LOR, projected
 into two TOF bins by parallelproj 2 (on the GPU): it falls in the bin that holds its position along the LOR. With the
 offset of -w/2 that PyTomography gave an even number of bins before version 4, a point at the centre of bin 1 sat on
 the edge of the projector's bin, and a point at the LOR's midpoint fell in bin 1 alone. GPU memory: a few MB."""

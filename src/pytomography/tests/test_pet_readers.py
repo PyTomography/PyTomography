@@ -227,7 +227,7 @@ def test_gate_tof_bins_and_out_of_range_events(tmp_path):
     assert events.dtype == torch.int32 and events.shape == (6, 3)
     assert events[:, 2].tolist() == [0, 1, 2, 3, 1, 2]
     assert proj_meta.tof_meta is tof_meta
-    assert float(tof_meta.center_offset) == 0.0                            # centred for an even number of bins (#7)
+    assert float(tof_meta.center_offset) == 0.0                            # centred for an even number of bins
 
 
 def test_gate_event_kinds_and_delays(tmp_path):
@@ -246,8 +246,7 @@ def test_gate_event_kinds_and_delays(tmp_path):
 
 
 def test_gate_min_rsector_difference_filters_events(tmp_path):
-    """min_rsector_difference drops the events whose crystals are fewer rsectors apart; the sinogram is unchanged
-    (#15)."""
+    """min_rsector_difference drops the events whose crystals are fewer rsectors apart; the sinogram is unchanged."""
     root, macro, _ = write_gate(tmp_path, n=300)
     every, _, proj_meta = PET.read_gate(root, macro)
     kept, _, kept_meta = PET.read_gate(root, macro, min_rsector_difference=3)
@@ -332,7 +331,7 @@ def test_gate_macros_the_reader_cannot_describe_raise(tmp_path):
         gate._macro_info(tmp_path / "linear.mac")
 
 
-# ---------- events outside the grid (#16), randoms in TOF ----------
+# ---------- events outside the grid, randoms in TOF ----------
 
 def _crosses_box(a: np.ndarray, b: np.ndarray, half: np.ndarray, samples: int = 4001) -> bool:
     t = np.linspace(0, 1, samples)[:, None]
@@ -461,7 +460,7 @@ def test_ge_corrections(tmp_path):
 
 
 def test_list_mode_sensitivity_leaves_out_pairs_closer_than_min_rsector_difference():
-    """The sensitivity image's crystal pairs that the readers' event filter drops get weight 0 (#15)."""
+    """The sensitivity image's crystal pairs that the readers' event filter drops get weight 0."""
     from types import SimpleNamespace
     from pytomography.projectors.PET import PETLMSystemMatrix
     info = scanner_info(crystalTransNr=4, crystalTransSpacing=4.0, crystalAxialNr=3, crystalAxialSpacing=5.0,

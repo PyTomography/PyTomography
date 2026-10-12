@@ -13,7 +13,7 @@ one line below 0 HU (air to water) and one above (water to bone). Its coefficien
 * ``'nist'``: that curve with the effective energy 75 % of the kVp.
 
 A mu map read from a file is checked against water at ``energy_keV``: :func:`check_water` warns when the map's water
-peak differs from NIST's water by more than 5 %, which catches a map made for another photon energy (#2) or in other
+peak differs from NIST's water by more than 5 %, which catches a map made for another photon energy or in other
 units.
 """
 from __future__ import annotations

@@ -19,7 +19,7 @@ def attenuation_map(source, object_meta: ObjectMeta, energy_keV: float | None = 
     * **A mu map** (a SIMIND ``.hct`` with ``layout=``, a GATE/STIR ``.hv``, a Siemens ``.v.hdr``, a NIfTI, a vendor's
       DICOM map...): its values are converted from their units (the file's, or ``units=``) to 1/mm and checked against
       NIST's water at ``energy_keV``: a warning says when the map's water is more than 5 % off, which happens for a map
-      made for another photon energy (#2) or in other units.
+      made for another photon energy or in other units.
 
     The map is placed by its own geometry; ``Image.on`` warns when the map and the grid are in different frames
     (``'patient'`` and ``'scanner'``). For an image in a GATE simulation's world, first place it with

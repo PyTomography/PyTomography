@@ -35,7 +35,7 @@ def _is_starguide(ds: Dataset) -> bool:
 
 
 def _energy_windows(ds: Dataset, nuclide: str | None) -> list[EnergyWindow]:
-    """Every energy window of a NM file, with all of its ranges (#33) and its photon energy."""
+    """Every energy window of a NM file, with all of its ranges and its photon energy."""
     windows = []
     for i, window in enumerate(ds.get('EnergyWindowInformationSequence') or []):
         ranges = [(float(r.EnergyWindowLowerLimit), float(r.EnergyWindowUpperLimit))
@@ -148,7 +148,7 @@ def _geometry(ds: Dataset, source: str = '') -> dict:
         raise ValueError(f'{source}: the frame vectors do not have NumberOfFrames ({n}) entries')
     if len(np.unique(rotation)) > 1:
         raise NotImplementedError(f'{source} holds {len(np.unique(rotation))} rotations (a dynamic acquisition, or a '
-                                  'StarGuide head file); PyTomography reads one rotation per file (#26)')
+                                  'StarGuide head file); PyTomography reads one rotation per file')
     rotations = ds.RotationInformationSequence
     rot = rotations[0]
     views_per_detector = int(rot.NumberOfFramesInRotation)
@@ -199,8 +199,8 @@ def _geometry(ds: Dataset, source: str = '') -> dict:
         else:
             warnings.warn(f'{source}: the private radius offsets (0055,1022) have {len(offsets)} values for '
                           f'{len(radius)} views; they are not used')
-    # orientation of each head (#25): the IOP is that of the head's first view
-    dz, dr = (float(v) for v in ds.PixelSpacing)           # between rows (z), between columns (r) (#24)
+    # orientation of each head: the IOP is that of the head's first view
+    dz, dr = (float(v) for v in ds.PixelSpacing)           # between rows (z), between columns (r)
     Lz, Lr = int(ds.Rows), int(ds.Columns)
     flip_r = {}
     col = None
@@ -267,10 +267,10 @@ def read_dicom(file: str, energy_window: int | None = None, *, time_slot: int | 
     """SPECT projections from a DICOM NM file (one bed, one rotation), in PyTomography's standard form.
 
     * Frames are found by their vectors (energy window, detector, rotation, view, time slot), and their number is
-      checked (#26).
+      checked.
     * β = (DICOM angle + 180) mod 360, views sorted by β; per-head start angles; radii in mm.
     * Rows and columns are flipped as the heads' ImageOrientationPatient say, so that z runs foot to head and r along
-      (cos β, -sin β, 0) (#25). PixelSpacing is (between rows, between columns) and the grid is Columns wide (#24).
+      (cos β, -sin β, 0). PixelSpacing is (between rows, between columns) and the grid is Columns wide.
     * The grid is centred on the rotation axis and the middle row, placed in the patient by the vendor table.
 
     Args:

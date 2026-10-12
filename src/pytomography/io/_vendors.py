@@ -46,7 +46,7 @@ _RULES = [
                'ImagePositionPatient (x, y) of the Detector Information Sequence is the centre of voxel (0, 0), as '
                'written; the rotation axis is at the centre of the projection columns.',
                'Lu177-PSMA-GEDisc: kidney masks from the CT land on the hot kidneys at 0 shift in whole 4.4 mm voxels; '
-               'a half-pixel (2.2 mm) corner offset is not excluded (#42).', 'check'),
+               'a half-pixel (2.2 mm) corner offset is not excluded.', 'check'),
     VendorRule('ge-starguide', 'GE', 'StarGuide NM projections and reconstructions',
                'Head geometry in private tags (0099,1051) x and (0099,1052) y in cm and (0099,1053) angle in degrees; '
                'frame times (0009,1003) in ms; stored values times the Pixel Scale (0011,103B); no '
@@ -96,10 +96,10 @@ _RULES = [
     VendorRule('simind-projection-frame', 'SIMIND', 'projections (.h00/.a00)',
                "x fastest within a view; row 0 at +z; angles from 'start angle', 'extent of rotation' and "
                "'direction of rotation'; the phantom centred on the rotation axis.",
-               'Jaszak spheres and XCAT anatomy in LPS as read; counter-clockwise data from 0 only (#31).', 'verified'),
+               'Jaszak spheres and XCAT anatomy in LPS as read; counter-clockwise data from 0 only.', 'verified'),
     VendorRule('simind-clockwise-start', 'SIMIND', 'projections (.h00/.a00), clockwise with a non-zero start angle',
                "The angle of view n is -(start angle) - n * step for clockwise acquisitions.",
-               "No local data; PyTomography's SIMIND writer and the reader disagree on the sign (#31).", 'unverified'),
+               "No local data; PyTomography's SIMIND writer and the reader disagree on the sign.", 'unverified'),
     VendorRule('gate-world-frame', 'GATE', 'world frame',
                'The patient is wherever the phantom was placed in the world: world_axes, world_origin.',
                "Hosted brain data: 'LPI', the MR's centre.", 'verified'),
@@ -107,7 +107,7 @@ _RULES = [
                "x fastest, then y and z, as +x, +y and +z; centred on the scanner (GATE centres a voxelised phantom on "
                "its placement; STIR's 'first pixel offset' is relative to STIR's own origin at the first ring, so "
                "it is kept in meta and not used).",
-               'The hosted water cube is symmetric, so the orientation cannot be checked (#13).', 'unverified'),
+               'The hosted water cube is symmetric, so the orientation cannot be checked.', 'unverified'),
     VendorRule('stir2petsird', 'STIR2PETSIRD', 'PETSIRD gantry frame',
                'x up, z towards the bed, the axial origin at the first ring; crystals placed by a corner (-0.353 '
                'degrees).',
