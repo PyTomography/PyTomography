@@ -11,7 +11,12 @@ namespace and writes, into out_dir/<name>/:
   thumb.png       an anterior maximum-intensity projection of the SPECT or PET over a line integral of the anatomy.
 
 The cell never raises, so a failed export never fails the tutorial; it prints one line starting with MARKER that the
-runner reads. The expressions can use the helpers below as `vx.<name>`, e.g. `vx.ct_dicom(files_CT)`.
+runner reads. A layer gives its image in one of two ways (both placed in LPS mm, as PyTomography places them):
+
+  image: io.load_image(files_CT)                     an io.Image: its values, affine and units
+  array: recon, affine: object_meta.affine           a tensor or array on a grid, and that grid's affine
+
+The expressions run in the tutorial's namespace, with `io` (pytomography.io) and `np` in it.
 
 The cache: each image is also kept as the tutorial computed it (full precision, with its affine) in
 <run>/viewer_cache/<name>/, keyed by its expressions in viewer.yaml. Editing anything else in viewer.yaml (ranges,
@@ -276,7 +281,9 @@ def _thumbnail(layers, path: Path, height_px: int = 320) -> None:
 def _layer_key(ls: dict, spec: dict) -> str:
     """What a layer's image depends on: its expressions and the spec's setup code. Display settings are left out, so
     changing them re-exports from the cache without a new run."""
-    what = {"array": ls["array"], "affine": ls.get("affine"), "setup": spec.get("setup", "")}
+    what = {"array": ls.get("array"), "affine": ls.get("affine"), "setup": spec.get("setup", "")}
+    if ls.get("image"):
+        what["image"] = ls["image"]
     return hashlib.sha1(json.dumps(what, sort_keys=True).encode("utf8")).hexdigest()[:16]
 
 
@@ -300,9 +307,10 @@ def _cache_write(folder: Path, name: str, spec: dict, raw: list, notebook_sha: s
     for ls, arr, A, space in raw:
         key = _layer_key(ls, spec)
         keep = arr.astype(np.float32) if arr.dtype == np.float64 else arr
-        np.savez_compressed(folder / f"{key}.npz", arr=keep, A=A, space=np.array(space or ""))
-        entries.append({"key": key, "name": ls["name"], "array": ls["array"], "affine": ls.get("affine"),
-                        "shape": list(arr.shape), "dtype": str(keep.dtype)})
+        np.savez_compressed(folder / f"{key}.npz", arr=keep, A=A, space=np.array(space or ""),
+                            units=np.array(ls.get("units") or ""))
+        entries.append({"key": key, "name": ls["name"], "array": ls.get("array"), "image": ls.get("image"),
+                        "affine": ls.get("affine"), "shape": list(arr.shape), "dtype": str(keep.dtype)})
     for old in folder.glob("*.npz"):                    # images of expressions that are gone
         if old.stem not in {e["key"] for e in entries}:
             old.unlink()
@@ -322,6 +330,8 @@ def _cache_read(folder: Path, spec: dict) -> list:
         key = _layer_key(ls, spec)
         if key in have:
             with np.load(folder / f"{key}.npz") as z:
+                if not ls.get("units") and "units" in z.files and str(z["units"]):   # an Image's own units
+                    ls = {**ls, "units": str(z["units"])}
                 raw.append((ls, z["arr"], z["A"], str(z["space"]) or None))
         elif not ls.get("when"):
             missing.append(ls["name"])
@@ -338,20 +348,30 @@ def export(name: str, out_dir, namespace: dict, spec: dict, notebook_sha: str | 
     env = dict(namespace)
     env["vx"] = sys.modules[__name__]
     env["np"] = np
+    if "io" not in env:                                 # image: io.load_image(...), as the tutorials import it
+        import pytomography.io
+        env["io"] = pytomography.io
     if spec.get("setup"):
         exec(spec["setup"], env)
     raw = []
     for ls in spec["layers"]:
         if ls.get("when") and not eval(ls["when"], env):   # a layer for one version of the tutorial only
             continue
-        got = eval(ls["array"], env)
         space = None
-        if isinstance(got, tuple):
-            arr, A = got[0], got[1]
-            if len(got) > 2:
-                space = got[2]
+        if ls.get("image"):                             # an io.Image: its values, its affine (LPS mm), its units
+            image = eval(ls["image"], env)
+            arr, A = image.data, image.affine
+            if not ls.get("units") and getattr(image, "units", None):
+                ls = {**ls, "units": image.units}
+            del image
         else:
-            arr, A = got, eval(ls["affine"], env)
+            got = eval(ls["array"], env)
+            if isinstance(got, tuple):
+                arr, A = got[0], got[1]
+                if len(got) > 2:
+                    space = got[2]
+            else:
+                arr, A = got, eval(ls["affine"], env)
         raw.append((ls, _to_numpy(arr), np.asarray(_to_numpy(A), float).reshape(4, 4).copy(), space))
     try:
         _cache_write(cache_dir(out_dir, name), name, spec, raw, notebook_sha)

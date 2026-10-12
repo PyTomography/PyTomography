@@ -14,11 +14,12 @@
 #     name:       short name ("CT", "OSEM"), also the file name
 #     label:      optional longer name, shown in the picker and the readout
 #     kind:       ct (HU) | mr | mu (attenuation map) | spect | pet | image (any other image, in grey)
-#     array:      expression for the 3D image (torch or numpy, axes x, y, z as PyTomography stores them), or for a
-#                 tuple (image, affine)
-#     affine:     expression for its 4 x 4 voxel-to-scanner matrix in mm, in DICOM's LPS axes as PyTomography uses
-#                 (`space: ras` for NIfTI's). `affine_scale: 10` converts one in cm.
-#     units:      shown in the readout
+#     the image, one of:
+#     image:      expression for an io.Image, e.g. io.load_image(files_CT): its values, affine and units (a file's
+#                 image as PyTomography places it)
+#     array:      expression for the 3D image (torch or numpy, axes x, y, z as PyTomography stores them), with
+#     affine:     expression for its 4 x 4 voxel-to-patient matrix in LPS mm: object_meta.affine for a reconstruction
+#     units:      shown in the readout (an image: layer defaults to the Image's units)
 #     colormap, range, opacity, window (ct: phantom | soft | bone | lung | full): display defaults. SPECT and PET
 #                 default to inferno from 0 to their hottest voxel inside the anatomy (CT above -500 HU), so a hot
 #                 voxel at the edge of the field of view doesn't set the scale. Without an anatomy image, nothing
@@ -33,8 +34,11 @@
 #     voxel_mm:   average down to about this voxel size, or [x, y, z] (downsample: an integer factor instead);
 #     slices:     per-axis "a:b", to keep part of the array
 #
-# Helpers in expressions: vx.ct_dicom(files) gives (HU, affine); vx.spect_affine(file_NM); vx.centred(dr_mm, shape);
-# vx.object_affine(object_meta) (PET, CT: dr in mm); vx.simind_affine(object_meta) (dr in cm); vx.flip_axis(A, n, axis); vx.nifti_centred(path, step_mm). See viewer_export.py.
+# The expressions run in the tutorial's namespace, with io (pytomography.io) and np in it:
+#   - {name: OSEM, kind: spect, array: recon, affine: object_meta.affine, units: counts}
+#   - {name: CT, kind: ct, image: io.load_image(files_CT), window: phantom}
+# (Until every entry has moved to that form, the exporter still takes the old one: an array expression that gives a
+# tuple (image, affine), `affine_scale: 10` for an affine in cm, and the vx.* affine helpers.)
 
 tutorials:
 
