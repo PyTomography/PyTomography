@@ -59,8 +59,9 @@ def _projections(betas, radius=200.0):
 
 def _write_nm(path, *, vendor='SIEMENS', n_heads=2, views_per_head=12, step=15.0, direction='CC', starts=(180.0, 0.0),
               per_head_start=True, position='FFS', flip_r=False, flip_z=True, centre=CENTRE, rotations=1, slots=1,
-              drop_frames=0):
-    """A NM TOMO file of the marker projections, as ``vendor`` writes it; returns (β sorted, projections [W, θ, r, z],
+              drop_frames=0, registration=None):
+    """A NM TOMO file of the marker projections, as ``vendor`` writes it (with Siemens' registration matrix
+    ``registration``, 4 x 4, in the private tag (0043,1002) when given); returns (β sorted, projections [W, θ, r, z],
     radii sorted)."""
     dicom_angle, beta, betas = _acquisition(n_heads, views_per_head, step, direction, starts)
     radius = {key: 200.0 + 3 * k for k, key in enumerate(sorted(beta))}          # a non-circular orbit
@@ -144,6 +145,8 @@ def _write_nm(path, *, vendor='SIEMENS', n_heads=2, views_per_head=12, step=15.0
             rot.RadialPosition = [radius[(h, v)] for h in range(1, n_heads + 1) for v in range(1, views_per_head + 1)]
         rotation_items.append(rot)
     ds.RotationInformationSequence = rotation_items
+    if registration is not None:
+        ds.private_block(0x0043, 'SIEMENS MED NM', create=True).add_new(0x02, 'FD', np.asarray(registration, float).ravel().tolist())
     ds.SOPClassUID, ds.SOPInstanceUID = '1.2.840.10008.5.1.4.1.1.20', generate_uid()
     ds.file_meta = FileMetaDataset()
     ds.file_meta.TransferSyntaxUID = ExplicitVRLittleEndian
@@ -208,6 +211,48 @@ def test_reconstruction_puts_the_markers_back(tmp_path):
         region = np.where(nearest == n, recon, -np.inf)
         found = object_meta.affine @ [*np.unravel_index(np.argmax(region), recon.shape), 1]
         assert np.all(np.abs(found[:3] - position) <= np.array([DR, DR, DZ]) + 1e-6), (value, found[:3], position)
+
+
+def _rigid(theta_deg, translation):
+    t = np.radians(theta_deg)
+    M = np.eye(4)
+    M[:2, :2] = [[np.cos(t), -np.sin(t)], [np.sin(t), np.cos(t)]]       # from +x towards +y
+    M[:3, 3] = translation
+    return M
+
+
+def test_siemens_registration_moves_the_grid_into_the_ct_frame(tmp_path):
+    """Siemens' registration (0043,1002), from the acquisition's frame to the CT's: the reconstruction puts every
+    marker where M takes it (within one voxel), so the turn about z has the right sense; the grid's centre is M's image
+    of the acquisition's, and the views turn by M's angle. A matrix that is not rigid is left out with a warning."""
+    M = _rigid(15.0, (10.0, -20.0, 5.0))       # 15 degrees: the markers 20 to 30 mm off the axis move 5 to 8 mm
+    _write_nm(tmp_path / 'nm.dcm', views_per_head=16, step=11.25, registration=M)
+    _write_nm(tmp_path / 'plain.dcm', views_per_head=16, step=11.25)
+    projections, object_meta, proj_meta = _read(tmp_path / 'nm.dcm', energy_window=0)
+    _, plain_meta, plain_proj = _read(tmp_path / 'plain.dcm', energy_window=0)
+    assert np.allclose(object_meta.centre, (M @ [*CENTRE, 1])[:3])
+    turned = np.sort((plain_proj.angles.cpu().numpy() - 15.0) % 360)
+    assert np.allclose(proj_meta.angles.cpu().numpy(), turned, atol=1e-4)
+    H = SPECTSystemMatrix([], [], object_meta, proj_meta)
+    recon = OSEM(PoissonLogLikelihood(H, projections))(n_iters=6, n_subsets=4).cpu().numpy()
+    acquisition = SPECTObjectMeta((DR, DR, DZ), (LR, LR, LZ), centre=CENTRE).affine
+    positions = {v: (M @ acquisition @ [*ijk, 1])[:3] for ijk, v in MARKERS.items()}
+    grid = np.stack(np.meshgrid(*[np.arange(n) for n in recon.shape], indexing='ij'), -1)
+    world = grid @ object_meta.affine[:3, :3].T + object_meta.affine[:3, 3]
+    nearest = np.argmin(np.stack([np.linalg.norm(world - p, axis=-1) for p in positions.values()]), axis=0)
+    for n, (value, position) in enumerate(positions.items()):
+        region = np.where(nearest == n, recon, -np.inf)
+        found = object_meta.affine @ [*np.unravel_index(np.argmax(region), recon.shape), 1]
+        assert np.all(np.abs(found[:3] - position) <= np.array([DR, DR, DZ]) + 1e-6), (value, found[:3], position)
+    sheared = M.copy()
+    sheared[0, 1] += 0.1
+    _write_nm(tmp_path / 'bad.dcm', registration=sheared)
+    with pytest.warns(UserWarning, match='not a rigid'):
+        _, bad_meta, _ = SPECT.read_dicom(str(tmp_path / 'bad.dcm'))
+    assert np.allclose(bad_meta.centre, CENTRE)
+    _write_nm(tmp_path / 'ge.dcm', vendor='GE', n_heads=1, views_per_head=24, starts=(0.0,), per_head_start=False,
+              registration=M)                                              # other vendors: not read
+    assert np.allclose(_read(tmp_path / 'ge.dcm')[1].centre, CENTRE)
 
 
 def test_frames_are_counted_and_rotations_refused(tmp_path):

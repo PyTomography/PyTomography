@@ -131,6 +131,37 @@ def _projection_centre(ds: Dataset, Lr: int, Lz: int, dr: float, dz: float, col:
     return (ipp[0] + (Lr - 1) / 2 * dr, ipp[1] + (Lr - 1) / 2 * dr, z)
 
 
+def siemens_registration(ds: Dataset, source: str = '') -> np.ndarray | None:
+    """Siemens' registration of a NM acquisition to the patient frame of the CT taken with it: the 4 x 4 rigid matrix
+    M in the private tag (0043,xx02) of 'SIEMENS MED NM' (vendor rule 'siemens-nm-registration'), from the
+    acquisition's frame (placed by rule 'siemens-nm-projection') to the CT's. None for other vendors, or when the file
+    has none; a matrix that is not rigid is left out with a warning.
+
+    Args:
+        ds (Dataset): the NM file's header.
+        source (str, optional): the file, for the warning.
+
+    Returns:
+        np.ndarray | None: M (4 x 4, mm), or None.
+    """
+    if _vendors.manufacturer(ds) != 'SIEMENS':
+        return None
+    try:
+        values = ds.private_block(0x0043, 'SIEMENS MED NM')[0x02].value
+    except (KeyError, ValueError):
+        return None
+    M = np.asarray(values, dtype=np.float64).ravel()
+    if M.size != 16:
+        warnings.warn(f'{source}: the Siemens registration (0043,xx02) has {M.size} values, not 16; it is not used')
+        return None
+    M = M.reshape(4, 4)
+    R = M[:3, :3]
+    if not (np.allclose(M[3], [0, 0, 0, 1]) and np.allclose(R.T @ R, np.eye(3), atol=1e-4) and np.linalg.det(R) > 0):
+        warnings.warn(f'{source}: the Siemens registration (0043,xx02) is not a rigid transform; it is not used')
+        return None
+    return M
+
+
 def _geometry(ds: Dataset, source: str = '') -> dict:
     """Everything about a NM TOMO file but its pixels: which frame is which (window, time slot, view), the angle,
     radius and orientation of every view, the grid and the acquisition facts."""
@@ -222,8 +253,17 @@ def _geometry(ds: Dataset, source: str = '') -> dict:
                              f'(IOP {iop.tolist()}, beta {np.degrees(b):.2f})')
         flip_r[d] = along < 0
     _check_position(ds, source, "PyTomography's reading of NM projections")
-    order = np.argsort(beta, kind='stable')
     centre = _projection_centre(ds, Lr, Lz, dr, dz, col, source)
+    registration = siemens_registration(ds, source)
+    if registration is not None:
+        # into the CT's frame: the grid's centre goes where M puts it, and the views turn by M's rotation about z
+        # (a turn by theta from +x towards +y takes the view at beta to beta - theta); M's small tilt about x and y is
+        # not modelled: the rotation axis stays along k
+        _vendors.use('siemens-nm-registration', source)
+        theta = np.degrees(np.arctan2(registration[1, 0], registration[0, 0]))
+        beta = (beta - theta) % 360
+        centre = tuple(float(c) for c in (registration @ [*centre, 1.0])[:3])
+    order = np.argsort(beta, kind='stable')
     nuclide = _nuclide(ds)
     duration = rot.get('ActualFrameDuration')
     # the frame of every (window, time slot, view in β order)
@@ -271,7 +311,10 @@ def read_dicom(file: str, energy_window: int | None = None, *, time_slot: int | 
     * β = (DICOM angle + 180) mod 360, views sorted by β; per-head start angles; radii in mm.
     * Rows and columns are flipped as the heads' ImageOrientationPatient say, so that z runs foot to head and r along
       (cos β, -sin β, 0). PixelSpacing is (between rows, between columns) and the grid is Columns wide.
-    * The grid is centred on the rotation axis and the middle row, placed in the patient by the vendor table.
+    * The grid is centred on the rotation axis and the middle row, placed in the patient by the vendor table. Siemens
+      files carry their registration to the CT taken with them (private tag (0043,xx02), see
+      :func:`siemens_registration`): the grid is moved into the CT's frame and the views turned with it, as Siemens
+      places its own reconstructions.
 
     Args:
         file (str): the NM file.
