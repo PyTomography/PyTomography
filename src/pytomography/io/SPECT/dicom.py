@@ -53,6 +53,46 @@ def _nuclide(ds: Dataset) -> str | None:
     return None
 
 
+def patient_position(ds: Dataset) -> str | None:
+    """The patient's position ('HFS', 'FFP'...) as the file states it: PatientPosition, or, when that is absent or
+    empty (GE NM files), the Patient Orientation and Gantry Relationship codes; None when neither says.
+
+    It is never used to place anything: ImageOrientationPatient and ImagePositionPatient (and the NM detector vectors)
+    do that, as every vendor writes them in the patient's frame whatever the position. It is only compared with the
+    positions checked on data, for a warning."""
+    position = str(ds.get('PatientPosition', '') or '').strip().upper()
+    if position:
+        return position
+    orientation = ds.get('PatientOrientationCodeSequence') or []
+    gantry = ds.get('PatientGantryRelationshipCodeSequence') or []
+    lying = ''
+    for item in orientation:
+        for modifier in item.get('PatientOrientationModifierCodeSequence') or []:
+            lying += str(modifier.get('CodeMeaning', '')).lower()
+    first = ' '.join(str(item.get('CodeMeaning', '')).lower() for item in gantry)
+    head = 'HF' if 'head' in first else 'FF' if 'feet' in first or 'foot' in first else ''
+    if not head:
+        return None
+    if 'supine' in lying:
+        return head + 'S'
+    if 'prone' in lying:
+        return head + 'P'
+    if 'right' in lying:
+        return head + 'DR'
+    if 'left' in lying:
+        return head + 'DL'
+    return None
+
+
+def _check_position(ds: Dataset, source: str, what: str) -> None:
+    """Warn when the file's patient position is one no data of ``what`` have been checked in (only FFS)."""
+    position = patient_position(ds)
+    if position and position != 'FFS':
+        warnings.warn(f"{source}: the patient position is {position}; {what} has been checked on feet-first supine "
+                      "data only. The geometry is taken from the file's orientation and position tags, as for any "
+                      "position.", _vendors.UnverifiedVendorRule)
+
+
 def _acquisition_start(ds: Dataset) -> datetime.datetime | None:
     text = str(ds.get('AcquisitionDateTime', '') or '')
     if not text and ds.get('AcquisitionDate'):
@@ -181,10 +221,7 @@ def _geometry(ds: Dataset, source: str = '') -> dict:
             raise ValueError(f'{source}: the columns of detector {d} do not run along the detector at its first view '
                              f'(IOP {iop.tolist()}, beta {np.degrees(b):.2f})')
         flip_r[d] = along < 0
-    position = str(ds.get('PatientPosition', '') or '').upper()
-    if position and position != 'FFS':
-        warnings.warn(f"{source}: PatientPosition '{position}': only feet-first supine data have been checked; the "
-                      "orientation is taken from the detectors' ImageOrientationPatient", _vendors.UnverifiedVendorRule)
+    _check_position(ds, source, "PyTomography's reading of NM projections")
     order = np.argsort(beta, kind='stable')
     centre = _projection_centre(ds, Lr, Lz, dr, dz, col, source)
     nuclide = _nuclide(ds)
