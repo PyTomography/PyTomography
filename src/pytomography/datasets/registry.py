@@ -272,11 +272,12 @@ DATASETS = {
         "parts": [
             {"kind": "zip", "url": "https://zenodo.org/records/8404015/files/dmi_nema_lm.zip", "size": 16234398763,
              "md5": "192ca209456f080ab95d03a1ee41d00c", "unpacked": 16719773369},
-            # 3D Slicer mask of the six spheres, made for the PET uncertainty tutorial. Its origin was corrected for
-            # PyTomography 4's upright GE frame (docs/tools/fix_ge_sphere_mask.py, 11 Oct 2026): it was drawn by index on
-            # version 3's upside-down grid. Its pytomography_frame:=scanner field puts it in the GE grid's frame
-            {"kind": "package", "file": "fdg_spheres.seg.nrrd", "size": 11441,
-             "sha256": "f5e6e172f2216b9870eaa43b48eb3cb52afa5d2ac3e52fee00a0020792ceed96"},
+            # 3D Slicer mask of the six spheres, the lung insert and a background region, made for the PET uncertainty
+            # tutorial. Its geometry was corrected for PyTomography 4's upright GE frame (docs/tools/fix_ge_sphere_mask.py,
+            # 12 Oct 2026): it was drawn by index on version 3's upside-down grid, with its first two axes swapped. Its
+            # pytomography_frame:=scanner field puts it in the GE grid's frame
+            {"kind": "package", "file": "fdg_spheres.seg.nrrd", "size": 11411,
+             "sha256": "792162c695aa42568ce5f0c3eeb366a156895e621f28f89daa3d9681b39f8873"},
         ],
     },
     # The 60-minute NEMA scan of Zenodo 1304454 converted to PETSIRD 0.9.1 with ETSI's STIR2PETSIRD (October 2026). It
