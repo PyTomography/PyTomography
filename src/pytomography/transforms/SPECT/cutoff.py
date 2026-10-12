@@ -34,12 +34,13 @@ class CutOffTransform(Transform):
 		proj: torch.Tensor,
         padded: bool = True,
 	) -> torch.tensor:
-        """Returns the projection data without the cutoff.
+        """The adjoint of :meth:`forward`: the cutoff mask applied again. Masking is a diagonal operator, so it is its
+        own adjoint; outside the mask the projections stay zero.
         Args:
             proj (torch.Tensor): Projection data
             padded (bool, optional): Whether or not the projection data is padded. Defaults to True.
         Returns:
-            torch.Tensor: Projection data without cutoff"""
+            torch.Tensor: Projection data with the cutoff applied"""
         if padded:
             return proj * self.padded_mask
         else:

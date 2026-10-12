@@ -1,16 +1,37 @@
 from __future__ import annotations
+import warnings
 import torch
 import pytomography
 from pytomography.transforms import Transform
 from pytomography.transforms.shared import RotationTransform
 from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta
 from pytomography.utils import pad_object, unpad_object, pad_proj, unpad_proj, rotate_detector_z
+from pytomography.utils.fourier_filters import get_fbp_filter, ramp_filter
 import numpy as np
 from ..system_matrix import SystemMatrix
 from pytomography.utils import simind_mc
 from copy import copy
 from typing import Sequence
 import shutil
+
+def _view_weights(angles: Sequence[float]) -> list[float]:
+    """Angle (radians) that each view stands for in the sum of filtered back projection. A parallel-hole view and the
+    view opposite it measure the same lines, so the angles are taken modulo 180 degrees, where each view gets half the
+    gaps to its neighbours: N equally spaced views over 360 or over 180 degrees each get pi/N, and lines measured twice
+    share their weight. A gap of more than twice the typical one means the views cover less than 180 degrees, which
+    filtered back projection cannot reconstruct exactly: this warns, and the views beside the gap get the typical gap.
+    """
+    a = np.mod(np.asarray(angles, dtype=np.float64), 180.0)
+    order = np.argsort(a, kind='stable')
+    gaps = np.diff(np.append(a[order], a[order][0] + 180.0))  # from each view (in angle order) to the next
+    typical = np.median(gaps[gaps > 1e-6]) if np.any(gaps > 1e-6) else 180.0
+    if np.any(gaps > 2 * typical + 1e-6):
+        warnings.warn('the views cover less than 180 degrees: filtered back projection cannot reconstruct the object '
+                      'exactly', stacklevel=3)
+        gaps = np.minimum(gaps, typical)
+    weights = np.empty_like(a)
+    weights[order] = 0.5 * (gaps + np.roll(gaps, 1))
+    return np.deg2rad(weights).tolist()
 
 class SPECTSystemMatrix(SystemMatrix):
     r"""System matrix for SPECT imaging implemented using the rotate+sum technique.
@@ -206,7 +227,40 @@ class SPECTSystemMatrix(SystemMatrix):
         # Unpad
         object = unpad_object(object)
         return object
-        
+
+    def _fbp(self, projections: torch.Tensor, filter=None) -> torch.Tensor:
+        r"""Filtered back projection of parallel-hole projections onto the object grid of this system matrix, called by
+        :class:`pytomography.algorithms.FilteredBackProjection`. Each projection is ramp filtered along :math:`r` (times
+        the window ``filter``, which is given the frequency in cycles per mm) and back projected as in :meth:`backward`,
+        weighted by the angle it stands for: :math:`\pi/N` for :math:`N` equally spaced views over 360 or over 180
+        degrees. Only the geometry is used, not the transforms of the system matrix, so the object is not corrected for
+        attenuation, collimator blurring or scatter.
+
+        Args:
+            projections (torch.Tensor[N, Lr, Lz]): Projections.
+            filter (FBPFilter, optional): Window applied on top of the ramp filter. Defaults to None (Ram-Lak).
+
+        Returns:
+            torch.Tensor[Lx, Ly, Lz]: The object, in the units of the object in :meth:`forward`.
+        """
+        if tuple(projections.shape) != tuple(self.proj_meta.shape):
+            raise ValueError(f'projections of shape {tuple(projections.shape)} do not match the system matrix, '
+                             f'{tuple(self.proj_meta.shape)}')
+        window = get_fbp_filter(filter)
+        # The projector samples r on the object grid (y, once rotated) and adds up the voxels along x: the ramp filter,
+        # per mm of r, times the voxel length along x gives the object per voxel. Lengths in mm, the unit of the windows.
+        dx, dy = 10 * self.object_meta.dr[0], 10 * self.object_meta.dr[1]
+        weights = _view_weights(self.proj_meta.angles.tolist())
+        phis = self._host_phis()
+        boundary_box_bp = pad_object(torch.ones(self.object_meta.shape, device=pytomography.device), mode='back_project')
+        object = torch.zeros(self.object_meta.padded_shape, device=pytomography.device)
+        for angle_idx in range(self.proj_meta.num_projections):
+            # filtered over the padded width, so that voxels off the axis get the tails of the filter
+            proj_filtered = ramp_filter(pad_proj(projections[angle_idx].to(pytomography.device)), dy, window, dim=0)
+            object_i = proj_filtered.unsqueeze(0) * boundary_box_bp
+            object += self.rotation_transform.forward(object_i, phis[angle_idx]) * (weights[angle_idx] * dx)
+        return unpad_object(object)
+
 class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
     def __init__(
         self,

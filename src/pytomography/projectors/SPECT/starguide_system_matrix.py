@@ -187,7 +187,7 @@ class StarGuideSystemMatrix(SystemMatrix):
         proj: torch.Tensor,
         subset_idx: int | None = None
     ):
-        """Applies back projection.
+        r"""Applies back projection.
 
         Args:
             proj (torch.tensor): projections :math:`g` which are to be back projected

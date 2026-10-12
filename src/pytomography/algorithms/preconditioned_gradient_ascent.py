@@ -126,8 +126,12 @@ class PreconditionedGradientAscentAlgorithm:
         #self.object_prediction -= self.addition_after_iteration
         if self.callback is not None:
             self.callback.finalize(self.object_prediction)
-        return self.object_prediction 
-                
+        # Release the GPU memory PyTorch keeps cached from the reconstruction: on Windows it also counts as the
+        # process's host memory (10 GB after a one-subset list mode OSEM of the GATE mMR's 50.8M events)
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        return self.object_prediction
+
 class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAlgorithm):
     r"""Implementation of a special case of ``PreconditionedGradientAscentAlgorithm`` whereby :math:`C^{n}(f^n) = D^{n} f^{n}`
 

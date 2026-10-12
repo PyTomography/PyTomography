@@ -1,0 +1,44 @@
+cff-version: 1.2.0
+message: "If you use PyTomography in your research, please cite the paper below."
+title: PyTomography
+type: software
+license: MIT
+repository-code: "https://github.com/PyTomography/PyTomography"
+url: "https://pytomography.readthedocs.io"
+authors:
+  - family-names: Polson
+    given-names: Lucas A.
+  - name: "The PyTomography contributors"
+preferred-citation:
+  type: article
+  title: "PyTomography: A python library for medical image reconstruction"
+  journal: SoftwareX
+  volume: 29
+  start: 102020
+  year: 2025
+  doi: 10.1016/j.softx.2024.102020
+  authors:
+    - family-names: Polson
+      given-names: Lucas A.
+    - family-names: Fedrigo
+      given-names: Roberto
+    - family-names: Li
+      given-names: Chenguang
+    - family-names: Sabouri
+      given-names: Maziar
+    - family-names: Dzikunu
+      given-names: Obed
+    - family-names: Ahamed
+      given-names: Shadab
+    - family-names: Karakatsanis
+      given-names: Nicolas
+    - family-names: Kurkowska
+      given-names: Sara
+    - family-names: Sheikhzadeh
+      given-names: Peyman
+    - family-names: Esquinas
+      given-names: Pedro
+    - family-names: Rahmim
+      given-names: Arman
+    - family-names: Uribe
+      given-names: Carlos

@@ -33,14 +33,13 @@ class NegativeMSELikelihood(Likelihood):
         Args:
             object (torch.Tensor): Object :math:`f` on which the likelihood is computed
             subset_idx (int | None, optional): Specifies the subset for forward/back projection. If none, then forward/back projection is done over all subsets, and the entire projections :math:`g` are used. Defaults to None.
-            norm_BP_subset_method (str, optional): Specifies how :math:`H^T 1` is calculated when subsets are used. If 'subset_specific', then uses :math:`H_m^T 1`. If `average_of_subsets`, then uses the average of all :math:`H_m^T 1`s for any given subset (scaled to the relative size of the subset if subsets are not equal size). Defaults to 'subset_specific'.
+            norm_BP_subset_method (str, optional): Specifies how :math:`H^T 1` is calculated when subsets are used. If 'subset_specific', then uses :math:`H_m^T 1`. If `average_of_subsets`, then uses the average of all :math:`H_m^T 1`\ s for any given subset (scaled to the relative size of the subset if subsets are not equal size). Defaults to 'subset_specific'.
 
         Returns:
             torch.Tensor: The gradient of the Poisson likelihood.
         """
         proj_subset = self._get_projection_subset(self.projections, subset_idx)
-        additive_term_subset = self._get_projection_subset(self.additive_term, subset_idx)
-        self.projections_predicted = self.system_matrix.forward(object, subset_idx) + additive_term_subset
+        self._forward_with_additive_term(object, subset_idx)
         return self.system_matrix.backward(proj_subset - self.projections_predicted , subset_idx) * self.scaling_constant
     
 class SARTWeightedNegativeMSELikelihood(Likelihood):
@@ -63,14 +62,13 @@ class SARTWeightedNegativeMSELikelihood(Likelihood):
         Args:
             object (torch.Tensor): Object :math:`f` on which the likelihood is computed
             subset_idx (int | None, optional): Specifies the subset for forward/back projection. If none, then forward/back projection is done over all subsets, and the entire projections :math:`g` are used. Defaults to None.
-            norm_BP_subset_method (str, optional): Specifies how :math:`H^T 1` is calculated when subsets are used. If 'subset_specific', then uses :math:`H_m^T 1`. If `average_of_subsets`, then uses the average of all :math:`H_m^T 1`s for any given subset (scaled to the relative size of the subset if subsets are not equal size). Defaults to 'subset_specific'.
+            norm_BP_subset_method (str, optional): Specifies how :math:`H^T 1` is calculated when subsets are used. If 'subset_specific', then uses :math:`H_m^T 1`. If `average_of_subsets`, then uses the average of all :math:`H_m^T 1`\ s for any given subset (scaled to the relative size of the subset if subsets are not equal size). Defaults to 'subset_specific'.
 
         Returns:
             torch.Tensor: The gradient of the Poisson likelihood.
         """
         proj_subset = self._get_projection_subset(self.projections, subset_idx)
-        additive_term_subset = self._get_projection_subset(self.additive_term, subset_idx)
-        self.projections_predicted = self.system_matrix.forward(object, subset_idx) + additive_term_subset
+        self._forward_with_additive_term(object, subset_idx)
         norm_FP = self.system_matrix.forward(object*0+1, subset_idx) # TODO: Slow implementation
         norm_BP = self._get_normBP(subset_idx)
         return self.system_matrix.backward((proj_subset - self.projections_predicted)/(norm_FP+pytomography.delta) , subset_idx)

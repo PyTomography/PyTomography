@@ -15,6 +15,21 @@ from pytomography.transforms import Transform
 
 ENERGY_RESOLUTION_MODELS = ['siemens']
 
+#: The simind.ini changes every simulation is run with (SIMIND's ``/in:`` switch; each change needs a switch of its own,
+#: since SIMIND applies only the first change of ``in:x2,6x21,0x``):
+#:
+#: * ``in:x2,6x``: entry 2, the maximum number of scatter orders in the phantom, is 6.
+#: * ``in:x21,0x``: entry 21, the density above which a voxel of the phantom is made of the second phantom material
+#:   (1170, 1000 * g/cm3, by default, meant for bone), is 0, so that every voxel with any density is made of the second
+#:   material. With the default, SIMIND V8.0 (the Windows build of 2025-01-28) leaves the photons emitted in soft tissue
+#:   or water (the first material) unattenuated on their way to the detector: a point source in the centre of a 10 cm
+#:   radius water cylinder gives as many unscattered counts as in air, with the cylinder's scatter on top. The forward
+#:   projections of :class:`~pytomography.projectors.SPECT.MonteCarloHybridSPECTSystemMatrix` were then about three
+#:   times too large and lacked attenuation, so its reconstructions were too low and brighter at the edge of the body.
+#:   With every voxel in the second material, the attenuation agrees with PyTomography's attenuated projector to a few
+#:   percent. Both phantom materials are water in the ``simind.smc`` file used here, so nothing else changes.
+SIMIND_INI_CHANGES = ('in:x2,6x', 'in:x21,0x')
+
 def save_attenuation_map(
     attenuation_map: torch.Tensor,
     dx: float,
@@ -177,7 +192,8 @@ def get_energy_window_params_simind(headerfiles: Sequence[str]|str)-> Sequence[s
     return lines
         
 def create_simind_command(index_dict: dict, parallel_idx: int) -> str:
-    """Creates the terminal command to run SIMIND with the specified parameters
+    """Creates the terminal command to run SIMIND with the specified parameters: voxel source and attenuation maps
+    (XCAT format), scatter and air images, and the simind.ini changes in :data:`SIMIND_INI_CHANGES`.
 
     Args:
         index_dict (dict): Dictionary of SIMIND parameters
@@ -186,7 +202,9 @@ def create_simind_command(index_dict: dict, parallel_idx: int) -> str:
     Returns:
         str: Terminal command to run SIMIND with the specified parameters
     """
-    simind_command = f'temp_output{parallel_idx}/14:-7/15:-7/CA:1/RR:{parallel_idx}/01:-208/in:x2,6x'
+    simind_command = f'temp_output{parallel_idx}/14:-7/15:-7/CA:1/RR:{parallel_idx}/01:-208'
+    for change in SIMIND_INI_CHANGES:
+        simind_command += f'/{change}'
     for key, value in index_dict.items():
         if isinstance(value, list):
             for v in value:

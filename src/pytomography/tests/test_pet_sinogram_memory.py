@@ -1,7 +1,8 @@
 """The PET sinogram projector generates crystal coordinates on the device per chunk instead of materialising the
 coordinates of the whole sinogram on the CPU, and the single scatter simulation keeps its sparse estimate as a table of
 sampled bins instead of a dense sinogram. These tests check that both give the same numbers as the dense/host versions.
-The projector library (parallelproj) is not needed by any of these tests; it is stubbed if it is not installed."""
+The projector library (parallelproj 2, module parallelproj_core) is not needed by any of these tests; it is stubbed if
+it is not installed."""
 from __future__ import annotations
 
 import sys
@@ -12,11 +13,9 @@ import pytest
 import torch
 
 try:
-    import parallelproj  # noqa: F401
+    import parallelproj_core  # noqa: F401
 except ImportError:                                   # the tests below never call the projector kernels
-    _pp = types.ModuleType("parallelproj")
-    _pp.cuda_present = False
-    sys.modules["parallelproj"] = _pp
+    sys.modules["parallelproj_core"] = types.ModuleType("parallelproj_core")
 
 import pytomography
 from pytomography.io.PET import shared
@@ -24,6 +23,9 @@ from pytomography.metadata import ObjectMeta
 from pytomography.metadata.PET import PETSinogramPolygonProjMeta, PETTOFMeta
 from pytomography.projectors.PET import PETSinogramSystemMatrix
 from pytomography.utils import sss
+
+if not hasattr(sys.modules["parallelproj_core"], "joseph3d_fwd"):
+    del sys.modules["parallelproj_core"]              # the modules above keep the stub; tests that need the kernels still skip
 
 DEV = pytomography.device
 INFO = dict(min_rsector_difference=0, crystal_length=20.0, radius=120.0, firstCrystalAxis=0,
@@ -113,3 +115,20 @@ def test_interpolation_chunk_size_does_not_change_result():
     a = sss.interpolate_sparse_sinogram(sparse, proj_meta, idx_intraring, idx_ring, eval_chunk_size=100)
     b = sss.interpolate_sparse_sinogram(sparse, proj_meta, idx_intraring, idx_ring, eval_chunk_size=10 ** 9)
     assert (a - b).abs().max() < 1e-4 * b.abs().max()      # float32 kernel-matrix products differ per chunk shape (measured 1e-5 of the maximum)
+
+
+@pytest.mark.skipif("parallelproj_core" not in sys.modules, reason="requires parallelproj 2 (parallelproj_core)")
+@pytest.mark.parametrize("tof", [False, True])
+@pytest.mark.parametrize("subset_idx", [None, 2])
+def test_projections_do_not_depend_on_the_chunks(tof, subset_idx):
+    """The forward projection and the attenuation probabilities are written a chunk at a time into outputs that start
+    uninitialised, so every row must be written exactly once: any number of chunks gives the same values."""
+    gen = torch.Generator().manual_seed(3)
+    image = torch.rand((32, 32, 16), generator=gen).to(DEV)
+    results = []
+    for n_splits in (1, 7):
+        sm = _system_matrix(tof, n_splits)
+        sm.attenuation_map = 0.01 * image
+        results.append((sm.forward(image, subset_idx), sm._compute_atteunation_probability_projection(subset_idx)))
+    assert torch.equal(results[0][0], results[1][0]) and torch.equal(results[0][1], results[1][1])
+    assert results[0][0].abs().sum() > 0 and (results[0][1] < 1).any()

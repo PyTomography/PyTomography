@@ -38,5 +38,28 @@ def set_device(d: str):
 def set_verbose(b: bool):
     global verbose
     verbose = b
+
+#: Host memory (RAM), in bytes, that PyTomography's memory-heavy steps plan for, or None for no budget. Set it with
+#: :func:`set_memory_budget`.
+memory_budget = None
+
+def set_memory_budget(gb: float | None):
+    """Sets how much host memory (RAM) PyTomography's memory-heavy steps may use, in GB. They split their work to fit:
+
+    * steps that go through every pair of crystals of a PET scanner (normalization weights and sinograms, the list mode
+      sensitivity image; 411 million pairs for the Siemens Biograph mMR) do so in blocks sized from the budget;
+    * a sinogram that would take more than a quarter of the budget is built one subset of angles at a time instead of
+      whole (a :class:`~pytomography.io.PET.shared.LazySinogram`), e.g. a time of flight sinogram;
+    * a reconstruction whose subsets would not fit stops before it starts, with the number of subsets that would.
+
+    The results do not depend on the budget. Without one (the default), blocks have fixed sizes, and sinograms are built whole unless one would take more than 8 GB (a TOF sinogram of a clinical scanner).
+
+    Args:
+        gb (float | None): Memory budget in GB, or None for no budget.
+    """
+    global memory_budget
+    if gb is not None and gb <= 0:
+        raise ValueError(f"the memory budget must be positive, got {gb} GB")
+    memory_budget = None if gb is None else float(gb) * 1e9
     
     

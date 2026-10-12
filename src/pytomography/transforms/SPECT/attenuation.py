@@ -12,7 +12,7 @@ def get_prob_of_detection_matrix(attenuation_map: torch.Tensor, dx: float) -> to
 	r"""Converts an attenuation map of :math:`\text{cm}^{-1}` to a probability of photon detection matrix (scanner at +x). Note that this requires the attenuation map to be at the energy of photons being emitted.
 
 	Args:
-		attenuation_map (torch.tensor): Tensor of size [Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{cm}^{-1}}
+		attenuation_map (torch.tensor): Tensor of size [Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{cm}^{-1}}`
 		dx (float): Axial plane pixel spacing.
 
 	Returns:
