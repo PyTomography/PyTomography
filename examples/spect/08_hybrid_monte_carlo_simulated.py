@@ -97,7 +97,7 @@ elif ISOTOPE == 'y90':
     isotope_ratios = [1]
     collimator_type = 'SY-HE'
 
-# These four go to SIMIND as they are, so they are in SIMIND's unit, cm
+# The three thicknesses go to SIMIND as they are, so they are in SIMIND's unit, cm
 cover_thickness = 0.1 # cm, assumed to be aluminum
 backscatter_thickness = 6.6 # cm, assumed to be pyrex
 # the argument below is optional, only siemens currently implemented.
