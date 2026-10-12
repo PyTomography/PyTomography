@@ -421,7 +421,8 @@ class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
             object_meta (ObjectMeta): SPECT ObjectMeta used in reconstruction
             proj_meta (SPECTProjMeta): SPECT projection metadata used in reconstruction
             n_events (int): Number of photons to simulate per projection angle
-            n_parallel (int): Number of simulations to perform in parallel, should not exceed number of CPU cores.
+            n_parallel (int): Number of SIMIND processes run at once, one per CPU core. Leave a few cores for the rest of the
+                computer, e.g. ``max(1, os.cpu_count() - 4)``.
             obj2obj_transforms (Sequence[Transform]): List of object to object transforms for back projection
             proj2proj_transforms (Sequence[Transform]): List of projection to projection transforms for back projection
             attenuation_map_140keV (torch.Tensor): Attenuation map at 140keV (used in MC simulation)
