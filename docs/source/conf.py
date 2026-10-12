@@ -29,6 +29,7 @@ extensions = [
     "pytomo_docs",                  # _ext/pytomo_docs.py: gallery, launch bars, llms.txt
     "pytomo_viewer",                # _ext/pytomo_viewer.py: the 3D image viewer on tutorial pages and cards
     "pytomo_memory",                # _ext/pytomo_memory.py: the generated tables of the Memory and speed page
+    "pytomo_io",                    # _ext/pytomo_io.py: the Architecture page's "Data and conventions" tab
 ]
 
 source_suffix = {".rst": "restructuredtext", ".md": "myst-nb", ".ipynb": "myst-nb"}

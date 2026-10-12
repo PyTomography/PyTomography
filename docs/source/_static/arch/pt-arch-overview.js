@@ -234,7 +234,8 @@
       show(n.getAttribute("aria-controls"), true);
     });
   });
-  const fromHash = () => { const id = "tab-" + location.hash.slice(1); if (document.getElementById(id) && tabs.some((t) => t.getAttribute("aria-controls") === id)) show(id, false); };
+  // a tab's hash may name a part of it after a dash ("#io-standard": the io tab, which shows that view itself)
+  const fromHash = () => { const id = "tab-" + location.hash.slice(1).split("-")[0]; if (document.getElementById(id) && tabs.some((t) => t.getAttribute("aria-controls") === id)) show(id, false); };
   window.addEventListener("hashchange", fromHash);
   fromHash();
 
