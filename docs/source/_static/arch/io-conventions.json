@@ -1,6 +1,6 @@
 {
  "about": "PyTomography's I/O: every data source, its own conventions, the reader that converts it, and the standard form every reader returns. The Architecture page's 'Data and conventions' tab draws it (_static/arch/pt-io.js) and the docs build writes it as text (_ext/pytomo_io.py). Nodes link left to right through 'to': source -> reader -> standard -> used_by. vendor_rules is the library's pytomography/io/_vendors.py table; docs/tools/io_vendor_rules.py checks and copies it.",
- "library": "PyTomography 4.0 (branches feature/io-pet-ct 052c9c4 and feature/io-core 421da85, 12 October 2026)",
+ "library": "PyTomography 4.0 (branch feature/io-pet-ct e9393da, 12 October 2026)",
  "statuses": {
   "verified": "checked on data",
   "check": "checked in part; the reader warns about what is open",
@@ -714,12 +714,12 @@
     "origin": "space origin (265.49, 265.49, -97.3) mm",
     "angles": "-",
     "values": "labels",
-    "quirks": "Drawn by index on v3's upside-down GE grid; v4 moved its origin for the upright grid (the voxels are unchanged)."
+    "quirks": "Drawn by index on v3's upside-down GE grid; v4 moved its origin for the upright grid (the voxels are unchanged) and marked it pytomography_frame:=scanner, the frame of read_ge_hdf5's grid."
    },
    "brief": "LPS space; x and y directions negative; labels",
    "steps": [
     "load_mask reads the header's space, directions and origin into LPS; segment names become labels.",
-    ".on(object_meta, label=k) puts sphere k on the GE grid."
+    ".on(object_meta, label=k) puts sphere k on the GE grid; both are in the frame 'scanner', so there is no cross-frame warning."
    ],
    "checked": "Sizes match the GE grid (192 × 192 × 71, 2.78 mm); the new origin puts v3's voxel (i, j, k) at v4's (191 − i, 191 − j, k).",
    "v3": "geometry used (v3 indexed the array by hand with ITK); the hosted file's origin corrected.",
@@ -1123,14 +1123,15 @@
     "origin": "'space origin'",
     "angles": "-",
     "values": "as stored; 3D Slicer's segment names in the header",
-    "quirks": "-"
+    "quirks": "NRRD has no frame field: PyTomography's key-value field pytomography_frame:=scanner marks an image placed only relative to the scanner."
    },
    "brief": "'space', directions and origin in the header",
    "steps": [
     "space, space directions and space origin → an LPS affine.",
-    "Slicer segment names → labels."
+    "Slicer segment names → labels.",
+    "frame 'patient', or 'scanner' with pytomography_frame:=scanner; frame= of load_image overrides it."
    ],
-   "checked": "LPS and RAS spaces, raw and gzip, in synthetic tests; the GE sphere mask.",
+   "checked": "LPS and RAS spaces, raw and gzip, and the frame field in synthetic tests; the GE sphere mask.",
    "v3": "a library reader (ITK by hand in v3).",
    "datasets": [
     "PET/GE-DMI-NEMA"
@@ -1501,13 +1502,14 @@
    "id": "rd-img-load",
    "lane": "img",
    "name": "io.load_image",
-   "call": "io.load_image(source, *, layout=None, units=None, reorient=True)",
+   "call": "io.load_image(source, *, layout=None, units=None, reorient=True, frame=None)",
    "returns": "Image: data (x, y, z), affine, units, modality, meta, frame, labels",
    "brief": "any image file with its own affine; turned to LPS axes",
    "does": [
     "DICOM series sorted along their normal; single DICOM files (NM, enhanced); NIfTI sform or qform; Interfile; NRRD.",
     "Vendor rules applied: GE CT's corner, StarGuide's scale, SIMIND's layout.",
     "Turned to the nearest LPS axes (permute and flip only).",
+    "The frame from the file: DICOM 'patient'; NIfTI by its sform code (1 'patient', else 'scanner'); NRRD by pytomography_frame:=; Interfile 'scanner'. frame= overrides it.",
     "MetaImage in v4.1."
    ],
    "replaces": [
@@ -1551,12 +1553,12 @@
    "id": "rd-img-mask",
    "lane": "img",
    "name": "io.load_mask",
-   "call": "io.load_mask(source, *, reference=None, rois=None)",
+   "call": "io.load_mask(source, *, reference=None, rois=None, frame=None)",
    "returns": "Image of integer labels (units 'label'), labels {name: value}",
    "brief": "RTSTRUCT, NIfTI or NRRD labels; .on(object_meta, label=) onto any grid",
    "does": [
     "An RTSTRUCT is drawn on its CT (reference=, rois=); overlapping ROIs get values of their own.",
-    "NIfTI and NRRD label images keep their geometry; Slicer's segment names become labels.",
+    "NIfTI and NRRD label images keep their geometry and frame (frame= overrides it); Slicer's segment names become labels.",
     ".on(object_meta, label=..., threshold=0.5) puts a label on any grid."
    ],
    "replaces": [
@@ -1756,7 +1758,7 @@
   },
   {
    "topic": "Centre and frame",
-   "rule": "Grids are centred on the scanner (the SPECT rotation axis and middle row, the PET rings' centre, the CT isocentre); centre is where that is in the patient. frame 'patient': the study's DICOM coordinates, shared with its CT. 'scanner': LPS axes, origin at the scanner's centre (SIMIND, PETSIRD, GE PET, Nikon, GATE or StarGuide without a placement). Image.on warns across frames.",
+   "rule": "Grids are centred on the scanner (the SPECT rotation axis and middle row, the PET rings' centre, the CT isocentre); centre is where that is in the patient. frame 'patient': the study's DICOM coordinates, shared with its CT. 'scanner': LPS axes, origin at the scanner's centre (SIMIND, PETSIRD, GE PET, Nikon, GATE or StarGuide without a placement). Image.on warns across frames; load_image(frame=) overrides a file's frame.",
    "code": "object_meta.centre, .frame"
   },
   {

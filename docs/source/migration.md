@@ -4,7 +4,7 @@
 %   - pyproject.toml still says requires-python >=3.9 and torch>=1.10.2; this page says 3.10 and 2.4, as install.md does.
 %   - #294 (memory estimates and plans) is not merged; its section is marked "(coming in 4.0)". Drop it if it misses rc1.
 %   - The ARF PSF section of the previous page is left out: spectarf and arf_to_psf are not in development yet.
-%   - "Reading and saving data" follows the I/O branches feature/io-pet-ct 052c9c4 and feature/io-core 421da85 (12 October).
+%   - "Reading and saving data" follows the I/O branch feature/io-pet-ct e9393da (12 October).
 
 # Moving from v3 to v4
 
@@ -105,7 +105,7 @@ io.save_dicom(recon, folder, object_meta, reference=file_NM)          # placed; 
 
 | v3 | v4 |
 |---|---|
-| `open_multifile`, `open_singlefile`, `_get_affine_*` | `io.load_image(source)`: `.data` (numpy x, y, z), `.affine`, `.units`, `.modality`, `.meta`, `.labels` |
+| `open_multifile`, `open_singlefile`, `_get_affine_*` | `io.load_image(source, *, layout=None, units=None, frame=None)`: `.data` (numpy x, y, z), `.affine`, `.units`, `.modality`, `.meta`, `.frame`, `.labels` |
 | `align_images_affine(...)` | `io.load_image(source).on(object_meta, fill=...)`: averages when downsampling; `mode='nearest'`, `label=`, `threshold=` |
 
 ### SPECT
