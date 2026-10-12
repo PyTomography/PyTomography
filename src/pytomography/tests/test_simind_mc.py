@@ -52,7 +52,7 @@ def test_detector_thicknesses_are_mm_and_reach_simind_in_cm(monkeypatch):
 
     def fake_simulation(object, attenuation_map, object_meta, proj_meta, windows, index_dict, *args, **kwargs):
         seen.append(dict(index_dict))
-        return torch.zeros((len(windows), proj_meta.num_projections, N, N))
+        return torch.zeros((len(windows), proj_meta.num_projections, N, N), device=pytomography.device)
     monkeypatch.setattr(simind_mc, 'run_scatter_simulation', fake_simulation)
     sm.forward(torch.ones((N, N, N)).to(pytomography.device))
     assert seen and all((d['09'], d['11'], d['13']) == (0.9525, 6.6, 0.1) for d in seen)
