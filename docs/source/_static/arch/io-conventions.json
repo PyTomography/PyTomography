@@ -75,24 +75,26 @@
     "frame": "DICOM patient coordinates (LPS, mm). The heads' ImageOrientationPatient: rows along -z (row 0 superior), the anterior view's columns along +x.",
     "axes": "pixel_array [frame, row, column] = [frame, z, r]; frames indexed by the EnergyWindow, Detector, Rotation and AngularView vectors.",
     "units": "mm: PixelSpacing = (between rows, between columns) = (dz, dr); RadialPosition and TableHeight in mm.",
-    "origin": "ImagePositionPatient of the Detector Information Sequence = (0, 0, z of the top row); the rotation axis at y = -TableHeight.",
+    "origin": "ImagePositionPatient of the Detector Information Sequence = (0, 0, z of the top row); the rotation axis at y = -TableHeight.; Siemens' SPECT/CT registration, a 4×4 rigid matrix M in the private tag (0043,xx02) of 'SIEMENS MED NM', takes the acquisition frame to the CT's.",
     "angles": "DICOM: 0 = detector at the patient's back, counter-clockwise seen from the feet; StartAngle, direction (CC or CW) and AngularStep per head; RadialPosition per view (body contour).",
     "values": "counts per view (RescaleSlope and RescaleIntercept applied).",
     "quirks": "PatientPosition is not used to place anything; positions other than FFS warn."
    },
-   "brief": "LPS; row 0 superior; IPP (0, 0, z top), axis at y = -TableHeight; DICOM angles; mm",
+   "brief": "LPS; row 0 superior; IPP (0, 0, z top), axis at y = -TableHeight; SPECT/CT matrix M; DICOM angles; mm",
    "steps": [
     "Frames indexed by their vectors and counted; multi-rotation files are refused.",
     "β = (DICOM angle + 180) mod 360; views sorted by β.",
     "Rows and columns flipped as the heads' ImageOrientationPatient say: [W, θ, r, z], z foot → head.",
     "Grid Columns × Columns × Rows, dr = PixelSpacing[1], dz = PixelSpacing[0]; radii from RadialPosition.",
     "centre = (0, -TableHeight, middle row's z) by the vendor rule; frame 'patient', units 'counts'.",
+    "Siemens' registration M applied: the centre moves to M·centre and β turns by M's rotation about z, as Siemens places its own reconstructions and CT μ maps. M's tilt about x and y (≤ 1°) is not modelled: up to 2 mm at 100 mm from the centre along z.",
     "Every energy window, ActualFrameDuration (s), the acquisition start and the nuclide into proj_meta."
    ],
-   "checked": "Lu-177 NEMA phantom: PyTomography's reconstruction matches Siemens' own in patient space (NCC 0.955), every axis flip worse; a Tc-99m PYP study likewise (NCC 0.96).",
-   "v3": "lengths in mm; orientation read from the tags (assumed in v3); Columns and PixelSpacing order fixed; frame time, start and nuclide in proj_meta; one call for get_metadata and get_projections.",
+   "checked": "Siemens places its own reconstructions and CT μ maps with M, exactly: the Lu-177 NEMA scan and four TCIA Symbia studies. Lu-177 NEMA against its CT (lung insert, sphere shells, whole phantom): 3.7 mm without M, 2.1 mm with it; PyTomography's reconstruction then matches Siemens' own (NCC 0.998). The low-count Ac-225 scan cannot decide it (6.5 mm without M, 8.5 mm with).",
+   "v3": "lengths in mm; orientation read from the tags (assumed in v3); Columns and PixelSpacing order fixed; Siemens' SPECT/CT registration applied (ignored in v3); frame time, start and nuclide in proj_meta; one call for get_metadata and get_projections.",
    "rules": [
-    "siemens-nm-projection"
+    "siemens-nm-projection",
+    "siemens-nm-registration"
    ],
    "datasets": [
     "SPECT/Lu177-NEMA-SymT2",
@@ -708,21 +710,21 @@
     "rd-img-mask"
    ],
    "conventions": {
-    "frame": "space left-posterior-superior; directions (-2.78, 0, 0), (0, -2.78, 0), (0, 0, 2.78) mm",
+    "frame": "space left-posterior-superior; directions (0, -2.78, 0), (-2.78, 0, 0), (0, 0, 2.78) mm: the first two axes swapped against the GE grid",
     "axes": "i fastest; labels 1 to 8",
     "units": "mm",
     "origin": "space origin (265.49, 265.49, -97.3) mm",
     "angles": "-",
     "values": "labels",
-    "quirks": "Drawn by index on v3's upside-down GE grid; v4 moved its origin for the upright grid (the voxels are unchanged) and marked it pytomography_frame:=scanner, the frame of read_ge_hdf5's grid."
+    "quirks": "Drawn in Slicer on an image whose first two axes were swapped: v3 read its voxel (a, b, k) as the grid's (a, b, k), so its regions missed the spheres (all six read the background's level). The hosted file now states the swap in its directions, its origin for v4's upright grid, and pytomography_frame:=scanner, the frame of read_ge_hdf5's grid."
    },
    "brief": "LPS space; x and y directions negative; labels",
    "steps": [
     "load_mask reads the header's space, directions and origin into LPS; segment names become labels.",
     ".on(object_meta, label=k) puts sphere k on the GE grid; both are in the frame 'scanner', so there is no cross-frame warning."
    ],
-   "checked": "Sizes match the GE grid (192 × 192 × 71, 2.78 mm); the new origin puts v3's voxel (i, j, k) at v4's (191 − i, 191 − j, k).",
-   "v3": "geometry used (v3 indexed the array by hand with ITK); the hosted file's origin corrected.",
+   "checked": "On the v4 GE image labels 1–6 give 0.30–0.37 (the hot spheres), label 7 0.007 (the lung insert), label 8 0.043 (the background); with v3's reading all six spheres gave 0.04.",
+   "v3": "geometry used (v3 indexed the array by hand with ITK, with the axes swapped); the hosted file corrected, so t_uncertainty_pet's largest sphere gives 0.65% (v3 printed 1.63%, for a background region).",
    "datasets": [
     "PET/GE-DMI-NEMA"
    ],
@@ -1877,6 +1879,14 @@
    "data": "NM projections",
    "rule": "ImagePositionPatient of the Detector Information Sequence is (0, 0, z_top); the rotation axis is at y = -TableHeight.",
    "evidence": "Lu177-NEMA-SymT2: PyTomography's reconstruction matches Siemens' own in patient space (NCC 0.955), every axis flip worse.",
+   "status": "verified"
+  },
+  {
+   "id": "siemens-nm-registration",
+   "vendor": "Siemens",
+   "data": "NM projections (Symbia, Intevo)",
+   "rule": "The private tag (0043,xx02) of 'SIEMENS MED NM' holds a 4 x 4 rigid matrix M from the acquisition's frame (rule 'siemens-nm-projection') to the patient frame of the CT taken with it: the grid's centre goes to M times it, and the views turn by M's rotation about z (beta - theta). M's tilt about x and y (up to about 1 degree) is not modelled: the rotation axis stays along k, so voxels 100 mm from the grid's centre along z can be up to 2 mm off.",
+   "evidence": "Every Siemens reconstruction in the local data is placed at M times the acquisition's grid: Lu177-NEMA-SymT2 (to 1e-5 mm), and the AC and NoAC reconstructions and the CT mu maps of four TCIA COVID-19-NY-SBU Symbia T6 studies (exactly, once their crop along the tilted axis is counted), so Siemens attenuation-corrects with the CT moved by M. Against the CT of Lu177-NEMA-SymT2 (the lung insert's axis, the spheres' shells, the whole phantom registered), the SPECT is 2.1 mm from the CT with M and 3.7 mm without, and the turns fitted to the CT (0.6 to 0.8 degrees about z, -0.4 about x) match M's (0.53, -0.70). With M, PyTomography's OSEM and Siemens' reconstruction, put on the grid by its own header, agree with no shift (0.06 voxel, NCC 0.998). Ac225-NEMA-SymT2 is inconclusive: its 60 mm sphere is 6.5 mm from its CT shell without M and 8.5 mm with it (very low counts).",
    "status": "verified"
   },
   {

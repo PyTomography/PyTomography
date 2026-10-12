@@ -79,7 +79,7 @@ psf_meta = io.SPECT.collimator_psf('SY-ME', w.photon_keV, intrinsic_fwhm_mm=3.8)
 io.save_dicom(recon, folder, object_meta, reference=file_NM)          # placed; NM; counts
 ```
 
-**Three changes move arrays or numbers:**
+**Four changes move arrays or numbers:**
 
 - **mm everywhere.** SPECT lengths were in cm; every length is now in mm and μ in 1/mm: `GaussianFilter(2)` (2 cm)
   becomes `GaussianFilter(20)`, `intrinsic_resolution=0.38` becomes `intrinsic_fwhm_mm=3.8`, and KEM's
@@ -87,8 +87,11 @@ io.save_dicom(recon, folder, object_meta, reference=file_NM)          # placed; 
 - **k runs foot → head** for every reader: `k = 0` is the most inferior slice. CT-PD and StarGuide arrays are flipped
   along axis 2 compared with v3; their saved files land where they did. PETSIRD rings are numbered foot → head.
 - **GE PET is upright.** `read_ge_hdf5` turns the scanner 180° about z, so the bed lies posterior; v3's GE images were
-  upside down. The hosted sphere mask `fdg_spheres.seg.nrrd` has a corrected origin: `io.load_mask(file).on(object_meta,
-  label=k)` puts it on the v4 grid.
+  upside down. The hosted sphere mask `fdg_spheres.seg.nrrd` is corrected: v3 read it with its first two axes
+  swapped, so its regions missed the spheres. `io.load_mask(file).on(object_meta, label=k)` puts it on the v4 grid.
+- **Siemens SPECT is registered to its CT.** `read_dicom` applies the SPECT/CT matrix Siemens stores in each NM
+  file, as Siemens does for its own reconstructions, so Symbia grids move by a few mm and their views turn by a
+  fraction of a degree compared with v3.
 
 ### Frame and writers
 
