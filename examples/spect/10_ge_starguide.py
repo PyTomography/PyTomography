@@ -21,9 +21,8 @@ OUTPUT = datasets.output_dir("SPECT/Tc99m-NEMA-Starguide")
 import pydicom
 import matplotlib.pyplot as plt
 import os
-import numpy as np
+from pytomography import io
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
-from pytomography.io.SPECT import dicom
 from pytomography.algorithms import OSEM
 from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.projectors.SPECT import StarGuideSystemMatrix
@@ -37,18 +36,17 @@ files_NM = sorted(
     os.path.join(path_NM, f) for f in os.listdir(path_NM)
     if pydicom.dcmread(os.path.join(path_NM, f), stop_before_pixels=True).SeriesDescription == 'NoFocus Cont')
 
-object_meta, proj_meta = dicom.get_starguide_metadata(files_NM, nearest_theta=0.1)
-projections = dicom.get_starguide_projections(files_NM)
-print(projections.shape)
-
 path_CT = os.path.join(PATH, 'Tc99m-NEMA-Starguide', 'CT_files')
 files_CT = [os.path.join(path_CT, file) for file in os.listdir(path_CT)]
-attenuation_map = dicom.get_starguide_attenuation_map_from_CT_slices(files_CT, files_NM, index_peak=0)
+projections, object_meta, proj_meta = io.SPECT.read_starguide(files_NM, files_CT=files_CT, nearest_theta=0.1)
+print(projections.shape)
+
+attenuation_map = io.attenuation_map(files_CT, object_meta, energy_keV=proj_meta.energy_windows[0].photon_keV)
 attenuation_transform = SPECTAttenuationTransform(attenuation_map, assume_padded = False)
 
-psf_meta = dicom.get_psfmeta_from_scanner_params(
+psf_meta = io.SPECT.collimator_psf(
     'G8-LEHR', # According the the header, these are the collimator parameters
-    energy_keV=140.5, # Imaging of Tc-99m
+    proj_meta.energy_windows[0].photon_keV, # 140.5 keV: imaging of Tc-99m
     material='tungsten', # It is known that this is the material
     shape = 'square', # collimator hole shape
 )
@@ -62,24 +60,15 @@ system_matrix = StarGuideSystemMatrix(
 )
 
 photopeak = projections[0]
-scatter = dicom.get_energy_window_scatter_estimate_projections(
-    files_NM[0],
-    projections,
-    index_peak=0,
-    index_lower=1
-)
+scatter = io.SPECT.energy_window_scatter(projections, proj_meta, peak=0, lower=1)
 
 likelihood = PoissonLogLikelihood(system_matrix, photopeak, additive_term=scatter)
 reconstruction_algorithm = OSEM(likelihood)
+print(reconstruction_algorithm.estimate_memory(n_subsets=10))
 recon_pytomography = reconstruction_algorithm(n_iters=10, n_subsets=10)
 
-ds_recon = pydicom.dcmread(os.path.join(PATH, 'Tc99m-NEMA-Starguide', 'vendor_recon', 'i196884.NMDC.1'))
-recon_vendor = ds_recon.pixel_array * ds_recon[0x0011,0x103b].value
-recon_vendor = np.transpose(recon_vendor, (2,1,0))
+recon_vendor = io.load_image(os.path.join(PATH, 'Tc99m-NEMA-Starguide', 'vendor_recon', 'i196884.NMDC.1')).on(object_meta)
 
 # %% Save the images
-from pytomography.io import save_dicom
-
-saved = save_dicom(recon_pytomography, OUTPUT / 't_starguide' / 'osem',
-                   affine=dicom.get_starguide_patient_affine(files_CT, object_meta), modality='NM',
-                   reference=files_CT[0], units='counts/s', series_description='OSEM 10x10', overwrite=True)
+saved = io.save_dicom(recon_pytomography, OUTPUT / 't_starguide' / 'osem', object_meta,
+                      reference=files_CT[0], series_description='OSEM 10x10', overwrite=True)
