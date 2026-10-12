@@ -25,6 +25,7 @@ def no_cuda_cache(monkeypatch):
     """No allowance for PyTorch's CUDA cache, so that the toy budgets below are plain arithmetic (it has its own test)."""
     monkeypatch.setattr(memory, "CUDA_CACHE_BYTES", 0.0)
     monkeypatch.setattr(memory, "CUDA_CACHE_FRACTION", 0.0)
+    monkeypatch.setattr(memory, "CUDA_CONTEXT_GPU_BYTES", 0.0)
 
 
 @pytest.fixture(params=[False, True], ids=["linux", "windows"])
@@ -198,6 +199,30 @@ def test_estimates_add_the_overheads_of_the_device(monkeypatch, gpu_as_ram):
     assert all('GPU cache' not in p.name for p in host_only.parts) and host_only.gpu_gb == 0
 
 
+def test_gpu_estimates_count_the_cuda_context(monkeypatch, gpu_as_ram):
+    """On a CUDA device, the CUDA context and its libraries hold GPU memory outside PyTorch's allocator, which nvidia-smi
+    shows and torch.cuda.memory_reserved does not (0.57 GB measured): GPU estimates count it. On Windows, where it is
+    committed memory too and already in the fixed overhead, ram_gb stays the same. Found by validate_memory.py: the GPU's
+    use ran above estimates without it in 37 of 121 reconstructions, by up to 0.54 GB."""
+    monkeypatch.setattr(memory, "CUDA_CONTEXT_GPU_BYTES", 0.6e9)
+    arrays = [MemoryPart('image', gpu_bytes=2e9), MemoryPart('data', ram_bytes=1e9)]
+    monkeypatch.setattr(pytomography, "device", torch.device('cuda'))
+    with_context = memory.memory_estimate('test', arrays)
+    monkeypatch.setattr(memory, "CUDA_CONTEXT_GPU_BYTES", 0.0)
+    without = memory.memory_estimate('test', arrays)
+    assert with_context.gpu_gb == pytest.approx(without.gpu_gb + 0.6)
+    assert with_context.ram_gb == pytest.approx(without.ram_gb)           # Windows: moved from RAM to GPU; elsewhere: GPU only
+    context = {p.name: p for p in with_context.parts}['CUDA context and libraries on the GPU (outside PyTorch)']
+    assert context.gpu_bytes == 0.6e9 and context.scope == 'overhead'
+    fixed = {p.name: p for p in with_context.parts}['Python, PyTorch and CUDA']
+    assert fixed.ram_bytes == pytest.approx(memory.FIXED_OVERHEAD_BYTES - (0.6e9 if gpu_as_ram else 0.0))
+    # not on the CPU device
+    monkeypatch.setattr(memory, "CUDA_CONTEXT_GPU_BYTES", 0.6e9)
+    monkeypatch.setattr(pytomography, "device", torch.device('cpu'))
+    assert memory.cuda_context() is None
+    assert all('CUDA context' not in p.name for p in memory.memory_estimate('test', arrays).parts)
+
+
 def test_available_memory_reads_this_machine():
     total, available, process = memory._host_memory()
     assert total > 0 and 0 < available <= total and process >= 0   # 0: unknown here, so nothing is added back
@@ -265,6 +290,108 @@ def test_pet_listmode_plan(monkeypatch, gpu_as_ram):
     _roundtrip(plan)
 
 
+def _on(monkeypatch, device: str):
+    """Estimates for a CUDA or a CPU device, whatever this machine has: the device, and for CUDA the free GPU memory
+    the GPU budget of a chunked step reads (30 GB)."""
+    monkeypatch.setattr(pytomography, "device", torch.device(device))
+    if device == 'cuda':
+        monkeypatch.setattr(torch.cuda, "mem_get_info", lambda device=None: (30e9, 32e9))
+
+
+@pytest.mark.parametrize("model", ["pet sinogram", "pet list mode"])
+def test_pet_estimates_on_a_cpu_device_are_in_ram_and_plans_fit_without_a_gpu(model, monkeypatch):
+    """With PyTomography on the CPU, the images and the projector's chunk of a PET reconstruction are in RAM: the
+    estimate has no GPU memory (and no allowance for PyTorch's CUDA cache), and a plan fits with a GPU budget of 0. The
+    parts are the same arrays as on a CUDA device, where they are GPU memory; and on Windows, where that GPU memory
+    counts as RAM too, a CUDA plan chooses the settings the CPU plan chooses for the same arrays."""
+    sm = _pet_sinogram_system_matrix() if model == "pet sinogram" else _pet_listmode_system_matrix(monkeypatch)
+    monkeypatch.setattr(memory, "counts_gpu_as_ram", lambda: True)
+    _on(monkeypatch, 'cpu')
+    cpu = {s: sm.estimate_memory(*s) for s in ((1, 1), (4, 2), (8, 1))}
+    assert all(e.gpu_gb == 0 and all('GPU cache' not in p.name for p in e.parts) for e in cpu.values())
+    plan = sm.plan_memory(ram_gb=1000, gpu_gb=0)
+    assert plan.fits and plan.settings == {'N_splits': 1, 'n_subsets': 1}
+    _on(monkeypatch, 'cuda')
+    cuda = {s: sm.estimate_memory(*s) for s in cpu}
+    for s in cpu:
+        arrays = lambda e: {p.name: p.ram_bytes + p.gpu_bytes for p in e.parts if p.scope != 'overhead'}
+        assert arrays(cuda[s]) == arrays(cpu[s])                      # the same arrays, only where they are differs
+        on_gpu = {p.name for p in cuda[s].parts if p.gpu_bytes > 0 and p.scope != 'overhead'}
+        assert any(name.startswith(('normalisation images', 'sensitivity and normalisation images')) for name in on_gpu)
+        assert {'image, update and attenuation map', 'projector chunk'} <= on_gpu
+    # the budgets of the arrays of 4 subsets and 2 splits on each device: both plans choose those settings
+    _on(monkeypatch, 'cpu')
+    plan_cpu = sm.plan_memory(ram_gb=cpu[(4, 2)].ram_gb + 1e-9, gpu_gb=0)
+    _on(monkeypatch, 'cuda')
+    plan_cuda = sm.plan_memory(ram_gb=cuda[(4, 2)].ram_gb + 1e-9, gpu_gb=math.inf)
+    assert plan_cpu.fits and plan_cuda.fits and plan_cpu.settings == plan_cuda.settings
+    assert sm.estimate_memory(**plan_cuda.settings).ram_gb <= cuda[(4, 2)].ram_gb + 1e-9
+
+
+@pytest.mark.parametrize("uses_gpu", [False, True], ids=["no CUDA projector", "parallelproj CUDA build on a visible GPU"])
+def test_parallelproj_on_the_cpu_device_counts_a_cuda_context(uses_gpu, monkeypatch):
+    """With PyTomography on the CPU device, parallelproj's CUDA build still projects on a visible GPU, which makes a CUDA
+    context: the estimates of the computations that project with parallelproj (PET, CT, the single scatter simulation)
+    then count the overhead of a CUDA process, and SPECT's (PyTorch only) does not. Found by validate_memory.py: a PET
+    sinogram OSEM on the CPU device committed 4.06 GB against 3.82 GB estimated with the CPU overhead."""
+    pytest.importorskip("parallelproj_core")
+    from pytomography.metadata.PET import PETSinogramPolygonProjMeta, PETTOFMeta
+    from pytomography.projectors.CT import CTGen3SystemMatrix
+    from pytomography.tests.test_ct_fbp import OBJECT_META, _helix
+    from pytomography.utils import sss
+    projector_uses_gpu = memory.projector_uses_gpu
+    monkeypatch.setattr(memory, "projector_uses_gpu", lambda device=None: uses_gpu)
+    _on(monkeypatch, 'cpu')
+    overhead = lambda estimate: _parts(estimate)['Python, PyTorch and CUDA'].ram_bytes
+    expected = memory.FIXED_OVERHEAD_BYTES if uses_gpu else memory.FIXED_OVERHEAD_CPU_BYTES
+    pet = _pet_sinogram_system_matrix()
+    assert overhead(pet.estimate_memory(4)) == expected
+    assert overhead(_pet_listmode_system_matrix(monkeypatch).estimate_memory(4)) == expected
+    assert overhead(CTGen3SystemMatrix(OBJECT_META, _helix(), device='cpu').estimate_memory(4)) == expected
+    tof_meta = PETTOFMeta(5, 300.0, 60.0, n_sigmas=3)
+    assert overhead(sss.estimate_sss_memory(PET_OBJECT, PETSinogramPolygonProjMeta(INFO, tof_meta), tof_meta=tof_meta)) == expected
+    assert overhead(_spect().estimate_memory(4)) == memory.FIXED_OVERHEAD_CPU_BYTES
+    # a plan with no GPU budget still fits: the context is counted as RAM, where Windows counts it
+    assert pet.plan_memory(ram_gb=1000, gpu_gb=0).fits
+    assert not projector_uses_gpu('cuda')                            # on a CUDA device the overhead is the CUDA one anyway
+
+
+def test_list_mode_counts_the_detector_ids_of_its_sensitivity_weights(monkeypatch):
+    """A list mode system matrix given the lines of response of its sensitivity (detector_ids_sensitivity, which the
+    GE HDF5 reader gives) keeps their detector IDs: they are counted, where they are."""
+    pytest.importorskip("parallelproj_core")
+    from pytomography.metadata.PET import PETLMProjMeta
+    from pytomography.projectors.PET import PETLMSystemMatrix
+    monkeypatch.setattr(PETLMSystemMatrix, "_backward_full", lambda self, N_splits=20: torch.zeros(self.object_meta.shape))
+    gen = torch.Generator().manual_seed(0)
+    n = INFO['NrCrystalsPerRing'] * INFO['NrRings']
+    d0 = torch.randint(0, n, (3000,), generator=gen)
+    ids = torch.stack([d0, (d0 + n // 2) % n], dim=1)
+    pairs = torch.combinations(torch.arange(n, dtype=torch.int32))[:20000]
+    proj_meta = PETLMProjMeta(ids, INFO, detector_ids_sensitivity=pairs, weights_sensitivity=torch.rand(20000))
+    sm = PETLMSystemMatrix(PET_OBJECT, proj_meta, N_splits=2, device='cpu', lor_device='cpu')
+    parts = _parts(sm.estimate_memory(4))
+    assert parts['detector IDs of the sensitivity weights'].ram_bytes == 20000 * 2 * 4
+    assert parts['sensitivity weights'].ram_bytes == 20000 * 4
+    without = PETLMSystemMatrix(PET_OBJECT, PETLMProjMeta(ids, INFO), N_splits=2, device='cpu', lor_device='cpu')
+    assert 'detector IDs of the sensitivity weights' not in _parts(without.estimate_memory(4))
+
+
+def test_a_view_counts_at_its_own_size():
+    """A view of a larger tensor counts at its own size: the larger tensor is the caller's (e.g. the projections of
+    every energy window, of which a reconstruction gets one). An expanded view counts no more than what it repeats."""
+    windows = torch.zeros(3, 60, 32, 16)
+    assert memory.nbytes(windows[1]) == (4.0 * 60 * 32 * 16, 0.0)
+    assert memory.nbytes(windows) == (4.0 * 3 * 60 * 32 * 16, 0.0)
+    x = torch.arange(5.0)
+    holder = type('Holder', (), {})()
+    holder.grid = x[None].expand(1000, 5)
+    holder.ids = torch.zeros(100, 3, dtype=torch.int64)[:, :2]
+    assert memory.tensor_bytes(holder) == (4.0 * 5 + 8.0 * 100 * 2, 0.0)
+    sm = _spect(psf=False)                                    # a reconstruction given one window of three
+    assert _parts(sm.estimate_memory(4, held={'photopeak': windows[1]}))['photopeak'].ram_bytes == 4.0 * 60 * 32 * 16
+
+
 def test_ct_plan_finds_the_fewest_subsets_when_memory_rises_with_them():
     pytest.importorskip("parallelproj_core")
     from pytomography.projectors.CT import CTGen3SystemMatrix
@@ -317,6 +444,21 @@ def test_spect_estimate_counts_its_arrays():
     assert sm._memory_settings()['n_subsets'][1] == list(range(1, 61))
     with pytest.raises(ValueError, match="has no setting N_splits"):
         sm.plan_memory(ram_gb=10, gpu_gb=10, N_splits=2)
+
+
+def test_spect_normalisation_images_are_images_of_their_own():
+    """A SPECT reconstruction keeps an H_m^T 1 image for each subset, which its estimate counts as one image each: each
+    is an image of its own, not a view of the padded object back projection works in, which kept about twice the image
+    for each subset (found by validate_memory.py: a 128^3 OSEM with 30 subsets peaked at 1.14 times its GPU estimate)."""
+    sm = _spect(psf=False)
+    image = 4 * np.prod(sm.object_meta.shape)
+    assert np.prod(sm.object_meta.padded_shape) > np.prod(sm.object_meta.shape)
+    likelihood = _likelihood(sm)
+    likelihood._set_n_subsets(4)
+    assert len(likelihood.norm_BPs) == 4
+    assert all(norm.untyped_storage().nbytes() == image for norm in likelihood.norm_BPs)
+    likelihood._set_n_subsets(1)
+    assert likelihood.norm_BP.untyped_storage().nbytes() == image
 
 
 def test_spect_psf_operator_and_its_kernel_cache():

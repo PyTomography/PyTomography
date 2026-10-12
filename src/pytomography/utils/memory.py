@@ -190,8 +190,22 @@ FIXED_OVERHEAD_CPU_BYTES = 2.2e9
 #: (13% for more than 1 GB). Every estimate with GPU arrays adds this much and :data:`CUDA_CACHE_FRACTION` of them.
 CUDA_CACHE_BYTES = 0.05e9
 
-#: See :data:`CUDA_CACHE_BYTES`.
-CUDA_CACHE_FRACTION = 0.2
+#: See :data:`CUDA_CACHE_BYTES`. Measured by ``tests/validate_memory.py`` on 96 reconstructions of up to 8.6 GB
+#: reserved (11 Oct 2026), the memory reserved ran up to 34% of the estimated GPU arrays above the peak allocated (2.2 GB
+#: above 6.4 GB allocated for a TOF sinogram OSEM of a Biograph mMR-sized scanner; 0.64 GB above 1.99 GB with its
+#: projections on the host, where most of the GPU memory is the projector's chunks), when this was 0.2: two GPU
+#: estimates were low, by 2% and 6%.
+CUDA_CACHE_FRACTION = 0.35
+
+#: GPU memory a process running PyTomography on a CUDA device holds outside PyTorch's allocator, which
+#: ``torch.cuda.memory_reserved`` does not show but nvidia-smi does: the CUDA context, with the code of its kernels and
+#: the libraries' (parallelproj, cuFFT, cuBLAS, cuDNN, CuPy). Measured with nvidia-smi on an RTX 5090 with CUDA 13 (11 Oct
+#: 2026): 0.57 GB at the first CUDA call, 0.57 to 0.64 GB with every library a reconstruction uses; in the reconstructions
+#: of ``tests/validate_memory.py`` the GPU's use ran a median 0.57 GB above PyTorch's reserved memory, which took 37 of
+#: 121 of them above estimates that did not count it (by up to 0.54 GB). Rounded up. Estimates on a CUDA device add it
+#: to the GPU memory; on Windows, where it is part of the process's committed memory too (in
+#: :data:`FIXED_OVERHEAD_BYTES`), it is taken out of the RAM overhead so that ``ram_gb`` does not count it twice.
+CUDA_CONTEXT_GPU_BYTES = 0.65e9
 
 #: What each scope of a :class:`MemoryPart` means, in the order estimates print them.
 MEMORY_SCOPES = {
@@ -230,16 +244,59 @@ def counts_gpu_as_ram() -> bool:
     return sys.platform == 'win32'
 
 
-def fixed_overhead_bytes(device: str | torch.device | None = None) -> float:
-    """Committed memory of Python, PyTorch and CUDA in a process running PyTomography on ``device`` (default
-    ``pytomography.device``): :data:`FIXED_OVERHEAD_BYTES` on a CUDA device, :data:`FIXED_OVERHEAD_CPU_BYTES` otherwise."""
+def projector_uses_gpu(device: str | torch.device | None = None) -> bool:
+    """Whether parallelproj, the projector of the PET and CT system matrices, runs on a GPU although PyTomography's
+    device (``device``, default ``pytomography.device``) is not a CUDA device: its CUDA build
+    (``parallelproj_core.cuda_enabled``) projects arrays in host memory on a visible CUDA device, copying them there,
+    which makes a CUDA context in the process. Measured by ``tests/validate_memory.py`` (11 Oct 2026, RTX 5090,
+    Windows): a PET sinogram reconstruction on the CPU device committed 1.7 GB more at its first projection, and the GPU
+    held 0.65 GB more. (With no CUDA device visible, that build refuses arrays in host memory: a CPU build of
+    parallelproj is needed.)
+
+    Args:
+        device (str | torch.device | None, optional): PyTomography's device. Defaults to ``pytomography.device``.
+
+    Returns:
+        bool: True if a CUDA device is visible, ``device`` is not one, and parallelproj is its CUDA build.
+    """
     device = torch.device(pytomography.device if device is None else device)
-    return FIXED_OVERHEAD_BYTES if device.type == 'cuda' else FIXED_OVERHEAD_CPU_BYTES
+    if device.type == 'cuda' or not torch.cuda.is_available():
+        return False
+    try:
+        import parallelproj_core
+    except ImportError:
+        return False
+    return bool(getattr(parallelproj_core, 'cuda_enabled', False))
 
 
-def fixed_overhead() -> MemoryPart:
-    """Python, PyTorch and the CUDA context (:func:`fixed_overhead_bytes`), as the ``'overhead'`` part every estimate adds."""
-    return MemoryPart('Python, PyTorch and CUDA', ram_bytes=fixed_overhead_bytes(), scope='overhead')
+def fixed_overhead_bytes(device: str | torch.device | None = None, cuda_projector: bool = False) -> float:
+    """Committed memory of Python, PyTorch and CUDA in a process running PyTomography on ``device`` (default
+    ``pytomography.device``): :data:`FIXED_OVERHEAD_BYTES` on a CUDA device, :data:`FIXED_OVERHEAD_CPU_BYTES` otherwise,
+    except for a computation that projects with parallelproj (``cuda_projector``) whose CUDA build runs on a visible
+    GPU (:func:`projector_uses_gpu`): that makes a CUDA context, so :data:`FIXED_OVERHEAD_BYTES` on the CPU too."""
+    device = torch.device(pytomography.device if device is None else device)
+    if device.type == 'cuda' or (cuda_projector and projector_uses_gpu(device)):
+        return FIXED_OVERHEAD_BYTES
+    return FIXED_OVERHEAD_CPU_BYTES
+
+
+def fixed_overhead(cuda_projector: bool = False) -> MemoryPart:
+    """Python, PyTorch and the CUDA context (:func:`fixed_overhead_bytes`), as the ``'overhead'`` part every estimate adds.
+
+    Args:
+        cuda_projector (bool, optional): Whether the computation projects with parallelproj, whose CUDA build makes a
+            CUDA context on the CPU device too. Defaults to False.
+    """
+    return MemoryPart('Python, PyTorch and CUDA', ram_bytes=fixed_overhead_bytes(cuda_projector=cuda_projector), scope='overhead')
+
+
+def cuda_context(device: str | torch.device | None = None) -> MemoryPart | None:
+    """The GPU memory of the CUDA context and libraries (:data:`CUDA_CONTEXT_GPU_BYTES`) on ``device`` (default
+    ``pytomography.device``), as an ``'overhead'`` part; None on other devices."""
+    device = torch.device(pytomography.device if device is None else device)
+    if device.type != 'cuda':
+        return None
+    return MemoryPart('CUDA context and libraries on the GPU (outside PyTorch)', gpu_bytes=CUDA_CONTEXT_GPU_BYTES, scope='overhead')
 
 
 def cuda_cache(gpu_bytes: float) -> MemoryPart | None:
@@ -257,9 +314,11 @@ WINDOWS_ALLOCATOR_FRACTION = 0.35
 
 
 def memory_estimate(title: str, parts: Sequence[MemoryPart], alternatives: Sequence[tuple] = (), allocator_fraction: float | None = None,
-                    settings: Mapping | None = None) -> MemoryEstimate:
+                    settings: Mapping | None = None, cuda_projector: bool = False) -> MemoryEstimate:
     """A :class:`MemoryEstimate` of a computation's own arrays (``parts``), with the overheads every estimate adds: Python,
-    PyTorch and CUDA (:func:`fixed_overhead`), PyTorch's CUDA cache above the GPU arrays (:func:`cuda_cache`) and, on
+    PyTorch and CUDA (:func:`fixed_overhead`), on a CUDA device the GPU memory of the CUDA context and libraries
+    (:func:`cuda_context`, taken out of the RAM overhead on Windows, where that includes it), PyTorch's CUDA cache above
+    the GPU arrays (:func:`cuda_cache`) and, on
     Windows, the memory PyTorch's allocator keeps after freeing (:data:`WINDOWS_ALLOCATOR_FRACTION` of the arrays). The
     alternatives get the same overheads, so their totals compare with the main one. The ``estimate_memory`` methods
     build their estimates with it.
@@ -273,13 +332,22 @@ def memory_estimate(title: str, parts: Sequence[MemoryPart], alternatives: Seque
             for computations measured to need another. Defaults to None: :data:`WINDOWS_ALLOCATOR_FRACTION`.
         settings (Mapping | None, optional): The settings the estimate is for, by name (e.g. ``{'n_subsets': 14}``),
             kept in :attr:`MemoryEstimate.settings`. Defaults to none.
+        cuda_projector (bool, optional): Whether the computation projects with parallelproj (PET, CT, the single scatter
+            simulation), whose CUDA build makes a CUDA context on the CPU device too (:func:`fixed_overhead_bytes`).
+            Defaults to False.
 
     Returns:
         MemoryEstimate: The estimate.
     """
     def with_overheads(parts):
         parts = list(parts)
-        overheads = [fixed_overhead()]
+        overheads = [fixed_overhead(cuda_projector)]
+        context = cuda_context()
+        if context is not None:
+            if counts_gpu_as_ram():
+                # Windows counts it in the committed memory the fixed overhead was measured as: counted once, as GPU memory
+                overheads[0].ram_bytes = max(0.0, overheads[0].ram_bytes - context.gpu_bytes)
+            overheads.append(context)
         cache = cuda_cache(sum(p.gpu_bytes for p in parts if p.scope != 'overhead'))
         if cache is not None:
             overheads.append(cache)
@@ -298,19 +366,35 @@ def memory_estimate(title: str, parts: Sequence[MemoryPart], alternatives: Seque
     return MemoryEstimate(title, with_overheads(parts), others, settings=settings)
 
 
+def tensor_nbytes(x: torch.Tensor) -> float:
+    """Bytes of a tensor's own elements: its number of elements times their size. A view counts at its own size, not
+    its base tensor's: a larger base (e.g. the projections of every energy window that ``photopeak = projections[0]``
+    is taken from) is kept by the caller, not by the computation. An expanded view (stride 0) counts no more than the
+    storage it repeats.
+
+    Args:
+        x (torch.Tensor): The tensor.
+
+    Returns:
+        float: Bytes.
+    """
+    return float(min(x.numel() * x.element_size(), x.untyped_storage().nbytes()))
+
+
 def nbytes(x) -> tuple[float, float]:
-    """Memory an array keeps, as (RAM bytes, GPU bytes): a tensor's storage on its device, or what a
-    :class:`~pytomography.io.PET.shared.LazySinogram` keeps (``memory_bytes``, on the host); 0 for anything else."""
+    """Memory an array keeps, as (RAM bytes, GPU bytes): a tensor's elements (:func:`tensor_nbytes`) on its device, or
+    what a :class:`~pytomography.io.PET.shared.LazySinogram` keeps (``memory_bytes``, on the host); 0 for anything
+    else."""
     if isinstance(x, torch.Tensor):
-        size = x.untyped_storage().nbytes()
-        return (0.0, float(size)) if x.device.type == 'cuda' else (float(size), 0.0)
+        size = tensor_nbytes(x)
+        return (0.0, size) if x.device.type == 'cuda' else (size, 0.0)
     return float(getattr(x, 'memory_bytes', 0)), 0.0
 
 
 def tensor_bytes(obj, exclude: Sequence[str] = ()) -> tuple[float, float]:
     """Memory the tensors an object keeps as attributes take, as (RAM bytes, GPU bytes): its tensor attributes and the
-    tensors in its list, tuple and dict attributes (one level deep), each storage counted once. Estimates use it for the
-    arrays of transforms they do not know in detail.
+    tensors in its list, tuple and dict attributes (one level deep), each at its own size (:func:`tensor_nbytes`) and
+    each counted once. Estimates use it for the arrays of transforms they do not know in detail.
 
     Args:
         obj: Any object (None gives 0).
@@ -324,8 +408,7 @@ def tensor_bytes(obj, exclude: Sequence[str] = ()) -> tuple[float, float]:
     def add(x):
         nonlocal ram, gpu
         if isinstance(x, torch.Tensor):
-            storage = x.untyped_storage()
-            key = (str(x.device), storage.data_ptr(), storage.nbytes())
+            key = (str(x.device), x.data_ptr(), tensor_nbytes(x))
             if key not in seen:
                 seen.add(key)
                 r, g = nbytes(x)

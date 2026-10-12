@@ -136,3 +136,29 @@ def test_lazy_sinogram_reports_what_it_keeps():
     randoms = torch.rand(lazy.shape)
     combined = (randoms + lazy) / 2
     assert combined.memory_bytes == lazy.memory_bytes + randoms.untyped_storage().nbytes()
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="measures the GPU peak of a projection")
+def test_helical_ct_projections_in_several_calls_stay_within_their_estimate(monkeypatch):
+    """A helical CT projection made in several calls (groups of views) frees each call's rays before it makes the next
+    call's, so that its peak is one call's: the 28 bytes a ray, the padded image and the image that the estimate's
+    projector call counts. Holding a call's rays while the next call's were made took about twice that (found by
+    validate_memory.py: 1.6 GB reserved against 1.1 GB estimated for a 256 x 256 x 64 OS-SART)."""
+    pytest.importorskip("parallelproj_core")
+    from pytomography.projectors.CT import CTGen3SystemMatrix
+    from pytomography.tests.test_ct_fbp import OBJECT_META, _helix
+    monkeypatch.setattr(pytomography, "device", torch.device('cuda'))
+    sm = CTGen3SystemMatrix(OBJECT_META, _helix(), N_splits=4, device='cuda')
+    call = next(p for p in sm.estimate_memory(n_subsets=1).parts if p.name.startswith('projector call')).gpu_bytes
+    n_views = sm.proj_meta.N_angles
+    assert len(sm._splits(sm._angle_indices(None))) == 4
+    projections = torch.ones(n_views, *sm.proj_meta.shape, device='cuda')
+    image = torch.ones(OBJECT_META.shape, device='cuda')
+    output = 4.0 * projections.numel()                           # the forward projection's result, held by the caller
+    for name, project, limit in (('initial object', sm._coverage, call), ('back projection', lambda: sm.backward(projections), call),
+                                 ('forward projection', lambda: sm.forward(image), call + output)):
+        torch.cuda.synchronize()
+        torch.cuda.empty_cache()
+        with memory.PeakMemory('cuda') as peak:
+            project()
+        assert peak.peak <= limit, f"{name}: {peak.peak / 1e6:.1f} MB at its peak, {limit / 1e6:.1f} MB estimated"

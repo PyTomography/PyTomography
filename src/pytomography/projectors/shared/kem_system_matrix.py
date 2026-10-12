@@ -27,6 +27,11 @@ class KEMSystemMatrix(SystemMatrix):
         """The Windows allowance of the inner system matrix's memory estimates (see :func:`~pytomography.utils.memory.memory_estimate`)."""
         return getattr(self.system_matrix, 'memory_allocator_fraction', None)
 
+    @property
+    def memory_cuda_projector(self) -> bool:
+        """Whether the system matrix it wraps projects with parallelproj (see :func:`~pytomography.utils.memory.memory_estimate`)."""
+        return getattr(self.system_matrix, 'memory_cuda_projector', False)
+
     def _max_subsets(self) -> int:
         return self.system_matrix._max_subsets()
 

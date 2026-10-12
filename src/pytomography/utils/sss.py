@@ -954,7 +954,8 @@ def estimate_sss_memory(
              + (f", N_splits {N_splits}" if tof_meta is not None else "") + ")")
     settings = {'lazy': lazy, 'N_splits': N_splits} if tof_meta is not None else {'lazy': lazy}
     # the allowance of the PET system matrices, whose tutorials measured what PyTorch's allocators keep on Windows
-    return memory_estimate(title, parts, allocator_fraction=PETLMSystemMatrix.memory_allocator_fraction, settings=settings)
+    return memory_estimate(title, parts, allocator_fraction=PETLMSystemMatrix.memory_allocator_fraction, settings=settings,
+                           cuda_projector=True)
 
 
 def plan_sss_memory(

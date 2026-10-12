@@ -42,6 +42,11 @@ class CTGen3SystemMatrix(SystemMatrix):
             device (str, optional): Device on which projections are output. Defaults to pytomography.device.
             fov_mask (bool, optional): Model only the voxels inside the scan field of view, the cylinder (radius ``fov_radius``) that the fan of every view covers. Voxels outside it are seen by some views only; a reconstruction cannot determine them, and left in the model they come out as large spurious values. With the mask they are kept at zero. Turn it off to forward project an object that extends past the field of view. Defaults to True.
     """
+    #: Memory estimates: this system matrix projects with parallelproj, whose CUDA build makes a CUDA context (and
+    #: runs on the GPU) also when PyTomography's device is the CPU, if a CUDA device is visible
+    #: (:func:`~pytomography.utils.memory.projector_uses_gpu`).
+    memory_cuda_projector = True
+
     def __init__(
         self,
         object_meta: ObjectMeta,
@@ -166,6 +171,7 @@ class CTGen3SystemMatrix(SystemMatrix):
             xstart, xend = self._ray_coordinates(idxs)
             ones = torch.ones(xend.shape[:-1], dtype=torch.float32, device=pytomography.device)
             parallelproj_core.joseph3d_back(xstart, xend, BP, self.origin, self.voxel_size, ones)
+            del xstart, xend, ones      # before the next group's rays are made (see backward)
         BP = _crop(BP)
         return BP if self._fov is None else BP * self._fov
 
@@ -337,6 +343,7 @@ class CTGen3SystemMatrix(SystemMatrix):
             proj_i = torch.zeros(xend.shape[:-1], dtype=torch.float32, device=pytomography.device)
             parallelproj_core.joseph3d_fwd(xstart, xend, object, self.origin, self.voxel_size, proj_i)
             proj[start:end] = proj_i.to(self.device)
+            del xstart, xend, proj_i    # before the next group's rays are made (see backward)
         return proj
     
     def backward(self, proj, subset_idx=None):
@@ -357,5 +364,9 @@ class CTGen3SystemMatrix(SystemMatrix):
             xstart, xend = self._ray_coordinates(idxs)
             proj_i = _float32(proj[start:end], pytomography.device)
             parallelproj_core.joseph3d_back(xstart, xend, BP, self.origin, self.voxel_size, proj_i)
+            # freed before the next group's rays are made: otherwise this group's rays (24 bytes a ray) are still held
+            # while the next group's are computed (24 bytes a ray at the peak of get_detector_coordinates), which
+            # doubled the 28 bytes a ray of a projector call that memory estimates count
+            del xstart, xend, proj_i
         BP = _crop(BP)
         return BP if self._fov is None else BP * self._fov

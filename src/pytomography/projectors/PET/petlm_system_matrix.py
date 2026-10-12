@@ -10,7 +10,7 @@ import numpy as np
 import parallelproj_core
 from pytomography.io.PET.shared import crystal_pair_blocks
 from pytomography.io.PET.scanner import crystal_pair_index, rsector_difference
-from pytomography.utils.memory import MemoryPart, block_size
+from pytomography.utils.memory import MemoryPart, block_size, tensor_nbytes
 
 #: Factor applied to the memory estimates of :meth:`PETLMSystemMatrix.print_memory_usage`. Summing the arrays a
 #: projection allocates underestimates what the device reports, because PyTorch's caching allocator keeps freed
@@ -61,6 +61,11 @@ class PETLMSystemMatrix(SystemMatrix):
     #: On Windows, memory PyTorch's allocators keep, as a fraction of a reconstruction's arrays, for memory estimates
     #: (as for the PET sinogram system matrix, whose tutorials it was measured on).
     memory_allocator_fraction = 0.6
+
+    #: Memory estimates: this system matrix projects with parallelproj, whose CUDA build makes a CUDA context (and
+    #: runs on the GPU) also when PyTomography's device is the CPU, if a CUDA device is visible
+    #: (:func:`~pytomography.utils.memory.projector_uses_gpu`).
+    memory_cuda_projector = True
 
     def __init__(
         self,
@@ -247,10 +252,12 @@ class PETLMSystemMatrix(SystemMatrix):
 
     def _memory_parts(self, n_subsets: int, N_splits: int | None) -> list[MemoryPart]:
         """What a reconstruction with this system matrix holds at its peak (see :meth:`~pytomography.projectors.SystemMatrix.estimate_memory`):
-        the events (where ``lor_device`` keeps them) with their projector order, the sensitivity weights, the
-        sensitivity image, a normalisation image per subset and the images for the whole run; one subset's expected
-        counts, ratio and temporaries (about four values per event of the subset); and the projector's chunk on the
-        GPU. The additive term is the likelihood's: pass it to ``estimate_memory`` as ``held``.
+        the events (where ``lor_device`` keeps them) with their projector order, the sensitivity weights and the detector
+        IDs of their lines of response (``detector_ids_sensitivity``, if given), the sensitivity image, a normalisation
+        image per subset and the images for the whole run; one subset's expected counts, ratio and temporaries (about
+        four values per event of the subset); and the projector's chunk. The images and the chunk are on
+        ``pytomography.device``: GPU memory with a CUDA device, RAM without one. The additive term is the likelihood's:
+        pass it to ``estimate_memory`` as ``held``.
 
         Args:
             n_subsets (int): Number of subsets.
@@ -264,12 +271,16 @@ class PETLMSystemMatrix(SystemMatrix):
         image_bytes = 4 * math.prod(self.object_meta.shape)
         def where(device, nbytes):
             return {'gpu_bytes': float(nbytes)} if torch.device(device).type == 'cuda' else {'ram_bytes': float(nbytes)}
-        parts = [MemoryPart('events and their projector order', **where(ids.device, ids.untyped_storage().nbytes() + (4 * n_events if self.sort_events else 0)))]
+        parts = [MemoryPart('events and their projector order', **where(ids.device, tensor_nbytes(ids) + (4 * n_events if self.sort_events else 0)))]
         weights = getattr(self.proj_meta, 'weights_sensitivity', None)
         if isinstance(weights, torch.Tensor):
-            parts.append(MemoryPart('sensitivity weights', **where(weights.device, weights.untyped_storage().nbytes())))
-        parts.append(MemoryPart(f'sensitivity and normalisation images ({n_subsets})', gpu_bytes=(n_subsets + 1) * image_bytes))
-        parts.append(MemoryPart('image, update and attenuation map', gpu_bytes=4 * image_bytes))
+            parts.append(MemoryPart('sensitivity weights', **where(weights.device, tensor_nbytes(weights))))
+        sensitivity_ids = getattr(self.proj_meta, 'detector_ids_sensitivity', None)
+        if isinstance(sensitivity_ids, torch.Tensor):
+            parts.append(MemoryPart('detector IDs of the sensitivity weights', **where(sensitivity_ids.device, tensor_nbytes(sensitivity_ids))))
+        device = pytomography.device
+        parts.append(MemoryPart(f'sensitivity and normalisation images ({n_subsets})', **where(device, (n_subsets + 1) * image_bytes)))
+        parts.append(MemoryPart('image, update and attenuation map', **where(device, 4 * image_bytes)))
         events = math.ceil(n_events / n_subsets)
         parts.append(MemoryPart('expected counts, ratio and temporaries (one subset)', **where(self.output_device, 4 * 4 * events), scope='subset'))
         # where each of the subset's events is among all the events, taken where the IDs are once per projection
@@ -283,7 +294,7 @@ class PETLMSystemMatrix(SystemMatrix):
             build = id_bytes * events + 130 * min(events, 2**22) + 40 * min(events, _SORT_RUN)
             parts.append(MemoryPart("building a subset's projector order (its first projection)", **where(ids.device, build), scope='subset'))
         splits = self.N_splits if N_splits is None else N_splits
-        parts.append(MemoryPart('projector chunk', gpu_bytes=float(math.ceil(events / splits) * 64), scope='chunk'))   # LOR ends, ids, TOF bins, values
+        parts.append(MemoryPart('projector chunk', **where(device, math.ceil(events / splits) * 64), scope='chunk'))   # LOR ends, ids, TOF bins, values
         return parts
 
     def _n_events(self, subset_idx: int | None) -> int:
