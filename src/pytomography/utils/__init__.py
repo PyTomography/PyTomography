@@ -5,3 +5,4 @@ from .nist_data import dual_sqrt_exponential, get_E_mu_data_from_datasheet, get_
 from .scatter import compute_EW_scatter
 from .fourier_filters import FBPFilter, RamLakFilter, SheppLoganFilter, HannFilter, GeneralizedHammingFilter, CosineFilter, TabulatedFilter, get_fbp_filter, ramp_filter
 from .memory import gpu_budget, PeakMemory
+from .kernel import construct_kernel

@@ -46,6 +46,14 @@ The tutorials below demonstrates some of the available reconstruction algorithms
 
         :material-outlined:`accessibility_new;4em;sd-text-secondary`
 
+    .. grid-item-card:: External Kernels: 3D Zubal
+        :link: ../notebooks/t_external_kem_zubal
+        :link-type: doc
+        :link-alt: External sparse kernel SPECT reconstruction
+        :text-align: center
+
+        Load a precomputed kernel and compare KEM with MLEM on a 3D phantom.
+
 +++++++++++++++
 Additional Use Cases
 +++++++++++++++
@@ -192,3 +200,4 @@ The following contains some useful code snippets you may require when working wi
     ../notebooks/t_dicomuncertainty
     ../notebooks/t_ac225_simind_recon
     ../notebooks/t_ac225_dicom_recon
+    ../notebooks/t_external_kem_zubal
