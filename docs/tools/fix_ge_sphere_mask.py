@@ -13,7 +13,12 @@ the mask on the grid by its geometry (``io.load_mask(file).on(object_meta, label
 origin changes: to (95.5 * 2.78, 95.5 * 2.78, -35 * 2.78) = (265.49, 265.49, -97.3) mm. The voxels and the rest of the
 header stay as they are, and every NRRD reader (3D Slicer included) puts the spheres on the version 4 images.
 
-Run once (11 Oct 2026) on the file shipped in ``pytomography/datasets/files``; the dataset registry pins the result::
+The grid has no patient frame (the list mode places nothing in the patient), so the script also adds the key-value
+field ``pytomography_frame:=scanner``, which ``io.load_image`` reads: the mask is then in the same frame as
+``read_ge_hdf5``'s grid, and ``.on()`` puts it there without a warning. Other readers ignore the field.
+
+Run once (11 Oct 2026) on the file as drawn (shipped in ``pytomography/datasets/files`` until then); the dataset
+registry pins the result::
 
     python docs/tools/fix_ge_sphere_mask.py path/to/fdg_spheres.seg.nrrd corrected.seg.nrrd
 """
@@ -54,8 +59,12 @@ def fix(source: Path, target: Path) -> str:
     origin = re.search(r"^space origin: \(([^)]*)\)$", header, re.M)
     if not np.allclose([float(v) for v in origin.group(1).split(",")], 0.0):
         raise ValueError(f"{source.name}: the origin is ({origin.group(1)}), not (0,0,0): already corrected?")
+    if "pytomography_frame:=" in header:
+        raise ValueError(f"{source.name} already has a pytomography_frame field: already corrected?")
     new = ",".join(repr(float(v)) for v in np.round(corrected_origin(), 6))
-    header = header[:origin.start(1)] + new + header[origin.end(1):]
+    # the new origin, and the frame as a key-value field on the line after it
+    header = header[:origin.start(1)] + new + header[origin.end(1):origin.end()] + "\npytomography_frame:=scanner" + \
+        header[origin.end():]
     target.write_bytes(header.encode("latin-1") + data)
     return new
 
