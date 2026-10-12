@@ -30,7 +30,7 @@ from pytomography.algorithms import OSEM
 from pytomography.transforms.shared import GaussianFilter
 
 # %% How much memory this needs
-RAM_GB = 25 # memory (RAM) this tutorial may use, in GB; it needs about 17 GB however low this is
+RAM_GB = 25 # memory (RAM) this tutorial may use, in GB (at least 10); it needs about 16.5 GB however low this is
 pytomography.set_memory_budget(RAM_GB)
 
 # %% 1. The scanner and the true coincidences
