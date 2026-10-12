@@ -402,8 +402,8 @@ def case_simind(scale):
     sm = MonteCarloHybridSPECTSystemMatrix(object_meta, proj_meta, n_events=int(1e6), n_parallel=2, obj2obj_transforms=[],
                                            proj2proj_transforms=[], attenuation_map_140keV=0.15 * torch.rand(object_meta.shape),
                                            energy_window_params=['126,154,0'], primary_window_idx=0, isotope_names=['tc99m'],
-                                           isotope_ratios=[1.0], collimator_type='SY-LEHR', crystal_thickness=0.95,
-                                           cover_thickness=0.1, backscatter_thickness=5.0, energy_resolution_140keV=9.0)
+                                           isotope_ratios=[1.0], collimator_type='SY-LEHR', crystal_thickness_mm=9.5,
+                                           cover_thickness_mm=1.0, backscatter_thickness_mm=50.0, energy_resolution_140keV=9.0)
     from pytomography.algorithms import OSEM
     from pytomography.likelihoods import MonteCarloHybridSPECTPoissonLogLikelihood
     projections = torch.poisson(10 * torch.rand(proj_meta.shape)).to(pytomography.device)

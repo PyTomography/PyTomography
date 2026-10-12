@@ -66,6 +66,20 @@ _RULES = [
                'y = -TableHeight.',
                "Lu177-NEMA-SymT2: PyTomography's reconstruction matches Siemens' own in patient space (NCC 0.955), "
                'every axis flip worse.', 'verified'),
+    VendorRule('siemens-nm-registration', 'Siemens', 'NM projections (Symbia, Intevo)',
+               "The private tag (0043,xx02) of 'SIEMENS MED NM' holds a 4 x 4 rigid matrix M from the acquisition's "
+               "frame (rule 'siemens-nm-projection') to the patient frame of the CT taken with it: the grid's centre "
+               'goes to M times it, and the views turn by M\'s rotation about z (beta - theta). M\'s tilt about x and '
+               'y (up to about 1 degree) is not modelled: the rotation axis stays along k, so voxels 100 mm from the '
+               "grid's centre along z can be up to 2 mm off.",
+               "Every Siemens reconstruction in the local data is placed at M times the acquisition's grid: "
+               'Lu177-NEMA-SymT2 (to 1e-5 mm), and the AC and NoAC reconstructions and the CT mu maps of four TCIA '
+               'COVID-19-NY-SBU Symbia T6 studies (exactly, once their crop along the tilted axis is counted), so '
+               "Siemens attenuation-corrects with the CT moved by M. Against the CT of Lu177-NEMA-SymT2 (the lung "
+               "insert's axis, the spheres' shells, the whole phantom registered), the SPECT is 2.1 mm from the CT "
+               'with M and 3.7 mm without, and the turns fitted to the CT (0.6 to 0.8 degrees about z, -0.4 about x) '
+               "match M's (0.53, -0.70). With M, PyTomography's OSEM and Siemens' reconstruction, put on the grid by "
+               "its own header, agree with no shift (0.06 voxel, NCC 0.998).", 'verified'),
     VendorRule('siemens-ct-image-y-origin', 'Siemens', 'CT images (DICOM)',
                "The patient y origin is the table: the image centre is at y = -TableHeight (ImagePositionPatient "
                "follows the standard, so images need no correction; raw data that refer to the isocentre do).",

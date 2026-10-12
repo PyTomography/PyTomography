@@ -51,7 +51,11 @@ def _quiet(f, *args, **kwargs):
 
 
 def test_siemens_lu177_matches_siemens_reconstruction(data_dir):
-    """Siemens Symbia Intevo, Lu-177 NEMA (v1): our OSEM against Siemens' own reconstruction, in patient space."""
+    """Siemens Symbia Intevo, Lu-177 NEMA (v1): our OSEM against Siemens' own reconstruction, in patient space. With
+    Siemens' registration (rule 'siemens-nm-registration'), Siemens' reconstruction, placed by its own header, lies on
+    read_dicom's grid: the same centre, and our OSEM matches it with no shift (it was 4 mm and half a degree off
+    without the registration)."""
+    from scipy import ndimage, optimize
     root = _folder(data_dir, 'Lu177-NEMA-SymT2')
     files_CT = sorted(str(f) for f in (root / 'CT').iterdir())
     projections, object_meta, proj_meta = SPECT.read_dicom(str(root / 'projection_data.dcm'))
@@ -59,14 +63,17 @@ def test_siemens_lu177_matches_siemens_reconstruction(data_dir):
     mu = io.attenuation_map(files_CT, object_meta, window.photon_keV)
     scatter = SPECT.energy_window_scatter(projections, proj_meta, 0, 1, 2)
     recon = _osem(object_meta, proj_meta, projections[0], 2, 8, [SPECTAttenuationTransform(mu)], scatter)
-    vendor = io.load_image(root / 'scanner_recon.dcm').on(object_meta).cpu().numpy()
+    siemens = io.load_image(root / 'scanner_recon.dcm')
+    assert np.allclose(siemens.centre, object_meta.centre, atol=0.01)
+    vendor = siemens.on(object_meta).cpu().numpy()
     score = _ncc(recon, vendor)
     assert score >= 0.93
     for axes in FLIPS.values():
         assert _ncc(np.flip(recon, axes), vendor) < score - 0.05
-    for axis in range(3):                                         # the best shift is within one voxel
-        scores = {s: _ncc(np.roll(recon, s, axis=axis), vendor) for s in range(-2, 3)}
-        assert abs(max(scores, key=scores.get)) <= 1
+    inside = recon > 0.05 * recon.max()                           # the best shift, to a tenth of a voxel: none
+    shift = optimize.minimize(lambda s: -_ncc(recon, ndimage.shift(vendor, s, order=1), inside), np.zeros(3),
+                              method='Nelder-Mead', options={'xatol': 0.01, 'fatol': 1e-7}).x
+    assert np.all(np.abs(shift) < 0.25), shift
 
 
 def test_ge_kidney_masks_land_on_the_kidneys(data_dir):

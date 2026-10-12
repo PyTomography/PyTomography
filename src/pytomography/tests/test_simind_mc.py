@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 import torch
 
+import pytomography
 from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta
 from pytomography.utils import simind_mc
 
@@ -20,6 +21,41 @@ def test_command_puts_every_voxel_in_the_second_phantom_material():
     assert 'in:x2,6x' in switches
     assert 'in:x21,0x' in switches
     assert switches[-2:] == ['29:2', 'fi:lu177']
+
+
+def test_detector_thicknesses_are_mm_and_reach_simind_in_cm(monkeypatch):
+    """The detector thicknesses are in mm, like every length in PyTomography 4, and become SIMIND's cm (indices 09, 11
+    and 13) only in the parameters SIMIND is called with; the hybrid system matrix passes them through unchanged. Their
+    names before PyTomography 4 (in cm) raise a TypeError that gives the value in mm."""
+    params = simind_mc.get_simind_isotope_detector_params('lu177', 'SY-ME', cover_thickness_mm=1.0,
+                                                          backscatter_thickness_mm=66.0, crystal_thickness_mm=9.525)
+    assert (params['09'], params['11'], params['13']) == (0.9525, 6.6, 0.1)
+    command = simind_mc.create_simind_command(params, 0)
+    assert '/09:0.9525' in command and '/11:6.6/' in command and '/13:0.1/' in command
+    with pytest.raises(TypeError, match='crystal_thickness_mm=9.525'):
+        simind_mc.get_simind_isotope_detector_params('lu177', 'SY-ME', cover_thickness_mm=1.0,
+                                                     backscatter_thickness_mm=66.0, crystal_thickness=0.9525)
+    from pytomography.projectors.SPECT import dualhead_system_matrix, MonteCarloHybridSPECTSystemMatrix
+    monkeypatch.setattr(dualhead_system_matrix.shutil, 'which', lambda name: 'simind')
+    N, dx = 8, 4.8
+    object_meta = SPECTObjectMeta((dx, dx, dx), (N, N, N))
+    proj_meta = SPECTProjMeta((N, N), (dx, dx), np.array([0.0, 90.0]), radii=np.full(2, 250.0))
+    common = dict(n_events=10, n_parallel=1, obj2obj_transforms=[], proj2proj_transforms=[],
+                  attenuation_map_140keV=torch.zeros((N, N, N)), energy_window_params=['187.2,228.8,0'],
+                  primary_window_idx=0, isotope_names=['lu177'], isotope_ratios=[1.0], collimator_type='SY-ME')
+    with pytest.raises(TypeError, match='cover_thickness_mm=1'):
+        MonteCarloHybridSPECTSystemMatrix(object_meta, proj_meta, crystal_thickness_mm=9.525, cover_thickness=0.1,
+                                          backscatter_thickness_mm=66.0, **common)
+    sm = MonteCarloHybridSPECTSystemMatrix(object_meta, proj_meta, crystal_thickness_mm=9.525, cover_thickness_mm=1.0,
+                                           backscatter_thickness_mm=66.0, **common)
+    seen = []
+
+    def fake_simulation(object, attenuation_map, object_meta, proj_meta, windows, index_dict, *args, **kwargs):
+        seen.append(dict(index_dict))
+        return torch.zeros((len(windows), proj_meta.num_projections, N, N))
+    monkeypatch.setattr(simind_mc, 'run_scatter_simulation', fake_simulation)
+    sm.forward(torch.ones((N, N, N)).to(pytomography.device))
+    assert seen and all((d['09'], d['11'], d['13']) == (0.9525, 6.6, 0.1) for d in seen)
 
 
 def _total_and_scatter(attenuation_map, source, object_meta, proj_meta, index_dict):
@@ -47,8 +83,8 @@ def test_voxel_phantom_attenuates_photons():
     source[63:65, 63:65, 63:65] = 1
     index_dict = simind_mc.get_simind_params_from_metadata(object_meta, proj_meta)
     index_dict.update(simind_mc.get_simind_isotope_detector_params(
-        isotope_name='lu177', collimator_type='SY-ME', cover_thickness=0.1, backscatter_thickness=6.6,
-        crystal_thickness=0.9525, energy_resolution_140keV=10))
+        isotope_name='lu177', collimator_type='SY-ME', cover_thickness_mm=1.0, backscatter_thickness_mm=66.0,
+        crystal_thickness_mm=9.525, energy_resolution_140keV=10))
     total_air, scatter_air = _total_and_scatter(torch.zeros((N, N, N)), source, object_meta, proj_meta, index_dict)
     total_water, scatter_water = _total_and_scatter(water, source, object_meta, proj_meta, index_dict)
     assert scatter_air == 0

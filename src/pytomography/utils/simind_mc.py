@@ -110,24 +110,41 @@ def get_simind_params_from_metadata(
     }
     return index_dict
 
+#: The detector thicknesses' keywords before PyTomography 4, in cm; they are now in mm, with ``_mm`` in their names.
+_THICKNESSES_IN_CM = ('crystal_thickness', 'cover_thickness', 'backscatter_thickness')
+
+
+def refuse_thicknesses_in_cm(kwargs: dict) -> None:
+    """Raise a TypeError that explains the rename when ``kwargs`` holds a detector thickness under its old name (cm)."""
+    for name in _THICKNESSES_IN_CM:
+        if name in kwargs:
+            raise TypeError(f'{name} (cm) is now {name}_mm, in mm like every length in PyTomography 4: '
+                            f'{name}={kwargs[name]} is {name}_mm={10 * kwargs[name]:g}')
+    if kwargs:
+        raise TypeError(f'unexpected keyword arguments {sorted(kwargs)}')
+
+
 def get_simind_isotope_detector_params(
     isotope_name: str,
     collimator_type: str,
-    cover_thickness: float,
-    backscatter_thickness: float,
-    crystal_thickness: float,
+    cover_thickness_mm: float | None = None,
+    backscatter_thickness_mm: float | None = None,
+    crystal_thickness_mm: float | None = None,
     energy_resolution_140keV: float = 0,
     advanced_energy_resolution_model: str | None = None,
     advanced_collimator_modeling: bool = False,
     random_collimator_movement: bool = False,
+    **removed,
 ) -> dict:
-    """Obtain SIMIND parameter dictionary from isotope and detector parameters 
+    """Obtain SIMIND parameter dictionary from isotope and detector parameters. The thicknesses are in mm, like every
+    length in PyTomography; SIMIND's indices 09, 11 and 13 are in cm, so they are converted here.
 
     Args:
         isotope_name (str): Name of isotope used for Monte Carlo scatter simulation
-        collimator_type (str): Collimator type used for Monte Carlo scatter simulation. 
-        cover_thickness (float): Cover thickness used for simulation. Currently assumes aluminum is used.
-        backscatter_thickness (float): Equivalent backscatter thickness used for simulation. Currently assumes pyrex is used.
+        collimator_type (str): Collimator type used for Monte Carlo scatter simulation.
+        cover_thickness_mm (float): Cover thickness (mm) used for simulation. Currently assumes aluminum is used.
+        backscatter_thickness_mm (float): Equivalent backscatter thickness (mm) used for simulation. Currently assumes pyrex is used.
+        crystal_thickness_mm (float): Crystal thickness (mm) used for simulation. Currently assumes NaI.
         energy_resolution_140keV (float): Energy resolution in percent of the detector at 140keV. Currently uses the relationship that resolution is proportional to sqrt(E) for E in keV.
         advanced_collimator_modeling (bool, optional): Whether or not to use advanced collimator modeling that can be used to model septal penetration and scatter. Defaults to False.
         random_collimator_movement (bool, optional): Whether or not to include random collimator movement (e.g. holes are not fixed in place). Defaults to False.
@@ -135,6 +152,12 @@ def get_simind_isotope_detector_params(
     Returns:
         dict: Dictionary of SIMIND parameters obtainable from isotope and detector parameters
     """
+    refuse_thicknesses_in_cm(removed)
+    missing = [n for n, v in (('cover_thickness_mm', cover_thickness_mm), ('backscatter_thickness_mm', backscatter_thickness_mm),
+                              ('crystal_thickness_mm', crystal_thickness_mm)) if v is None]
+    if missing:
+        raise TypeError(f'missing {", ".join(missing)}')
+    per_cm = 10.0                               # mm per cm: SIMIND's unit for these indices is cm
     if advanced_energy_resolution_model is not None:
         if advanced_energy_resolution_model=='siemens':
             energy_resolution_140keV = 0
@@ -146,9 +169,9 @@ def get_simind_isotope_detector_params(
         '22': energy_resolution_140keV, # TODO: add energy resolution arbitrary function as argument
         '53': int(advanced_collimator_modeling),
         '59': int(random_collimator_movement),
-        '13': cover_thickness, # TODO: add material as argument, default aluminum
-        '11': backscatter_thickness, # TODO: add material as argument, default pyrex
-        '09': crystal_thickness
+        '13': cover_thickness_mm / per_cm, # TODO: add material as argument, default aluminum
+        '11': backscatter_thickness_mm / per_cm, # TODO: add material as argument, default pyrex
+        '09': crystal_thickness_mm / per_cm
     }
     if advanced_energy_resolution_model is not None:
         index_dict['Fe'] = advanced_energy_resolution_model

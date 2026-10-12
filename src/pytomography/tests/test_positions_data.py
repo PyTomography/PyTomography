@@ -149,7 +149,8 @@ TOMO = [
 def test_ffs_tomo_files_read_with_their_angles(data_dir, pattern, start, direction):
     """read_dicom reads every new TOMO file. The first two frames of the file (window 1, detector 1, views 1 and 2)
     are the projections the reader puts at β = start + 180 and start + 180 ± step (clockwise: minus), with the rows
-    and columns flipped as the detector's ImageOrientationPatient says."""
+    and columns flipped as the detector's ImageOrientationPatient says; on Siemens files with a registration to their
+    CT (rule 'siemens-nm-registration'), every β turned by its angle about z."""
     path = _one(_root(data_dir), pattern)
     path = next(path.glob('*.dcm')) if path.is_dir() else path
     ds = pydicom.dcmread(str(path))
@@ -168,12 +169,14 @@ def test_ffs_tomo_files_read_with_their_angles(data_dir, pattern, start, directi
     step = float(rotation.AngularStep) * (1 if direction == 'CC' else -1)
     iop = np.array(detector.ImageOrientationPatient, float)
     frames = ds.pixel_array.astype(np.float32) * float(ds.get('RescaleSlope', 1) or 1)
+    M = SPECT.dicom.siemens_registration(ds)
+    turn = 0.0 if M is None else np.degrees(np.arctan2(M[1, 0], M[0, 0]))
     for frame, beta in ((0, first + 180), (1, first + 180 + step)):
-        beta = beta % 360
-        view = int(np.argmin(np.abs((angles - beta + 180) % 360 - 180)))
-        assert abs((angles[view] - beta + 180) % 360 - 180) < 1e-3
+        turned = (beta - turn) % 360
+        view = int(np.argmin(np.abs((angles - turned + 180) % 360 - 180)))
+        assert abs((angles[view] - turned + 180) % 360 - 180) < 1e-3
         raw = frames[frame][::-1] if iop[5] < 0 else frames[frame]          # rows superior first: flipped
-        b = np.radians(beta)
+        b = np.radians(beta % 360)                                          # the IOP is in the acquisition's frame
         if iop[:3] @ [np.cos(b), -np.sin(b), 0] < 0:
             raw = raw[:, ::-1]
         assert np.array_equal(projections[0, view].cpu().numpy(), raw.T)
@@ -201,3 +204,34 @@ def test_siemens_tomo_matches_its_vendor_reconstruction(data_dir):
     mu = io.load_image(_one(root, folder + 'AC_Chest*'))
     assert mu.modality == 'NM' and 'PatientPosition' not in mu.meta
     assert np.linalg.norm(mu.centre[:2] - np.array(object_meta.centre[:2])) < 10
+
+
+def test_siemens_reconstructions_lie_where_the_registration_puts_the_grid(data_dir):
+    """Siemens' registration (rule 'siemens-nm-registration'): every reconstruction (AC and NoAC) and CT mu map of the
+    COVID-19-NY-SBU Symbia T6 studies lies on the axis of read_dicom's grid, which the registration has moved into the
+    CT's frame: its axes are the registration's rotation, and its centre is on the (tilted) rotation axis through the
+    grid's centre, to 0.05 mm. The reconstructions are cropped along that axis, so their centres differ along it."""
+    root = _root(data_dir)
+    studies = sorted(p for p in root.glob('tcia_covid19nysbu_siemens_spect/*') if p.is_dir())
+    checked = 0
+    for study in studies:
+        tomos = [p for p in study.iterdir() if p.is_dir() and ('TOMO_' in p.name or p.name.startswith('Tc99m_PYP_SPECT_'))
+                 and 'Recon' not in p.name and 'MIP' not in p.name]
+        for tomo in tomos:
+            first = next(tomo.glob('*.dcm'))
+            ds = pydicom.dcmread(str(first), stop_before_pixels=True)
+            M = SPECT.dicom.siemens_registration(ds)
+            assert M is not None
+            _, object_meta, _ = SPECT.read_dicom(str(first), energy_window=0)
+            axis = M[:3, :3] @ [0.0, 0.0, 1.0]
+            for image_dir in [p for p in study.iterdir() if p.is_dir() and ('Recon' in p.name and 'MIP' not in p.name)]:
+                files = sorted(str(f) for f in image_dir.glob('*.dcm'))
+                image = io.load_image(files if len(files) > 1 else files[0])
+                d = image.centre - np.array(object_meta.centre)
+                off_axis = d - (d @ axis) * axis
+                assert np.linalg.norm(off_axis) < 0.05, (image_dir.name, off_axis)
+                axes = image.affine[:3, :3] / np.linalg.norm(image.affine[:3, :3], axis=0)
+                assert np.allclose(axes, M[:3, :3], atol=2e-3), image_dir.name
+                checked += 1
+    if not checked:
+        pytest.skip('no COVID-19-NY-SBU reconstructions in io_tests')
