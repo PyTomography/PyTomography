@@ -350,7 +350,7 @@ def test_monte_carlo_hybrid_adds_simind(monkeypatch):
                                            obj2obj_transforms=base.obj2obj_transforms, proj2proj_transforms=[],
                                            attenuation_map_140keV=torch.rand(base.object_meta.shape), energy_window_params=['a', 'b', 'c'],
                                            primary_window_idx=1, isotope_names=['lu177'], isotope_ratios=[1.0], collimator_type='SY-ME',
-                                           crystal_thickness=0.95, cover_thickness=0.1, backscatter_thickness=5.0)
+                                           crystal_thickness_mm=9.5, cover_thickness_mm=1.0, backscatter_thickness_mm=50.0)
     parts = _parts(sm.estimate_memory(4))
     simind = parts['SIMIND processes (6)']
     assert simind.ram_bytes >= 6 * sm.SIMIND_PROCESS_BYTES and simind.scope == 'chunk'
