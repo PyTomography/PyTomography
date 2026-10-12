@@ -48,11 +48,6 @@ class ObjectMeta():
         units (str, optional): the units of the object's values, e.g. ``'counts'``, ``'Bq/mL'``, ``'1/mm'``,
             ``'HU'``. Writers use them. Defaults to None (unknown).
         modality (str, optional): ``'NM'``, ``'PT'`` or ``'CT'``. Writers use it. Defaults to None (unknown).
-
-    Attributes:
-        affine (np.ndarray): 4 x 4 float64, voxel index (i, j, k) to the voxel's centre in LPS mm. Derived from
-            ``dr``, ``shape`` and ``centre``, so it is always up to date: ``diag(dx, dy, dz)`` with translation
-            ``centre - (shape - 1) / 2 * dr``.
     """
     #: mm per unit of ``dr``.
     _mm_per_unit = 1.0
@@ -132,7 +127,8 @@ class ObjectMeta():
 
     @property
     def affine(self) -> np.ndarray:
-        """4 x 4 float64: voxel index (i, j, k) to the voxel's centre in LPS mm."""
+        """4 x 4 float64: voxel index (i, j, k) to the voxel's centre in LPS mm. Derived from ``dr``, ``shape`` and
+        ``centre``, so it is always up to date: ``diag(dx, dy, dz)`` with translation ``centre - (shape - 1) / 2 * dr``."""
         d = np.asarray(self._dr) * self._mm_per_unit
         A = np.diag([*d, 1.0])
         A[:3, 3] = np.asarray(self._centre) - (np.asarray(self._shape) - 1) / 2 * d
