@@ -358,6 +358,36 @@ def test_monte_carlo_hybrid_adds_simind(monkeypatch):
     assert sm.estimate_memory(4).ram_gb > base.estimate_memory(4).ram_gb
 
 
+def test_extended_system_matrix_adds_up_its_system_matrices():
+    """ExtendedSystemMatrix (two photopeaks in one reconstruction, as t_dualpeak): the first system matrix's arrays,
+    with the projections of a subset counted for each photopeak, kept and stacked; what the other system matrix holds
+    of its own (its attenuation map, not the shared images and caches); and the projections of ones of both, for
+    H^T 1. A system matrix given twice is counted once. The algorithms estimate it through it, as for any system
+    matrix."""
+    from pytomography.projectors import ExtendedSystemMatrix
+    from pytomography.likelihoods import PoissonLogLikelihood
+    from pytomography.algorithms import OSEM
+    a, b = _spect(psf=True), _spect(psf=False)
+    ext = ExtendedSystemMatrix([a, b])
+    alone, both = _parts(a.estimate_memory(8)), _parts(ext.estimate_memory(8))
+    name = 'projections of a subset: measured, expected, additive term, of ones, padded copy'
+    assert _bytes(both[f'{name}, for each of 2, kept and stacked']) == 2 * 2 * _bytes(alone[name])
+    own = [p for p in b.estimate_memory(8).parts if p.scope == 'held' and p.name == 'what the object transforms keep']
+    assert _bytes(both['system matrix 2: what it holds']) == sum(_bytes(p) for p in own) > 0
+    assert _bytes(both['projections of ones of all 2 (for H^T 1)']) == 4 * 2 * np.prod(a.proj_meta.shape)
+    for key, part in alone.items():                  # the rest is the first system matrix's (but the overheads, which grow)
+        if key != name and part.scope != 'overhead':
+            assert key in both and _bytes(both[key]) == _bytes(part), key
+    assert 'system matrix 2: what it holds' not in _parts(ExtendedSystemMatrix([a, a]).estimate_memory(8))
+    single = a.estimate_memory(8)
+    joint = ext.estimate_memory(8)
+    assert joint.ram_gb + joint.gpu_gb > single.ram_gb + single.gpu_gb
+    projections = torch.ones((2, *a.proj_meta.shape))
+    algorithm = OSEM(PoissonLogLikelihood(ext, projections, torch.zeros_like(projections)))
+    estimate = algorithm.estimate_memory(n_subsets=8)
+    assert estimate.ram_gb + estimate.gpu_gb >= joint.ram_gb + joint.gpu_gb - 1e-9
+
+
 def _starguide(psf=True):
     from pytomography.tests.test_starguide_projector import _system
     sm, f, g = _system(psf_params=(0.02, 0.05) if psf else None)
