@@ -29,7 +29,7 @@ from pytomography.io.CT import preprocessing
 from pytomography.projectors.CT import CTGen3SystemMatrix
 from pytomography.algorithms import FilteredBackProjection
 
-# Memory: this tutorial needs about 15 GB of RAM (14.7 GB measured on Windows). RAM_GB caps what PyTomography's
+# Memory: this tutorial needs about 15 GB of RAM (15.0 GB measured on Windows). RAM_GB caps what PyTomography's
 # reconstructions use for their own work: with less, they rebin and filter fewer views at a time, which is a little
 # slower and gives the same images. The first reconstruction prints its estimate before it runs (estimate_memory): its
 # peak RAM and GPU memory, what they are made of, and what to change to use less. Most of the 15 GB is what the

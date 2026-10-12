@@ -31,7 +31,7 @@ from pytomography.transforms.shared import GaussianFilter
 import matplotlib.pyplot as plt
 
 # %% How much memory this needs
-RAM_GB = 25 # memory (RAM) this tutorial may use, in GB; it needs about 11 GB however low this is
+RAM_GB = 25 # memory (RAM) this tutorial may use, in GB; it needs about 9 GB however low this is
 pytomography.set_memory_budget(RAM_GB)
 
 folder = GE_DATA / 'dmi_nema_lm'
