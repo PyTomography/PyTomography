@@ -37,8 +37,6 @@
 # The expressions run in the tutorial's namespace, with io (pytomography.io) and np in it:
 #   - {name: OSEM, kind: spect, array: recon, affine: object_meta.affine, units: counts}
 #   - {name: CT, kind: ct, image: io.load_image(files_CT), window: phantom}
-# (Until every entry has moved to that form, the exporter still takes the old one: an array expression that gives a
-# tuple (image, affine), `affine_scale: 10` for an affine in cm, and the vx.* affine helpers.)
 
 tutorials:
 
