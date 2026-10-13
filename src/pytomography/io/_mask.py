@@ -102,7 +102,8 @@ def load_mask(source, *, reference=None, rois=None, frame: str | None = None) ->
       ROI has its own value; voxels of ROIs that overlap get further values, and ``labels[name]`` is then a tuple of
       every value in the ROI.
     * A NIfTI or NRRD label image keeps its own geometry; 3D Slicer's segment names become ``labels``, and a label
-      image without names gets ``labels`` ``{'1': 1, ...}`` from its values.
+      image without names gets ``labels`` ``{'1': 1, ...}`` from its values. A 3D Slicer segmentation whose segments
+      overlap (saved in layers) gives each set of overlapping segments a value of its own, as for an RTSTRUCT.
 
     Args:
         source: an RTSTRUCT file, or a NIfTI or NRRD label image (anything :func:`~pytomography.io.load_image` reads).

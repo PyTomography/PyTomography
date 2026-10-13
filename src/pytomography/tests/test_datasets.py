@@ -495,6 +495,25 @@ def test_unknown_and_pending_datasets(monkeypatch, tmp_path):
     assert datasets.fetch("PET/Later", data_dir=tmp_path) == tmp_path / "PET" / "Later"
 
 
+def test_pending_dataset_gets_its_package_files(monkeypatch, tmp_path):
+    """A pending dataset's package parts (a mask made for its tutorial) need no download: once its folder holds the
+    data, fetch() copies them in, and replaces a copy that differs."""
+    model = _parts.FILES / "ac225_psf_model.json"
+    part = {"kind": "package", "file": model.name, "size": model.stat().st_size, "sha256": sha256(model.read_bytes())}
+    use(monkeypatch, {"PET/Later": entry([part], status="pending", note="Soon.")})
+    with pytest.raises(datasets.DatasetNotAvailable):
+        datasets.fetch("PET/Later", data_dir=tmp_path, progress=False)
+    folder = tmp_path / "PET" / "Later"
+    folder.mkdir(parents=True)
+    (folder / "copied.root").write_bytes(b"by hand")
+    assert datasets.fetch("PET/Later", data_dir=tmp_path, progress=False) == folder
+    assert (folder / model.name).read_bytes() == model.read_bytes()
+    (folder / model.name).write_bytes(b"an older mask")
+    datasets.fetch("PET/Later", data_dir=tmp_path, progress=False)
+    assert (folder / model.name).read_bytes() == model.read_bytes()
+    assert (folder / "copied.root").read_bytes() == b"by hand"
+
+
 def test_path_info_and_available(server, monkeypatch, tmp_path):
     part = zip_part(server, prefix="T/")
     use(monkeypatch, {"X/T": entry([part])})

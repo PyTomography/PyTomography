@@ -125,7 +125,8 @@ def fetch(name: str, *, extras: Union[str, Sequence[str]] = (), data_dir: Option
 
     Raises:
         DatasetNotAvailable: the dataset cannot be downloaded yet, and its folder is empty. (If it already holds
-            files, they are used as they are, without checks.)
+            files, they are used as they are, without checks, and the dataset's files that come with PyTomography,
+            such as masks, are copied in.)
         DownloadError: a server could not be reached after several retries. Run fetch() again to continue.
         ChecksumError: downloaded data does not match the registry.
     """
@@ -140,6 +141,7 @@ def fetch(name: str, *, extras: Union[str, Sequence[str]] = (), data_dir: Option
         if progress:
             print(f"{name} cannot be downloaded yet, so the files already in its folder are used as they are,"
                   " unchecked.", flush=True)
+        _install_package_parts(name, entry, folder, progress)
         return folder
     parts = _selected_parts(name, entry, extras)
     ctx = Context(name, folder, workers, progress)
@@ -201,6 +203,16 @@ def fetch(name: str, *, extras: Union[str, Sequence[str]] = (), data_dir: Option
         except OSError:
             pass  # absent, or holds an interrupted download
     return folder
+
+
+def _install_package_parts(name: str, entry: dict, folder: Path, progress: bool) -> None:
+    """The files of a pending dataset that come with PyTomography (its package parts, such as a mask of the
+    phantom's regions): copied into its folder, or replaced there if they differ, since they need no download."""
+    ctx = Context(name, folder, 1, progress)
+    for part in entry["parts"]:
+        if part["kind"] == "package" and ADOPT["package"](part, ctx) is None:
+            files, _ = INSTALL["package"](part, ctx, [])
+            ctx.say(f"{name}: {', '.join(files)} copied from the PyTomography package")
 
 
 def _fetch_parts(name: str, entry: dict, parts: List[dict], marker: Marker, ctx: Context, root: Path) -> None:

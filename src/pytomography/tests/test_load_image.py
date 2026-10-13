@@ -416,6 +416,37 @@ def test_nrrd_frame_field_must_be_a_frame(tmp_path):
         load_image(_nrrd_with_frame(tmp_path / 'mask.nrrd', 'gantry'))
 
 
+def test_nrrd_segmentation_in_layers(tmp_path):
+    """3D Slicer keeps overlapping segments in layers (a 4D file, the layer first): the body in layer 0, and a sphere
+    and a ring inside it in layer 1, with values of their own. Each segment comes back exactly, by name."""
+    from pytomography.io import load_mask
+    i, j, k = np.indices(SHAPE)
+    body = (i >= 1) & (i <= 10) & (j >= 1) & (j <= 8)
+    sphere = (i - 4) ** 2 + (j - 4) ** 2 + (k - 3) ** 2 <= 4
+    ring = body & ~sphere & (k == 6)
+    layers = np.zeros((2, *SHAPE), np.uint8)
+    layers[0][body] = 1
+    layers[1][sphere] = 3
+    layers[1][ring] = 7
+    raw = gzip.compress(np.ascontiguousarray(layers.transpose(3, 2, 1, 0)).tobytes())
+    header = ['NRRD0004', 'type: unsigned char', 'dimension: 4', 'space: left-posterior-superior', 'sizes: 2 12 10 8',
+              'space directions: none (2,0,0) (0,2,0) (0,0,3)', 'kinds: list domain domain domain', 'encoding: gzip',
+              'space origin: (-11,-9,-10.5)', 'Segment0_Name:=body', 'Segment0_LabelValue:=1', 'Segment0_Layer:=0',
+              'Segment1_Name:=sphere', 'Segment1_LabelValue:=3', 'Segment1_Layer:=1', 'Segment2_Name:=ring',
+              'Segment2_LabelValue:=7', 'Segment2_Layer:=1', 'pytomography_frame:=scanner']
+    path = tmp_path / 'regions.seg.nrrd'
+    path.write_bytes(('\n'.join(header) + '\n\n').encode() + raw)
+    mask = load_mask(path)
+    assert mask.shape == SHAPE and mask.frame == 'scanner' and np.allclose(mask.affine, _centred((2, 2, 3)))
+    assert set(mask.labels) == {'body', 'sphere', 'ring'}
+    grid = ObjectMeta(dr=(2.0, 2.0, 3.0), shape=SHAPE, frame='scanner')
+    for name, truth in (('body', body), ('sphere', sphere), ('ring', ring)):
+        assert np.array_equal(mask.on(grid, label=name, threshold=0.5).cpu().numpy(), truth), name
+    with pytest.raises(ValueError, match='3D Slicer segmentation in layers'):
+        path.write_bytes(('\n'.join(h.replace('none ', '(1,0,0) ') for h in header) + '\n\n').encode() + raw)
+        load_image(path)
+
+
 # ---------- Image.on ----------
 
 def test_on_averages_when_downsampling():
