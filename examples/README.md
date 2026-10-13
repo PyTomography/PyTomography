@@ -1,7 +1,8 @@
 # PyTomography example scripts
 
-Plain-Python versions of every tutorial: the code only, without plots or explanations, so you can read
-a whole pipeline at a glance or run it as a script. Each file links to the full tutorial on the docs site.
+Plain-Python versions of every tutorial: the code that computes and saves the results, without the plots,
+what only the plots need, or the explanations, so you can read a whole pipeline at a glance or run it as a
+script. Each file links to the full tutorial on the docs site.
 
 These files are generated from the notebooks in `docs/source/notebooks` by `docs/tools/export_scripts.py`.
 Edit the notebook, then run that script; CI checks the two match.

@@ -3,12 +3,9 @@
 Uncertainty estimates for a clinical PET reconstruction.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_uncertainty_pet.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 # %% GE Discovery MI (Listmode Reconstruction; With Time of Flight)
 from pytomography import datasets
 
@@ -28,7 +25,6 @@ from pytomography.algorithms import OSEM, BSREM
 from pytomography.priors import RelativeDifferencePrior
 from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.transforms.shared import GaussianFilter
-import matplotlib.pyplot as plt
 import torch
 from pytomography.callbacks import DataStorageCallback
 
@@ -44,9 +40,7 @@ detector_ids, object_meta, proj_meta = io.PET.read_ge_hdf5(
 )
 info = proj_meta.info
 
-
 weights, additive_counts, detector_ids_sensitivity, weights_sensitivity = io.PET.read_ge_corrections(folder / 'corrections.h5')
-
 
 # The projection metadata: the events, their TOF bins, and every valid crystal pair with its weight
 proj_meta = PETLMProjMeta(

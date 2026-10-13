@@ -3,12 +3,9 @@
 FDK and OS-SART on a laboratory micro-CT scan of glass beads, with the centre of rotation found from the data.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_CT_microct.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 from pytomography import datasets
 
 # The tutorial data: downloaded the first time it runs (see Tutorial data in the docs)
@@ -20,7 +17,6 @@ OUTPUT = datasets.output_dir("CT/SophiaBeads-256")
 import time
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
 import pytomography
 from pytomography import io
 from pytomography.metadata.CT import CTConeBeamFlatPanelProjMeta
@@ -52,7 +48,6 @@ print(f"projections {tuple(proj.shape)} read in {time.time() - t0:.0f} s")
 # %% 3. Geometry
 n = object_meta.shape[0]  # 500 voxels across
 
-
 def system_matrix_for(cor, n_slices):
     """read_nikon's geometry with the rotation axis cor mm from the central ray, on n_slices central slices of its grid"""
     proj_meta_cor = CTConeBeamFlatPanelProjMeta(
@@ -65,7 +60,6 @@ def system_matrix_for(cor, n_slices):
 def sharpness(image):
     s = image[:, :, image.shape[2] // 2]
     return float(((s[1:] - s[:-1]) ** 2).mean() + ((s[:, 1:] - s[:, :-1]) ** 2).mean())
-
 
 cors = np.round(np.arange(0.0, 0.5, 0.02), 2)  # mm
 trials = {cor: FilteredBackProjection(proj, system_matrix_for(cor, 4), filter='ram-lak')() for cor in cors}

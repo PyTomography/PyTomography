@@ -3,13 +3,10 @@
 Non-TOF sinogram reconstruction of a simulated brain phantom with scatter and randoms.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_PETGATE_scat_sino.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
 from __future__ import annotations
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 # %% GATE (Sinogram Reconstruction; No Time of Flight)
 from pytomography import datasets
 
@@ -30,7 +27,6 @@ from pytomography import io
 from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.utils import sss
 from pytomography.transforms.shared import GaussianFilter
-import matplotlib.pyplot as plt
 
 # %% How much memory this needs
 RAM_GB = 25 # memory (RAM) this tutorial may use, in GB; it needs about 18 GB however low this is
@@ -44,7 +40,6 @@ path = DATA / 'PET' / 'GATE-mMR-BrainInWater'
 macro = path / 'mMR_Geometry.mac'  # the scanner, as the simulation's GATE macro describes it
 paths = [path / 'simple_phantom' / f'mMR_voxBrain_withSimplePhantom_{i}.root' for i in range(1, 55)]  # its 54 runs
 
-
 def read_gate(events, tof_meta=None, normalization=None):
     """io.PET.read_gate for one kind of coincidence: (events, object_meta, proj_meta). Reading the 54 ROOT files takes
     a few minutes, so the first run keeps the result in OUTPUT and later runs load it from there."""
@@ -56,13 +51,10 @@ def read_gate(events, tof_meta=None, normalization=None):
                                     doi_mm=9), cache)
     return torch.load(cache, weights_only=False)
 
-
 # The true coincidences (used from "Primary-Only Reconstruction" on), with the normalization weights of every crystal
 # pair (below). proj_meta.info describes the scanner
 detector_ids, object_meta, proj_meta = read_gate('trues', normalization=path / 'normalization_weights.npy')
 info = proj_meta.info
-
-info
 
 # %% Normalization Correction
 if LOAD_FROM_ROOT or not (OUTPUT / 'normalization_sinogram.pt').exists():
@@ -74,9 +66,6 @@ normalization_sinogram = torch.load(OUTPUT / 'normalization_sinogram.pt')
 proj_meta.weights_sensitivity = None  # the sinogram holds what the reconstructions need
 
 # %% Primary-Only Reconstruction
-detector_ids_randoms_true, _, _ = read_gate('randoms')
-detector_ids_scatters_true, _, _ = read_gate('scatters')
-
 sinogram = io.PET.listmode_to_sinogram(detector_ids, info)
 
 # The reconstruction grid: 128 x 128 x 96 voxels of 2 mm, centred where read_gate placed the scanner in the patient
@@ -106,8 +95,6 @@ likelihood = PoissonLogLikelihood(
 # Initialize reconstruction algorithm
 recon_algorithm = OSEM(likelihood)
 print(recon_algorithm.estimate_memory(n_subsets=24)) # its peak RAM and GPU memory, before it runs
-# Reconstruct
-recon_primaryonly = recon_algorithm(n_iters=2, n_subsets=24)
 
 # %% Reconstruction Correcting For Randoms + Scatters
 # The primary-only reconstruction is done: free its sinogram, likelihood and algorithm before binning all the events

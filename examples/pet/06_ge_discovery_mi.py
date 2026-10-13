@@ -3,12 +3,9 @@
 Clinical list mode exported from GE Duetto, with time of flight.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_GE_HDF5.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 # %% GE Discovery MI (Listmode Reconstruction; With Time of Flight)
 from pytomography import datasets
 
@@ -28,7 +25,6 @@ from pytomography.algorithms import OSEM, BSREM
 from pytomography.priors import RelativeDifferencePrior
 from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.transforms.shared import GaussianFilter
-import matplotlib.pyplot as plt
 
 # %% How much memory this needs
 RAM_GB = 25 # memory (RAM) this tutorial may use, in GB; it needs about 9 GB however low this is

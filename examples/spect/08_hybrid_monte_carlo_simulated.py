@@ -3,12 +3,9 @@
 Monte Carlo scatter estimated inside the reconstruction loop with SIMIND.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_spect_mc.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 # %% Hybrid-MC: SIMIND Data
 from pytomography import datasets
 
@@ -26,7 +23,6 @@ from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTra
 from pytomography.algorithms import OSEM
 from pytomography.likelihoods import PoissonLogLikelihood, MonteCarloHybridSPECTPoissonLogLikelihood
 from pytomography.utils import simind_mc
-import matplotlib.pyplot as plt
 
 # Paths are set in the data cell at the top of this tutorial
 PATH = DATA / 'SPECT' / 'SIMIND-Jaszak'
@@ -110,7 +106,6 @@ energy_resolution_140keV = 10 # %
 crystal_thickness_mm = 9.525  # assumed to be NaI
 
 energy_window_params = simind_mc.get_energy_window_params_simind(files_NM[1])
-energy_window_params
 
 # 200 million events take about 20 minutes on 90 CPU cores, and 45 minutes on 24. Fewer events run faster
 # but give a noisier Monte Carlo estimate.

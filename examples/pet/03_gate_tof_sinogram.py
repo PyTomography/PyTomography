@@ -3,13 +3,10 @@
 Time-of-flight sinogram reconstruction with TOF scatter estimation.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_PETGATE_scat_sinoTOF.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
 from __future__ import annotations
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 # %% GATE (Sinogram Reconstruction; With Time of Flight)
 from pytomography import datasets
 
@@ -29,7 +26,6 @@ from pytomography.algorithms import OSEM
 from pytomography import io
 from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.transforms.shared import GaussianFilter
-import matplotlib.pyplot as plt
 from pytomography.utils import sss
 import gc
 
@@ -40,7 +36,6 @@ LOAD_FROM_ROOT = False
 path = DATA / 'PET' / 'GATE-mMR-BrainInWater'
 macro = path / 'mMR_Geometry.mac'  # the scanner, as the simulation's GATE macro describes it
 paths = [path / 'simple_phantom' / f'mMR_voxBrain_withSimplePhantom_{i}.root' for i in range(1, 55)]  # its 54 runs
-
 
 def read_gate(events, tof_meta=None, normalization=None):
     """io.PET.read_gate for one kind of coincidence: (events, object_meta, proj_meta). Reading the 54 ROOT files takes
@@ -88,8 +83,6 @@ normalization_sinogram = torch.load(OUTPUT / 'normalization_sinogram.pt')
 proj_meta.weights_sensitivity = None  # the sinogram holds what the reconstructions need
 
 # %% Primary-Only Reconstruction
-detector_ids_scatters_true, _, _ = read_gate('scatters', tof_meta=tof_meta)
-
 sinogram = io.PET.listmode_to_sinogram(detector_ids, info, tof_meta=tof_meta)
 
 # The reconstruction grid: 128 x 128 x 96 voxels of 2 mm, centred where read_gate placed the scanner in the patient
@@ -119,7 +112,6 @@ likelihood = PoissonLogLikelihood(
 # Reconstruct
 recon_algorithm = OSEM(likelihood)
 print(recon_algorithm.estimate_memory(n_subsets=n_subsets)) # its peak RAM and GPU memory, before it runs
-recon_primaryonly = recon_algorithm(n_iters=n_iters, n_subsets=n_subsets)
 # delete to save memory
 del(sinogram)
 del(system_matrix)

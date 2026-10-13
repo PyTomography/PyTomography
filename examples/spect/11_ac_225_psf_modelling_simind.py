@@ -3,12 +3,9 @@
 Alpha-emitter imaging with PSFs from Monte Carlo ARFs (spectarf), penetration and collimator scatter included.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_ac225_simind_recon.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 # %% Ac-225 Advanced PSF Modeling (SIMIND)
 from pytomography import datasets
 
@@ -19,7 +16,6 @@ DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_da
 OUTPUT = datasets.output_dir("SPECT/SIMIND-Jaszak")
 
 import os
-import numpy as np
 import torch
 import pytomography
 from pytomography import io
@@ -28,10 +24,8 @@ from pytomography.transforms.SPECT  import SPECTAttenuationTransform, SPECTPSFTr
 from pytomography.algorithms import OSEM
 from pytomography.likelihoods import PoissonLogLikelihood
 from spectarf import Collimator, DetectorStack, DetectorResponse, EnergyResolution
-from spectarf.pytomography import generate_arfs, psf_at, psf_transform
+from spectarf.pytomography import generate_arfs, psf_transform
 from spectarf.response import FWHM_TO_SIGMA
-import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
 
 # change to where you saved the data
 PATH = DATA / 'SPECT' / 'SIMIND-Jaszak'
@@ -93,42 +87,6 @@ for name, arf in arfs.items():
     print(f"{name}: {arf.window[1]:.0f}-{arf.window[2]:.0f} keV, {arf.energy_keV:.1f} keV photons, "
           f"grid (theta, phi, dx, dy) {arf.data.shape}")
 
-fig, ax = plt.subplots(1, 2, figsize=(11, 3.8), sharey=True, gridspec_kw={'wspace': 0.05})
-positive = lambda p: np.where(p > 0, p, np.nan)    # no zeros on a log axis
-for name, arf in arfs.items():
-    ax[0].semilogy(arf.theta_deg, positive(arf.in_window_probability().mean(axis=1)),
-                   label=f"{name}: {arf.window[1]:.0f}-{arf.window[2]:.0f} keV")
-P = arfs['P']
-for j, phi in enumerate(P.phi_deg):
-    ax[1].semilogy(P.theta_deg, positive(P.in_window_probability()[:, j]), color=plt.cm.viridis(j / max(len(P.phi_deg) - 1, 1)),
-                   label=f"phi = {phi:.0f} deg" if j in (0, len(P.phi_deg) - 1) else None)
-ax[0].set(xlabel='incidence angle theta (degrees)', ylabel='detection probability per photon',
-          title='every window')
-ax[1].set(xlabel='incidence angle theta (degrees)', title='photopeak window, by azimuth phi')
-for a in ax:
-    a.legend(frameon=False)
-    a.grid(alpha=0.3)
-
-# %% PSFs
-distances = [50.0, 150.0, 300.0]
-kernels = psf_at(arfs, distances, pixel_mm=1.0, size_mm=160.0, normalize=True)   # (3, 161, 161)
-
-w = kernels.shape[-1] * 1.0 / 2          # half width, mm
-c = kernels.shape[-1] // 2
-u = (np.arange(kernels.shape[-1]) - c) * 1.0
-fig, ax = plt.subplots(1, 4, figsize=(16, 3.7), gridspec_kw={'width_ratios': [1, 1, 1, 1.25], 'wspace': 0.3})
-for a, d, k in zip(ax, distances, kernels):
-    norm = LogNorm(vmin=k.max() * 1e-3, vmax=k.max())          # three decades below each PSF's peak
-    a.imshow(np.clip(k, norm.vmin, None).T, origin='lower', extent=(-w, w, -w, w), cmap='hot', norm=norm)
-    a.set(title=f'{d:.0f} mm from the collimator', xlabel='r (mm)')
-ax[0].set_ylabel('z (mm)')
-for d, k in zip(distances, kernels):
-    ax[3].semilogy(u, np.clip(k[:, c], 1e-12, None), label=f'{d:.0f} mm')
-ax[3].set(xlabel='r (mm)', ylabel='fraction per mm$^2$', title='through the centre',
-          ylim=(0.5 * np.clip(kernels[:, :, c], 1e-12, None).min(), 2 * kernels.max()))
-ax[3].legend(frameon=False)
-ax[3].grid(alpha=0.3)
-
 # %% Reconstruct
 psf_transform_arf = psf_transform(arfs, memory_budget_bytes=2 * 2**30)
 recon_arf = perform_reconstruction(psf_transform_arf)
@@ -137,9 +95,6 @@ path_bi213_prim = files_NM[1][1]
 psf_meta = io.SPECT.simind_psf(path_bi213_prim)
 psf_transform = SPECTPSFTransform(psf_meta)
 reconbad = perform_reconstruction(psf_transform)
-
-recons = [reconbad, recon_arf]
-titles = ['Gaussian PSF', 'ARF PSF']
 
 # %% Save the images
 for name, image in [('arf_psf', recon_arf), ('gaussian_psf', reconbad)]:

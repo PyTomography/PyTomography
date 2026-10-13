@@ -3,12 +3,9 @@
 Filtered back projection of a Lu-177 NEMA phantom scan, with Chang's attenuation correction, next to OSEM.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_fbp_spect.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 from pytomography import datasets
 
 # The tutorial data: downloaded the first time it runs (see Tutorial data in the docs)
@@ -18,9 +15,7 @@ DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_da
 OUTPUT = datasets.output_dir("SPECT/Lu177-NEMA-SymT2")
 
 import time
-import numpy as np
 import torch
-import matplotlib.pyplot as plt
 import pytomography
 from pytomography import io
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform

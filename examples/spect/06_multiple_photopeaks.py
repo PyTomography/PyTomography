@@ -3,12 +3,9 @@
 Joint reconstruction over two photopeaks of the same isotope.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_dualpeak.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 # %% Multi Photopeak Reconstruction
 from pytomography import datasets
 
@@ -26,7 +23,6 @@ from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.projectors import ExtendedSystemMatrix
 import pytomography
-import matplotlib.pyplot as plt
 import torch
 
 PATH = DATA / 'SPECT'
@@ -89,9 +85,6 @@ system_matrix = ExtendedSystemMatrix(
 
 test_object = torch.zeros(object_meta.shape).to(pytomography.device)
 test_object[50:70,50:70,50:70] = 1
-
-test_projections = system_matrix.forward(test_object)
-test_projections.shape
 
 photopeak = torch.stack([photopeak113, photopeak208], dim=0)
 scatter = torch.stack([scatter113, scatter208], dim=0)

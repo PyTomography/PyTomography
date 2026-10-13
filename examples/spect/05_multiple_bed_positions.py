@@ -3,12 +3,9 @@
 Reconstruct several bed positions and stitch them into one volume.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_dicommultibed.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 # %% DICOM Multiple Bed Positions
 from pytomography import datasets
 
@@ -19,7 +16,6 @@ DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_da
 OUTPUT = datasets.output_dir("SPECT/Lu177-PSMA-GEDisc")
 
 import os
-import matplotlib.pyplot as plt
 import torch
 from pytomography import io
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
@@ -42,8 +38,8 @@ _, _, proj_meta = io.SPECT.read_dicom(files_NM[0])
 for i, window in enumerate(proj_meta.energy_windows):
     print(f'Index {i}:   Name: "{window.name}", Energies: {window.lower_keV:g}-{window.upper_keV:g} keV')
 
-projections_upper_fov, _, _ = io.SPECT.read_dicom(files_NM[0])
-projections_lower_fov, _, _ = io.SPECT.read_dicom(files_NM[1])
+beds = io.SPECT.read_dicom_beds(files_NM)  # the inferior bed first
+(projections_lower, object_meta_lower, proj_meta_lower), (projections_upper, object_meta_upper, proj_meta_upper) = beds
 
 # %% Part 2: Reconstruction
 def reconstruct_singlebed(projections, object_meta, proj_meta):
@@ -76,7 +72,6 @@ recon_lower = reconstruct_singlebed(projections_lower, object_meta_lower, proj_m
 recon_stitched, object_meta_stitched = io.SPECT.stitch_beds(
     recons=torch.stack([recon_upper, recon_lower]),
     object_metas=[object_meta_upper, object_meta_lower])
-object_meta_stitched
 
 # %% Save the images
 saved = io.save_dicom(recon_stitched, OUTPUT / 't_dicommultibed' / 'osem_stitched', object_meta_stitched,

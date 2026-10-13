@@ -3,12 +3,9 @@
 Reconstruct myocardial perfusion data and reorient it to the short axis.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_CardiacReorientation.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 # %% Reconstruction
 from pytomography import datasets
 
@@ -24,9 +21,6 @@ from pytomography.transforms.SPECT import SPECTPSFTransform
 from pytomography.algorithms import OSEM
 from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.likelihoods import PoissonLogLikelihood
-import pytomography
-import matplotlib.pyplot as plt
-import torch
 
 # Paths are set in the data cell at the top of this tutorial
 PATH = DATA / 'SPECT' / 'Tc99m-Cardiac'
@@ -45,72 +39,6 @@ likelihood = PoissonLogLikelihood(system_matrix, photopeak)
 reconstruction_algorithm = OSEM(likelihood)
 print(reconstruction_algorithm.estimate_memory(n_subsets=8))
 recon = reconstruction_algorithm(n_iters=4, n_subsets=8)
-
-# %% Reorientation
-from pytomography.utils.cardiac_spect import get_mask, get_shift_values, get_angle, shift_object, rotate_object, plot_arrow, create_circular_mask, masking
-
-# Define the object and get the mask
-testObject = recon[:,:,30:45]
-testObjectMask = get_mask(testObject, 0.55, 0.9)
-
-# Finding the shift values
-ShiftedAxial, tx, ty = get_shift_values(testObjectMask[:,:,7])
-ShiftedSagittal, _, tz = get_shift_values(testObjectMask[40,:,:])
-
-# Finding the angles values
-AxialAngle = get_angle(
-    ShiftedAxial,
-    torch.linspace(240, 270, 100).to(pytomography.device)
-)
-SagittalAngle = get_angle(
-    ShiftedSagittal,
-    torch.linspace(335, 355, 100).to(pytomography.device)
-)
-
-# Shifting the object
-ShiftedObject = shift_object(testObject, -tx, -ty, -tz)
-
-# Rotating the object
-RotatedObject = rotate_object(ShiftedObject, AxialAngle, SagittalAngle)
-
-# Make sure the object does not contain negatinve values
-RotatedObject = torch.clamp(RotatedObject, min=0)
-
-# Permute the object to the correct orientation
-RotatedObject = RotatedObject.permute(2, 1, 0)
-
-# Perform masking on the RotatedObject
-maskedObject = masking(RotatedObject, radius=10)
-
-plot_arrow(ShiftedAxial, 235)
-
-def plot_views(tensor: torch.Tensor):
-    """
-    Plots three different views of the given 3D tensor
-
-    Args:
-        tensor (torch.Tensor): 3D tensor with shape [depth, height, width].
-    """
-    # Create a figure and a set of subplots
-    fig, axs = plt.subplots(1, 3, figsize=(15, 5))
-
-    # Vertical Long Axis (VLA)
-    vla_image = torch.flip(tensor[7, :, :].cpu(), dims=[0]).T
-    axs[0].imshow(vla_image, interpolation='gaussian', cmap='jet')
-
-    # Horizontal Long Axis (HLA)
-    hla_image = torch.flip(torch.flip(tensor[:, 32, :].cpu(), dims=[0]), dims=[1])
-    axs[1].imshow(hla_image, interpolation='gaussian', cmap='jet')
-
-    # Short Axis (SA)
-    sa_image = torch.flip(tensor[:, :, 32].cpu(), dims=[0])
-    axs[2].imshow(sa_image, interpolation='gaussian', cmap='jet')
-
-    # Adjust layout and show the plot
-    plt.tight_layout()
-    
-plot_views(RotatedObject)
-plot_views(maskedObject)
 
 # %% Save the images
 saved = io.save_dicom(recon, OUTPUT / 't_CardiacReorientation' / 'osem', object_meta, reference=file_NM,

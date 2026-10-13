@@ -3,12 +3,9 @@
 Measure bias and noise in each sphere of a simulated phantom, with OSEM and BSREM.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_accuracy_known_truth.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 from pytomography import datasets
 
 # The tutorial data: downloaded the first time it runs (see Tutorial data in the docs)
@@ -21,7 +18,6 @@ import re
 import time
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
 import pytomography
 from pytomography import io
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
@@ -122,37 +118,6 @@ for region in regions:
     b_bsrem, n_bsrem = bias_and_noise(stats_bsrem, recon_bsrem, region)
     print(f"{region:10s} after {n_iters} iterations: OSEM bias {b_osem[-1]:+6.1f}% noise {n_osem[-1]:5.1f}%   "
           f"BSREM bias {b_bsrem[-1]:+6.1f}% noise {n_bsrem[-1]:5.1f}%")
-
-# %% 7. Bias and noise in each region
-fig, axes = plt.subplots(2, 4, figsize=(13, 6), constrained_layout=True)
-for ax, region in zip(axes.ravel(), regions):
-    for stats, recon, name, color in [(stats_osem, recon_osem, 'OSEM', 'tab:blue'), (stats_bsrem, recon_bsrem, 'BSREM', 'tab:orange')]:
-        bias, noise = bias_and_noise(stats, recon, region)
-        ax.plot(bias, noise, '-', color=color, lw=1.5, label=name)
-        ax.plot(bias[0], noise[0], 'o', mfc='none', color=color)
-        ax.plot(bias[-1], noise[-1], 'o', color=color)
-    ax.axvline(0, color='0.6', lw=0.8)
-    ax.set_title(f'{region} ({volume_mL[region]:.1f} mL)')
-    ax.set_xlabel('bias (%)')
-    ax.set_ylabel('noise (%)')
-    ax.grid(alpha=0.3)
-axes[0, 0].legend()
-axes[-1, -1].axis('off')
-
-spheres = torch.stack([masks[f'sphere {k}'] for k in range(1, 7)]).any(0)
-water = attenuation_map > 0.5 * attenuation_map.max()  # the phantom
-z = int(torch.nonzero(spheres)[:, 2].float().mean())  # the slice through the spheres' centres
-truth_image = (water.float() * truth_MBq_per_mL['background']
-               + spheres.float() * (sphere_MBq_per_mL - truth_MBq_per_mL['background'])).cpu()
-images = [truth_image,
-          recon_osem.cpu() * activity / recon_osem.sum().item() / voxel_mL,
-          recon_bsrem.cpu() * activity / recon_bsrem.sum().item() / voxel_mL]
-fig, axes = plt.subplots(1, 3, figsize=(10, 3.8), constrained_layout=True)
-for ax, image, title in zip(axes, images, ['Truth', f'OSEM {n_iters}×{n_subsets}', f'BSREM {n_iters}×{n_subsets}']):
-    im = ax.imshow(image[32:96, 32:96, z].T, cmap='magma', origin='lower', vmax=1.2 * sphere_MBq_per_mL)
-    ax.set_title(title)
-    ax.axis('off')
-fig.colorbar(im, ax=axes, shrink=0.8, label='MBq/mL')
 
 # %% Save the images
 for name, recon in [('OSEM', recon_osem), ('BSREM', recon_bsrem)]:
