@@ -1,11 +1,10 @@
 from __future__ import annotations
 from collections.abc import Sequence
-from . import get_1d_gaussian_kernel
+from .misc import get_1d_gaussian_kernel   # from its module: importing it from pytomography.utils, which imports this module, is a cycle
 from pytomography.metadata import ProjMeta
 import numpy as np
 import pytomography
 import torch
-from pytomography.utils import get_1d_gaussian_kernel
 
 @torch.no_grad()
 def get_smoothed_scatter(
