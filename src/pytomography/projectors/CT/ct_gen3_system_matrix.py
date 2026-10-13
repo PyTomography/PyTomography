@@ -1,3 +1,4 @@
+"""System matrix of third generation (fan beam, cylindrical detector) CT scans, helical or axial."""
 from __future__ import annotations
 import numpy as np
 import torch
@@ -33,14 +34,54 @@ def _saving_memory(system_matrix, candidates: list, n_subsets: int, N_splits: in
     return system_matrix._saving_memory(candidates, n_subsets, N_splits)
 
 class CTGen3SystemMatrix(SystemMatrix):
-    """System matrix for 3rd generation clinical DICOM scanners with cylindrical detector panels. For more information, see the DICOM-CTPD user manual.
+    r"""System matrix of a third generation CT scan (fan beam, cylindrical detector), helical or axial.
 
-        Args:
-            object_meta (ObjectMeta): Metadata for object space
-            proj_meta (CTConeBeamFlatPanelProjMeta): Projection metadata for the CT system
-            N_splits (int, optional): Splits up computation of forward/back projection to save GPU memory. A projection is also split whenever needed to keep below ``_MAX_RAYS_PER_CALL`` (2**25) rays per call. Defaults to 1.
-            device (str, optional): Device on which projections are output. Defaults to pytomography.device.
-            fov_mask (bool, optional): Model only the voxels inside the scan field of view, the cylinder (radius ``fov_radius``) that the fan of every view covers. Voxels outside it are seen by some views only; a reconstruction cannot determine them, and left in the model they come out as large spurious values. With the mask they are kept at zero. Turn it off to forward project an object that extends past the field of view. Defaults to True.
+    The forward projection of an object (linear attenuation coefficients in 1/mm) is its line integrals along the
+    rays from each view's focal spot (with any flying focal spot offset) to the centres of the detector elements,
+    computed by Joseph's method with parallelproj on ``pytomography.device``. The geometry is that of
+    :class:`~pytomography.metadata.CT.CTGen3ProjMeta`; the object grid is centred on the origin of its frame (the
+    isocentre in x and y, ``proj_meta.z_center`` along z), as :func:`~pytomography.io.CT.read_dicom_ct_pd` places it.
+
+    :class:`~pytomography.algorithms.FilteredBackProjection` reconstructs with this system matrix by weighted filtered
+    back projection (WFBP, Stierstorfer et al. 2004) of the projections rebinned to parallel beams, which handles
+    helical and axial scans; with a flying focal spot, each group of views sharing a focal spot offset is reconstructed
+    on its own and the groups are averaged. With ``fov_mask``, voxels outside the field of view are zero, as in
+    :meth:`forward`. Its options for this system matrix (keywords of ``FilteredBackProjection``):
+
+    * ``slice_thickness`` (float): Average every slice over a box of this width along z, in mm, sampled every
+      0.25 mm. Defaults to None (no averaging).
+    * ``gpu_budget`` (float): Bytes the reconstruction may hold on the device, never more than a quarter of the free
+      GPU memory. Defaults to 1.5 GB.
+    * ``Q`` (float): WFBP row weighting: rows within the central fraction ``Q`` of the detector get full weight,
+      falling to zero at its edges. Defaults to 0.6.
+    * ``k_range`` (int): Half turns either side searched for rays through the same voxel. Defaults to what the pitch
+      and cone angle allow.
+    * ``backend`` (str): ``'auto'`` back projects with a fused CUDA kernel when it can run (CuPy and a CUDA device)
+      and with PyTorch otherwise; ``'cuda'`` or ``'torch'`` force one. Defaults to ``'auto'``.
+    * ``column_weights`` (torch.Tensor): A weight for each detector column, multiplying the line integrals as they
+      are read. Defaults to None.
+    * ``stats`` (dict): Receives the time and peak GPU memory of each focal spot group. Defaults to None.
+
+    The host holds the rebinned projections of a chunk of views at a time: at most an eighth of the memory budget
+    (:func:`pytomography.set_memory_budget`), or 1 GB without one.
+
+    Args:
+        object_meta (ObjectMeta): Grid of the object.
+        proj_meta (CTGen3ProjMeta): Geometry of the scan.
+        N_splits (int, optional): Number of groups of views a projection is computed in, one parallelproj call each;
+            more groups take less GPU memory. A projection is also split whenever needed to keep below 2**25 rays per
+            call. Defaults to 1.
+        device (str, optional): Device the projections are returned on; the projector itself runs on
+            ``pytomography.device``. Defaults to ``pytomography.device`` (its value when this module was imported).
+        fov_mask (bool, optional): Model only the voxels inside the scan field of view, the cylinder (radius
+            ``fov_radius``) that the fan of every view covers. Voxels outside it are seen by some views only; a
+            reconstruction cannot determine them, and left in the model they come out as large spurious values. With
+            the mask they are kept at zero. Turn it off to forward project an object that extends past the field of
+            view. Defaults to True.
+
+    Attributes:
+        fov_radius (float): Radius of the scan field of view about the axis, in mm: the smallest distance of the focal
+            spot from the axis times the sine of the smaller of the two outermost fan angles.
     """
     #: Memory estimates: this system matrix projects with parallelproj, whose CUDA build makes a CUDA context (and
     #: runs on the GPU) also when PyTomography's device is the CPU, if a CUDA device is visible
@@ -81,28 +122,32 @@ class CTGen3SystemMatrix(SystemMatrix):
         self,
         subset_idx: int
     ) -> float:
-        r"""Computes the relative weighting of a given subset (given that the projection space is reduced). This is used for scaling parameters relative to :math:`\tilde{H}_m^T 1` in reconstruction algorithms, such as prior weighting :math:`\beta`
+        r"""Compute the fraction of the views in subset :math:`m`.
+
+        Reconstruction algorithms scale parameters that are relative to :math:`H_m^T 1`, such as the prior weight
+        :math:`\beta`, by it.
 
         Args:
-            subset_idx (int): Subset index
+            subset_idx (int | None): Subset index :math:`m`, or None for all the views.
 
         Returns:
-            float: Weighting for the subset.
+            float: Number of views in the subset over the number of views (1 for None).
         """
         if subset_idx is None:
             return 1
         else:
             return len(self.subset_indices_array[subset_idx]) / self.proj_meta.N_angles
-        
+
     def get_projection_subset(self, projections: torch.Tensor, subset_idx: int | None) -> torch.tensor:
-        """Obtains subsampled projections :math:`g_m` corresponding to subset index :math:`m`. CT conebeam flat panel partitions projections based on angle.
+        """Select the projections :math:`g_m` of the views in subset :math:`m`.
 
         Args:
-            projections (torch.Tensor): total projections :math:`g`
-            subset_idx (int): subset index :math:`m`
+            projections (torch.Tensor): Projections :math:`g` of every view, [views, columns, rows].
+            subset_idx (int | None): Subset index :math:`m`, or None for every view.
 
         Returns:
-            torch.Tensor: subsampled projections :math:`g_m`.
+            torch.Tensor: Projections of the subset's views, [views in the subset, columns, rows], on the device of
+            ``projections`` (``projections`` itself for None).
         """
         if subset_idx is None:
             return projections
@@ -110,15 +155,18 @@ class CTGen3SystemMatrix(SystemMatrix):
             subset_indices = self.subset_indices_array[subset_idx]
             proj_subset = projections[subset_indices.to(projections.device)]
             return proj_subset
-        
+
     def set_n_subsets(self, n_subsets: int) -> list:
-        """Returns a list where each element consists of an array of indices corresponding to a partitioned version of the projections. 
+        r"""Partition the views into ``n_subsets`` subsets for ordered-subset reconstruction.
+
+        Subset :math:`m` holds views :math:`m, m + n, m + 2n, \dots` (:math:`n` = ``n_subsets``). The indices are kept
+        in ``subset_indices_array``, on ``device``.
 
         Args:
-            n_subsets (int): Number of subsets to partition the projections into
+            n_subsets (int): Number of subsets, from 1 to the number of views.
 
-        Returns:
-            list: List of arrays where each array corresponds to the projection indices of a particular subset.
+        Raises:
+            ValueError: ``n_subsets`` is less than 1 or more than the number of views.
         """
         self._check_n_subsets(n_subsets, self.proj_meta.N_angles)
         indices = torch.arange(self.proj_meta.N_angles).to(torch.long).to(self.device)
@@ -152,13 +200,14 @@ class CTGen3SystemMatrix(SystemMatrix):
         return xstart.contiguous(), xend
 
     def compute_normalization_factor(self, subset_idx: int | None = None):
-        r"""Computes the normalization factor :math:`H^T 1`
+        r"""Compute the normalization factor :math:`H_m^T 1`, the back projection of ones over subset :math:`m`.
 
         Args:
-            subset_idx (int, optional): Subset index for ths sinogram. If None, considers all elements. Defaults to None..
+            subset_idx (int | None, optional): Subset index :math:`m`. Defaults to None: every view.
 
         Returns:
-            torch.Tensor: Normalization factor.
+            torch.Tensor: The normalization factor, [Lx, Ly, Lz], float32, on the CPU (a reconstruction keeps one per
+            subset).
         """
         n_views = self._angle_indices(subset_idx).shape[0]
         # Put BP on cpu since we could potentially have a lot of them
@@ -322,14 +371,15 @@ class CTGen3SystemMatrix(SystemMatrix):
         return _saving_memory(self, candidates, n_subsets, N_splits)
 
     def forward(self, object, subset_idx=None):
-        r"""Computes forward projection
+        r"""Forward project an object: :math:`H_m f`, the line integrals :math:`\int \mu\,dl` along every ray.
 
         Args:
-            object (torch.Tensor): Object to be forward projected
-            subset_idx (int | None, optional): Subset index :math:`m` of the projection. If None, then projects to entire projection space. Defaults to None.
+            object (torch.Tensor): Linear attenuation coefficients :math:`\mu` on the object grid, [Lx, Ly, Lz], in
+                1/mm. With ``fov_mask``, voxels outside the field of view are taken as zero.
+            subset_idx (int | None, optional): Subset index :math:`m`. Defaults to None: every view.
 
         Returns:
-            torch.Tensor: Projections corresponding to :math:`\int \mu dx` along all LORs.
+            torch.Tensor: Line integrals, [views, columns, rows] (the subset's views), float32, on ``device``.
         """
         angle_indices = self._angle_indices(subset_idx)
         object = _float32(object, pytomography.device)
@@ -347,15 +397,18 @@ class CTGen3SystemMatrix(SystemMatrix):
         return proj
     
     def backward(self, proj, subset_idx=None):
-        """Computes back projection :math:`H^T g` (for filtered back projection, use
-        :class:`pytomography.algorithms.FilteredBackProjection`)
+        r"""Back project projections: :math:`H_m^T g`.
+
+        This is the adjoint of :meth:`forward`; for filtered back projection, use
+        :class:`~pytomography.algorithms.FilteredBackProjection`.
 
         Args:
-            proj (torch.Tensor): Projections to be back projected
-            subset_idx (int | None, optional): Subset index :math:`m` of the projection. If None, then projects to entire projection space. Defaults to None.
+            proj (torch.Tensor): Projections of the subset's views, [views, columns, rows], on any device.
+            subset_idx (int | None, optional): Subset index :math:`m`. Defaults to None: every view.
 
         Returns:
-            torch.Tensor: Back projection, on ``pytomography.device``.
+            torch.Tensor: Back projection on the object grid, [Lx, Ly, Lz], float32, on ``pytomography.device``; with
+            ``fov_mask``, zero outside the field of view.
         """
         angle_indices = self._angle_indices(subset_idx)
         # parallelproj adds into the image it is given, so every split accumulates into one (padded) buffer

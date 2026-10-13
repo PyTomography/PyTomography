@@ -1,7 +1,8 @@
-"""Read DICOM-CT-PD: the projections of a third generation (fan beam, cylindrical detector) CT scan, one DICOM file per
-view, with the geometry of every view in private tags (TCIA LDCT-and-Projection-data, the DICOM-CT-PD user manual).
+"""Reader for DICOM-CT-PD, the projection data of third generation (fan beam, cylindrical detector) CT scanners.
 
-:func:`read_dicom_ct_pd` returns the scan in PyTomography's standard form::
+DICOM-CT-PD stores one DICOM file per view, with the geometry of every view in private tags (see the DICOM-CT-PD user
+manual of TCIA's LDCT-and-Projection-data collection). :func:`read_dicom_ct_pd` returns the scan in PyTomography's
+standard form::
 
     projections, object_meta, proj_meta = io.CT.read_dicom_ct_pd(folder)
 
@@ -22,13 +23,13 @@ from pytomography.metadata import ObjectMeta
 from pytomography.metadata.CT import CTGen3ProjMeta
 from . import preprocessing
 
-#: DICOM-CT-PD preprocessing flags (group 7039): what was applied to the projections before export.
 CORRECTION_FLAGS = {0x1003: 'beam hardening', 0x1004: 'gain', 0x1005: 'dark field', 0x1006: 'flat field', 0x1007: 'bad pixel',
                     0x1008: 'scatter', 0x1009: 'log'}
+"""DICOM-CT-PD preprocessing flags, as element of group 7039 -> the correction it records.
 
-#: The DICOM-CT-PD tags the reader uses: name -> (group, element, kind), kind 'f' (float32 values), 'H' (unsigned
-#: 16-bit), 's' (text) or 'ds' (a decimal string). The files write them as private tags, whose values pydicom gives as
-#: raw bytes (VR UN, or OB) or, in explicit VR files, decoded (FL, US, CS, DS).
+Each flag says whether that correction was applied to the projections before export; the reader puts them in
+``proj_meta.correction_flags``."""
+
 TAGS = {
     'transverse_spacing': (0x7029, 0x1002, 'f'),   # DetectorElementTransverseSpacing (mm, an arc at the detector)
     'axial_spacing': (0x7029, 0x1006, 'f'),        # DetectorElementAxialSpacing (mm)
@@ -50,13 +51,33 @@ TAGS = {
     'geometry_type': (0x7037, 0x100A, 's'),        # TypeofProjectionGeometry: FANBEAM
     'water': (0x7041, 0x1001, 'ds'),               # WaterAttenuationCoefficient (1/mm)
 }
+"""The DICOM-CT-PD tags the reader uses, as name -> ``(group, element, kind)``.
+
+``kind`` is ``'f'`` (float32 values), ``'H'`` (an unsigned 16-bit integer), ``'s'`` (text) or ``'ds'`` (a decimal
+string). The files write them as private tags, whose values pydicom gives as raw bytes (VR UN or OB) or, in explicit
+VR files, decoded (FL, US, CS, DS); :func:`tag` reads either."""
 _REQUIRED = object()
 _SEQUENCES = (list, tuple, pydicom.multival.MultiValue)
 
 
 def tag(ds, name: str, default=_REQUIRED):
-    """A DICOM-CT-PD tag of a file, decoded whatever its VR: a tuple of floats ('f'), an int ('H'), a string ('s') or a
-    float ('ds'). Raises KeyError for a missing tag without ``default``."""
+    """Read a DICOM-CT-PD tag of a file, decoded whatever its VR.
+
+    Args:
+        ds (pydicom.dataset.Dataset): A DICOM-CT-PD file, as pydicom reads it.
+        name (str): The tag's name, a key of :data:`TAGS` (e.g. ``'phi'``, ``'photons'``).
+        default (optional): Value returned when the file does not have the tag. Defaults to none given: a missing tag
+            raises.
+
+    Returns:
+        tuple[float, ...] | int | str | float: The value, by the tag's kind in :data:`TAGS`: a tuple of floats
+        (``'f'``), an int (``'H'``), a string stripped of nulls and spaces at either end (``'s'``) or a float
+        (``'ds'``).
+
+    Raises:
+        KeyError: The file does not have the tag and no ``default`` is given.
+        ValueError: A float32 tag stored as bytes whose length is not a multiple of 4.
+    """
     group, element, kind = TAGS[name]
     if (group, element) not in ds:
         if default is _REQUIRED:
@@ -193,9 +214,19 @@ def _check_patient_frame(ds, vendor: str) -> None:
 
 
 def default_grid(proj_meta: CTGen3ProjMeta) -> tuple:
-    """The grid :func:`read_dicom_ct_pd` uses when it is not given one: 512 x 512 over the field of view (the cylinder
-    the fan of every view covers), and slices at the detector rows' spacing at the isocentre along the focal spot path.
-    Returns ``(dr, shape)``."""
+    """The reconstruction grid :func:`read_dicom_ct_pd` uses when it is not given one.
+
+    In x and y, 512 x 512 voxels span the scan field of view: the cylinder the fan of every view covers, whose radius
+    is the smallest distance of the focal spot from the axis times the sine of the smaller of the two outermost fan
+    angles. Along z, the slices are spaced as the detector rows are at the isocentre, and cover the axial extent of the
+    focal spot path (rounded down to whole slices, at least one).
+
+    Args:
+        proj_meta (CTGen3ProjMeta): Projection metadata of the scan.
+
+    Returns:
+        tuple: ``(dr, shape)``: the voxel size ``(dx, dx, dz)`` in mm and the grid shape ``(512, 512, Nz)``.
+    """
     fan = proj_meta.phis_det[:, 0]
     r_fov = float(proj_meta.source_rhos.min()) * float(torch.sin(torch.minimum(fan[0].abs(), fan[-1].abs())))
     dx = 2 * r_fov / 512
@@ -208,56 +239,73 @@ def read_dicom_ct_pd(folder, *, object_meta: ObjectMeta | None = None, table_fee
                      filter_low_signal: bool = True, low_signal_photons: float = 30.0, central_column='auto',
                      central_column_offset: float = 0.0, column_scale: dict | None = None
                      ) -> tuple[torch.Tensor, ObjectMeta, CTGen3ProjMeta]:
-    r"""A DICOM-CT-PD scan in PyTomography's standard form: the projections (line integrals; views, columns, rows), the
-    object grid placed in the patient, and :class:`~pytomography.metadata.CT.CTGen3ProjMeta`, with the views in
-    acquisition order (``InstanceNumber``).
+    r"""Read a DICOM-CT-PD scan into PyTomography's standard form.
 
-    The geometry comes from the files' private tags, decoded whatever their VR and checked: the detector must be
-    cylindrical and the projections fan beam. The detector's central column is DetectorCentralElement (7031,1033),
-    except that GE counts it from the other end of the detector, from zero, so that its central column is ``n_columns -
-    DetectorCentralElement`` (443.25 rather than 444.75 on TCIA LDCT-and-Projection-data cases C145 and C001, GE
-    Discovery CT750 HD): ``central_column='auto'`` applies this for GE (the vendor table's 'ge-ct-pd-central-column').
-    It was found by reconstructing the views with the focal spot in either half of the turn separately: the two images
-    coincide with this column and lie 1.4 mm apart with the column as stored.
+    The views are put in acquisition order (``InstanceNumber``). The geometry comes from the files' private tags,
+    decoded whatever their VR, and is checked: the detector must be cylindrical, the projections fan beam (helical or
+    axial), and the detector's central element the same in every view.
 
-    The patient frame (``object_meta.centre``, ``frame='patient'``) is verified for GE scans, feet first supine: other
-    patient positions raise, and other vendors warn (Siemens images put their y origin on the table, which the
-    projections do not record).
+    The detector's central column is DetectorCentralElement (7031,1033), except that GE counts it from the other end of
+    the detector, from zero, so that its central column is ``n_columns - DetectorCentralElement`` (443.25 rather than
+    444.75 on TCIA LDCT-and-Projection-data cases C145 and C001, GE Discovery CT750 HD); ``central_column='auto'``
+    applies this to GE scans. It was found by reconstructing the views with the focal spot in either half of the turn
+    separately: the two images coincide with this column and lie 1.4 mm apart with the column as stored.
 
-    By default rays that expect fewer than ``low_signal_photons`` photons (from (7033,1065) PhotonStatistics) are
+    The patient frame (``object_meta.centre``, ``frame='patient'``) is verified on GE scans, feet first supine. Other
+    patient positions raise. Other vendors warn: Siemens images put their y origin on the table, which the projections
+    do not record, and for the rest the isocentre is taken as the patient's (0, 0) in x and y.
+
+    By default, rays that expect fewer than ``low_signal_photons`` photons (from PhotonStatistics (7033,1065)) are
     filtered with :func:`~pytomography.io.CT.preprocessing.filter_low_signal`, which removes most of the streaks of
-    photon starvation (between the shoulders, for example).
+    photon starvation (between the shoulders, for example). Files without PhotonStatistics are not filtered, with a
+    warning.
 
     Two options reproduce the scanner's own images of C145 and are off unless asked for; they were found by comparing
     with those images, not from the files:
 
     * ``table_feed``: rescale the focal spot z positions, about the last view, so that the table advances this much
-      per rotation (mm), or ``'pitch'`` for SpiralPitchFactor (0018,9311) times the collimation. C145's images use the
-      nominal feed (39.375 mm), 0.2% less than its projections imply.
+      per rotation (mm), or ``'pitch'`` for SpiralPitchFactor (0018,9311) times the collimation at the isocentre.
+      C145's images use the nominal feed (39.375 mm), 0.2% less than its projections imply.
     * ``column_scale``: ``dict(g0=..., g2=...)``, a per-column scale of the line integrals
       (:func:`~pytomography.io.CT.preprocessing.scale_columns`), fitted to the scanner's own images with
       :func:`~pytomography.io.CT.preprocessing.fit_column_scale`. GE Discovery CT750 HD at 100 kV: about
       ``dict(g0=-0.012, g2=0.0165)`` (C145; C001 gives -0.0135, 0.0184).
 
-    The metadata also carries ``photon_counts``, ``water_attenuation`` (per mm, for :func:`~pytomography.io.CT.to_hu`),
-    ``correction_flags``, ``spiral_pitch`` and ``patient_position``.
+    Besides the geometry, ``proj_meta`` carries ``photon_counts`` (PhotonStatistics, [views, columns], or None),
+    ``water_attenuation`` (WaterAttenuationCoefficient in 1/mm, for :func:`~pytomography.io.CT.to_hu`, or None),
+    ``correction_flags`` (the corrections the files record as applied, e.g. ``{'beam hardening': True, ...}``),
+    ``spiral_pitch`` (SpiralPitchFactor, or None) and ``patient_position``.
 
     Args:
-        folder (str | list): A folder of DICOM-CT-PD files (``*.dcm``), or a list of them.
-        object_meta (ObjectMeta, optional): the reconstruction grid (``dr`` and ``shape``); its centre and frame are
-            set by the reader. Defaults to None: 512 x 512 over the field of view, and slices at the detector rows'
-            spacing at the isocentre along the focal spot path.
-        table_feed (float | str | None, optional): Defaults to None (as stored).
-        filter_low_signal (bool, optional): Filter photon-starved rays. Defaults to True.
-        low_signal_photons (float, optional): Photons a filtered ray should represent. Defaults to 30.
+        folder (str | os.PathLike | Sequence[str]): A folder of DICOM-CT-PD files (``*.dcm``), or a list of the files.
+        object_meta (ObjectMeta | None, optional): Grid to reconstruct on. Only its ``dr`` and ``shape`` are used: the
+            reader sets the centre and frame. Defaults to None: the grid of :func:`default_grid`.
+        table_feed (float | str | None, optional): Table advance per rotation, in mm, to rescale the focal spot z
+            positions to, or ``'pitch'`` (see above). Defaults to None: the positions as stored.
+        filter_low_signal (bool, optional): Whether to filter photon-starved rays. Defaults to True.
+        low_signal_photons (float, optional): Expected photons below which a ray is filtered, and about as many as a
+            filtered ray represents. Defaults to 30.
         central_column (str | float, optional): ``'auto'`` (the manufacturer's convention, above), ``'tag'``
             (DetectorCentralElement as stored), or the central column itself (counted from 1). Defaults to ``'auto'``.
-        central_column_offset (float, optional): Channels added to the central column. Defaults to 0.
-        column_scale (dict | None, optional): Defaults to None.
+        central_column_offset (float, optional): Columns added to the central column. Defaults to 0.
+        column_scale (dict | None, optional): Keywords ``g0`` and ``g2`` (and optionally ``t_hold``) of
+            :func:`~pytomography.io.CT.preprocessing.column_scale`, applied after the low-signal filter; the dict that
+            :func:`~pytomography.io.CT.preprocessing.fit_column_scale` returns can be passed as it is. Defaults to
+            None: no scale.
 
     Returns:
-        tuple[torch.Tensor, ObjectMeta, CTGen3ProjMeta]: the projections (float32 on the CPU), the object grid
-        (modality ``'CT'``, units ``'1/mm'``, frame ``'patient'``) and the projection metadata.
+        tuple[torch.Tensor, ObjectMeta, CTGen3ProjMeta]: The projections (line integrals, [views, columns, rows],
+        float32 on the CPU), the object grid (frame ``'patient'``, units ``'1/mm'``, modality ``'CT'``, centred on
+        ``(0, 0, proj_meta.z_center)``) and the projection metadata.
+
+    Raises:
+        FileNotFoundError: There are no ``*.dcm`` files in ``folder``.
+        KeyError: A file lacks a tag the reader needs (it is not DICOM-CT-PD).
+        NotImplementedError: The patient position is not feet first supine, the detector is not cylindrical, the
+            projections are not fan beam or are neither helical nor axial, or DetectorCentralElement changes from view
+            to view.
+        ValueError: The stated number of detector rows or columns disagrees with the images, ``central_column`` is an
+            unknown string, or ``table_feed='pitch'`` and the files lack SpiralPitchFactor.
     """
     paths = _paths(folder)
     if not paths:

@@ -1,4 +1,4 @@
-"""Hounsfield units and linear attenuation coefficients of a CT reconstruction."""
+"""Conversions of a CT image between linear attenuation coefficients (1/mm) and Hounsfield units."""
 from __future__ import annotations
 
 import numpy as np
@@ -21,28 +21,46 @@ def _water(proj_meta_or_water) -> float:
 
 
 def to_hu(mu, proj_meta_or_water):
-    """Hounsfield units of a reconstruction in 1/mm: 1000 (mu / mu_water - 1).
+    r"""Convert an image from linear attenuation coefficients (1/mm) to Hounsfield units.
+
+    :math:`\mathrm{HU} = 1000\,(\mu / \mu_\mathrm{water} - 1)`.
 
     Args:
-        mu (torch.Tensor | np.ndarray): linear attenuation coefficients (1/mm).
-        proj_meta_or_water: the scan's projection metadata (its ``water_attenuation``, 1/mm), or water's attenuation.
+        mu (torch.Tensor | np.ndarray): Linear attenuation coefficients, in 1/mm.
+        proj_meta_or_water (CTGen3ProjMeta | float): The scan's projection metadata, whose ``water_attenuation`` (set
+            by :func:`~pytomography.io.CT.read_dicom_ct_pd`) is used, or water's attenuation coefficient at the scan's
+            effective energy, in 1/mm.
 
     Returns:
-        the image in HU, of the type of ``mu``.
+        torch.Tensor | np.ndarray: The image in HU, of the type of ``mu``.
+
+    Raises:
+        ValueError: The projection metadata has no ``water_attenuation``, or water's attenuation is not positive.
+
+    Example:
+        >>> projections, object_meta, proj_meta = io.CT.read_dicom_ct_pd(folder)
+        >>> hu = io.CT.to_hu(recon, proj_meta)
     """
     water = _water(proj_meta_or_water)
     return 1000 * (mu / water - 1)
 
 
 def from_hu(hu, proj_meta_or_water):
-    """Linear attenuation coefficients (1/mm) of an image in Hounsfield units: mu_water (1 + HU / 1000).
+    r"""Convert an image from Hounsfield units to linear attenuation coefficients (1/mm).
+
+    :math:`\mu = \mu_\mathrm{water}\,(1 + \mathrm{HU} / 1000)`.
 
     Args:
-        hu (torch.Tensor | np.ndarray): the image in HU.
-        proj_meta_or_water: the scan's projection metadata (its ``water_attenuation``, 1/mm), or water's attenuation.
+        hu (torch.Tensor | np.ndarray): The image in HU.
+        proj_meta_or_water (CTGen3ProjMeta | float): The scan's projection metadata, whose ``water_attenuation`` (set
+            by :func:`~pytomography.io.CT.read_dicom_ct_pd`) is used, or water's attenuation coefficient at the scan's
+            effective energy, in 1/mm.
 
     Returns:
-        the image in 1/mm, of the type of ``hu``.
+        torch.Tensor | np.ndarray: The image in 1/mm, of the type of ``hu``.
+
+    Raises:
+        ValueError: The projection metadata has no ``water_attenuation``, or water's attenuation is not positive.
     """
     water = _water(proj_meta_or_water)
     return water * (1 + hu / 1000)

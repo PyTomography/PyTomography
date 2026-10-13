@@ -1,3 +1,4 @@
+"""System matrix of cone-beam CT scans with a flat panel detector."""
 from __future__ import annotations
 import torch
 import pytomography
@@ -10,14 +11,28 @@ import parallelproj_core
 from .ct_gen3_system_matrix import _float32, _pad, _crop, _saving_memory
 
 class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
-    """System matrix for a cone beam CT system with a flat detector panel. Filtered back projection (FDK) is available for circular (fixed z) scans through :class:`pytomography.algorithms.FilteredBackProjection`.
+    """System matrix of a cone-beam CT scan with a flat panel detector.
 
-        Args:
-            object_meta (ObjectMeta): Metadata for object space
-            proj_meta (CTConeBeamFlatPanelProjMeta): Projection metadata for the CT system
-            N_splits (int, optional): Splits up computation of forward/back projection to save GPU memory. Defaults to 1.
-            device (str, optional): Device on which projections are output. Defaults to pytomography.device.
-        """
+    The forward projection of an object (linear attenuation coefficients in 1/mm) is its line integrals along the
+    rays from each view's source to the centres of the detector pixels, computed by Joseph's method with parallelproj
+    on ``pytomography.device``, one view at a time. The geometry is that of
+    :class:`~pytomography.metadata.CT.CTConeBeamFlatPanelProjMeta`; the object grid is centred on the origin of its
+    frame.
+
+    :class:`~pytomography.algorithms.FilteredBackProjection` reconstructs circular scans (fixed z) with this system
+    matrix by FDK: each projection is cosine weighted, ramp filtered along u (times the window), back projected, and
+    weighted with the FDK distance weight. The scale assumes the views cover a full turn, evenly spaced. It takes no
+    options besides ``filter``.
+
+    Args:
+        object_meta (ObjectMeta): Grid of the object.
+        proj_meta (CTConeBeamFlatPanelProjMeta): Geometry of the scan.
+        N_splits (int, optional): Number of parallelproj calls the back projection of each view is split into (forward
+            projection is not split). The rays of the whole view are built either way, so it does not lower the memory.
+            Defaults to 1.
+        device (str, optional): Device the projections are returned on; the projector itself runs on
+            ``pytomography.device``. Defaults to ``pytomography.device`` (its value when this module was imported).
+    """
     #: Memory estimates: this system matrix projects with parallelproj, whose CUDA build makes a CUDA context (and
     #: runs on the GPU) also when PyTomography's device is the CPU, if a CUDA device is visible
     #: (:func:`~pytomography.utils.memory.projector_uses_gpu`).
@@ -79,13 +94,16 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         return self._FBP_postweight_component1[idx] / w
     
     def set_n_subsets(self, n_subsets: int) -> list:
-        """Returns a list where each element consists of an array of indices corresponding to a partitioned version of the projections. 
+        r"""Partition the views into ``n_subsets`` subsets for ordered-subset reconstruction.
+
+        Subset :math:`m` holds views :math:`m, m + n, m + 2n, \dots` (:math:`n` = ``n_subsets``). The indices are kept
+        in ``subset_indices_array``, on ``device``.
 
         Args:
-            n_subsets (int): Number of subsets to partition the projections into
+            n_subsets (int): Number of subsets, from 1 to the number of views.
 
-        Returns:
-            list: List of arrays where each array corresponds to the projection indices of a particular subset.
+        Raises:
+            ValueError: ``n_subsets`` is less than 1 or more than the number of views.
         """
         self._check_n_subsets(n_subsets, self.proj_meta.N_angles)
         indices = torch.arange(self.proj_meta.N_angles).to(torch.long).to(self.device)
@@ -95,14 +113,15 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         self.subset_indices_array = subset_indices_array
         
     def get_projection_subset(self, projections: torch.Tensor, subset_idx: int | None) -> torch.tensor:
-        """Obtains subsampled projections :math:`g_m` corresponding to subset index :math:`m`. CT conebeam flat panel partitions projections based on angle.
+        """Select the projections :math:`g_m` of the views in subset :math:`m`.
 
         Args:
-            projections (torch.Tensor): total projections :math:`g`
-            subset_idx (int): subset index :math:`m`
+            projections (torch.Tensor): Projections :math:`g` of every view, [views, u, v].
+            subset_idx (int | None): Subset index :math:`m`, or None for every view.
 
         Returns:
-            torch.Tensor: subsampled projections :math:`g_m`.
+            torch.Tensor: Projections of the subset's views, [views in the subset, u, v], on the device of
+            ``projections`` (``projections`` itself for None).
         """
         if subset_idx is None:
             return projections
@@ -115,13 +134,16 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         self,
         subset_idx: int
     ) -> float:
-        r"""Computes the relative weighting of a given subset (given that the projection space is reduced). This is used for scaling parameters relative to :math:`\tilde{H}_m^T 1` in reconstruction algorithms, such as prior weighting :math:`\beta`
+        r"""Compute the fraction of the views in subset :math:`m`.
+
+        Reconstruction algorithms scale parameters that are relative to :math:`H_m^T 1`, such as the prior weight
+        :math:`\beta`, by it.
 
         Args:
-            subset_idx (int): Subset index
+            subset_idx (int | None): Subset index :math:`m`, or None for all the views.
 
         Returns:
-            float: Weighting for the subset.
+            float: Number of views in the subset over the number of views (1 for None).
         """
         if subset_idx is None:
             return 1
@@ -129,13 +151,13 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
             return len(self.subset_indices_array[subset_idx]) / self.proj_meta.N_angles
         
     def compute_normalization_factor(self, subset_idx: int = None):
-        r"""Computes the normalization factor :math:`H^T 1`
+        r"""Compute the normalization factor :math:`H_m^T 1`, the back projection of ones over subset :math:`m`.
 
         Args:
-            subset_idx (int, optional): Subset index for ths sinogram. If None, considers all elements. Defaults to None..
+            subset_idx (int | None, optional): Subset index :math:`m`. Defaults to None: every view.
 
         Returns:
-            torch.Tensor: Normalization factor.
+            torch.Tensor: The normalization factor, [Lx, Ly, Lz], float32, on ``pytomography.device``.
         """
         n_views = self.proj_meta.N_angles if subset_idx is None else len(self.subset_indices_array[subset_idx])
         return self.backward(torch.ones(n_views, *self.proj_meta.shape, device=self.device), subset_idx)
@@ -144,14 +166,15 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         self, object: torch.Tensor,
         subset_idx: int | None = None,
     ) -> torch.Tensor:
-        r"""Computes forward projection
+        r"""Forward project an object: :math:`H_m f`, the line integrals :math:`\int \mu\,dl` along every ray.
 
         Args:
-            object (torch.Tensor): Object to be forward projected
-            subset_idx (int | None, optional): Subset index :math:`m` of the projection. If None, then projects to entire projection space. Defaults to None.
+            object (torch.Tensor): Linear attenuation coefficients :math:`\mu` on the object grid, [Lx, Ly, Lz], in
+                1/mm.
+            subset_idx (int | None, optional): Subset index :math:`m`. Defaults to None: every view.
 
         Returns:
-            torch.Tensor: Projections corresponding to :math:`\int \mu dx` along all LORs.
+            torch.Tensor: Line integrals, [views, u, v] (the subset's views), float32, on ``device``.
         """
         angle_indices = self._angle_indices(subset_idx)
         object_i = _pad(_float32(object, pytomography.device))
@@ -275,14 +298,17 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         proj: torch.Tensor,
         subset_idx: int | None = None,
     ) -> torch.Tensor:
-        """Computes back projection :math:`H^T g`.
+        r"""Back project projections: :math:`H_m^T g`.
+
+        This is the adjoint of :meth:`forward`; for filtered back projection (FDK), use
+        :class:`~pytomography.algorithms.FilteredBackProjection`.
 
         Args:
-            proj (torch.Tensor): Projections to be back projected
-            subset_idx (int | None, optional): Subset index :math:`m` of the projection. Defaults to None.
+            proj (torch.Tensor): Projections of the subset's views, [views, u, v], on any device.
+            subset_idx (int | None, optional): Subset index :math:`m`. Defaults to None: every view.
 
         Returns:
-            torch.Tensor: Back projection, on ``pytomography.device``.
+            torch.Tensor: Back projection on the object grid, [Lx, Ly, Lz], float32, on ``pytomography.device``.
         """
         # parallelproj adds into the image it is given, so every angle accumulates into one (padded) buffer
         BP = torch.zeros(tuple(n + 2 for n in self.object_meta.shape), dtype=torch.float32, device=pytomography.device)
