@@ -141,8 +141,8 @@ DATASETS = {
              "unpacked": 71623548},
             # The regions that the tutorials measure (the six spheres, the lung insert and the background), made by
             # docs/tools/make_roi_masks.py
-            {"kind": "package", "file": "lu177_nema_symt2_rois.seg.nrrd", "size": 263247,
-             "sha256": "c4099bd6cad48a3cd1b9a574d94de508bd310b900d7ed9d21b441e4b169b81e2"},
+            {"kind": "package", "file": "lu177_nema_symt2_rois.seg.nrrd", "size": 246468,
+             "sha256": "be3d1878f5693999cc054d69a508df7f8feeb986d985f20c036173a13bbb4b46"},
         ],
     },
     "SPECT/Ac225-NEMA-SymT2": {
