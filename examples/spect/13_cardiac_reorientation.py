@@ -54,7 +54,7 @@ testObject = recon[:,:,30:45]
 testObjectMask = get_mask(testObject, 0.55, 0.9)
 
 # Finding the shift values
-ShiftedAxial, ty, tx = get_shift_values(testObjectMask[:,:,7])
+ShiftedAxial, tx, ty = get_shift_values(testObjectMask[:,:,7])
 ShiftedSagittal, _, tz = get_shift_values(testObjectMask[40,:,:])
 
 # Finding the angles values
