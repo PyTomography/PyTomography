@@ -1,3 +1,4 @@
+"""A Gaussian filter of the object, the usual resolution model of PET system matrices."""
 from __future__ import annotations
 import torch
 import numpy as np
@@ -7,12 +8,23 @@ from pytomography.metadata import ObjectMeta, ProjMeta
 from pytomography.transforms import Transform
 
 class GaussianFilter(Transform):
-    """Applies a Gaussian smoothing filter to the reconstructed object with the specified full-width-half-max (FWHM)
+    """Object-to-object transform that smooths the object with a Gaussian of a given FWHM, in mm.
+
+    The filter is separable: a normalised 1D Gaussian along x, y and z in turn, cut off at ``n_sigmas``, with zeros
+    beyond the object's edges. It is symmetric, so :meth:`backward` is :meth:`forward`. It can also be called on an
+    object directly (``filter(object)``) once configured. A SPECT grid warns when the FWHM is less than a voxel, which
+    usually means a FWHM in cm.
 
     Args:
-        FWHM (float): Specifies the width of the gaussian, in the units of the object's voxel sizes: mm (SPECT, PET and
-            CT alike since PyTomography 4.0). One value, or one per axis.
-        n_sigmas (float): Number of sigmas to include before truncating the kernel.
+        FWHM (float | list): The full width at half maximum in mm (SPECT, PET and CT alike since PyTomography 4.0):
+            one number, or a list of three (x, y, z).
+        n_sigmas (float, optional): Half-width of the kernels, in sigmas. Defaults to 3.
+
+    Example:
+        .. code-block:: python
+
+            psf_transform = GaussianFilter(4.5)            # 4.5 mm FWHM
+            system_matrix = PETLMSystemMatrix(object_meta, proj_meta, obj2obj_transforms=[psf_transform])
     """
     def __init__(self, FWHM: float | list, n_sigmas: float = 3):
         if type(FWHM) == list:
@@ -22,11 +34,11 @@ class GaussianFilter(Transform):
         self.n_sigmas = n_sigmas
         
     def configure(self, object_meta: ObjectMeta, proj_meta: ProjMeta) -> None:
-        """Configures the transform to the object/proj metadata. This is done after creating the network so that it can be adjusted to the system matrix.
+        """Builds the kernels for the object grid's voxel sizes; the system matrix calls it.
 
         Args:
-            object_meta (ObjectMeta): Object metadata.
-            proj_meta (ProjMeta): Projections metadata.
+            object_meta (ObjectMeta): The object grid.
+            proj_meta (ProjMeta): The projection space.
         """
         self.object_meta = object_meta
         self.proj_meta = proj_meta
@@ -52,17 +64,17 @@ class GaussianFilter(Transform):
             self.kernels.append(k/k.sum())
             
     def __call__(self, object):
-        """Alternative way to call"""
+        """Same as :meth:`forward`."""
         return self.forward(object)
-            
+
     def forward(self, object):
-        """Applies the Gaussian smoothing
+        """Smooths the object.
 
         Args:
-            object (torch.tensor): Object to smooth
+            object (torch.Tensor): The object, [Lx, Ly, Lz].
 
         Returns:
-            torch.tensor: Smoothed object
+            torch.Tensor: The smoothed object, [Lx, Ly, Lz].
         """
         for i in [0,1,2]:
             object = object.swapaxes(i,2)
@@ -74,14 +86,16 @@ class GaussianFilter(Transform):
         return object
             
     def backward(self, object, norm_constant=None):
-        """Applies Gaussian smoothing in back projection. Because the operation is symmetric, it is the same as the forward projection.
+        """Smooths the object in back projection: the same as :meth:`forward`, as the filter is symmetric.
 
         Args:
-            object (torch.tensor): Object to smooth
-            norm_constant (torch.tensor, optional): Normalization constant used in iterative algorithms. Defaults to None.
+            object (torch.Tensor): The object, [Lx, Ly, Lz].
+            norm_constant (torch.Tensor, optional): A normalization image (e.g. :math:`H^T 1`) to smooth too.
+                Defaults to None.
 
         Returns:
-            torch.tensor: Smoothed object
+            torch.Tensor | tuple[torch.Tensor, torch.Tensor]: The smoothed object, and the smoothed ``norm_constant``
+            when one is given.
         """
 
         object = self.forward(object)

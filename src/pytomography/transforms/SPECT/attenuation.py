@@ -1,3 +1,4 @@
+"""SPECT attenuation: the probability that a photon emitted in each voxel reaches the detector."""
 from __future__ import annotations
 from typing import Sequence, Callable
 import torch
@@ -6,25 +7,39 @@ from pytomography.utils import rotate_detector_z, rev_cumsum, pad_object, unpad_
 from pytomography.transforms import Transform
 from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta
 
-def get_prob_of_detection_matrix(attenuation_map: torch.Tensor, dx: float) -> torch.tensor: 
-	r"""Converts an attenuation map (:math:`\text{mm}^{-1}`) to a probability of photon detection matrix (scanner at +x). Note that this requires the attenuation map to be at the energy of photons being emitted.
+def get_prob_of_detection_matrix(attenuation_map: torch.Tensor, dx: float) -> torch.tensor:
+	r"""The probability that a photon from each voxel reaches a detector at +x, from an attenuation map in 1/mm.
+
+	It is :math:`\exp(-\sum \mu \, dx)` over the voxels between the voxel and the +x edge of the map, the voxel itself
+	counted by half (the photon starts at its centre). The map must be at the photon energy of the emitted photons.
 
 	Args:
-		attenuation_map (torch.tensor): Tensor of size [Lx, Ly, Lz] corresponding to the attenuation coefficient in :math:`{\text{mm}^{-1}}`
-		dx (float): Axial plane pixel spacing (mm).
+		attenuation_map (torch.Tensor): Attenuation coefficients in 1/mm, [Lx, Ly, Lz].
+		dx (float): Voxel size along x, in mm.
 
 	Returns:
-		torch.tensor: Tensor of size [Lx, Ly, Lz] corresponding to probability of photon being detected at detector at +x axis.
+		torch.Tensor: The probabilities, [Lx, Ly, Lz].
 	"""
 	return torch.exp(-rev_cumsum(attenuation_map * dx))
 
 class SPECTAttenuationTransform(Transform):
-	r"""obj2obj transform used to model the effects of attenuation in SPECT.
+	r"""Object-to-object transform that models attenuation in SPECT: each voxel times its probability of detection.
+
+	For each view, the object (rotated so that the detector is at +x) is multiplied by the probability that a photon
+	from each voxel reaches the detector, :func:`get_prob_of_detection_matrix` of the attenuation map rotated the same
+	way. The operator is diagonal, so :meth:`backward` is :meth:`forward`.
 
 	Args:
-		attenuation_map (torch.tensor): Tensor of size [Lx, Ly, Lz] on the object's grid: the attenuation coefficient in :math:`{\text{mm}^{-1}}` at the photon energy of the energy window reconstructed (``proj_meta.energy_windows[i].photon_keV``), e.g. from :func:`pytomography.io.attenuation_map`.
-		assume_padded (bool): Assumes objects and projections fed into forward and backward methods are padded, as they will be in reconstruction algorithms
-		cache_probabilities (bool): If True, the rotated probability-of-detection map of each projection angle is computed once and kept on the device (memory: one padded object per angle, e.g. 0.2 GB for a 64x64x64 object and 96 angles, 1.6 GB for 128x128x128), instead of being recomputed from ``attenuation_map`` at every forward/backward call. The cache is discarded whenever a new tensor is assigned to ``attenuation_map`` or to ``proj_meta.angles`` (in-place modification of either tensor is not detected). Defaults to False.
+		attenuation_map (torch.Tensor): Attenuation coefficients in 1/mm, [Lx, Ly, Lz] on the object's grid, at the
+			photon energy of the energy window reconstructed (``proj_meta.energy_windows[i].photon_keV``), e.g. from
+			:func:`pytomography.io.attenuation_map`.
+		assume_padded (bool, optional): The objects given to :meth:`forward` and :meth:`backward` are padded for
+			rotation, as they are inside :class:`~pytomography.projectors.SPECT.SPECTSystemMatrix`. Defaults to True.
+		cache_probabilities (bool, optional): Compute the rotated probability map of each view once and keep it on the
+			device (one padded object per view, e.g. 0.2 GB for a 64x64x64 object and 96 views, 1.6 GB for 128x128x128),
+			instead of recomputing it from ``attenuation_map`` at every call. The cache is dropped whenever a new tensor
+			is assigned to ``attenuation_map`` or to ``proj_meta.angles`` (changes made in place are not detected).
+			Defaults to False.
 	"""
 	def __init__(
 		self,
@@ -45,14 +60,15 @@ class SPECTAttenuationTransform(Transform):
 		object_i: torch.Tensor,
 		ang_idx: torch.Tensor, 
 	)-> torch.Tensor:
-		r"""Forward projection :math:`A:\mathbb{U} \to \mathbb{U}` of attenuation correction.
+		r"""Applies attenuation :math:`A:\mathbb{U} \to \mathbb{U}` to the object of one view.
 
 		Args:
-			object_i (torch.tensor): Tensor of size [Lx, Ly, Lz] being projected along ``axis=0``.
-			ang_idx (torch.Tensor): The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.
+			object_i (torch.Tensor): The object rotated for the view, [Lx, Ly, Lz] (padded), projected along x.
+			ang_idx (int): Index of the view in ``proj_meta.angles``.
 
 		Returns:
-			torch.tensor: Tensor of size [Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.
+			torch.Tensor: The object times the probability of detection, [Lx, Ly, Lz]; its sum along x is the attenuated
+			projection.
 		"""
 		return object_i*self._prob_of_detection(ang_idx)
 
@@ -91,20 +107,24 @@ class SPECTAttenuationTransform(Transform):
 		object_i: torch.Tensor,
 		ang_idx: torch.Tensor, 
 	) -> torch.Tensor:
-		r"""Back projection :math:`A^T:\mathbb{U} \to \mathbb{U}` of attenuation correction. Since the matrix is diagonal, the implementation is the same as forward projection. The only difference is the optional normalization parameter.
+		r"""Applies the transpose :math:`A^T:\mathbb{U} \to \mathbb{U}`, which is :meth:`forward` (the operator is diagonal).
 
 		Args:
-			object_i (torch.tensor): Tensor of size [Lx, Ly, Lz] being projected along ``axis=0``.
-			ang_idx (torch.Tensor): The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.
-			norm_constant (torch.tensor, optional): A tensor used to normalize the output during back projection. Defaults to None.
+			object_i (torch.Tensor): A back projected view, [Lx, Ly, Lz] (padded), in the view's rotated frame.
+			ang_idx (int): Index of the view in ``proj_meta.angles``.
 
 		Returns:
-			torch.tensor: Tensor of size [Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to an attenuation corrected projection.
+			torch.Tensor: The object times the probability of detection, [Lx, Ly, Lz].
 		"""
 		return object_i*self._prob_of_detection(ang_idx)
 
 	@torch.no_grad()
 	def compute_average_prob_matrix(self):
+		"""The probability of detection averaged over every view, in the object's own frame.
+
+		Returns:
+			torch.Tensor: The average probability, [Lx, Ly, Lz], on ``pytomography.device``.
+		"""
 		attenuation_map = pad_object(self.attenuation_map)
 		average_norm_factor = torch.zeros(attenuation_map.shape).to(pytomography.device)
 		for angle in self.proj_meta.angles:

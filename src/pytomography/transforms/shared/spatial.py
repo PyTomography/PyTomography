@@ -1,3 +1,4 @@
+"""Rotation of an object about the z axis, as the SPECT system matrix uses to put each view's detector at +x."""
 from __future__ import annotations
 import torch
 from torch.nn.functional import pad
@@ -6,10 +7,14 @@ from pytomography.utils.spatial import rotate_cached
 import numpy as np
 
 class RotationTransform(Transform):
-	r"""obj2obj transform used to rotate an object to angle :math:`\beta` in the DICOM reference frame. (Note that an angle of )
+	r"""Object-to-object transform that rotates an object about the z axis (the centre of each x-y plane).
+
+	Every plane of constant z is rotated by the same angle, in degrees, anticlockwise in the (x, y) image as
+	``kornia.geometry.transform.rotate`` defines it; :meth:`backward` rotates by the opposite angle. The SPECT system
+	matrix rotates the object of view :math:`\beta` with ``backward(object, 270 - beta)`` so that the detector is at +x.
 
 	Args:
-		mode (str): Interpolation mode used in the rotation.
+		mode (str, optional): Interpolation, ``'bilinear'`` or ``'nearest'``. Defaults to ``'bilinear'``.
 	"""
 	def __init__(
 		self,
@@ -24,14 +29,14 @@ class RotationTransform(Transform):
 		object: torch.Tensor,
 		angles: torch.Tensor, 
 	)-> torch.Tensor:
-		r"""Rotates an object to angle :math:`\beta` in the DICOM reference frame. Note that the scanner angle :math:`\beta` is related to :math:`\phi` (azimuthal angle) by :math:`\phi = 3\pi/2 - \beta`. 
+		r"""Rotates the object by ``angles`` degrees about the z axis.
 
 		Args:
-			object (torch.tensor): Tensor of size [Lx, Ly, Lz] being rotated.
-			angles (torch.Tensor):  Tensor of size 1 corresponding to the rotation angle.
+			object (torch.Tensor): The object, [Lx, Ly, Lz].
+			angles (float | torch.Tensor): The rotation angle in degrees (a number or a one-element tensor).
 
 		Returns:
-			torch.tensor: Tensor of size [Lx, Ly, Lz] which is rotated
+			torch.Tensor: The rotated object, [Lx, Ly, Lz].
 		"""
 		return rotate_cached(object.permute(2,0,1).unsqueeze(0), angles, mode=self.mode).squeeze().permute(1,2,0)
 
@@ -41,13 +46,13 @@ class RotationTransform(Transform):
 		object: torch.Tensor,
 		angles: torch.Tensor
 	) -> torch.Tensor:
-		r"""Forward projection :math:`A:\mathbb{U} \to \mathbb{U}` of attenuation correction.
+		r"""Rotates the object by ``-angles`` degrees about the z axis: the inverse of :meth:`forward`.
 
 		Args:
-			object (torch.tensor): Tensor of size [Lx, Ly, Lz] being rotated.
-			angles (torch.Tensor):  Tensor of size 1 corresponding to the rotation angle.
+			object (torch.Tensor): The object, [Lx, Ly, Lz].
+			angles (float | torch.Tensor): The angle of :meth:`forward` to undo, in degrees.
 
 		Returns:
-			torch.tensor: Tensor of size [Lx, Ly, Lz] which is rotated.
+			torch.Tensor: The rotated object, [Lx, Ly, Lz].
 		"""
 		return rotate_cached(object.permute(2,0,1).unsqueeze(0), -angles, mode=self.mode).squeeze().permute(1,2,0)
