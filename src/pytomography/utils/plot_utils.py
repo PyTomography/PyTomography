@@ -1,12 +1,16 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import os
+import matplotlib
 from matplotlib.colors import LinearSegmentedColormap
 
 module_path = os.path.dirname(os.path.abspath(__file__))
 color_filepath = os.path.join(module_path, "../data/pet_colors.txt")
 colors = np.loadtxt(color_filepath).reshape(-1,3)/255.0
-pet_cmap = LinearSegmentedColormap.from_list('custom_colormap', colors)
+#: PyTomography's PET colour scale (black, teal, violet, orange, white; ``data/pet_colors.txt``), also registered with
+#: matplotlib by name: ``cmap='pet'`` works once ``pytomography.utils`` is imported (``pytomography.io`` imports it).
+pet_cmap = LinearSegmentedColormap.from_list('pet', colors)
+if 'pet' not in matplotlib.colormaps:
+    matplotlib.colormaps.register(pet_cmap)
 
 _AXIS = {'sagittal': 0, 'coronal': 1, 'axial': 2}
 
@@ -52,6 +56,7 @@ def dual_imshow(plane, im1, im2, im1_idx, affine1, affine2, imshow1_kwargs, imsh
     CT), both placed by their affines (voxel index to patient coordinates, in the same length unit, e.g.
     ``object_meta.affine`` and ``Image.affine``, both mm). The slice of image 2 is the one whose centre is nearest the
     centre of image 1's slice; image 2 is not drawn when image 1's slice is outside it."""
+    import matplotlib.pyplot as plt
     im1, im2 = _numpy(im1), _numpy(im2)
     axis = _AXIS[plane]
     extent1 = get_extent(im1, affine1)

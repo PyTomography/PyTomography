@@ -286,3 +286,14 @@ def test_packaged_jaszak_regions():
     background = rois.data == rois.labels["background"]
     assert background.sum() * 1.2 ** 3 / 1000 > 2000 and not (background & (window > 0)).any()
 
+
+def test_pet_colormap_by_name():
+    """pytomography.utils registers PyTomography's PET colour scale with matplotlib, so cmap='pet' works by name, and
+    importing plot_utils again does not register it twice."""
+    import importlib
+    import matplotlib
+    from pytomography.utils import plot_utils
+    cmap = matplotlib.colormaps["pet"]
+    assert np.allclose(cmap(np.linspace(0, 1, 256))[:, :3], plot_utils.colors, atol=1e-6)
+    importlib.reload(plot_utils)
+    assert np.allclose(matplotlib.colormaps["pet"](1.0)[:3], [1, 1, 1])
