@@ -567,7 +567,7 @@ def test_kem_and_motion_pass_through_to_their_system_matrices():
     parts = _parts(motion.estimate_memory(4))
     assert _bytes(parts['projections of ones of all 3 (for H^T 1)']) == 3 * 4 * np.prod(sm.proj_meta.shape)
     assert 'system matrix 2: what it holds' in parts and 'system matrix 3: what it holds' in parts
-    assert _bytes(parts['arrays of the 3 transforms']) == 3 * 2 * 3 * image
+    assert _bytes(parts['arrays of the 3 transforms']) == 3 * (2 * 3 + 1) * image     # two fields and the volume ratio
     same = _parts(MotionSystemMatrix([sm, sm, sm], [DVFMotionTransform(dvf, dvf) for _ in range(3)]).estimate_memory(4))
     assert 'system matrix 2: what it holds' not in same                                 # one system matrix, counted once
     assert motion.plan_memory(ram_gb=1000, gpu_gb=1000).settings == {'n_subsets': 1}
