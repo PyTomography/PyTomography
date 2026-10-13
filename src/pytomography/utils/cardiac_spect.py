@@ -10,19 +10,20 @@ from scipy.ndimage import rotate
 
 def shift_object(object: torch.Tensor, tx: float, ty: float, tz: float) -> torch.Tensor:
     """
-    Shift the 3D volume based on the given translation parameters.
+    Shift the 3D volume based on the given translation parameters: voxel ``(i, j, k)`` of the result is the object at
+    ``(i + tx, j + ty, k + tz)`` (linear interpolation, zero outside), so the contents move by ``(-tx, -ty, -tz)``.
 
     Parameters:
         object: Input 3D volume to be shifted (torch.Tensor[Lx, Ly, Lz]).
-        tx (float): Translation in x direction (voxels).
-        ty (float): Translation in y direction (voxels).
-        tz (float): Translation in z direction (voxels).
+        tx (float): Translation in x direction (voxels, along the first axis).
+        ty (float): Translation in y direction (voxels, along the second axis).
+        tz (float): Translation in z direction (voxels, along the third axis).
     Returns:
         Shifted 3D volume: The shifted object (torch.Tensor[Lx, Ly, Lz]).
     """
-    
-    object = object.cpu().numpy() if isinstance(object, torch.Tensor) else object 
-    translation = [ty, tx, tz]
+
+    object = object.cpu().numpy() if isinstance(object, torch.Tensor) else object
+    translation = [tx, ty, tz]   # x and y were swapped before PyTomography 4.0
     identity_matrix = np.eye(3)
     shifted_object = affine_transform(object, identity_matrix, offset=translation, order=1)
     
