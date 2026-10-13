@@ -1,3 +1,8 @@
+"""The base classes of the system matrices: the interface every projector implements, and several stacked into one.
+
+:class:`SystemMatrix` is what the likelihoods and reconstruction algorithms call; :class:`ExtendedSystemMatrix`
+stacks several system matrices (e.g. one per gate or per time frame) into one projection space.
+"""
 from __future__ import annotations
 from typing import Callable, Mapping, Sequence
 import abc
@@ -12,26 +17,53 @@ from copy import copy
 
 
 def held_parts(held: Sequence | Mapping) -> list[MemoryPart]:
-    """The arrays a computation holds for its whole run, as memory parts: ``held`` is a list of arrays (tensors or
-    :class:`~pytomography.io.PET.shared.LazySinogram`) or a dict of names to arrays; a :class:`MemoryPart` among them
-    (for arrays not made yet) is taken as it is."""
+    """The arrays a computation holds for its whole run, as memory parts for the memory estimates.
+
+    Args:
+        held (Sequence | Mapping): A list of arrays (tensors or :class:`~pytomography.io.PET.LazySinogram`), or a dict
+            of names to arrays. A :class:`~pytomography.utils.memory.MemoryPart` among them (for arrays not made yet)
+            is taken as it is.
+
+    Returns:
+        list[MemoryPart]: One part per array, of scope ``'held'``.
+    """
     items = held.items() if isinstance(held, Mapping) else ((f"array {k + 1}", x) for k, x in enumerate(held))
     return [x if isinstance(x, MemoryPart) else MemoryPart(name, *nbytes(x), scope='held') for name, x in items]
 
 
 def on_device(device, nbytes: float) -> dict:
-    """``{'gpu_bytes': nbytes}`` for a CUDA device, ``{'ram_bytes': nbytes}`` otherwise: the keyword of a
-    :class:`MemoryPart` for an array on ``device``."""
+    """The keyword argument of a :class:`~pytomography.utils.memory.MemoryPart` for an array on ``device``.
+
+    Args:
+        device (str | torch.device): Where the array is.
+        nbytes (float): Its size, in bytes.
+
+    Returns:
+        dict: ``{'gpu_bytes': nbytes}`` for a CUDA device, ``{'ram_bytes': nbytes}`` otherwise.
+    """
     return {'gpu_bytes': float(nbytes)} if torch.device(device).type == 'cuda' else {'ram_bytes': float(nbytes)}
 
 class SystemMatrix():
-    r"""Abstract class for a general system matrix :math:`H:\mathbb{U} \to \mathbb{V}` which takes in an object :math:`f \in \mathbb{U}` and maps it to corresponding projections :math:`g \in \mathbb{V}` that would be produced by the imaging system. A system matrix consists of sequences of object-to-object and proj-to-proj transforms that model various characteristics of the imaging system, such as attenuation and blurring. While the class implements the operator :math:`H:\mathbb{U} \to \mathbb{V}` through the ``forward`` method, it also implements :math:`H^T:\mathbb{V} \to \mathbb{U}` through the `backward` method, required during iterative reconstruction algorithms such as OSEM.
-    
+    r"""The base class of every system matrix :math:`H:\mathbb{U} \to \mathbb{V}`, from objects to projections.
+
+    A system matrix maps an object :math:`f \in \mathbb{U}` to the projections :math:`g \in \mathbb{V}` the imaging
+    system would measure (:meth:`forward`), and projections back to object space with the transpose :math:`H^T`
+    (:meth:`backward`), which iterative reconstruction algorithms such as OSEM need. Object-to-object and
+    projection-to-projection transforms (:mod:`pytomography.transforms`) model the system's physics, such as
+    attenuation and blurring.
+
+    Subclasses implement :meth:`forward` and :meth:`backward` (with an optional subset index ``subset_idx``), and, for
+    reconstructions with subsets, ``set_n_subsets``, ``get_projection_subset``, ``get_weighting_subset`` and
+    ``compute_normalization_factor`` (:math:`H_m^T 1`). Multiplying a system matrix by a number (``2 * H``) scales
+    both its forward and back projections; it changes the system matrix itself and returns it.
+
     Args:
-            obj2obj_transforms (Sequence[Transform]): Sequence of object mappings that occur before forward projection.
-            im2im_transforms (Sequence[Transform]): Sequence of proj mappings that occur after forward projection.
-            object_meta (ObjectMeta): Object metadata.
-            proj_meta (ProjMeta): Projection metadata.
+        object_meta (ObjectMeta): The object grid.
+        proj_meta (ProjMeta): The projection space.
+        obj2obj_transforms (list[Transform], optional): Object-to-object transforms applied before forward projection
+            (and their transposes after back projection), in order. Defaults to none.
+        proj2proj_transforms (list[Transform], optional): Projection-to-projection transforms applied after forward
+            projection (and their transposes before back projection), in order. Defaults to none.
     """
     def __init__(
         self,
@@ -61,8 +93,7 @@ class SystemMatrix():
         return self.__mul__(scalar)
 
     def initialize_transforms(self):
-        """Initializes all transforms used to build the system matrix
-        """
+        """Configures every transform of the system matrix with its ``object_meta`` and ``proj_meta``."""
         for transform in self.obj2obj_transforms:
             transform.configure(self.object_meta, self.proj_meta)
         for transform in self.proj2proj_transforms:
@@ -233,18 +264,20 @@ class SystemMatrix():
                                cuda_projector=getattr(self, 'memory_cuda_projector', False))
 
     def estimate_memory(self, n_subsets: int = 1, N_splits: int | None = None, held: Sequence | Mapping = ()) -> MemoryEstimate:
-        """The predicted peak RAM and GPU memory of a reconstruction with this system matrix, for ``n_subsets`` subsets
-        and ``N_splits`` projector splits, under the current memory budget (:func:`pytomography.set_memory_budget`).
-        ``print`` it to see the peak, what it is made of, and what more subsets or splits would need ("To use less");
-        ``ram_gb`` and ``gpu_gb`` give the numbers, ``to_dict()`` all of it as JSON. On Windows, GPU memory counts as
-        RAM too. For the opposite question, which settings fit in the memory there is, see :meth:`plan_memory`.
+        """The predicted peak RAM and GPU memory of a reconstruction with this system matrix.
+
+        The estimate is for ``n_subsets`` subsets and ``N_splits`` projector splits, under the current memory budget
+        (:func:`pytomography.set_memory_budget`). ``print`` it to see the peak, what it is made of, and what more
+        subsets or splits would need ("To use less"); ``ram_gb`` and ``gpu_gb`` give the numbers, ``to_dict()`` all of
+        it as JSON. On Windows, GPU memory counts as RAM too. For the opposite question, which settings fit in the
+        memory there is, see :meth:`plan_memory`.
 
         Args:
             n_subsets (int, optional): Number of subsets. Defaults to 1.
             N_splits (int | None, optional): Projector splits, for system matrices that take them. Defaults to None: this
                 system matrix's own.
             held (Sequence | Mapping, optional): Other arrays the reconstruction holds for the whole run, such as its
-                projections and additive term (tensors or :class:`~pytomography.io.PET.shared.LazySinogram`), as a list
+                projections and additive term (tensors or :class:`~pytomography.io.PET.LazySinogram`), as a list
                 or as a dict of names to arrays. Their size is added. Defaults to none.
 
         Returns:
@@ -261,16 +294,19 @@ class SystemMatrix():
         return self._memory_estimate(settings, held_parts(held), title_settings={'N_splits': N_splits})
 
     def plan_memory(self, ram_gb: float | None = None, gpu_gb: float | None = None, held: Sequence | Mapping = (), **fixed) -> MemoryPlan:
-        """The fastest settings of a reconstruction with this system matrix that fit in ``ram_gb`` of RAM and ``gpu_gb`` of
-        GPU memory, as a :class:`~pytomography.utils.memory.MemoryPlan` (``plan.settings``, ``plan.fits``,
+        """The fastest settings of a reconstruction with this system matrix that fit in the given RAM and GPU memory.
+
+        The result is a :class:`~pytomography.utils.memory.MemoryPlan` (``plan.settings``, ``plan.fits``,
         ``plan.estimate``; ``print`` it, or ``plan.to_dict()`` for JSON). This is the opposite question to
         :meth:`estimate_memory`: memory in, settings out.
 
         Settings passed by name are kept (e.g. ``n_subsets=14``); the others are chosen. The fewest projector splits
         ``N_splits`` come first, then the fewest subsets that fit with them: every number of subsets is tried in order,
         since memory need not fall with more subsets (a CT or SPECT reconstruction keeps an :math:`H_m^T 1` image per
-        subset). The settings and the values tried are those of :meth:`_memory_settings`. Without budgets, the plan is
-        for what is free on this machine now (:func:`~pytomography.utils.memory.available_memory`, which keeps a margin
+        subset). The settings tried are, unless a system matrix has others, the number of subsets (one to the number of
+        views or angles, at most :data:`~pytomography.utils.memory.PLAN_MAX_SUBSETS`) and, for system matrices that
+        take them, the projector splits ``N_splits`` (1, 2, 4... 256 and the present value). Without budgets, the plan
+        is for what is free on this machine now (:func:`~pytomography.utils.memory.available_memory`, which keeps a margin
         free). On Windows GPU memory counts as RAM too, so the RAM budget covers both. If nothing fits, the plan has
         ``fits`` False and the settings that come closest; it does not raise.
 
@@ -286,7 +322,7 @@ class SystemMatrix():
             MemoryPlan: The plan.
 
         Raises:
-            ValueError: A setting in ``fixed`` that this system matrix does not have.
+            ValueError: If ``fixed`` has a setting that this system matrix does not have.
 
         Example:
             >>> plan = system_matrix.plan_memory(ram_gb=25, held={'data': sinogram}, n_subsets=14)
@@ -299,10 +335,11 @@ class SystemMatrix():
                              fixed, ram_gb, gpu_gb)
 
     def fewest_subsets(self, ram_gb: float, N_splits: int | None = None, held: Sequence | Mapping = (), max_subsets: int = 1024) -> int | None:
-        """The fewest subsets for which :meth:`estimate_memory` predicts at most ``ram_gb`` GB of RAM, or None if no
-        number up to ``max_subsets`` does. The numbers are tried in order (an estimate is arithmetic), since memory need
-        not fall with more subsets (a CT reconstruction keeps a normalisation image per subset). It is
-        :meth:`plan_memory` with the projector splits kept and no GPU limit.
+        """The fewest subsets for which :meth:`estimate_memory` predicts at most ``ram_gb`` GB of RAM.
+
+        The numbers are tried in order (an estimate is arithmetic), since memory need not fall with more subsets (a CT
+        reconstruction keeps a normalisation image per subset). It is :meth:`plan_memory` with the projector splits
+        kept and no GPU limit.
 
         Args:
             ram_gb (float): RAM available, in GB.
@@ -311,7 +348,7 @@ class SystemMatrix():
             max_subsets (int, optional): Most subsets to consider. Defaults to 1024.
 
         Returns:
-            int | None: Number of subsets.
+            int | None: Number of subsets, or None if no number up to ``max_subsets`` fits.
         """
         settings = self._memory_settings()
         settings['n_subsets'] = (settings['n_subsets'][0], list(range(1, max_subsets + 1)))
@@ -325,14 +362,15 @@ class SystemMatrix():
 
     @abc.abstractmethod
     def forward(self, object: torch.tensor, **kwargs):
-        r"""Implements forward projection :math:`Hf` on an object :math:`f`.
+        r"""Forward projection :math:`H_m f` of an object :math:`f`, implemented by each subclass.
 
         Args:
-            object (torch.tensor[batch_size, Lx, Ly, Lz]): The object to be forward projected
-            angle_subset (list, optional): Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
+            object (torch.Tensor): The object, [Lx, Ly, Lz].
+            **kwargs: The subclasses take a subset index ``subset_idx`` (:math:`m`, see ``set_n_subsets``; None for
+                all the projections).
 
         Returns:
-            torch.tensor[batch_size, Ltheta, Lx, Lz]: Forward projected proj where Ltheta is specified by `self.proj_meta` and `angle_subset`.
+            torch.Tensor: The projections, in the shape of ``proj_meta`` (only the subset's with ``subset_idx``).
         """
         ...
     @abc.abstractmethod
@@ -342,15 +380,17 @@ class SystemMatrix():
         angle_subset: list | None = None,
         return_norm_constant: bool = False,
     ) -> torch.tensor:
-        r"""Implements back projection :math:`H^T g` on a set of projections :math:`g`.
+        r"""Back projection :math:`H_m^T g` of projections :math:`g`, implemented by each subclass.
 
         Args:
-            proj (torch.Tensor): proj which is to be back projected
-            angle_subset (list, optional): Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
-            return_norm_constant (bool): Whether or not to return :math:`1/\sum_j H_{ij}` along with back projection. Defaults to 'False'.
+            proj (torch.Tensor): The projections to back project (only the subset's with a subset index).
+            angle_subset (list, optional): The subset: the subclasses take a subset index ``subset_idx`` here (see
+                ``set_n_subsets``); None for all the projections. Defaults to None.
+            return_norm_constant (bool, optional): Also return the normalization :math:`H_m^T 1`, for the subclasses
+                that support it. Defaults to False.
 
         Returns:
-            torch.tensor[batch_size, Lr, Lr, Lz]: the object obtained from back projection.
+            torch.Tensor: The object, [Lx, Ly, Lz] (and :math:`H_m^T 1` with ``return_norm_constant``).
         """
         ...
     @abc.abstractmethod
@@ -358,13 +398,16 @@ class SystemMatrix():
         self,
         n_subsets: int
     ) -> list:
-        """Returns a list of subsets corresponding to a partition of the projection data used in a reconstruction algorithm.
-        
+        """A partition of the projections into subsets; no system matrix implements or calls it.
+
+        PyTomography's system matrices partition their projections with ``set_n_subsets(n_subsets)`` instead, which
+        the likelihoods call.
+
         Args:
-            n_subsets (int): number of subsets used in OSEM 
+            n_subsets (int): Number of subsets.
 
         Returns:
-            list: list of index arrays for each subset
+            list: One array of projection indices per subset.
         """
         ...
 
@@ -385,19 +428,28 @@ class SystemMatrix():
 
 
 class ExtendedSystemMatrix(SystemMatrix):
+    r"""Several system matrices stacked into one, whose projections have an extra first axis: [N, ...].
+
+    The forward projection is :math:`H' = \sum_n v_n \otimes B_n H_n A_n`, with :math:`H_n` the system matrices,
+    :math:`A_n` object-to-object transforms, :math:`B_n` projection-to-projection transforms, :math:`v_n` the basis
+    vector of length :math:`N` with 1 in component :math:`n` and :math:`\otimes` the tensor product. It models, for
+    example, gated or dynamic data, or the same object seen through several motion states
+    (:class:`~pytomography.transforms.shared.DVFMotionTransform`). The system matrices are assumed to share their
+    object grid and their subsets (the first one's are used).
+
+    Args:
+        system_matrices (Sequence[SystemMatrix]): The system matrix :math:`H_n` of each component :math:`n`.
+        obj2obj_transforms (Sequence[Transform], optional): The object-to-object transform :math:`A_n` of each
+            component (None in the list for none). Defaults to None (no transforms).
+        proj2proj_transforms (Sequence[Transform], optional): The projection-to-projection transform :math:`B_n` of
+            each component (None in the list for none). Defaults to None (no transforms).
+    """
     def __init__(
         self,
         system_matrices: Sequence[SystemMatrix],
         obj2obj_transforms: Sequence[Transform] = None,
         proj2proj_transforms: Sequence[Transform] = None,
         ) -> None:
-        r"""System matrix that supports the extension of projection space. Maps to an extended image space :math:`\mathcal{V}^{*}` where projections have shape ``[N,...]`` where ``...`` is the regular projeciton size. As such, this projector only supports objects with a batch size of 1. The forward transform is given by :math:`H' = \sum_n v_n \otimes B_n H_n A_n` where :math:`\left\{A_n\right\}` are object-to-object space transforms, :math:`\left\{H_n\right\}` are a sequence of system matrices, :math:`\left\{B_n\right\}` are a sequence of projection-to-projection space transforms, :math:`v_n` is a basis vector of length :math:`N` with a value of 1 in component :math:`n` and :math:`\otimes` is a tensor product. 
-
-        Args:
-            system_matrices (Sequence[SystemMatrix]): List of system matrices corresponding to each dimension :math:`n`. 
-            obj2obj_transforms (Sequence[Transform]): List of object to object transforms corresponding to each dimension :math:`n`. 
-            proj2proj_transforms (Sequence[Transform]): List of projection to projection transforms corresponding to each dimension :math:`n`. 
-        """
         self.object_meta = system_matrices[0].object_meta
         self.proj_meta = system_matrices[0].proj_meta
         self.system_matrices = system_matrices
@@ -412,14 +464,14 @@ class ExtendedSystemMatrix(SystemMatrix):
                     self.proj2proj_transforms[i].configure(self.system_matrices[i].object_meta, self.system_matrices[i].proj_meta)
         
     def forward(self, object, subset_idx: int | None = None):
-        r"""Forward transform :math:`H' = \sum_n v_n \otimes B_n H_n A_n`, This adds an additional dimension to the projection space.
+        r"""Forward projection :math:`H' f = \sum_n v_n \otimes B_n H_n A_n f`, with an extra first axis.
 
         Args:
-            object (torch.Tensor[1,Lx,Ly,Lz]): Object to be forward projected. Must have a batch size of 1.
-            angle_subset (Sequence[int], optional): Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.
+            object (torch.Tensor): The object, [Lx, Ly, Lz].
+            subset_idx (int | None, optional): Subset index :math:`m`; None for all the projections. Defaults to None.
 
         Returns:
-           torch.Tensor[N_gates,...]: Forward projection.
+            torch.Tensor: The projections of every component, [N, ...].
         """
         projs = []
         for i in range(len(self.system_matrices)):
@@ -435,14 +487,14 @@ class ExtendedSystemMatrix(SystemMatrix):
         return torch.stack(projs)
     
     def backward(self, proj, subset_idx: int | None =None):
-        r"""Back projection :math:`H' = \sum_n v_n^T \otimes A_n^T H_n^T B_n^T`. This maps an extended projection back to the original object space.
+        r"""Back projection :math:`H'^T g = \sum_n A_n^T H_n^T B_n^T g_n`: every component back projected and summed.
 
         Args:
-            proj (torch.Tensor[N,...]): Projection data to be back-projected.
-            angle_subset (Sequence[int], optional): Only uses a subset of angles (i.e. only certain values of :math:`j` in formula above) when back projecting. Useful for ordered-subset reconstructions. Defaults to None, which assumes all angles are used.. Defaults to None.
+            proj (torch.Tensor): The projections of every component, [N, ...].
+            subset_idx (int | None, optional): Subset index :math:`m`; None for all the projections. Defaults to None.
 
         Returns:
-            torch.Tensor[1,Lx,Ly,Lz]: Back projection.
+            torch.Tensor: The object, [Lx, Ly, Lz].
         """
         objects = []
         for i in range(len(self.system_matrices)):
@@ -461,6 +513,13 @@ class ExtendedSystemMatrix(SystemMatrix):
         self,
         n_subsets: int
     ) -> list:
+        """Partitions the projections of every system matrix into ``n_subsets`` subsets.
+
+        The system matrices are assumed to partition alike: the first one's subsets are used.
+
+        Args:
+            n_subsets (int): Number of subsets.
+        """
         # assumes all are similar
         for system_matrix in self.system_matrices:
             system_matrix.set_n_subsets(n_subsets)
@@ -470,13 +529,30 @@ class ExtendedSystemMatrix(SystemMatrix):
         self,
         projections: torch.tensor,
         subset_idx: int
-    ) -> torch.tensor: 
+    ) -> torch.tensor:
+        """The projections of subset ``subset_idx``, as the first system matrix takes them.
+
+        Args:
+            projections (torch.Tensor): The projections.
+            subset_idx (int): Subset index :math:`m`.
+
+        Returns:
+            torch.Tensor: The subset's projections.
+        """
         return self.system_matrices[0].get_projection_subset(projections, subset_idx)
-    
+
     def get_weighting_subset(
         self,
         subset_idx: int
     ) -> torch.tensor:
+        """The relative weight of subset ``subset_idx`` (its share of the projections), from the first system matrix.
+
+        Args:
+            subset_idx (int): Subset index :math:`m`.
+
+        Returns:
+            float: The weight.
+        """
         return self.system_matrices[0].get_weighting_subset(subset_idx)
     
     @property
@@ -547,10 +623,13 @@ class ExtendedSystemMatrix(SystemMatrix):
         return parts
 
     def compute_normalization_factor(self, subset_idx: int | None = None):
-        r"""Function called by reconstruction algorithms to get the normalization factor :math:`H' = \sum_n v_n^T \otimes A_n^T H_n^T B_n^T` 1.
+        r"""The normalization :math:`H_m'^T 1 = \sum_n A_n^T H_n^T B_n^T 1`, which the reconstruction algorithms use.
+
+        Args:
+            subset_idx (int | None, optional): Subset index :math:`m`; None for all the projections. Defaults to None.
 
         Returns:
-           torch.Tensor[1,Lx,Ly,Lz]: Normalization factor.
+            torch.Tensor: The normalization, [Lx, Ly, Lz].
         """
         norm_proj = torch.ones((len(self.system_matrices), *self.proj_meta.shape)).to(pytomography.device)
         if subset_idx is not None:

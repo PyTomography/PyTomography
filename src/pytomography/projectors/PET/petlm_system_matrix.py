@@ -1,3 +1,4 @@
+"""The system matrix of PET list mode data (:class:`PETLMSystemMatrix`)."""
 from __future__ import annotations
 import torch
 import pytomography
@@ -44,19 +45,49 @@ def _padded_origin(object_meta: ObjectMeta) -> torch.Tensor:
     return _float32((- np.array(object_meta.shape) / 2 - 0.5) * (np.array(object_meta.dr)), pytomography.device)
 
 class PETLMSystemMatrix(SystemMatrix):
-    r"""System matrix of PET list mode data. Forward projections corresponds to computing the expected counts along all LORs specified: in particular it approximates :math:`g_i = \int_{\text{LOR}_i} h(r) f(r) dr` where index :math:`i` corresponds to a particular detector pair and :math:`h(r)` is a Gaussian function that incorporates time-of-flight information (:math:`h(r)=1` for non-time-of-flight). The integral is approximated in the discrete object space using Joseph3D projections. In general, the system matrix implements two different projections, the quantity :math:`H` which projects to LORs corresponding to all detected events, and the quantity :math:`\tilde{H}` which projects to all valid LORs. The quantity :math:`H` is used for standard forward/back projection, while :math:`\tilde{H}` is used to compute the sensitivity image.
+    r"""System matrix of PET list mode data, with or without time of flight, projected with parallelproj (Joseph).
 
-        Args:
-            object_meta (SPECTObjectMeta): Metadata of object space, containing information on voxel size and dimensions.
-            proj_meta (PETLMProjMeta): PET listmode projection space metadata. This information contains the detector ID pairs of all detected events, as well as a scanner lookup table and time-of-flight metadata. In addition, this metadata contains all information regarding event weights, typically corresponding to the effects of attenuation :math:`\mu` and :math:`\eta`. 
-            obj2obj_transforms (Sequence[Transform]): Object to object space transforms applied before forward projection and after back projection. These are typically used for PSF modeling in PET imaging.
-            attenuation_map (torch.tensor[float] | None, optional): Attenuation map used for attenuation modeling. If provided, all weights will be scaled by detection probabilities derived from this map. Note that this scales on top of any weights provided in ``proj_meta``, so if attenuation is already accounted for there, this is not needed. Defaults to None.
-            scale_projection_by_sensitivity (bool, optional): Whether or not to scale the projections by :math:`\mu \eta`. This is not needed in reconstruction algorithms using a PoissonLogLikelihood. Defaults to False.
-            N_splits (int): Splits up computation of forward/back projection to save GPU memory. Defaults to 1.
-            device (str): The device on which forward/back projection tensors are output. This is seperate from ``pytomography.device``, which handles internal computations. The reason for having the option of a second device is that the projection space may be very large, and certain GPUs may not have enough memory to store the projections. If ``device`` is not the same as ``pytomography.device``, then one must also specify the same ``device`` in any reconstruction algorithm used. Defaults to ``pytomography.device``.
-            lor_device (str): Where the detector IDs of the events and the scanner lookup table are kept. Keeping them on ``pytomography.device`` lets the projector read the LOR coordinates directly, instead of gathering them on the host and copying them across at every projection; that gathering and copying, rather than the projector itself, is most of the cost of a list mode projection. Set this to ``'cpu'`` when the events do not fit in GPU memory, which restores the previous behaviour of copying each chunk across as it is projected. Use :meth:`print_memory_usage` to see what a dataset requires. Defaults to ``pytomography.device``.
-            sort_events (bool): Whether to reorder the events so that neighbouring events cross the image in nearly the same place (see :meth:`_sort_events`). This makes the projector's memory accesses local and roughly halves the time of a time of flight list mode projection. It needs the scanner geometry (``proj_meta.info``) and one additional index array per event. Events are only reordered internally: projections are returned, and expected, in the order the events were given. Defaults to True.
+    The forward projection gives the expected counts along the line of response (LOR) of every event,
+    :math:`g_i = \int_{\text{LOR}_i} h(r) f(r) dr`, with :math:`h` the TOF kernel of the event's TOF bin (a Gaussian;
+    :math:`h = 1` without TOF). Two projections are involved: :math:`H`, onto the LORs of the detected events, for
+    forward and back projection, and :math:`\tilde{H}`, onto every valid LOR, for the sensitivity image
+    :math:`\tilde{H}^T w`, which is computed when the system matrix is made (with the sensitivity weights :math:`w` of
+    ``proj_meta`` and, when given, the attenuation map). Objects are [Lx, Ly, Lz] on the ``object_meta`` grid, centred
+    on the scanner's centre; projections are [N] (one value per event).
 
+    Args:
+        object_meta (ObjectMeta): The object grid (mm).
+        proj_meta (PETLMProjMeta): The events, the scanner, the TOF binning and the sensitivity weights (from a
+            reader such as :func:`~pytomography.io.PET.read_gate`).
+        obj2obj_transforms (list[Transform], optional): Object-to-object transforms applied before forward projection
+            and (transposed, in reverse order) after back projection, typically the resolution model
+            (:class:`~pytomography.transforms.shared.GaussianFilter`). Defaults to none.
+        attenuation_map (torch.Tensor | None, optional): Attenuation map at 511 keV, in 1/mm, on the object grid
+            (e.g. from :func:`pytomography.io.attenuation_map`). Its attenuation factors multiply the sensitivity
+            weights (and the event weights when ``scale_projection_by_sensitivity`` is set), on top of any attenuation
+            already in ``proj_meta``. Defaults to None.
+        scale_projection_by_sensitivity (bool, optional): Multiply the forward projection and the back projection by
+            the event weights (``proj_meta.weights``, or the attenuation factors of the map when there are no weights).
+            Without an additive term they cancel in the list mode likelihood; with one, set this, or give the additive
+            term divided by the event weights. Defaults to False.
+        N_splits (int, optional): Number of chunks a projection is computed in, to save GPU memory. Defaults to 1.
+        FOV_scale_enabled (bool, optional): Scale the gradient of a prior along z by
+            :math:`\max(0, (k_\text{mid} - |k - k_\text{mid}|) / k_\text{mid})`, with :math:`k_\text{mid}` the slice at
+            the middle of the scanner's axial extent: 1 there, falling linearly towards the ends of the grid, where the
+            scanner sees the object less. Defaults to True.
+        device (str, optional): The device projections are returned on. It can differ from ``pytomography.device``,
+            where the computations are done, for projections too large for the GPU; reconstruction algorithms must
+            then be given the same device. Defaults to ``pytomography.device``.
+        lor_device (str, optional): Where the detector ids of the events and the scanner lookup table are kept.
+            Keeping them on ``pytomography.device`` lets the projector read the LOR coordinates directly, instead of
+            gathering them on the host and copying them across at every projection (most of the cost of a list mode
+            projection). Set it to ``'cpu'`` when the events do not fit in GPU memory. :meth:`print_memory_usage` and
+            :meth:`~pytomography.projectors.SystemMatrix.estimate_memory` say what a dataset needs. Defaults to
+            ``pytomography.device``.
+        sort_events (bool, optional): Reorder the events internally (by the sinogram bin they fall in) so that
+            neighbouring events cross the image in nearly the same place: the projector's memory accesses become
+            local, which roughly halves the time of a time of flight projection. Needs ``proj_meta.info`` and 4 bytes
+            per event. Projections are returned, and expected, in the order the events were given. Defaults to True.
     """
     #: On Windows, memory PyTorch's allocators keep, as a fraction of a reconstruction's arrays, for memory estimates
     #: (as for the PET sinogram system matrix, whose tutorials it was measured on).
@@ -191,8 +222,9 @@ class PETLMSystemMatrix(SystemMatrix):
         return order
 
     def print_memory_usage(self, n_subsets: int | None = None) -> None:
-        """Prints what this system matrix keeps in memory and what a projection needs on top of it, against the memory the device has free.
+        """Prints what this system matrix keeps in memory and what a projection needs on top of it.
 
+        The device's free memory is printed too, with a warning when projecting every event at once would not fit.
         A projection of a subset is reported separately from a projection of every event at once, because they differ by more than the ratio of their sizes: reconstruction algorithms project one subset at a time, while ``compute_normalization_factor`` and a plain ``forward()`` project everything. The first projection of each subset also builds that subset's event ordering, which is the largest temporary of all; it is freed afterwards and not paid again.
 
         The estimate does not include what the reconstruction algorithm, the likelihood and the object transforms hold (the measured projections, the additive term, the current estimate), so leave headroom.
@@ -459,13 +491,12 @@ class PETLMSystemMatrix(SystemMatrix):
         return norm_BP.cpu()
     
     def set_n_subsets(self, n_subsets: int) -> list:
-        """Returns a list where each element consists of an array of indices corresponding to a partitioned version of the projections. 
+        """Partitions the events into ``n_subsets`` interleaved subsets: event ``i`` goes in subset ``i % n_subsets``.
+
+        The partition is kept in ``subset_indices_array`` (one index tensor per subset).
 
         Args:
-            n_subsets (int): Number of subsets to partition the projections into
-
-        Returns:
-            list: List of arrays where each array corresponds to the projection indices of a particular subset.
+            n_subsets (int): Number of subsets.
         """
         indices = torch.arange(self.proj_meta.detector_ids.shape[0]).to(torch.long).cpu()
         subset_indices_array = []
@@ -479,14 +510,17 @@ class PETLMSystemMatrix(SystemMatrix):
             self._orders_n_subsets = n_subsets
         
     def get_projection_subset(self, projections: torch.Tensor, subset_idx: int) -> torch.tensor:
-        """Obtains subsampled projections :math:`g_m` corresponding to subset index :math:`m`. For LM PET, its always the case that :math:`g_m=1`, but this function is still required for subsampling scatter :math:`s_m` as is required in certain reconstruction algorithms
+        """The values of the events of subset :math:`m`, e.g. of an additive term :math:`s_m`.
+
+        In list mode the measured projections are 1 for every event (a one-element tensor), which is returned as it
+        is; a tensor with one value per event (an additive term, event weights) gives the subset's values.
 
         Args:
-            projections (torch.Tensor): total projections :math:`g`
-            subset_idx (int): subset index :math:`m`
+            projections (torch.Tensor): One value per event, [N], or a one-element tensor.
+            subset_idx (int): Subset index :math:`m` (None for all the events).
 
         Returns:
-            torch.Tensor: subsampled projections :math:`g_m`.
+            torch.Tensor: The subset's values.
         """
         # Needs to consider cases where projection is simply a 1 element tensor in the numerator, but also cases of scatter where it is a longer tensor
         
@@ -501,13 +535,16 @@ class PETLMSystemMatrix(SystemMatrix):
         self,
         subset_idx: int
     ) -> float:
-        r"""Computes the relative weighting of a given subset (given that the projection space is reduced). This is used for scaling parameters relative to :math:`\tilde{H}_m^T 1` in reconstruction algorithms, such as prior weighting :math:`\beta`
+        r"""The relative weight of subset :math:`m`: its share of the events.
+
+        Reconstruction algorithms scale parameters that are relative to :math:`\tilde{H}_m^T w` by it, such as the
+        prior weight :math:`\beta`.
 
         Args:
-            subset_idx (int): Subset index
+            subset_idx (int | None): Subset index :math:`m`; None for all the events.
 
         Returns:
-            float: Weighting for the subset.
+            float: The number of events of the subset over the number of events (1 for None).
         """
         if subset_idx is None:
             return 1
@@ -515,13 +552,15 @@ class PETLMSystemMatrix(SystemMatrix):
             return len(self.subset_indices_array[subset_idx]) / self.proj_meta.detector_ids.shape[0]
 
     def compute_normalization_factor(self, subset_idx: int | None = None) -> torch.tensor:
-        r"""Function called by reconstruction algorithms to get the sensitivty image :math:`\tilde{H}_m^T w`.
+        r"""The sensitivity image of subset :math:`m`, :math:`\tilde{H}_m^T w`, which reconstruction algorithms use.
+
+        It is the sensitivity image computed when the system matrix was made, times the subset's share of the events.
 
         Args:
-            subset_idx (int | None, optional): Subset index :math:`m`. If none, then considers backprojection over all subsets. Defaults to None.
+            subset_idx (int | None, optional): Subset index :math:`m`. Defaults to None: all the events.
 
         Returns:
-            torch.tensor: Normalization factor.
+            torch.Tensor: The sensitivity image, [Lx, Ly, Lz], on the output ``device``.
         """
         
         if subset_idx is None:
@@ -535,15 +574,19 @@ class PETLMSystemMatrix(SystemMatrix):
         object: torch.tensor,
         subset_idx: int = None,
     ) -> torch.tensor:
-        """Computes forward projection. In the case of list mode PET, this corresponds to the expected number of detected counts along each LOR corresponding to a particular object.
+        """Forward projection: the expected counts along the LOR of every event (of subset :math:`m`).
 
         Args:
-            object (torch.tensor): Object to be forward projected
-            subset_idx (int, optional): Subset index :math:`m` of the projection. If None, then assumes projection to the entire projection space. Defaults to None.
+            object (torch.Tensor): The object, [Lx, Ly, Lz].
+            subset_idx (int, optional): Subset index :math:`m`. Defaults to None: all the events.
 
         Returns:
-            torch.tensor: Projections corresponding to the expected number of counts along each LOR.
-        """ 
+            torch.Tensor: One value per event of the subset, [N_m], in the order the events were given, on the output
+            ``device``.
+
+        Raises:
+            Exception: If ``scale_projection_by_sensitivity`` is set without event weights or an attenuation map.
+        """
         # Apply object space transforms
         object = _float32(object, pytomography.device)
         for transform in self.obj2obj_transforms:
@@ -584,15 +627,21 @@ class PETLMSystemMatrix(SystemMatrix):
         subset_idx: list[int] = None,
         return_norm_constant: bool = False,
     ) -> torch.tensor:
-        """Computes back projection. This corresponds to tracing a sequence of LORs into object space.
+        r"""Back projection of one value per event (of subset :math:`m`) along the events' LORs.
 
         Args:
-            proj (torch.tensor): Projections to be back projected
-            subset_idx (int, optional): Subset index :math:`m` of the projection. If None, then assumes projection to the entire projection space. Defaults to None.
-            return_norm_constant (bool, optional): Whether or not to return the normalization constant: useful in reconstruction algorithms that require :math:`H_m^T 1`. Defaults to False.
+            proj (torch.Tensor): One value per event of the subset, [N_m], in the order the events were given.
+            subset_idx (int, optional): Subset index :math:`m`. Defaults to None: all the events.
+            return_norm_constant (bool, optional): Also return the subset's sensitivity image
+                :math:`\tilde{H}_m^T w` (:meth:`compute_normalization_factor`), passed through the transforms' back
+                projections. Defaults to False.
 
         Returns:
-            torch.tensor: _description_
+            torch.Tensor: The object, [Lx, Ly, Lz], on the output ``device`` (and the sensitivity image with
+            ``return_norm_constant``).
+
+        Raises:
+            Exception: If ``scale_projection_by_sensitivity`` is set without event weights or an attenuation map.
         """
         positions = self._subset_positions(subset_idx)
         # Normalization/attenuation scaling (if needed); the same factors as forward, so the two stay adjoint
