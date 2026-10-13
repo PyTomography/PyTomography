@@ -1,4 +1,4 @@
-"""This module contains filtered back projection, the analytic reconstruction algorithm.
+"""Filtered back projection, the analytic reconstruction of SPECT and CT projections (:class:`FilteredBackProjection`).
 """
 from __future__ import annotations
 from contextlib import nullcontext
@@ -8,19 +8,17 @@ from pytomography.utils.fourier_filters import get_fbp_filter
 from pytomography.utils.memory import MemoryEstimate, MemoryPlan, memory_budget_set, memory_estimate, plan_settings
 
 class FilteredBackProjection:
-    r"""Filtered back projection: each projection is ramp filtered (the ramp :math:`|f|` times a window) and back
-    projected with the weights of the geometry. The geometry-specific work is done by the system matrix, through its
-    private ``_fbp`` method, onto its object grid. System matrices without one raise ``NotImplementedError``. Those
-    that support it:
+    r"""Filtered back projection: each projection ramp filtered (times a window) and back projected.
+
+    The ramp is :math:`|f|` times the window ``filter``, and the back projection uses the weights of the geometry. The
+    geometry-specific work is done by the system matrix, through its private ``_fbp`` method, onto its object grid.
+    System matrices without one raise ``NotImplementedError``. Those that support it:
 
     * :class:`~pytomography.projectors.SPECT.SPECTSystemMatrix`: parallel-hole SPECT. Its transforms are not used, so
       the object is not corrected for attenuation, collimator blurring or scatter.
     * :class:`~pytomography.projectors.CT.CTGen3SystemMatrix`: helical and circular scans of third-generation CT
       scanners, with or without a flying focal spot, by WFBP.
     * :class:`~pytomography.projectors.CT.CTConeBeamFlatPanelSystemMatrix`: circular cone-beam scans, by FDK.
-
-    Example:
-        >>> image = FilteredBackProjection(projections, system_matrix, filter='hann')()
 
     Args:
         projections (torch.Tensor): Projections :math:`g` to reconstruct (line integrals for CT).
@@ -31,7 +29,11 @@ class FilteredBackProjection:
             per mm (for a SPECT Butterworth window of cut-off 0.5 cycles per cm and order 5,
             ``lambda f: 1 / torch.sqrt(1 + (f / 0.05) ** 10)``). Defaults to ``'hann'``.
         **options: Passed to the system matrix's ``_fbp``. For :class:`~pytomography.projectors.CT.CTGen3SystemMatrix`:
-            ``slice_thickness`` (mm), ``gpu_budget`` (bytes), ``Q`` (row weighting) and ``k_range``.
+            ``slice_thickness`` (mm), ``gpu_budget`` (bytes), ``Q`` (row weighting), ``k_range``, ``backend``,
+            ``column_weights`` and ``stats`` (see that class).
+
+    Example:
+        >>> image = FilteredBackProjection(projections, system_matrix, filter='hann')()
     """
     def __init__(
         self,
@@ -46,13 +48,13 @@ class FilteredBackProjection:
         self.options = options
 
     def __call__(self) -> torch.Tensor:
-        """Reconstructs.
+        """Reconstructs the projections.
 
         Returns:
-            torch.Tensor: The reconstructed object, on the object grid of the system matrix.
+            torch.Tensor: The reconstructed object, [Lx, Ly, Lz] on the object grid of the system matrix.
 
         Raises:
-            NotImplementedError: The system matrix does not support filtered back projection.
+            NotImplementedError: If the system matrix does not support filtered back projection.
         """
         return self.system_matrix._fbp(self.projections, self.filter, **self.options)
 
@@ -70,9 +72,11 @@ class FilteredBackProjection:
                                cuda_projector=getattr(sm, 'memory_cuda_projector', False))
 
     def estimate_memory(self) -> MemoryEstimate:
-        """The peak memory (RAM and GPU) this reconstruction will take, without running it: what it holds (the
-        projections, the image) and the most its steps hold at once, from the same sizes the system matrix uses to
-        split the work. Print it to see the main arrays and what to change to use less, such as a lower
+        """The peak memory (RAM and GPU) this reconstruction will take, without running it.
+
+        The estimate is what it holds (the projections, the image) and the most its steps hold at once, from the same
+        sizes the system matrix uses to split the work. Print it to see the main arrays and what to change to use
+        less, such as a lower
         :func:`pytomography.set_memory_budget` or ``gpu_budget``, which take longer and give the same image;
         ``to_dict()`` gives it as JSON. To choose those settings for the memory there is, see :meth:`plan_memory`.
 
@@ -85,24 +89,25 @@ class FilteredBackProjection:
             MemoryEstimate: The estimate, with ``ram_gb``, ``gpu_gb`` and its parts.
 
         Raises:
-            NotImplementedError: The system matrix does not support filtered back projection.
+            NotImplementedError: If the system matrix does not support filtered back projection.
         """
         sm = self.system_matrix
         settings = {name: present for name, (present, _) in sm._fbp_memory_settings(self.projections, self.filter, **self.options).items()}
         return self._estimate(settings)
 
     def plan_memory(self, ram_gb: float | None = None, gpu_gb: float | None = None, **fixed) -> MemoryPlan:
-        """The fastest settings of this reconstruction that fit in ``ram_gb`` of RAM and ``gpu_gb`` of GPU memory, as a
-        :class:`~pytomography.utils.memory.MemoryPlan`. The settings are those the "To use less" line of
-        :meth:`estimate_memory` lowers, none of which changes the image: for helical CT
+        """The fastest settings of this reconstruction that fit in the given RAM and GPU memory.
+
+        The result is a :class:`~pytomography.utils.memory.MemoryPlan`. The settings are those the "To use less" line
+        of :meth:`estimate_memory` lowers, none of which changes the image: for helical CT
         (:class:`~pytomography.projectors.CT.CTGen3SystemMatrix`), ``gpu_budget`` (bytes, an option of this class) and
-        ``memory_budget_gb`` (:func:`pytomography.set_memory_budget`), largest first. The memory budget comes down first,
-        to its smallest if need be, before the GPU budget: smaller chunks of rebinned views cost little time, a smaller GPU
-        budget a lot (case C145 on an RTX 5090: 11 s as it is, 13 s with a memory budget of 0.06 GB, 50 s with a GPU budget
-        of 0.19 GB, an eighth). Cone-beam and SPECT filtered back
-        projection have nothing to choose: their plan says whether the reconstruction fits. Without budgets, the plan is
-        for what is free on this machine now; on Windows GPU memory counts as RAM too. If nothing fits, the plan has
-        ``fits`` False and the settings that come closest; it does not raise.
+        ``memory_budget_gb`` (:func:`pytomography.set_memory_budget`), largest first. The memory budget comes down
+        first, to its smallest if need be, before the GPU budget: smaller chunks of rebinned views cost little time, a
+        smaller GPU budget a lot (case C145 on an RTX 5090: 11 s as it is, 13 s with a memory budget of 0.06 GB, 50 s
+        with a GPU budget of 0.19 GB, an eighth). Cone-beam and SPECT filtered back projection have nothing to choose:
+        their plan says whether the reconstruction fits. Without budgets, the plan is for what is free on this machine
+        now; on Windows GPU memory counts as RAM too. If nothing fits, the plan has ``fits`` False and the settings
+        that come closest; it does not raise.
 
         Args:
             ram_gb (float | None, optional): RAM to fit in, in GB. Defaults to None: what is available now.
@@ -113,7 +118,7 @@ class FilteredBackProjection:
             MemoryPlan: The plan.
 
         Raises:
-            NotImplementedError: The system matrix does not support filtered back projection.
+            NotImplementedError: If the system matrix does not support filtered back projection.
 
         Example:
             >>> plan = FilteredBackProjection(projections, system_matrix).plan_memory(ram_gb=16)
