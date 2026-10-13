@@ -190,7 +190,7 @@ section#pytomography > h1 {
 .pt-bcard p { font-size: 0.86rem; color: var(--pt-ink-2); margin: 0; }
 .pt-bcard dl { display: grid; grid-template-columns: 3.6rem minmax(0, 1fr); gap: 4px 10px; margin: 0; font-size: 0.82rem; }
 .pt-bcard dt { font: 500 0.62rem/1.9 var(--pst-font-family-monospace); text-transform: uppercase; letter-spacing: 0.07em; color: var(--pt-muted); }
-.pt-bcard dd { margin: 0; color: var(--pt-ink-2); }
+.pt-bcard dd { margin: 0; color: var(--pt-ink-2); overflow-wrap: anywhere; }
 .pt-tags .pt-lvl-good-first { color: var(--pt-ok); border-color: var(--pt-ok); }
 .pt-tags .pt-lvl-intermediate { color: var(--pt-cyan); border-color: var(--pt-cyan); }
 .pt-tags .pt-lvl-advanced { color: #c2620a; border-color: #c2620a; }
