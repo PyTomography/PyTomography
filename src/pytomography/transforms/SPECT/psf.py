@@ -176,11 +176,10 @@ def get_1D_PSF_layer_square(
     return layer
 
 class SPECTPSFTransform(Transform):
-    r"""obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``SPECTPSFMeta`` parameter. There are a few potential arguments to initialize this transform (i) `psf_meta`, which contains relevant collimator information to obtain a Gaussian PSF model that works for low/medium energy SPECT (ii) `kernel_f`, an callable function that gives the kernel at any source-detector distance :math:`d`, or (iii) `psf_operator`, a network configured to automatically apply full PSF modeling to a given object :math:`f` at all source-detector distances. Only one of the arguments should be given.
+    r"""obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``SPECTPSFMeta`` parameter. It is initialized with one of two arguments: (i) `psf_meta`, which contains relevant collimator information to obtain a Gaussian PSF model that works for low/medium energy SPECT, or (ii) `psf_operator`, a network configured to automatically apply full PSF modeling to a given object :math:`f` at all source-detector distances. Exactly one of the two must be given.
 
     Args:
         psf_meta (SPECTPSFMeta): Metadata corresponding to the parameters of PSF blurring. In most cases (low/medium energy SPECT), this should be the only given argument.
-        kernel_f (Callable): Function :math:`PSF(x,y,d)` that gives PSF at every source-detector distance :math:`d`. It should be able to take in 1D numpy arrays as its first two arguments, and a single argument for the final argument :math:`d`. The function should return a corresponding 2D PSF kernel.
         psf_operator (Callable): Network that takes in an object :math:`f` and applies all necessary PSF correction to return a new object :math:`\tilde{f}` that is PSF corrected, such that subsequent summation along the x-axis accurately models the collimator detector response.
         cache_kernel (bool): Only used with ``psf_operator``. If True, the Fourier transform of the operator's kernel is computed once per distinct radius and kept on the device, rather than being recomputed at every projection angle. See :class:`PSF2D` for the memory this uses. Defaults to False.
     """
@@ -194,7 +193,7 @@ class SPECTPSFTransform(Transform):
         """Initializer that sets corresponding psf parameters"""
         super(SPECTPSFTransform, self).__init__()
         if sum(arg is not None for arg in [psf_meta, psf_operator]) != 1:
-            Exception(f'Exactly one of the arguments for initialization should be given.')
+            raise ValueError('SPECTPSFTransform takes exactly one of psf_meta and psf_operator')
         self.psf_meta = psf_meta
         self.psf_operator = psf_operator
         self.assume_padded = assume_padded
