@@ -1,9 +1,11 @@
 from __future__ import annotations
+import math
 import torch
 import torch.nn.functional as F
 import pytomography
 from pytomography.utils import rotate_detector_z
-from pytomography.projectors.system_matrix import SystemMatrix
+from pytomography.utils.memory import MemoryPart, PLAN_MAX_SUBSETS
+from pytomography.projectors.system_matrix import SystemMatrix, on_device
 from pytomography.transforms.SPECT import SPECTPSFTransform
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.SPECT import StarGuideProjMeta
@@ -229,6 +231,91 @@ class StarGuideSystemMatrix(SystemMatrix):
         if subset_idx is not None:
             norm_proj = self.get_projection_subset(norm_proj, subset_idx)
         return self.backward(norm_proj, subset_idx)
+
+    def _angle_counts(self) -> tuple[int, int]:
+        """(number of projection angles, most views at one angle)."""
+        _, counts = torch.unique(torch.as_tensor(self.proj_meta.angles).cpu(), return_counts=True)
+        return len(counts), int(counts.max())
+
+    def _max_subsets(self) -> int:
+        """Most subsets :meth:`plan_memory` tries: one projection angle each (subsets are made of whole angles), at most
+        :data:`~pytomography.utils.memory.PLAN_MAX_SUBSETS`."""
+        return max(1, min(PLAN_MAX_SUBSETS, self._angle_counts()[0]))
+
+    def _memory_parts(self, n_subsets: int, N_splits: int | None = None) -> list[MemoryPart]:
+        r"""What a reconstruction with this system matrix holds at its peak (see
+        :meth:`~pytomography.projectors.SystemMatrix.estimate_memory`), all on ``pytomography.device``. Held for the
+        whole run: the image, one :math:`H_m^T 1` image per subset, the images of an update, the geometry
+        ``_view_groups`` caches for every view (slab columns, sampling grids, and the PSF kernels of each view), the
+        rotation grids of every angle (two, and one more per attenuation transform), and what the transforms keep. For a
+        subset: its projections (measured, expected, additive term, scaled by the times, of ones; at the start, the
+        projections of ones of every view) and two images. For an angle (the most views at one angle, :math:`B`): the
+        rotated object and two more images, three slabs of :math:`B` views (gathered, masked, resampled), five more per
+        PSF transform (the copies and outputs of its two convolutions; the views one at a time for a PSF operator), the
+        sampled detector columns twice, and the temporaries of the angle's other transforms. ``N_splits`` does not apply.
+
+        Args:
+            n_subsets (int): Number of subsets.
+            N_splits (int | None): Not used (no projector splits).
+
+        Returns:
+            list[MemoryPart]: The arrays.
+        """
+        from pytomography.transforms.SPECT import SPECTAttenuationTransform
+        from .dualhead_system_matrix import _transform_memory
+        n = max(1, int(n_subsets))
+        device = pytomography.device
+        Lx, Ly, Lz = self.object_meta.shape
+        image = 4 * Lx * Ly * Lz
+        n_views = self.proj_meta.num_projections
+        n_angles, B = self._angle_counts()
+        subset_views = min(n_views, -(-n_angles // n) * B)
+        view = 4 * math.prod(self.proj_meta.shape[1:])
+        W = DETECTOR_WIDTH + 2 + 2 * self._psf_margin()
+        psf_transforms, shared_transforms = self._psf_transforms(), self._shared_transforms()
+        kernels = 0                                                   # the grouped convolution weights of a view
+        for transform in psf_transforms:
+            widths = {'layer_r': 0, 'layer_z': 0}
+            for layer in getattr(transform, 'layers', {}).values():
+                for axis in widths:
+                    conv = getattr(layer, axis, None)
+                    if conv is not None:
+                        widths[axis] = max(widths[axis], int(conv.weight.shape[-1]))
+            kernels += 4 * Lx * sum(widths.values())
+        geometry = n_views * (12 * W + 8 * Lx * DETECTOR_WIDTH + 8 * Lx * W + 8 + kernels)
+        attenuations = sum(isinstance(t, SPECTAttenuationTransform) for t in shared_transforms)
+        parts = [MemoryPart('image', **on_device(device, image)),
+                 MemoryPart(f'H_m^T 1 of {n} subset{"s" if n > 1 else ""}', **on_device(device, n * image)),
+                 MemoryPart('images of an update', **on_device(device, 3 * image)),
+                 MemoryPart('geometry and PSF kernels of every view (cached)', **on_device(device, geometry)),
+                 MemoryPart('rotation grids of every angle (cached)', **on_device(device, (2 + attenuations) * n_angles * Lx * Ly * 8))]
+        ram = gpu = shared_temporaries = psf_temporaries = 0.0
+        slab = 4.0 * B * Lx * W * Lz
+        for transform in shared_transforms:                           # one after another: the largest counts
+            r, g, t = _transform_memory(transform, (Lx, Ly, Lz), n_angles)
+            ram, gpu, shared_temporaries = ram + r, gpu + g, max(shared_temporaries, t)
+        for transform in psf_transforms:
+            r, g, t = _transform_memory(transform, (Lx, W, Lz), n_views)
+            ram, gpu = ram + r, gpu + g
+            separable = all(getattr(layer, 'layer_r', None) is not None for layer in getattr(transform, 'layers', {}).values())
+            psf_temporaries += 5 * slab if separable else t + slab
+        if self.obj2obj_transforms:
+            parts.append(MemoryPart('what the transforms keep', ram, gpu))
+        projections = max(5 * subset_views * view, n_views * view + 2 * subset_views * view)
+        parts.append(MemoryPart('projections of a subset: measured, expected, additive term, scaled, of ones', **on_device(device, projections), scope='subset'))
+        parts.append(MemoryPart('images of a projection: the result and an angle', **on_device(device, 2 * image), scope='subset'))
+        sampled = 4.0 * B * Lz * Lx * DETECTOR_WIDTH
+        parts.append(MemoryPart(f"one angle ({B} views): rotated object, slabs, sampled columns and the transforms' temporaries",
+                                **on_device(device, 3 * image + 3 * slab + psf_temporaries + 2 * sampled + shared_temporaries), scope='chunk'))
+        return parts
+
+    def _memory_alternatives(self, n_subsets: int, N_splits: int | None) -> list:
+        """Half and twice the subsets (at most one angle each), where they take less memory: each subset keeps an
+        :math:`H_m^T 1` image while its projections shrink with more subsets."""
+        candidates = [(f'{n_subsets // 2} subsets', n_subsets // 2, None)] if n_subsets >= 2 else []
+        if 2 * n_subsets <= self._angle_counts()[0]:
+            candidates.append((f'{2 * n_subsets} subsets', 2 * n_subsets, None))
+        return self._saving_memory(candidates, n_subsets, N_splits)
 
     def set_n_subsets(
         self,
