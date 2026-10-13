@@ -294,6 +294,38 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
         Returns:
             float | Sequence[float]: Absolute uncertainty in the sum of counts in the masked region (if `return_pct` is False) OR absolute uncertainty and relative uncertainty in percent (if `return_pct` is True)
         """
+        V, final_recon = self._compute_V(mask, data_storage_callback, subiteration_number, include_additive_term, post_recon_filter)
+        uncertainty_abs2 = torch.sum(V[0] * self.likelihood.projections * V[0])
+        # If uncertainty estimated in the additive term
+        if include_additive_term:
+            uncertainty_abs2 += torch.sum(self.likelihood.additive_term_variance_estimate(V[1]))
+        uncertainty_abs = torch.sqrt(uncertainty_abs2).item()
+        if not(return_pct):
+            return uncertainty_abs
+        else:
+            uncertainty_rel = uncertainty_abs / (final_recon*mask).sum().item() * 100
+            return uncertainty_abs, uncertainty_rel
+
+    def _compute_V(
+        self,
+        mask: torch.Tensor,
+        data_storage_callback: DataStorageCallback,
+        subiteration_number: int | None = None,
+        include_additive_term: bool = False,
+        post_recon_filter: Transform | None = None
+        ) -> tuple[torch.Tensor, torch.Tensor]:
+        r"""Computes the derivative of the counts in ``mask`` at subiteration ``subiteration_number`` with respect to the projections, :math:`[V_y^k]'\xi` in the uncertainty paper (and with respect to the additive term, :math:`[V_s^k]'\xi`, if ``include_additive_term``); this is a helper function for ``compute_uncertainty``. The variance of the counts is then :math:`y\cdot([V_y^k]'\xi)^2` (plus the additive term's contribution).
+
+        Args:
+            mask (torch.Tensor): Masked region of the reconstructed object.
+            data_storage_callback (Callback): Callback that has been used in a reconstruction algorithm.
+            subiteration_number (int | None, optional): Subiteration number. If None, then the last subiteration. Defaults to None.
+            include_additive_term (bool, optional): Whether or not to also compute the derivative with respect to the additive term. Defaults to False.
+            post_recon_filter (Transform | None, optional): Filter applied to the reconstruction. Defaults to None.
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: The derivatives, a tensor of shape ``[1, ...]`` (``[2, ...]`` if ``include_additive_term``) where ``...`` is the shape of the projections, and the reconstructed object at subiteration ``subiteration_number`` (filtered, if a filter is given).
+        """
         if subiteration_number is None:
             subiteration_number = len(data_storage_callback.objects) - 1
         # Get final reconstruciton
@@ -309,17 +341,8 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
             V += self._compute_B(Q_sequence_current, data_storage_callback, n-1, include_additive_term=include_additive_term)
             if n>1:
                 Q_sequence_current = self._compute_Q(Q_sequence_current, data_storage_callback, n-1)
-        uncertainty_abs2 = torch.sum(V[0] * self.likelihood.projections * V[0])
-        # If uncertainty estimated in the additive term
-        if include_additive_term:
-            uncertainty_abs2 += torch.sum(self.likelihood.additive_term_variance_estimate(V[1]))
-        uncertainty_abs = torch.sqrt(uncertainty_abs2).item()
-        if not(return_pct):
-            return uncertainty_abs
-        else:
-            uncertainty_rel = uncertainty_abs / (final_recon*mask).sum().item() * 100
-            return uncertainty_abs, uncertainty_rel
-        
+        return V, final_recon
+
     def _compute_Q(
         self,
         input: torch.Tensor,
@@ -806,12 +829,20 @@ class PGAAMultiBedSPECT(PreconditionedGradientAscentAlgorithm):
         return_pct: bool = False,
         include_additive_term: bool = False
     ):
-        """Estimates the uncertainty in a mask (should be same shape as the stitched image). Calling this method requires a sequence of ``DataStorageCallback`` instances that have been used in a reconstruction algorithm: these data storage contain required information for each bed position.
+        r"""Estimates the uncertainty in a mask (should be same shape as the stitched image). Calling this method requires a sequence of ``DataStorageCallback`` instances that have been used in a reconstruction algorithm: these data storage contain required information for each bed position.
+
+        The counts in the mask are :math:`S = \sum_k (w_k\xi)\cdot x_k`: each bed :math:`k` contributes its reconstruction :math:`x_k` in the part of the mask :math:`\xi` the stitched image takes from it (its stitching weights :math:`w_k`, see :func:`~pytomography.io.SPECT.dicom.stitch_multibed`). With :math:`v_k = [V_k]'(w_k\xi)` the derivative of bed :math:`k`'s part with respect to its projections :math:`y_k`, the variance is
+
+        .. math::
+
+            \text{Var}(S) = \sum_k y_k\cdot v_k^2 + 2\sum_{k<l} \sum_{j\in k\cap l} y_j\, v_{k,j}\, v_{l,j}
+
+        where the second sum runs over the projection data that beds :math:`k` and :math:`l` share. :func:`~pytomography.io.SPECT.dicom.load_multibed_projections` fills the overlap of each bed's projections with its neighbour's counts, so neighbouring beds share all of their overlap and their estimates there are correlated; beds reconstructed from their own projections share nothing, and their variances add. A slice of projections (all angles and radial positions at one :math:`z`) is taken to be shared by two beds where the two beds' projections are equal there. The additive term (if ``include_additive_term``) is treated the same way, its data taken to be shared in the same slices as the projections (:func:`~pytomography.io.SPECT.dicom.load_multibed_projections` fills every energy window) and with the variance estimate of the lower bed; this is exact when the additive term's variance estimate is that of an unsmoothed energy window estimate, and approximate within a few kernel widths of a bed's edge when it is smoothed.
 
         Args:
-            mask (torch.Tensor): Masked region of the reconstructed object: a boolean Tensor. This mask should be the same shape as the stitched object.
+            mask (torch.Tensor): Masked region of the reconstructed object: a boolean Tensor. This mask should be the same shape as the stitched object, and aligned with it: the stitched image starts at the first slice of the lowest bed (for an RTStruct, use :func:`~pytomography.io.SPECT.dicom.get_aligned_rtstruct` with the lowest bed's file and ``shape`` of the stitched image).
             data_storage_callbacks (Sequence[Callback]): Sequence of data storage callbacks used in reconstruction corresponding to each bed position.
-            subiteration_number (int | None, optional): Subiteration number to compute the uncertainty for. If None, then computes the uncertainty for the last iteration. Defaults to None. 
+            subiteration_number (int | None, optional): Subiteration number to compute the uncertainty for. If None, then computes the uncertainty for the last iteration. Defaults to None.
             return_pct (bool, optional): If true, then additionally returns the percent uncertainty for the sum of counts. Defaults to False.
             include_additive_term (bool): Whether or not to include uncertainty contribution from the additive term. This requires the ``additive_term_variance_estimate`` as an argument to the initialized likelihood. Defaults to False.
 
@@ -820,21 +851,79 @@ class PGAAMultiBedSPECT(PreconditionedGradientAscentAlgorithm):
         """
         if subiteration_number is None:
             subiteration_number = len(data_storage_callbacks[0].objects) - 1
-        # Crop mask to FOV region
         recons = [data_storage_callback.objects[subiteration_number].to(pytomography.device) for data_storage_callback in data_storage_callbacks]
         stitching_weights, zs = dicom.stitch_multibed(torch.stack(recons), self.files_NM, return_stitching_weights=True)
-        uncertainty_abs = []
+        Lz = recons[0].shape[-1]
+        Vs = [None] * len(recons)
+        variance = 0
         total_counts = 0
-        for k in range(len(recons)):
-            mask_k = mask[:,:,zs[k]:zs[k]+recons[0].shape[-1]] * stitching_weights[k]
+        for k, algorithm in enumerate(self.reconstruction_algorithms):
+            # The part of the mask the stitched image takes from this bed
+            mask_k = mask[:,:,zs[k]:zs[k]+Lz] * stitching_weights[k]
             if mask_k.sum()==0:
                 continue
-            uncertainty_abs_k = self.reconstruction_algorithms[k].compute_uncertainty(mask_k, data_storage_callbacks[k], subiteration_number, return_pct=False, include_additive_term=include_additive_term)
+            V, _ = algorithm._compute_V(mask_k, data_storage_callbacks[k], subiteration_number, include_additive_term=include_additive_term)
+            Vs[k] = V
+            projections = algorithm.likelihood.projections.to(V.device)
+            variance += torch.sum(V[0] * projections * V[0])
+            if include_additive_term:
+                variance += torch.sum(algorithm.likelihood.additive_term_variance_estimate(V[1]))
             total_counts += (recons[k]*mask_k).sum().item()
-            uncertainty_abs.append(uncertainty_abs_k)
-        uncertainty_abs_total = torch.sqrt(torch.sum(torch.tensor(uncertainty_abs)**2)).item()
+        # Covariance between beds, from the projection data they share
+        for k in range(len(recons)):
+            for l in range(k+1, len(recons)):
+                if Vs[k] is None or Vs[l] is None:
+                    continue
+                # make k the lower bed: its additive term variance estimate is used below
+                lower, upper = (k, l) if zs[k] <= zs[l] else (l, k)
+                slices_lower, slices_upper = self._shared_projection_slices(lower, upper, zs, Lz)
+                if len(slices_lower)==0:
+                    continue
+                V_lower, V_upper = Vs[lower], Vs[upper]
+                slices_lower, slices_upper = slices_lower.to(V_lower.device), slices_upper.to(V_lower.device)
+                projections = self.reconstruction_algorithms[lower].likelihood.projections.to(V_lower.device)
+                variance += 2 * torch.sum(V_lower[0][...,slices_lower] * projections[...,slices_lower] * V_upper[0][...,slices_upper])
+                if include_additive_term:
+                    # The variance estimate is a quadratic form a -> (Ka)*var*(Ka) (elementwise): (F(a+b)-F(a)-F(b))/2 = (Ka)*var*(Kb)
+                    F = self.reconstruction_algorithms[lower].likelihood.additive_term_variance_estimate
+                    a = V_lower[1]
+                    b = torch.zeros_like(a)
+                    b[...,slices_lower] = V_upper[1][...,slices_upper]
+                    cross = (F(a+b) - F(a) - F(b)) / 2
+                    variance += 2 * torch.sum(cross[...,slices_lower])
+        uncertainty_abs_total = torch.sqrt(variance).item() if torch.is_tensor(variance) else 0.0
         if return_pct:
             uncertainty_pct = uncertainty_abs_total / total_counts * 100
             return uncertainty_abs_total, uncertainty_pct
         else:
             return uncertainty_abs_total
+
+    def _shared_projection_slices(
+        self,
+        k: int,
+        l: int,
+        zs: Sequence[int],
+        Lz: int
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Finds the slices of projections (all angles and radial positions at one z) that beds ``k`` and ``l`` share: those where their projections overlap in z and are equal (the same counts, as :func:`~pytomography.io.SPECT.dicom.load_multibed_projections` gives neighbouring beds in their overlap).
+
+        Args:
+            k (int): Index of the first bed (in ``files_NM``)
+            l (int): Index of the second bed
+            zs (Sequence[int]): Index of each bed's first slice in the stitched image
+            Lz (int): Number of slices of each bed
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: The shared slices, as indices of bed ``k``'s slices and of bed ``l``'s slices.
+        """
+        z_start, z_end = max(zs[k], zs[l]), min(zs[k], zs[l]) + Lz
+        if z_end <= z_start:
+            empty = torch.zeros(0, dtype=torch.long)
+            return empty, empty
+        slices_k = torch.arange(z_start - zs[k], z_end - zs[k])
+        slices_l = torch.arange(z_start - zs[l], z_end - zs[l])
+        projections_k = self.reconstruction_algorithms[k].likelihood.projections
+        projections_l = self.reconstruction_algorithms[l].likelihood.projections.to(projections_k.device)
+        equal = projections_k[...,slices_k.to(projections_k.device)] == projections_l[...,slices_l.to(projections_k.device)]
+        shared = equal.reshape(-1, len(slices_k)).all(dim=0).cpu()
+        return slices_k[shared], slices_l[shared]
