@@ -80,3 +80,12 @@ def test_set_n_subsets_sets_the_partition_and_returns_none():
     assert system_matrix.set_n_subsets(3) is None
     views = torch.cat([s.cpu() for s in system_matrix.subset_indices_array])
     assert len(system_matrix.subset_indices_array) == 3 and sorted(views.tolist()) == list(range(NA))
+
+
+def test_default_weighting_subset_is_the_share_of_the_projections():
+    """SystemMatrix's default get_weighting_subset (the subset's share of the projections) is what the system matrices
+    that define their own return."""
+    system_matrix = tiny_spect_system()[0]
+    system_matrix.set_n_subsets(4)
+    for subset_idx in (None, 0, 3):
+        assert SystemMatrix.get_weighting_subset(system_matrix, subset_idx) == pytest.approx(system_matrix.get_weighting_subset(subset_idx))

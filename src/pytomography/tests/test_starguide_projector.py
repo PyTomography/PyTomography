@@ -150,3 +150,26 @@ def test_projection_transforms_are_applied():
         assert torch.allclose(masked.forward(f, subset_idx), sm.forward(f, subset_idx) * mask + 2.0)
         assert torch.allclose(masked.backward(gs, subset_idx), sm.backward(gs * mask, subset_idx))
     assert not torch.allclose(masked.backward(g), sm.backward(g))
+
+
+@pytest.mark.parametrize("n_subsets, views", [(3, [8, 8, 8]), (4, [8, 8, 4, 4])])
+def test_weighting_subset_is_the_share_of_the_views(n_subsets, views):
+    """StarGuide had no get_weighting_subset (nor had the SystemMatrix base): its subsets are groups of angles, and a
+    subset weighs the share of the views it holds (6 angles of 4 views: 4 subsets hold 2, 2, 1 and 1 angles)."""
+    sm = _system(n_subsets=n_subsets)[0]
+    assert sm.get_weighting_subset(None) == 1
+    assert [sm.get_weighting_subset(k) for k in range(n_subsets)] == pytest.approx([v / 24 for v in views])
+
+
+@pytest.mark.parametrize("algorithm", ["BSREM", "OSMAPOSL"])
+def test_priors_run_on_starguide(algorithm):
+    """BSREM, OSMAPOSL and every algorithm with a prior scale the prior by get_weighting_subset: on StarGuide they
+    raised an AttributeError."""
+    import pytomography.algorithms as algorithms
+    from pytomography.likelihoods import PoissonLogLikelihood
+    from pytomography.priors import RelativeDifferencePrior
+    sm, f, _ = _system(n_subsets=3)
+    projections = torch.poisson(20 * sm.forward(f).cpu(), generator=torch.Generator().manual_seed(4)).to(DEV)
+    reconstruction = getattr(algorithms, algorithm)(PoissonLogLikelihood(sm, projections), prior=RelativeDifferencePrior(0.1, gamma=2))
+    image = reconstruction(n_iters=1, n_subsets=3)
+    assert image.shape == (LX, LY, LZ) and torch.isfinite(image).all() and image.sum() > 0
