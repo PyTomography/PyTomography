@@ -314,6 +314,58 @@ def test_beds_are_read_inferior_first_and_stitched_in_place(tmp_path):
     assert torch.equal(stitched[..., LZ:LZ + shift - 1], recons[1][..., LZ - shift:LZ - 1])
 
 
+def _bed_metas(shape, firsts):
+    """One grid per bed, bed k's first slice at slice ``firsts[k]`` of the stitched grid."""
+    return [SPECTObjectMeta((DR, DR, DZ), shape, centre=(0.0, 0.0, -100.0 + (first + (shape[2] - 1) / 2) * DZ),
+                            frame='patient') for first in firsts]
+
+
+@pytest.mark.parametrize('shifts', [(9, 14), (12, 7)], ids=['odd-then-even-overlap', 'even-then-odd-overlap'])
+def test_stitching_weights_are_per_bed_and_sum_to_one(shifts):
+    """#225: the weights have a bed axis, [n_beds, Lx, Ly, Lz], in the order the beds are given (not z order).
+    Placed at their offsets on the stitched grid they add up to 1 on every slice, overlaps included, apart from the
+    grid's first and last slice (the outer slice of the end beds, which stitching leaves out); each bed takes one run
+    of slices; and they rebuild the stitched image."""
+    Lx, Ly, Lz = 6, 5, 20
+    firsts = [0, shifts[0], shifts[0] + shifts[1]]
+    given = [2, 0, 1]
+    metas = _bed_metas((Lx, Ly, Lz), firsts)
+    recons = torch.rand(3, Lx, Ly, Lz, generator=torch.Generator().manual_seed(4)).to(pytomography.device)
+    stitched, meta = SPECT.stitch_beds(recons, [metas[i] for i in given])
+    weights, zs = SPECT.stitch_beds(recons, [metas[i] for i in given], return_stitching_weights=True)
+    assert tuple(weights.shape) == (3, Lx, Ly, Lz)
+    assert list(zs) == [firsts[i] for i in given]
+    assert meta.shape == (Lx, Ly, firsts[-1] + Lz) and stitched.shape == meta.shape
+    weights = weights.cpu()
+    assert torch.equal(weights, weights[:, :1, :1, :].expand_as(weights))                # the same in every column
+    total = torch.zeros(meta.shape)
+    rebuilt = torch.zeros(meta.shape)
+    for k in range(3):
+        total[..., zs[k]:zs[k] + Lz] += weights[k]
+        rebuilt[..., zs[k]:zs[k] + Lz] += weights[k] * recons[k].cpu()
+        taken = torch.nonzero(weights[k, 0, 0]).flatten()
+        assert set(weights[k].unique().tolist()) <= {0.0, 1.0}
+        assert torch.equal(taken, torch.arange(taken[0], taken[-1] + 1))               # one run of slices
+    assert torch.equal(total[..., 1:-1], torch.ones(Lx, Ly, meta.shape[2] - 2))
+    assert torch.equal(total[..., [0, -1]], torch.zeros(Lx, Ly, 2))
+    for lower, upper in [(0, 1), (1, 2)]:                                              # each overlap shared about evenly
+        k_lower, k_upper = given.index(lower), given.index(upper)
+        overlap = slice(firsts[upper] + 1, firsts[lower] + Lz - 1)
+        from_lower = weights[k_lower, 0, 0, overlap.start - firsts[lower]:overlap.stop - firsts[lower]].sum()
+        from_upper = weights[k_upper, 0, 0, overlap.start - firsts[upper]:overlap.stop - firsts[upper]].sum()
+        assert from_lower + from_upper == overlap.stop - overlap.start and abs(from_lower - from_upper) <= 1
+    assert torch.equal(rebuilt, stitched.cpu())
+
+
+def test_stitching_weights_of_the_issue_example():
+    """#225's example: two 128^3 reconstructions gave weights of shape (2, 128, 128); they are (2, 128, 128, 128)."""
+    metas = _bed_metas((128, 128, 128), [0, 100])
+    recons = torch.ones((2, 128, 128, 128))
+    weights, zs = SPECT.stitch_beds(recons, metas[::-1], return_stitching_weights=True)
+    assert tuple(weights.shape) == (2, 128, 128, 128) and list(zs) == [100, 0]
+    assert weights[1, 0, 0, 1:].sum() + weights[0, 0, 0, :-1].sum() == 100 + 128 - 2
+
+
 # ---------- SIMIND ----------
 
 def _simind(tmp_path, name, version='V8.0', radius='150.0', direction='CCW', start=0.0, views=12, window=(187.2, 228.8),
