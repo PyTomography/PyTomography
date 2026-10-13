@@ -21,7 +21,6 @@ import re
 import time
 import numpy as np
 import torch
-import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import pytomography
 from pytomography import io
@@ -55,19 +54,12 @@ volume_mL = {('background' if name == 'BKG' else f'sphere {name}'): float(v)
 sphere_MBq_per_mL = activity / (sum(v for r, v in volume_mL.items() if r != 'background') + 0.1 * volume_mL['background'])
 truth_MBq_per_mL = {r: sphere_MBq_per_mL * (0.1 if r == 'background' else 1) for r in volume_mL}
 
-labels = torch.from_numpy(np.load(path.parent / 'jaszak_spheres.npz')['labels'])  # 0 outside the spheres
-masks = {}
-for k in range(1, 7):
-    fraction = F.avg_pool3d((labels == k).float()[None, None], kernel_size=4)[0, 0]
-    masks[f'sphere {k}'] = (fraction > 0.5).to(pytomography.device)
+rois = io.load_mask(path.parent / 'jaszak_rois.seg.nrrd')  # made once by docs/tools/make_roi_masks.py
+masks = {f'sphere {k}': rois.on(object_meta, label=f'sphere_{k}') > 0.5 for k in range(1, 7)}
+masks['background'] = rois.on(object_meta, label='background') > 0.5
 
 attenuation_map = io.attenuation_map(path / 'amap.hct', object_meta, energy_keV=proj_meta.energy_windows[0].photon_keV,
                                      layout='mu')  # 1/mm; SIMIND's map layout, simind.ini index 22 = 3
-water = attenuation_map > 0.5 * attenuation_map.max()
-dilate = lambda mask: F.max_pool3d(mask.float()[None, None], 7, stride=1, padding=3)[0, 0] > 0
-erode = lambda mask: ~dilate(~mask)
-spheres = torch.stack(list(masks.values())).any(0)
-masks['background'] = erode(water) & ~dilate(spheres)
 
 regions = list(masks)
 for r in regions:
@@ -147,6 +139,8 @@ for ax, region in zip(axes.ravel(), regions):
 axes[0, 0].legend()
 axes[-1, -1].axis('off')
 
+spheres = torch.stack([masks[f'sphere {k}'] for k in range(1, 7)]).any(0)
+water = attenuation_map > 0.5 * attenuation_map.max()  # the phantom
 z = int(torch.nonzero(spheres)[:, 2].float().mean())  # the slice through the spheres' centres
 truth_image = (water.float() * truth_MBq_per_mL['background']
                + spheres.float() * (sphere_MBq_per_mL - truth_MBq_per_mL['background'])).cpu()
