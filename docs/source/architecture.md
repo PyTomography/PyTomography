@@ -54,7 +54,7 @@ html_theme.sidebar_secondary.remove: true
 
 </div>
 
-<p class="pt-arch-intro">The mathematics behind these parts and the conventions they share (coordinates, units, the transpose rule) are in <a href="concepts.html">Concepts</a>.</p>
+<p class="pt-arch-intro">The conventions these parts share (the grid, lengths in mm, the patient frame) are in <a href="#io-standard">Data and conventions</a>. The <a href="contributing/testing.html#contract-tests">contract tests</a> check that a new system matrix's <code>backward</code> is the transpose of its <code>forward</code>.</p>
 </section>
 
 <section class="pt-arch-panel pt-io" id="tab-io" role="tabpanel" aria-labelledby="t-io" hidden>

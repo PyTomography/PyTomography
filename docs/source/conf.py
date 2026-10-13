@@ -95,8 +95,8 @@ html_context = {
 html_theme_options = {
     "logo": {"text": "PyTomography"},
     "navbar_align": "left",
-    # Installation, Tutorials, Gallery, Architecture, API and Contribute in the top bar; Migrate to v4, Concepts and the
-    # rest under More
+    # Installation, Tutorials, Gallery, Architecture, API and Contribute in the top bar; Migrate to v4 and the rest
+    # under More
     "header_links_before_dropdown": 6,
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
     "icon_links": [
