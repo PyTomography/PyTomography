@@ -30,6 +30,12 @@ conda install -c conda-forge "libparallelproj=*=cuda130*" parallelproj
 
 SPECT reconstruction does not need parallelproj. Importing PyTomography never requires it; only `pytomography.projectors.PET` does, and it tells you how to install it if it is missing.
 
+## SPECT PSFs from Monte Carlo: spectarf
+
+spectarf, Stephen Graves' package, makes a SPECT camera's point spread functions (PSFs) from Monte Carlo angular response functions (ARFs), given a description of the camera: its collimator, crystal and energy windows. PyTomography's ARF tutorials use it.
+
+It is a separate package, in pre-release and not on PyPI yet. It is planned as an optional extra of PyTomography; this page will say how to install it once that is settled. Everything else in PyTomography works without it.
+
 ## Check the installation
 
 ```python
