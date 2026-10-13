@@ -1,6 +1,6 @@
 """Ac-225 PSF modelling (SIMIND)
 
-Alpha-emitter imaging with a Monte Carlo collimator response, including penetration.
+Alpha-emitter imaging with PSFs from Monte Carlo ARFs (spectarf), penetration and collimator scatter included.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_ac225_simind_recon.html
 It keeps the computation and leaves out the plots and explanations.
@@ -19,7 +19,7 @@ DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_da
 OUTPUT = datasets.output_dir("SPECT/SIMIND-Jaszak")
 
 import os
-import json
+import numpy as np
 import torch
 import pytomography
 from pytomography import io
@@ -27,9 +27,11 @@ from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.transforms.SPECT  import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.algorithms import OSEM
 from pytomography.likelihoods import PoissonLogLikelihood
-from spectpsftoolbox.kernel1d import ArbitraryKernel1D, FunctionKernel1D
-from spectpsftoolbox.operator2d import GaussianOperator, Rotate1DConvOperator, RotateSeperable2DConvOperator
+from spectarf import Collimator, DetectorStack, DetectorResponse, EnergyResolution
+from spectarf.pytomography import generate_arfs, psf_at, psf_transform
+from spectarf.response import FWHM_TO_SIGMA
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 
 # change to where you saved the data
 PATH = DATA / 'SPECT' / 'SIMIND-Jaszak'
@@ -75,44 +77,71 @@ def perform_reconstruction(psf_transform):
     print(algorithm.estimate_memory(n_subsets=4))
     return algorithm(n_iters=50, n_subsets=4)
 
-with open(os.path.join(PATH, 'ac225_psf_model.json')) as f:
-    fit = {k: torch.tensor(v) if isinstance(v, list) else v for k, v in json.load(f).items()}
-two_exponentials = lambda a, b: b[0] * torch.exp(-a * b[1]) + b[2] * torch.exp(-a * b[3])
-width = lambda a, b: b[0] + b[1] * (torch.sqrt(a**2 + b[2]**2) - torch.abs(b[2]))
-tail_width = lambda a, b: 1 + b[0] * (torch.sqrt((a - fit['tail_sigma_a_min'])**2 + b[1]**2) - torch.abs(b[1]))
-gaussian = GaussianOperator(two_exponentials, width, fit['gaussian_amplitude'], fit['gaussian_sigma'])
-tails = Rotate1DConvOperator(
-    ArbitraryKernel1D(fit['tail_kernel'], two_exponentials, tail_width, fit['tail_amplitude'], fit['tail_sigma'],
-                      fit['tail_kernel_spacing'], grid_sample_mode='bicubic'),
-    N_angles=3, additive=True, rot=90)
-background = RotateSeperable2DConvOperator(
-    FunctionKernel1D(lambda x: torch.exp(-torch.abs(x)), two_exponentials, width, fit['background_amplitude'],
-                     fit['background_sigma'], a_min=fit['background_a_min'], a_max=fit['background_a_max']),
-    N_angles=1, additive=False)
-psf_operator = (tails + background) * gaussian + gaussian
-psf_operator.set_device(pytomography.device)
+# %% The camera
+collimator = Collimator(hole_diameter_mm=4.0, septal_thickness_mm=2.0, hole_length_mm=59.7,
+                        hole_shape='hex', rotated=True, material='lead')
+stack = DetectorStack(collimator, crystal_mm=9.525, crystal_material='nai',
+                      cover_mm=1.0, cover_material='aluminium',
+                      backscatter_mm=100.0, backscatter_material='pmt')
+energy_resolution = EnergyResolution.geb(a_keV=-0.534, b=0.946, c_per_keV=0.006)   # SIMIND's siemens.erf
+response = DetectorResponse(energy_resolution, intrinsic_fwhm_mm_140=3.6,
+                            residual_sigma_mm_140=3.6 * FWHM_TO_SIGMA)
 
-class OperatorInCm:
-    """The fitted model takes lengths in cm, SPECTPSFToolbox's unit when it was fitted; PyTomography's are mm. This
-    passes the PSF transform's coordinates and distances to the model in cm (the kernel is normalised, so nothing else
-    changes)."""
-    def __init__(self, operator):
-        self.operator = operator
-    def __call__(self, input, xv, yv, distances, normalize=False):
-        return self.operator(input, xv / 10, yv / 10, distances / 10, normalize=normalize)
+# %% The ARFs
+arfs = generate_arfs(stack, response, proj_meta, peak=idx_peak, lower=idx_lower, upper=idx_upper)
+for name, arf in arfs.items():
+    print(f"{name}: {arf.window[1]:.0f}-{arf.window[2]:.0f} keV, {arf.energy_keV:.1f} keV photons, "
+          f"grid (theta, phi, dx, dy) {arf.data.shape}")
 
-psf_transform = SPECTPSFTransform(psf_operator=OperatorInCm(psf_operator))
-recon_1Dfit = perform_reconstruction(psf_transform)
+fig, ax = plt.subplots(1, 2, figsize=(11, 3.8), sharey=True, gridspec_kw={'wspace': 0.05})
+positive = lambda p: np.where(p > 0, p, np.nan)    # no zeros on a log axis
+for name, arf in arfs.items():
+    ax[0].semilogy(arf.theta_deg, positive(arf.in_window_probability().mean(axis=1)),
+                   label=f"{name}: {arf.window[1]:.0f}-{arf.window[2]:.0f} keV")
+P = arfs['P']
+for j, phi in enumerate(P.phi_deg):
+    ax[1].semilogy(P.theta_deg, positive(P.in_window_probability()[:, j]), color=plt.cm.viridis(j / max(len(P.phi_deg) - 1, 1)),
+                   label=f"phi = {phi:.0f} deg" if j in (0, len(P.phi_deg) - 1) else None)
+ax[0].set(xlabel='incidence angle theta (degrees)', ylabel='detection probability per photon',
+          title='every window')
+ax[1].set(xlabel='incidence angle theta (degrees)', title='photopeak window, by azimuth phi')
+for a in ax:
+    a.legend(frameon=False)
+    a.grid(alpha=0.3)
+
+# %% PSFs
+distances = [50.0, 150.0, 300.0]
+kernels = psf_at(arfs, distances, pixel_mm=1.0, size_mm=160.0, normalize=True)   # (3, 161, 161)
+
+w = kernels.shape[-1] * 1.0 / 2          # half width, mm
+c = kernels.shape[-1] // 2
+u = (np.arange(kernels.shape[-1]) - c) * 1.0
+fig, ax = plt.subplots(1, 4, figsize=(16, 3.7), gridspec_kw={'width_ratios': [1, 1, 1, 1.25], 'wspace': 0.3})
+for a, d, k in zip(ax, distances, kernels):
+    norm = LogNorm(vmin=k.max() * 1e-3, vmax=k.max())          # three decades below each PSF's peak
+    a.imshow(np.clip(k, norm.vmin, None).T, origin='lower', extent=(-w, w, -w, w), cmap='hot', norm=norm)
+    a.set(title=f'{d:.0f} mm from the collimator', xlabel='r (mm)')
+ax[0].set_ylabel('z (mm)')
+for d, k in zip(distances, kernels):
+    ax[3].semilogy(u, np.clip(k[:, c], 1e-12, None), label=f'{d:.0f} mm')
+ax[3].set(xlabel='r (mm)', ylabel='fraction per mm$^2$', title='through the centre',
+          ylim=(0.5 * np.clip(kernels[:, :, c], 1e-12, None).min(), 2 * kernels.max()))
+ax[3].legend(frameon=False)
+ax[3].grid(alpha=0.3)
+
+# %% Reconstruct
+psf_transform_arf = psf_transform(arfs, memory_budget_bytes=2 * 2**30)
+recon_arf = perform_reconstruction(psf_transform_arf)
 
 path_bi213_prim = files_NM[1][1]
 psf_meta = io.SPECT.simind_psf(path_bi213_prim)
 psf_transform = SPECTPSFTransform(psf_meta)
 reconbad = perform_reconstruction(psf_transform)
 
-recons = [reconbad, recon_1Dfit]
-titles = ['Gaussian PSF', 'Full PSF']
+recons = [reconbad, recon_arf]
+titles = ['Gaussian PSF', 'ARF PSF']
 
 # %% Save the images
-for name, image in [('full_psf', recon_1Dfit), ('gaussian_psf', reconbad)]:
+for name, image in [('arf_psf', recon_arf), ('gaussian_psf', reconbad)]:
     io.save_dicom(image, OUTPUT / 't_ac225_simind_recon' / name, object_meta, units='counts',
                   series_description=f'OSEM 50x4, {name}', overwrite=True)

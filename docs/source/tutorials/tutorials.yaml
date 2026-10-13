@@ -100,7 +100,7 @@ sections:
     modality: SPECT
     data: SIMIND
     topic: Physics
-    summary: Alpha-emitter imaging with a Monte Carlo collimator response, including penetration.
+    summary: Alpha-emitter imaging with PSFs from Monte Carlo ARFs (spectarf), penetration and collimator scatter included.
     datasets:
     - SPECT/SIMIND-Jaszak
   - notebook: t_ac225_dicom_recon
@@ -108,7 +108,7 @@ sections:
     modality: SPECT
     data: DICOM
     topic: Physics
-    summary: The Ac-225 PSF model applied to measured data.
+    summary: The same ARF PSFs on a measured Symbia T2 scan with a non-circular orbit.
     datasets:
     - SPECT/Ac225-NEMA-SymT2
   - notebook: t_CardiacReorientation
