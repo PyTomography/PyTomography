@@ -201,6 +201,29 @@ def test_conebeam_fdk_with_the_rotation_axis_off_the_central_ray():
     assert abs(err.mean()) < 0.002 and np.abs(err).max() < 0.03
 
 
+def test_conebeam_fdk_needs_a_full_turn_at_one_z():
+    """FDK weights every view by 2 pi / N and has no short-scan weights: a short scan (a half turn plus the fan), a
+    full turn with views missing and a helix are refused, not reconstructed with the wrong weights. A full turn in
+    either direction, starting anywhere, with views jittered by 0.5 %, is accepted (stage angles jitter)."""
+    object_meta = ObjectMeta(dr=(2.0, 2.0, 2.0), shape=(16, 16, 4))
+    def fdk(angles, z=None):
+        n = len(angles)
+        meta = CTConeBeamFlatPanelProjMeta(angles.float(), torch.zeros(n) if z is None else z, detector_radius=100.0,
+                                           beam_radius=200.0, shape=(24, 8), dr=(2.0, 2.0))
+        return FilteredBackProjection(torch.ones(n, 24, 8).to(pytomography.device), CTConeBeamFlatPanelSystemMatrix(object_meta, meta))()
+    full = torch.linspace(0, 2 * np.pi, 61)[:-1].double()
+    jitter = 0.005 * (2 * np.pi / 60) * torch.sin(torch.arange(60.0)).double()
+    for angles in (full, -full + 1.0, full + jitter):
+        assert fdk(angles).shape == object_meta.shape
+    short = torch.linspace(0, np.pi + 2 * np.arctan(24.0 / 300), 40).double()
+    with pytest.raises(ValueError, match='full turn'):
+        fdk(short)
+    with pytest.raises(ValueError, match='full turn'):
+        fdk(full[torch.arange(60) != 17])
+    with pytest.raises(ValueError, match='one z'):
+        fdk(full, z=torch.linspace(-4, 4, 60))
+
+
 def test_the_column_scale_is_fitted_back_from_a_reference_image():
     # the "scanner" applied a per-column scale before reconstructing; the fit finds it from the two images
     meta = _helix(rotations=3)
