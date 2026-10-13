@@ -121,19 +121,28 @@ DATASETS = {
              "ranges": [[64, 710598502, "64ef103e5701ffb73581d1a90212072204c833cdcfe2d4008109cc761625a510"]],
              "unpacked": 1858656588},
             _AC225_PSF_MODEL,
-            # The six spheres of the Jaszczak phantom on SIMIND's 512^3 grid, for the accuracy tutorial
+            # The six spheres of the Jaszczak phantom on SIMIND's 512^3 grid, from which jaszak_rois.seg.nrrd was made
             {"kind": "package", "file": "jaszak_spheres.npz", "size": 136312,
              "sha256": "2c0b2891d92f570e436e1c14ba602bd8029201c5b9a048254513717267c2edc0"},
+            # The regions that the accuracy tutorial measures (the six spheres and the background), made by
+            # docs/tools/make_roi_masks.py
+            {"kind": "package", "file": "jaszak_rois.seg.nrrd", "size": 51595,
+             "sha256": "909f1e31ab1bd99af9809ac2e067a008cd821ffbab37762c2c80928df18f0df9"},
         ],
     },
     "SPECT/Lu177-NEMA-SymT2": {
         "title": "Lu-177 NEMA IQ phantom on a Siemens Symbia T2, with CT and the scanner's reconstruction",
         **_SPECT_2025_DATASET,
-        "tutorials": ["t_dicomdata", "t_algorithms", "t_dualpeak", "t_spect_mc2"],
+        "tutorials": ["t_dicomdata", "t_algorithms", "t_dualpeak", "t_spect_mc2", "t_algorithms_measured",
+                      "t_fbp_spect"],
         "parts": [
             {"kind": "zip_range", **_SPECT_2025, "prefix": "SPECT/Lu177-NEMA-SymT2/",
              "ranges": [[710628303, 721637143, "c7d9149f2f52f6663fb2edbcc1cbcc16d84c4b914dbdc58e0cf4854b86ec2a98"]],
              "unpacked": 71623548},
+            # The regions that the tutorials measure (the six spheres, the lung insert and the background), made by
+            # docs/tools/make_roi_masks.py
+            {"kind": "package", "file": "lu177_nema_symt2_rois.seg.nrrd", "size": 246468,
+             "sha256": "be3d1878f5693999cc054d69a508df7f8feeb986d985f20c036173a13bbb4b46"},
         ],
     },
     "SPECT/Ac225-NEMA-SymT2": {
