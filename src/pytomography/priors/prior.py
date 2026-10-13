@@ -1,3 +1,4 @@
+"""The base class of the priors."""
 from __future__ import annotations
 import torch
 import abc
@@ -5,12 +6,17 @@ import pytomography
 from pytomography.metadata import ObjectMeta
 
 class Prior():
-    r"""Abstract class for implementation of prior :math:`V(f)` where :math:`V` is from the log-posterior probability :math:`\ln L(\tilde{f}, f) - \beta V(f)`. Any function inheriting from this class should implement a ``foward`` method that computes the tensor :math:`\frac{\partial V}{\partial f_r}` where :math:`f` is an object tensor.
-    
-    Args:
-            beta (float): Used to scale the weight of the prior
-            obj2obj_transforms (Sequence): Sequence of transforms applied after computation of prior or gradients.
+    r"""The base class of the priors :math:`V(f)`, the penalty in the log-posterior :math:`\ln L(g|f) - \beta V(f)`.
 
+    Subclasses implement ``__call__``, which gives the prior or its derivatives at the object set with
+    :meth:`set_object`. The reconstruction algorithm gives the prior its object grid (:meth:`set_object_meta`), the
+    scale of the field of view (:meth:`set_FOV_scale`), the current object and the subset's share of the data
+    (:meth:`set_beta_scale`).
+
+    Args:
+        beta (float): The weight :math:`\beta` of the prior.
+        obj2obj_transforms (list[Transform], optional): Accepted and not used: no transforms are applied. Defaults
+            to none.
     """
     @abc.abstractmethod
     def __init__(self, beta: float, obj2obj_transforms: list[Transform] = []):
@@ -19,40 +25,40 @@ class Prior():
         self.device = pytomography.device
 
     def set_object_meta(self, object_meta: ObjectMeta) -> None:
-        """Sets object metadata parameters.
+        """Gives the prior the object grid (its voxel sizes set the neighbours' distances).
 
         Args:
-            object_meta (ObjectMeta): Object metadata describing the system.
+            object_meta (ObjectMeta): The object grid.
         """
         self.object_meta = object_meta
 
     def set_beta_scale(self, factor: float) -> None:
-        r"""Sets a scale factor for :math:`\beta` required for OSEM when finite subsets are used per iteration.
+        r"""Sets the factor that scales :math:`\beta` in the derivatives: the subset's share of the data, with subsets.
 
         Args:
-            factor (float): Value by which to scale :math:`\beta` 
+            factor (float): The factor (``system_matrix.get_weighting_subset(subset_idx)``).
         """
         self.beta_scale_factor = factor
         
     def set_FOV_scale(self, FOV_scale: torch.Tensor) -> None:
-        r"""Sets a positionally dependent scaling factor within the FOV for the prior.
+        r"""Sets a scale of the prior that depends on the position in the field of view.
 
         Args:
-            torch.Tensor (float): Scaling factor
+            FOV_scale (torch.Tensor): The scale, [Lx, Ly, Lz] (from the system matrix: ones, or the axial scale of a PET
+                list mode system matrix).
         """
         self.FOV_scale = FOV_scale
                 
 
     def set_object(self, object: torch.Tensor) -> None:
-        r"""Sets the object :math:`f_r` used to compute :math:`\frac{\partial V}{\partial f_r}` 
+        r"""Sets the object :math:`f` at which the prior and its derivatives are computed (a copy is kept).
 
         Args:
-            object (torch.tensor): Tensor of size [batch_size, Lx, Ly, Lz] representing :math:`f_r`.
+            object (torch.Tensor): The object, [Lx, Ly, Lz].
         """
         self.object = object.clone()
 
     @abc.abstractmethod
     def __call__(self):
-        """Abstract method to compute the gradient of the prior based on the ``self.object`` attribute.
-        """
+        """Computes the prior or its derivatives at the object set with :meth:`set_object`; subclasses implement it."""
         ...
