@@ -429,7 +429,7 @@
       let range = Array.isArray(m.range) && m.range.length === 2 ? m.range.slice() : over ? [0, L.max] : [L.min, L.max];
       const w = m.kind === 'ct' && CT_WINDOWS.find(x => x[0] === m.window);
       if (w) range = [w[2], w[3]];
-      return {cmap: LUT[m.colormap] ? m.colormap : over ? 'inferno' : 'gray', lo: range[0], hi: range[1],
+      return {cmap: LUT[m.colormap] ? m.colormap : over && (m.kind === 'spect' || m.kind === 'pet') && LUT.pet ? 'pet' : over ? 'inferno' : 'gray', lo: range[0], hi: range[1],
         // SPECT and PET over an anatomy image start at 75% opacity (Luke, 9 Oct 2026); on their own, at 100%
         op: m.opacity != null ? m.opacity : over ? (hasBase ? 0.75 : 1) : 1, fwhm: 0, hiAuto: true};
     }
