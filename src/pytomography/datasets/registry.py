@@ -1,8 +1,9 @@
 """Every dataset the tutorials read: what it is, where it is published, and how to download and check it.
 
-Keys are folders under the data folder (``PYTOMOGRAPHY_DATA``). :func:`pytomography.datasets.fetch` reads this file,
-and so does the "Tutorial data" page of the docs, so a dataset is added, moved or re-pinned here and nowhere else.
-The file has no imports, so the docs can load it without importing PyTomography.
+The datasets are in :data:`DATASETS`, keyed by their folders under the data folder (``PYTOMOGRAPHY_DATA``).
+:func:`pytomography.datasets.fetch` reads this file, and so does the "Tutorial data" page of the docs, so a dataset is
+added, moved or re-pinned here and nowhere else. The file has no imports, so the docs can load it without importing
+PyTomography.
 
 A dataset has these fields::
 
@@ -364,3 +365,5 @@ DATASETS = {
         ],
     },
 }
+"""Every dataset, ``{name: entry}``, where the name is the dataset's folder under the data folder and the entry holds
+the fields described at the top of this module."""

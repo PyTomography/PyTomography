@@ -16,7 +16,15 @@ The same works from a shell::
     python -m pytomography.datasets list
     python -m pytomography.datasets fetch SPECT/Lu177-PSMA-GEDisc
 
-The datasets, their sources, licences and checksums are listed in ``pytomography/datasets/registry.py``.
+The datasets, their sources, licences and checksums are listed in :mod:`pytomography.datasets.registry`.
+
+* :func:`fetch`: download a dataset if needed, and return its folder;
+* :func:`path`: the folder of a dataset already downloaded;
+* :func:`available` and :func:`info`: every dataset, and what one dataset is;
+* :func:`verify`: check downloaded datasets for missing or changed files;
+* :func:`data_dir` and :func:`output_dir`: the data folder, and the folder for a tutorial's results;
+* :func:`cache_key`: a key that changes when the registry's entry for a dataset changes;
+* :class:`DatasetNotAvailable`, :class:`DownloadError` and :class:`ChecksumError`: what :func:`fetch` raises.
 """
 from __future__ import annotations
 
@@ -42,17 +50,30 @@ PathLike = Union[str, os.PathLike]
 
 
 class DatasetNotAvailable(RuntimeError):
-    """The dataset is in the registry but cannot be downloaded yet."""
+    """Raised when a dataset is in the registry but cannot be downloaded yet, and its folder is empty."""
 
 
 def data_dir() -> Path:
-    """The tutorial data folder: ``PYTOMOGRAPHY_DATA``, or ``pytomography_data`` in your home folder."""
+    """Returns the tutorial data folder: ``PYTOMOGRAPHY_DATA``, or ``pytomography_data`` in your home folder.
+
+    Returns:
+        Path: The data folder (it may not exist yet).
+    """
     return Path(os.environ.get("PYTOMOGRAPHY_DATA") or "~/pytomography_data").expanduser()
 
 
 def output_dir(name: str = "") -> Path:
-    """The folder for a tutorial's results, created if needed: ``PYTOMOGRAPHY_OUTPUT`` (or ``pytomography_outputs``
-    in the current folder), then ``name``. Results never go into the data folder."""
+    """Returns the folder for a tutorial's results, and creates it if needed.
+
+    The folder is ``name`` under ``PYTOMOGRAPHY_OUTPUT``, or under ``pytomography_outputs`` in the current folder.
+    Results never go into the data folder.
+
+    Args:
+        name (str, optional): The subfolder, such as a dataset's name. Defaults to '': the output folder itself.
+
+    Returns:
+        Path: The folder.
+    """
     folder = Path(os.environ.get("PYTOMOGRAPHY_OUTPUT") or "pytomography_outputs").expanduser() / name
     folder.mkdir(parents=True, exist_ok=True)
     return folder
@@ -111,31 +132,40 @@ def _doi(entry: dict) -> str:
 
 def fetch(name: str, *, extras: Union[str, Sequence[str]] = (), data_dir: Optional[PathLike] = None,
           force: bool = False, verify: str = "size", progress: bool = True, workers: int = 4) -> Path:
-    """Download a tutorial dataset if it is not there yet, and return its folder.
+    """Downloads a tutorial dataset if it is not there yet, and returns its folder.
+
+    A dataset that cannot be downloaded yet (its record is not published) is used as it is if its folder already
+    holds files, without checks, and the dataset's files that come with PyTomography, such as masks, are copied in. A
+    part of a dataset whose record is not published yet (a pending part, such as a tutorial's regions) is not
+    downloaded either: a copy in the folder is used, and ``fetch`` says when there is none.
 
     Args:
-        name: the dataset: its folder under the data folder, such as ``"SPECT/Lu177-NEMA-SymT2"``. :func:`available`
-            lists them.
-        extras: optional parts to add, by name, or ``"all"``. :func:`info` lists a dataset's extras.
-        data_dir: the data folder. Defaults to :func:`data_dir`: ``PYTOMOGRAPHY_DATA``, or ``~/pytomography_data``.
-        force: download and unpack everything again.
-        verify: how to check a dataset that is already there. ``"size"`` compares file sizes with what was written,
-            which is instant; ``"hash"`` re-reads every file and compares checksums; ``"none"`` trusts the record.
-            Files that fail are downloaded again. New downloads are always checked against the registry.
-        progress: print what is downloaded, a progress bar, and the licence and citation of the data.
-        workers: the most connections to open at once.
+        name (str): The dataset: its folder under the data folder, such as ``"SPECT/Lu177-NEMA-SymT2"``.
+            :func:`available` lists them.
+        extras (str | Sequence[str], optional): Optional parts to add, by name, or ``"all"``. :func:`info` lists a
+            dataset's extras. Defaults to no extras.
+        data_dir (str | os.PathLike | None, optional): The data folder. Defaults to None: :func:`data_dir`,
+            ``PYTOMOGRAPHY_DATA`` or ``~/pytomography_data``.
+        force (bool, optional): Download and unpack everything again. Defaults to False.
+        verify (str, optional): How to check a dataset that is already there. ``"size"`` compares file sizes with what
+            was written, which is instant; ``"hash"`` re-reads every file and compares checksums; ``"none"`` trusts
+            the record. Files that fail are downloaded again. New downloads are always checked against the registry.
+            Defaults to ``"size"``.
+        progress (bool, optional): Print what is downloaded, a progress bar, and the licence and citation of the
+            data. Defaults to True.
+        workers (int, optional): The most connections to open at once. Defaults to 4.
 
     Returns:
-        The dataset's folder.
+        Path: The dataset's folder.
 
     Raises:
-        DatasetNotAvailable: the dataset cannot be downloaded yet, and its folder is empty. (If it already holds
-            files, they are used as they are, without checks, and the dataset's files that come with PyTomography,
-            such as masks, are copied in.) A part of a dataset whose record is not published yet (a pending part,
-            such as a tutorial's regions) is not downloaded either: a copy in the folder is used, and fetch() says
-            when there is none.
-        DownloadError: a server could not be reached after several retries. Run fetch() again to continue.
-        ChecksumError: downloaded data does not match the registry.
+        ValueError: If no dataset is called ``name``, it has no extra of a name in ``extras``, or ``verify`` is not
+            one of the values above.
+        DatasetNotAvailable: If the dataset cannot be downloaded yet, and its folder is empty.
+        DownloadError: If a download failed after every retry, or a server sent something other than the file asked
+            for. Run ``fetch`` again to continue.
+        ChecksumError: If downloaded data does not match the registry.
+        OSError: If the data folder's disk does not have the free space the download needs.
     """
     entry = _entry(name)
     if verify not in ("size", "hash", "none"):
@@ -254,9 +284,20 @@ def _fetch_parts(name: str, entry: dict, parts: List[dict], marker: Marker, ctx:
 
 
 def path(name: str, data_dir: Optional[PathLike] = None) -> Path:
-    """The folder of a dataset that :func:`fetch` has downloaded, without checking or downloading anything.
+    """Returns the folder of a dataset that :func:`fetch` has downloaded, without checking or downloading anything.
 
-    Raises FileNotFoundError if it has not been downloaded."""
+    Args:
+        name (str): The dataset, such as ``"SPECT/Lu177-NEMA-SymT2"``.
+        data_dir (str | os.PathLike | None, optional): The data folder. Defaults to None: :func:`data_dir`.
+
+    Returns:
+        Path: The dataset's folder.
+
+    Raises:
+        ValueError: If no dataset is called ``name``.
+        FileNotFoundError: If :func:`fetch` has not downloaded every part of the dataset that can be downloaded; always
+            for a dataset that cannot be downloaded yet.
+    """
     entry = _entry(name)
     root = _root(data_dir)
     if _state(name, entry, root) != "downloaded":
@@ -265,8 +306,22 @@ def path(name: str, data_dir: Optional[PathLike] = None) -> Path:
 
 
 def info(name: str, data_dir: Optional[PathLike] = None) -> dict:
-    """What a dataset is, where it comes from, its licence and citation, what fetch() downloads for it, and whether
-    it is downloaded."""
+    """Returns what a dataset is, where it comes from, its licence, what :func:`fetch` downloads, and its state.
+
+    Args:
+        name (str): The dataset, such as ``"SPECT/Lu177-NEMA-SymT2"``.
+        data_dir (str | os.PathLike | None, optional): The data folder. Defaults to None: :func:`data_dir`.
+
+    Returns:
+        dict: ``name``; the registry's ``title``, ``source``, ``url``, ``licence``, ``cite``, ``tutorials``,
+        ``status`` and ``note`` (None where it has none); ``download_bytes`` and ``disk_bytes`` of its parts;
+        ``parts`` (a description of each); ``extras`` (each extra's ``title`` and ``download_bytes``); ``folder``
+        (a ``Path``); and ``state``: ``'downloaded'``, ``'partly downloaded'``, ``'in the folder, not checked yet'``,
+        ``'not downloaded'`` or ``'not published yet'``.
+
+    Raises:
+        ValueError: If no dataset is called ``name``.
+    """
     entry = _entry(name)
     root = _root(data_dir)
     out = {"name": name}
@@ -282,7 +337,15 @@ def info(name: str, data_dir: Optional[PathLike] = None) -> dict:
 
 
 def available(data_dir: Optional[PathLike] = None):
-    """Every dataset, with its download size, licence and state, as a pandas DataFrame."""
+    """Returns every dataset of the registry, with its download size, licence and state, as a pandas DataFrame.
+
+    Args:
+        data_dir (str | os.PathLike | None, optional): The data folder. Defaults to None: :func:`data_dir`.
+
+    Returns:
+        pandas.DataFrame: One row per dataset, with the columns ``dataset``, ``download`` (its size as text; empty
+        for a dataset that cannot be downloaded yet), ``licence``, ``state`` and ``title``.
+    """
     import pandas as pd
 
     root = _root(data_dir)
@@ -293,14 +356,22 @@ def available(data_dir: Optional[PathLike] = None):
 
 
 def verify(*names: str, level: str = "size", data_dir: Optional[PathLike] = None) -> Dict[str, List[str]]:
-    """Check downloaded datasets against what :func:`fetch` recorded when it wrote them.
+    """Checks downloaded datasets against what :func:`fetch` recorded when it wrote them.
 
     Args:
-        names: the datasets to check; every downloaded dataset if none are given.
-        level: ``"size"`` compares file sizes; ``"hash"`` re-reads every file and compares checksums.
+        *names (str): The datasets to check. Defaults to every dataset that is downloaded, wholly or in part.
+        level (str, optional): ``"size"`` compares file sizes; ``"hash"`` re-reads every file and compares checksums.
+            Defaults to ``"size"``.
+        data_dir (str | os.PathLike | None, optional): The data folder. Defaults to None: :func:`data_dir`.
 
     Returns:
-        {dataset: problems} for every dataset checked. An empty list means the dataset is complete and unchanged."""
+        dict[str, list[str]]: The problems of each dataset checked: missing or changed files, parts not downloaded,
+        and parts from an older version of the registry (``['not downloaded']`` for a dataset named in ``names`` that
+        is not downloaded at all). An empty list means the dataset is complete and unchanged.
+
+    Raises:
+        ValueError: If ``level`` is not ``"size"`` or ``"hash"``, or no dataset is called one of ``names``.
+    """
     if level not in ("size", "hash"):
         raise ValueError(f"level must be 'size' or 'hash', not {level!r}")
     root = _root(data_dir)
@@ -326,8 +397,20 @@ def verify(*names: str, level: str = "size", data_dir: Optional[PathLike] = None
 
 
 def cache_key(*names: str) -> str:
-    """A short hash of what the registry pins for these datasets. It changes only when one of them changes, so it
-    can key a cache of the data, as the tests on GitHub do."""
+    """Returns a short hash of what the registry pins for these datasets, to key a cache of their data.
+
+    The key changes only when the registry's parts of one of the datasets change, so it can key a cache of the data,
+    as the tests on GitHub do.
+
+    Args:
+        *names (str): The datasets.
+
+    Returns:
+        str: 16 hexadecimal digits.
+
+    Raises:
+        ValueError: If no dataset is called one of ``names``.
+    """
     data = [[name, sorted(part_id(p) for p in _entry(name)["parts"])] for name in names]
     return hashlib.sha256(json.dumps(data).encode()).hexdigest()[:16]
 
