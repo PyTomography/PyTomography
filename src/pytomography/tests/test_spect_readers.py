@@ -341,7 +341,7 @@ def _simind(tmp_path, name, version='V8.0', radius='150.0', direction='CCW', sta
     return str(tmp_path / f'{name}.h00')
 
 
-@pytest.mark.parametrize('version, radius', [('V7.0.3', '15.0'), ('V8.0', '150.0'), ('V10.1', '150.0')])
+@pytest.mark.parametrize('version, radius', [('V7.0.3', '15.0'), ('V8.0', '150.0'), ('V9.0', '150.0'), ('V10.1', '150.0')])
 def test_simind_versions_and_units(tmp_path, version, radius):
     """The version is an integer, so V10 reads its mm keys as mm."""
     header = _simind(tmp_path, 'tot_w1', version=version, radius=radius)

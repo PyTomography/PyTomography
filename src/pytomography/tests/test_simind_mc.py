@@ -14,13 +14,62 @@ from pytomography.utils import simind_mc
 
 def test_command_puts_every_voxel_in_the_second_phantom_material():
     """simind.ini entry 21 (the bone density threshold) is set to 0 by a switch of its own: SIMIND V8.0 does not
-    attenuate photons through voxels of the first material (see ``simind_mc.SIMIND_INI_CHANGES``)."""
+    attenuate photons through voxels of the first material (see ``simind_mc.SIMIND_INI_CHANGES``). The scattwin
+    images are asked for with /CA:2, the setting with which SIMIND V9 writes the scatter images (and V8 too)."""
     switches = simind_mc.create_simind_command({'29': 2, 'fi': 'lu177'}, 3).split('/')
     assert switches[0] == 'temp_output3'
     assert 'RR:3' in switches
+    assert 'CA:2' in switches
     assert 'in:x2,6x' in switches
     assert 'in:x21,0x' in switches
     assert switches[-2:] == ['29:2', 'fi:lu177']
+
+
+def _staged(tmp_path, n_parallel, windows):
+    """The files SIMIND leaves for ``add_together``: process i's images hold i + 1 (total) and (i + 1) / 2 (scatter)."""
+    for i in range(n_parallel):
+        for w in range(1, windows + 1):
+            for kind, value in (('tot', i + 1.0), ('sca', (i + 1.0) / 2)):
+                name = f'temp_output{i}_{kind}_w{w}'
+                np.full(6, value, np.float32).tofile(tmp_path / f'{name}.a00')
+                (tmp_path / f'{name}.h00').write_text(f'!INTERFILE :=\n!name of data file := {name}.a00\n'
+                                                      f'patient name := SMC_{name}.a00\n!END OF INTERFILE :=\n')
+
+
+def test_projections_are_added_up_without_shell_tools(tmp_path, monkeypatch):
+    """The images of the parallel SIMIND processes are averaged and given headers in Python: no cp, mv or sed, which
+    a Windows computer without Git for Windows does not have."""
+    _staged(tmp_path, n_parallel=3, windows=2)
+    monkeypatch.setattr(simind_mc.subprocess, 'run', None)       # any shell call would fail
+    monkeypatch.setattr(simind_mc.subprocess, 'Popen', None)
+    simind_mc.add_together(3, 2, str(tmp_path))
+    for w in (1, 2):
+        assert np.allclose(np.fromfile(tmp_path / f'tot_w{w}.a00', np.float32), 2.0)
+        assert np.allclose(np.fromfile(tmp_path / f'sca_w{w}.a00', np.float32), 1.0)
+        for kind in ('tot', 'sca'):
+            header = (tmp_path / f'{kind}_w{w}.h00').read_text()
+            assert f'!name of data file := {kind}_w{w}.a00' in header and 'temp_output' not in header
+
+
+class _FailedSimind:
+    """A SIMIND process that stops with an access violation."""
+    def __init__(self, args, **kwargs):
+        self.args, self.returncode = args, 157
+
+    def communicate(self):
+        return b'', b'forrtl: severe (157): Program Exception - access violation'
+
+
+def test_a_failed_simind_raises(monkeypatch):
+    """A SIMIND process that fails stops the forward projection with its error, instead of a missing-file error later.
+    The maps and simind.smc are staged without shell tools first."""
+    monkeypatch.setattr(simind_mc.subprocess, 'Popen', _FailedSimind)
+    N, dx = 4, 4.8
+    object_meta = SPECTObjectMeta((dx, dx, dx), (N, N, N))
+    proj_meta = SPECTProjMeta((N, N), (dx, dx), np.array([0.0, 90.0]), radii=np.full(2, 250.0))
+    with pytest.raises(RuntimeError, match='2 of 2 SIMIND processes failed(.|\n)*access violation'):
+        simind_mc.run_scatter_simulation(torch.ones((N, N, N)), torch.zeros((N, N, N)), object_meta, proj_meta,
+                                         ['187.2,228.8,0'], {'29': 2}, 1e3, 2)
 
 
 def test_detector_thicknesses_are_mm_and_reach_simind_in_cm(monkeypatch):
@@ -71,7 +120,7 @@ def _total_and_scatter(attenuation_map, source, object_meta, proj_meta, index_di
 def test_voxel_phantom_attenuates_photons():
     """A Lu-177 point source in the centre of a water cylinder of radius 10 cm: the unscattered photons in the 208 keV
     window are exp(-mu * 10 cm) of those in air, mu = 0.1365 /cm (water at 208 keV). Before entry 21 was set to 0,
-    SIMIND V8.0 gave as many as in air."""
+    SIMIND V8.0 gave as many as in air; V9.0 attenuates them with or without it."""
     N, dx = 128, 4.8
     object_meta = SPECTObjectMeta((dx, dx, dx), (N, N, N))
     proj_meta = SPECTProjMeta((N, N), (dx, dx), np.array([0.0, 90.0]), radii=np.full(2, 250.0))
