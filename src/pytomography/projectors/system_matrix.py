@@ -460,7 +460,12 @@ class ExtendedSystemMatrix(SystemMatrix):
     def set_n_subsets(
         self,
         n_subsets: int
-    ) -> list:
+    ) -> None:
+        """Sets the same subsets on every system matrix, and their ``subset_indices_array`` (that of the first) on this one.
+
+        Args:
+            n_subsets (int): Number of subsets.
+        """
         # assumes all are similar
         for system_matrix in self.system_matrices:
             system_matrix.set_n_subsets(n_subsets)

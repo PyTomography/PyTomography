@@ -321,8 +321,8 @@ class StarGuideSystemMatrix(SystemMatrix):
     def set_n_subsets(
         self,
         n_subsets: int
-    ) -> list:
-        """Sets the subsets for this system matrix given ``n_subsets`` total subsets.
+    ) -> None:
+        """Sets the subsets for this system matrix given ``n_subsets`` total subsets: ``subset_indices_array``, the indices of the projections of each subset.
 
         Args:
             n_subsets (int): number of subsets used in OSEM

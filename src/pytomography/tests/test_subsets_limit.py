@@ -57,3 +57,26 @@ def test_subsets_for_budget_stops_at_its_maximum(budget):
     assert least == math.ceil((15.5e9 + 4 * 34.6e9 / 224) / 1e9)
     budget(least)
     assert memory.subsets_for_budget(34.6e9, arrays=4, held_bytes=15.5e9, minimum=28, maximum=224) <= 224
+
+
+def test_set_n_subsets_sets_the_partition_and_returns_none():
+    """Every system matrix's set_n_subsets is annotated as returning None, as it does (they said list), and sets
+    subset_indices_array: every view in exactly one subset."""
+    import importlib
+    import inspect
+    import torch
+    classes = set()
+    for name in ('system_matrix', 'SPECT', 'PET', 'CT', 'shared'):
+        try:
+            module = importlib.import_module(f'pytomography.projectors.{name}')
+        except ImportError:                       # CT needs parallelproj 2
+            continue
+        classes.update(c for c in vars(module).values() if inspect.isclass(c) and issubclass(c, SystemMatrix))
+    with_subsets = [c for c in classes if 'set_n_subsets' in vars(c)]
+    assert len(with_subsets) >= 7
+    for cls in with_subsets:
+        assert inspect.signature(cls.set_n_subsets).return_annotation in (None, 'None'), cls.__name__
+    system_matrix = tiny_spect_system()[0]
+    assert system_matrix.set_n_subsets(3) is None
+    views = torch.cat([s.cpu() for s in system_matrix.subset_indices_array])
+    assert len(system_matrix.subset_indices_array) == 3 and sorted(views.tolist()) == list(range(NA))

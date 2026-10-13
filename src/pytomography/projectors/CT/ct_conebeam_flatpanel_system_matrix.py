@@ -78,14 +78,11 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         w.div_((lx * d[0] + ly * d[1] + lz * d[2]).pow_(3)).mul_(self.proj_meta.DSD**2 * dx*dy*dz / (du*dv))
         return self._FBP_postweight_component1[idx] / w
     
-    def set_n_subsets(self, n_subsets: int) -> list:
-        """Returns a list where each element consists of an array of indices corresponding to a partitioned version of the projections. 
+    def set_n_subsets(self, n_subsets: int) -> None:
+        """Partitions the projections into ``n_subsets`` subsets: sets ``subset_indices_array``, one array of the indices of the views of each subset (every ``n_subsets``-th one).
 
         Args:
             n_subsets (int): Number of subsets to partition the projections into
-
-        Returns:
-            list: List of arrays where each array corresponds to the projection indices of a particular subset.
         """
         self._check_n_subsets(n_subsets, self.proj_meta.N_angles)
         indices = torch.arange(self.proj_meta.N_angles).to(torch.long).to(self.device)
