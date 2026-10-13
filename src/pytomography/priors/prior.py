@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections.abc import Sequence
 import torch
 import abc
 import pytomography
@@ -9,13 +10,13 @@ class Prior():
     
     Args:
             beta (float): Used to scale the weight of the prior
-            obj2obj_transforms (Sequence): Sequence of transforms applied after computation of prior or gradients.
+            obj2obj_transforms (Sequence[Transform]): Transforms applied, in order, to the prior's value and gradients at every voxel (for example a ``GaussianFilter``), configured with the object grid in :meth:`set_object_meta`. Defaults to none.
 
     """
     @abc.abstractmethod
-    def __init__(self, beta: float, obj2obj_transforms: list[Transform] = []):
+    def __init__(self, beta: float, obj2obj_transforms: Sequence[Transform] = ()):
         self.beta = beta
-        self.obj2obj_transforms = []
+        self.obj2obj_transforms = list(obj2obj_transforms)
         self.device = pytomography.device
 
     def set_object_meta(self, object_meta: ObjectMeta) -> None:
@@ -25,6 +26,8 @@ class Prior():
             object_meta (ObjectMeta): Object metadata describing the system.
         """
         self.object_meta = object_meta
+        for transform in self.obj2obj_transforms:
+            transform.configure(object_meta, None)
 
     def set_beta_scale(self, factor: float) -> None:
         r"""Sets a scale factor for :math:`\beta` required for OSEM when finite subsets are used per iteration.
