@@ -1,11 +1,11 @@
 """The regions of interest that the PET and CT tutorials analyse, found once from the tutorial data and saved as 3D Slicer
-segmentations (``.seg.nrrd``) that come with PyTomography (``src/pytomography/datasets/files``; ``datasets.fetch`` copies
-each into its dataset's folder). A tutorial then takes a region in one line,
-``io.load_mask(file).on(object_meta, label=name)``, instead of finding it in code.
+segmentations (``.seg.nrrd``). They are hosted with their data (Luke, 13 Oct 2026): each goes into its dataset's folder
+and into the record its data are published in, and the dataset registry pins it there. A tutorial then takes a region in
+one line, ``io.load_mask(file).on(object_meta, label=name)``, instead of finding it in code.
 
 Each file is in LPS mm, says its frame (``pytomography_frame:=``) and how it was made, and names its segments as the
-SPECT tutorials' region files do (``docs/tools/make_roi_masks.py``: ``sphere_37mm``, ``background``). Its voxels are those of the
-grid its tutorial reconstructs on, where the regions were found (cropped to the regions), so the tutorial gets back
+SPECT tutorials' region files do (``docs/tools/make_roi_masks.py``: ``sphere_37mm``, ``background``). Its voxels are
+those of the grid its tutorial reconstructs on, where the regions were found (cropped to the regions), so the tutorial gets back
 exactly these voxels, and ``.on()`` puts the regions on any other grid by the fraction of each voxel inside them.
 Segments that overlap (the spheres and the background inside the phantom) are saved in layers, as 3D Slicer does.
 
@@ -29,10 +29,12 @@ Segments that overlap (the spheres and the background inside the phantom) are sa
 The PETSIRD spheres are fitted to the reconstruction that t_PETSIRD saves (its ``osem_without_scatter_correction``
 DICOM series), so run that tutorial first. Usage::
 
-    python docs/tools/make_tutorial_regions.py [--only gate petsird ct] [--out FOLDER] [--petsird-recon FOLDER]
+    python docs/tools/make_tutorial_regions.py --out FOLDER [--only gate petsird ct] [--petsird-recon FOLDER]
 
-It writes into ``src/pytomography/datasets/files`` by default and prints each file's size and sha256, which go into
-``src/pytomography/datasets/registry.py``. Made on 13 Oct 2026 from the data the registry pins.
+It prints each file's size and sha256. Each file then goes into its dataset's folder (``PET/GATE-mMR-BrainInWater``,
+``PET/PETSIRD-mMR-NEMA``, ``CT/ldct-c145`` under ``PYTOMOGRAPHY_DATA``) and its record's upload, with its line in the
+record's MANIFEST.sha256, and its size and sha256 go into ``src/pytomography/datasets/registry.py``. Made on 13 Oct
+2026 from the data the registry pins.
 """
 from __future__ import annotations
 
@@ -50,7 +52,6 @@ import pytomography
 from pytomography import datasets, io
 from pytomography.metadata import ObjectMeta
 
-REPO = Path(__file__).resolve().parents[2]
 MADE_BY = 'docs/tools/make_tutorial_regions.py'
 COLOURS = [(0.95, 0.85, 0.55), (0.85, 0.35, 0.3), (0.3, 0.55, 0.85), (0.4, 0.75, 0.45), (0.8, 0.5, 0.8),
            (0.95, 0.6, 0.2), (0.5, 0.8, 0.85), (0.7, 0.7, 0.3), (0.6, 0.45, 0.35), (0.55, 0.55, 0.55)]
@@ -285,7 +286,7 @@ def ct(out: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     parser.add_argument('--only', nargs='+', choices=['gate', 'petsird', 'ct'], default=['gate', 'petsird', 'ct'])
-    parser.add_argument('--out', type=Path, default=REPO / 'src' / 'pytomography' / 'datasets' / 'files')
+    parser.add_argument('--out', type=Path, required=True, help='the folder to write the files into')
     parser.add_argument('--petsird-recon', type=Path, default=None,
                         help="t_PETSIRD's reconstruction without scatter correction (its DICOM folder); default: "
                              "in the tutorial's output folder")

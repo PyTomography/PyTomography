@@ -55,7 +55,7 @@ def _sizes(d: dict) -> tuple[int, int]:
     for p in d["parts"]:
         if p["kind"] == "zip_range":
             download += p["size"] - p["index"][0] + sum(hi - lo for lo, hi, _ in p["ranges"])
-        elif p["kind"] != "package":
+        elif p["kind"] != "package" and p.get("status") != "pending":   # a pending part's record is not out yet
             download += p["size"]
         disk += p["unpacked"] if p["kind"] in ("zip", "zip_range") else p["size"]
     return download, disk

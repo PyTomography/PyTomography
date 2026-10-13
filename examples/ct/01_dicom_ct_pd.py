@@ -71,7 +71,7 @@ scanner_hu = scanner.on(object_meta, fill=-3000).cpu().numpy()  # -3000: no scan
 k, j = 157, 256  # an axial slice through the chest, a coronal slice through the middle (k runs from the feet up)
 dx, dz = object_meta.dr[0], object_meta.dr[2]
 # The body and the soft tissue of the scanner's images (above -700 HU after a 2 mm blur; 10 to 70 HU after a 7 x 7 x 3
-# voxel mean, eroded): they come with PyTomography, in the dataset's folder
+# voxel mean, eroded): they come with the dataset, in its folder
 regions = io.load_mask(folder / 'ldct_c145_rois.seg.nrrd')
 r = np.hypot(*np.meshgrid(*[(np.arange(n) - (n - 1) / 2) * dx for n in object_meta.shape[:2]], indexing='ij'))[:, :, None]
 
