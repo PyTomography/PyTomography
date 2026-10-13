@@ -93,10 +93,9 @@ def _rtstruct(path: Path, reference, rois) -> Image:
 
 
 def load_mask(source, *, reference=None, rois=None, frame: str | None = None) -> Image:
-    """Regions of interest as a label image, to put on any grid with ``.on(object_meta, label=...)``::
+    """Reads regions of interest (RTSTRUCT contours, NIfTI or NRRD label images) as a label image.
 
-        liver = io.load_mask(file_RT, reference=files_CT).on(object_meta, label='liver', threshold=0.5)
-        spheres = io.load_mask('fdg_spheres.seg.nrrd').on(object_meta, label=3)
+    Put the result on any grid with ``.on(object_meta, label=...)`` (:meth:`~pytomography.io.Image.on`).
 
     * An RTSTRUCT is drawn on its CT (``reference``) with rt_utils, so the mask has the CT's voxels and geometry. Each
       ROI has its own value; voxels of ROIs that overlap get further values, and ``labels[name]`` is then a tuple of
@@ -106,15 +105,27 @@ def load_mask(source, *, reference=None, rois=None, frame: str | None = None) ->
       overlap (saved in layers) gives each set of overlapping segments a value of its own, as for an RTSTRUCT.
 
     Args:
-        source: an RTSTRUCT file, or a NIfTI or NRRD label image (anything :func:`~pytomography.io.load_image` reads).
-        reference: for an RTSTRUCT, the CT series it was drawn on: its folder, or its files (in one folder).
-        rois (Sequence[str], optional): for an RTSTRUCT, the ROIs to draw (each takes a few seconds). Defaults to None:
+        source (str | os.PathLike | Image): An RTSTRUCT file, or a NIfTI or NRRD label image (anything
+            :func:`~pytomography.io.load_image` reads).
+        reference (str | os.PathLike | list, optional): For an RTSTRUCT, the CT series it was drawn on: its folder, or
+            its files (in one folder). Defaults to None.
+        rois (Sequence[str], optional): For an RTSTRUCT, the ROIs to draw (each takes a few seconds). Defaults to None:
             all of them.
         frame (str, optional): ``'patient'`` or ``'scanner'``, to override the frame the file implies (see
             :func:`~pytomography.io.load_image`; an RTSTRUCT has its CT's). Defaults to None: the file's.
 
     Returns:
-        Image: integer labels (``units='label'``), with ``labels``: name -> value (or values).
+        Image: Integer labels (``units='label'``), with ``labels``: name -> value (or values).
+
+    Raises:
+        ValueError: If an RTSTRUCT comes without ``reference``, ``rois`` is given for a file that is not an RTSTRUCT,
+            the image does not hold integer labels, or ``frame`` is not ``'patient'`` or ``'scanner'``.
+
+    Example:
+        .. code-block:: python
+
+            liver = io.load_mask(file_RT, reference=files_CT).on(object_meta, label='liver', threshold=0.5)
+            spheres = io.load_mask('fdg_spheres.seg.nrrd').on(object_meta, label=3)
     """
     if frame is not None and frame not in FRAMES:
         raise ValueError(f"frame must be one of {FRAMES}, not {frame!r}")

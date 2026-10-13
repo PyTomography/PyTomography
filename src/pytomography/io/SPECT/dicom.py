@@ -1,9 +1,10 @@
 """SPECT projections stored as DICOM NM (dual-head cameras: Siemens, GE, Mediso...), one or several bed positions.
 
 :func:`read_dicom` turns a file into PyTomography's standard form: projections [W, θ, r, z] in counts, z rows foot to
-head, with β = (DICOM angle + 180) mod 360; an object grid (``SPECTObjectMeta``, mm) placed in the patient by the
-vendor rules of :mod:`pytomography.io._vendors`; and the acquisition facts in ``proj_meta`` (every energy window,
-the frame duration, the start time, the nuclide).
+head, with β = (DICOM angle + 180) mod 360; an object grid (``SPECTObjectMeta``, mm) placed in the patient by
+PyTomography's table of vendor rules; and the acquisition facts in ``proj_meta`` (every energy window, the frame
+duration, the start time, the nuclide). :func:`read_dicom_beds` reads several bed positions and :func:`stitch_beds`
+joins their reconstructions.
 """
 from __future__ import annotations
 
@@ -54,12 +55,19 @@ def _nuclide(ds: Dataset) -> str | None:
 
 
 def patient_position(ds: Dataset) -> str | None:
-    """The patient's position ('HFS', 'FFP'...) as the file states it: PatientPosition, or, when that is absent or
-    empty (GE NM files), the Patient Orientation and Gantry Relationship codes; None when neither says.
+    """The patient's position (``'HFS'``, ``'FFP'``...) as a DICOM header states it.
 
-    It is never used to place anything: ImageOrientationPatient and ImagePositionPatient (and the NM detector vectors)
-    do that, as every vendor writes them in the patient's frame whatever the position. It is only compared with the
-    positions checked on data, for a warning."""
+    It is PatientPosition, or, when that is absent or empty (GE NM files), the position the Patient Orientation and
+    Gantry Relationship codes give. It is never used to place anything: ImageOrientationPatient and
+    ImagePositionPatient (and the NM detector vectors) do that, as every vendor writes them in the patient's frame
+    whatever the position. The readers only compare it with the positions checked on data, for a warning.
+
+    Args:
+        ds (pydicom.Dataset): The file's header.
+
+    Returns:
+        str | None: The position, e.g. ``'FFS'``, or None when the file does not say.
+    """
     position = str(ds.get('PatientPosition', '') or '').strip().upper()
     if position:
         return position
@@ -132,17 +140,18 @@ def _projection_centre(ds: Dataset, Lr: int, Lz: int, dr: float, dz: float, col:
 
 
 def siemens_registration(ds: Dataset, source: str = '') -> np.ndarray | None:
-    """Siemens' registration of a NM acquisition to the patient frame of the CT taken with it: the 4 x 4 rigid matrix
-    M in the private tag (0043,xx02) of 'SIEMENS MED NM' (vendor rule 'siemens-nm-registration'), from the
-    acquisition's frame (placed by rule 'siemens-nm-projection') to the CT's. None for other vendors, or when the file
-    has none; a matrix that is not rigid is left out with a warning.
+    """Siemens' registration of a NM acquisition to the patient frame of the CT taken with it.
+
+    It is the 4 x 4 rigid matrix M in the private tag (0043,xx02) of 'SIEMENS MED NM' (vendor rule
+    'siemens-nm-registration'), from the acquisition's frame (placed by rule 'siemens-nm-projection') to the CT's.
+    :func:`read_dicom` applies it. A matrix that is not rigid, or does not have 16 values, is left out with a warning.
 
     Args:
-        ds (Dataset): the NM file's header.
-        source (str, optional): the file, for the warning.
+        ds (pydicom.Dataset): The NM file's header.
+        source (str, optional): The file, for the warning. Defaults to ''.
 
     Returns:
-        np.ndarray | None: M (4 x 4, mm), or None.
+        np.ndarray | None: M (4 x 4, mm), or None for other vendors and for files without one.
     """
     if _vendors.manufacturer(ds) != 'SIEMENS':
         return None
@@ -288,7 +297,14 @@ def _metadata(geometry: dict) -> tuple[SPECTObjectMeta, SPECTProjMeta]:
 
 
 def read_metadata(file: str) -> tuple[SPECTObjectMeta, SPECTProjMeta]:
-    """The object grid and the projection metadata of a NM file, without its projections (see :func:`read_dicom`)."""
+    """The object grid and the projection metadata of a NM file, without reading its projections.
+
+    Args:
+        file (str): The NM file.
+
+    Returns:
+        tuple[SPECTObjectMeta, SPECTProjMeta]: What :func:`read_dicom` returns with the projections.
+    """
     return _metadata(_geometry(pydicom.dcmread(file, stop_before_pixels=True), str(file)))
 
 
@@ -304,27 +320,40 @@ def _select(projections: torch.Tensor, geometry: dict, energy_window: int | None
 
 
 def read_dicom(file: str, energy_window: int | None = None, *, time_slot: int | None = None):
-    """SPECT projections from a DICOM NM file (one bed, one rotation), in PyTomography's standard form.
+    """Reads SPECT projections from a DICOM NM file (one bed, one rotation) into PyTomography's standard form.
 
     * Frames are found by their vectors (energy window, detector, rotation, view, time slot), and their number is
       checked.
     * β = (DICOM angle + 180) mod 360, views sorted by β; per-head start angles; radii in mm.
     * Rows and columns are flipped as the heads' ImageOrientationPatient say, so that z runs foot to head and r along
       (cos β, -sin β, 0). PixelSpacing is (between rows, between columns) and the grid is Columns wide.
-    * The grid is centred on the rotation axis and the middle row, placed in the patient by the vendor table. Siemens
-      files carry their registration to the CT taken with them (private tag (0043,xx02), see
+    * Stored values become real ones through RescaleSlope and RescaleIntercept, when the file has them.
+    * The grid is centred on the rotation axis and the middle row, placed in the patient by PyTomography's table of
+      vendor rules. Siemens files carry their registration to the CT taken with them (private tag (0043,xx02), see
       :func:`siemens_registration`): the grid is moved into the CT's frame and the views turned with it, as Siemens
       places its own reconstructions.
 
     Args:
-        file (str): the NM file.
-        energy_window (int, optional): index of the energy window to return. Defaults to None: all of them.
-        time_slot (int, optional): for gated files, the time slot to return (required for them).
+        file (str): The NM file.
+        energy_window (int, optional): Index of the energy window to return. Defaults to None: all of them.
+        time_slot (int, optional): For gated files, the time slot to return (required for them). Defaults to None.
 
     Returns:
-        (torch.Tensor, SPECTObjectMeta, SPECTProjMeta): projections [W, θ, r, z] (or [θ, r, z] for one
-        ``energy_window``) on ``pytomography.device``; the object grid (mm, frame ``'patient'``); the projection
-        metadata, with every energy window, the frame duration (s), the acquisition start and the nuclide.
+        tuple[torch.Tensor, SPECTObjectMeta, SPECTProjMeta]: The projections [W, θ, r, z] (or [θ, r, z] for one
+        ``energy_window``) in counts, on ``pytomography.device``; the object grid (mm, frame ``'patient'``); the
+        projection metadata, with every energy window, the frame duration (s), the acquisition start and the nuclide.
+
+    Raises:
+        ValueError: If the file is not SPECT projections (an image, or a StarGuide head file, which
+            :func:`~pytomography.io.SPECT.read_starguide` reads), its frames do not add up, its geometry cannot be
+            placed, or it is gated and ``time_slot`` is not given.
+        NotImplementedError: If the file holds more than one rotation.
+
+    Example:
+        .. code-block:: python
+
+            projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)
+            print(proj_meta.energy_windows)          # pick the photopeak and the scatter windows by index
     """
     ds = pydicom.dcmread(file)
     geometry = _geometry(ds, str(file))
@@ -351,16 +380,17 @@ def read_dicom(file: str, energy_window: int | None = None, *, time_slot: int | 
 # ---------- several bed positions ----------
 
 def read_dicom_beds(files: Sequence[str]) -> list:
-    """The projections of several bed positions of one study (one NM file per bed), each in the standard form, sorted
-    from the most inferior bed to the most superior. Where neighbouring beds overlap, each bed's projections beyond
-    the middle of the overlap are replaced by its neighbour's, as the stitched image takes each half of the overlap
-    from one bed.
+    """Reads the projections of several bed positions of one study (one NM file per bed), inferior bed first.
+
+    Each bed is read with :func:`read_dicom`, and the beds are sorted from the most inferior to the most superior.
+    Where neighbouring beds overlap, each bed's projections beyond the middle of the overlap are replaced by its
+    neighbour's, as the stitched image (:func:`stitch_beds`) takes each half of the overlap from one bed.
 
     Args:
-        files (Sequence[str]): one NM file per bed, in any order.
+        files (Sequence[str]): One NM file per bed, in any order.
 
     Returns:
-        list: one (projections [W, θ, r, z], object_meta, proj_meta) per bed, the inferior bed first.
+        list[tuple]: One ``(projections [W, θ, r, z], object_meta, proj_meta)`` per bed, the inferior bed first.
     """
     beds = sorted((read_dicom(f) for f in files), key=lambda bed: bed[1].centre[2])
     projections = [bed[0] for bed in beds]
@@ -435,13 +465,18 @@ def stitch_beds(recons, object_metas: Sequence[SPECTObjectMeta], return_stitchin
 # ---------- stray radiation ----------
 
 def get_mean_stray_radiation_counts(file_blank: str, file_NM: str, index_peak: int | None = None):
-    """The mean counts per pixel and view of a blank scan (no source) in each energy window, scaled to the frame
-    duration of ``file_NM``: the stray radiation to add to the expected counts.
+    """The mean counts per pixel and view of a blank scan (no source), scaled to an acquisition's frame duration.
+
+    This is the stray radiation to add to the expected counts. The mean is taken over the pixels inside the field of
+    view (:func:`~pytomography.io.SPECT.fov_mask`) in each energy window.
 
     Args:
-        file_blank (str): the NM file of the blank scan.
-        file_NM (str): the NM file of the acquisition.
-        index_peak (int, optional): return this window's value only. Defaults to None: every window's.
+        file_blank (str): The NM file of the blank scan.
+        file_NM (str): The NM file of the acquisition.
+        index_peak (int, optional): Return this window's value only. Defaults to None: every window's.
+
+    Returns:
+        torch.Tensor | float: The mean counts of every window [W], or of window ``index_peak``.
     """
     projections_blank, _, meta_blank = read_dicom(file_blank)
     _, meta_NM = read_metadata(file_NM)
@@ -454,8 +489,25 @@ def get_mean_stray_radiation_counts(file_blank: str, file_NM: str, index_peak: i
 
 def get_mean_stray_radiation_counts_MEW_scatter(file_blank, file_NM, index_peak, index_lower, index_upper=None,
                                                 weighting_lower=0.5, weighting_upper=0.5):
-    """The stray radiation of the scatter estimate (:func:`pytomography.io.SPECT.energy_window_scatter`) made from the
-    windows ``index_lower`` and ``index_upper`` (see :func:`get_mean_stray_radiation_counts`)."""
+    """The stray radiation of an energy window scatter estimate, from a blank scan.
+
+    The blank scan's mean counts (:func:`get_mean_stray_radiation_counts`) in the windows ``index_lower`` and
+    ``index_upper`` are combined as :func:`~pytomography.io.SPECT.energy_window_scatter` combines the windows'
+    projections (:func:`~pytomography.utils.compute_EW_scatter`, with the windows' widths in keV).
+
+    Args:
+        file_blank (str): The NM file of the blank scan.
+        file_NM (str): The NM file of the acquisition.
+        index_peak (int): Index of the photopeak window.
+        index_lower (int): Index of the lower scatter window.
+        index_upper (int, optional): Index of the upper scatter window. Defaults to None: no upper window (dual
+            energy window estimate).
+        weighting_lower (float, optional): Weight of the lower window. Defaults to 0.5.
+        weighting_upper (float, optional): Weight of the upper window. Defaults to 0.5.
+
+    Returns:
+        float: The mean stray radiation counts of the scatter estimate, per pixel and view.
+    """
     mean_stray = get_mean_stray_radiation_counts(file_blank, file_NM)
     windows = read_metadata(file_NM)[1].energy_windows
     stray_upper = mean_stray[index_upper] if index_upper is not None else 0
@@ -465,7 +517,11 @@ def get_mean_stray_radiation_counts_MEW_scatter(file_blank, file_NM, index_peak,
 
 
 def print_energy_window_info(file_NM: str):
-    """Print the energy windows of a NM file (as ``proj_meta.energy_windows`` gives them)."""
+    """Prints the energy windows of a NM file, with their indices, as ``proj_meta.energy_windows`` gives them.
+
+    Args:
+        file_NM (str): The NM file.
+    """
     for i, window in enumerate(read_metadata(file_NM)[1].energy_windows):
         ranges = ', '.join(f'[{lo:g} keV, {hi:g} keV]' for lo, hi in window.ranges_keV)
         print(f'Index {i}:   Name: "{window.name}", Energies: {ranges}, photon {window.photon_keV:g} keV')

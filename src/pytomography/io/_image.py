@@ -25,27 +25,38 @@ def _numpy(x) -> np.ndarray:
 
 
 class Image():
-    r"""A 3D image with its own geometry: what :func:`~pytomography.io.load_image` returns, and what the writers
-    accept in place of a tensor and its ``object_meta``.
+    r"""A 3D image with its own geometry, as :func:`~pytomography.io.load_image` returns it.
+
+    The writers (:func:`~pytomography.io.save_dicom`, :func:`~pytomography.io.save_nifti`) accept an ``Image`` in
+    place of a tensor and its ``object_meta``, and :meth:`on` resamples it onto a reconstruction grid.
 
     Args:
-        data (np.ndarray | torch.Tensor): the image, axes (x, y, z) (a leading axis of length 1 is dropped). Kept as a
+        data (np.ndarray | torch.Tensor): The image, axes (x, y, z) (a leading axis of length 1 is dropped). Kept as a
             numpy array on the CPU.
         affine (array-like): 4 x 4 matrix from voxel index (i, j, k) to the voxel's centre in LPS mm. Any orientation.
-        units (str, optional): the units of the values, e.g. ``'HU'``, ``'1/cm'``, ``'counts'``, ``'label'``.
-        modality (str, optional): ``'CT'``, ``'MR'``, ``'PT'``, ``'NM'``...
-        meta (dict, optional): what the source says about itself (KVP, Manufacturer, the series description...).
+        units (str, optional): The units of the values, e.g. ``'HU'``, ``'1/cm'``, ``'counts'``, ``'label'``.
+            Defaults to None (unknown).
+        modality (str, optional): ``'CT'``, ``'MR'``, ``'PT'``, ``'NM'``... (stored upper case). Defaults to None.
+        meta (dict, optional): What the source says about itself (KVP, Manufacturer, the series description...).
+            Defaults to None (empty).
         frame (str, optional): ``'patient'`` when the affine is in the study's patient coordinates, ``'scanner'`` when
             the file only places the image relative to the scanner's centre. Defaults to ``'patient'``.
-        labels (dict, optional): for a label image (a mask or a segmentation), each label's name and its value, or
+        labels (dict, optional): For a label image (a mask or a segmentation), each label's name and its value, or
             the tuple of every value whose voxels belong to it (when labels overlap, each overlap has a value of its
-            own).
+            own). Defaults to None.
 
     Attributes:
-        centre (np.ndarray): the position of the image's centre in LPS mm.
-        voxel_size (tuple): the distance between neighbouring voxels along i, j and k, in mm.
-        object_meta (ObjectMeta): the image's own grid as an :class:`~pytomography.metadata.ObjectMeta` (for an image
-            whose axes run along +x, +y and +z).
+        data (np.ndarray): The image, axes (x, y, z), on the CPU.
+        affine (np.ndarray): 4 x 4 float64, voxel index (i, j, k) to the voxel's centre in LPS mm.
+        units (str | None): The units of the values.
+        modality (str | None): The modality, upper case.
+        meta (dict): What the source says about itself.
+        frame (str): ``'patient'`` or ``'scanner'``.
+        labels (dict | None): For a label image, each label's name and its value(s).
+
+    Raises:
+        ValueError: If ``data`` is not 3D, ``affine`` is not an invertible affine matrix, or ``frame`` is not
+            ``'patient'`` or ``'scanner'``.
     """
     def __init__(self, data, affine, units: str | None = None, modality: str | None = None, meta: dict | None = None,
                  frame: str = 'patient', labels: dict | None = None) -> None:
@@ -71,18 +82,27 @@ class Image():
 
     @property
     def shape(self) -> tuple:
+        """Number of voxels along i, j and k."""
         return tuple(int(n) for n in self.data.shape)
 
     @property
     def voxel_size(self) -> tuple:
+        """Distance between neighbouring voxels along i, j and k, in mm."""
         return tuple(float(v) for v in np.linalg.norm(self.affine[:3, :3], axis=0))
 
     @property
     def centre(self) -> np.ndarray:
+        """Position of the image's centre (voxel index ``(shape - 1) / 2``) in LPS mm."""
         return (self.affine @ np.array([*((np.asarray(self.shape) - 1) / 2), 1.0]))[:3]
 
     @property
     def object_meta(self) -> ObjectMeta:
+        """The image's own grid as an :class:`~pytomography.metadata.ObjectMeta`.
+
+        Only an image whose axes run along +x, +y and +z has one (what :func:`~pytomography.io.load_image` gives
+        with ``reorient=True`` for a non-oblique image); for any other this raises ValueError: resample it with
+        :meth:`on` instead.
+        """
         A = self.affine[:3, :3]
         d = np.diag(A)
         if not (np.allclose(A, np.diag(d), atol=1e-6 * np.abs(d).max()) and np.all(d > 0)):
@@ -100,25 +120,32 @@ class Image():
 
     def on(self, object_meta: ObjectMeta, *, mode: str = 'auto', label: int | str | None = None,
            threshold: float | None = None, fill: float = 0.0) -> torch.Tensor:
-        """The image resampled onto the grid of ``object_meta`` (any grid: a reconstruction's, a subsampled or a
-        stitched one), as a float32 tensor on ``pytomography.device``.
+        """Resamples the image onto the grid of ``object_meta``, as a float32 tensor on ``pytomography.device``.
 
-        The image is taken to fill its voxels: inside a voxel's extent its value is the voxel's, and between voxel
-        centres it is interpolated linearly; outside the image it is ``fill``.
+        Any grid works: a reconstruction's, a subsampled or a stitched one. The image is taken to fill its voxels:
+        inside a voxel's extent its value is the voxel's, and between voxel centres it is interpolated linearly;
+        outside the image it is ``fill``. A warning says when the image and the grid are in different frames
+        (``'patient'`` and ``'scanner'``).
 
         Args:
-            object_meta (ObjectMeta): the target grid.
-            mode (str): ``'auto'``: trilinear interpolation at the target voxel centres, or, along any axis where a
-                target voxel is more than 1.5 source voxels long, the mean over the target voxel (so a 1 mm CT on a
-                4.8 mm SPECT grid is averaged, not point sampled). ``'nearest'``: the value of the nearest voxel.
-            label (int | str | tuple, optional): for a label image, the label (its value, a tuple or list of values,
-                or its name in ``labels``) whose coverage is returned: the fraction of each target voxel inside it (0 or 1 with ``mode='nearest'``).
-            threshold (float, optional): return a bool tensor, True where the resampled value (or coverage) is at
-                least ``threshold``.
-            fill (float): the value outside the image. Defaults to 0.
+            object_meta (ObjectMeta): The target grid.
+            mode (str, optional): ``'auto'``: trilinear interpolation at the target voxel centres, or, along any axis
+                where a target voxel is more than 1.5 source voxels long, the mean over the target voxel (so a 1 mm CT
+                on a 4.8 mm SPECT grid is averaged, not point sampled). ``'nearest'``: the value of the nearest voxel.
+                Defaults to ``'auto'``.
+            label (int | str | tuple, optional): For a label image, the label (its value, a tuple or list of values,
+                or its name in ``labels``) whose coverage is returned: the fraction of each target voxel inside it (0
+                or 1 with ``mode='nearest'``). Defaults to None (resample the values).
+            threshold (float, optional): Return a bool tensor, True where the resampled value (or coverage) is at
+                least ``threshold``. Defaults to None.
+            fill (float, optional): The value outside the image. Defaults to 0.
 
         Returns:
             torch.Tensor: [Lx, Ly, Lz] on ``pytomography.device``, float32 (bool with ``threshold``).
+
+        Raises:
+            ValueError: If ``mode`` is not ``'auto'`` or ``'nearest'``.
+            KeyError: If ``label`` is a name the image's ``labels`` do not have.
         """
         if mode not in ('auto', 'nearest'):
             raise ValueError(f"mode must be 'auto' or 'nearest', not {mode!r}")

@@ -1,5 +1,9 @@
-"""The GE StarGuide: 12 swivelling CZT detector heads, each 16 pixels wide, one DICOM NM file per head, with the
-head geometry in private tags (see the vendor table, rule 'ge-starguide')."""
+"""Reading GE StarGuide projections: 12 swivelling CZT detector heads, each 16 pixels wide, one DICOM NM file per head.
+
+The head geometry is in private tags (vendor rule 'ge-starguide'). :func:`read_starguide` reads the head files of one
+acquisition into PyTomography's standard form, for
+:class:`~pytomography.projectors.SPECT.StarGuideSystemMatrix`.
+"""
 from __future__ import annotations
 
 from typing import Sequence
@@ -58,7 +62,7 @@ def _heads(files: Sequence[str]) -> list:
 
 def read_starguide(files: Sequence[str], energy_window: int | None = None, *, files_CT: Sequence[str] | None = None,
                    object_meta: ObjectMeta | None = None, nearest_theta: float | None = 0.1):
-    """StarGuide projections in PyTomography's standard form.
+    """Reads the GE StarGuide projections of one acquisition (one file per head) into PyTomography's standard form.
 
     * The head geometry comes from private tags (vendor rule 'ge-starguide'): each view's angle θ (used as β), and its
       radius and transaxial offset from the head's x, y (cm, converted to mm); times in ms become seconds.
@@ -71,18 +75,23 @@ def read_starguide(files: Sequence[str], energy_window: int | None = None, *, fi
       else on the scanner (frame ``'scanner'``).
 
     Args:
-        files (Sequence[str]): the head files of one acquisition (12 of them).
-        energy_window (int, optional): the energy window to return. Defaults to None: all of them.
-        files_CT (Sequence[str], optional): the CT of the acquisition, which places the grid in the patient.
-        object_meta (ObjectMeta, optional): the grid to reconstruct on (its voxel size and shape); the reader sets its
-            centre and frame.
-        nearest_theta (float, optional): the view angles are rounded to this many degrees (views of one angle are
+        files (Sequence[str]): The head files of one acquisition (12 of them).
+        energy_window (int, optional): Index of the energy window to return. Defaults to None: all of them.
+        files_CT (Sequence[str], optional): The CT of the acquisition, which places the grid in the patient. Defaults
+            to None.
+        object_meta (ObjectMeta, optional): The grid to reconstruct on (its voxel size and shape); the reader sets its
+            centre and frame. Defaults to None (GE's grid).
+        nearest_theta (float, optional): The view angles are rounded to this many degrees (views of one angle are
             projected together). Defaults to 0.1; None keeps them as stored.
 
     Returns:
-        (torch.Tensor, SPECTObjectMeta, StarGuideProjMeta): projections [W, view, r, z] (or [view, r, z] for one
-        ``energy_window``); the grid; the projection metadata (angles, radii and offsets in mm, frame durations in s,
-        every energy window).
+        tuple[torch.Tensor, SPECTObjectMeta, StarGuideProjMeta]: The projections [W, view, r, z] (or [view, r, z] for
+        one ``energy_window``) on ``pytomography.device``; the grid (mm); the projection metadata (angles in degrees,
+        radii and offsets in mm, frame durations in s, every energy window).
+
+    Raises:
+        ValueError: If the files belong to more than one acquisition, are not StarGuide projection files, or their
+            views and energy windows do not match up.
     """
     _vendors.use('ge-starguide')
     datasets = _heads(files)

@@ -13,9 +13,9 @@ def attenuation_map(source, object_meta: ObjectMeta, energy_keV: float | None = 
     r"""The linear attenuation coefficients at a photon energy, in 1/mm, on the grid of ``object_meta``.
 
     * **A CT** (any image :func:`~pytomography.io.load_image` reads whose units are HU: a DICOM series, a NIfTI saved
-      in HU...): its HU become mu at ``energy_keV`` on the CT's own grid, along the bilinear curve of ``technique``
-      (see :mod:`pytomography.io._hu`), and that is put on the grid by :meth:`~pytomography.io.Image.on`, which averages
-      where the grid's voxels are larger than the CT's.
+      in HU...): its HU become mu at ``energy_keV`` on the CT's own grid, along a bilinear curve (one line from air to
+      water, one from water to bone) whose coefficients ``technique`` chooses, and that is put on the grid by
+      :meth:`~pytomography.io.Image.on`, which averages where the grid's voxels are larger than the CT's.
     * **A mu map** (a SIMIND ``.hct`` with ``layout=``, a GATE/STIR ``.hv``, a Siemens ``.v.hdr``, a NIfTI, a vendor's
       DICOM map...): its values are converted from their units (the file's, or ``units=``) to 1/mm and checked against
       NIST's water at ``energy_keV``: a warning says when the map's water is more than 5 % off, which happens for a map
@@ -26,21 +26,29 @@ def attenuation_map(source, object_meta: ObjectMeta, energy_keV: float | None = 
     :func:`pytomography.io.PET.gate_image`.
 
     Args:
-        source: anything :func:`~pytomography.io.load_image` reads, or an :class:`~pytomography.io.Image`.
-        object_meta (ObjectMeta): the reconstruction grid.
-        energy_keV (float, optional): the photon energy. Defaults to None: 511 keV for a PET grid (modality
-            ``'PT'``); it must be given for any other (SPECT: the photopeak's energy).
-        technique (str | Callable, optional): for a CT, ``'table'`` (PyTomography's table of measured coefficients for
-            the CT's model and kVp), ``'cortical_bone_fit'`` (the CT's effective energy from its cortical bone peak),
-            ``'nist'`` (from NIST, with the CT's effective energy 75 % of its kVp), or a function that takes HU and
-            returns mu in 1/mm. Defaults to ``'table'``.
-        layout (str, optional): for a SIMIND density map, ``'mu'`` or ``'mu-castor'`` (see
-            :func:`~pytomography.io.load_image`).
-        units (str, optional): the units of the source's values when the file does not give them, or to override
-            them: ``'HU'``, ``'1/cm'``, ``'1/mm'``.
+        source (str | os.PathLike | list | Image): Anything :func:`~pytomography.io.load_image` reads, or an
+            :class:`~pytomography.io.Image`.
+        object_meta (ObjectMeta): The reconstruction grid.
+        energy_keV (float, optional): The photon energy, in keV. Defaults to None: 511 keV for a PET grid (modality
+            ``'PT'``); it must be given for any other (SPECT: the photopeak's energy, e.g.
+            ``proj_meta.energy_windows[0].photon_keV``).
+        technique (str | Callable, optional): For a CT, where the curve's coefficients come from: ``'table'``
+            (PyTomography's table of measured coefficients for the CT's model and kVp, at the tabulated photon energy
+            nearest ``energy_keV``; when there is none within 5 %, ``'nist'`` with a warning), ``'cortical_bone_fit'``
+            (the CT's effective energy from its cortical bone peak, 1200 to 1600 HU, and NIST's air, water and
+            cortical bone), ``'nist'`` (NIST, with the CT's effective energy 75 % of its kVp), or a function that takes
+            HU and returns mu in 1/mm. Defaults to ``'table'``.
+        layout (str, optional): For a SIMIND density map, ``'mu'`` or ``'mu-castor'`` (see
+            :func:`~pytomography.io.load_image`). Defaults to None.
+        units (str, optional): The units of the source's values when the file does not give them, or to override
+            them: ``'HU'``, ``'1/cm'``, ``'1/mm'``. Defaults to None (the source's).
 
     Returns:
-        torch.Tensor: mu in 1/mm, float32, ``object_meta.shape``, on ``pytomography.device``.
+        torch.Tensor: Mu in 1/mm, float32, of shape ``object_meta.shape``, on ``pytomography.device``.
+
+    Raises:
+        ValueError: If ``energy_keV`` is missing for a grid that is not PET, the source's units are unknown and not
+            given, or ``layout`` is given with an :class:`~pytomography.io.Image`.
     """
     if energy_keV is None:
         if object_meta.modality != "PT":

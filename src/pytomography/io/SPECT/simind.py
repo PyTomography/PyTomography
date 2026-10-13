@@ -1,5 +1,8 @@
-"""SIMIND Monte Carlo projections (Interfile ``.h00`` headers and ``.a00`` data), one pair per energy window (and per
-organ when the source was simulated organ by organ)."""
+"""Reading SIMIND Monte Carlo projections: Interfile ``.h00`` headers and ``.a00`` data, one pair per energy window.
+
+When the source was simulated organ by organ there is one pair per organ and window. :func:`read_simind` reads them
+into PyTomography's standard form, and :func:`simind_psf` gives the collimator's PSF from a header.
+"""
 from __future__ import annotations
 
 import os
@@ -17,7 +20,17 @@ from ._energy import _mu_per_mm, _psf_meta, photon_energy
 
 
 def simind_version(header: Interfile) -> int:
-    """The major version of the SIMIND that wrote ``header``: the number after 'V' in 'program version'."""
+    """The major version of the SIMIND that wrote a header: the number after 'V' in 'program version'.
+
+    Args:
+        header (Interfile): The header, as PyTomography's Interfile reader reads it.
+
+    Returns:
+        int: The major version, e.g. 8.
+
+    Raises:
+        ValueError: If 'program version' has no version number.
+    """
     text = header.get('program version')
     found = re.search(r'[vV]\s*(\d+)', text)
     if not found:
@@ -136,16 +149,22 @@ def read_simind(headers, energy_window: int | None = None, *, weights: Sequence[
 
 
 def simind_psf(header: str, photon_keV: float | None = None, min_sigmas: float = 3) -> SPECTPSFMeta:
-    """The Gaussian collimator PSF (mm) of a SIMIND simulation, from the collimator and camera keys of its header, at
-    the photon energy of the header's window (or ``photon_keV``).
+    """The Gaussian collimator PSF of a SIMIND simulation, from the collimator and camera keys of its header.
+
+    The hole diameter, the collimator thickness and the camera's intrinsic FWHM (at 140 keV, scaled as
+    :math:`E^{-1/2}`) come from the header; the PSF is that of a lead parallel-hole collimator, as for
+    :func:`~pytomography.io.SPECT.collimator_psf`, at the photon energy of the header's window (or ``photon_keV``).
 
     Args:
-        header (str): a ``.h00`` file of the simulation (its window sets the photon energy).
-        photon_keV (float, optional): the photon energy, instead of the window's.
-        min_sigmas (float): kernel half-width in sigmas. Defaults to 3.
+        header (str): A ``.h00`` file of the simulation (its window sets the photon energy).
+        photon_keV (float, optional): The photon energy in keV, instead of the window's. Defaults to None.
+        min_sigmas (float, optional): Kernel half-width in sigmas. Defaults to 3.
 
     Returns:
-        SPECTPSFMeta: the PSF, in mm.
+        SPECTPSFMeta: The PSF, its width as a function of the distance in mm.
+
+    Raises:
+        ValueError: If the file was not written by SIMIND or holds no projections.
     """
     h = _header(header)
     unit = _mm_per_unit(h)
