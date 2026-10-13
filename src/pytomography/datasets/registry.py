@@ -243,8 +243,8 @@ DATASETS = {
         "parts": [
             # Grey and white matter of the brain phantom, from its MR's intensity classes on the Deep Image Prior
             # tutorial's grid (docs/tools/make_tutorial_regions.py, 13 Oct 2026)
-            {"kind": "package", "file": "gate_brain_matter.seg.nrrd", "size": 12639,
-             "sha256": "46c71f3a1c1bb09ea2e35f9ddee8ab9d0c8827db2842327668dcdebfdef5cceb"},
+            {"kind": "package", "file": "gate_braininwater_rois.seg.nrrd", "size": 12844,
+             "sha256": "c702e33efaad4160f08f7bf30ff291394f15a04b9f2f416ecf9a876864fa08ab"},
         ],
         "files": {
             **{f"simple_phantom/mMR_voxBrain_withSimplePhantom_{i}.root": run
@@ -312,8 +312,8 @@ DATASETS = {
         "parts": [
             # The phantom, its six spheres and its background (also in 10 mm rings round its axis), found from its
             # attenuation map and the tutorial's reconstruction (docs/tools/make_tutorial_regions.py, 13 Oct 2026)
-            {"kind": "package", "file": "nema_iq_regions.seg.nrrd", "size": 110461,
-             "sha256": "0b0a25e9e9ff34ae85c11dcf6d5f5ae5160d7b56d16a7517e27a758a5c92a41f"},
+            {"kind": "package", "file": "petsird_mmr_nema_rois.seg.nrrd", "size": 110965,
+             "sha256": "cd85b63d55651b6ecb6142c211e8fd31616224da85ef88bd566033e672860612"},
         ],
     },
     "CT/ldct-c145": {
@@ -337,8 +337,8 @@ DATASETS = {
              "sha256": "be874455af32354452d41db9eb421ab530fb5b6f1cd910446e1ba757602245c4"},
             # The body, soft tissue and a block of liver, found from the scanner's images on the CT tutorials' grid
             # (docs/tools/make_tutorial_regions.py, 13 Oct 2026)
-            {"kind": "package", "file": "ldct_c145_regions.seg.nrrd", "size": 1385385,
-             "sha256": "7f747fdf5d685a751a56e853fa25d1a5041bab3fac1c283f7b4be2b2de1c0e02"},
+            {"kind": "package", "file": "ldct_c145_rois.seg.nrrd", "size": 1385511,
+             "sha256": "fc0553f07b976a5bba4b24d05518422c0aa743e3b2d4197a16353aaf8e68e60d"},
         ],
     },
     "CT/SophiaBeads-256": {

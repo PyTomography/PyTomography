@@ -584,20 +584,20 @@ def test_tutorial_region_files():
 
     def segment(mask, name):
         return np.isin(mask.data, np.atleast_1d(mask.labels[name]))
-    brain = load_mask(FILES / 'gate_brain_matter.seg.nrrd')
-    assert set(brain.labels) == {'grey matter', 'white matter'} and brain.frame == 'patient'
-    assert np.allclose(brain.voxel_size, 1.25) and not (segment(brain, 'grey matter') & segment(brain, 'white matter')).any()
-    nema = load_mask(FILES / 'nema_iq_regions.seg.nrrd')
-    spheres = [f'sphere {d} mm' for d in (10, 13, 17, 22, 28, 37)]
-    assert nema.frame == 'scanner' and {'phantom', 'background', 'ring 0', *spheres} <= set(nema.labels)
+    brain = load_mask(FILES / 'gate_braininwater_rois.seg.nrrd')
+    assert set(brain.labels) == {'grey_matter', 'white_matter'} and brain.frame == 'patient'
+    assert np.allclose(brain.voxel_size, 1.25) and not (segment(brain, 'grey_matter') & segment(brain, 'white_matter')).any()
+    nema = load_mask(FILES / 'petsird_mmr_nema_rois.seg.nrrd')
+    spheres = [f'sphere_{d}mm' for d in (37, 28, 22, 17, 13, 10)]
+    assert nema.frame == 'scanner' and {'phantom', 'background', 'ring_0', *spheres} <= set(nema.labels)
     phantom, background = segment(nema, 'phantom'), segment(nema, 'background')
     for name in nema.labels:
         assert (segment(nema, name) <= phantom).all(), name                     # all inside the phantom
-    rings = [segment(nema, name) for name in nema.labels if name.startswith('ring ')]
+    rings = [segment(nema, name) for name in nema.labels if name.startswith('ring_')]
     assert (np.sum(rings, axis=0) <= 1).all() and (np.any(rings, axis=0) <= background).all()
     assert not any((segment(nema, name) & background).any() for name in spheres)
-    ct = load_mask(FILES / 'ldct_c145_regions.seg.nrrd')
-    assert set(ct.labels) == {'body', 'soft tissue', 'liver'} and ct.frame == 'patient'
+    ct = load_mask(FILES / 'ldct_c145_rois.seg.nrrd')
+    assert set(ct.labels) == {'body', 'soft_tissue', 'liver'} and ct.frame == 'patient'
     assert segment(ct, 'liver').sum() == 40 * 40 * 16 and (segment(ct, 'liver') <= segment(ct, 'body')).all()
 
 
