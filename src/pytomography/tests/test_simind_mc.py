@@ -107,6 +107,35 @@ def test_detector_thicknesses_are_mm_and_reach_simind_in_cm(monkeypatch):
     assert seen and all((d['09'], d['11'], d['13']) == (0.9525, 6.6, 0.1) for d in seen)
 
 
+def test_only_the_reconstructed_window_is_simulated(monkeypatch):
+    """The hybrid system matrix asks SIMIND for the window(s) of primary_window_idx only, and returns those
+    projections; the other windows of energy_window_params would be thrown away."""
+    from pytomography.projectors.SPECT import dualhead_system_matrix, MonteCarloHybridSPECTSystemMatrix
+    monkeypatch.setattr(dualhead_system_matrix.shutil, 'which', lambda name: 'simind')
+    N, dx = 8, 4.8
+    object_meta = SPECTObjectMeta((dx, dx, dx), (N, N, N))
+    proj_meta = SPECTProjMeta((N, N), (dx, dx), np.array([0.0, 90.0]), radii=np.full(2, 250.0))
+    windows = ['187.2,228.8,0', '166.4,187.2,0', '228.8,249.6,0']
+    asked = []
+
+    def fake_simulation(object, attenuation_map, object_meta, proj_meta, windows, *args, **kwargs):
+        asked.append(list(windows))           # window w's projections hold its lower bound
+        return torch.stack([torch.full((proj_meta.num_projections, N, N), float(w.split(',')[0]))
+                            for w in windows]).to(pytomography.device)
+    monkeypatch.setattr(simind_mc, 'run_scatter_simulation', fake_simulation)
+    common = dict(n_events=10, n_parallel=1, obj2obj_transforms=[], proj2proj_transforms=[],
+                  attenuation_map_140keV=torch.zeros((N, N, N)), energy_window_params=windows,
+                  isotope_names=['lu177'], isotope_ratios=[1.0], collimator_type='SY-ME', crystal_thickness_mm=9.525,
+                  cover_thickness_mm=1.0, backscatter_thickness_mm=66.0)
+    obj = torch.ones((N, N, N)).to(pytomography.device)
+    one = MonteCarloHybridSPECTSystemMatrix(object_meta, proj_meta, primary_window_idx=2, **common).forward(obj).cpu()
+    assert asked[-1] == [windows[2]] and one.shape == (2, N, N)
+    assert torch.allclose(one, torch.full((2, N, N), 228.8 * N ** 3))
+    two = MonteCarloHybridSPECTSystemMatrix(object_meta, proj_meta, primary_window_idx=[0, 2], **common).forward(obj).cpu()
+    assert asked[-1] == [windows[0], windows[2]] and two.shape == (2, 2, N, N)
+    assert torch.allclose(two[1], one)
+
+
 def _total_and_scatter(attenuation_map, source, object_meta, proj_meta, index_dict):
     """Photopeak window projections (total, scatter) of SIMIND for the given maps, 1e6 photons per view."""
     window = ['187.2,228.8,0']
