@@ -54,6 +54,10 @@ def set_memory_budget(gb: float | None):
 
     The results do not depend on the budget. Without one (the default), blocks have fixed sizes, and sinograms are built whole unless one would take more than 8 GB (a TOF sinogram of a clinical scanner).
 
+    To see what a reconstruction will need before running it, ask its system matrix or algorithm: ``estimate_memory``
+    gives the peak RAM and GPU memory for given settings (e.g. ``n_subsets``), and ``plan_memory`` the fastest settings
+    that fit a RAM and GPU budget, by default what is free on this machine (see :mod:`pytomography.utils.memory`).
+
     Args:
         gb (float | None): Memory budget in GB, or None for no budget.
     """

@@ -5,8 +5,9 @@ from pytomography.metadata import ObjectMeta
 from pytomography.metadata.PET import PETSinogramPolygonProjMeta
 import math
 import numpy as np
-from pytomography.utils.memory import gpu_budget
+from pytomography.utils.memory import gpu_budget, MemoryPart, tensor_nbytes
 from pytomography.projectors import SystemMatrix
+from pytomography.projectors.system_matrix import on_device
 from pytomography.transforms import Transform
 from pytomography.io.PET.shared import listmode_to_sinogram, all_pairs_to_sinogram
 import parallelproj_core
@@ -25,6 +26,16 @@ class PETSinogramSystemMatrix(SystemMatrix):
             N_splits (int, optional): Splits up computation of forward/back projection to save GPU memory. Defaults to 1.
             device (str, optional): The device for any objects in projection space projection space (what it outputs in forward projection and what it expects for back projection). This is seperate from ``pytomography.device`` since the internal functionality may still use GPU even if this is CPU. This is used to save GPU memory since sinograms are often very large. Defaults to pytomography.device.
         """
+    #: On Windows, memory PyTorch's allocators keep, as a fraction of a reconstruction's arrays, for memory estimates:
+    #: measured on the GATE mMR TOF sinogram tutorial (14 and 28 subsets, projections in RAM or on the GPU), where the
+    #: estimates then come within 15% of the measured peaks.
+    memory_allocator_fraction = 0.6
+
+    #: Memory estimates: this system matrix projects with parallelproj, whose CUDA build makes a CUDA context (and
+    #: runs on the GPU) also when PyTomography's device is the CPU, if a CUDA device is visible
+    #: (:func:`~pytomography.utils.memory.projector_uses_gpu`).
+    memory_cuda_projector = True
+
     def __init__(
         self,
         object_meta: ObjectMeta,
@@ -122,6 +133,40 @@ class PETSinogramSystemMatrix(SystemMatrix):
         xyz1 = torch.cat([dc[angle, r, 0], rc[plane, 0].unsqueeze(1)], dim=1)
         xyz2 = torch.cat([dc[angle, r, 1], rc[plane, 1].unsqueeze(1)], dim=1)
         return xyz1, xyz2
+
+    def _memory_parts(self, n_subsets: int, N_splits: int | None) -> list[MemoryPart]:
+        """What a reconstruction with this system matrix holds at its peak (see :meth:`~pytomography.projectors.SystemMatrix.estimate_memory`):
+        the sensitivity sinogram, a normalisation image per subset and the images for the whole run; one subset's data,
+        expected counts, ratio and the temporaries of computing them (about three arrays of a subset's size, where the
+        projections are: ``device``); and the projector's chunk. The images and the chunk are on
+        ``pytomography.device``: GPU memory with a CUDA device, RAM without one. The data and the additive term are the
+        likelihood's: pass them to ``estimate_memory`` as ``held``.
+
+        Args:
+            n_subsets (int): Number of subsets.
+            N_splits (int | None): Projector splits, or None for this system matrix's own.
+
+        Returns:
+            list[MemoryPart]: The arrays.
+        """
+        n_angles, n_r, n_planes = self.proj_meta.N_angles, self.proj_meta.shape[1], self.proj_meta.shape[2]
+        n_bins = self.proj_meta.tof_meta.num_bins if self.TOF else 1
+        image_bytes = 4 * math.prod(self.object_meta.shape)
+        on_gpu = torch.device(self.output_device).type == 'cuda'
+        where = (lambda nbytes: {'gpu_bytes': nbytes}) if on_gpu else (lambda nbytes: {'ram_bytes': nbytes})
+        parts = []
+        if self.sinogram_sensitivity is not None:
+            parts.append(MemoryPart('sensitivity sinogram', **where(tensor_nbytes(self.sinogram_sensitivity))))
+        device = pytomography.device
+        parts.append(MemoryPart(f'normalisation images ({n_subsets})', **on_device(device, n_subsets * image_bytes)))
+        parts.append(MemoryPart('image, update and attenuation map', **on_device(device, 4 * image_bytes)))
+        lors = math.ceil(n_angles / n_subsets) * n_r * n_planes          # the LORs of the largest subset
+        parts.append(MemoryPart('data, expected counts, ratio and temporaries (one subset)', **where(3.0 * 4 * lors * n_bins), scope='subset'))
+        splits = self.N_splits if N_splits is None else N_splits
+        bytes_per_lor = 88 + 8 * n_bins
+        n_chunks = max(splits, math.ceil(lors * bytes_per_lor / gpu_budget()))
+        parts.append(MemoryPart('projector chunk', **on_device(device, math.ceil(lors / n_chunks) * bytes_per_lor), scope='chunk'))
+        return parts
 
     def _N_sinogram(self, subset_idx: int | None = None) -> int:
         """Number of sinogram elements (all angles, or the angles of subset ``subset_idx``)."""

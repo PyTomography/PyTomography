@@ -630,7 +630,7 @@ def stitch_multibed(
         return_stitching_weights (bool): If true, instead of returning stitched reconstruction, instead returns the stitching weights (and z location in the stitched image) for each bed position (this is used as a tool for uncertainty estimation in multi bed positions). Defaults to False
 
     Returns:
-        torch.Tensor[Lx, Ly, Lz']: Stitched together DICOM file. Note the new z-dimension size :math:`L_z'`.
+        torch.Tensor[Lx, Ly, Lz']: Stitched together DICOM file. Note the new z-dimension size :math:`L_z'`. Its first slice is the first slice of the lowest bed (smallest z). If ``return_stitching_weights``, instead the weights ``[n_beds, Lx, Ly, Lz]`` the stitched image gives each bed's voxels (1 where it takes that bed's voxel, 0 elsewhere) and the index of each bed's first slice in the stitched image, both in the order of ``files_NM``: the stitched image is the sum over beds of ``weights[k] * recons[k]`` placed at ``zs[k]``.
     """
     dss = np.array([pydicom.dcmread(file_NM) for file_NM in files_NM])
     zs = np.array(
@@ -668,8 +668,9 @@ def stitch_multibed(
     for i in range(len(zs)):
         recon_aligned[:, :, zs[i] : zs[i] + original_z_height] += recons[i]  * stitching_weights[i]
     if return_stitching_weights:
-        # put back in original order
-        return torch.cat(stitching_weights)[np.argsort(order)], zs[np.argsort(order)]
+        # put back in original order. Stacked, one [Lx, Ly, Lz] per bed: concatenating them (as before) made one
+        # [n_beds*Lx, Ly, Lz] tensor whose first rows, the ones indexed here, all belong to the lowest bed
+        return torch.stack(stitching_weights)[np.argsort(order)], zs[np.argsort(order)]
     else:
         return recon_aligned
 
@@ -681,7 +682,9 @@ def get_aligned_rtstruct(
     cutoff_value = 0.5,
     shape = None
 ):
-    """Loads an RT struct file and aligns it with SPECT projection data corresponding to ``file_NM``. 
+    """Loads an RT struct file and aligns it with SPECT projection data corresponding to ``file_NM``.
+
+    The mask's first slice is the first (lowest z) slice of the reconstruction of ``file_NM``. For an image of several bed positions stitched by :func:`stitch_multibed`, which starts at the first slice of the lowest bed, pass the file of the lowest bed (smallest z) and the shape of the stitched image.
 
     Args:
         file_RT (str): Filepath of the RT Struct file
@@ -689,6 +692,7 @@ def get_aligned_rtstruct(
         dicom_series_path (str): Filepath of the DICOM series linked to the RTStruct file (required for loading RTStructs).
         rt_struct_name (str): Name of the desired RT struct.
         cutoff_value (float, optional): After interpolation is performed to align the mask in the new frame, mask voxels with values less than this are excluded. Defaults to 0.5.
+        shape (Sequence[int], optional): Shape of the aligned mask. Defaults to None (the shape of the reconstruction of ``file_NM``).
 
     Returns:
         torch.Tensor: RTStruct mask aligned with SPECT data.

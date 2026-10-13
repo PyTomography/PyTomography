@@ -2,6 +2,7 @@ r"""This module consists of preconditioned gradient ascent (PGA) algorithms: the
 
 from __future__ import annotations
 from collections.abc import Callable, Sequence
+import math
 import pytomography
 import torch
 from pytomography.callbacks import Callback, DataStorageCallback
@@ -9,9 +10,14 @@ from pytomography.likelihoods import Likelihood, SARTWeightedNegativeMSELikeliho
 from pytomography.priors import Prior
 from pytomography.io.SPECT import dicom
 from pytomography.projectors import SystemMatrix
+from pytomography.projectors.system_matrix import held_parts, on_device
+from pytomography.utils.memory import MemoryEstimate, MemoryPart, MemoryPlan, memory_estimate, plan_settings, tensor_bytes
 
 class PreconditionedGradientAscentAlgorithm:
-    r"""Generic class for preconditioned gradient ascent algorithms: i.e. those that have the form :math:`f^{n+1} = f^{n} + C^{n}(f^{n}) \left[\nabla_{f} L(g^n|f^{n}) - \beta \nabla_{f} V(f^{n}) \right]`. 
+    r"""Generic class for preconditioned gradient ascent algorithms: i.e. those that have the form :math:`f^{n+1} = f^{n} + C^{n}(f^{n}) \left[\nabla_{f} L(g^n|f^{n}) - \beta \nabla_{f} V(f^{n}) \right]`.
+
+    Before running one, :meth:`estimate_memory` predicts its peak RAM and GPU memory for given settings (e.g. the number
+    of subsets), and :meth:`plan_memory` chooses the fastest settings that fit the memory there is.
 
     Args:
         likelihood (Likelihood): Likelihood class that facilitates computation of :math:`L(g^n|f^{n})` and its associated derivatives.
@@ -19,6 +25,12 @@ class PreconditionedGradientAscentAlgorithm:
         object_initial (torch.Tensor | None, optional): Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
         addition_after_iteration (float, optional): Value to add to the object after each iteration. This prevents image voxels getting "locked" at values of 0 for certain algorithms. Defaults to 0.
     """
+    #: Whether the algorithm adds up the :math:`H_m^T 1` of every subset at each update (BSREM, RBI-EM, RBI-MAP), which
+    #: stacks them: for memory estimates.
+    _sums_normalisation = False
+
+    #: Settings the algorithm always uses, whatever its call is given (MLEM: one subset): for memory estimates and plans.
+    _memory_fixed: dict = {}
     def __init__(
         self,
         likelihood: Likelihood,
@@ -49,7 +61,97 @@ class PreconditionedGradientAscentAlgorithm:
         """
         self.n_subsets = n_subsets
         self.likelihood._set_n_subsets(n_subsets)
-    
+
+    # ------------------------------------------------------------------ memory
+    def _memory_held(self) -> dict:
+        """The arrays this reconstruction holds for its whole run that its system matrix's estimate leaves to the caller:
+        the likelihood's projections (the data) and additive term (tensors or lazy sinograms)."""
+        held = {}
+        projections = getattr(self.likelihood, 'projections', None)
+        if projections is not None:
+            held['projections (the data)'] = projections
+        additive_term = getattr(self.likelihood, 'additive_term', None)
+        if additive_term is not None:
+            held['additive term'] = additive_term
+        return held
+
+    def _memory_extra(self, n_subsets: int) -> list[MemoryPart]:
+        r"""The algorithm's own arrays, for ``n_subsets`` subsets: the prior's (its copy of the image, its field of view
+        scale and its gradient for the whole run; the tensors of its neighbour weight, such as an anatomical image; and
+        six images of temporaries while its gradient is computed, rounded up from the sums over neighbours) and, for an
+        algorithm that adds up the :math:`H_m^T 1` of every subset at each update, those images stacked and their sum."""
+        image = 4 * math.prod(self.likelihood.system_matrix.object_meta.shape)
+        device = pytomography.device
+        parts = []
+        if self.prior is not None:
+            parts.append(MemoryPart('prior: its copy of the image, field of view scale and gradient', **on_device(device, 3 * image)))
+            ram, gpu = tensor_bytes(getattr(self.prior, 'weight', None))
+            if ram or gpu:
+                parts.append(MemoryPart('prior: its neighbour weights', ram, gpu))
+            parts.append(MemoryPart('prior: temporaries of its gradient', **on_device(device, 6 * image), scope='subset'))
+        if self._sums_normalisation and n_subsets > 1:
+            parts.append(MemoryPart(f'H_m^T 1 of the {n_subsets} subsets stacked, and their sum', **on_device(device, (n_subsets + 1) * image), scope='subset'))
+        return parts
+
+    def _memory_title(self) -> str:
+        return f"{type(self).__name__} ({type(self.likelihood.system_matrix).__name__})"
+
+    def estimate_memory(self, n_subsets: int | None = None, N_splits: int | None = None) -> MemoryEstimate:
+        """The predicted peak RAM and GPU memory of this reconstruction, without running it, for ``n_subsets`` subsets
+        (the number its call will be given) and ``N_splits`` projector splits: the estimate of its system matrix
+        (:meth:`~pytomography.projectors.SystemMatrix.estimate_memory`) with the arrays the algorithm holds, which are
+        the likelihood's projections and additive term, the prior's arrays, and the stacked :math:`H_m^T 1` of BSREM and
+        RBI. Callbacks are not counted (a ``DataStorageCallback`` keeps an image and the expected projections of every
+        subiteration). ``print`` it, or ``to_dict()`` for JSON. For the opposite question, see :meth:`plan_memory`.
+
+        Args:
+            n_subsets (int | None, optional): Number of subsets. Defaults to None: those of the last call, or 1.
+            N_splits (int | None, optional): Projector splits, for system matrices that take them. Defaults to None:
+                the system matrix's own.
+
+        Returns:
+            MemoryEstimate: The estimate.
+
+        Example:
+            >>> print(OSEM(likelihood).estimate_memory(n_subsets=8))
+        """
+        system_matrix = self.likelihood.system_matrix
+        settings = {name: present for name, (present, _) in system_matrix._memory_settings().items()}
+        settings['n_subsets'] = self._memory_fixed.get('n_subsets', n_subsets if n_subsets is not None else getattr(self, 'n_subsets', 1))
+        if N_splits is not None and 'N_splits' in settings:
+            settings['N_splits'] = N_splits
+        return system_matrix._memory_estimate(settings, held_parts(self._memory_held()), extra=self._memory_extra,
+                                              title=self._memory_title(), title_settings={'N_splits': N_splits})
+
+    def plan_memory(self, ram_gb: float | None = None, gpu_gb: float | None = None, **fixed) -> MemoryPlan:
+        """The fastest settings of this reconstruction that fit in ``ram_gb`` of RAM and ``gpu_gb`` of GPU memory, as a
+        :class:`~pytomography.utils.memory.MemoryPlan`: as :meth:`~pytomography.projectors.SystemMatrix.plan_memory` of
+        its system matrix (the fewest projector splits, then the fewest subsets that fit), with the arrays the algorithm
+        holds counted as in :meth:`estimate_memory`. Settings passed by name are kept, e.g. ``n_subsets=8`` (the number
+        its call will be given). Without budgets, the plan is for what is free on this machine now. If nothing fits, the
+        plan has ``fits`` False and the settings that come closest; it does not raise.
+
+        Args:
+            ram_gb (float | None, optional): RAM to fit in, in GB (on Windows it covers GPU memory too). Defaults to
+                None: what is available now.
+            gpu_gb (float | None, optional): GPU memory to fit in, in GB. Defaults to None: what is available now.
+            **fixed: Settings to keep, by name: ``n_subsets``, and ``N_splits`` for system matrices that take it.
+
+        Returns:
+            MemoryPlan: The plan.
+
+        Example:
+            >>> algorithm = OSEM(likelihood)
+            >>> plan = algorithm.plan_memory(ram_gb=25)
+            >>> recon = algorithm(n_iters=4, n_subsets=plan.settings['n_subsets'])
+        """
+        system_matrix = self.likelihood.system_matrix
+        held = held_parts(self._memory_held())
+        title = self._memory_title()
+        return plan_settings(title, system_matrix._memory_settings(),
+                             lambda s, alternatives: system_matrix._memory_estimate(s, held, alternatives, extra=self._memory_extra, title=title),
+                             {**fixed, **self._memory_fixed}, ram_gb, gpu_gb)
+
     def _compute_preconditioner(
         self,
         object: torch.Tensor,
@@ -192,6 +294,38 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
         Returns:
             float | Sequence[float]: Absolute uncertainty in the sum of counts in the masked region (if `return_pct` is False) OR absolute uncertainty and relative uncertainty in percent (if `return_pct` is True)
         """
+        V, final_recon = self._compute_V(mask, data_storage_callback, subiteration_number, include_additive_term, post_recon_filter)
+        uncertainty_abs2 = torch.sum(V[0] * self.likelihood.projections * V[0])
+        # If uncertainty estimated in the additive term
+        if include_additive_term:
+            uncertainty_abs2 += torch.sum(self.likelihood.additive_term_variance_estimate(V[1]))
+        uncertainty_abs = torch.sqrt(uncertainty_abs2).item()
+        if not(return_pct):
+            return uncertainty_abs
+        else:
+            uncertainty_rel = uncertainty_abs / (final_recon*mask).sum().item() * 100
+            return uncertainty_abs, uncertainty_rel
+
+    def _compute_V(
+        self,
+        mask: torch.Tensor,
+        data_storage_callback: DataStorageCallback,
+        subiteration_number: int | None = None,
+        include_additive_term: bool = False,
+        post_recon_filter: Transform | None = None
+        ) -> tuple[torch.Tensor, torch.Tensor]:
+        r"""Computes the derivative of the counts in ``mask`` at subiteration ``subiteration_number`` with respect to the projections, :math:`[V_y^k]'\xi` in the uncertainty paper (and with respect to the additive term, :math:`[V_s^k]'\xi`, if ``include_additive_term``); this is a helper function for ``compute_uncertainty``. The variance of the counts is then :math:`y\cdot([V_y^k]'\xi)^2` (plus the additive term's contribution).
+
+        Args:
+            mask (torch.Tensor): Masked region of the reconstructed object.
+            data_storage_callback (Callback): Callback that has been used in a reconstruction algorithm.
+            subiteration_number (int | None, optional): Subiteration number. If None, then the last subiteration. Defaults to None.
+            include_additive_term (bool, optional): Whether or not to also compute the derivative with respect to the additive term. Defaults to False.
+            post_recon_filter (Transform | None, optional): Filter applied to the reconstruction. Defaults to None.
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: The derivatives, a tensor of shape ``[1, ...]`` (``[2, ...]`` if ``include_additive_term``) where ``...`` is the shape of the projections, and the reconstructed object at subiteration ``subiteration_number`` (filtered, if a filter is given).
+        """
         if subiteration_number is None:
             subiteration_number = len(data_storage_callback.objects) - 1
         # Get final reconstruciton
@@ -207,17 +341,8 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
             V += self._compute_B(Q_sequence_current, data_storage_callback, n-1, include_additive_term=include_additive_term)
             if n>1:
                 Q_sequence_current = self._compute_Q(Q_sequence_current, data_storage_callback, n-1)
-        uncertainty_abs2 = torch.sum(V[0] * self.likelihood.projections * V[0])
-        # If uncertainty estimated in the additive term
-        if include_additive_term:
-            uncertainty_abs2 += torch.sum(self.likelihood.additive_term_variance_estimate(V[1]))
-        uncertainty_abs = torch.sqrt(uncertainty_abs2).item()
-        if not(return_pct):
-            return uncertainty_abs
-        else:
-            uncertainty_rel = uncertainty_abs / (final_recon*mask).sum().item() * 100
-            return uncertainty_abs, uncertainty_rel
-        
+        return V, final_recon
+
     def _compute_Q(
         self,
         input: torch.Tensor,
@@ -373,6 +498,8 @@ class RBIEM(LinearPreconditionedGradientAscentAlgorithm):
             object_initial (torch.Tensor | None, optional): Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
             prior (Prior, optional): Prior class that faciliates the computation of function :math:`V(f)` and its associated derivatives. If None, then no prior is used. Defaults to None.
         """
+    _sums_normalisation = True
+
     def __init__(
         self,
         likelihood: Likelihood,
@@ -409,6 +536,8 @@ class RBIMAP(PreconditionedGradientAscentAlgorithm):
             object_initial (torch.Tensor | None, optional): Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
             prior (Prior, optional): Prior class that faciliates the computation of function :math:`V(f)` and its associated derivatives. If None, then no prior is used. Defaults to None.
         """
+    _sums_normalisation = True
+
     def __init__(
         self,
         likelihood: Likelihood,
@@ -447,6 +576,8 @@ class BSREM(LinearPreconditionedGradientAscentAlgorithm):
             relaxation_sequence (Callable, optional): Relxation sequence :math:`\alpha(n)` used to scale future updates. Defaults to 1 for all :math:`n`. Note that when this function is provided, it takes the iteration number (not the subiteration) so that e.g. if 4 iterations and 8 subsets are used, it would call :math:`\alpha(4)` for all 8 subiterations of the final iteration.
             addition_after_iteration (float, optional): Value to add to the object after each iteration. This prevents image voxels getting "locked" at values of 0. Defaults to 1e-4.
         """
+    _sums_normalisation = True
+
     def __init__(
         self,
         likelihood: Likelihood,
@@ -510,6 +641,8 @@ class MLEM(OSEM):
             likelihood (Likelihood): Likelihood function :math:`L`.
             object_initial (torch.Tensor | None, optional): Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
         """
+    _memory_fixed = {'n_subsets': 1}
+
     def __call__(self, n_iters, callback=None):
         return super(MLEM, self).__call__(n_iters, n_subsets=1, callback=callback)
 
@@ -565,7 +698,70 @@ class PGAAMultiBedSPECT(PreconditionedGradientAscentAlgorithm):
         ) -> None:
         self.files_NM = files_NM
         self.reconstruction_algorithms = reconstruction_algorithms
-        
+
+    def _memory_title(self) -> str:
+        return f"{type(self).__name__} ({len(self.reconstruction_algorithms)} beds)"
+
+    def _bed_parts(self, settings: dict) -> list[MemoryPart]:
+        """The arrays of every bed's reconstruction with ``settings``: what each holds for the whole run (they all stay
+        alive, one bed at a time is updated), the arrays of a subset and of a projection of the bed that needs most,
+        and the beds' images, stacked, and the stitched image (three images per bed, rounded up)."""
+        estimates = []
+        for algorithm in self.reconstruction_algorithms:
+            system_matrix = algorithm.likelihood.system_matrix
+            estimates.append(system_matrix._memory_estimate(settings, held_parts(algorithm._memory_held()), alternatives=False,
+                                                            extra=algorithm._memory_extra))
+        parts = []
+        for k, estimate in enumerate(estimates, start=1):
+            held = [p for p in estimate.parts if p.scope == 'held']
+            parts.append(MemoryPart(f'bed {k}: what its reconstruction holds', sum(p.ram_bytes for p in held), sum(p.gpu_bytes for p in held)))
+        largest = max(estimates, key=lambda e: sum(p.ram_bytes + p.gpu_bytes for p in e.parts if p.scope in ('subset', 'chunk')))
+        parts += [p for p in largest.parts if p.scope in ('subset', 'chunk')]
+        image = 4 * math.prod(self.reconstruction_algorithms[0].likelihood.system_matrix.object_meta.shape)
+        parts.append(MemoryPart("the beds' images, stacked, and the stitched image",
+                                **on_device(pytomography.device, 3 * len(estimates) * image), scope='subset'))
+        return parts
+
+    def _bed_estimate(self, settings: dict, alternatives: bool = True) -> MemoryEstimate:
+        n = settings['n_subsets']
+        sm = self.reconstruction_algorithms[0].likelihood.system_matrix
+        return memory_estimate(f"{self._memory_title()}: {n} subset{'' if n == 1 else 's'}", self._bed_parts(settings), settings=settings,
+                               cuda_projector=getattr(sm, 'memory_cuda_projector', False))
+
+    def estimate_memory(self, n_subsets: int | None = None, N_splits: int | None = None) -> MemoryEstimate:
+        """The predicted peak RAM and GPU memory of the reconstruction of every bed, for ``n_subsets`` subsets: what each
+        bed's reconstruction holds (see :meth:`PreconditionedGradientAscentAlgorithm.estimate_memory`), the arrays of a
+        subset of the bed that needs most, and the images stitched together.
+
+        Args:
+            n_subsets (int | None, optional): Number of subsets. Defaults to None: those of the last call, or 1.
+            N_splits (int | None, optional): Projector splits, for system matrices that take them. Defaults to None.
+
+        Returns:
+            MemoryEstimate: The estimate.
+        """
+        first = self.reconstruction_algorithms[0]
+        settings = {name: present for name, (present, _) in first.likelihood.system_matrix._memory_settings().items()}
+        settings['n_subsets'] = n_subsets if n_subsets is not None else getattr(first, 'n_subsets', 1)
+        if N_splits is not None and 'N_splits' in settings:
+            settings['N_splits'] = N_splits
+        return self._bed_estimate(settings)
+
+    def plan_memory(self, ram_gb: float | None = None, gpu_gb: float | None = None, **fixed) -> MemoryPlan:
+        """The fastest settings of the reconstruction of every bed that fit in ``ram_gb`` of RAM and ``gpu_gb`` of GPU
+        memory (see :meth:`PreconditionedGradientAscentAlgorithm.plan_memory`), counted as in :meth:`estimate_memory`.
+
+        Args:
+            ram_gb (float | None, optional): RAM to fit in, in GB. Defaults to None: what is available now.
+            gpu_gb (float | None, optional): GPU memory to fit in, in GB. Defaults to None: what is available now.
+            **fixed: Settings to keep, by name, e.g. ``n_subsets``.
+
+        Returns:
+            MemoryPlan: The plan.
+        """
+        settings = self.reconstruction_algorithms[0].likelihood.system_matrix._memory_settings()
+        return plan_settings(self._memory_title(), settings, self._bed_estimate, fixed, ram_gb, gpu_gb)
+
     def __call__(
         self,
         n_iters: int,
@@ -633,12 +829,20 @@ class PGAAMultiBedSPECT(PreconditionedGradientAscentAlgorithm):
         return_pct: bool = False,
         include_additive_term: bool = False
     ):
-        """Estimates the uncertainty in a mask (should be same shape as the stitched image). Calling this method requires a sequence of ``DataStorageCallback`` instances that have been used in a reconstruction algorithm: these data storage contain required information for each bed position.
+        r"""Estimates the uncertainty in a mask (should be same shape as the stitched image). Calling this method requires a sequence of ``DataStorageCallback`` instances that have been used in a reconstruction algorithm: these data storage contain required information for each bed position.
+
+        The counts in the mask are :math:`S = \sum_k (w_k\xi)\cdot x_k`: each bed :math:`k` contributes its reconstruction :math:`x_k` in the part of the mask :math:`\xi` the stitched image takes from it (its stitching weights :math:`w_k`, see :func:`~pytomography.io.SPECT.dicom.stitch_multibed`). With :math:`v_k = [V_k]'(w_k\xi)` the derivative of bed :math:`k`'s part with respect to its projections :math:`y_k`, the variance is
+
+        .. math::
+
+            \text{Var}(S) = \sum_k y_k\cdot v_k^2 + 2\sum_{k<l} \sum_{j\in k\cap l} y_j\, v_{k,j}\, v_{l,j}
+
+        where the second sum runs over the projection data that beds :math:`k` and :math:`l` share. :func:`~pytomography.io.SPECT.dicom.load_multibed_projections` fills the overlap of each bed's projections with its neighbour's counts, so neighbouring beds share all of their overlap and their estimates there are correlated; beds reconstructed from their own projections share nothing, and their variances add. A slice of projections (all angles and radial positions at one :math:`z`) is taken to be shared by two beds where the two beds' projections are equal there. The additive term (if ``include_additive_term``) is treated the same way, its data taken to be shared in the same slices as the projections (:func:`~pytomography.io.SPECT.dicom.load_multibed_projections` fills every energy window) and with the variance estimate of the lower bed; this is exact when the additive term's variance estimate is that of an unsmoothed energy window estimate, and approximate within a few kernel widths of a bed's edge when it is smoothed.
 
         Args:
-            mask (torch.Tensor): Masked region of the reconstructed object: a boolean Tensor. This mask should be the same shape as the stitched object.
+            mask (torch.Tensor): Masked region of the reconstructed object: a boolean Tensor. This mask should be the same shape as the stitched object, and aligned with it: the stitched image starts at the first slice of the lowest bed (for an RTStruct, use :func:`~pytomography.io.SPECT.dicom.get_aligned_rtstruct` with the lowest bed's file and ``shape`` of the stitched image).
             data_storage_callbacks (Sequence[Callback]): Sequence of data storage callbacks used in reconstruction corresponding to each bed position.
-            subiteration_number (int | None, optional): Subiteration number to compute the uncertainty for. If None, then computes the uncertainty for the last iteration. Defaults to None. 
+            subiteration_number (int | None, optional): Subiteration number to compute the uncertainty for. If None, then computes the uncertainty for the last iteration. Defaults to None.
             return_pct (bool, optional): If true, then additionally returns the percent uncertainty for the sum of counts. Defaults to False.
             include_additive_term (bool): Whether or not to include uncertainty contribution from the additive term. This requires the ``additive_term_variance_estimate`` as an argument to the initialized likelihood. Defaults to False.
 
@@ -647,21 +851,79 @@ class PGAAMultiBedSPECT(PreconditionedGradientAscentAlgorithm):
         """
         if subiteration_number is None:
             subiteration_number = len(data_storage_callbacks[0].objects) - 1
-        # Crop mask to FOV region
         recons = [data_storage_callback.objects[subiteration_number].to(pytomography.device) for data_storage_callback in data_storage_callbacks]
         stitching_weights, zs = dicom.stitch_multibed(torch.stack(recons), self.files_NM, return_stitching_weights=True)
-        uncertainty_abs = []
+        Lz = recons[0].shape[-1]
+        Vs = [None] * len(recons)
+        variance = 0
         total_counts = 0
-        for k in range(len(recons)):
-            mask_k = mask[:,:,zs[k]:zs[k]+recons[0].shape[-1]] * stitching_weights[k]
+        for k, algorithm in enumerate(self.reconstruction_algorithms):
+            # The part of the mask the stitched image takes from this bed
+            mask_k = mask[:,:,zs[k]:zs[k]+Lz] * stitching_weights[k]
             if mask_k.sum()==0:
                 continue
-            uncertainty_abs_k = self.reconstruction_algorithms[k].compute_uncertainty(mask_k, data_storage_callbacks[k], subiteration_number, return_pct=False, include_additive_term=include_additive_term)
+            V, _ = algorithm._compute_V(mask_k, data_storage_callbacks[k], subiteration_number, include_additive_term=include_additive_term)
+            Vs[k] = V
+            projections = algorithm.likelihood.projections.to(V.device)
+            variance += torch.sum(V[0] * projections * V[0])
+            if include_additive_term:
+                variance += torch.sum(algorithm.likelihood.additive_term_variance_estimate(V[1]))
             total_counts += (recons[k]*mask_k).sum().item()
-            uncertainty_abs.append(uncertainty_abs_k)
-        uncertainty_abs_total = torch.sqrt(torch.sum(torch.tensor(uncertainty_abs)**2)).item()
+        # Covariance between beds, from the projection data they share
+        for k in range(len(recons)):
+            for l in range(k+1, len(recons)):
+                if Vs[k] is None or Vs[l] is None:
+                    continue
+                # make k the lower bed: its additive term variance estimate is used below
+                lower, upper = (k, l) if zs[k] <= zs[l] else (l, k)
+                slices_lower, slices_upper = self._shared_projection_slices(lower, upper, zs, Lz)
+                if len(slices_lower)==0:
+                    continue
+                V_lower, V_upper = Vs[lower], Vs[upper]
+                slices_lower, slices_upper = slices_lower.to(V_lower.device), slices_upper.to(V_lower.device)
+                projections = self.reconstruction_algorithms[lower].likelihood.projections.to(V_lower.device)
+                variance += 2 * torch.sum(V_lower[0][...,slices_lower] * projections[...,slices_lower] * V_upper[0][...,slices_upper])
+                if include_additive_term:
+                    # The variance estimate is a quadratic form a -> (Ka)*var*(Ka) (elementwise): (F(a+b)-F(a)-F(b))/2 = (Ka)*var*(Kb)
+                    F = self.reconstruction_algorithms[lower].likelihood.additive_term_variance_estimate
+                    a = V_lower[1]
+                    b = torch.zeros_like(a)
+                    b[...,slices_lower] = V_upper[1][...,slices_upper]
+                    cross = (F(a+b) - F(a) - F(b)) / 2
+                    variance += 2 * torch.sum(cross[...,slices_lower])
+        uncertainty_abs_total = torch.sqrt(variance).item() if torch.is_tensor(variance) else 0.0
         if return_pct:
             uncertainty_pct = uncertainty_abs_total / total_counts * 100
             return uncertainty_abs_total, uncertainty_pct
         else:
             return uncertainty_abs_total
+
+    def _shared_projection_slices(
+        self,
+        k: int,
+        l: int,
+        zs: Sequence[int],
+        Lz: int
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Finds the slices of projections (all angles and radial positions at one z) that beds ``k`` and ``l`` share: those where their projections overlap in z and are equal (the same counts, as :func:`~pytomography.io.SPECT.dicom.load_multibed_projections` gives neighbouring beds in their overlap).
+
+        Args:
+            k (int): Index of the first bed (in ``files_NM``)
+            l (int): Index of the second bed
+            zs (Sequence[int]): Index of each bed's first slice in the stitched image
+            Lz (int): Number of slices of each bed
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: The shared slices, as indices of bed ``k``'s slices and of bed ``l``'s slices.
+        """
+        z_start, z_end = max(zs[k], zs[l]), min(zs[k], zs[l]) + Lz
+        if z_end <= z_start:
+            empty = torch.zeros(0, dtype=torch.long)
+            return empty, empty
+        slices_k = torch.arange(z_start - zs[k], z_end - zs[k])
+        slices_l = torch.arange(z_start - zs[l], z_end - zs[l])
+        projections_k = self.reconstruction_algorithms[k].likelihood.projections
+        projections_l = self.reconstruction_algorithms[l].likelihood.projections.to(projections_k.device)
+        equal = projections_k[...,slices_k.to(projections_k.device)] == projections_l[...,slices_l.to(projections_k.device)]
+        shared = equal.reshape(-1, len(slices_k)).all(dim=0).cpu()
+        return slices_k[shared], slices_l[shared]

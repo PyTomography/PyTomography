@@ -10,7 +10,7 @@ import parallelproj_core
 from torchrbf import RBFInterpolator
 from torch.nn.functional import grid_sample
 from pytomography.io.PET.shared import sinogram_coordinates, sinogram_to_spatial, listmode_to_sinogram, LazySinogram
-from pytomography.utils.memory import gpu_budget, prefer_lazy, subsets_for_budget
+from pytomography.utils.memory import gpu_budget, prefer_lazy, subsets_for_budget, MemoryEstimate, MemoryPart, MemoryPlan, memory_estimate, nbytes, plan_settings
 from pytomography.utils import _sss_cuda
 from pytomography.projectors.PET import create_sinogramSM_from_LMSM
 from pytomography.projectors.PET.petlm_system_matrix import _float32
@@ -639,7 +639,8 @@ def interpolate_sparse_sinogram(
         # once): LazySinogram.to_dense computed groups of up to 1 GB and copied them in, 1.7 GB of temporaries for
         # the 1.65 GB sinogram of the mMR
         return interpolate_z(torch.arange(N_theta))
-    return LazySinogram(interpolate_z, shape, description="interpolated single scatter estimate", compute_on=interpolate_z)
+    return LazySinogram(interpolate_z, shape, description="interpolated single scatter estimate", compute_on=interpolate_z,
+                        memory_bytes=rtheta.nbytes)
 
 def _masked(subset: torch.Tensor, projections, mask: torch.Tensor) -> torch.Tensor:
     """``subset * mask``, computed in the memory of ``subset`` when it is a tensor of its own (a copy that indexing
@@ -812,3 +813,202 @@ def get_sss_scatter_estimate(
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
     return proj_scatter
+
+
+# ------------------------------------------------------------------------------------------------------------- memory
+def _sss_sizes(proj_meta: ProjMeta, tof_meta: PETTOFMeta | None, sinogram_interring_stepsize: int, sinogram_intraring_stepsize: int) -> dict:
+    """The sizes the scatter estimate's arrays are made of, from the scanner (``proj_meta.info``) and the sampling."""
+    info = proj_meta.info
+    crystals, rings = int(info['NrCrystalsPerRing']), int(info['NrRings'])
+    sampled_rings = len(range(0, rings, sinogram_interring_stepsize)) + (0 if (rings - 1) % sinogram_interring_stepsize == 0 else 1)
+    sampled_crystals_per_ring = len(range(0, crystals, sinogram_intraring_stepsize))
+    sampled = sampled_rings * sampled_crystals_per_ring
+    return dict(T=1 if tof_meta is None else int(tof_meta.num_bins), N_theta=crystals // 2, N_r=crystals + 1, planes=rings ** 2,
+                lors=sampled * (sampled - 1) // 2,                                         # sampled lines of response
+                rtheta=sampled_crystals_per_ring * (sampled_crystals_per_ring - 1) // 2,   # sampled (r, theta) positions
+                sampled_planes=sampled_rings ** 2, crystal_pairs=crystals * (crystals - 1) // 2)
+
+
+def estimate_sss_memory(
+    object_meta: ObjectMeta,
+    proj_meta: ProjMeta,
+    system_matrix: SystemMatrix | None = None,
+    proj_data=None,
+    sinogram_random=None,
+    tof_meta: PETTOFMeta | None = None,
+    sinogram_interring_stepsize: int = 4,
+    sinogram_intraring_stepsize: int = 4,
+    num_dense_tof_bins: int = 25,
+    N_splits: int = 1,
+    lazy: bool | None = None,
+) -> MemoryEstimate:
+    r"""The predicted peak RAM and GPU memory of :func:`get_sss_scatter_estimate` with the same arguments, without
+    running it (the images themselves are not needed, only their grid, ``object_meta``). ``print`` it, or ``to_dict()``
+    for JSON; :func:`plan_sss_memory` chooses ``N_splits`` and ``lazy`` for the memory there is.
+
+    Held for the whole estimate: the PET image and the attenuation map on ``pytomography.device``, the data and the
+    randoms (their size where they are; for list mode, the events binned lazily, about 8 bytes an event), the system
+    matrix's sensitivity sinogram (for list mode, that of the sinogram system matrix made from it), and the
+    interpolated estimate: lazy, the interpolation over angle and radius of the sampled ring pairs on the host; dense,
+    the whole sinogram on the host, twice (scaling it makes a copy). Then the steps' temporaries: on the host the
+    largest step's, and on the GPU every step's together, since PyTorch's cache keeps each step's blocks until the
+    estimate ends (without a GPU, the largest step's, on the host). The steps:
+
+    * the sparse estimate: per sampled line of response, its geometry, the probability of every TOF bin and the
+      temporaries of a scatter point; and, for TOF without the fused CUDA kernel, the TOF kernel of
+      ceil(T / ``N_splits``) bins by ``num_dense_tof_bins`` pieces, which is what ``N_splits`` bounds;
+    * the interpolation over angle and radius: the sampled values, the radial basis function system (3.5 matrices of
+      the sampled positions squared: the system, the distances, the kernel and the solver's copy; 3.3 measured) and its
+      evaluation in chunks of 8192 positions;
+    * for a dense estimate, the interpolation over the ring pairs, a GPU budget at a time;
+    * the scaling: a subset of angles of the data and the estimate (TOF), of the mask, randoms and sensitivity (not
+      TOF), and the projector's chunk, in as many subsets as :func:`scale_estimated_scatter` uses.
+
+    Args:
+        object_meta (ObjectMeta): Object metadata of the PET image.
+        proj_meta (ProjMeta): Projection metadata of the data (its ``info`` gives the scanner).
+        system_matrix (SystemMatrix | None, optional): The PET system matrix (list mode or sinogram). Defaults to None.
+        proj_data (optional): The data, as passed to :func:`get_sss_scatter_estimate` (None for list mode). Defaults to None.
+        sinogram_random (optional): Estimated randoms. Defaults to None.
+        tof_meta (PETTOFMeta | None, optional): TOF metadata (None: non-TOF). Defaults to None.
+        sinogram_interring_stepsize (int, optional): Axial stepsize between sampled rings. Defaults to 4.
+        sinogram_intraring_stepsize (int, optional): Stepsize between sampled crystals of a ring. Defaults to 4.
+        num_dense_tof_bins (int, optional): Pieces of each line for the TOF emission integrals. Defaults to 25.
+        N_splits (int, optional): Groups the TOF bins are computed in. Defaults to 1.
+        lazy (bool | None, optional): As for :func:`get_sss_scatter_estimate`. Defaults to None: what it would choose.
+
+    Returns:
+        MemoryEstimate: The estimate.
+    """
+    device = torch.device(pytomography.device)
+    cuda = device.type == 'cuda'
+    on = (lambda b: {'gpu_bytes': float(b)}) if cuda else (lambda b: {'ram_bytes': float(b)})
+    s = _sss_sizes(proj_meta, tof_meta, sinogram_interring_stepsize, sinogram_intraring_stepsize)
+    T, lors, D = s['T'], s['lors'], int(num_dense_tof_bins)
+    N_splits = max(1, min(int(N_splits), T))
+    dense_bytes = 4.0 * s['N_theta'] * s['N_r'] * s['planes'] * T
+    if lazy is None:
+        lazy = bool(prefer_lazy(dense_bytes))
+    image = 4.0 * math.prod(object_meta.shape)
+    listmode = type(system_matrix) is PETLMSystemMatrix or proj_data is None
+    # held for the whole estimate
+    parts = [MemoryPart('PET image and attenuation map', **on(2 * image))]
+    if proj_data is not None:
+        parts.append(MemoryPart('data', *nbytes(proj_data)))
+    if sinogram_random is not None:
+        parts.append(MemoryPart('randoms', *nbytes(sinogram_random)))
+    n_events = 0
+    if listmode:
+        ids = getattr(proj_meta, 'detector_ids', None)
+        n_events = 0 if ids is None else int(ids.shape[0])
+        parts.append(MemoryPart('events binned lazily', ram_bytes=8.0 * n_events + 8.0 * (s['N_theta'] + 1)))
+        if getattr(proj_meta, 'weights_sensitivity', None) is not None:
+            parts.append(MemoryPart('sensitivity sinogram of the sinogram system matrix', ram_bytes=4.0 * s['N_theta'] * s['N_r'] * s['planes']))
+    elif system_matrix is not None and getattr(system_matrix, 'sinogram_sensitivity', None) is not None:
+        parts.append(MemoryPart("system matrix's sensitivity sinogram", *nbytes(system_matrix.sinogram_sensitivity)))
+    rtheta = 4.0 * s['N_theta'] * s['N_r'] * s['sampled_planes'] * T
+    if lazy:
+        parts.append(MemoryPart('interpolated estimate (lazy: angle and radius of the sampled ring pairs, host)', ram_bytes=rtheta))
+    else:
+        parts.append(MemoryPart('interpolated estimate (dense) and its scaled copy (host)', ram_bytes=2 * dense_bytes))
+    # the steps' temporaries, as (name, host bytes, device bytes)
+    fused = tof_meta is not None and _sss_cuda.available(device, T)
+    per_lor = 64 + 4 * T + 9 + 4 * T + 4 * 14              # geometry, probability, the sparse result, a point's temporaries
+    if tof_meta is not None:
+        per_lor += 4 * 7 * T                                # offsets, emission per TOF bin, the update
+        if not fused:
+            per_lor += 4 * math.ceil(T / N_splits) * D + 4 * 4 * D      # the TOF kernel, gathered pieces, norm, weights
+    steps = [('sparse estimate', 112.0 * lors, float(per_lor) * lors)]
+    c = min(8192, s['crystal_pairs'])
+    values = 4.0 * s['rtheta'] * s['sampled_planes'] * T
+    system = 4.0 * (s['rtheta'] + 3) ** 2
+    steps.append(('interpolation over angle and radius', rtheta + 32.0 * s['crystal_pairs'],
+                  3 * values + max(3.5 * system, 3 * 4.0 * c * (s['rtheta'] + 3) + 2 * 4.0 * c * s['sampled_planes'] * T)))
+    if not lazy:                                            # as many angles at once as the GPU budget holds (interpolate_z)
+        per_angle = 3 * 4.0 * s['N_r'] * s['planes'] * T
+        angles = min(s['N_theta'], max(1, int(gpu_budget(device=device) // per_angle)))
+        steps.append(('interpolation over the ring pairs', rtheta, angles * per_angle))
+    sinogram_bytes = dense_bytes if proj_data is None else 4.0 * math.prod(proj_data.shape)
+    n_subsets = subsets_for_budget(sinogram_bytes, arrays=2, minimum=20)
+    if cuda:
+        n_subsets = max(n_subsets, math.ceil(sinogram_bytes / (gpu_budget(device=device) / 3)))
+    n_subsets = min(n_subsets, s['N_theta'])
+    subset_lors = math.ceil(s['N_theta'] / n_subsets) * s['N_r'] * s['planes']
+    chunks = max(1, math.ceil(subset_lors * (88 + 8 * T) / gpu_budget(device=device)))      # as _chunk_bounds splits a subset
+    chunk = math.ceil(subset_lors / chunks) * (88 + 8 * T)
+    steps.append((f'scaling ({n_subsets} subsets)', 32.0 * n_events, 3 * 4.0 * subset_lors * T + 6 * 4.0 * subset_lors + chunk + 6 * image))
+    if not cuda:                                            # without a GPU, the device's arrays are on the host
+        steps = [(name, host + on_device, 0.0) for name, host, on_device in steps]
+    host_step = max(steps, key=lambda step: step[1])
+    if host_step[1] > 0:
+        parts.append(MemoryPart(f'largest step on the host: {host_step[0]}', ram_bytes=host_step[1], scope='chunk'))
+    # On the GPU the steps are added up: PyTorch's cache keeps the blocks of each step, of other sizes than the next
+    # step's, until the estimate ends. Measured in tests/calibrate_memory.py, the memory reserved was 1.6 times the
+    # peak allocated with the fused TOF kernel and 2.3 times with PyTorch's in three groups of TOF bins (the largest
+    # step alone would have been 1.2 times too little); after the GATE mMR estimate with 21 TOF bins it held 3.5 GB
+    for name, _, on_gpu in steps:
+        if on_gpu > 0:
+            parts.append(MemoryPart(f'{name} (GPU)', gpu_bytes=on_gpu, scope='chunk'))
+    title = (f"Single scatter simulation ({'TOF, ' if tof_meta is not None else ''}{'lazy' if lazy else 'dense'}"
+             + (f", N_splits {N_splits}" if tof_meta is not None else "") + ")")
+    settings = {'lazy': lazy, 'N_splits': N_splits} if tof_meta is not None else {'lazy': lazy}
+    # the allowance of the PET system matrices, whose tutorials measured what PyTorch's allocators keep on Windows
+    return memory_estimate(title, parts, allocator_fraction=PETLMSystemMatrix.memory_allocator_fraction, settings=settings,
+                           cuda_projector=True)
+
+
+def plan_sss_memory(
+    object_meta: ObjectMeta,
+    proj_meta: ProjMeta,
+    system_matrix: SystemMatrix | None = None,
+    proj_data=None,
+    sinogram_random=None,
+    tof_meta: PETTOFMeta | None = None,
+    sinogram_interring_stepsize: int = 4,
+    sinogram_intraring_stepsize: int = 4,
+    num_dense_tof_bins: int = 25,
+    N_splits: int | None = None,
+    lazy: bool | None = None,
+    ram_gb: float | None = None,
+    gpu_gb: float | None = None,
+) -> MemoryPlan:
+    """The fastest settings of :func:`get_sss_scatter_estimate` with the same arguments that fit in ``ram_gb`` of RAM and
+    ``gpu_gb`` of GPU memory, as a :class:`~pytomography.utils.memory.MemoryPlan`, from :func:`estimate_sss_memory`.
+    It chooses ``lazy`` (a dense estimate first: it is read faster afterwards) and, with TOF, ``N_splits`` (the fewest
+    groups of TOF bins first: with more, the TOF kernel is computed twice; with the fused CUDA kernel, used on a GPU
+    when CuPy is installed, ``N_splits`` changes nothing). A setting given (not None) is kept. Without
+    budgets, the plan is for what is free on this machine now; on Windows GPU memory counts as RAM too. If nothing
+    fits, the plan has ``fits`` False and the settings that come closest; it does not raise.
+
+    Args:
+        object_meta (ObjectMeta): As for :func:`get_sss_scatter_estimate`.
+        proj_meta (ProjMeta): As for :func:`get_sss_scatter_estimate`.
+        system_matrix (SystemMatrix | None, optional): As for :func:`get_sss_scatter_estimate`. Defaults to None.
+        proj_data (optional): As for :func:`get_sss_scatter_estimate`. Defaults to None.
+        sinogram_random (optional): As for :func:`get_sss_scatter_estimate`. Defaults to None.
+        tof_meta (PETTOFMeta | None, optional): As for :func:`get_sss_scatter_estimate`. Defaults to None.
+        sinogram_interring_stepsize (int, optional): As for :func:`get_sss_scatter_estimate`. Defaults to 4.
+        sinogram_intraring_stepsize (int, optional): As for :func:`get_sss_scatter_estimate`. Defaults to 4.
+        num_dense_tof_bins (int, optional): As for :func:`get_sss_scatter_estimate`. Defaults to 25.
+        N_splits (int | None, optional): Groups of TOF bins, to keep. Defaults to None: chosen.
+        lazy (bool | None, optional): Whether the estimate is lazy, to keep. Defaults to None: chosen.
+        ram_gb (float | None, optional): RAM to fit in, in GB. Defaults to None: what is available now.
+        gpu_gb (float | None, optional): GPU memory to fit in, in GB. Defaults to None: what is available now.
+
+    Returns:
+        MemoryPlan: The plan; pass ``plan.settings`` on to :func:`get_sss_scatter_estimate`.
+
+    Example:
+        >>> plan = plan_sss_memory(object_meta, proj_meta, system_matrix, tof_meta=tof_meta, ram_gb=25)
+        >>> scatter = get_sss_scatter_estimate(object_meta, proj_meta, pet_image, attenuation_image, system_matrix,
+        ...                                    tof_meta=tof_meta, **plan.settings)
+    """
+    arguments = dict(object_meta=object_meta, proj_meta=proj_meta, system_matrix=system_matrix, proj_data=proj_data,
+                     sinogram_random=sinogram_random, tof_meta=tof_meta, sinogram_interring_stepsize=sinogram_interring_stepsize,
+                     sinogram_intraring_stepsize=sinogram_intraring_stepsize, num_dense_tof_bins=num_dense_tof_bins)
+    settings = {'lazy': (lazy, [False, True])}
+    if tof_meta is not None:
+        settings['N_splits'] = (N_splits, list(range(1, int(tof_meta.num_bins) + 1)))
+    fixed = {'lazy': lazy, 'N_splits': N_splits if tof_meta is not None else None}
+    return plan_settings('Single scatter simulation', settings, lambda s, alternatives: estimate_sss_memory(**arguments, **s),
+                         fixed, ram_gb, gpu_gb)

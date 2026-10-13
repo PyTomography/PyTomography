@@ -75,18 +75,41 @@ class KEMTransform(Transform):
                         neighbour_support_object = get_object_nearest_neighbour(self.support_objects[l].cpu(), (i,j,k))
                         kernel_component *= self.support_kernels[l](self.support_objects[l].cpu(), neighbour_support_object, *self.support_kernel_params[l])
                     self.kernel[i+self.idx_max,j+self.idx_max,k+self.idx_max] = kernel_component
-        # Get only top N entries (based on anatomical support)
-        if self.top_N is not None:
-            self.kernel *= (torch.argsort(torch.argsort(self.kernel.reshape((self.size**3,*shape)), dim=0), dim=0)>=self.size**3 - self.top_N).reshape((self.size, self.size, self.size,*shape))
-        # Scale by distance
-        xv, yv, zv = torch.meshgrid([self.object_meta.dx*self.idxs, self.object_meta.dy*self.idxs, self.object_meta.dz*self.idxs])
+        xv, yv, zv = torch.meshgrid([self.object_meta.dx*self.idxs, self.object_meta.dy*self.idxs, self.object_meta.dz*self.idxs], indexing='ij')
         d = torch.sqrt(xv**2+yv**2+zv**2)
+        # Get only top N entries (based on anatomical support)
+        if self.top_N is not None and self.top_N < self.size**3:
+            self._keep_top_N(d)
+        # Scale by distance
         self.kernel *= self.distance_kernel(d, *self.distance_kernel_params).unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
         # Normalize
         self.kernel /= self.kernel.sum(dim=(0,1,2))
         # Put on GPU (defaults to false since very large)
         if self.kernel_on_gpu:
             self.kernel = self.kernel.to(pytomography.device)
+
+    def _keep_top_N(self, d: torch.Tensor, chunk_bytes: float = 2**28) -> None:
+        """Keeps the ``top_N`` largest kernel entries of each voxel and sets the others to zero, in place. Of equal entries
+        (frequent: neighbours with the same support values have equal entries), the nearest neighbours are kept. The
+        voxels are taken in chunks, so that this needs about ``chunk_bytes`` more memory however large the image is
+        (ranking every entry of the whole kernel at once took about 8 times the kernel's memory).
+
+        Args:
+            d (torch.Tensor): Distance of each neighbour from the centre, ``[size, size, size]``.
+            chunk_bytes (float, optional): Memory for each chunk of voxels. Defaults to 256 MB.
+        """
+        n = self.size**3
+        flat = self.kernel.reshape((n, -1))
+        nearest_first = torch.argsort(d.reshape(-1), stable=True)
+        chunk = max(1, int(chunk_bytes // (n * 22)))  # bytes per voxel: a copy, the sort's values and indices, two masks
+        for start in range(0, flat.shape[1], chunk):
+            part = flat[nearest_first, start:start+chunk]
+            # a stable sort keeps the nearer of equal entries first
+            top = torch.sort(part, dim=0, descending=True, stable=True).indices[:self.top_N]
+            keep = torch.zeros_like(part, dtype=torch.bool).scatter_(0, top, True)
+            keep_flat = torch.empty_like(keep)
+            keep_flat[nearest_first] = keep
+            flat[:, start:start+chunk] *= keep_flat
             
     def configure(
         self,

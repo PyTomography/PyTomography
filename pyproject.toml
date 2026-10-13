@@ -12,9 +12,13 @@ authors = [
 ]
 description = "Package to perform tomographic image reconstruction"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
@@ -24,7 +28,7 @@ dependencies = [
   "scipy>=1.10.1",
   "pydicom>=3.0.1",
   "kornia>=0.6.12",
-  "torch>=1.10.2",
+  "torch>=2.4",
   "fft-conv-pytorch>=1.2.0",
   "matplotlib>=3.8.0",
   "uproot>=5.2.1",
@@ -40,8 +44,21 @@ dependencies = [
 allow-direct-references = true
 
 [project.urls]
-"Homepage" = "https://github.com/qurit/PyTomography"
-"Bug Tracker" = "https://github.com/qurit/PyTomography/issues"
+"Homepage" = "https://github.com/PyTomography/PyTomography"
+"Documentation" = "https://pytomography.readthedocs.io"
+"Bug Tracker" = "https://github.com/PyTomography/PyTomography/issues"
+"Discussions" = "https://github.com/PyTomography/PyTomography/discussions"
+
+# The sdist ships the package and its metadata only: docs/ (tutorial notebooks with outputs) and .github/ stay in the
+# repository.
+[tool.hatch.build.targets.sdist]
+include = [
+  "src/pytomography",
+  "README.md",
+  "LICENSE",
+  "CITATION.cff",
+  "pyproject.toml",
+]
 
 [project.optional-dependencies]
 # PETSIRD list mode, read with ETSI's package: 0.9 is the format of ETSI's converters and STIR
