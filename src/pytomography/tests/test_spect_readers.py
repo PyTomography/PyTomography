@@ -369,14 +369,17 @@ def test_stitching_weights_of_the_issue_example():
 # ---------- SIMIND ----------
 
 def _simind(tmp_path, name, version='V8.0', radius='150.0', direction='CCW', start=0.0, views=12, window=(187.2, 228.8),
-            nuclide='lu177'):
+            nuclide='lu177', orbit_file=None):
     """A SIMIND .h00/.a00 pair whose view n (acquisition order) holds the value n + 1 in pixel (r = n, z = 2), stored
-    with row 0 at +z."""
+    with row 0 at +z. With ``orbit_file``, a non-circular orbit as SIMIND writes its header: no radius, the orbit file
+    named in a comment."""
     data = np.zeros((views, LZ, LR), np.float32)                 # [view, row (z from the top), column (r)]
     for n in range(views):
         data[n, LZ - 1 - 2, n] = n + 1
     data.tofile(tmp_path / f'{name}.a00')
     radius_key = f';#Radius := {radius}' if version.startswith('V7') else f'Radius := {radius}'
+    if orbit_file is not None:
+        radius_key = f'orbit := noncircular\n;# Non-Uniform Orbit File := {orbit_file}'
     lines = ['!INTERFILE :=', '!originating system := simind', f'program version := {version}',
              f'!name of data file := {name}.a00', 'imagedata byte order := LITTLEENDIAN',
              f';energy window lower level := {window[0]}', f';energy window upper level := {window[1]}',
@@ -429,6 +432,61 @@ def test_simind_windows_and_organs(tmp_path):
     organs, _, _ = SPECT.read_simind([[w1, w4]], weights=[2.0, 3.0])
     assert torch.allclose(organs[0], 5 * projections[0])
     assert SPECT.simind_psf(w4).sigma_fit_params[2] > SPECT.simind_psf(w1).sigma_fit_params[2]    # at 112.9 keV
+
+
+# .cor files as SIMIND V8.0 and V9.0 wrote them for an auto-contour orbit (index 42 = -2: 2 cm from its 'mdp' phantom),
+# 12 views of 24 pixel wide projections: per view, in acquisition order, the distance from the rotation axis to the
+# detector surface (cm) and the centre of rotation (pixels from the edge: half the matrix), with CRLF line ends.
+SIMIND_COR = {
+    'V8.0': ('      17.980    12\r\n      19.625    12\r\n      19.622    12\r\n      23.420    12\r\n'
+             '      22.590    12\r\n      16.368    12\r\n      10.160    12\r\n      14.000    12\r\n'
+             '      19.849    12\r\n      21.720    12\r\n      19.895    12\r\n      19.500    12\r\n'),
+    'V9.0': ('      18.151    12\r\n      19.857    12\r\n      19.854    12\r\n      23.591    12\r\n'
+             '      22.653    12\r\n      16.306    12\r\n       9.992    12\r\n      13.768    12\r\n'
+             '      19.617    12\r\n      21.551    12\r\n      19.833    12\r\n      19.484    12\r\n'),
+}
+
+
+@pytest.mark.parametrize('version', ['V8.0', 'V9.0'])
+def test_simind_cor_file_as_simind_writes_it(tmp_path, version):
+    """#222: the second column (the centre of rotation) is not a radius; the distances are cm, read as mm. The file
+    is read when passed, or when the header names it (SIMIND's header of a non-circular orbit has no radius)."""
+    (tmp_path / 'orbit.cor').write_bytes(SIMIND_COR[version].encode())
+    distances_cm = [float(line.split()[0]) for line in SIMIND_COR[version].splitlines()]
+    header = _simind(tmp_path, 'tot_w1', version=version, orbit_file='orbit.cor')
+    for radii_file in (tmp_path / 'orbit.cor', str(tmp_path / 'orbit.cor'), None):
+        _, _, proj_meta = SPECT.read_simind(header, radii_file=radii_file)
+        assert proj_meta.radii.shape == (12,)
+        assert np.allclose(proj_meta.radii, 10 * np.array(distances_cm))           # CCW from 0: acquisition order
+    circular = _simind(tmp_path, 'circular', version=version)
+    _, _, proj_meta = SPECT.read_simind(circular, radii_file=tmp_path / 'orbit.cor')
+    assert np.allclose(proj_meta.radii, 10 * np.array(distances_cm))
+
+
+def test_simind_cor_file_with_distances_alone_follows_the_views(tmp_path):
+    """One column, as utils.simind_mc writes the orbit it gives SIMIND (np.savetxt, cm): each view keeps its own
+    distance when the views are sorted by angle."""
+    distances_mm = 150.0 + 10.0 * np.arange(12)                       # view n (acquisition order): 150 + 10 n mm
+    np.savetxt(tmp_path / 'radii_corfile.cor', distances_mm / 10)
+    header = _simind(tmp_path, 'cw', direction='CW', start=30.0)
+    with pytest.warns(UnverifiedVendorRule, match='clockwise'):
+        projections, _, proj_meta = SPECT.read_simind(header, energy_window=0, radii_file=tmp_path / 'radii_corfile.cor')
+    for n in range(12):
+        sorted_index = int(torch.nonzero(projections[:, n, 2]).item())       # where view n went
+        assert proj_meta.radii[sorted_index] == pytest.approx(distances_mm[n])
+
+
+def test_simind_cor_file_is_checked(tmp_path):
+    header = _simind(tmp_path, 'tot_w1')
+    (tmp_path / 'off_centre.cor').write_text(SIMIND_COR['V9.0'].replace('    12\r\n', '    32\r\n'))
+    with pytest.raises(ValueError, match='centre of rotation'):           # e.g. the .cor of a 64 pixel matrix
+        SPECT.read_simind(header, radii_file=tmp_path / 'off_centre.cor')
+    (tmp_path / 'short.cor').write_text(''.join(SIMIND_COR['V9.0'].splitlines(keepends=True)[:10]))
+    with pytest.raises(ValueError, match='10 radii for 12 views'):
+        SPECT.read_simind(header, radii_file=tmp_path / 'short.cor')
+    missing = _simind(tmp_path, 'missing', orbit_file='missing.cor')
+    with pytest.raises(FileNotFoundError, match='missing.cor'):
+        SPECT.read_simind(missing)
 
 
 # ---------- energy windows, scatter, collimators ----------

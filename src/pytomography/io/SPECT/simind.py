@@ -58,6 +58,29 @@ def _projections(header: Interfile) -> np.ndarray:
     return np.transpose(data[:, ::-1], (0, 2, 1))          # row 0 is at +z
 
 
+def _radii(radii_file, n_views: int, Lr: int) -> np.ndarray:
+    """The detector distances (mm) of a non-circular orbit from a SIMIND ``.cor`` file, in acquisition order.
+
+    The file has one line per view, in acquisition order. SIMIND writes two columns (index 42 negative, the
+    auto-contour orbit): the distance from the rotation axis to the detector surface in cm, and the centre of
+    rotation in pixels from the edge of the projection (half the matrix size, the centre of the projections). The
+    files SIMIND reads (its third argument, as :mod:`pytomography.utils.simind_mc` writes them) may hold the distances
+    alone.
+    """
+    name = os.path.basename(radii_file)
+    table = np.loadtxt(radii_file, ndmin=2)
+    if table.shape[1] > 2:
+        raise ValueError(f'{name}: {table.shape[1]} columns; a SIMIND .cor file has the distance (cm) and the centre '
+                         'of rotation (pixels)')
+    if table.shape[0] != n_views:
+        raise ValueError(f'{name}: {table.shape[0]} radii for {n_views} views')
+    if table.shape[1] == 2 and not np.allclose(table[:, 1], Lr / 2):
+        raise ValueError(f'{name}: the centre of rotation (second column, {np.unique(table[:, 1])} pixels) is not the '
+                         f'centre of the {Lr} pixel wide projections ({Lr / 2}); PyTomography puts the rotation axis at '
+                         'the centre of the projections')
+    return table[:, 0] * 10                                  # SIMIND's .cor files are in cm
+
+
 def _geometry(header: Interfile, radii_file=None) -> dict:
     _vendors.use('simind-projection-frame', header.path.name)
     n = header.get('number of projections', int)
@@ -70,8 +93,13 @@ def _geometry(header: Interfile, radii_file=None) -> dict:
             _vendors.use('simind-clockwise-start', header.path.name)
         angles = -angles
     angles = angles % 360
+    orbit_file = header.comment('non-uniform orbit file', default=None)
+    if radii_file is None and orbit_file is not None:       # a non-circular orbit: the header has no radius
+        radii_file = header.path.parent / orbit_file
+        if not radii_file.exists():
+            raise FileNotFoundError(f'{header.path.name}: its orbit file {orbit_file} is not next to it; pass radii_file')
     if radii_file is not None:
-        radii = np.loadtxt(radii_file) * 10                  # SIMIND's .cor files are in cm
+        radii = _radii(radii_file, n, header.get('matrix size [1]', int))
     else:
         radius = header.get('radius', float, default=None)
         if radius is None:
@@ -102,7 +130,10 @@ def read_simind(headers, energy_window: int | None = None, *, weights: Sequence[
             for each window the files of every organ (added up with ``weights``).
         energy_window (int, optional): the window to return. Defaults to None: all of them.
         weights (Sequence[float], optional): for organ-by-organ simulations, each organ's weight (e.g. its activity).
-        radii_file (str, optional): SIMIND's ``.cor`` file of the detector distances (cm) of a non-circular orbit.
+        radii_file (str, optional): SIMIND's ``.cor`` file of a non-circular orbit: one line per view, the
+            detector distance (cm, read as mm) and, as SIMIND writes it, the centre of rotation (pixels), which must
+            be the centre of the projections. Defaults to None: the file the header names as its non-uniform orbit
+            file (next to the header), else the header's radius for every view.
 
     Returns:
         (torch.Tensor, SPECTObjectMeta, SPECTProjMeta): projections [W, θ, r, z] (or [θ, r, z] for one
