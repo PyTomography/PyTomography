@@ -22,7 +22,6 @@ import time
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-from scipy.ndimage import binary_erosion, gaussian_filter, label
 import pytomography
 from pytomography import io
 from pytomography.metadata import ObjectMeta
@@ -101,23 +100,18 @@ recon_without_scatter = OSEM(likelihood)(n_iters=3, n_subsets=21)
 seconds_without = time.time() - t0
 print(f"OSEM without scatter correction: {seconds_without:.1f} s")
 
-# Where to look: the phantom (from the attenuation map), the plane of the spheres (the slice with the hottest voxels
-# inside the phantom) and the centre of the hottest sphere in it
+# The phantom and its largest sphere, through whose centre the figures look
+regions = io.load_mask(folder / 'nema_iq_regions.seg.nrrd')
+body = regions.on(object_meta, label='phantom', threshold=0.5).cpu().numpy()
+sphere = regions.on(object_meta, label='sphere 37 mm', threshold=0.5).cpu().numpy()
+i, j, k = np.argwhere(sphere).mean(axis=0).round().astype(int)
 dx, dy, dz = object_meta.dr
-regions, _ = label(mu_map > 0.005)  # 1/mm: the phantom's water (0.0093/mm) and walls, not the air around it
-body = regions == np.argmax(np.bincount(regions.ravel())[1:]) + 1  # the phantom, the largest region
-inner = binary_erosion(body, structure=np.ones((9, 9, 1)))  # 4 voxels in from its edges
-smooth = gaussian_filter(recon_without_scatter.cpu().numpy(), 1.0)
-score = [np.percentile(smooth[:, :, n][inner[:, :, n]], 99.9) if inner[:, :, n].sum() > 100 else 0
-         for n in range(smooth.shape[2])]
-k = int(np.argmax(score))
-i, j = (int(v) for v in np.unravel_index(np.argmax(np.where(inner[:, :, k], smooth[:, :, k], 0)), smooth.shape[:2]))
 # The phantom's extent with a margin, for the figures
 xs, ys, zs = np.nonzero(body)
 x0, x1 = max(xs.min() - 4, 0), min(xs.max() + 5, body.shape[0])
 y0, y1 = max(ys.min() - 4, 0), min(ys.max() + 5, body.shape[1])
 z0, z1 = max(zs.min() - 3, 0), min(zs.max() + 4, body.shape[2])
-print(f"plane of the spheres: slice {k}; centre of the hottest sphere: voxel ({i}, {j})")
+print(f"centre of the 37 mm sphere: voxel ({i}, {j}, {k})")
 
 # %% 5. Scatter correction
 # The estimate's peak RAM and GPU memory, before it runs
@@ -141,35 +135,26 @@ recon_with_scatter = OSEM(likelihood)(n_iters=3, n_subsets=21)
 seconds_with = time.time() - t0
 print(f"OSEM with scatter correction: {seconds_with:.1f} s")
 
-# The background: the phantom at least 30 mm from the plane of the spheres, 4 voxels in from its walls (where the
-# image's edge is blurred) and 5 slices from its ends
-far = np.abs(np.arange(body.shape[2]) - k) * dz >= 30
-background = binary_erosion(body, structure=np.ones((9, 9, 11))) & far[None, None, :]
-# Each voxel's distance from the phantom's axis, through the centre of its cross-section
-cx, cy = np.argwhere(background)[:, :2].mean(axis=0)
-r = np.hypot((np.arange(body.shape[0])[:, None] - cx) * dx, (np.arange(body.shape[1])[None, :] - cy) * dy)
-r = np.broadcast_to(r[:, :, None], body.shape)
-rings = np.arange(0, r[background].max() + 10, 10)  # mm
+# The background: the phantom at least 30 mm from the plane of the spheres, 4 voxels in from its walls and 5 slices
+# from its ends (where the image's edges are blurred); and the same in rings 10 mm wide around the phantom's axis, ring
+# n from 10 n to 10 (n + 1) mm, here by the middle of each ring
+background = regions.on(object_meta, label='background', threshold=0.5).cpu().numpy()
+rings = {10 * int(name.split()[1]) + 5: regions.on(object_meta, label=name, threshold=0.5).cpu().numpy()
+         for name in regions.labels if name.startswith('ring ')}
 
 
 def radial_profile(img):
-    # mean of each ring 10 mm wide, relative to the mean of the whole background
-    centres, values = [], []
-    for lo, hi in zip(rings[:-1], rings[1:]):
-        ring = background & (r >= lo) & (r < hi)
-        if ring.sum() >= 500:
-            centres.append((lo + hi) / 2)
-            values.append(img[ring].mean() / img[background].mean())
-    return np.array(centres), np.array(values)
+    # mean of each ring, relative to the mean of the whole background
+    return np.array(list(rings)), np.array([img[ring].mean() / img[background].mean() for ring in rings.values()])
 
 
 images = {'without': recon_without_scatter.cpu().numpy(), 'with': recon_with_scatter.cpu().numpy()}
 profiles = {name: radial_profile(img) for name, img in images.items()}
 for name, img in images.items():
-    hottest = gaussian_filter(img, 1.0)[i, j, k] / img[background].mean()
+    contrast = img[sphere].mean() / img[background].mean()
     p = profiles[name][1]
     print(f"{name} scatter correction: background from the centre to the edge {p[0]:.2f} -> {p[-1]:.2f} of its mean; "
-          f"hottest sphere {hottest:.1f} times the background")
+          f"37 mm sphere {contrast:.1f} times the background")
 
 # %% 6. Save the images
 for name, image in [('osem_with_scatter_correction', recon_with_scatter),

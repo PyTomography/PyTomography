@@ -79,8 +79,10 @@ del hu_planned
 scanner_files = sorted((folder / 'full_dose_images').glob('*.dcm'))
 scanner = io.load_image(scanner_files)  # in HU, with its place in the patient
 scanner_hu = scanner.on(object_meta, fill=-3000).cpu().numpy()  # -3000: outside the scanner's images
+# The body in the scanner's images and a block of liver: they come with PyTomography, in the dataset's folder
+regions = io.load_mask(folder / 'ldct_c145_regions.seg.nrrd')
 
-liver = (slice(100, 140), slice(200, 240), slice(20, 36))  # 26 x 26 x 16 mm of liver (k runs from the feet up)
+liver = regions.on(object_meta, label='liver', threshold=0.5).cpu().numpy()  # 26 x 26 x 16 mm of liver
 noise = {'Hann': float(hu[liver].std())}
 for name, window, thickness in [*[(n, w, 1.25) for n, w in windows.items() if n != 'Hann'], ('Hann, no slice_thickness', 'hann', None)]:
     reconstruction = FilteredBackProjection(proj, system_matrix, filter=window, slice_thickness=thickness)
@@ -97,8 +99,8 @@ print(f"{'scanner':24s} liver noise {scanner_hu[liver].std():5.1f} HU; liver mea
       f"ours {hu[liver].mean():.1f} HU")
 
 valid = scanner_hu > -1500  # inside the scanner's field of view
-blur = lambda a: ndimage.gaussian_filter(np.where(valid, a, -1000.0), 2 / object_meta.dr[0])  # 2 mm
-body = valid & (blur(scanner_hu) > -700)
+blur = lambda a: ndimage.gaussian_filter(np.where(valid, a, -1000.0), [2 / d for d in object_meta.dr])  # 2 mm
+body = regions.on(object_meta, label='body', threshold=0.5).cpu().numpy()
 for name, image in images[1:]:
     rms = np.sqrt(((blur(image) - blur(scanner_hu))[body] ** 2).mean())
     print(f"{name:13s} RMS difference from the scanner's image after a 2 mm blur: {rms:4.1f} HU")

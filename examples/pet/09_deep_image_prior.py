@@ -352,12 +352,11 @@ dip_prior.max_iter = 10
 dip_prior.lr = 1
 dip_prior.line_search_fn = 'strong_wolfe'
 
-from scipy.ndimage import binary_erosion
 from pytomography.callbacks import Callback
-# grey and white matter, from the MR intensity classes, one voxel in from their edges
-mr = mri_aligned.cpu().numpy()
-grey = torch.tensor(binary_erosion((mr >= 180) & (mr < 195), np.ones((3, 3, 3)))).to(pytomography.device)
-white = torch.tensor(binary_erosion((mr >= 135) & (mr < 150), np.ones((3, 3, 3)))).to(pytomography.device)
+# grey and white matter on the grid
+brain = io.load_mask(path / 'gate_brain_matter.seg.nrrd')
+grey = brain.on(object_meta, label='grey matter', threshold=0.5)
+white = brain.on(object_meta, label='white matter', threshold=0.5)
 
 def contrast_noise(image):
     """Mean grey matter over mean white matter (contrast), and the standard deviation over the mean in white matter (noise)."""

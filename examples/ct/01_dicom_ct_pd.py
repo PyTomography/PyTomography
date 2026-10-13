@@ -70,6 +70,9 @@ scanner_hu = scanner.on(object_meta, fill=-3000).cpu().numpy()  # -3000: no scan
 
 k, j = 157, 256  # an axial slice through the chest, a coronal slice through the middle (k runs from the feet up)
 dx, dz = object_meta.dr[0], object_meta.dr[2]
+# The body and the soft tissue of the scanner's images (above -700 HU after a 2 mm blur; 10 to 70 HU after a 7 x 7 x 3
+# voxel mean, eroded): they come with PyTomography, in the dataset's folder
+regions = io.load_mask(folder / 'ldct_c145_regions.seg.nrrd')
 r = np.hypot(*np.meshgrid(*[(np.arange(n) - (n - 1) / 2) * dx for n in object_meta.shape[:2]], indexing='ij'))[:, :, None]
 
 def blurred(a, valid):
@@ -79,7 +82,7 @@ def blurred(a, valid):
 def compare(ours, title):
     valid = scanner_hu > -1500  # inside the scanner's field of view (it pads outside with a lower value)
     diff = np.where(valid, blurred(ours, valid) - blurred(scanner_hu, valid), np.nan)
-    body = valid & (blurred(scanner_hu, valid) > -700)
+    body = regions.on(object_meta, label='body', threshold=0.5).cpu().numpy()
     fig, axes = plt.subplots(2, 3, figsize=(15, 10), constrained_layout=True)
     # axial: anterior at the top; coronal: the head at the top
     for row, cut, aspect, origin in ((0, lambda a: a[:, :, k].T, 1, 'upper'), (1, lambda a: a[:, j, :].T, dz / dx, 'lower')):
@@ -94,10 +97,8 @@ def compare(ours, title):
     print(f"RMS difference over the body after a 2 mm blur: {np.sqrt((diff[body] ** 2).mean()):.1f} HU")
 
 def radial_trend(ours):
-    # mean of ours - scanner in soft tissue (10 to 70 HU in the scanner's smoothed image), in 20 mm rings
-    valid = scanner_hu > -1500
-    smooth = ndimage.uniform_filter(np.where(valid, scanner_hu, -1000.0), (7, 7, 3))
-    soft_tissue = ndimage.binary_erosion((smooth > 10) & (smooth < 70) & valid, np.ones((7, 7, 3)))
+    # mean of ours - scanner in soft tissue, in 20 mm rings
+    soft_tissue = regions.on(object_meta, label='soft tissue', threshold=0.5).cpu().numpy()
     edges = np.arange(0, 201, 20)
     d = ours - scanner_hu
     return edges[:-1] + 10, [d[soft_tissue & (r >= a) & (r < b)].mean() for a, b in zip(edges[:-1], edges[1:])]
