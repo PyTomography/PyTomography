@@ -110,6 +110,19 @@ def test_lazy_indexing_errors():
         shared.listmode_to_sinogram(_events(100, False), INFO, normalization=True, lazy=True)
 
 
+def test_smoothed_randoms_on_any_dtype_and_device():
+    """smooth_randoms_sinogram built its kernels in float32 on the CPU, so a float64 or GPU sinogram raised; the
+    kernels now follow the sinogram, which gives the same result."""
+    randoms = torch.rand(SHAPE, generator=torch.Generator().manual_seed(5))
+    reference = shared.smooth_randoms_sinogram(randoms, INFO)
+    assert reference.dtype == torch.float32 and reference.shape == SHAPE
+    as_float64 = shared.smooth_randoms_sinogram(randoms.double(), INFO)
+    assert as_float64.dtype == torch.float64 and torch.allclose(as_float64, reference.double(), rtol=1e-5)
+    if torch.cuda.is_available():
+        on_gpu = shared.smooth_randoms_sinogram(randoms.cuda(), INFO)
+        assert on_gpu.device.type == 'cuda' and torch.allclose(on_gpu.cpu(), reference, rtol=1e-5, atol=1e-7)
+
+
 @pytest.mark.parametrize('lazy', [None, False, True])
 def test_normalization_sinogram_with_tof_meta_is_refused(lazy):
     """normalization=True with a tof_meta was ignored: the events were binned as a plain TOF sinogram, in one order of

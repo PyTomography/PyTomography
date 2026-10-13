@@ -808,9 +808,11 @@ def _convolve_last_axis(x: torch.Tensor, kernel: torch.nn.Conv1d) -> torch.Tenso
     """``x`` convolved with a 1D ``kernel`` along its last axis, a block of rows at a time into one output. The convolution
     of all rows at once took about 13 times the input in temporaries on the CPU (21 GB for the randoms sinogram of the
     Siemens Biograph mMR); the blocks hold an eighth of the memory budget (:func:`pytomography.set_memory_budget`), or
-    about 0.5 GB without one. Each row is convolved on its own, so the result does not depend on the blocks."""
+    about 0.5 GB without one. Each row is convolved on its own, so the result does not depend on the blocks. The
+    kernel is applied on the device and in the dtype of ``x``."""
+    kernel = kernel.to(device=x.device, dtype=x.dtype)
     out = torch.empty(x.shape, dtype=x.dtype, device=x.device)
-    bytes_per_row = 64 * x.shape[-1]   # 16 float32 temporaries per sample
+    bytes_per_row = 16 * x.element_size() * x.shape[-1]   # 16 temporaries per sample
     rows_per_slice = max(1, int(np.prod(x.shape[1:-1])))
     slices = max(1, block_size(bytes_per_row, default=max(1, int(5e8 // bytes_per_row))) // rows_per_slice)
     for start in range(0, x.shape[0], slices):
@@ -832,7 +834,8 @@ def smooth_randoms_sinogram(
     """Smooths a PET randoms sinogram using a Gaussian filter in the r, theta, and z direction. Rebins the sinogram into (r,theta,z1,z2) before blurring (same blurring applied to z1 and z2)
 
     Args:
-        sinogram_random (torch.Tensor): PET sinogram of randoms
+        sinogram_random (torch.Tensor): PET sinogram of randoms, on any device, in any floating point dtype (the result
+            is on the same device, in the same dtype)
         info (dict): PET geometry information dictionary
         sigma_r (float, optional): Blurring (in pixel size) in r direction. Defaults to 4.
         sigma_theta (float, optional): Blurring (in pixel size) in r direction. Defaults to 4.
