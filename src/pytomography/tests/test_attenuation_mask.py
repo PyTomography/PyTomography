@@ -1,5 +1,6 @@
 """``io.attenuation_map`` (one HU to mu module, mu map files in any units, the water check) and ``io.load_mask``
-(RTSTRUCT, NIfTI label images), on files written here (CPU)."""
+(RTSTRUCT, NIfTI label images), on files written here (CPU), and the regions the SPECT tutorials measure (files
+shipped in pytomography/datasets/files)."""
 from __future__ import annotations
 
 import warnings
@@ -236,3 +237,52 @@ def test_masks_and_mu_from_one_ct_agree(data_dir):
     liver = masks.on(grid, label="liver", threshold=0.9).cpu()
     assert lung.sum() > 1000 and liver.sum() > 1000
     assert float(mu[lung].mean()) < 0.008 and float(mu[liver].mean()) > 0.012, (float(mu[lung].mean()), float(mu[liver].mean()))
+
+
+# ---------- the regions the SPECT tutorials measure (src/pytomography/datasets/files) ----------
+
+def _packaged(name):
+    from pytomography.datasets import _parts
+    return io.load_mask(_parts.FILES / name)
+
+
+def test_packaged_nema_regions():
+    """lu177_nema_symt2_rois.seg.nrrd: named labels in the CT's frame; each sphere a ball of its inside diameter, which
+    .on() covers by its volume on a coarse grid too; the background at least 20 mm from every sphere."""
+    rois = _packaged("lu177_nema_symt2_rois.seg.nrrd")
+    diameters = [37, 28, 22, 17, 13, 10]
+    assert list(rois.labels) == [f"sphere_{d}mm" for d in diameters] + ["lung_insert", "background"]
+    assert rois.frame == "patient" and np.allclose(rois.voxel_size, 0.8)
+    voxel_mL = 0.8 ** 3 / 1000
+    grid = ObjectMeta(dr=(4.8, 4.8, 4.8), shape=tuple(int(n) for n in np.ceil(np.array(rois.shape) * 0.8 / 4.8)),
+                      centre=rois.centre, frame="patient")
+    ijk = np.argwhere(rois.data == rois.labels["background"])[::50]
+    background = (rois.affine @ np.c_[ijk, np.ones(len(ijk))].T).T[:, :3]
+    for d in diameters:
+        inside = rois.data == rois.labels[f"sphere_{d}mm"]
+        volume = 4 / 3 * np.pi * (d / 20) ** 3                               # mL
+        assert abs(inside.sum() * voxel_mL / volume - 1) < 0.02, d
+        assert abs(float(rois.on(grid, label=f"sphere_{d}mm").sum()) * 4.8 ** 3 / 1000 / volume - 1) < 0.02, d
+        centre = (rois.affine @ [*np.argwhere(inside).mean(0), 1.0])[:3]
+        assert np.linalg.norm(background - centre, axis=1).min() >= d / 2 + 20 - 0.8, d
+    assert 200 < (rois.data == rois.labels["lung_insert"]).sum() * voxel_mL < 300           # mL
+    assert 5000 < (rois.data == rois.labels["background"]).sum() * voxel_mL < 8000
+
+
+def test_packaged_jaszak_regions():
+    """jaszak_rois.seg.nrrd: the spheres of jaszak_spheres.npz voxel for voxel, on SIMIND's 1.2 mm grid centred on the
+    rotation axis (frame 'scanner'), and a background that touches none of them."""
+    from pytomography.datasets import _parts
+    rois = _packaged("jaszak_rois.seg.nrrd")
+    assert list(rois.labels) == [f"sphere_{k}" for k in range(1, 7)] + ["background"]
+    assert rois.frame == "scanner" and np.allclose(rois.voxel_size, 1.2)
+    fine = np.load(_parts.FILES / "jaszak_spheres.npz")["labels"]
+    # SIMIND's 512^3 grid of 1.2 mm, centred on the axis: voxel 0 is at -306.6 mm
+    start = np.rint((rois.affine[:3, 3] + 306.6) / 1.2).astype(int)
+    assert np.allclose(start * 1.2 - 306.6, rois.affine[:3, 3], atol=1e-6)
+    window = fine[tuple(slice(s, s + n) for s, n in zip(start, rois.shape))]
+    for k in range(1, 7):
+        assert np.array_equal(rois.data == k, window == k) and (fine == k).sum() == (window == k).sum(), k
+    background = rois.data == rois.labels["background"]
+    assert background.sum() * 1.2 ** 3 / 1000 > 2000 and not (background & (window > 0)).any()
+
