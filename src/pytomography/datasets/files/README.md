@@ -1,12 +1,19 @@
 # Small files of the tutorial data
 
-`pytomography.datasets.fetch()` copies these files into the dataset folders that need them. Each is pinned by size and
-sha256 in `../registry.py`; change both together.
+`pytomography.datasets.fetch()` copies these files into the dataset folders that need them, also into the folders of
+datasets that cannot be downloaded yet, once they hold the data. Each is pinned by size and sha256 in `../registry.py`;
+change both together. The region files of the PET and CT tutorials (`gate_brain_matter`, `nema_iq_regions` and
+`ldct_c145_regions`, 3D Slicer segmentations) are made by `docs/tools/make_tutorial_regions.py`, which says how each
+region was found.
 
 | File | Copied into | What it is |
 |---|---|---|
 | `ac225_psf_model.json` | `SPECT/SIMIND-Jaszak`, `SPECT/Ac225-NEMA-SymT2` | The Ac-225 PSF model fitted with SPECTPSFToolbox, which replaced the pickled PSF operator in the 2025 SPECT record |
 | `fdg_spheres.seg.nrrd` | `PET/GE-DMI-NEMA` | 3D Slicer mask of the six spheres (labels 1 to 6, the largest first), the lung insert (7) and a background region (8) of the NEMA IQ phantom in the GE Discovery MI scan, for the PET uncertainty tutorial. Its geometry was corrected for version 4's upright GE frame: it was drawn by index on version 3's upside-down grid, with its first two axes swapped. It says it is in the scanner's frame (`pytomography_frame:=scanner`), like the GE grid (`docs/tools/fix_ge_sphere_mask.py`, 12 Oct 2026) |
+| `gate_brain_matter.seg.nrrd` | `PET/GATE-mMR-BrainInWater` | Grey and white matter of the brain phantom, for the Deep Image Prior tutorial: its MR's intensity classes (180 to 195 and 135 to 150) on the tutorial's grid of 1.25 mm voxels, one voxel in from their edges. In the patient's frame, where `read_gate` places the simulation |
+| `ldct_c145_regions.seg.nrrd` | `CT/ldct-c145` | The body, soft tissue and a 26 x 26 x 16 mm block of liver in the scanner's images of case C145, on the CT tutorials' grid (the scanner's pixels, centred on the rotation axis), for comparing reconstructions with the scanner's images. Overlapping segments, in layers |
 | `jaszak_spheres.npz` | `SPECT/SIMIND-Jaszak` | The six spheres of the SIMIND Jaszczak phantom on SIMIND's 512³ grid of 1.2 mm voxels, for the accuracy tutorial: `labels` (uint8, PyTomography's x, y, z order; label k is SIMIND's source k, 1 the largest) and `voxel_size_cm`. Made from a 3D Slicer segmentation (`sphere_segmentations_high_res.seg.nrrd`, 2024) whose sphere volumes match the simulation's sources within 0.6% (3.4% for the 0.45 mL sphere) |
+| `nema_iq_regions.seg.nrrd` | `PET/PETSIRD-mMR-NEMA` | The NEMA IQ phantom of the mMR scan, for the PETSIRD tutorial: the phantom in its attenuation map, the six spheres (`sphere 10 mm` to `sphere 37 mm`) at the centres fitted to the tutorial's reconstruction, the background at least 30 mm from their plane, and the background in rings 10 mm wide round the phantom's axis (`ring 0`, `ring 1`, ...). On the tutorial's grid, in the scanner's frame (`pytomography_frame:=scanner`). Overlapping segments, in layers |
 
-Both are PyTomography tutorial data, under CC BY 4.0, like the rest of the PyTomography tutorial records.
+They are PyTomography tutorial data, under CC BY 4.0 like the rest of the PyTomography tutorial records; the region
+files are drawn from their datasets' images, so each also comes under its dataset's licence (the registry's `licence`).

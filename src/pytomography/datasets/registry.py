@@ -231,7 +231,12 @@ DATASETS = {
                 " water-cube attenuation map and the scanner's normalisation weights are being published on Zenodo;"
                 " they can be downloaded once that record is out. The MRI that the Deep Image Prior tutorial uses comes"
                 " from Belzunce's record.",
-        "parts": [],
+        "parts": [
+            # Grey and white matter of the brain phantom, from its MR's intensity classes on the Deep Image Prior
+            # tutorial's grid (docs/tools/make_tutorial_regions.py, 13 Oct 2026)
+            {"kind": "package", "file": "gate_brain_matter.seg.nrrd", "size": 12639,
+             "sha256": "46c71f3a1c1bb09ea2e35f9ddee8ab9d0c8827db2842327668dcdebfdef5cceb"},
+        ],
         "files": {
             **{f"simple_phantom/mMR_voxBrain_withSimplePhantom_{i}.root": run
                for i, run in enumerate(_GATE_BRAININWATER_RUNS, start=1)},
@@ -295,7 +300,12 @@ DATASETS = {
                 " 60 minutes, with the scanner's normalisation) is being published on Zenodo; it can be downloaded once"
                 " that record is out. Its attenuation map, 20170809_NEMA_MUMAP_UCL.v with its .hdr, is in the source"
                 " record's NEMA_IQ.zip (Zenodo 1304454).",
-        "parts": [],
+        "parts": [
+            # The phantom, its six spheres and its background (also in 10 mm rings round its axis), found from its
+            # attenuation map and the tutorial's reconstruction (docs/tools/make_tutorial_regions.py, 13 Oct 2026)
+            {"kind": "package", "file": "nema_iq_regions.seg.nrrd", "size": 110461,
+             "sha256": "0b0a25e9e9ff34ae85c11dcf6d5f5ae5160d7b56d16a7517e27a758a5c92a41f"},
+        ],
     },
     "CT/ldct-c145": {
         "title": "Chest CT (case C145) from a GE LightSpeed VCT, with the full-dose projections in DICOM-CT-PD format"
@@ -316,6 +326,10 @@ DATASETS = {
              "crdc": "02122def-1663-4507-a99e-e21cd8b784e8", "release": "v24", "to": "full_dose_images",
              "files": 316, "size": 166418304,
              "sha256": "be874455af32354452d41db9eb421ab530fb5b6f1cd910446e1ba757602245c4"},
+            # The body, soft tissue and a block of liver, found from the scanner's images on the CT tutorials' grid
+            # (docs/tools/make_tutorial_regions.py, 13 Oct 2026)
+            {"kind": "package", "file": "ldct_c145_regions.seg.nrrd", "size": 1385385,
+             "sha256": "7f747fdf5d685a751a56e853fa25d1a5041bab3fac1c283f7b4be2b2de1c0e02"},
         ],
     },
     "CT/SophiaBeads-256": {

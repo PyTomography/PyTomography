@@ -576,6 +576,31 @@ def test_interfile_and_nrrd_tutorial_files(data_dir):
     assert xcat.units == '1/cm' and xcat.voxel_size == (3.0, 3.0, 3.0)
 
 
+def test_tutorial_region_files():
+    """The region files that come with PyTomography for the PET and CT tutorials (docs/tools/make_tutorial_regions.py)
+    read with their segments by name and their frames; the segments in layers (they overlap) come back whole."""
+    from pytomography.datasets._parts import FILES
+    from pytomography.io import load_mask
+
+    def segment(mask, name):
+        return np.isin(mask.data, np.atleast_1d(mask.labels[name]))
+    brain = load_mask(FILES / 'gate_brain_matter.seg.nrrd')
+    assert set(brain.labels) == {'grey matter', 'white matter'} and brain.frame == 'patient'
+    assert np.allclose(brain.voxel_size, 1.25) and not (segment(brain, 'grey matter') & segment(brain, 'white matter')).any()
+    nema = load_mask(FILES / 'nema_iq_regions.seg.nrrd')
+    spheres = [f'sphere {d} mm' for d in (10, 13, 17, 22, 28, 37)]
+    assert nema.frame == 'scanner' and {'phantom', 'background', 'ring 0', *spheres} <= set(nema.labels)
+    phantom, background = segment(nema, 'phantom'), segment(nema, 'background')
+    for name in nema.labels:
+        assert (segment(nema, name) <= phantom).all(), name                     # all inside the phantom
+    rings = [segment(nema, name) for name in nema.labels if name.startswith('ring ')]
+    assert (np.sum(rings, axis=0) <= 1).all() and (np.any(rings, axis=0) <= background).all()
+    assert not any((segment(nema, name) & background).any() for name in spheres)
+    ct = load_mask(FILES / 'ldct_c145_regions.seg.nrrd')
+    assert set(ct.labels) == {'body', 'soft tissue', 'liver'} and ct.frame == 'patient'
+    assert segment(ct, 'liver').sum() == 40 * 40 * 16 and (segment(ct, 'liver') <= segment(ct, 'body')).all()
+
+
 def test_vendor_table():
     from pytomography.io import _vendors
     for rule_id in ('ge-dmi-listmode', 'gate-world-frame', 'stir2petsird', 'ge-ct-pd-central-column',
