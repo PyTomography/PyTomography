@@ -18,8 +18,8 @@ html_theme.sidebar_secondary.remove: true
     <div class="pt-install"><span class="pt-prompt">$</span><code>pip install pytomography</code><button type="button" class="pt-copy" data-copy="pip install pytomography">Copy</button></div>
   </div>
   <figure class="pt-hero-fig">
-    <img src="_static/landing/mip.gif" alt="Rotating maximum intensity projection of a Tc-99m NEMA IQ phantom reconstructed with PyTomography, over a CT line integral" width="1478" height="492">
-    <figcaption><span>Tc-99m NEMA IQ phantom · GE StarGuide, 12 CZT heads</span><span>OSEM 10×10 with attenuation, scatter and PSF</span></figcaption>
+    <img src="_static/landing/mip.webp" alt="A Lu-177-PSMA patient turning about their long axis: a maximum intensity projection of the SPECT, reconstructed with PyTomography from two bed positions on a GE Discovery 670 Pro (OSEM, 4 iterations of 8 subsets, with CT attenuation, collimator PSF and triple-energy-window scatter correction) and stitched, in PyTomography's PET colour scale over a maximum intensity projection of the patient's CT" width="1000" height="668">
+    <figcaption><span>Lu-177-PSMA patient · GE Discovery 670 Pro, two beds</span><span>OSEM 4×8 with attenuation, PSF and TEW scatter</span></figcaption>
   </figure>
 </section>
 
@@ -38,26 +38,28 @@ html_theme.sidebar_secondary.remove: true
   <dl class="pt-steps">
     <dt>1 · Data</dt><dd>Projections, energy windows and geometry, read from the file the scanner wrote.</dd>
     <dt>2 · Physics</dt><dd>Attenuation from the CT and the collimator-detector response, applied inside the projector.</dd>
-    <dt>3 · Statistics</dt><dd>A Poisson likelihood with scatter as an additive term, solved by the algorithm of your choice.</dd>
+    <dt>3 · Statistics</dt><dd>A Poisson likelihood with scatter as an additive term, solved by the iterative algorithm of your choice. Filtered back projection needs no likelihood.</dd>
   </dl>
 </div>
 <div class="pt-split-code">
 
 ```python
-from pytomography.io.SPECT import dicom
+from pytomography import io
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.algorithms import OSEM
 
-# 1. Data: Lu-177 SPECT/CT exported from the scanner
-object_meta, proj_meta = dicom.get_metadata(file_NM, index_peak=0)
-photopeak = dicom.get_projections(file_NM, index_peak=0)
-scatter = dicom.get_energy_window_scatter_estimate(file_NM, index_peak=0, index_lower=1, index_upper=2)
+# 1. Data: Lu-177 SPECT/CT exported from the scanner, every energy window
+projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)
+photopeak = projections[0]
+scatter = io.SPECT.energy_window_scatter(projections, proj_meta, peak=0, lower=1, upper=2)
 
-# 2. Physics
-attenuation = SPECTAttenuationTransform(filepath=files_CT)
-psf_meta = dicom.get_psfmeta_from_scanner_params("SY-ME", 208, intrinsic_resolution=0.38)
+# 2. Physics, in mm
+photon_keV = proj_meta.energy_windows[0].photon_keV  # 208 keV
+mu = io.attenuation_map(files_CT, object_meta, energy_keV=photon_keV)  # 1/mm
+attenuation = SPECTAttenuationTransform(mu)
+psf_meta = io.SPECT.collimator_psf("SY-ME", photon_keV, intrinsic_fwhm_mm=3.8)
 psf = SPECTPSFTransform(psf_meta)
 system_matrix = SPECTSystemMatrix(
     obj2obj_transforms=[attenuation, psf],
