@@ -160,8 +160,10 @@ class SPECTSystemMatrix(SystemMatrix):
     def set_n_subsets(
         self,
         n_subsets: int
-    ) -> list:
+    ) -> None:
         """Partitions the views into ``n_subsets`` interleaved subsets: view ``i`` goes in subset ``i % n_subsets``.
+
+        The partition is kept in ``subset_indices_array`` (one index tensor per subset).
 
         Args:
             n_subsets (int): Number of subsets, from 1 to the number of views.
@@ -433,10 +435,10 @@ class SPECTSystemMatrix(SystemMatrix):
 class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
     """A SPECT system matrix whose forward projection is a SIMIND Monte Carlo simulation of the object.
 
-    The back projection is :class:`SPECTSystemMatrix`'s. The forward projection simulates the object (as the source) in the 140 keV attenuation map with SIMIND, for every
+    The forward projection simulates the object (as the source) in the 140 keV attenuation map with SIMIND, for every
     isotope, and returns the total projections of the photopeak window, scaled by the object's sum and the isotope's
-    proportion; the projection-to-projection transforms are then applied. The back projection uses the transforms
-    given, like :class:`SPECTSystemMatrix`. SIMIND must be on the PATH. Lengths are in mm, like every length in
+    proportion; the projection-to-projection transforms are then applied. The back projection is
+    :class:`SPECTSystemMatrix`'s, with the transforms given. SIMIND must be on the PATH. Lengths are in mm, like every length in
     PyTomography: the detector thicknesses are converted to SIMIND's cm only where SIMIND is called
     (:func:`pytomography.utils.simind_mc.get_simind_isotope_detector_params`); their names before PyTomography 4, in
     cm (``crystal_thickness``...), raise a TypeError that gives the new value.

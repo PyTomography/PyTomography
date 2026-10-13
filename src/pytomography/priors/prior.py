@@ -1,5 +1,6 @@
 """The base class of the priors."""
 from __future__ import annotations
+from collections.abc import Sequence
 import torch
 import abc
 import pytomography
@@ -15,22 +16,25 @@ class Prior():
 
     Args:
         beta (float): The weight :math:`\beta` of the prior.
-        obj2obj_transforms (list[Transform], optional): Accepted and not used: no transforms are applied. Defaults
-            to none.
+        obj2obj_transforms (Sequence[Transform], optional): Transforms applied, in order, to the prior's value and
+            derivatives at every voxel (for example a :class:`~pytomography.transforms.shared.GaussianFilter`),
+            configured with the object grid in :meth:`set_object_meta`. Defaults to none.
     """
     @abc.abstractmethod
-    def __init__(self, beta: float, obj2obj_transforms: list[Transform] = []):
+    def __init__(self, beta: float, obj2obj_transforms: Sequence[Transform] = ()):
         self.beta = beta
-        self.obj2obj_transforms = []
+        self.obj2obj_transforms = list(obj2obj_transforms)
         self.device = pytomography.device
 
     def set_object_meta(self, object_meta: ObjectMeta) -> None:
-        """Gives the prior the object grid (its voxel sizes set the neighbours' distances).
+        """Gives the prior the object grid, and configures its transforms with it.
 
         Args:
             object_meta (ObjectMeta): The object grid.
         """
         self.object_meta = object_meta
+        for transform in self.obj2obj_transforms:
+            transform.configure(object_meta, None)
 
     def set_beta_scale(self, factor: float) -> None:
         r"""Sets the factor that scales :math:`\beta` in the derivatives: the subset's share of the data, with subsets.

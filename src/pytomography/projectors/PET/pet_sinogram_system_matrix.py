@@ -238,8 +238,10 @@ class PETSinogramSystemMatrix(SystemMatrix):
             sinogram_sensitivity = sinogram_sensitivity.unsqueeze(-1)
         return sinogram_sensitivity
     
-    def set_n_subsets(self, n_subsets: int) -> list:
+    def set_n_subsets(self, n_subsets: int) -> None:
         """Partitions the sinogram's angles into ``n_subsets`` interleaved subsets: angle ``i`` in subset ``i % n_subsets``.
+
+        The partition is kept in ``subset_indices_array`` (one index tensor per subset, on the output ``device``).
 
         Args:
             n_subsets (int): Number of subsets, from 1 to the number of angles.

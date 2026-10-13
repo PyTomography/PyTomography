@@ -18,23 +18,22 @@ from scipy.ndimage import rotate
 def shift_object(object: torch.Tensor, tx: float, ty: float, tz: float) -> torch.Tensor:
     """Shifts a 3D image by whole or fractional voxels, with linear interpolation.
 
-    The value of the result at voxel :math:`(i, j, k)` is that of ``object`` at :math:`(i + t_y, j + t_x, k + t_z)` (0
-    outside it), so the content moves by :math:`(-t_y, -t_x, -t_z)` voxels along the three axes. Note the order: ``ty``
-    applies to the first axis and ``tx`` to the second, like the shifts along the rows and the columns of a slice that
-    :func:`get_shift_values` returns. To move the content by those shifts, pass their negatives.
+    The value of the result at voxel :math:`(i, j, k)` is that of ``object`` at :math:`(i + t_x, j + t_y, k + t_z)` (0
+    outside it), so the content moves by :math:`(-t_x, -t_y, -t_z)` voxels along the three axes. Before
+    PyTomography 4.0, ``tx`` and ``ty`` were applied the other way round.
 
     Args:
         object (torch.Tensor): Image [Lx, Ly, Lz] (a NumPy array also works).
-        tx (float): Offset along the second axis, in voxels.
-        ty (float): Offset along the first axis, in voxels.
-        tz (float): Offset along the third axis, in voxels.
+        tx (float): Offset along the first axis (x), in voxels.
+        ty (float): Offset along the second axis (y), in voxels.
+        tz (float): Offset along the third axis (z), in voxels.
 
     Returns:
         torch.Tensor: The shifted image [Lx, Ly, Lz], of ``pytomography.dtype`` on ``pytomography.device``.
     """
-    
-    object = object.cpu().numpy() if isinstance(object, torch.Tensor) else object 
-    translation = [ty, tx, tz]
+
+    object = object.cpu().numpy() if isinstance(object, torch.Tensor) else object
+    translation = [tx, ty, tz]   # x and y were swapped before PyTomography 4.0
     identity_matrix = np.eye(3)
     shifted_object = affine_transform(object, identity_matrix, offset=translation, order=1)
     

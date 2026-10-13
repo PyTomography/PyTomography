@@ -89,13 +89,12 @@ def dual_imshow(plane, im1, im2, im1_idx, affine1, affine2, imshow1_kwargs, imsh
 
     Both images are placed by their affines (voxel index to patient coordinates in the same length unit, e.g.
     ``object_meta.affine`` and the ``affine`` of an :class:`~pytomography.io.Image`, both mm), which must be
-    axis-aligned. The slice of image 2 is the one
-    whose centre is nearest the centre of image 1's slice (:func:`matching_slice`); image 2 is not drawn when image 1's
-    slice is outside it. Each slice is drawn on the current axes with ``plt.imshow``, transposed so that the first of
-    its two remaining axes runs horizontally, with an ``extent`` from its first voxel's outer edge to its last's
-    (:func:`get_extent`); pass ``origin='lower'`` in both keyword dicts, as the plotting tutorial does, so that the
-    first voxel is drawn at the start of that extent. The axis limits are then set to image 1's extent. Which image is
-    on top is set by ``zorder`` in the keyword dicts.
+    axis-aligned. The slice of image 2 is the one whose centre is nearest the centre of image 1's slice
+    (:func:`matching_slice`); image 2 is not drawn when image 1's slice is outside it. Each slice is drawn on the current
+    axes with ``plt.imshow``, transposed so that the first of its two remaining axes runs horizontally, with an
+    ``extent`` from its first voxel's outer edge to its last's (:func:`get_extent`). Each image is placed by its affine
+    whatever ``origin`` its keyword dict gives (or matplotlib's default), and the axes run along increasing coordinates:
+    the axis limits are image 1's extent. Which image is on top is set by ``zorder`` in the keyword dicts.
 
     Args:
         plane (str): ``'sagittal'`` (slices across the first axis), ``'coronal'`` (the second) or ``'axial'`` (the
@@ -111,6 +110,7 @@ def dual_imshow(plane, im1, im2, im1_idx, affine1, affine2, imshow1_kwargs, imsh
     Raises:
         ValueError: An affine is not axis-aligned.
     """
+    import matplotlib
     import matplotlib.pyplot as plt
     im1, im2 = _numpy(im1), _numpy(im2)
     axis = _AXIS[plane]
@@ -118,11 +118,19 @@ def dual_imshow(plane, im1, im2, im1_idx, affine1, affine2, imshow1_kwargs, imsh
     extent2 = get_extent(im2, affine2)
     IDX_2 = matching_slice(im1_idx, affine1, affine2, axis, im2.shape[axis])
     shown = [a for a in range(3) if a != axis]
+
+    def extent(extents, kwargs):
+        # imshow puts a slice's first row at the bottom of the extent with origin 'lower', at the top with 'upper'
+        rows = extents[shown[1]]
+        if kwargs.get('origin', matplotlib.rcParams['image.origin']) == 'upper':
+            rows = rows[::-1]
+        return [*extents[shown[0]], *rows]
+
     slice_1 = np.take(im1, im1_idx, axis=axis).T
-    plt.imshow(slice_1, **imshow1_kwargs, extent=[*extent1[shown[0]], *extent1[shown[1]]])
+    plt.imshow(slice_1, **imshow1_kwargs, extent=extent(extent1, imshow1_kwargs))
     if IDX_2 is not None:
         slice_2 = np.take(im2, IDX_2, axis=axis).T
-        plt.imshow(slice_2, **imshow2_kwargs, extent=[*extent2[shown[0]], *extent2[shown[1]]])
+        plt.imshow(slice_2, **imshow2_kwargs, extent=extent(extent2, imshow2_kwargs))
     plt.xlim(*extent1[shown[0]])
     plt.ylim(*extent1[shown[1]])
 

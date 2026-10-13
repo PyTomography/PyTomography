@@ -224,6 +224,9 @@ class SPECTPSFTransform(Transform):
         cache_kernel (bool, optional): Only used with ``psf_operator``: compute the Fourier transform of the operator's
             kernel once per distinct radius and keep it on the device, rather than recomputing it at every view. See
             :class:`PSF2D` for the memory this uses. Defaults to False.
+
+    Raises:
+        ValueError: If both or neither of ``psf_meta`` and ``psf_operator`` are given.
     """
     def __init__(
         self,
@@ -234,7 +237,7 @@ class SPECTPSFTransform(Transform):
     ) -> None:
         super(SPECTPSFTransform, self).__init__()
         if sum(arg is not None for arg in [psf_meta, psf_operator]) != 1:
-            Exception(f'Exactly one of the arguments for initialization should be given.')
+            raise ValueError('SPECTPSFTransform takes exactly one of psf_meta and psf_operator')
         self.psf_meta = psf_meta
         self.psf_operator = psf_operator
         self.assume_padded = assume_padded

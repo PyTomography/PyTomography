@@ -459,6 +459,35 @@ def test_ge_corrections(tmp_path):
     assert PET.read_ge_corrections(corrections, pairs=False)[2] is None
 
 
+@pytest.mark.parametrize('min_rsector_difference', [0, 12])
+def test_ge_corrections_line_up_with_the_events_the_reader_keeps(tmp_path, min_rsector_difference):
+    """GE's corrections have one value per row of the list mode file, and read_ge_hdf5 drops the events outside the
+    TOF bins (and those closer than min_rsector_difference): with the reader's proj_meta, read_ge_corrections drops
+    their corrections too, so that correction i is that of event i. Without it the two did not line up."""
+    raw = [13 * k for k in range(-14, 15)] * 3 + [13 * 15, -13 * 16] * 4        # 87 in the TOF bins, 8 outside
+    path, corrections, events, _ = write_ge(tmp_path, raw)
+    in_tof = np.abs(np.asarray(raw)) <= 13 * 14
+    sectors = (events[:, [1, 3]].astype(int) % 544) // 16
+    difference = np.abs(sectors[:, 0] - sectors[:, 1])
+    kept = in_tof & (np.minimum(difference, 34 - difference) >= min_rsector_difference)
+    with pytest.warns(UserWarning, match=f'{len(raw) - kept.sum()} of {len(raw)} events'):
+        got, _, proj_meta = PET.read_ge_hdf5(path, min_rsector_difference=min_rsector_difference)
+    assert got.shape[0] == kept.sum() and proj_meta.kept_events.numpy().tolist() == kept.tolist()
+    rows = np.flatnonzero(kept)
+    assert got[:, 0].tolist() == (544 * events[rows, 0] + events[rows, 1]).tolist()
+    event_weights, additive, _, _ = PET.read_ge_corrections(corrections, proj_meta=proj_meta, pairs=False)
+    with h5py.File(corrections, "r") as f:
+        assert np.allclose(event_weights.numpy(), (f["correction_lists/atten"][:] * f["correction_lists/sens"][:])[rows])
+        assert np.allclose(additive.numpy(), f["correction_lists/contam"][:][rows])
+    assert PET.read_ge_corrections(corrections, pairs=False)[1].shape == (len(raw),)     # the file's rows
+    (tmp_path / "other").mkdir()
+    other_path, _, _, _ = write_ge(tmp_path / "other", [0, 13])
+    _, _, other = PET.read_ge_hdf5(other_path)
+    assert other.kept_events is None                                    # nothing dropped
+    with pytest.raises(ValueError, match="corrections for"):
+        PET.read_ge_corrections(corrections, proj_meta=other, pairs=False)
+
+
 def test_list_mode_sensitivity_leaves_out_pairs_closer_than_min_rsector_difference():
     """The sensitivity image's crystal pairs that the readers' event filter drops get weight 0."""
     from types import SimpleNamespace

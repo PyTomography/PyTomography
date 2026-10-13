@@ -156,7 +156,7 @@ class CTGen3SystemMatrix(SystemMatrix):
             proj_subset = projections[subset_indices.to(projections.device)]
             return proj_subset
 
-    def set_n_subsets(self, n_subsets: int) -> list:
+    def set_n_subsets(self, n_subsets: int) -> None:
         r"""Partition the views into ``n_subsets`` subsets for ordered-subset reconstruction.
 
         Subset :math:`m` holds views :math:`m, m + n, m + 2n, \dots` (:math:`n` = ``n_subsets``). The indices are kept
@@ -166,7 +166,7 @@ class CTGen3SystemMatrix(SystemMatrix):
             n_subsets (int): Number of subsets, from 1 to the number of views.
 
         Raises:
-            ValueError: ``n_subsets`` is less than 1 or more than the number of views.
+            ValueError: If ``n_subsets`` is less than 1 or more than the number of views.
         """
         self._check_n_subsets(n_subsets, self.proj_meta.N_angles)
         indices = torch.arange(self.proj_meta.N_angles).to(torch.long).to(self.device)

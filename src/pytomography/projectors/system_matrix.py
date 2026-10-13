@@ -512,10 +512,10 @@ class ExtendedSystemMatrix(SystemMatrix):
     def set_n_subsets(
         self,
         n_subsets: int
-    ) -> list:
+    ) -> None:
         """Partitions the projections of every system matrix into ``n_subsets`` subsets.
 
-        The system matrices are assumed to partition alike: the first one's subsets are used.
+        The system matrices are assumed to partition alike: the first one's ``subset_indices_array`` is used.
 
         Args:
             n_subsets (int): Number of subsets.

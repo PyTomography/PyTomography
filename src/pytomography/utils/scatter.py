@@ -4,12 +4,11 @@
 """
 from __future__ import annotations
 from collections.abc import Sequence
-from . import get_1d_gaussian_kernel
+from .misc import get_1d_gaussian_kernel   # from its module: importing it from pytomography.utils, which imports this module, is a cycle
 from pytomography.metadata import ProjMeta
 import numpy as np
 import pytomography
 import torch
-from pytomography.utils import get_1d_gaussian_kernel
 
 @torch.no_grad()
 def get_smoothed_scatter(
@@ -27,8 +26,8 @@ def get_smoothed_scatter(
     standard deviations, wrapping around along the views and repeating the edge values along r and z. The same
     smoothing is applied to the field of view mask (all ones without ``FOV_mask``), and the smoothed projections are
     divided by the smoothed mask and multiplied by the mask: values near the edge of the field of view are not pulled
-    towards the zeros outside it, and the result is 0 outside it. The view spacing is the difference of the first two
-    angles.
+    towards the zeros outside it, and the result is 0 outside it. The view spacing is the angle between the first two
+    views, whichever way the views turn and across 0/360 degrees.
 
     Args:
         scatter (torch.Tensor): Projections [θ, r, z].
@@ -43,9 +42,11 @@ def get_smoothed_scatter(
     Returns:
         torch.Tensor: The smoothed projections [θ, r, z].
     """
-    # spacing
+    # spacing: the angle between neighbouring views, whichever way they turn (a negative step, as with decreasing
+    # angles, gave negative kernel sizes) and across 0/360 degrees
     dr, dz = proj_meta.dr
-    dtheta = torch.diff(proj_meta.angles)[0].item()
+    step = abs(torch.diff(proj_meta.angles)[0].item())
+    dtheta = step if step <= 180 else 360 - step
     dS = [dtheta, dr, dz]
     # kernel size
     kernel_size_theta = 2 * int(np.ceil(N_sigmas * sigma_theta / dtheta)) + 1

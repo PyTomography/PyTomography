@@ -490,10 +490,10 @@ class PETLMSystemMatrix(SystemMatrix):
             norm_BP  = transform.backward(norm_BP)
         return norm_BP.cpu()
     
-    def set_n_subsets(self, n_subsets: int) -> list:
+    def set_n_subsets(self, n_subsets: int) -> None:
         """Partitions the events into ``n_subsets`` interleaved subsets: event ``i`` goes in subset ``i % n_subsets``.
 
-        The partition is kept in ``subset_indices_array`` (one index tensor per subset).
+        The partition is kept in ``subset_indices_array`` (one index tensor per subset, on the CPU).
 
         Args:
             n_subsets (int): Number of subsets.

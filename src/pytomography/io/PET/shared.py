@@ -639,7 +639,9 @@ def listmode_to_sinogram(
         weights (torch.Tensor, optional): ``[N]`` weight of each event, summed in its bin. Defaults to None: the events
             are counted.
         normalization (bool, optional): Bin a normalisation sinogram: each event is binned with its two crystals in
-            both orders, and the two sinograms are averaged. Ignored with ``tof_meta``. Defaults to False.
+            both orders, and the two sinograms are averaged. A normalisation sinogram has no TOF bins (the
+            normalisation of a line of response is the same in all of them), so it is not available with
+            ``tof_meta``. Defaults to False.
         tof_meta (PETTOFMeta, optional): The TOF bins of the events (the third column of ``detector_ids``); the
             sinogram then has a fourth dimension, the TOF bins. Defaults to None (no TOF).
         lazy (bool | None, optional): Return a :class:`LazySinogram`, which bins the events of the angles it is asked
@@ -653,8 +655,11 @@ def listmode_to_sinogram(
         planes; ``N`` crystals per ring, ``R`` rings), or ``[N / 2, N + 1, R**2, T]`` with ``T`` TOF bins.
 
     Raises:
+        ValueError: If ``normalization`` is given with ``tof_meta``.
         NotImplementedError: If ``lazy`` is True with ``normalization``.
     """
+    if normalization and tof_meta is not None:
+        raise ValueError("a normalization sinogram has no TOF bins (it applies to every one): bin it without tof_meta")
     if lazy is None:
         lazy = not normalization and prefer_lazy(4 * np.prod(_sinogram_shape(info)) * (1 if tof_meta is None else tof_meta.num_bins))
     if lazy:
@@ -931,9 +936,11 @@ def _convolve_last_axis(x: torch.Tensor, kernel: torch.nn.Conv1d) -> torch.Tenso
     """``x`` convolved with a 1D ``kernel`` along its last axis, a block of rows at a time into one output. The convolution
     of all rows at once took about 13 times the input in temporaries on the CPU (21 GB for the randoms sinogram of the
     Siemens Biograph mMR); the blocks hold an eighth of the memory budget (:func:`pytomography.set_memory_budget`), or
-    about 0.5 GB without one. Each row is convolved on its own, so the result does not depend on the blocks."""
+    about 0.5 GB without one. Each row is convolved on its own, so the result does not depend on the blocks. The
+    kernel is applied on the device and in the dtype of ``x``."""
+    kernel = kernel.to(device=x.device, dtype=x.dtype)
     out = torch.empty(x.shape, dtype=x.dtype, device=x.device)
-    bytes_per_row = 64 * x.shape[-1]   # 16 float32 temporaries per sample
+    bytes_per_row = 16 * x.element_size() * x.shape[-1]   # 16 temporaries per sample
     rows_per_slice = max(1, int(np.prod(x.shape[1:-1])))
     slices = max(1, block_size(bytes_per_row, default=max(1, int(5e8 // bytes_per_row))) // rows_per_slice)
     for start in range(0, x.shape[0], slices):
@@ -959,8 +966,8 @@ def smooth_randoms_sinogram(
     edges extended), a block of rows at a time, and its planes are put back in order.
 
     Args:
-        sinogram_random (torch.Tensor): Randoms sinogram (non-TOF), ``[angles, radial bins, planes]``, float32 on the
-            CPU (the filters are).
+        sinogram_random (torch.Tensor): Randoms sinogram (non-TOF), ``[angles, radial bins, planes]``, on any device
+            and in any floating point dtype (the result is on the same device, in the same dtype).
         info (dict): The scanner's ``info`` (:func:`~pytomography.io.PET.scanner_info`).
         sigma_r (float, optional): Standard deviation of the Gaussian along the radial bins, in bins. Defaults to 4.
         sigma_theta (float, optional): Standard deviation of the Gaussian along the angles, in angles. Defaults to 4.

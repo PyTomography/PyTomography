@@ -11,6 +11,7 @@ second order ones are needed only for uncertainty estimates.
 
 from __future__ import annotations
 import abc
+from collections.abc import Sequence
 import torch
 import numpy as np
 from .prior import Prior
@@ -26,15 +27,19 @@ class NearestNeighbourPrior(Prior):
         beta (float): The weight :math:`\beta` of the prior.
         weight (NeighbourWeight, optional): The weights :math:`w_{r,s}` of the neighbours. Defaults to None:
             :class:`EuclideanNeighbourWeight` (inverse distance).
+        obj2obj_transforms (Sequence[Transform], optional): Transforms applied, in order, to the prior's value and
+            derivatives at every voxel (for example a :class:`~pytomography.transforms.shared.GaussianFilter`).
+            Defaults to none.
         **kwargs: The parameters of the subclass's :math:`\phi` (e.g. ``delta``, ``gamma``), kept as attributes.
     """
     def __init__(
         self,
         beta: float,
         weight: NeighbourWeight | None = None,
+        obj2obj_transforms: Sequence[Transform] = (),
         **kwargs
     ) -> None:
-        super(NearestNeighbourPrior, self).__init__(beta)
+        super(NearestNeighbourPrior, self).__init__(beta, obj2obj_transforms)
         if weight is None:
             self.weight = EuclideanNeighbourWeight()
         else:
@@ -47,8 +52,8 @@ class NearestNeighbourPrior(Prior):
         Args:
             object_meta (ObjectMeta): The object grid.
         """
+        super(NearestNeighbourPrior, self).set_object_meta(object_meta)
         self.weight.set_object_meta(object_meta)
-        self.object_meta = object_meta
         # Set to ones, but possibly updated by recon algorithm in reconstruction
         self.FOV_scale = torch.ones(self.object_meta.shape).to(pytomography.device)
         
@@ -171,14 +176,17 @@ class QuadraticPrior(NearestNeighbourPrior):
         weight (NeighbourWeight, optional): The weights of the neighbours. Defaults to None:
             :class:`EuclideanNeighbourWeight`.
         delta (float, optional): The scale :math:`\delta`, in the units of the image. Defaults to 1.
+        obj2obj_transforms (Sequence[Transform], optional): Transforms applied, in order, to the prior's value and
+            derivatives at every voxel. Defaults to none.
     """
     def __init__(
         self,
         beta: float,
         weight: NeighbourWeight | None = None,
         delta: float = 1,
+        obj2obj_transforms: Sequence[Transform] = (),
     ) -> None:
-        super(QuadraticPrior, self).__init__(beta, weight=weight, delta=delta)
+        super(QuadraticPrior, self).__init__(beta, weight=weight, obj2obj_transforms=obj2obj_transforms, delta=delta)
         
     def phi0(self, fr, fs):
         r"""The quadratic prior's :math:`\phi_0(f_r, f_s) = \frac{1}{4} \left[(f_r-f_s)/\delta\right]^2`."""
@@ -199,14 +207,17 @@ class LogCoshPrior(NearestNeighbourPrior):
         delta (float, optional): The scale :math:`\delta`, in the units of the image. Defaults to 1.
         weight (NeighbourWeight, optional): The weights of the neighbours. Defaults to None:
             :class:`EuclideanNeighbourWeight`.
+        obj2obj_transforms (Sequence[Transform], optional): Transforms applied, in order, to the prior's value and
+            derivatives at every voxel. Defaults to none.
     """
     def __init__(
         self,
         beta: float,
         delta: float = 1,
         weight: NeighbourWeight | None = None,
+        obj2obj_transforms: Sequence[Transform] = (),
     ) -> None:
-        super(LogCoshPrior, self).__init__(beta, weight=weight, delta=delta)
+        super(LogCoshPrior, self).__init__(beta, weight=weight, obj2obj_transforms=obj2obj_transforms, delta=delta)
         
     def phi0(self, fr, fs):
         r"""The log-cosh prior's :math:`\phi_0(f_r, f_s) = \log \cosh \left[(f_r-f_s)/\delta\right]`."""
@@ -229,15 +240,18 @@ class RelativeDifferencePrior(NearestNeighbourPrior):
         gamma (float, optional): The edge-preservation parameter :math:`\gamma`. Defaults to 1.
         delta (float, optional): A small number :math:`\delta` that keeps the denominator from vanishing. Defaults to
             ``pytomography.delta``.
+        obj2obj_transforms (Sequence[Transform], optional): Transforms applied, in order, to the prior's value and
+            derivatives at every voxel. Defaults to none.
     """
     def __init__(
         self,
         beta: float,
         weight: NeighbourWeight | None = None,
         gamma: float = 1,
-        delta = pytomography.delta
+        delta = pytomography.delta,
+        obj2obj_transforms: Sequence[Transform] = (),
     ) -> None:
-        super(RelativeDifferencePrior, self).__init__(beta, weight=weight, gamma = gamma, delta=delta)
+        super(RelativeDifferencePrior, self).__init__(beta, weight=weight, obj2obj_transforms=obj2obj_transforms, gamma = gamma, delta=delta)
         
     def phi0(self, fr, fs):
         r"""The relative difference prior's :math:`\phi_0(f_r, f_s)` (see the class)."""

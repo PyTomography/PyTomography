@@ -11,8 +11,8 @@ class CTConeBeamFlatPanelProjMeta(ProjMeta):
     In the object frame (mm), the view at angle :math:`\theta` has its source at
     :math:`(-R_s\cos\theta, -R_s\sin\theta, z)` and its detector centre at :math:`(R_d\cos\theta, R_d\sin\theta, z)`,
     with :math:`R_s` ``beam_radius``, :math:`R_d` ``detector_radius`` and :math:`z` the view's ``z_locations``. The
-    detector faces the origin; its u axis runs along :math:`(-\sin\theta, \cos\theta, 0)` and its v axis along -z
-    (v = 0 is the top row). With ``COR``, the source and detector of every view are shifted so that they turn about the
+    detector faces the rotation axis, its normal in the axial plane at every z; its u axis runs along
+    :math:`(-\sin\theta, \cos\theta, 0)` and its v axis along -z (v = 0 is the top row). With ``COR``, the source and detector of every view are shifted so that they turn about the
     axis at (0, -COR) instead of the z axis; the view at :math:`\theta = 0` does not move.
     :func:`~pytomography.io.CT.read_nikon` builds this metadata from a Nikon XTek scan.
 
@@ -31,8 +31,8 @@ class CTConeBeamFlatPanelProjMeta(ProjMeta):
         N_angles (int): Number of views.
         beam_locations (torch.Tensor): Source position of each view, [views, 3], in mm.
         detector_locations (torch.Tensor): Detector centre of each view, [views, 3], in mm.
-        detector_orientations (torch.Tensor): Unit normal of the detector at each view, [views, 3], pointing from the
-            detector centre towards the origin (computed before the ``COR`` shift).
+        detector_orientations (torch.Tensor): Unit normal of the detector at each view, [views, 3], in the axial plane,
+            pointing from the detector centre towards the z axis (computed before the ``COR`` shift).
         DSD (float): Distance from the source to the detector, ``|beam_radius| + |detector_radius|``, in mm.
         DSO (float): Distance from the source to the rotation axis, ``|beam_radius|``, in mm.
     """
@@ -63,7 +63,11 @@ class CTConeBeamFlatPanelProjMeta(ProjMeta):
             - beam_radius*torch.sin(self.angles),
             self.z_locations
         ], dim=-1)
-        self.detector_orientations = - self.detector_locations / torch.norm(self.detector_locations, dim=-1).unsqueeze(-1)
+        # the panel faces the rotation axis, perpendicular to it at every z (the detector's position projected on the
+        # axial plane: its position itself tilted the panel off z = 0)
+        in_plane = self.detector_locations.clone()
+        in_plane[:, 2] = 0
+        self.detector_orientations = - in_plane / torch.norm(in_plane, dim=-1).unsqueeze(-1)
         # Rotation offset
         offsetx, offsety = self._get_CORs()
         self.detector_locations[:,0] += offsetx
