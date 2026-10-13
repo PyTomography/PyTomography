@@ -1,3 +1,20 @@
+"""PET sinograms: binning list mode events into sinograms, and looking events up in them, for any scanner's ``info``.
+
+A sinogram of a scanner with ``N`` crystals per ring and ``R`` rings (``info['NrCrystalsPerRing']`` and
+``info['NrRings']``) has shape ``[N / 2, N + 1, R**2]``: angles, radial bins, and one plane per ordered pair of rings. A
+TOF sinogram has the TOF bins as a fourth dimension. An event is binned by the within-ring ids of its two crystals, the
+crystal with the larger id first, and the plane of their two rings in the same order; the TOF bin of an event whose
+crystals were swapped is mirrored. Every function here bins events as :func:`listmode_to_sinogram` does, so sinograms
+and list mode values correspond bin for bin.
+
+* :func:`listmode_to_sinogram` and :func:`sinogram_to_listmode`: events to a sinogram, and a sinogram's value at each
+  event;
+* :class:`LazySinogram`: a sinogram computed a group of angles at a time, for sinograms too large to hold (TOF);
+* :func:`normalization_sinogram` and :func:`all_pairs_to_sinogram`: a weight for every crystal pair, binned;
+* :func:`smooth_randoms_sinogram` and :func:`randoms_sinogram_to_sinogramTOF`: randoms estimates;
+* :func:`remove_events_outside`: the events whose LOR crosses the reconstruction grid;
+* :func:`sinogram_coordinates` and :func:`sinogram_to_spatial`: the lookup tables behind the binning.
+"""
 from __future__ import annotations
 from collections.abc import Sequence
 import functools
@@ -26,13 +43,17 @@ def _memoize_by_info(fn):
 
 @_memoize_by_info
 def sinogram_coordinates(info: dict) -> Sequence[torch.Tensor]:
-    """Obtains two tensors: the first yields the sinogram coordinates (r/theta) given two crystal IDs (shape [N_crystals_per_ring, N_crystals_per_ring, 2]), the second yields the sinogram index given two ring IDs (shape [Nrings, Nrings])
+    """Returns the lookup tables that bin events: the bin of each pair of crystals, and the plane of each pair of rings.
+
+    The tables are built by Python loops over all crystal pairs (seconds for a clinical scanner) and cached per
+    ``info``: the tensors are shared between callers and must not be changed in place.
 
     Args:
-        info (dict): PET geometry information dictionary    
+        info (dict): The scanner's ``info`` (:func:`~pytomography.io.PET.scanner_info`).
 
     Returns:
-        Sequence[torch.Tensor]: LOR coordinates and sinogram index lookup tensors
+        Sequence[torch.Tensor]: int64 ``[N, N, 2]``, the (angle, radial bin) of each pair of within-ring crystal ids
+        (``N`` crystals per ring), and int64 ``[R, R]``, the plane of each pair of ring ids (``R`` rings).
     """
     nr_sectors_trans, nr_sectors_axial, nr_modules_axial, nr_modules_trans, nr_crystals_trans, nr_crystals_axial = info['rsectorTransNr'], info['rsectorAxialNr'], info['moduleAxialNr'], info['moduleTransNr'], info['crystalTransNr'], info['crystalAxialNr']
     nr_rings = info['NrRings']
@@ -114,13 +135,19 @@ def sinogram_coordinates(info: dict) -> Sequence[torch.Tensor]:
 
 @_memoize_by_info
 def sinogram_to_spatial(info: dict) -> Sequence[torch.Tensor]:
-    """Returns two tensors: the first yields the detector coordinates (x1/y1/x2/y2) of each of the two crystals given the element of the sinogram (shape [N_crystals_per_ring, N_crystals_per_ring, 2, 2]), the second yields the ring coordinates (z1/z2) given two ring IDs (shape [Nrings*Nrings, 2])
+    """Returns the positions of the two crystals of every sinogram bin, in the object frame, in mm.
+
+    The first crystal of a bin is the one :func:`listmode_to_sinogram` puts first (the larger within-ring id), and the
+    first ring of a plane is that crystal's ring. Bins that no crystal pair falls in hold zeros. The tables are cached
+    per ``info``, like those of :func:`sinogram_coordinates`: they must not be changed in place.
 
     Args:
-        info (dict): PET geometry information dictionary
+        info (dict): The scanner's ``info`` (:func:`~pytomography.io.PET.scanner_info`).
 
     Returns:
-        Sequence[torch.Tensor]: Two tensors yielding spatial coordinates
+        Sequence[torch.Tensor]: float32 ``[N / 2, N + 1, 2, 2]``, the (x, y) of the two crystals of each (angle,
+        radial bin), and float32 ``[R**2, 2]``, the z of the two rings of each plane (``N`` crystals per ring, ``R``
+        rings).
     """
     # a NumPy array (the same float32 values): copying rows of a tensor into the NumPy arrays below made NumPy 2 warn
     # that Tensor.__array__ takes no copy argument, once per crystal pair
@@ -206,22 +233,51 @@ def _is_array_index(index) -> bool:
     return isinstance(index, torch.Tensor) and (index.ndim > 0 or index.dtype == torch.bool)
 
 class LazySinogram:
-    r"""A sinogram that is computed one group of angles at a time, when those angles are asked for, instead of being held in memory.
+    r"""A sinogram that is computed a group of angles at a time, when those angles are asked for, instead of being held.
 
-    A sinogram with 21 TOF bins of the Siemens Biograph mMR (224 angles, 449 radial bins, 4096 ring pairs) takes 34.6 GB, so a TOF reconstruction that holds its data, its additive term and the scatter estimate as dense sinograms needs over 100 GB of memory. Reconstruction algorithms only ever use one subset of angles at a time (:meth:`PETSinogramSystemMatrix.get_projection_subset` indexes the first dimension of the projections), and so does the scaling of the scatter estimate, so these sinograms never need to exist whole. A ``LazySinogram`` can be passed wherever a likelihood takes projections or an additive term:
+    A sinogram with 21 TOF bins of the Siemens Biograph mMR as GATE models it (224 angles, 449 radial bins, 4096 ring
+    pairs) takes 34.6 GB, so a TOF reconstruction that holds its data, its additive term and the scatter estimate as
+    dense sinograms needs over 100 GB of memory. Reconstruction algorithms only ever use one subset of angles at a time
+    (:meth:`PETSinogramSystemMatrix.get_projection_subset
+    <pytomography.projectors.PET.pet_sinogram_system_matrix.PETSinogramSystemMatrix.get_projection_subset>` indexes
+    the first dimension of the projections), and so does the scaling of the scatter estimate, so these sinograms never
+    need to exist whole. A ``LazySinogram`` can be passed wherever a likelihood takes projections or an additive term:
 
-    * ``sinogram[angles]`` (an int, a slice, or a list or tensor of angle indices, in any order) computes those angles. Further indices are applied to each group of angles as it is computed, so ``sinogram[:, :, :64, 10].sum(dim=0)`` never holds the whole sinogram.
-    * Arithmetic with numbers, with tensors whose first dimension is the same angles (such as a dense randoms or sensitivity sinogram; use ``unsqueeze`` to add trailing dimensions), and with other lazy sinograms gives a lazy sinogram, e.g. ``(randoms.unsqueeze(-1) + scatter) / sensitivity``.
-    * ``to_dense()`` computes the whole sinogram as one tensor.
+    * ``sinogram[angles]`` (an int, a slice, a boolean mask, or a list or tensor of angle indices, in any order)
+      computes those angles. Further indices are applied to each group of angles as it is computed, so
+      ``sinogram[:, :, :64, 10].sum(dim=0)`` never holds the whole sinogram. After the angles, at most one array index
+      is allowed, with a slice for the angles and no integer indices; other indices raise an ``IndexError``.
+    * Arithmetic (``+``, ``-``, ``*``, ``/``) with numbers, with tensors whose first dimension is the same angles (such
+      as a dense randoms or sensitivity sinogram, with as many dimensions: use ``unsqueeze`` to add trailing ones),
+      and with other lazy sinograms gives a lazy sinogram, e.g. ``(randoms.unsqueeze(-1) + scatter) / sensitivity``.
+    * :meth:`to_dense` computes the whole sinogram as one tensor.
 
-    The angles are computed in groups of at most :attr:`chunk_bytes` bytes (and a sixteenth of the memory budget, if one is set with :func:`pytomography.set_memory_budget`) whenever more than one group is asked for at once. Values are float32 on the CPU; :meth:`compute_at` gives a group of angles on another device, computed there when the sinogram can be.
+    The angles are computed in groups of at most :attr:`chunk_bytes` bytes (and a sixteenth of the memory budget, if
+    one is set with :func:`pytomography.set_memory_budget`) whenever more than one group is asked for at once. Values
+    are float32 on the CPU; :meth:`compute_at` gives a group of angles on another device, computed there when the
+    sinogram can be.
 
     Args:
-        compute (Callable[[torch.Tensor], torch.Tensor]): Computes the sinogram at the given angles: it gets a 1D long tensor of angle indices on the CPU and returns a new tensor of shape ``[len(angles), *shape[1:]]``.
+        compute (Callable[[torch.Tensor], torch.Tensor]): Computes the sinogram at the given angles: it gets a 1D long
+            tensor of angle indices on the CPU and returns a new tensor of shape ``[len(angles), *shape[1:]]``.
         shape (Sequence[int]): Shape of the whole sinogram; the first dimension is the angles.
         description (str, optional): What the sinogram holds, for its ``repr``. Defaults to ''.
-        compute_on (Callable[[torch.Tensor, torch.device], torch.Tensor] | None, optional): Like ``compute``, but returns the angles as a new tensor on the device it is given, computed there. Defaults to None: :meth:`compute_at` computes on the CPU and copies.
-        memory_bytes (float, optional): Host memory the sinogram keeps to compute itself (e.g. its events), in bytes, for memory estimates (:attr:`memory_bytes`). Defaults to 0.
+        compute_on (Callable[[torch.Tensor, torch.device], torch.Tensor] | None, optional): Like ``compute``, but
+            returns the angles as a new tensor on the device it is given, computed there. Defaults to None:
+            :meth:`compute_at` computes on the CPU and copies.
+        memory_bytes (float, optional): Host memory the sinogram keeps to compute itself (e.g. its events), in bytes,
+            for memory estimates. Defaults to 0.
+
+    Attributes:
+        shape (torch.Size): Shape of the whole sinogram; the first dimension is the angles.
+        description (str): What the sinogram holds, for its ``repr``.
+        memory_bytes (float): Host memory the sinogram keeps to compute itself (its events, its interpolation samples,
+            the tensors its arithmetic holds), in bytes. Memory estimates count this instead of the size of the whole
+            sinogram.
+        chunk_bytes (float): Largest group of angles computed at once when more than one group is asked for, in bytes:
+            :data:`pytomography.utils.memory.BLOCK_CAP_BYTES` (0.5 GB). A class attribute.
+        dtype (torch.dtype): ``torch.float32``, the type of the values.
+        device (torch.device): The CPU, where the values are computed.
     """
     #: Largest group of angles computed at once when more than one group is asked for, in bytes: the cap of a block of
     #: temporaries (:data:`pytomography.utils.memory.BLOCK_CAP_BYTES`, 0.5 GB). Looking the 107 million events of the
@@ -241,9 +297,15 @@ class LazySinogram:
 
     @property
     def ndim(self) -> int:
+        """Number of dimensions of the sinogram."""
         return len(self.shape)
 
     def dim(self) -> int:
+        """Returns the number of dimensions of the sinogram, as ``torch.Tensor.dim`` does.
+
+        Returns:
+            int: Number of dimensions.
+        """
         return len(self.shape)
 
     def __len__(self) -> int:
@@ -312,7 +374,11 @@ class LazySinogram:
         return out
 
     def compute_at(self, angles: torch.Tensor, device: str | torch.device) -> torch.Tensor:
-        """The sinogram at ``angles`` as a new tensor on ``device``, all the angles at once. A sinogram that can be computed on a device (binned list mode events, the interpolated scatter estimate, and arithmetic of those with tensors and numbers) is computed there, without passing through host memory; any other is computed on the CPU and copied.
+        """Computes the sinogram at ``angles`` as a new tensor on ``device``, all the angles at once.
+
+        A sinogram that can be computed on a device (binned list mode events, the interpolated scatter estimate, and
+        arithmetic of those with tensors and numbers) is computed there, without passing through host memory; any
+        other is computed on the CPU and copied.
 
         Args:
             angles (torch.Tensor): 1D long tensor of angle indices.
@@ -328,7 +394,7 @@ class LazySinogram:
         return self._compute(angles).to(device)
 
     def to_dense(self) -> torch.Tensor:
-        """The whole sinogram as one tensor, computed a group of angles at a time.
+        """Computes the whole sinogram as one tensor, a group of angles at a time.
 
         Returns:
             torch.Tensor: Sinogram of shape :attr:`shape`.
@@ -336,10 +402,29 @@ class LazySinogram:
         return self[:]
 
     def cpu(self) -> LazySinogram:
+        """Returns the sinogram itself, which is already computed on the CPU.
+
+        Returns:
+            LazySinogram: This sinogram.
+        """
         return self
 
     def to(self, *args, **kwargs) -> LazySinogram:
-        """Accepts only the device and dtype the sinogram already has (the CPU and float32), so that code moving its projections there works; a lazy sinogram cannot move anywhere else."""
+        """Returns the sinogram itself, if it is asked for on the device and type it already has (the CPU, float32).
+
+        This lets code that moves its projections to the CPU or to float32 work with a lazy sinogram, which cannot be
+        moved or converted to anything else.
+
+        Args:
+            *args: Arguments of ``torch.Tensor.to``: devices and dtypes are checked, other values are ignored.
+            **kwargs: Keyword arguments of ``torch.Tensor.to``, checked in the same way.
+
+        Returns:
+            LazySinogram: This sinogram.
+
+        Raises:
+            TypeError: If a dtype other than ``torch.float32``, or a device other than the CPU, is asked for.
+        """
         for value in list(args) + list(kwargs.values()):
             if isinstance(value, torch.dtype):
                 if value != self.dtype:
@@ -539,20 +624,36 @@ def listmode_to_sinogram(
     tof_meta: PETTOFMeta = None,
     lazy: bool | None = None
     ) -> torch.Tensor | LazySinogram:
-    """Converts PET listmode data to sinogram
+    """Bins list mode events into a sinogram, counting them or summing their weights.
 
-    The events are binned a chunk at a time into one sinogram on the CPU: as many events at once as fit in an eighth of the memory budget (:func:`pytomography.set_memory_budget`), at most about 3.8 million (0.5 GB of temporaries), or about 4.2 million without a budget. The sinogram is the one binning all the events at once gives, bit for bit.
+    Each event is binned as described at the top of this module (:mod:`pytomography.io.PET.shared`); with TOF, events
+    outside the TOF bins are dropped. The events are binned a chunk at a time into one float32 sinogram on the CPU: as
+    many events at once as fit in an eighth of the memory budget (:func:`pytomography.set_memory_budget`), at most
+    about 3.8 million (0.5 GB of temporaries), or about 4.2 million without a budget. The sinogram is the one binning
+    all the events at once gives, bit for bit.
 
     Args:
-        detector_ids (torch.Tensor): Listmode detector ID data
-        info (dict): PET geometry information dictionary
-        weights (torch.Tensor, optional): Binning weights for each listmode event. Defaults to None.
-        normalization (bool, optional): Whether or not this is a normalization sinogram (need to do some extra steps). Defaults to False.
-        tof_meta (PETTOFMeta, optional): PET TOF metadata. Defaults to None.
-        lazy (bool | None, optional): Return a :class:`LazySinogram`, which bins the events of the angles it is asked for when it is asked for them, instead of the whole sinogram. A TOF sinogram is large (34.6 GB with 21 TOF bins for the Siemens Biograph mMR), while a reconstruction reads one subset of angles at a time. Not available with ``normalization``. Defaults to None: lazy when the whole sinogram would take more than a quarter of the memory budget (:func:`pytomography.set_memory_budget`), or more than 8 GB without a budget.
+        detector_ids (torch.Tensor): Events, ``[N, 2]`` detector ids, or ``[N, 3]`` with the TOF bin (with
+            ``tof_meta``), on any device.
+        info (dict): The scanner's ``info`` (:func:`~pytomography.io.PET.scanner_info`).
+        weights (torch.Tensor, optional): ``[N]`` weight of each event, summed in its bin. Defaults to None: the events
+            are counted.
+        normalization (bool, optional): Bin a normalisation sinogram: each event is binned with its two crystals in
+            both orders, and the two sinograms are averaged. Ignored with ``tof_meta``. Defaults to False.
+        tof_meta (PETTOFMeta, optional): The TOF bins of the events (the third column of ``detector_ids``); the
+            sinogram then has a fourth dimension, the TOF bins. Defaults to None (no TOF).
+        lazy (bool | None, optional): Return a :class:`LazySinogram`, which bins the events of the angles it is asked
+            for when it is asked for them, instead of the whole sinogram. A TOF sinogram is large (34.6 GB with 21 TOF
+            bins for the Siemens Biograph mMR), while a reconstruction reads one subset of angles at a time. Not
+            available with ``normalization``. Defaults to None: lazy when the whole sinogram would take more than a
+            quarter of the memory budget (:func:`pytomography.set_memory_budget`), or more than 8 GB without a budget.
 
     Returns:
-        torch.Tensor | LazySinogram: PET sinogram
+        torch.Tensor | LazySinogram: float32 sinogram on the CPU, ``[N / 2, N + 1, R**2]`` (angles, radial bins,
+        planes; ``N`` crystals per ring, ``R`` rings), or ``[N / 2, N + 1, R**2, T]`` with ``T`` TOF bins.
+
+    Raises:
+        NotImplementedError: If ``lazy`` is True with ``normalization``.
     """
     if lazy is None:
         lazy = not normalization and prefer_lazy(4 * np.prod(_sinogram_shape(info)) * (1 if tof_meta is None else tof_meta.num_bins))
@@ -564,8 +665,9 @@ def listmode_to_sinogram(
         return _listmodeTOF_to_sinogramTOF(detector_ids, info, tof_meta, weights=weights)
     return _listmode_to_dense_sinogram(detector_ids, info, weights=weights, normalization=normalization)
 
-#: Host memory that binning takes per list mode event, temporaries included (bytes), which sizes its chunks of events.
 BINNING_BYTES_PER_EVENT = 130
+"""Host memory that binning takes per list mode event (or crystal pair), temporaries included, in bytes. It sizes the
+chunks that :func:`listmode_to_sinogram` and :func:`all_pairs_to_sinogram` bin at once."""
 
 def _events_per_binning_chunk() -> int:
     """Number of list mode events :func:`listmode_to_sinogram` bins at once: as many as fit in an eighth of the memory budget (:func:`pytomography.set_memory_budget`), at most 0.5 GB of temporaries (:data:`pytomography.utils.memory.BLOCK_CAP_BYTES`), at :data:`BINNING_BYTES_PER_EVENT` bytes each; 2**22 (about 0.5 GB) without a budget."""
@@ -643,14 +745,20 @@ def _listmode_to_dense_sinogram(detector_ids: torch.Tensor, info: dict, weights:
     return sinogram.reshape(shape if num_tof_bins is None else (*shape, num_tof_bins))
 
 def crystal_pair_blocks(n_crystals: int, pairs_per_block: int):
-    """Every pair of crystals ``(i, j)``, ``i < j``, in the order of ``torch.combinations(torch.arange(n_crystals), 2)``, a block of about ``pairs_per_block`` pairs at a time (whole rows of ``i``), so that the 411 million pairs of a clinical scanner never have to be held at once (3.3 GB as int32, and several times that in the temporaries of using them).
+    """Yields every pair of crystals ``(i, j)``, ``i < j``, in ``torch.combinations`` order, a block of pairs at a time.
+
+    The order is that of ``torch.combinations(torch.arange(n_crystals), 2)``. Each block holds whole rows of ``i``, at
+    most about ``pairs_per_block`` pairs, so that the 411 million pairs of a clinical scanner never have to be held at
+    once (3.3 GB as int32, and several times that in the temporaries of using them).
 
     Args:
         n_crystals (int): Number of crystals.
-        pairs_per_block (int): Pairs per block (at least one row of ``i``, ``n_crystals - 1 - i`` pairs, is always taken).
+        pairs_per_block (int): Pairs per block (at least one row of ``i``, ``n_crystals - 1 - i`` pairs, is always
+            taken).
 
     Yields:
-        tuple[int, torch.Tensor]: Index of the block's first pair in ``torch.combinations`` order, and the block's pairs as an [N, 2] long tensor.
+        tuple[int, torch.Tensor]: Index of the block's first pair in ``torch.combinations`` order, and the block's
+        pairs as an int64 ``[M, 2]`` tensor.
     """
     first, offset = 0, 0
     while first < n_crystals - 1:
@@ -668,18 +776,30 @@ def crystal_pair_blocks(n_crystals: int, pairs_per_block: int):
         first = last
 
 def all_pairs_to_sinogram(weights: torch.Tensor, info: dict, normalization: bool = False, pairs_per_chunk: int | None = None) -> torch.Tensor:
-    """``listmode_to_sinogram`` of every pair of crystals of the scanner, with a weight for each pair (such as normalization weights), binned a block of pairs at a time.
+    """Bins a weight for every crystal pair of the scanner into a sinogram, a block of pairs at a time.
 
-    The pairs are those of ``torch.combinations(torch.arange(N_crystals), 2)``, in that order, which is the order of ``weights``. For the 411 million pairs of the Siemens Biograph mMR, the pair list alone takes 3.3 GB and binning all pairs at once took tens of GB of temporaries. Here each block of pairs is added into one sinogram (two for a normalization sinogram, one per order of the crystals) in the order ``listmode_to_sinogram`` adds them, so the result is the same.
+    This is :func:`listmode_to_sinogram` of every pair of crystals, with the pair's weight (such as a normalisation
+    weight). The pairs are those of ``torch.combinations(torch.arange(N_crystals), 2)``, in that order, which is the
+    order of ``weights``. For the 411 million pairs of the Siemens Biograph mMR, the pair list alone takes 3.3 GB and
+    binning all pairs at once took tens of GB of temporaries. Here each block of pairs is added into one sinogram (two
+    for a normalisation sinogram, one per order of the crystals) in the order :func:`listmode_to_sinogram` adds them,
+    so the result is the same.
 
     Args:
-        weights (torch.Tensor): Weight of each crystal pair, in ``torch.combinations`` order.
-        info (dict): PET geometry information dictionary.
-        normalization (bool, optional): Bin as a normalization sinogram (see ``listmode_to_sinogram``). Defaults to False.
-        pairs_per_chunk (int | None, optional): Number of pairs binned at once. Defaults to None: as many as fit in an eighth of the memory budget (about 130 bytes each; :func:`pytomography.set_memory_budget`), or 2**22 without a budget.
+        weights (torch.Tensor): Weight of each crystal pair, ``[N_crystals * (N_crystals - 1) / 2]``, in
+            ``torch.combinations`` order.
+        info (dict): The scanner's ``info`` (:func:`~pytomography.io.PET.scanner_info`).
+        normalization (bool, optional): Bin as a normalisation sinogram (see :func:`listmode_to_sinogram`). Defaults
+            to False.
+        pairs_per_chunk (int | None, optional): Number of pairs binned at once. Defaults to None: as many as fit in an
+            eighth of the memory budget (:data:`BINNING_BYTES_PER_EVENT` bytes each, at most 0.5 GB;
+            :func:`pytomography.set_memory_budget`), or 2**22 without a budget.
 
     Returns:
-        torch.Tensor: PET sinogram.
+        torch.Tensor: float32 sinogram on the CPU, ``[N / 2, N + 1, R**2]`` (angles, radial bins, planes).
+
+    Raises:
+        ValueError: If ``weights`` does not have one weight per crystal pair.
     """
     n_crystals = int(info['NrCrystalsPerRing'] * info['NrRings'])
     if weights.shape[0] != n_crystals * (n_crystals - 1) // 2:
@@ -748,15 +868,20 @@ def _lazy_sinogram_to_listmode(detector_ids: torch.Tensor, sinogram: LazySinogra
     return values
 
 def sinogram_to_listmode(detector_ids: torch.Tensor, sinogram: torch.Tensor | LazySinogram, info: dict) -> torch.Tensor:
-    """Obtains listmode data from a sinogram at the given detector IDs
+    """Looks up the value of a sinogram at each list mode event, in the bin :func:`listmode_to_sinogram` bins it in.
+
+    Every event must lie inside the sinogram (and, for a TOF sinogram, inside its TOF bins): none is dropped.
 
     Args:
-        detector_ids (torch.Tensor): Detector IDs at which to obtain listmode data
-        sinogram (torch.Tensor | LazySinogram): PET sinogram. A :class:`LazySinogram` is computed a group of angles at a time, and the values are returned on the CPU.
-        info (dict): PET geometry information dictionary
+        detector_ids (torch.Tensor): Events, ``[N, 2]`` detector ids, or ``[N, 3]`` with the TOF bin for a TOF
+            sinogram.
+        sinogram (torch.Tensor | LazySinogram): Sinogram of the scanner, ``[angles, radial bins, planes]``, or with a
+            fourth dimension of TOF bins. A :class:`LazySinogram` is computed a group of angles at a time.
+        info (dict): The scanner's ``info`` (:func:`~pytomography.io.PET.scanner_info`).
 
     Returns:
-        torch.Tensor: Listmode data
+        torch.Tensor: ``[N]`` value of the sinogram at each event: on the device of ``sinogram`` for a tensor, and
+        float32 on the CPU for a :class:`LazySinogram`.
     """
     if isinstance(sinogram, LazySinogram):
         return _lazy_sinogram_to_listmode(detector_ids, sinogram, info)
@@ -827,20 +952,26 @@ def smooth_randoms_sinogram(
     kernel_size_theta: int = 21,
     kernel_size_z: int = 21
     ) -> torch.Tensor:
-    """Smooths a PET randoms sinogram using a Gaussian filter in the r, theta, and z direction. Rebins the sinogram into (r,theta,z1,z2) before blurring (same blurring applied to z1 and z2)
+    """Smooths a randoms sinogram with Gaussian filters along the angle, the radial bin and the two rings of each plane.
+
+    The planes are first arranged as ``[R, R]`` (ring 1, ring 2) with :func:`sinogram_coordinates`; the sinogram is
+    then convolved with a 1D Gaussian along the angle (wrapping around), the radial bin and each of the two rings (the
+    edges extended), a block of rows at a time, and its planes are put back in order.
 
     Args:
-        sinogram_random (torch.Tensor): PET sinogram of randoms
-        info (dict): PET geometry information dictionary
-        sigma_r (float, optional): Blurring (in pixel size) in r direction. Defaults to 4.
-        sigma_theta (float, optional): Blurring (in pixel size) in r direction. Defaults to 4.
-        sigma_z (float, optional): Blurring (in pixel size) in z direction. Defaults to 4.
-        kernel_size_r (int, optional): Kernel size in r direction. Defaults to 21.
-        kernel_size_theta (int, optional): Kernel size in theta direction. Defaults to 21.
-        kernel_size_z (int, optional): Kernel size in z1/z2 diretions. Defaults to 21.
+        sinogram_random (torch.Tensor): Randoms sinogram (non-TOF), ``[angles, radial bins, planes]``, float32 on the
+            CPU (the filters are).
+        info (dict): The scanner's ``info`` (:func:`~pytomography.io.PET.scanner_info`).
+        sigma_r (float, optional): Standard deviation of the Gaussian along the radial bins, in bins. Defaults to 4.
+        sigma_theta (float, optional): Standard deviation of the Gaussian along the angles, in angles. Defaults to 4.
+        sigma_z (float, optional): Standard deviation of the Gaussian along each ring of a plane, in rings. Defaults to
+            4.
+        kernel_size_r (int, optional): Length of the radial kernel, in bins. Defaults to 21.
+        kernel_size_theta (int, optional): Length of the angular kernel, in angles. Defaults to 21.
+        kernel_size_z (int, optional): Length of the kernel along each ring, in rings. Defaults to 21.
 
     Returns:
-        torch.Tensor: Smoothed randoms sinogram
+        torch.Tensor: The smoothed randoms sinogram, of the shape of ``sinogram_random``.
     """
     _, sinogram_index = sinogram_coordinates(info)
     sino = sinogram_random[:,:,sinogram_index]
@@ -854,60 +985,73 @@ def smooth_randoms_sinogram(
     sinogram_random_interp = sino[:,:,ix,iy]
     return sinogram_random_interp
 
-#: The speed of light the PET readers and corrections use, in mm/ps (c is 0.2998 mm/ps). A TOF position along an LOR
-#: is (t1 - t2) c / 2.
 SPEED_OF_LIGHT_MM_PER_PS = 0.3
+"""The speed of light that the PET readers and corrections use, in mm/ps (c is 0.2998 mm/ps). The TOF position of an
+event along its LOR, from the LOR's midpoint, is (t1 - t2) c / 2."""
 
 def randoms_sinogram_to_sinogramTOF(
     sinogram_random: torch.Tensor,
     tof_meta: PETTOFMeta,
     coincidence_timing_width: float,
 ) -> torch.Tensor:
-    """Converts a non-TOF randoms sinogram to a TOF randoms sinogram: randoms are spread evenly over the coincidence
-    window, so each TOF bin holds the fraction bin width / (c x coincidence window / 2 x 2) of them.
+    """Returns the randoms in each TOF bin, from a non-TOF randoms sinogram.
+
+    Randoms are spread evenly over the coincidence window: their TOF positions (t1 - t2) c / 2 fill an interval
+    ``2 * coincidence_timing_width * c / 2`` long, so each TOF bin holds the fraction
+    ``tof_meta.bin_width / (2 * coincidence_timing_width * c / 2)`` of them, with c =
+    :data:`SPEED_OF_LIGHT_MM_PER_PS`.
 
     Args:
         sinogram_random (torch.Tensor): Randoms sinogram (non-TOF); it is not changed.
-        tof_meta (PETTOFMeta): PET TOF metadata
-        coincidence_timing_width (float): Coincidence timing width used for the acceptance of coincidence events, in ps
+        tof_meta (PETTOFMeta): The TOF bins (their width ``tof_meta.bin_width`` is in mm).
+        coincidence_timing_width (float): Coincidence timing width used to accept coincidence events, in ps.
 
     Returns:
-        torch.Tensor: Randoms sinogram (TOF): a new tensor, the input times the fraction per bin. (Before
-        PyTomography 4 the input itself was scaled and returned.)
+        torch.Tensor: A new tensor of the shape of ``sinogram_random``: the randoms in one TOF bin, which is the same
+        for every bin (add a last dimension with ``unsqueeze(-1)`` to broadcast it over the TOF bins). Before
+        PyTomography 4 the input itself was scaled and returned: use the return value.
     """
     return sinogram_random * (tof_meta.bin_width / (2 * coincidence_timing_width * SPEED_OF_LIGHT_MM_PER_PS / 2))
 
 def normalization_sinogram(weights: torch.Tensor, info: dict) -> torch.Tensor:
-    """The normalisation sinogram of a scanner: one weight per crystal pair, in ``torch.combinations`` order (the
-    ``weights_sensitivity`` a reader returns), binned as :func:`listmode_to_sinogram` bins events, with both orders of
-    each pair's crystals averaged. The pairs are binned a block at a time (:func:`all_pairs_to_sinogram`).
+    """Bins the normalisation weight of every crystal pair into the scanner's normalisation sinogram.
+
+    The weights are binned as :func:`listmode_to_sinogram` bins events, with both orders of each pair's crystals
+    averaged (``normalization=True``), a block of pairs at a time (:func:`all_pairs_to_sinogram`).
 
     Args:
-        weights (torch.Tensor): weight of each crystal pair.
-        info (dict): the scanner's ``info``.
+        weights (torch.Tensor): Weight of each crystal pair, ``[N_crystals * (N_crystals - 1) / 2]``, in
+            ``torch.combinations`` order: the ``weights_sensitivity`` a reader returns, or
+            :func:`~pytomography.io.PET.gate_normalization`.
+        info (dict): The scanner's ``info`` (:func:`~pytomography.io.PET.scanner_info`).
 
     Returns:
-        torch.Tensor: the normalisation sinogram.
+        torch.Tensor: float32 normalisation sinogram on the CPU, ``[N / 2, N + 1, R**2]`` (angles, radial bins,
+        planes).
+
+    Raises:
+        ValueError: If ``weights`` does not have one weight per crystal pair.
     """
     return all_pairs_to_sinogram(weights, info, normalization=True)
 
 def remove_events_outside(events: torch.Tensor, scanner_lut, object_meta) -> torch.Tensor:
-    r"""The events whose LOR crosses the reconstruction grid of ``object_meta``: the box of its voxels, centred on the
-    scanner's centre (the origin of the scanner lookup table). Events whose LOR misses the box project to zero, so
-    leaving them out changes no reconstruction; it saves their memory and time.
+    """Returns the events whose LOR crosses the reconstruction grid of ``object_meta``.
 
-    The test is the slab test of a line segment (from column 0's crystal to column 1's) against an axis-aligned box: the
-    segment crosses the box where its intervals inside the x, y and z slabs overlap. (``remove_events_out_of_bounds``,
-    before PyTomography 4, compared only some of the slabs, and kept LORs that miss the box.)
+    The grid is the box of its voxels, centred on the scanner's centre (the origin of the scanner lookup table, where
+    every reader centres its grid). Events whose LOR misses the box project to zero, so leaving them out changes no
+    reconstruction; it saves their memory and time. The test is the slab test of a line segment (from column 0's
+    crystal to column 1's) against an axis-aligned box: the segment crosses the box where its intervals inside the x,
+    y and z slabs overlap. Before PyTomography 4, only some of the slabs were compared, and LORs that miss the box
+    were kept.
 
     Args:
-        events (torch.Tensor): :math:`N \times 2` or :math:`N \times 3` events (detector ids, and the TOF bin).
-        scanner_lut (torch.Tensor | dict): the scanner lookup table (:func:`~pytomography.io.PET.scanner_lut`), or the
-            scanner's ``info``.
-        object_meta (ObjectMeta): the reconstruction grid (``dr`` and ``shape``, mm).
+        events (torch.Tensor): Events, ``[N, 2]`` detector ids, or ``[N, 3]`` with the TOF bin.
+        scanner_lut (torch.Tensor | dict): The scanner lookup table, ``[N_crystals, 3]`` in mm
+            (:func:`~pytomography.io.PET.scanner_lut`), or the scanner's ``info``.
+        object_meta (ObjectMeta): The reconstruction grid: its ``dr`` (mm) and ``shape`` are used.
 
     Returns:
-        torch.Tensor: the events whose LOR crosses the grid, in their order.
+        torch.Tensor: The events whose LOR crosses the grid, in their order.
     """
     if isinstance(scanner_lut, dict):
         scanner_lut = scanner_lut_of(scanner_lut)

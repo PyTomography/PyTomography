@@ -1,11 +1,12 @@
-"""The scanner of PET data in PyTomography's standard form: the ``info`` dictionary and the position of every crystal.
+"""The PET scanner in PyTomography's standard form: the ``info`` dictionary and the position of every crystal.
 
 Every PET reader describes its scanner as a parametric ring with :func:`scanner_info`, and the projectors, sinograms,
 randoms and scatter estimates work from that description alone. :func:`scanner_lut` places every crystal in the object
 frame: LPS axes (x to the patient's left, y posterior, z superior), in mm, with the origin at the centre of the rings,
 which is the centre of the reconstruction grid.
 
-**The ring.** Crystals are grouped into modules, submodules and rsectors, as GATE's cylindrical PET system does:
+**The ring.** Crystals are grouped into submodules, submodules into modules and modules into rsectors, as in GATE's
+cylindrical PET system:
 
 * ``{crystal, submodule, module}{Trans, Axial}Nr``: the number of each part around the ring (``Trans``) and along the
   axis (``Axial``) within its parent; ``rsectorTransNr`` rsectors make up the ring, and ``rsectorAxialNr`` sit along
@@ -14,6 +15,8 @@ which is the centre of the reconstruction grid.
   the ring are placed by angle, so they have no transaxial spacing);
 * ``radius``: the distance from the axis to the LOR end points of rsector 0, in mm: the centre of the module's face
   plus ``doi_mm``, the depth of interaction inside the crystal that the LORs end at;
+* ``doi_mm`` and ``crystal_length``: that depth, and the crystals' radial length, in mm (``radius`` already includes
+  ``doi_mm``);
 * ``NrCrystalsPerRing`` and ``NrRings``, computed from the counts.
 
 A detector id is ``ring * NrCrystalsPerRing + crystal``, where ``crystal`` counts the crystals of a ring (crystal,
@@ -56,10 +59,12 @@ _COUNTS = (("crystalTransNr", None), ("crystalAxialNr", None), ("submoduleTransN
 #: the pitch of each part, in mm, required where there is more than one of the part
 _SPACINGS = ("crystalTransSpacing", "crystalAxialSpacing", "submoduleTransSpacing", "submoduleAxialSpacing",
              "moduleTransSpacing", "moduleAxialSpacing", "rsectorAxialSpacing")
-#: frame keys and their defaults (GATE's world: rsector 0 on +x, crystals counter-clockwise, rings towards +z)
 FRAME_KEYS = {"rsector0_angle_deg": 0.0, "transaxial_direction": 1, "axial_direction": 1}
-#: energy keys: None where the source does not give them
+"""The frame keys of ``info`` and their defaults, which are GATE's world (rsector 0 on +x, crystal numbers running
+counter-clockwise seen from +z, ring numbers running towards +z)."""
 ENERGY_KEYS = ("energy_window_low_keV", "energy_window_high_keV", "energy_resolution")
+"""The energy keys of ``info``, the energy window's limits in keV and the FWHM of the photopeak at 511 keV as a
+fraction of 511 keV, each None where the source does not give it."""
 #: keys of ``info`` before PyTomography 4, and what replaced them
 _RENAMED = {
     "firstCrystalAxis": "the frame keys rsector0_angle_deg, transaxial_direction and axial_direction: "
@@ -117,33 +122,39 @@ def _as_float(key, value) -> float | None:
 
 
 def scanner_info(scanner: str | Mapping | None = None, **keys) -> dict:
-    """The ``info`` dictionary of a PET scanner, PyTomography's description of it as a parametric ring (see the top of
-    this module), with every value checked and converted to a Python ``int`` or ``float``.
+    """Builds the ``info`` dictionary of a PET scanner, PyTomography's description of it as a parametric ring.
 
-    Every PET reader builds its ``info`` with this function. Use it to describe a scanner by hand, or to change keys of
-    an ``info`` a reader returned::
-
-        info = io.PET.scanner_info(crystalTransNr=8, crystalTransSpacing=4.0, crystalAxialNr=8,
-                                   crystalAxialSpacing=4.0, moduleTransNr=1, moduleAxialNr=8, moduleAxialSpacing=32.25,
-                                   rsectorTransNr=56, radius=337.0, doi_mm=9.0)
-        info = io.PET.scanner_info(info, min_rsector_difference=2)
-        info = io.PET.scanner_info("discovery_MI")      # PyTomography's table of clinical scanners
+    The keys are described at the top of this module (:mod:`pytomography.io.PET.scanner`). Every value is checked and
+    converted to a Python ``int`` or ``float`` (or None for a missing energy key), and ``NrCrystalsPerRing`` and
+    ``NrRings`` are computed from the counts. Every PET reader builds its ``info`` with this function; use it to
+    describe a scanner by hand, or to change keys of an ``info`` a reader returned.
 
     Args:
-        scanner (str | Mapping | None, optional): the name of a scanner in PyTomography's table
-            (``data/pet_scanner_info.txt``: ``'discovery_MI'``), or an ``info`` dictionary to start from. Defaults to
-            None.
-        **keys: keys of ``info``, which replace those of ``scanner``. ``submodule*`` keys default to one submodule,
-            ``rsectorAxialNr`` to 1, ``doi_mm``, ``crystal_length`` and ``min_rsector_difference`` to 0, the frame
-            keys to GATE's world (``rsector0_angle_deg=0``, ``transaxial_direction=1``, ``axial_direction=1``) and the
-            energy keys to None. Other keys (strings or numbers) are kept as they are.
-
-    Raises:
-        ValueError: if a key is missing, has a value it cannot have, or is a key of ``info`` from before PyTomography
-            4 (``firstCrystalAxis``, ``energy_window_low``, ...): the message says what replaced it.
+        scanner (str | Mapping | None, optional): The name of a scanner in PyTomography's table of clinical scanners
+            (``data/pet_scanner_info.txt``, e.g. ``'discovery_MI'``), or an ``info`` dictionary to start from.
+            Defaults to None: every required key is in ``keys``.
+        **keys: Keys of ``info``, which replace those of ``scanner``. Between them, ``scanner`` and ``keys`` must give
+            the counts of crystals, modules and rsectors around the ring and of crystals and modules along the axis,
+            ``radius`` (mm), and the spacing (mm) of every part of which there is more than one. ``submodule*Nr``
+            and ``rsectorAxialNr`` default to 1, ``doi_mm``, ``crystal_length`` and ``min_rsector_difference`` to 0,
+            the frame keys to :data:`FRAME_KEYS` and the energy keys to None. Any other key (a string or a number) is
+            kept as it is.
 
     Returns:
-        dict: the scanner's ``info``.
+        dict: The scanner's ``info``.
+
+    Raises:
+        TypeError: If ``scanner`` is not a name, a mapping or None, or a value is not a number or a string.
+        ValueError: If a key is missing or has a value it cannot have, ``scanner`` names no scanner of the table, or a
+            key is one that ``info`` had before PyTomography 4 (``firstCrystalAxis``, ``energy_window_low``, ...): the
+            message says what replaced it.
+
+    Example:
+        >>> info = io.PET.scanner_info(crystalTransNr=8, crystalTransSpacing=4.0, crystalAxialNr=8,
+        ...                            crystalAxialSpacing=4.0, moduleTransNr=1, moduleAxialNr=8,
+        ...                            moduleAxialSpacing=32.25, rsectorTransNr=56, radius=337.0, doi_mm=9.0)
+        >>> info = io.PET.scanner_info(info, min_rsector_difference=2)
+        >>> info = io.PET.scanner_info("discovery_MI")
     """
     if isinstance(scanner, str):
         row = _table_row(scanner)
@@ -224,9 +235,19 @@ def _check_frame(info: Mapping) -> None:
 
 
 def crystal_parts(info: Mapping, sort_by_detector_ids: bool = False) -> tuple[torch.Tensor, ...]:
-    """The part ids of every crystal of the scanner: (trans crystal, axial crystal, trans submodule, axial submodule,
-    trans module, axial module, trans rsector, axial rsector), as 1D long tensors, in the order of
-    ``torch.cartesian_prod`` of the parts, or of the detector ids with ``sort_by_detector_ids``."""
+    """Returns the part ids of every crystal of the scanner: its index within each part, around the ring and along it.
+
+    Args:
+        info (Mapping): The scanner's ``info`` (:func:`scanner_info`).
+        sort_by_detector_ids (bool, optional): Give the crystals in the order of their detector ids. Defaults to
+            False: the order of ``torch.cartesian_prod`` of the parts' ranges, in the order of the tuple returned (the
+            axial rsector varies fastest).
+
+    Returns:
+        tuple[torch.Tensor, ...]: Eight 1D long tensors, one entry per crystal: the transaxial and axial index of the
+        crystal within its submodule, of the submodule within its module, of the module within its rsector, and of
+        the rsector in the scanner.
+    """
     parts = torch.cartesian_prod(*(torch.arange(info[f"{part}{d}Nr"]) for part in ("crystal", "submodule", "module",
                                                                                  "rsector") for d in ("Trans", "Axial")))
     trans_crystal, axial_crystal, trans_submodule, axial_submodule, trans_module, axial_module, trans_rsector, \
@@ -241,8 +262,25 @@ def crystal_parts(info: Mapping, sort_by_detector_ids: bool = False) -> tuple[to
 
 def detector_ids_from_parts(trans_crystal, axial_crystal, trans_submodule, axial_submodule, trans_module, axial_module,
                             trans_rsector, axial_rsector, info: Mapping):
-    """The detector id ``ring * NrCrystalsPerRing + crystal`` of crystals given by their part ids (tensors or arrays,
-    in the order :func:`crystal_parts` returns them)."""
+    """Returns the detector id ``ring * NrCrystalsPerRing + crystal`` of crystals given by their part ids.
+
+    The part ids are those :func:`crystal_parts` returns, in the same order: tensors, arrays or integers of the same
+    shape.
+
+    Args:
+        trans_crystal (torch.Tensor | np.ndarray | int): Transaxial index of the crystal within its submodule.
+        axial_crystal (torch.Tensor | np.ndarray | int): Axial index of the crystal within its submodule.
+        trans_submodule (torch.Tensor | np.ndarray | int): Transaxial index of the submodule within its module.
+        axial_submodule (torch.Tensor | np.ndarray | int): Axial index of the submodule within its module.
+        trans_module (torch.Tensor | np.ndarray | int): Transaxial index of the module within its rsector.
+        axial_module (torch.Tensor | np.ndarray | int): Axial index of the module within its rsector.
+        trans_rsector (torch.Tensor | np.ndarray | int): Index of the rsector around the ring.
+        axial_rsector (torch.Tensor | np.ndarray | int): Index of the rsector along the axis.
+        info (Mapping): The scanner's ``info`` (:func:`scanner_info`).
+
+    Returns:
+        torch.Tensor | np.ndarray | int: The detector ids, of the type of the part ids.
+    """
     ring = axial_crystal + info["crystalAxialNr"] * (axial_submodule + info["submoduleAxialNr"] * (
         axial_module + info["moduleAxialNr"] * axial_rsector))
     crystal = trans_crystal + info["crystalTransNr"] * (trans_submodule + info["submoduleTransNr"] * (
@@ -255,19 +293,24 @@ def _centred(index, n, spacing):
 
 
 def scanner_lut(info: Mapping) -> torch.Tensor:
-    """The position of every crystal: the scanner lookup table, in the object frame (LPS axes, mm, origin at the centre
-    of the rings).
+    """Returns the position of every crystal in the object frame, in mm: the scanner lookup table.
 
-    Within rsector 0, crystals sit at ``radius`` from the axis, at their transaxial offset along the rsector's face and
-    their axial offset along the axis, both centred on the rsector. Rsector ``k`` is at the azimuth
-    ``rsector0_angle_deg + transaxial_direction * 360 k / rsectorTransNr`` degrees; transaxial offsets run in the
-    direction of ``transaxial_direction`` around the ring and axial offsets in the direction of ``axial_direction``.
+    The object frame has LPS axes, with the origin at the centre of the rings. Within rsector 0, crystals sit on the
+    plane at ``radius`` from the axis, at their transaxial offset along the rsector's face (centred on the rsector) and
+    their axial offset along the axis (centred on the rings). Rsector ``k`` is at the azimuth
+    ``rsector0_angle_deg + transaxial_direction * 360 k / rsectorTransNr`` degrees, from +x towards +y; transaxial
+    offsets run in the direction of ``transaxial_direction`` around the ring, and axial offsets in the direction of
+    ``axial_direction``.
 
     Args:
-        info (Mapping): the scanner's ``info`` (:func:`scanner_info`).
+        info (Mapping): The scanner's ``info`` (:func:`scanner_info`).
 
     Returns:
-        torch.Tensor: float32 positions, ``[N_crystals, 3]``; row ``d`` is detector id ``d``.
+        torch.Tensor: float32 positions (x, y, z) in mm, ``[N_crystals, 3]``; row ``d`` is detector id ``d``.
+
+    Raises:
+        ValueError: If ``info`` has keys from before PyTomography 4 or lacks the frame keys: build it with
+            :func:`scanner_info`.
     """
     _check_frame(info)
     tc, ac, ts, as_, tm, am, tr, ar = (p.double() for p in crystal_parts(info))
@@ -292,19 +335,25 @@ def scanner_lut(info: Mapping) -> torch.Tensor:
 
 def frame_keys_after(matrix, rsector0_angle_deg: float = 0.0, transaxial_direction: int = 1,
                      axial_direction: int = 1) -> dict:
-    """The frame keys of a ring after its crystals' positions are taken through ``matrix`` (3 x 3, a rotation or
-    reflection that keeps the scanner's axis along z: a ring described in one frame by the given keys, seen in
-    another).
+    """Returns the frame keys of a ring in a new frame, from its keys in the old frame and the matrix between them.
+
+    ``matrix`` is a rotation or a reflection that keeps the scanner's axis along z: the ring that the given keys
+    describe in the old frame is described by the returned keys in the new one.
 
     Args:
-        matrix: 3 x 3 orthogonal matrix, positions in the new frame = ``matrix @`` positions in the old one. Its third
-            row and column must be (0, 0, +-1).
-        rsector0_angle_deg (float, optional): the ring's ``rsector0_angle_deg`` in the old frame. Defaults to 0.
-        transaxial_direction (int, optional): its ``transaxial_direction`` in the old frame. Defaults to 1.
-        axial_direction (int, optional): its ``axial_direction`` in the old frame. Defaults to 1.
+        matrix (array-like): 3 x 3 orthogonal matrix: positions in the new frame are ``matrix @`` positions in the old
+            one. Its third row and third column must be (0, 0, 1) or (0, 0, -1).
+        rsector0_angle_deg (float, optional): The ring's ``rsector0_angle_deg`` in the old frame, in degrees.
+            Defaults to 0.
+        transaxial_direction (int, optional): Its ``transaxial_direction`` in the old frame (1 or -1). Defaults to 1.
+        axial_direction (int, optional): Its ``axial_direction`` in the old frame (1 or -1). Defaults to 1.
 
     Returns:
-        dict: ``rsector0_angle_deg`` (in [0, 360)), ``transaxial_direction`` and ``axial_direction`` in the new frame.
+        dict: ``rsector0_angle_deg`` (degrees, in [0, 360)), ``transaxial_direction`` and ``axial_direction`` in the
+        new frame.
+
+    Raises:
+        ValueError: If ``matrix`` is not a 3 x 3 orthogonal matrix, or does not keep the scanner's axis along z.
     """
     m = np.asarray(matrix, dtype=np.float64)
     if m.shape != (3, 3) or not np.allclose(m @ m.T, np.eye(3), atol=1e-9):
@@ -325,26 +374,38 @@ def frame_keys_after(matrix, rsector0_angle_deg: float = 0.0, transaxial_directi
 
 
 def pair_index(low, high, n):
-    """The index of the crystal pair (``low``, ``high``), ``low < high``, in the order of
-    ``torch.combinations(torch.arange(n), 2)``: plain arithmetic, for numba's compiled loops (``_petsird_binary``).
-    Use :func:`crystal_pair_index` on tensors and arrays."""
+    """Returns the index of the crystal pair (``low``, ``high``), ``low < high``, in ``torch.combinations`` order.
+
+    Plain arithmetic, so that numba's compiled loops can call it. On tensors and arrays use :func:`crystal_pair_index`,
+    which computes in 64-bit integers.
+
+    Args:
+        low (int | torch.Tensor | np.ndarray): The lower crystal id of each pair.
+        high (int | torch.Tensor | np.ndarray): The higher crystal id of each pair.
+        n (int): Number of crystals.
+
+    Returns:
+        int | torch.Tensor | np.ndarray: Index of each pair in ``torch.combinations(torch.arange(n), 2)``.
+    """
     return low * (2 * n - low - 1) // 2 + (high - low - 1)
 
 
 def crystal_pair_index(crystal_1, crystal_2, n_crystals: int):
-    """Index of each pair of crystals ``(crystal_1, crystal_2)``, ``crystal_1 < crystal_2``, in the order of
-    ``torch.combinations(torch.arange(n_crystals), 2)`` (the order of ``weights_sensitivity``, of
-    :func:`~pytomography.io.PET.shared.crystal_pair_blocks` and of every reader's normalisation weights). Computed with
-    64-bit integers: in float32 the products round, and for the mMR (28,672 crystals) about 9 in 10 pairs were given a
-    neighbouring pair's index; in int32 they overflow for larger scanners.
+    """Returns the index of each crystal pair ``(crystal_1, crystal_2)`` in ``torch.combinations`` order.
+
+    The order is that of ``torch.combinations(torch.arange(n_crystals), 2)``: the order of ``weights_sensitivity``, of
+    :func:`~pytomography.io.PET.shared.crystal_pair_blocks` and of every reader's normalisation weights. The index is
+    computed in 64-bit integers: in float32 the products round (for the 28,672 crystals of the Siemens Biograph mMR,
+    about 9 pairs in 10 would get a neighbouring pair's index), and in int32 they overflow for larger scanners.
 
     Args:
-        crystal_1 (torch.Tensor | np.ndarray): Lower crystal of each pair.
-        crystal_2 (torch.Tensor | np.ndarray): Higher crystal of each pair.
+        crystal_1 (torch.Tensor | np.ndarray): Lower crystal id of each pair.
+        crystal_2 (torch.Tensor | np.ndarray): Higher crystal id of each pair (``crystal_1 < crystal_2``; this is not
+            checked).
         n_crystals (int): Number of crystals.
 
     Returns:
-        torch.Tensor | np.ndarray: Index of each pair (int64), a tensor for tensors and an array otherwise.
+        torch.Tensor | np.ndarray: int64 index of each pair: a tensor if either input is a tensor, else an array.
     """
     if isinstance(crystal_1, torch.Tensor) or isinstance(crystal_2, torch.Tensor):
         return pair_index(torch.as_tensor(crystal_1).to(torch.long), torch.as_tensor(crystal_2).to(torch.long),
@@ -353,7 +414,15 @@ def crystal_pair_index(crystal_1, crystal_2, n_crystals: int):
 
 
 def rsector_difference(detector_ids: torch.Tensor, info: Mapping) -> torch.Tensor:
-    """How many rsectors apart, around the ring, the two crystals of each event are (0 to ``rsectorTransNr // 2``)."""
+    """Returns how many rsectors apart, around the ring, the two crystals of each event are.
+
+    Args:
+        detector_ids (torch.Tensor): Events, ``[N, 2]`` detector ids, or ``[N, 3]`` with the TOF bin.
+        info (Mapping): The scanner's ``info`` (:func:`scanner_info`).
+
+    Returns:
+        torch.Tensor: int64 ``[N]``: each event's rsector difference, from 0 to ``rsectorTransNr // 2``.
+    """
     per_rsector = info["crystalTransNr"] * info["submoduleTransNr"] * info["moduleTransNr"]
     sectors = (detector_ids[:, :2].to(torch.long) % info["NrCrystalsPerRing"]) // per_rsector
     difference = (sectors[:, 0] - sectors[:, 1]).abs()
@@ -361,8 +430,18 @@ def rsector_difference(detector_ids: torch.Tensor, info: Mapping) -> torch.Tenso
 
 
 def keep_rsector_difference(detector_ids: torch.Tensor, info: Mapping) -> torch.Tensor:
-    """The events whose two crystals are at least ``info['min_rsector_difference']`` rsectors apart around the ring
-    (all of them when it is 0): ``min_rsector_difference`` is an event filter, which every reader applies."""
+    """Returns the events whose two crystals are at least ``info['min_rsector_difference']`` rsectors apart.
+
+    ``min_rsector_difference`` is an event filter, which every reader applies. When it is 0 (or missing), the events
+    are returned as they are.
+
+    Args:
+        detector_ids (torch.Tensor): Events, ``[N, 2]`` detector ids, or ``[N, 3]`` with the TOF bin.
+        info (Mapping): The scanner's ``info`` (:func:`scanner_info`).
+
+    Returns:
+        torch.Tensor: The events kept, in their order.
+    """
     if not info.get("min_rsector_difference", 0):
         return detector_ids
     return detector_ids[rsector_difference(detector_ids, info) >= info["min_rsector_difference"]]
