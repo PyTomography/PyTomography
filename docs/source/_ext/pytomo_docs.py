@@ -171,6 +171,8 @@ class FeatureBoard(Directive):
         for key, title, desc in self.LEVELS:
             col = [i for i in items if (i["level"] in ("advanced", "research")) == (key == "advanced") and (key == "advanced" or i["level"] == key)]
             parts.append(f'<div class="pt-col"><div class="pt-colhead"><b>{title}</b><span>{len(col)}</span></div><p>{desc}</p>')
+            if not col:
+                parts.append('<p>None open right now.</p>')
             for i in col:
                 issue = (f'<a href="https://github.com/{REPO}/issues/{i["issue"]}">#{i["issue"]}</a>'
                          if str(i["issue"]).isdigit() else "<span>issue to open</span>")
