@@ -78,9 +78,9 @@ tutorials:
     credit: Monte Carlo data simulated with SIMIND (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
     layers:
     - {name: Attenuation, kind: mu, array: attenuation_map, affine: object_meta.affine, units: 1/mm}
-    - {name: OSEM, kind: spect, array: recon_osem, affine: object_meta.affine, units: counts}
-    - {name: BSREM, kind: spect, array: recon_bsrem, affine: object_meta.affine, units: counts}
-    - {name: Truth, label: True activity, kind: spect, array: truth_image, affine: object_meta.affine, units: MBq/mL}
+    - {name: OSEM, kind: spect, colormap: pet, array: recon_osem, affine: object_meta.affine, units: counts}
+    - {name: BSREM, kind: spect, colormap: pet, array: recon_bsrem, affine: object_meta.affine, units: counts}
+    - {name: Truth, label: True activity, kind: spect, colormap: pet, array: truth_image, affine: object_meta.affine, units: MBq/mL}
 
   t_dicommultibed:
     title: Lu-177-PSMA patient, two bed positions
@@ -171,13 +171,13 @@ tutorials:
     credit: Siemens Symbia T2 scan of a NEMA IQ phantom (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
     layers:
     - {name: CT, kind: ct, image: io.load_image(files_CT), window: phantom, units: HU}
-    - {name: BSREM, label: "BSREM, beta 0.1", kind: spect, array: "recon_bsrem[beta_shown]", affine: object_meta.affine, units: counts}
-    - {name: OSEM, label: OSEM 40 × 8, kind: spect, array: recon_osem, affine: object_meta.affine, units: counts}
-    - {name: OSEMfilter, label: "OSEM 40 × 8, 10 mm filter", kind: spect, array: recon_osem_filtered, affine: object_meta.affine, units: counts}
-    - {name: OSMAPOSL, kind: spect, array: recon_osmaposl, affine: object_meta.affine, units: counts}
-    - {name: KEM, kind: spect, array: recon_kem, affine: object_meta.affine, units: counts}
+    - {name: BSREM, label: "BSREM, beta 0.1", kind: spect, colormap: pet, array: "recon_bsrem[beta_shown]", affine: object_meta.affine, units: counts}
+    - {name: OSEM, label: OSEM 40 × 8, kind: spect, colormap: pet, array: recon_osem, affine: object_meta.affine, units: counts}
+    - {name: OSEMfilter, label: "OSEM 40 × 8, 10 mm filter", kind: spect, colormap: pet, array: recon_osem_filtered, affine: object_meta.affine, units: counts}
+    - {name: OSMAPOSL, kind: spect, colormap: pet, array: recon_osmaposl, affine: object_meta.affine, units: counts}
+    - {name: KEM, kind: spect, colormap: pet, array: recon_kem, affine: object_meta.affine, units: counts}
     # the scanner's reconstruction, put on our grid by its own header (io.load_image(...).on(object_meta)) in the tutorial
-    - {name: Vendor, label: Scanner's reconstruction, kind: spect, array: recon_scanner, affine: object_meta.affine, units: counts}
+    - {name: Vendor, label: Scanner's reconstruction, kind: spect, colormap: pet, array: recon_scanner, affine: object_meta.affine, units: counts}
 
   t_fbp_spect:
     title: Lu-177 NEMA phantom, filtered back projection
@@ -185,9 +185,9 @@ tutorials:
     credit: Siemens Symbia T2 scan of a NEMA IQ phantom (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
     layers:
     - {name: CT, kind: ct, image: io.load_image(files_CT), window: phantom, units: HU}
-    - {name: FBPChang, label: "FBP, Chang's attenuation correction", kind: spect, array: recon_fbp_chang, affine: object_meta.affine, units: counts}
-    - {name: FBP, label: "FBP, no attenuation correction", kind: spect, array: recon_fbp, affine: object_meta.affine, units: counts}
-    - {name: OSEM, label: OSEM 4 × 8, kind: spect, array: recon_osem, affine: object_meta.affine, units: counts}
+    - {name: FBPChang, label: "FBP, Chang's attenuation correction", kind: spect, colormap: pet, array: recon_fbp_chang, affine: object_meta.affine, units: counts}
+    - {name: FBP, label: "FBP, no attenuation correction", kind: spect, colormap: pet, array: recon_fbp, affine: object_meta.affine, units: counts}
+    - {name: OSEM, label: OSEM 4 × 8, kind: spect, colormap: pet, array: recon_osem, affine: object_meta.affine, units: counts}
 
   # ---------- PET ----------
   t_pet_introduction:
