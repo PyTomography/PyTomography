@@ -128,6 +128,28 @@ def test_gen3_projection_is_split_to_bound_the_rays_per_call(monkeypatch):
     assert (sm.backward(g) - BP).abs().max() <= 1e-5 * BP.abs().max()
 
 
+def test_conebeam_forward_projection_is_split_like_back_projection(monkeypatch):
+    """``N_splits`` split each view's back projection into that many kernel calls, but not its forward projection;
+    both are split now, and the projection is the same."""
+    import types
+    import pytomography.projectors.CT.ct_conebeam_flatpanel_system_matrix as conebeam
+    f = _object()
+    expected = _conebeam(N_splits=1).forward(f)
+    calls = {'fwd': 0, 'back': 0}
+    real = conebeam.parallelproj_core
+    def counted(name):
+        def kernel(*args):
+            calls[name] += 1
+            return getattr(real, f'joseph3d_{name}')(*args)
+        return kernel
+    monkeypatch.setattr(conebeam, 'parallelproj_core', types.SimpleNamespace(joseph3d_fwd=counted('fwd'), joseph3d_back=counted('back')))
+    sm = _conebeam(N_splits=4)
+    assert torch.equal(sm.forward(f), expected)
+    sm.backward(_like(expected))
+    n_views = sm.proj_meta.N_angles
+    assert calls == {'fwd': 4 * n_views, 'back': 4 * n_views}
+
+
 @SYSTEMS
 @pytest.mark.parametrize("device", ["cpu", DEV], ids=["cpu", "default"])
 def test_reconstruction_with_projections_on_either_device(make, device):

@@ -155,19 +155,12 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         # Project into one buffer: parallelproj writes the line integrals of each angle into the array it is given
         proj = torch.zeros((len(angle_indices), *self.proj_meta.shape), dtype=torch.float32, device=self.device)
         for i in range(len(angle_indices)):
-            idx = angle_indices[i] # index of angle
-            detector_coordinates = _float32(self.proj_meta._get_detector_coordinates(idx), pytomography.device)
-            beam_coordinate = _float32(self.proj_meta.beam_locations[idx], pytomography.device).expand(detector_coordinates.shape).contiguous()
-            proj_i = torch.zeros(self.proj_meta.shape, dtype=torch.float32, device=pytomography.device)
-            parallelproj_core.joseph3d_fwd(
-                beam_coordinate,
-                detector_coordinates,
-                object_i,
-                self.origin,
-                self.voxel_size,
-                proj_i
-            )
-            proj[i] = proj_i.to(self.device)
+            beam_coordinate, detector_coordinates = self._rays_of_view(angle_indices[i])
+            proj_i = torch.zeros(detector_coordinates.shape[0], dtype=torch.float32, device=pytomography.device)
+            # the rays of the view in N_splits kernel calls, as back projection does; each ray is computed on its own
+            for beam_coordinate_s, detector_coordinates_s, proj_s in zip(torch.tensor_split(beam_coordinate, self.N_splits), torch.tensor_split(detector_coordinates, self.N_splits), torch.tensor_split(proj_i, self.N_splits)):
+                parallelproj_core.joseph3d_fwd(beam_coordinate_s, detector_coordinates_s, object_i, self.origin, self.voxel_size, proj_s)
+            proj[i] = proj_i.reshape(self.proj_meta.shape).to(self.device)
         return proj
     
     def _angle_indices(self, subset_idx: int | None) -> torch.Tensor:
