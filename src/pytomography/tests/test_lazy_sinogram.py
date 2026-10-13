@@ -110,6 +110,20 @@ def test_lazy_indexing_errors():
         shared.listmode_to_sinogram(_events(100, False), INFO, normalization=True, lazy=True)
 
 
+@pytest.mark.parametrize('lazy', [None, False, True])
+def test_normalization_sinogram_with_tof_meta_is_refused(lazy):
+    """normalization=True with a tof_meta was ignored: the events were binned as a plain TOF sinogram, in one order of
+    their crystals instead of both. A normalization sinogram has no TOF bins, so it is refused; without tof_meta it is
+    binned as before (both orders, averaged)."""
+    with pytest.raises(ValueError, match='no TOF bins'):
+        shared.listmode_to_sinogram(_events(100, True), INFO, normalization=True, tof_meta=_tof_meta(True), lazy=lazy)
+    events = _events(100, False)
+    norm = shared.listmode_to_sinogram(events, INFO, normalization=True)
+    plain = shared.listmode_to_sinogram(events, INFO)
+    assert norm.shape == plain.shape and norm.sum() == pytest.approx(plain.sum().item())
+    assert not torch.equal(norm, plain)                                   # both orders of the crystals, averaged
+
+
 def test_lazy_arithmetic_equals_dense(small_chunks):
     gen = torch.Generator().manual_seed(3)
     lazy = shared.listmode_to_sinogram(_events(20000, True), INFO, tof_meta=_tof_meta(True), lazy=True)

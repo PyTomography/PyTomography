@@ -547,13 +547,15 @@ def listmode_to_sinogram(
         detector_ids (torch.Tensor): Listmode detector ID data
         info (dict): PET geometry information dictionary
         weights (torch.Tensor, optional): Binning weights for each listmode event. Defaults to None.
-        normalization (bool, optional): Whether or not this is a normalization sinogram (need to do some extra steps). Defaults to False.
+        normalization (bool, optional): Whether or not this is a normalization sinogram (need to do some extra steps). A normalization sinogram has no TOF bins (the normalization of a line of response is the same in all of them): not available with ``tof_meta``. Defaults to False.
         tof_meta (PETTOFMeta, optional): PET TOF metadata. Defaults to None.
         lazy (bool | None, optional): Return a :class:`LazySinogram`, which bins the events of the angles it is asked for when it is asked for them, instead of the whole sinogram. A TOF sinogram is large (34.6 GB with 21 TOF bins for the Siemens Biograph mMR), while a reconstruction reads one subset of angles at a time. Not available with ``normalization``. Defaults to None: lazy when the whole sinogram would take more than a quarter of the memory budget (:func:`pytomography.set_memory_budget`), or more than 8 GB without a budget.
 
     Returns:
         torch.Tensor | LazySinogram: PET sinogram
     """
+    if normalization and tof_meta is not None:
+        raise ValueError("a normalization sinogram has no TOF bins (it applies to every one): bin it without tof_meta")
     if lazy is None:
         lazy = not normalization and prefer_lazy(4 * np.prod(_sinogram_shape(info)) * (1 if tof_meta is None else tof_meta.num_bins))
     if lazy:
