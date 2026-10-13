@@ -5,11 +5,11 @@ import torch.nn.functional as F
 import pytomography
 from pytomography.utils import rotate_detector_z
 from pytomography.utils.memory import MemoryPart, PLAN_MAX_SUBSETS
+from pytomography.utils.spatial import affine_grid_pixels
 from pytomography.projectors.system_matrix import SystemMatrix, on_device
 from pytomography.transforms.SPECT import SPECTPSFTransform
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.SPECT import StarGuideProjMeta
-from kornia.geometry.transform import Translate
 
 DETECTOR_WIDTH = 16   # transaxial pixels of a StarGuide detector head
 
@@ -82,7 +82,7 @@ class StarGuideSystemMatrix(SystemMatrix):
     def _slab_geometry(self, translations: torch.Tensor) -> dict:
         """Slab of object columns each view needs, and the sampling grids between the slab and the 16 detector columns.
 
-        Detector column ``c`` of a view translated by ``s`` voxels samples the (blurred) object at column ``c - s`` (as ``kornia.geometry.transform.Translate`` does, bilinear, zero outside the object). The slab of a view therefore starts ``margin`` columns before ``floor(c_first - s)`` and is wide enough to hold the sampled columns and the PSF reach on both sides. ``cols`` are the object columns of the slab (clamped) and ``valid`` marks the ones inside the object, ``grid_fwd`` samples the detector columns from the slab and ``grid_bwd`` is its transpose (the slab columns sampled from the 16 detector columns).
+        Detector column ``c`` of a view translated by ``s`` voxels samples the (blurred) object at column ``c - s`` (as :meth:`_translate_object` does, bilinear, zero outside the object). The slab of a view therefore starts ``margin`` columns before ``floor(c_first - s)`` and is wide enough to hold the sampled columns and the PSF reach on both sides. ``cols`` are the object columns of the slab (clamped) and ``valid`` marks the ones inside the object, ``grid_fwd`` samples the detector columns from the slab and ``grid_bwd`` is its transpose (the slab columns sampled from the 16 detector columns).
 
         Args:
             translations (torch.Tensor): [B] translations of the views in voxels.
@@ -352,7 +352,7 @@ class StarGuideSystemMatrix(SystemMatrix):
         return projections[...,self.subset_indices_array[subset_idx],:,:]
 
     def _translate_object(self, obj: torch.Tensor, translations: torch.Tensor):
-        """Internal function that applies translations to an object with a batch size dimension.
+        """Internal function that applies translations to an object with a batch size dimension: each object of the batch is shifted by its translation (voxels) along y, bilinear, zero outside (bit-identical to ``kornia.geometry.transform.Translate``, which it used before 4.0).
 
         Args:
             obj (torch.Tensor): Object to be translated
@@ -361,8 +361,10 @@ class StarGuideSystemMatrix(SystemMatrix):
         Returns:
             torch.Tensor: Translated object
         """
-        # Takes in object with batch dimension
-        translation = torch.zeros(len(translations), 2).to(pytomography.device)
-        translation[:,0] = translations
-        obj_translated = Translate(translation)(obj.permute((0,3,1,2))).permute((0,2,3,1))
+        # Takes in object with batch dimension: [B, Lx, Ly, Lz] as [B, Lz, H=Lx, W=Ly], shifted along W
+        B, Lx, Ly, _ = obj.shape
+        translation = torch.eye(3, device=pytomography.device)[None].repeat(B, 1, 1)
+        translation[:, 0, 2] += translations.to(pytomography.device)
+        grid = affine_grid_pixels(translation[:, :2, :], Lx, Ly)
+        obj_translated = F.grid_sample(obj.permute((0,3,1,2)), grid, mode='bilinear', padding_mode='zeros', align_corners=True).permute((0,2,3,1))
         return obj_translated
