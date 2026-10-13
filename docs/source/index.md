@@ -18,8 +18,8 @@ html_theme.sidebar_secondary.remove: true
     <div class="pt-install"><span class="pt-prompt">$</span><code>pip install pytomography</code><button type="button" class="pt-copy" data-copy="pip install pytomography">Copy</button></div>
   </div>
   <figure class="pt-hero-fig">
-    <img src="_static/landing/mip.webp" alt="A Lu-177-PSMA patient turning about their long axis: a maximum intensity projection of the SPECT, reconstructed with PyTomography from two bed positions on a GE Discovery 670 Pro (OSEM, 4 iterations of 8 subsets, with CT attenuation, collimator PSF and triple-energy-window scatter correction) and stitched, in PyTomography's PET colour scale over a maximum intensity projection of the patient's CT" width="1000" height="668">
-    <figcaption><span>Lu-177-PSMA patient · GE Discovery 670 Pro, two beds</span><span>OSEM 4×8 with attenuation, PSF and TEW scatter</span></figcaption>
+    <img src="_static/landing/mip.webp" alt="A Lu-177-PSMA patient, upright, turning about the body's long axis: a maximum intensity projection of the SPECT, reconstructed with PyTomography from two bed positions on a GE Discovery 670 Pro (OSEM, 4 iterations of 8 subsets, with CT attenuation, collimator PSF and triple-energy-window scatter correction) and stitched, in PyTomography's PET colour scale over a maximum intensity projection of the patient's CT" width="600" height="899">
+    <figcaption><span>Lu-177-PSMA patient · GE Discovery 670 Pro, two beds</span><span>OSEM 4×8, attenuation, PSF, TEW scatter</span></figcaption>
   </figure>
 </section>
 

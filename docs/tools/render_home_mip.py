@@ -2,8 +2,9 @@
 
 Each frame is a maximum intensity projection (MIP) of the SPECT, in PyTomography's 'pet' colour scale, laid over a MIP of
 the patient's CT in grey, seen from one angle round the patient's long axis. The colour limits are the same in every
-frame. The patient lies horizontally, head on the left, as on the scanner's bed. The site uses an animated WebP: a GIF
-of the same frames is seven times larger. It runs on the CPU in under a minute and needs about 3 GB of RAM.
+frame. The patient stands upright, head at the top, and turns about the body's long axis. The site uses an animated
+WebP: a GIF of the same frames is several times larger. It runs on the CPU in under a minute and needs about 3 GB of
+RAM.
 
 Its inputs are what t_dicommultibed saves and reads, found from PYTOMOGRAPHY_OUTPUT and PYTOMOGRAPHY_DATA by default:
 
@@ -132,7 +133,7 @@ def projections(recon: Path, ct_folder: Path, n_frames: int, voxel_mm: float, sp
 
 
 def render(ct_mips, spect_mips, *, spect_max=0.75, gamma=0.7, opacity=(0.16, 0.5), ct_hu=(-300, 2000), ct_white=0.68,
-           fade=0.06, width=1000) -> list[PILImage.Image]:
+           fade=0.06, width=600) -> list[PILImage.Image]:
     """The frames: the CT in grey, and over it the SPECT in the 'pet' colour scale.
 
     The SPECT's scale runs from 0 to spect_max times its brightest MIP pixel over every frame, raised to gamma (below
@@ -147,8 +148,8 @@ def render(ct_mips, spect_mips, *, spect_max=0.75, gamma=0.7, opacity=(0.16, 0.5
     rgb = (1 - alpha) * grey[..., None] + alpha * lookup(pet_colours(), s)
     n = rgb.shape[1]
     rgb *= np.clip(np.minimum(np.arange(n), np.arange(n)[::-1]) / max(1, round(fade * n)), 0, 1)[None, :, None, None]
-    # (angle, x, z): the patient's left at the top, as seen from the front, and the head on the left
-    rgb = rgb[:, ::-1, ::-1, :].transpose(0, 2, 1, 3)
+    # upright: the head at the top, and the patient's left on the right, as seen from the front
+    rgb = rgb[:, ::-1, :, :]
     h, w = rgb.shape[1:3]
     size = (width, int(round(width * h / w)))
     return [PILImage.fromarray((255 * np.clip(f, 0, 1)).astype(np.uint8)).resize(size, PILImage.LANCZOS) for f in rgb]
@@ -175,7 +176,7 @@ def main():
     p.add_argument("--out", type=Path, required=True, help="the image to write: .webp (the site's) or .gif")
     p.add_argument("--frames", type=int, default=72, help="views round the patient (default 72, every 5 degrees)")
     p.add_argument("--ms", type=int, default=70, help="milliseconds per frame")
-    p.add_argument("--width", type=int, default=1000, help="width of the image in pixels")
+    p.add_argument("--width", type=int, default=600, help="width of the image in pixels")
     p.add_argument("--quality", type=int, default=80, help="WebP quality, 0 to 100")
     p.add_argument("--voxel-mm", type=float, default=2.0, help="the grid the projections are made on")
     p.add_argument("--spect-fwhm-mm", type=float, default=8.0, help="Gaussian filter on the SPECT before projecting")
