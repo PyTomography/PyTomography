@@ -357,6 +357,42 @@ def test_stitching_weights_are_per_bed_and_sum_to_one(shifts):
     assert torch.equal(rebuilt, stitched.cpu())
 
 
+@pytest.mark.parametrize('shift', [18, 19, 20, 21, 25], ids=['touching', 'one-slice-shared', 'abutting', 'gap-1', 'gap-5'])
+def test_stitching_beds_that_do_not_overlap(shift):
+    """Beds that do not overlap are not blended: each gives all its slices but its first and last, and the stitched
+    image is zero between them. The overlap's 'half' was negative there, and with a gap the slice built from it
+    (1:-1) zeroed the whole upper bed."""
+    Lx, Ly, Lz = 6, 5, 20
+    metas = _bed_metas((Lx, Ly, Lz), [0, shift])
+    recons = 1 + torch.rand(2, Lx, Ly, Lz, generator=torch.Generator().manual_seed(6)).to(pytomography.device)
+    stitched, meta = SPECT.stitch_beds(recons, metas)
+    weights, zs = SPECT.stitch_beds(recons, metas, return_stitching_weights=True)
+    assert meta.shape == (Lx, Ly, shift + Lz) and list(zs) == [0, shift]
+    own = torch.zeros(Lz)
+    own[1:-1] = 1
+    for k in range(2):
+        assert torch.equal(weights[k, 0, 0].cpu(), own)
+        assert torch.equal(stitched[..., zs[k] + 1:zs[k] + Lz - 1], recons[k][..., 1:-1])
+    taken = torch.zeros(shift + Lz, dtype=torch.bool)
+    taken[1:Lz - 1] = True
+    taken[shift + 1:shift + Lz - 1] = True
+    assert torch.equal(stitched[0, 0].cpu() > 0, taken)                  # zero in the gap and the left-out slices
+
+
+def test_beds_that_do_not_overlap_are_read_as_they_are(tmp_path):
+    """read_dicom_beds exchanges projections only where beds overlap: with a gap the negative middle of the overlap
+    made the exchange fail."""
+    ge = dict(vendor='GE', n_heads=1, views_per_head=24, starts=(0.0,), per_head_start=False)
+    _write_nm(tmp_path / 'lower.dcm', centre=(0.3, -6.9, -100.0), **ge)
+    _write_nm(tmp_path / 'upper.dcm', centre=(0.3, -6.9, -100.0 + (LZ + 3) * DZ), **ge)
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', UnverifiedVendorRule)
+        beds = SPECT.read_dicom_beds([str(tmp_path / 'upper.dcm'), str(tmp_path / 'lower.dcm')])
+        alone = [SPECT.read_dicom(str(tmp_path / name))[0] for name in ('lower.dcm', 'upper.dcm')]
+    for bed, projections in zip(beds, alone):
+        assert torch.equal(bed[0], projections)
+
+
 def test_stitching_weights_of_the_issue_example():
     """#225's example: two 128^3 reconstructions gave weights of shape (2, 128, 128); they are (2, 128, 128, 128)."""
     metas = _bed_metas((128, 128, 128), [0, 100])
