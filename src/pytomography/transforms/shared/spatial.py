@@ -9,8 +9,8 @@ import numpy as np
 class RotationTransform(Transform):
 	r"""Object-to-object transform that rotates an object about the z axis (the centre of each x-y plane).
 
-	Every plane of constant z is rotated by the same angle, in degrees, anticlockwise in the (x, y) image as
-	``kornia.geometry.transform.rotate`` defines it; :meth:`backward` rotates by the opposite angle. The SPECT system
+	Every plane of constant z is rotated by the same angle, in degrees, as :func:`~pytomography.utils.spatial.rotate_cached`
+	rotates an image [x, y] (anti-clockwise as displayed); :meth:`backward` rotates by the opposite angle. The SPECT system
 	matrix rotates the object of view :math:`\beta` with ``backward(object, 270 - beta)`` so that the detector is at +x.
 
 	Args:

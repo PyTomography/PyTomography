@@ -1,3 +1,4 @@
+"""The system matrix of the GE StarGuide (:class:`StarGuideSystemMatrix`), whose every view has its own head offset."""
 from __future__ import annotations
 import math
 import torch
@@ -12,18 +13,35 @@ from pytomography.metadata import ObjectMeta
 from pytomography.metadata.SPECT import StarGuideProjMeta
 
 DETECTOR_WIDTH = 16   # transaxial pixels of a StarGuide detector head
+"""Number of transaxial pixels of a StarGuide detector head."""
 
 class StarGuideSystemMatrix(SystemMatrix):
-    r"""System matrix for the StarGuide SPECT imaging system form General Electric Healthcare.
+    r"""System matrix of the GE StarGuide: 12 swivelling CZT heads, each view with its own angle, radius and offset.
 
-    Each view is a 16 pixel wide detector head at a projection angle and a transaxial offset. Forward projection rotates the object to the angle (shared by all views at that angle) and applies the angle-dependent object transforms (e.g. attenuation); then each view blurs the object with its PSF, translates it by its offset (bilinear interpolation) and sums the 16 columns under the head along the projection axis. A view only ever samples the columns under the head plus the reach of its PSF kernel, so the blur and the translation are evaluated on a slab of that width gathered from the object, with all views of an angle batched: one grouped convolution per blurring axis and one sampling call per angle. Back projection is the adjoint of the same operations, with the views of an angle summed before the shared transforms and the rotation are applied. The angle-dependent (non-PSF) transforms are applied before the PSF transforms regardless of their order in ``obj2obj_transforms``.
+    Each view is a 16 pixel wide detector head at a projection angle and a transaxial offset. Forward projection
+    rotates the object to the angle (shared by all views at that angle) and applies the angle-dependent object transforms
+    (e.g. attenuation); then each view blurs the object with its PSF, translates it by its offset (bilinear
+    interpolation) and sums the 16 columns under the head along the projection axis. A view only ever samples the
+    columns under the head plus the reach of its PSF kernel, so the blur and the translation are evaluated on a slab of
+    that width gathered from the object, with all views of an angle batched: one grouped convolution per blurring axis
+    and one sampling call per angle. Back projection is the adjoint of the same operations, with the views of an angle
+    summed before the shared transforms and the rotation are applied. The angle-dependent (non-PSF) transforms are
+    applied before the PSF transforms regardless of their order in ``obj2obj_transforms``.
+
+    The object is in counts per second (``object_meta.units`` from :func:`~pytomography.io.SPECT.read_starguide`) and
+    the projections in counts: each view's projection is multiplied by its frame duration
+    (``proj_meta.frame_duration_s``). Projections are [views, r, z]; with subsets, the projection angles are split into
+    interleaved groups, each angle with all of its views.
 
     Args:
-        obj2obj_transforms (Sequence[Transform]): Sequence of object mappings that occur before forward projection.
-        proj2proj_transforms (Sequence[Transform]): Sequence of proj mappings that occur after forward projection.
-        object_meta (SPECTObjectMeta): SPECT Object metadata.
-        proj_meta (StarGuideProjMeta): Projection metadata pertaining to the StarGuide system.
-        object_initial_based_on_camera_path (bool): Whether or not to initialize the object estimate based on the camera path; this sets voxels to zero that are outside the SPECT camera path. Defaults to False.
+        object_meta (ObjectMeta): The object grid (mm), from :func:`~pytomography.io.SPECT.read_starguide`.
+        proj_meta (StarGuideProjMeta): The projection space of the acquisition.
+        obj2obj_transforms (list[Transform], optional): Object-to-object transforms: the angle-dependent ones (e.g.
+            :class:`~pytomography.transforms.SPECT.SPECTAttenuationTransform`) and
+            :class:`~pytomography.transforms.SPECT.SPECTPSFTransform`. Defaults to none.
+        proj2proj_transforms (list[Transform], optional): Projection-to-projection transforms. They are configured
+            with the metadata, but this system matrix's forward and back projections do not apply them. Defaults to
+            none.
     """
     def __init__(
         self,
@@ -157,14 +175,16 @@ class StarGuideSystemMatrix(SystemMatrix):
         object: torch.Tensor,
         subset_idx: int | None = None,
     ):
-        r"""Applies forward projection to ``object``.
+        r"""Forward projection :math:`g_m = H_m f` of an object, in counts (each view times its frame duration).
 
         Args:
-            object (torch.tensor[Lx, Ly, Lz]): The object to be forward projected
-            subset_idx (int, optional): Only uses a subset of angles :math:`g_m` corresponding to the provided subset index :math:`m`. If None, then defaults to the full projections :math:`g`.
+            object (torch.Tensor): The object, [Lx, Ly, Lz], in counts per second.
+            subset_idx (int | None, optional): Subset index :math:`m`: project onto the subset's views only. Defaults
+                to None: all the views.
 
         Returns:
-            torch.tensor: forward projection estimate :math:`g_m=H_mf`
+            torch.Tensor: The projections, [views, r, z] (the subset's views with ``subset_idx``), on
+            ``pytomography.device``.
         """
         idx, groups = self._view_groups(subset_idx)
         Lx, Ly, Lz = self.object_meta.shape
@@ -190,15 +210,15 @@ class StarGuideSystemMatrix(SystemMatrix):
         proj: torch.Tensor,
         subset_idx: int | None = None
     ):
-        r"""Applies back projection.
+        r"""Back projection :math:`H_m^T g_m` of projections, the adjoint of :meth:`forward` (frame durations included).
 
         Args:
-            proj (torch.tensor): projections :math:`g` which are to be back projected
-            subset_idx (int, optional): Only uses a subset of angles :math:`g_m` corresponding to the provided subset index :math:`m`. If None, then defaults to the full projections :math:`g`.
-            return_norm_constant (bool): Whether or not to return :math:`H_m^T 1` along with back projection. Defaults to 'False'.
+            proj (torch.Tensor): The projections, [views, r, z] (only the subset's views with ``subset_idx``).
+            subset_idx (int | None, optional): Subset index :math:`m` of the projections. Defaults to None: all the
+                views.
 
         Returns:
-            torch.tensor: the object :math:`\hat{f} = H_m^T g_m` obtained via back projection.
+            torch.Tensor: The object, [Lx, Ly, Lz], on ``pytomography.device``.
         """
         idx, groups = self._view_groups(subset_idx)
         Lx, Ly, Lz = self.object_meta.shape
@@ -220,13 +240,13 @@ class StarGuideSystemMatrix(SystemMatrix):
         return object
 
     def compute_normalization_factor(self, subset_idx : int | None = None):
-        """Function used to get normalization factor :math:`H^T_m 1` corresponding to projection subset :math:`m`.
+        """The normalization :math:`H_m^T 1`: the back projection of ones over the views of subset :math:`m`.
 
         Args:
-            subset_idx (int | None, optional): Index of subset. If none, then considers all projections. Defaults to None.
+            subset_idx (int | None, optional): Subset index :math:`m`. Defaults to None: all the views.
 
         Returns:
-            torch.Tensor: normalization factor :math:`H^T_m 1`
+            torch.Tensor: :math:`H_m^T 1`, [Lx, Ly, Lz].
         """
         norm_proj = torch.ones(*self.proj_meta.shape).to(pytomography.device)
         if subset_idx is not None:
@@ -322,10 +342,16 @@ class StarGuideSystemMatrix(SystemMatrix):
         self,
         n_subsets: int
     ) -> None:
-        """Sets the subsets for this system matrix given ``n_subsets`` total subsets: ``subset_indices_array``, the indices of the projections of each subset.
+        """Partitions the projection angles into ``n_subsets`` interleaved subsets, each angle with all of its views.
+
+        Subset ``i`` holds the views of the angles ``i, i + n_subsets, ...`` (in increasing order of angle); the
+        partition is kept in ``subset_indices_array`` (the view indices of each subset).
 
         Args:
-            n_subsets (int): number of subsets used in OSEM
+            n_subsets (int): Number of subsets, from 1 to the number of projection angles.
+
+        Raises:
+            ValueError: If ``n_subsets`` is less than 1 or more than the number of projection angles.
         """
         indices_of_each_angle = [torch.where(self.proj_meta.angles == a)[0] for a in torch.unique(self.proj_meta.angles)]
         self._check_n_subsets(n_subsets, len(indices_of_each_angle))
@@ -340,14 +366,14 @@ class StarGuideSystemMatrix(SystemMatrix):
         projections: torch.tensor,
         subset_idx: int
     ) -> torch.tensor:
-        """Gets the subset of projections :math:`g_m` corresponding to index :math:`m`.
+        """The projections :math:`g_m` of subset :math:`m`: its views.
 
         Args:
-            projections (torch.tensor): full projections :math:`g`
-            subset_idx (int): subset index :math:`m`
+            projections (torch.Tensor): All the projections :math:`g`, [..., views, r, z].
+            subset_idx (int): Subset index :math:`m`.
 
         Returns:
-            torch.tensor: subsampled projections :math:`g_m`
+            torch.Tensor: The subset's projections :math:`g_m`, [..., views of the subset, r, z].
         """
         return projections[...,self.subset_indices_array[subset_idx],:,:]
 

@@ -780,11 +780,26 @@ class SART(PreconditionedGradientAscentAlgorithm):
         return relaxation_factor/(self.likelihood._get_normBP(n_subset) + pytomography.delta)
     
 class PGAAMultiBedSPECT(PreconditionedGradientAscentAlgorithm):
-    """Assistant class for performing reconstruction on multi-bed SPECT data. This class is a wrapper around a reconstruction algorithm that is called for each bed and then the results are stitched together (:func:`~pytomography.io.SPECT.stitch_beds`), each bed placed by the ``object_meta`` of its system matrix (as :func:`~pytomography.io.SPECT.read_dicom_beds` gives them). After a reconstruction, ``object_meta`` is the grid of the stitched image.
+    """Reconstructs several SPECT bed positions together, one algorithm per bed, and stitches their images.
 
-        Args:
-            reconstruction_algorithms (Sequence[Algorithm]): Reconstruction algorithm of each bed position
-        """
+    Each subiteration runs one subiteration of every bed's algorithm and stitches the beds' images
+    (:func:`~pytomography.io.SPECT.stitch_beds`), each bed placed by the ``object_meta`` of its system matrix (as
+    :func:`~pytomography.io.SPECT.read_dicom_beds` gives them). After a reconstruction, ``object_meta`` is the grid of
+    the stitched image; masks for :meth:`compute_uncertainty` go on it.
+
+    Args:
+        reconstruction_algorithms (Sequence[PreconditionedGradientAscentAlgorithm]): The algorithm of each bed, e.g.
+            an :class:`OSEM` per bed, each with its own likelihood and system matrix.
+
+    Example:
+        .. code-block:: python
+
+            algorithms = []
+            for projections, object_meta, proj_meta in io.SPECT.read_dicom_beds(files_NM):
+                system_matrix = SPECTSystemMatrix([], [], object_meta, proj_meta)   # with each bed's transforms
+                algorithms.append(OSEM(PoissonLogLikelihood(system_matrix, projections[peak])))
+            recon = PGAAMultiBedSPECT(algorithms)(n_iters=4, n_subsets=8)
+    """
     def __init__(
         self,
         reconstruction_algorithms: Sequence[object],
@@ -862,15 +877,18 @@ class PGAAMultiBedSPECT(PreconditionedGradientAscentAlgorithm):
         n_subsets: int,
         callback: Callback | Sequence[Callback] | None = None,
         ) -> torch.Tensor:
-        """Perform reconstruction of each bed position for specified iteraitons and subsets, and return the stitched image
+        """Reconstructs every bed for ``n_iters`` iterations of ``n_subsets`` subsets, and returns the stitched image.
 
         Args:
-            n_iters (int): Number of iterations to perform reconstruction for.
-            n_subsets (int): Number of subsets to perform reconstruction for.
-            callback (Callback | Sequence[Callback] | None, optional): Callback function. If a single Callback is given, then the callback is computed for the stitched image. If a sequence of callbacks is given, then it must be the same length as the number of bed positions; each callback is called on the reconstruction for each bed position. If None, no Callback is used. Defaults to None.
+            n_iters (int): Number of iterations.
+            n_subsets (int): Number of subsets.
+            callback (Callback | list[Callback] | None, optional): A callback run on the stitched image after each
+                subiteration, or a list of one callback per bed, each run on its bed's image (e.g. a
+                :class:`~pytomography.callbacks.DataStorageCallback` per bed, for :meth:`compute_uncertainty`).
+                Defaults to None.
 
         Returns:
-            torch.Tensor: _description_
+            torch.Tensor: The stitched image, [Lx, Ly, Lz'], on the grid ``object_meta``.
         """
         self.callback = callback
         for i in range(n_iters):
@@ -918,25 +936,44 @@ class PGAAMultiBedSPECT(PreconditionedGradientAscentAlgorithm):
         return_pct: bool = False,
         include_additive_term: bool = False
     ):
-        r"""Estimates the uncertainty in a mask (should be same shape as the stitched image). Calling this method requires a sequence of ``DataStorageCallback`` instances that have been used in a reconstruction algorithm: these data storage contain required information for each bed position.
+        r"""Estimates the uncertainty (standard deviation) of the sum of the stitched image over a region.
 
-        The counts in the mask are :math:`S = \sum_k (w_k\xi)\cdot x_k`: each bed :math:`k` contributes its reconstruction :math:`x_k` in the part of the mask :math:`\xi` the stitched image takes from it (its stitching weights :math:`w_k`, see :func:`~pytomography.io.SPECT.stitch_beds`). With :math:`v_k = [V_k]'(w_k\xi)` the derivative of bed :math:`k`'s part with respect to its projections :math:`y_k`, the variance is
+        The reconstruction must have been run with a list of one :class:`~pytomography.callbacks.DataStorageCallback`
+        per bed, and the beds' algorithms must estimate uncertainty (their preconditioner linear in the object, e.g.
+        OSEM). The counts in the mask are :math:`S = \sum_k (w_k\xi)\cdot x_k`: each bed :math:`k` contributes its
+        reconstruction :math:`x_k` in the part of the mask :math:`\xi` the stitched image takes from it (its stitching
+        weights :math:`w_k`, see :func:`~pytomography.io.SPECT.stitch_beds`). With :math:`v_k = [V_k]'(w_k\xi)` the
+        derivative of bed :math:`k`'s part with respect to its projections :math:`y_k`, the variance is
 
         .. math::
 
             \text{Var}(S) = \sum_k y_k\cdot v_k^2 + 2\sum_{k<l} \sum_{j\in k\cap l} y_j\, v_{k,j}\, v_{l,j}
 
-        where the second sum runs over the projection data that beds :math:`k` and :math:`l` share. :func:`~pytomography.io.SPECT.read_dicom_beds` fills the overlap of each bed's projections with its neighbour's counts, so neighbouring beds share all of their overlap and their estimates there are correlated; beds reconstructed from their own projections share nothing, and their variances add. A slice of projections (all angles and radial positions at one :math:`z`) is taken to be shared by two beds where the two beds' projections are equal there. The additive term (if ``include_additive_term``) is treated the same way, its data taken to be shared in the same slices as the projections (:func:`~pytomography.io.SPECT.read_dicom_beds` fills every energy window) and with the variance estimate of the lower bed; this is exact when the additive term's variance estimate is that of an unsmoothed energy window estimate, and approximate within a few kernel widths of a bed's edge when it is smoothed.
+        where the second sum runs over the projection data that beds :math:`k` and :math:`l` share.
+        :func:`~pytomography.io.SPECT.read_dicom_beds` fills the overlap of each bed's projections with its neighbour's
+        counts, so neighbouring beds share all of their overlap and their estimates there are correlated; beds
+        reconstructed from their own projections share nothing, and their variances add. A slice of projections (all
+        angles and radial positions at one :math:`z`) is taken to be shared by two beds where the two beds'
+        projections are equal there. The additive term (if ``include_additive_term``) is treated the same way, its data
+        taken to be shared in the same slices as the projections (:func:`~pytomography.io.SPECT.read_dicom_beds` fills
+        every energy window) and with the variance estimate of the lower bed; this is exact when the additive term's
+        variance estimate is that of an unsmoothed energy window estimate, and approximate within a few kernel widths
+        of a bed's edge when it is smoothed.
 
         Args:
-            mask (torch.Tensor): Masked region of the reconstructed object: a boolean Tensor. This mask should be the same shape as the stitched object, and aligned with it: on the grid ``object_meta`` of the stitched image (e.g. ``io.load_mask(...).on(object_meta, label=..., threshold=0.5)``).
-            data_storage_callbacks (Sequence[Callback]): Sequence of data storage callbacks used in reconstruction corresponding to each bed position.
-            subiteration_number (int | None, optional): Subiteration number to compute the uncertainty for. If None, then computes the uncertainty for the last iteration. Defaults to None.
-            return_pct (bool, optional): If true, then additionally returns the percent uncertainty for the sum of counts. Defaults to False.
-            include_additive_term (bool): Whether or not to include uncertainty contribution from the additive term. This requires the ``additive_term_variance_estimate`` as an argument to the initialized likelihood. Defaults to False.
+            mask (torch.Tensor): The region, a boolean tensor on the grid ``object_meta`` of the stitched image (e.g.
+                ``io.load_mask(...).on(object_meta, label=..., threshold=0.5)``).
+            data_storage_callbacks (Sequence[DataStorageCallback]): The callbacks the reconstruction was run with, one
+                per bed, in the order of ``reconstruction_algorithms``.
+            subiteration_number (int | None, optional): The subiteration whose images are used. Defaults to None: the
+                last.
+            return_pct (bool, optional): Also return the uncertainty in percent of the sum. Defaults to False.
+            include_additive_term (bool, optional): Include the uncertainty of the additive term; this needs the
+                likelihoods' ``additive_term_variance_estimate``. Defaults to False.
 
         Returns:
-            float | Sequence[float]: Absolute uncertainty in the sum of counts in the masked region (if `return_pct` is False) OR absolute uncertainty and relative uncertainty in percent (if `return_pct` is True)
+            float | tuple[float, float]: The uncertainty of the sum, in the image's units, and, with ``return_pct``,
+            the uncertainty in percent of the sum.
         """
         if subiteration_number is None:
             subiteration_number = len(data_storage_callbacks[0].objects) - 1

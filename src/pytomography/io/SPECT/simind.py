@@ -130,27 +130,39 @@ def _geometry(header: Interfile, radii_file=None) -> dict:
 
 def read_simind(headers, energy_window: int | None = None, *, weights: Sequence[float] | None = None,
                 radii_file: str | None = None):
-    """SIMIND projections in PyTomography's standard form.
+    """Reads SIMIND projections (one ``.h00`` header per energy window) into PyTomography's standard form.
 
     * The version is read as an integer (V7 keys in cm, V8 and later mm); lengths become mm.
     * Views are sorted by angle (β as for DICOM); rows are flipped so that z runs foot to head.
+    * The radii are the header's radius for every view, or, for a non-circular orbit, those of SIMIND's ``.cor``
+      orbit file (``radii_file``, or the file the header names as its non-uniform orbit file).
     * Every window's bounds and photon energy go into ``proj_meta.energy_windows`` (the window's nuclide line, not the
-      simulation's main photon energy); the values are counts per second per MBq, 1 s per view.
+      simulation's main photon energy); the values are counts per second per MBq (``proj_meta.units``), and
+      ``proj_meta.frame_duration_s`` is the header's time per projection.
     * The grid is the projections' (Lr x Lr x Lz), centred on the rotation axis (frame ``'scanner'``).
 
     Args:
-        headers (str | Sequence[str] | Sequence[Sequence[str]]): the ``.h00`` file of one window, of every window, or
+        headers (str | Sequence[str] | Sequence[Sequence[str]]): The ``.h00`` file of one window, of every window, or
             for each window the files of every organ (added up with ``weights``).
-        energy_window (int, optional): the window to return. Defaults to None: all of them.
-        weights (Sequence[float], optional): for organ-by-organ simulations, each organ's weight (e.g. its activity).
-        radii_file (str, optional): SIMIND's ``.cor`` file of a non-circular orbit: one line per view, the
-            detector distance (cm, read as mm) and, as SIMIND writes it, the centre of rotation (pixels), which must
-            be the centre of the projections. Defaults to None: the file the header names as its non-uniform orbit
-            file (next to the header), else the header's radius for every view.
+        energy_window (int, optional): Index of the window to return. Defaults to None: all of them.
+        weights (Sequence[float], optional): For organ-by-organ simulations, each organ's weight (e.g. its activity).
+            Defaults to None (organs added up with weight 1).
+        radii_file (str, optional): SIMIND's ``.cor`` file of a non-circular orbit, as SIMIND writes it: one line per
+            view, in acquisition order, with the distance from the rotation axis to the detector surface in cm (read
+            as mm), and the centre of rotation in pixels, which must be the centre of the projections (files with the
+            distances alone, as :mod:`pytomography.utils.simind_mc` writes them for SIMIND, are read too). Defaults
+            to None: the orbit file the header names, next to it, if it names one; else the header's radius for every
+            view.
 
     Returns:
-        (torch.Tensor, SPECTObjectMeta, SPECTProjMeta): projections [W, θ, r, z] (or [θ, r, z] for one
-        ``energy_window``), the grid and the projection metadata.
+        tuple[torch.Tensor, SPECTObjectMeta, SPECTProjMeta]: The projections [W, θ, r, z] (or [θ, r, z] for one
+        ``energy_window``) on ``pytomography.device``, the grid (mm) and the projection metadata (radii in mm).
+
+    Raises:
+        ValueError: If a file was not written by SIMIND or holds no projections, the weights are not one per organ
+            file, the files' shapes differ, or the orbit file does not have one line (and at most two columns) per view
+            or puts the centre of rotation elsewhere than the centre of the projections.
+        FileNotFoundError: If the header names an orbit file that is not next to it and ``radii_file`` is not given.
     """
     if isinstance(headers, (str, os.PathLike)):
         headers = [headers]

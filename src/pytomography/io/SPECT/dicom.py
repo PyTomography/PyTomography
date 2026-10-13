@@ -411,23 +411,27 @@ def read_dicom_beds(files: Sequence[str]) -> list:
 
 
 def stitch_beds(recons, object_metas: Sequence[SPECTObjectMeta], return_stitching_weights: bool = False):
-    """Stitch the reconstructions of several bed positions into one image on one grid.
+    """Stitches the reconstructions of several bed positions into one image on one grid.
 
     Each bed gives the stitched image its own slices, apart from its first and last slice; where two beds overlap,
-    each gives half of the overlap (the lower half from the lower bed). Beds are placed by their grids' centres,
-    rounded to whole slices.
+    each gives half of the overlap (the lower half from the lower bed), so the weights of the beds sum to 1 wherever a
+    bed covers the image (the first and last slices of the stitched image, a bed's first and last, are 0). Beds are
+    placed by their grids' centres along z, rounded to whole slices, in any order.
 
     Args:
-        recons (torch.Tensor | Sequence[torch.Tensor]): [n_beds, Lx, Ly, Lz], in the order of ``object_metas``.
-        object_metas (Sequence[SPECTObjectMeta]): each bed's grid (same voxel size and shape).
-        return_stitching_weights (bool): instead, return the weights [n_beds, Lx, Ly, Lz] the stitched image gives each
-            bed's voxels (1 where it takes them, 0 elsewhere) and the index of each bed's first slice in it, both in
-            the order of ``object_metas``: the stitched image is the sum over beds of ``weights[k] * recons[k]``
-            placed at ``zs[k]`` (used for uncertainty estimates). Defaults to False.
+        recons (torch.Tensor | Sequence[torch.Tensor]): The reconstructions, [n_beds, Lx, Ly, Lz] (or a list of
+            [Lx, Ly, Lz]), in the order of ``object_metas``.
+        object_metas (Sequence[SPECTObjectMeta]): Each bed's grid (the same voxel size and shape), e.g. from
+            :func:`read_dicom_beds`.
+        return_stitching_weights (bool, optional): Return instead the weights [n_beds, Lx, Ly, Lz] the stitched image
+            gives each bed's voxels (1 where it takes them, 0 elsewhere) and the index ``zs`` of each bed's first
+            slice in it, both in the order of ``object_metas``: the stitched image is the sum over beds of
+            ``weights[k] * recons[k]`` placed at slice ``zs[k]`` (used for uncertainty estimates). Defaults to False.
 
     Returns:
-        (torch.Tensor, SPECTObjectMeta): the stitched image and its grid (its first slice is the first slice of the
-        lowest bed), or the weights and slice offsets.
+        tuple: The stitched image [Lx, Ly, Lz'] and its grid (a copy of the lowest bed's, extended along z: its first
+        slice is the first slice of the lowest bed); or, with ``return_stitching_weights``, the weights (a tensor)
+        and ``zs`` (an int array).
     """
     recons = torch.stack(list(recons)) if not torch.is_tensor(recons) else recons
     centres_z = np.array([meta.centre[2] for meta in object_metas])
