@@ -128,6 +128,29 @@ def test_gen3_projection_is_split_to_bound_the_rays_per_call(monkeypatch):
     assert (sm.backward(g) - BP).abs().max() <= 1e-5 * BP.abs().max()
 
 
+def test_conebeam_scan_off_z0_sees_the_object_as_moved():
+    """A circular scan at z = 4 mm sees the object as a scan at z = 0 sees it moved down 4 mm (two slices): the panel
+    faces the rotation axis at every z. Its orientation was the direction from the detector to the origin, which off
+    z = 0 tilted the panel (and stretched its rows)."""
+    n_views = 24
+    angles = torch.linspace(0, 2 * np.pi, n_views + 1)[:-1]
+    def scan(z):
+        meta = CTConeBeamFlatPanelProjMeta(angles, torch.full((n_views,), z), detector_radius=100.0, beam_radius=150.0,
+                                           shape=(40, 16), dr=(2.5, 2.5))
+        return CTConeBeamFlatPanelSystemMatrix(OBJECT_META, meta)
+    raised = scan(4.0)
+    assert torch.equal(raised.proj_meta.detector_orientations[:, 2].cpu(), torch.zeros(n_views))
+    flat = scan(0.0).proj_meta                                     # at z = 0, the orientation is as it was, bit for bit
+    assert torch.equal(flat.detector_orientations, -flat.detector_locations / torch.norm(flat.detector_locations, dim=-1).unsqueeze(-1))
+    f = _object()
+    f[..., :2] = 0
+    f[..., -2:] = 0
+    moved = torch.zeros_like(f)
+    moved[..., :-2] = f[..., 2:]
+    expected = scan(0.0).forward(moved)
+    assert (raised.forward(f) - expected).abs().max() <= 1e-4 * expected.abs().max()
+
+
 def test_conebeam_forward_projection_is_split_like_back_projection(monkeypatch):
     """``N_splits`` split each view's back projection into that many kernel calls, but not its forward projection;
     both are split now, and the projection is the same."""
