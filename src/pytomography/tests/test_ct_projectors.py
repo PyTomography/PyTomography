@@ -128,6 +128,29 @@ def test_gen3_projection_is_split_to_bound_the_rays_per_call(monkeypatch):
     assert (sm.backward(g) - BP).abs().max() <= 1e-5 * BP.abs().max()
 
 
+@pytest.mark.parametrize("algorithm", ["OSEM", "BSREM", "RBIEM"])
+@pytest.mark.parametrize("n_subsets", [1, 3])
+def test_normalization_factors_kept_on_the_host_reach_the_algorithms_on_the_device(algorithm, n_subsets):
+    """The gen3 system matrix keeps H_m^T 1 on the host (its memory estimate counts them in RAM), the cone beam one on
+    the device. The likelihood handed them to the algorithms on the host with one subset, and summed over the subsets
+    (BSREM, RBIEM), so on a GPU those reconstructions mixed devices; they are now on PyTomography's device."""
+    import pytomography.algorithms as algorithms
+    from pytomography.likelihoods import PoissonLogLikelihood
+    from pytomography.priors import RelativeDifferencePrior
+    sm = _gen3()
+    assert sm.compute_normalization_factor().device.type == "cpu"
+    projections = sm.forward(_object()).to(DEV)
+    likelihood = PoissonLogLikelihood(sm, projections)
+    kwargs = dict(prior=RelativeDifferencePrior(0.01)) if algorithm == "BSREM" else {}
+    image = getattr(algorithms, algorithm)(likelihood, **kwargs)(n_iters=1, n_subsets=n_subsets)
+    assert image.device.type == torch.device(DEV).type
+    assert torch.isfinite(image).all()
+    for subset_idx in ([None] if n_subsets == 1 else [0, 2]):
+        assert likelihood._get_normBP(subset_idx).device.type == torch.device(DEV).type
+        if subset_idx is not None:
+            assert likelihood._get_normBP(subset_idx, return_sum=True).device.type == torch.device(DEV).type
+
+
 def test_conebeam_scan_off_z0_sees_the_object_as_moved():
     """A circular scan at z = 4 mm sees the object as a scan at z = 0 sees it moved down 4 mm (two slices): the panel
     faces the rotation axis at every z. Its orientation was the direction from the detector to the origin, which off
