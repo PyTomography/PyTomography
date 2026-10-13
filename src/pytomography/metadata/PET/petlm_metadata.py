@@ -1,17 +1,47 @@
+"""Projection metadata of PET list mode data."""
 from __future__ import annotations
 import torch
 from .pet_tof_metadata import PETTOFMeta
 
 class PETLMProjMeta():
-    r"""Metadata required for PET listmode modeling. PET listmode projection actually requires two different projectors: the system matrix that projects to all detected crystal pair LORs (which is denoted as :math:`H`) and the system matrix that projects to all valid LORs (denoted as :math:`\tilde{H}`). The system matrix :math:`H` is used for forward/back projection in reconstruction algorithms, while :math:`\tilde{H}` is used for computing the normalization image :math:`\tilde{H}^T 1`. 
-        Args:
-            detector_ids (torch.Tensor): :math:`N \times 2` (non-TOF) or :math:`N \times 3` (TOF) tensor that provides detector ID pairs (and TOF bin) for coincidence events. This information is used to construct :math:`H`.
-            info (dict, optional): Dictionary containing all relevant information about the scanner. If ``scanner_LUT`` is not provided, then info is used to create the ``scanner_LUT``. At least one of ``info`` or ``scanner_LUT`` should be provided as input arguments.
-            scanner_LUT (torch.Tensor, optional): scanner lookup table that provides spatial coordinates for all detector ID pairs. If ``info`` is not provided, then ``scanner_LUT`` must be provided.
-            tof_meta (PETTOFMeta | None, optional): PET time-of-flight metadata used to modify :math:`H` for time of flight projection. If None, then time of flight is not used. Defaults to None.
-            weights (torch.tensor | None, optional): weights used to scale projections after forward projection and before back projection; these modify the system matrix :math:`H`. While such weights can be used to apply attenuation/normalization correction, they aren't required in the absence of randoms/scatter; these correction need only be performed using ``weights_sensitivity``. If provided, these weights must have the number of elements as the first dimension of ``detector_ids``. If none, then no scaling is done. Defaults to None.
-            detector_ids_sensitivity (torch.tensor | None, optional): valid detector ids used to generate the sensitivity image :math:`\tilde{H}^T 1`. As such, these are used to construct :math:`\tilde{H}`. If None, then assumes all detector ids (specified by ``scanner_LUT``) are valid. Defaults to None.
-            weights_sensitivity (torch.tensor | None, optional): weights used for scaling projections in the computation of the sensitivity image, if the weights are given as :math:`w` then the sensitivty image becomes :math:`\tilde{H}^T w`; these modify the system matrix :math:`\tilde{H}`. These weights are used for attenuation/normalization correction. If ``detector_ids_sensitivity`` is provided, then ``weights_sensitivity`` should have the same shape. If ``detector_ids_sensitivity`` is not provided, then ``weights_sensitivity`` should be the same length as all possible combinations of detectors in the ``scanner_LUT``. If None, then no scaling is performed. Defaults to None.
+    r"""Projection space of PET list mode data: the events, the scanner, and the weights of the lines of response.
+
+    List mode reconstruction uses two system matrices: :math:`H`, which projects onto the lines of response (LORs) of
+    the detected events and is used for forward and back projection, and :math:`\tilde{H}`, which projects onto every
+    valid LOR and gives the sensitivity image :math:`\tilde{H}^T w`. The readers
+    (:func:`~pytomography.io.PET.read_gate`, :func:`~pytomography.io.PET.read_petsird`,
+    :func:`~pytomography.io.PET.read_ge_hdf5`) make one.
+
+    Args:
+        detector_ids (torch.Tensor): [N, 2] (no TOF) or [N, 3] (TOF) integers: the two detector ids of each event, and
+            its TOF bin. These are the LORs of :math:`H`. Kept on the CPU.
+        info (dict, optional): The scanner's description (:func:`~pytomography.io.PET.scanner_info`). Needed when
+            ``scanner_LUT`` is not given, for the sensitivity weights of individual events and for sorting the events
+            in the projector. Defaults to None.
+        scanner_LUT (torch.Tensor, optional): Position (x, y, z) of every crystal in mm, [N_crystals, 3]. Defaults to
+            None: made from ``info`` with :func:`~pytomography.io.PET.scanner_lut`.
+        tof_meta (PETTOFMeta | None, optional): Time of flight binning. Defaults to None (no time of flight).
+        weights (torch.Tensor | None, optional): One weight per event, [N], that scales the forward projection and
+            the back projection when the system matrix is made with ``scale_projection_by_sensitivity=True``
+            (attenuation and normalization factors of each event's LOR). Without an additive term (scatter, randoms)
+            they cancel in the list mode likelihood, and ``weights_sensitivity`` is enough. Defaults to None.
+        detector_ids_sensitivity (torch.Tensor | None, optional): [M, 2] detector ids of the LORs of the sensitivity
+            image (the LORs of :math:`\tilde{H}`). Defaults to None: every pair of crystals.
+        weights_sensitivity (torch.Tensor | None, optional): The sensitivity weights :math:`w` (normalization, and
+            attenuation when not given to the system matrix as a map): one per row of ``detector_ids_sensitivity``,
+            or, without it, one per crystal pair in ``torch.combinations`` order (``N_crystals (N_crystals - 1) / 2``;
+            see :func:`~pytomography.io.PET.crystal_pair_index`). Defaults to None (all 1).
+
+    Attributes:
+        shape (tuple): (N,), the number of events.
+        info (dict | None): The scanner's description.
+        detector_ids (torch.Tensor): The events' detector ids (and TOF bins).
+        scanner_lut (torch.Tensor): Position of every crystal in mm, [N_crystals, 3].
+        tof_meta (PETTOFMeta | None): Time of flight binning.
+        weights (torch.Tensor | None): The events' weights.
+        detector_ids_sensitivity (torch.Tensor | None): The LORs of the sensitivity image.
+        weights_sensitivity (torch.Tensor | None): The sensitivity weights.
+        duration_s (float | None): Seconds of acquisition the events were read from, where the reader knows it.
     """
     def __init__(
         self,
@@ -38,5 +68,5 @@ class PETLMProjMeta():
         self.tof_meta = tof_meta
         self.weights = weights
         self.weights_sensitivity = weights_sensitivity
-        #: seconds of acquisition the events were read from, where the reader knows it (None otherwise)
-        self.duration_s = None 
+        # seconds of acquisition the events were read from, where the reader knows it (None otherwise)
+        self.duration_s = None
