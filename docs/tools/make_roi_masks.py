@@ -7,8 +7,9 @@ region fills, on any grid. Each file's header says how it was made.
 
 Run it with PyTomography 4 on PYTHONPATH (the version whose read_dicom applies Siemens' registration to the CT) and
 PYTOMOGRAPHY_DATA set. It takes under a minute and about 4 GB of RAM, and needs no GPU (CUDA_VISIBLE_DEVICES=-1 keeps
-it on the CPU). The files then go to
-``src/pytomography/datasets/files``, with their sizes and sha256 in the dataset registry.
+it on the CPU). The files then go with their datasets' records (SPECT tutorial data, version 2: staged in
+``D:/pytomography_records/spect-v2``), with their sizes and sha256 in the dataset registry as pending parts until the
+record is published.
 
 ``lu177_nema_symt2_rois.seg.nrrd`` (SPECT/Lu177-NEMA-SymT2: the NEMA IQ phantom on the Siemens Symbia T2), frame
 'patient' (the CT's), 0.8 mm voxels:
