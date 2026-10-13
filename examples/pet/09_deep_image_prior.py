@@ -36,7 +36,7 @@ import numpy as np
 from monai.transforms import ScaleIntensityd, CropForeground, Compose, DivisiblePadd, SpatialCropd, ThresholdIntensityd
 
 # %% How much memory this needs
-RAM_GB = 25 # memory (RAM) this tutorial may use, in GB; it needs about 24 GB however low this is
+RAM_GB = 25 # memory (RAM) this tutorial may use, in GB; it needs about 22 GB however low this is
 NETWORK_GB = 7 # training the network takes about 7 GB of GPU memory, which on Windows counts as RAM too
 pytomography.set_memory_budget(RAM_GB - NETWORK_GB) # what the scatter estimate and the reconstructions may use
 

@@ -60,7 +60,7 @@ num_tof_bins = 21
 tof_meta = PETTOFMeta(num_tof_bins, TOF_range, fwhm_tof_resolution, n_sigmas=3)
 
 # %% How much memory this needs
-RAM_GB = 25 # memory (RAM) this tutorial may use, in GB; it needs about 23 GB however low this is
+RAM_GB = 25 # memory (RAM) this tutorial may use, in GB; it needs about 21 GB however low this is
 pytomography.set_memory_budget(RAM_GB)
 
 # %% Normalization Correction

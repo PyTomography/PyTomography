@@ -34,7 +34,7 @@ from pytomography.utils import sss
 import gc
 
 # %% How much memory this needs
-RAM_GB = 25 # memory (RAM) this tutorial may use, in GB; it needs about 22 GB however low this is
+RAM_GB = 25 # memory (RAM) this tutorial may use, in GB; it needs about 20 GB however low this is
 pytomography.set_memory_budget(RAM_GB)
 
 # The first run reads the ROOT files and caches each result in OUTPUT; later runs load the cache.
