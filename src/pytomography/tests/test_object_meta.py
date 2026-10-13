@@ -90,3 +90,26 @@ def test_dual_imshow_draws_both_images():
         plot_utils.dual_imshow(plane, torch.rand(8, 8, 8), np.random.rand(32, 32, 32), 3, a, b, {}, {'alpha': 0.5})
         assert len(plt.gca().images) == 2
         plt.close()
+
+
+@pytest.mark.parametrize('origin', [None, 'upper', 'lower'])
+def test_dual_imshow_places_both_images_by_their_affines_whatever_the_origin(origin):
+    """Each slice's first row is drawn at the first voxel's edge along the vertical axis, whatever ``origin`` (None:
+    matplotlib's default, 'upper'). With 'upper', the extent put it at the far edge: each image was flipped within its
+    own extent, and two images of different extents no longer lined up."""
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    a = ObjectMeta(dr=(4.0, 4.0, 4.0), shape=(8, 8, 8)).affine
+    b = ObjectMeta(dr=(1.0, 1.0, 1.0), shape=(40, 36, 44), centre=(3.0, -5.0, 2.0)).affine
+    kwargs = {} if origin is None else {'origin': origin}
+    for plane in ('axial', 'coronal', 'sagittal'):
+        plt.figure()
+        plot_utils.dual_imshow(plane, np.random.rand(8, 8, 8), np.random.rand(40, 36, 44), 3, a, b, dict(kwargs), dict(kwargs))
+        vertical = [k for k in range(3) if k != plot_utils._AXIS[plane]][1]
+        for image, affine in zip(plt.gca().images, (a, b)):
+            left, right, bottom, top = image.get_extent()
+            first_row = bottom if image.origin == 'lower' else top
+            assert first_row == pytest.approx(affine[vertical, 3] - 0.5 * affine[vertical, vertical])
+        assert plt.gca().get_ylim()[0] < plt.gca().get_ylim()[1]                     # increasing upwards
+        plt.close()
