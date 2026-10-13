@@ -29,12 +29,12 @@ from pytomography.io.CT import preprocessing
 from pytomography.projectors.CT import CTGen3SystemMatrix
 from pytomography.algorithms import FilteredBackProjection
 
-# Memory: this tutorial needs about 15 GB of RAM (15.0 GB measured on Windows). RAM_GB caps what PyTomography's
+# Memory: this tutorial needs about 16 GB of RAM (15.7 GB measured on Windows). RAM_GB caps what PyTomography's
 # reconstructions use for their own work: with less, they rebin and filter fewer views at a time, which is a little
 # slower and gives the same images. The first reconstruction prints its estimate before it runs (estimate_memory): its
-# peak RAM and GPU memory, what they are made of, and what to change to use less. Most of the 15 GB is what the
+# peak RAM and GPU memory, what they are made of, and what to change to use less. Most of the 16 GB is what the
 # tutorial keeps (2 GB of projections, five images) and the GPU libraries, so a lower RAM_GB saves little: the
-# tutorial needs about 15 GB whatever it is set to.
+# tutorial needs about 16 GB whatever it is set to.
 RAM_GB = 25
 pytomography.set_memory_budget(RAM_GB)
 
@@ -72,7 +72,7 @@ k, j = 157, 256  # an axial slice through the chest, a coronal slice through the
 dx, dz = object_meta.dr[0], object_meta.dr[2]
 # The body and the soft tissue of the scanner's images (above -700 HU after a 2 mm blur; 10 to 70 HU after a 7 x 7 x 3
 # voxel mean, eroded): they come with PyTomography, in the dataset's folder
-regions = io.load_mask(folder / 'ldct_c145_regions.seg.nrrd')
+regions = io.load_mask(folder / 'ldct_c145_rois.seg.nrrd')
 r = np.hypot(*np.meshgrid(*[(np.arange(n) - (n - 1) / 2) * dx for n in object_meta.shape[:2]], indexing='ij'))[:, :, None]
 
 def blurred(a, valid):
@@ -82,7 +82,7 @@ def blurred(a, valid):
 def compare(ours, title):
     valid = scanner_hu > -1500  # inside the scanner's field of view (it pads outside with a lower value)
     diff = np.where(valid, blurred(ours, valid) - blurred(scanner_hu, valid), np.nan)
-    body = regions.on(object_meta, label='body', threshold=0.5).cpu().numpy()
+    body = valid & regions.on(object_meta, label='body', threshold=0.5).cpu().numpy()
     fig, axes = plt.subplots(2, 3, figsize=(15, 10), constrained_layout=True)
     # axial: anterior at the top; coronal: the head at the top
     for row, cut, aspect, origin in ((0, lambda a: a[:, :, k].T, 1, 'upper'), (1, lambda a: a[:, j, :].T, dz / dx, 'lower')):
@@ -98,7 +98,8 @@ def compare(ours, title):
 
 def radial_trend(ours):
     # mean of ours - scanner in soft tissue, in 20 mm rings
-    soft_tissue = regions.on(object_meta, label='soft tissue', threshold=0.5).cpu().numpy()
+    valid = scanner_hu > -1500
+    soft_tissue = valid & regions.on(object_meta, label='soft_tissue', threshold=0.5).cpu().numpy()
     edges = np.arange(0, 201, 20)
     d = ours - scanner_hu
     return edges[:-1] + 10, [d[soft_tissue & (r >= a) & (r < b)].mean() for a, b in zip(edges[:-1], edges[1:])]

@@ -80,7 +80,7 @@ scanner_files = sorted((folder / 'full_dose_images').glob('*.dcm'))
 scanner = io.load_image(scanner_files)  # in HU, with its place in the patient
 scanner_hu = scanner.on(object_meta, fill=-3000).cpu().numpy()  # -3000: outside the scanner's images
 # The body in the scanner's images and a block of liver: they come with PyTomography, in the dataset's folder
-regions = io.load_mask(folder / 'ldct_c145_regions.seg.nrrd')
+regions = io.load_mask(folder / 'ldct_c145_rois.seg.nrrd')
 
 liver = regions.on(object_meta, label='liver', threshold=0.5).cpu().numpy()  # 26 x 26 x 16 mm of liver
 noise = {'Hann': float(hu[liver].std())}

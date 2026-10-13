@@ -354,9 +354,9 @@ dip_prior.line_search_fn = 'strong_wolfe'
 
 from pytomography.callbacks import Callback
 # grey and white matter on the grid
-brain = io.load_mask(path / 'gate_brain_matter.seg.nrrd')
-grey = brain.on(object_meta, label='grey matter', threshold=0.5)
-white = brain.on(object_meta, label='white matter', threshold=0.5)
+brain = io.load_mask(path / 'gate_braininwater_rois.seg.nrrd')
+grey = brain.on(object_meta, label='grey_matter', threshold=0.5)
+white = brain.on(object_meta, label='white_matter', threshold=0.5)
 
 def contrast_noise(image):
     """Mean grey matter over mean white matter (contrast), and the standard deviation over the mean in white matter (noise)."""

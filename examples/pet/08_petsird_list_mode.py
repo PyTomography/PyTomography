@@ -101,9 +101,9 @@ seconds_without = time.time() - t0
 print(f"OSEM without scatter correction: {seconds_without:.1f} s")
 
 # The phantom and its largest sphere, through whose centre the figures look
-regions = io.load_mask(folder / 'nema_iq_regions.seg.nrrd')
+regions = io.load_mask(folder / 'petsird_mmr_nema_rois.seg.nrrd')
 body = regions.on(object_meta, label='phantom', threshold=0.5).cpu().numpy()
-sphere = regions.on(object_meta, label='sphere 37 mm', threshold=0.5).cpu().numpy()
+sphere = regions.on(object_meta, label='sphere_37mm', threshold=0.5).cpu().numpy()
 i, j, k = np.argwhere(sphere).mean(axis=0).round().astype(int)
 dx, dy, dz = object_meta.dr
 # The phantom's extent with a margin, for the figures
@@ -139,8 +139,8 @@ print(f"OSEM with scatter correction: {seconds_with:.1f} s")
 # from its ends (where the image's edges are blurred); and the same in rings 10 mm wide around the phantom's axis, ring
 # n from 10 n to 10 (n + 1) mm, here by the middle of each ring
 background = regions.on(object_meta, label='background', threshold=0.5).cpu().numpy()
-rings = {10 * int(name.split()[1]) + 5: regions.on(object_meta, label=name, threshold=0.5).cpu().numpy()
-         for name in regions.labels if name.startswith('ring ')}
+rings = {10 * int(name.removeprefix('ring_')) + 5: regions.on(object_meta, label=name, threshold=0.5).cpu().numpy()
+         for name in regions.labels if name.startswith('ring_')}
 
 
 def radial_profile(img):
