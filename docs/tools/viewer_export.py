@@ -38,6 +38,7 @@ import hashlib
 import io
 import json
 import math
+import shutil
 import sys
 import time
 import traceback
@@ -186,6 +187,8 @@ def _thumbnail(layers, path: Path, height_px: int = 320) -> None:
     from matplotlib.backends.backend_agg import FigureCanvasAgg
     from matplotlib.figure import Figure
 
+    import pytomography.utils  # noqa: F401  registers PyTomography's colormaps ('pet') with matplotlib
+
     base = next((L for L in layers if L["role"] == "base"), None)
     over = next((L for L in layers if L["role"] == "overlay"), None)
     frame = base or over
@@ -323,12 +326,42 @@ def rebuild(name: str, out_dir, spec: dict) -> dict:
     return _write(name, out_dir, spec, _cache_read(cache_dir(out_dir, name), spec), time.time())
 
 
+def _replace(new: Path, old: Path) -> None:
+    """Put the finished export ``new`` in the place of ``old``; the old export is removed only now."""
+    if not old.exists():
+        new.rename(old)
+        return
+    trash = old.with_name(f".{old.name}.old")
+    if trash.exists():
+        shutil.rmtree(trash)
+    old.rename(trash)
+    try:
+        new.rename(old)
+    except OSError:
+        trash.rename(old)                               # the old export back, as it was
+        raise
+    shutil.rmtree(trash, ignore_errors=True)
+
+
 def _write(name: str, out_dir, spec: dict, raw: list, t0: float) -> dict:
-    """The viewer files from evaluated images: [(layer spec, array, affine, space from the expression or None)]."""
-    out = Path(out_dir) / name
-    out.mkdir(parents=True, exist_ok=True)
-    for old in list(out.glob("*.nii.gz")) + [out / "manifest.json", out / "thumb.png"]:
-        old.unlink(missing_ok=True)
+    """The viewer files from evaluated images: [(layer spec, array, affine, space from the expression or None)]. They
+    are written into a folder of their own, which replaces out_dir/<name>/ only once every file is written, so an
+    export that fails leaves the old one as it was."""
+    final = Path(out_dir) / name
+    out = Path(out_dir) / f".{name}.partial"
+    if out.exists():
+        shutil.rmtree(out)
+    out.mkdir(parents=True)
+    try:
+        result = _write_files(name, out, spec, raw, t0)
+        _replace(out, final)
+    except BaseException:
+        shutil.rmtree(out, ignore_errors=True)
+        raise
+    return dict(result, folder=str(final))
+
+
+def _write_files(name: str, out: Path, spec: dict, raw: list, t0: float) -> dict:
     layers = []
     for ls, arr, A, space in raw:
         kind = ls["kind"]
@@ -462,7 +495,7 @@ def _write(name: str, out_dir, spec: dict, raw: list, t0: float) -> dict:
                 "pytomography": getattr(pytomography, "__version__", "?"), "start_mm": start, "layers": man_layers,
                 "thumb": "thumb.png", "bytes": sum(e["bytes"] for e in man_layers)}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1), encoding="utf8")
-    return {"status": "exported", "folder": str(out), "layers": [e["name"] for e in man_layers],
+    return {"status": "exported", "layers": [e["name"] for e in man_layers],
             "bytes": manifest["bytes"], "seconds": round(time.time() - t0, 1)}
 
 
