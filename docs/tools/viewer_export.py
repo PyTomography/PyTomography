@@ -461,7 +461,9 @@ def _write_files(name: str, out: Path, spec: dict, raw: list, t0: float) -> dict
         else:
             rng = [mn, mx]
         L["range"] = rng
-        L["colormap"] = ls.get("colormap", "inferno" if L["role"] == "overlay" else "gray")
+        # SPECT and PET in PyTomography's PET colour scale (Luke, 13 Oct 2026), other overlays inferno, anatomy gray
+        default = ("pet" if L["kind"] in ("spect", "pet") else "inferno") if L["role"] == "overlay" else "gray"
+        L["colormap"] = ls.get("colormap", default)
         entry = {"name": ls["name"], "label": ls.get("label", ls["name"]), "kind": L["kind"], "role": L["role"],
                  "file": L["file"], "units": ls.get("units", ""), "colormap": L["colormap"], "range": [round(v, 6) for v in rng],
                  "shape": list(arr.shape), "voxel_mm": [round(float(L["A"][j, j]), 4) for j in range(3)],
