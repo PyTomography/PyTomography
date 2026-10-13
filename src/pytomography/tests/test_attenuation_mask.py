@@ -1,6 +1,6 @@
 """``io.attenuation_map`` (one HU to mu module, mu map files in any units, the water check) and ``io.load_mask``
-(RTSTRUCT, NIfTI label images), on files written here (CPU), and the regions the SPECT tutorials measure (files
-shipped in pytomography/datasets/files)."""
+(RTSTRUCT, NIfTI label images), on files written here (CPU), and the regions the SPECT tutorials measure (hosted
+with the SPECT data: data tests)."""
 from __future__ import annotations
 
 import warnings
@@ -239,17 +239,20 @@ def test_masks_and_mu_from_one_ct_agree(data_dir):
     assert float(mu[lung].mean()) < 0.008 and float(mu[liver].mean()) > 0.012, (float(mu[lung].mean()), float(mu[liver].mean()))
 
 
-# ---------- the regions the SPECT tutorials measure (src/pytomography/datasets/files) ----------
+# ---------- the regions the SPECT tutorials measure (hosted with the SPECT data) ----------
 
-def _packaged(name):
-    from pytomography.datasets import _parts
-    return io.load_mask(_parts.FILES / name)
+def _rois(data_dir, dataset, name):
+    path = data_dir / "SPECT" / dataset / name
+    if not path.exists():
+        pytest.skip(f"SPECT/{dataset}/{name} is not in the tutorial data folder")
+    return io.load_mask(path)
 
 
-def test_packaged_nema_regions():
+@pytest.mark.data
+def test_nema_regions(data_dir):
     """lu177_nema_symt2_rois.seg.nrrd: named labels in the CT's frame; each sphere a ball of its inside diameter, which
     .on() covers by its volume on a coarse grid too; the background at least 20 mm from every sphere."""
-    rois = _packaged("lu177_nema_symt2_rois.seg.nrrd")
+    rois = _rois(data_dir, "Lu177-NEMA-SymT2", "lu177_nema_symt2_rois.seg.nrrd")
     diameters = [37, 28, 22, 17, 13, 10]
     assert list(rois.labels) == [f"sphere_{d}mm" for d in diameters] + ["lung_insert", "background"]
     assert rois.frame == "patient" and np.allclose(rois.voxel_size, 0.8)
@@ -269,11 +272,12 @@ def test_packaged_nema_regions():
     assert 5000 < (rois.data == rois.labels["background"]).sum() * voxel_mL < 8000
 
 
-def test_packaged_jaszak_regions():
+@pytest.mark.data
+def test_jaszak_regions(data_dir):
     """jaszak_rois.seg.nrrd: the spheres of jaszak_spheres.npz voxel for voxel, on SIMIND's 1.2 mm grid centred on the
     rotation axis (frame 'scanner'), and a background that touches none of them."""
     from pytomography.datasets import _parts
-    rois = _packaged("jaszak_rois.seg.nrrd")
+    rois = _rois(data_dir, "SIMIND-Jaszak", "jaszak_rois.seg.nrrd")
     assert list(rois.labels) == [f"sphere_{k}" for k in range(1, 7)] + ["background"]
     assert rois.frame == "scanner" and np.allclose(rois.voxel_size, 1.2)
     fine = np.load(_parts.FILES / "jaszak_spheres.npz")["labels"]

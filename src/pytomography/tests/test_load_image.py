@@ -576,29 +576,42 @@ def test_interfile_and_nrrd_tutorial_files(data_dir):
     assert xcat.units == '1/cm' and xcat.voxel_size == (3.0, 3.0, 3.0)
 
 
-def test_tutorial_region_files():
-    """The region files that come with PyTomography for the PET and CT tutorials (docs/tools/make_tutorial_regions.py)
-    read with their segments by name and their frames; the segments in layers (they overlap) come back whole."""
-    from pytomography.datasets._parts import FILES
-    from pytomography.io import load_mask
+def _segment(mask, name):
+    return np.isin(mask.data, np.atleast_1d(mask.labels[name]))
 
-    def segment(mask, name):
-        return np.isin(mask.data, np.atleast_1d(mask.labels[name]))
-    brain = load_mask(FILES / 'gate_braininwater_rois.seg.nrrd')
+
+# The regions the PET and CT tutorials measure (docs/tools/make_tutorial_regions.py), hosted with their data: each reads
+# with its segments by name and its frame, and the segments in layers (they overlap) come back whole
+
+@pytest.mark.data
+def test_gate_brain_regions(data_dir):
+    from pytomography.io import load_mask
+    brain = load_mask(_data(data_dir, 'PET', 'GATE-mMR-BrainInWater', 'gate_braininwater_rois.seg.nrrd'))
     assert set(brain.labels) == {'grey_matter', 'white_matter'} and brain.frame == 'patient'
-    assert np.allclose(brain.voxel_size, 1.25) and not (segment(brain, 'grey_matter') & segment(brain, 'white_matter')).any()
-    nema = load_mask(FILES / 'petsird_mmr_nema_rois.seg.nrrd')
+    assert np.allclose(brain.voxel_size, 1.25)
+    assert not (_segment(brain, 'grey_matter') & _segment(brain, 'white_matter')).any()
+
+
+@pytest.mark.data
+def test_petsird_nema_regions(data_dir):
+    from pytomography.io import load_mask
+    nema = load_mask(_data(data_dir, 'PET', 'PETSIRD-mMR-NEMA', 'petsird_mmr_nema_rois.seg.nrrd'))
     spheres = [f'sphere_{d}mm' for d in (37, 28, 22, 17, 13, 10)]
     assert nema.frame == 'scanner' and {'phantom', 'background', 'ring_0', *spheres} <= set(nema.labels)
-    phantom, background = segment(nema, 'phantom'), segment(nema, 'background')
+    phantom, background = _segment(nema, 'phantom'), _segment(nema, 'background')
     for name in nema.labels:
-        assert (segment(nema, name) <= phantom).all(), name                     # all inside the phantom
-    rings = [segment(nema, name) for name in nema.labels if name.startswith('ring_')]
+        assert (_segment(nema, name) <= phantom).all(), name                     # all inside the phantom
+    rings = [_segment(nema, name) for name in nema.labels if name.startswith('ring_')]
     assert (np.sum(rings, axis=0) <= 1).all() and (np.any(rings, axis=0) <= background).all()
-    assert not any((segment(nema, name) & background).any() for name in spheres)
-    ct = load_mask(FILES / 'ldct_c145_rois.seg.nrrd')
+    assert not any((_segment(nema, name) & background).any() for name in spheres)
+
+
+@pytest.mark.data
+def test_ldct_c145_regions(data_dir):
+    from pytomography.io import load_mask
+    ct = load_mask(_data(data_dir, 'CT', 'ldct-c145', 'ldct_c145_rois.seg.nrrd'))
     assert set(ct.labels) == {'body', 'soft_tissue', 'liver'} and ct.frame == 'patient'
-    assert segment(ct, 'liver').sum() == 40 * 40 * 16 and (segment(ct, 'liver') <= segment(ct, 'body')).all()
+    assert _segment(ct, 'liver').sum() == 40 * 40 * 16 and (_segment(ct, 'liver') <= _segment(ct, 'body')).all()
 
 
 def test_vendor_table():

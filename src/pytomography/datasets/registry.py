@@ -32,6 +32,11 @@ A part is one of these kinds::
                its files.
 
 Sizes are in bytes. ``url`` may be replaced by ``urls``, a list of mirrors of the same file tried in order.
+
+A part of a record that is not published yet has ``"status": "pending"`` and ``record`` (which record it will be in)
+instead of an address: a file part with ``to``, pinned by size and sha256. fetch() downloads nothing for it, and the
+tutorials read the copy in the dataset's folder; it gets its ``url`` once the record is out. The regions the tutorials
+measure (``*_rois.seg.nrrd``) are such parts, or files of a pending dataset, until their records are published.
 """
 
 # The 2025 PyTomography SPECT tutorial record holds one SPECT.zip. Each SPECT dataset is a contiguous block of it, so
@@ -48,6 +53,10 @@ _SPECT_2025_DATASET = {
     "licence": "CC BY 4.0",
     "cite": "Polson L. PyTomography SPECT Tutorial data. Zenodo (2025). doi:10.5281/zenodo.15314460",
 }
+# Records that are not published yet, which pending parts name: the new version of the 2025 SPECT record, with one
+# zip per dataset, and PyTomography's copy of the TCIA case C145 (IDC stays its fallback)
+_SPECT_V2 = "PyTomography SPECT tutorial data, version 2 (Zenodo; the new version of record 15314460)"
+_CT_C145 = "PyTomography's copy of LDCT-and-Projection-data case C145 (Zenodo)"
 # The fitted Ac-225 PSF model that replaced the pickled operator in the 2025 record
 _AC225_PSF_MODEL = {"kind": "package", "file": "ac225_psf_model.json", "size": 10092,
                     "sha256": "edb5e15edf5b648d948c7d87ed876fdcfef4bea976649eaa000f337db015a168"}
@@ -126,7 +135,7 @@ DATASETS = {
              "sha256": "2c0b2891d92f570e436e1c14ba602bd8029201c5b9a048254513717267c2edc0"},
             # The regions that the accuracy tutorial measures (the six spheres and the background), made by
             # docs/tools/make_roi_masks.py
-            {"kind": "package", "file": "jaszak_rois.seg.nrrd", "size": 51595,
+            {"kind": "file", "status": "pending", "record": _SPECT_V2, "to": "jaszak_rois.seg.nrrd", "size": 51595,
              "sha256": "909f1e31ab1bd99af9809ac2e067a008cd821ffbab37762c2c80928df18f0df9"},
         ],
     },
@@ -141,8 +150,8 @@ DATASETS = {
              "unpacked": 71623548},
             # The regions that the tutorials measure (the six spheres, the lung insert and the background), made by
             # docs/tools/make_roi_masks.py
-            {"kind": "package", "file": "lu177_nema_symt2_rois.seg.nrrd", "size": 246468,
-             "sha256": "be3d1878f5693999cc054d69a508df7f8feeb986d985f20c036173a13bbb4b46"},
+            {"kind": "file", "status": "pending", "record": _SPECT_V2, "to": "lu177_nema_symt2_rois.seg.nrrd",
+             "size": 246468, "sha256": "be3d1878f5693999cc054d69a508df7f8feeb986d985f20c036173a13bbb4b46"},
         ],
     },
     "SPECT/Ac225-NEMA-SymT2": {
@@ -238,15 +247,14 @@ DATASETS = {
         "status": "pending",
         "note": "The GATE simulation (54 runs of 10 s: 116.9 million coincidences and 14.4 million delays), its"
                 " water-cube attenuation map and the scanner's normalisation weights are being published on Zenodo;"
-                " they can be downloaded once that record is out. The MRI that the Deep Image Prior tutorial uses comes"
-                " from Belzunce's record.",
-        "parts": [
+                " they can be downloaded once that record is out, with the grey and white matter that the Deep Image"
+                " Prior tutorial measures. The MRI that tutorial uses comes from Belzunce's record.",
+        "parts": [],
+        "files": {
             # Grey and white matter of the brain phantom, from its MR's intensity classes on the Deep Image Prior
             # tutorial's grid (docs/tools/make_tutorial_regions.py, 13 Oct 2026)
-            {"kind": "package", "file": "gate_braininwater_rois.seg.nrrd", "size": 12844,
-             "sha256": "c702e33efaad4160f08f7bf30ff291394f15a04b9f2f416ecf9a876864fa08ab"},
-        ],
-        "files": {
+            "gate_braininwater_rois.seg.nrrd":
+                [12844, "c702e33efaad4160f08f7bf30ff291394f15a04b9f2f416ecf9a876864fa08ab"],
             **{f"simple_phantom/mMR_voxBrain_withSimplePhantom_{i}.root": run
                for i, run in enumerate(_GATE_BRAININWATER_RUNS, start=1)},
             # The water-cube attenuation map: 344 x 344 x 127 float32 voxels of 1.67475 x 1.67475 x 2.0315 mm in the .v
@@ -307,14 +315,16 @@ DATASETS = {
         "status": "pending",
         "note": "The scan in PETSIRD 0.9.1 (4.2 GB: 196.6 million prompts and 20.7 million delayed coincidences over"
                 " 60 minutes, with the scanner's normalisation) is being published on Zenodo; it can be downloaded once"
-                " that record is out. Its attenuation map, 20170809_NEMA_MUMAP_UCL.v with its .hdr, is in the source"
-                " record's NEMA_IQ.zip (Zenodo 1304454).",
-        "parts": [
+                " that record is out, with the regions of the phantom that the tutorial measures. Its attenuation"
+                " map, 20170809_NEMA_MUMAP_UCL.v with its .hdr, is in the source record's NEMA_IQ.zip (Zenodo"
+                " 1304454).",
+        "parts": [],
+        "files": {
             # The phantom, its six spheres and its background (also in 10 mm rings round its axis), found from its
             # attenuation map and the tutorial's reconstruction (docs/tools/make_tutorial_regions.py, 13 Oct 2026)
-            {"kind": "package", "file": "petsird_mmr_nema_rois.seg.nrrd", "size": 110965,
-             "sha256": "cd85b63d55651b6ecb6142c211e8fd31616224da85ef88bd566033e672860612"},
-        ],
+            "petsird_mmr_nema_rois.seg.nrrd":
+                [110965, "cd85b63d55651b6ecb6142c211e8fd31616224da85ef88bd566033e672860612"],
+        },
     },
     "CT/ldct-c145": {
         "title": "Chest CT (case C145) from a GE LightSpeed VCT, with the full-dose projections in DICOM-CT-PD format"
@@ -337,7 +347,7 @@ DATASETS = {
              "sha256": "be874455af32354452d41db9eb421ab530fb5b6f1cd910446e1ba757602245c4"},
             # The body, soft tissue and a block of liver, found from the scanner's images on the CT tutorials' grid
             # (docs/tools/make_tutorial_regions.py, 13 Oct 2026)
-            {"kind": "package", "file": "ldct_c145_rois.seg.nrrd", "size": 1385511,
+            {"kind": "file", "status": "pending", "record": _CT_C145, "to": "ldct_c145_rois.seg.nrrd", "size": 1385511,
              "sha256": "fc0553f07b976a5bba4b24d05518422c0aa743e3b2d4197a16353aaf8e68e60d"},
         ],
     },

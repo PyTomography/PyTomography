@@ -31,7 +31,7 @@ from typing import Dict, List, Optional, Sequence, Union
 
 from . import registry
 from ._download import ChecksumError, DownloadError, download, size_text
-from ._parts import ADOPT, INSTALL, PIECES, Context, describe, disk_size, download_size, host
+from ._parts import ADOPT, INSTALL, PIECES, Context, describe, disk_size, download_size, host, pending, target
 from ._store import DOWNLOADS, MARKER, Marker, lock, part_id, problems, user_files
 from ._zip import Missing
 
@@ -82,6 +82,10 @@ def _selected_parts(name: str, entry: dict, extras: Union[str, Sequence[str]]) -
     return list(entry["parts"]) + [p for x in extras for p in known[x]["parts"]]
 
 
+def _all_parts(entry: dict) -> List[dict]:
+    return list(entry["parts"]) + [p for x in entry.get("extras", {}).values() for p in x["parts"]]
+
+
 def _known_ids(entry: dict) -> set:
     return {part_id(p) for p in entry["parts"]} | {part_id(p) for x in entry.get("extras", {}).values()
                                                    for p in x["parts"]}
@@ -92,7 +96,8 @@ def _state(name: str, entry: dict, root: Path) -> str:
         return "not published yet"
     folder = root.joinpath(*name.split("/"))
     marker = Marker(folder, name)
-    if entry["parts"] and all(part_id(p) in marker.parts for p in entry["parts"]):
+    parts = [p for p in entry["parts"] if not pending(p)]    # a part whose record is not out cannot be downloaded
+    if parts and all(part_id(p) in marker.parts for p in parts):
         return "downloaded"
     if marker.parts:
         return "partly downloaded"
@@ -126,7 +131,9 @@ def fetch(name: str, *, extras: Union[str, Sequence[str]] = (), data_dir: Option
     Raises:
         DatasetNotAvailable: the dataset cannot be downloaded yet, and its folder is empty. (If it already holds
             files, they are used as they are, without checks, and the dataset's files that come with PyTomography,
-            such as masks, are copied in.)
+            such as masks, are copied in.) A part of a dataset whose record is not published yet (a pending part,
+            such as a tutorial's regions) is not downloaded either: a copy in the folder is used, and fetch() says
+            when there is none.
         DownloadError: a server could not be reached after several retries. Run fetch() again to continue.
         ChecksumError: downloaded data does not match the registry.
     """
@@ -145,6 +152,12 @@ def fetch(name: str, *, extras: Union[str, Sequence[str]] = (), data_dir: Option
         return folder
     parts = _selected_parts(name, entry, extras)
     ctx = Context(name, folder, workers, progress)
+    waiting = [p for p in parts if pending(p)]
+    parts = [p for p in parts if not pending(p)]
+    for part in waiting:
+        if not folder.joinpath(*target(part).split("/")).is_file():
+            ctx.say(f"{name}: {target(part)} cannot be downloaded yet: it will be in {part['record']}, which is not"
+                    " published yet. The tutorials that read it need a copy in the dataset's folder.")
 
     def broken(marker: Marker) -> Dict[str, Optional[List[str]]]:
         """Parts that are not in place: None if never fetched, else what is wrong with their files."""
@@ -193,6 +206,7 @@ def fetch(name: str, *, extras: Union[str, Sequence[str]] = (), data_dir: Option
         stale = [pid for pid in marker.parts if pid not in known]
         if stale:  # parts of an older registry entry: remove the files that the current parts did not rewrite
             keep = {rel for pid, record in marker.parts.items() if pid in known for rel in record["files"]}
+            keep |= {target(p) for p in _all_parts(entry) if pending(p)}   # the copies of parts not published yet
             for pid in stale:
                 for rel in marker.parts[pid]["files"]:
                     if rel not in keep:
@@ -305,7 +319,8 @@ def verify(*names: str, level: str = "size", data_dir: Optional[PathLike] = None
             if pid not in known:
                 found.append("downloaded from an older version of the registry; fetch() updates it")
             found += problems(folder, record["files"], level == "hash")
-        found += [f"not downloaded: {describe(p)}" for p in entry["parts"] if part_id(p) not in marker.parts]
+        found += [f"not downloaded: {describe(p)}" for p in entry["parts"]
+                  if part_id(p) not in marker.parts and not pending(p)]
         out[name] = found
     return out
 
