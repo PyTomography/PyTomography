@@ -18,9 +18,10 @@ class DIPRecon:
     r"""Deep image prior reconstruction, as in https://ieeexplore.ieee.org/document/8581448.
 
     The reconstruction alternates EM updates of the image :math:`x` with fitting a neural network
-    :math:`f(z;\theta)` to it, joined by a penalty :math:`\rho` and a dual variable (Algorithm 1 of the paper). The ``prior_network`` is defined by the user and must
-    have two methods: ``fit(object)``, which fits the network to an object (for SubIt2 iterations, in the paper's
-    terms), and ``predict()``, which returns the network's current prediction :math:`f(z;\theta)`, [Lx, Ly, Lz]. See
+    :math:`f(z;\theta)` to it, joined by a penalty :math:`\rho` and a dual variable (Algorithm 1 of the paper). The
+    ``prior_network`` is defined by the user and must have two methods: ``fit(object)``, which fits the network to an
+    object (for SubIt2 iterations, in the paper's terms), and ``predict()``, which returns the network's current
+    prediction :math:`f(z;\theta)`, [Lx, Ly, Lz]. See
     the Deep Image Prior tutorial.
 
     Args:

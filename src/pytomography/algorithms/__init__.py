@@ -1,7 +1,7 @@
 """Reconstruction algorithms.
 
-Statistical algorithms take a likelihood (:mod:`pytomography.likelihoods`), and some a prior (:mod:`pytomography.priors`);
-calling one with the number of iterations and subsets reconstructs:
+Statistical algorithms take a likelihood (:mod:`pytomography.likelihoods`), and some a prior
+(:mod:`pytomography.priors`); calling one with the number of iterations and subsets reconstructs:
 
 * :class:`OSEM` and :class:`MLEM`: ordered subset expectation maximisation;
 * :class:`OSMAPOSL`, :class:`BSREM`, :class:`RBIMAP`: maximum a posteriori, with a prior;
