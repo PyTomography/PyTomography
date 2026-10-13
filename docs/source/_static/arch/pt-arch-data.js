@@ -23,7 +23,7 @@ window.PT_ARCH = {
     { after: "alg", label: "returns" },
   ],
   core: {
-    label: "The same for every modality",
+    label: "Statistical iterative, for every modality",
     boundary: "H.forward(f) &nbsp;·&nbsp; H.backward(g)",
   },
   walkLabel: "Walk through one reconstruction",
@@ -198,7 +198,7 @@ window.PT_ARCH = {
     alg: {
       k: "pytomography.algorithms · priors · callbacks",
       title: "Algorithm",
-      items: ["OSEM, BSREM, KEM, OSMAPOSL", "SART, FBP, DIPRecon", "priors and callbacks"],
+      items: ["OSEM, BSREM, KEM, OSMAPOSL", "SART, DIPRecon", "priors and callbacks"],
       detail: {
         summary: "The update rule. Iterative algorithms ask the likelihood for a gradient and step: f ← f + C(f)·(∇L − ∇V). They never see the data or the scanner, so every algorithm works for every modality.",
         knows: ["the update rule and preconditioner", "subsets and iterations", "priors and callbacks"],
@@ -331,33 +331,5 @@ window.PT_ARCH = {
         { card: "out", title: "Reconstruction", lines: [[14, 16]], text: "Converted to HU and saved as a CT series in the patient's frame; the modality and place come from <code>object_meta</code>." },
       ],
     },
-  },
-
-  // ---------------- second figure: who talks to whom ----------------
-  calls: {
-    w: 980, h: 330,
-    aria: "The algorithm calls the likelihood's compute_gradient; the likelihood calls the system matrix's forward and backward; the system matrix composes transforms and a projector. Priors attach to the algorithm, and the data to the likelihood.",
-    caption: "Each part talks to the next through a few methods. Pick a change to see which parts you write and which stay as they are.",
-    nodes: [
-      { id: "alg", x: 20, y: 30, w: 210, h: 96, title: "Algorithm", sub: ["OSEM, BSREM, KEM, SART", "the update rule"] },
-      { id: "lik", x: 400, y: 30, w: 220, h: 96, title: "Likelihood", sub: ["Poisson, least squares", "the noise model"] },
-      { id: "sm", x: 760, y: 30, w: 200, h: 96, title: "System matrix H", sub: ["one scanner's", "geometry and physics"] },
-      { id: "prior", x: 20, y: 214, w: 210, h: 96, title: "Prior (optional)", sub: ["relative difference,", "quadratic, a network"] },
-      { id: "data", x: 400, y: 214, w: 220, h: 96, title: "Data", sub: ["projections g", "additive term s"] },
-      { id: "parts", x: 760, y: 214, w: 200, h: 96, title: "Transforms", sub: ["attenuation, PSF,", "+ the projector"] },
-    ],
-    edges: [
-      { from: "alg", to: "lik", label: ["compute_gradient(f, m)"] },
-      { from: "lik", to: "sm", label: ["forward(f)", "backward(g)"] },
-      { from: "alg", to: "prior", label: ["prior(1) → ∇V"] },
-      { from: "lik", to: "data", label: ["holds"] },
-      { from: "sm", to: "parts", label: ["composes"] },
-    ],
-    swaps: [
-      { id: "scanner", name: "A new scanner", swap: ["sm", "parts"], note: "A new scanner or modality is a new system matrix, with its transforms. The likelihood and every algorithm work with it unchanged; <a href=\"notebooks/t_examplesystemmatrix.html\">this tutorial</a> writes one from scratch." },
-      { id: "algorithm", name: "A new algorithm", swap: ["alg"], note: "OSEM to BSREM is one line. The system matrix and the likelihood stay exactly as they are." },
-      { id: "prior", name: "Add a prior", swap: ["prior", "alg"], note: "Priors plug into the algorithm, not the likelihood: <code>BSREM(likelihood, prior=RelativeDifferencePrior(beta=25, gamma=2))</code>." },
-      { id: "noise", name: "A new noise model", swap: ["lik"], note: "Poisson for counts, least squares when the noise is closer to Gaussian. Same system matrix, same algorithms." },
-    ],
   },
 };
