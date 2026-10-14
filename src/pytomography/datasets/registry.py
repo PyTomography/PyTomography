@@ -158,7 +158,7 @@ DATASETS = {
     "SPECT/Ac225-NEMA-SymT2": {
         "title": "Ac-225 NEMA IQ phantom on a Siemens Symbia T2, with CT",
         **_SPECT_2025_DATASET,
-        "tutorials": ["t_ac225_dicom_recon"],
+        "tutorials": ["t_ac225_dicom_recon", "t_arf_psf"],
         "parts": [
             {"kind": "zip_range", **_SPECT_2025, "prefix": "SPECT/Ac225-NEMA-SymT2/", "exclude": ["*.pkl"],
              "ranges": [[1404147018, 1430015063, "8eeea5d69419f9fb1d6fbe27009b860deb87f36ee27010c68de023e08cbe1c95"]],
