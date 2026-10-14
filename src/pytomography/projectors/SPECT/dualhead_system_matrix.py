@@ -35,14 +35,12 @@ def _transform_memory(transform, object_shape: Sequence[int], n_views: int) -> t
       cache, the product only.
     * PSF with Gaussian layers: their kernels (one per radius); a call takes three objects (measured: the copy a
       convolution is given, its output and the next's).
-    * PSF from an operator (:class:`~pytomography.transforms.SPECT.psf.PSF2D`): its grids, and the kernel spectrum of
-      every radius if it caches them (``cache_kernel``); a call takes eight arrays of the zero padded object (signal, its
-      spectrum, the kernel's, their product and the result, rounded up for the first call, which also runs the
-      operator's own convolution to check the fast one). Not measured.
+    * A transform with a ``memory(object_shape)`` method (e.g.
+      :class:`~pytomography.transforms.SPECT.SPECTKernelPSFTransform`): what it reports.
     * Any other transform: the tensors it keeps, and two objects per call.
     """
     from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
-    from pytomography.transforms.SPECT.psf import Seperable1DBlurNet, PSF2D
+    from pytomography.transforms.SPECT.psf import Seperable1DBlurNet
     obj = 4 * math.prod(object_shape)
     on_gpu = torch.device(pytomography.device).type == 'cuda'
     if isinstance(transform, SPECTAttenuationTransform):
@@ -61,20 +59,11 @@ def _transform_memory(transform, object_shape: Sequence[int], n_views: int) -> t
                         r, g = nbytes(conv.weight)
                         ram, gpu = ram + r, gpu + g
                 temporaries = max(temporaries, 3 * obj)
-            elif isinstance(layer, PSF2D):
-                r, g = tensor_bytes(layer)
-                k = int(layer.kernel_size)
-                height = object_shape[1] + k - 1
-                width = object_shape[2] + k - 1
-                width += width % 2
-                if layer.cache_kernel and getattr(layer, '_kernel_spectrum', None) is None:   # cached at the first call
-                    spectrum = 8.0 * object_shape[0] * height * (width // 2 + 1)
-                    r, g = (r, g + spectrum) if on_gpu else (r + spectrum, g)
-                ram, gpu = ram + r, gpu + g
-                temporaries = max(temporaries, 8 * 4.0 * object_shape[0] * height * width)
             else:
                 temporaries = max(temporaries, 4 * obj)
         return ram, gpu, temporaries
+    if callable(getattr(transform, 'memory', None)):
+        return transform.memory(object_shape)
     ram, gpu = tensor_bytes(transform)
     return ram, gpu, 2 * obj
 
