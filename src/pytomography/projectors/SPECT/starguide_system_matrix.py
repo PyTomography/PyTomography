@@ -1,15 +1,16 @@
 from __future__ import annotations
+import inspect
 import math
 import torch
 import torch.nn.functional as F
 import pytomography
 from pytomography.utils import rotate_detector_z
 from pytomography.utils.memory import MemoryPart, PLAN_MAX_SUBSETS
+from pytomography.utils.spatial import affine_grid_pixels
 from pytomography.projectors.system_matrix import SystemMatrix, on_device
 from pytomography.transforms.SPECT import SPECTPSFTransform
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.SPECT import StarGuideProjMeta
-from kornia.geometry.transform import Translate
 
 DETECTOR_WIDTH = 16   # transaxial pixels of a StarGuide detector head
 
@@ -20,7 +21,7 @@ class StarGuideSystemMatrix(SystemMatrix):
 
     Args:
         obj2obj_transforms (Sequence[Transform]): Sequence of object mappings that occur before forward projection.
-        proj2proj_transforms (Sequence[Transform]): Sequence of proj mappings that occur after forward projection.
+        proj2proj_transforms (Sequence[Transform]): Sequence of proj mappings that occur after forward projection, applied to the projections of a subset (counts, ``[views, 16, Lz]``, not padded: transforms that take a ``padded`` argument are given ``padded=False``); back projection applies their ``backward`` in reverse order first.
         object_meta (SPECTObjectMeta): SPECT Object metadata.
         proj_meta (StarGuideProjMeta): Projection metadata pertaining to the StarGuide system.
         object_initial_based_on_camera_path (bool): Whether or not to initialize the object estimate based on the camera path; this sets voxels to zero that are outside the SPECT camera path. Defaults to False.
@@ -38,6 +39,13 @@ class StarGuideSystemMatrix(SystemMatrix):
         self._groups_cache = {}
 
     # ------------------------------------------------------------------ helpers
+    def _projection_transforms(self, proj: torch.Tensor, backward: bool = False) -> torch.Tensor:
+        """``proj`` through the projection to projection transforms: their ``forward`` in order, or (``backward``) their ``backward`` in reverse order. StarGuide's projections are not padded, so a transform that takes ``padded`` (``CutOffTransform``, ``AdditiveTermTransform``) is given ``padded=False``."""
+        for transform in (self.proj2proj_transforms[::-1] if backward else self.proj2proj_transforms):
+            method = transform.backward if backward else transform.forward
+            proj = method(proj, padded=False) if 'padded' in inspect.signature(method).parameters else method(proj)
+        return proj
+
     def _psf_transforms(self) -> list:
         return [t for t in self.obj2obj_transforms if type(t) == SPECTPSFTransform]
 
@@ -82,7 +90,7 @@ class StarGuideSystemMatrix(SystemMatrix):
     def _slab_geometry(self, translations: torch.Tensor) -> dict:
         """Slab of object columns each view needs, and the sampling grids between the slab and the 16 detector columns.
 
-        Detector column ``c`` of a view translated by ``s`` voxels samples the (blurred) object at column ``c - s`` (as ``kornia.geometry.transform.Translate`` does, bilinear, zero outside the object). The slab of a view therefore starts ``margin`` columns before ``floor(c_first - s)`` and is wide enough to hold the sampled columns and the PSF reach on both sides. ``cols`` are the object columns of the slab (clamped) and ``valid`` marks the ones inside the object, ``grid_fwd`` samples the detector columns from the slab and ``grid_bwd`` is its transpose (the slab columns sampled from the 16 detector columns).
+        Detector column ``c`` of a view translated by ``s`` voxels samples the (blurred) object at column ``c - s`` (as :meth:`_translate_object` does, bilinear, zero outside the object). The slab of a view therefore starts ``margin`` columns before ``floor(c_first - s)`` and is wide enough to hold the sampled columns and the PSF reach on both sides. ``cols`` are the object columns of the slab (clamped) and ``valid`` marks the ones inside the object, ``grid_fwd`` samples the detector columns from the slab and ``grid_bwd`` is its transpose (the slab columns sampled from the 16 detector columns).
 
         Args:
             translations (torch.Tensor): [B] translations of the views in voxels.
@@ -182,7 +190,7 @@ class StarGuideSystemMatrix(SystemMatrix):
             # translate: sample the detector columns from the slabs, then sum along the projection axis
             sampled = F.grid_sample(slabs.permute(0, 3, 1, 2).contiguous(), group['grid_fwd'], mode='bilinear', padding_mode='zeros', align_corners=True)   # [B, Lz, Lx, 16]
             projections[group['pos']] = sampled.sum(dim=2).permute(0, 2, 1)
-        return projections * self.frame_duration_s[idx]
+        return self._projection_transforms(projections * self.frame_duration_s[idx])
 
     @torch.no_grad()
     def backward(
@@ -204,7 +212,7 @@ class StarGuideSystemMatrix(SystemMatrix):
         Lx, Ly, Lz = self.object_meta.shape
         psf_transforms, shared_transforms = self._psf_transforms(), self._shared_transforms()
         object = torch.zeros((Lx, Ly, Lz), device=pytomography.device)
-        proj = proj * self.frame_duration_s[idx]
+        proj = self._projection_transforms(proj, backward=True) * self.frame_duration_s[idx]
         for group in groups:
             B, W = group['cols'].shape
             # every plane along the projection axis receives the view; transpose of the translation: sample the slab columns from the detector columns
@@ -321,8 +329,8 @@ class StarGuideSystemMatrix(SystemMatrix):
     def set_n_subsets(
         self,
         n_subsets: int
-    ) -> list:
-        """Sets the subsets for this system matrix given ``n_subsets`` total subsets.
+    ) -> None:
+        """Sets the subsets for this system matrix given ``n_subsets`` total subsets: ``subset_indices_array``, the indices of the projections of each subset.
 
         Args:
             n_subsets (int): number of subsets used in OSEM
@@ -352,7 +360,7 @@ class StarGuideSystemMatrix(SystemMatrix):
         return projections[...,self.subset_indices_array[subset_idx],:,:]
 
     def _translate_object(self, obj: torch.Tensor, translations: torch.Tensor):
-        """Internal function that applies translations to an object with a batch size dimension.
+        """Internal function that applies translations to an object with a batch size dimension: each object of the batch is shifted by its translation (voxels) along y, bilinear, zero outside (bit-identical to ``kornia.geometry.transform.Translate``, which it used before 4.0).
 
         Args:
             obj (torch.Tensor): Object to be translated
@@ -361,8 +369,10 @@ class StarGuideSystemMatrix(SystemMatrix):
         Returns:
             torch.Tensor: Translated object
         """
-        # Takes in object with batch dimension
-        translation = torch.zeros(len(translations), 2).to(pytomography.device)
-        translation[:,0] = translations
-        obj_translated = Translate(translation)(obj.permute((0,3,1,2))).permute((0,2,3,1))
+        # Takes in object with batch dimension: [B, Lx, Ly, Lz] as [B, Lz, H=Lx, W=Ly], shifted along W
+        B, Lx, Ly, _ = obj.shape
+        translation = torch.eye(3, device=pytomography.device)[None].repeat(B, 1, 1)
+        translation[:, 0, 2] += translations.to(pytomography.device)
+        grid = affine_grid_pixels(translation[:, :2, :], Lx, Ly)
+        obj_translated = F.grid_sample(obj.permute((0,3,1,2)), grid, mode='bilinear', padding_mode='zeros', align_corners=True).permute((0,2,3,1))
         return obj_translated

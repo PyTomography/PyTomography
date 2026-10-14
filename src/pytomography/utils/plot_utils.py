@@ -55,7 +55,11 @@ def dual_imshow(plane, im1, im2, im1_idx, affine1, affine2, imshow1_kwargs, imsh
     """Show slice ``im1_idx`` of image 1 with the matching slice of image 2 over it (e.g. a reconstruction over its
     CT), both placed by their affines (voxel index to patient coordinates, in the same length unit, e.g.
     ``object_meta.affine`` and ``Image.affine``, both mm). The slice of image 2 is the one whose centre is nearest the
-    centre of image 1's slice; image 2 is not drawn when image 1's slice is outside it."""
+    centre of image 1's slice; image 2 is not drawn when image 1's slice is outside it. Each image is placed by its
+    affine whatever its ``origin`` in the imshow keyword arguments (matplotlib's default, ``'upper'``, put the first
+    row of a slice at the top of its extent, which flipped each image within its own extent and misregistered them
+    unless ``origin='lower'`` was passed); the axes run along increasing coordinates."""
+    import matplotlib
     import matplotlib.pyplot as plt
     im1, im2 = _numpy(im1), _numpy(im2)
     axis = _AXIS[plane]
@@ -63,11 +67,19 @@ def dual_imshow(plane, im1, im2, im1_idx, affine1, affine2, imshow1_kwargs, imsh
     extent2 = get_extent(im2, affine2)
     IDX_2 = matching_slice(im1_idx, affine1, affine2, axis, im2.shape[axis])
     shown = [a for a in range(3) if a != axis]
+
+    def extent(extents, kwargs):
+        # imshow puts a slice's first row at the bottom of the extent with origin 'lower', at the top with 'upper'
+        rows = extents[shown[1]]
+        if kwargs.get('origin', matplotlib.rcParams['image.origin']) == 'upper':
+            rows = rows[::-1]
+        return [*extents[shown[0]], *rows]
+
     slice_1 = np.take(im1, im1_idx, axis=axis).T
-    plt.imshow(slice_1, **imshow1_kwargs, extent=[*extent1[shown[0]], *extent1[shown[1]]])
+    plt.imshow(slice_1, **imshow1_kwargs, extent=extent(extent1, imshow1_kwargs))
     if IDX_2 is not None:
         slice_2 = np.take(im2, IDX_2, axis=axis).T
-        plt.imshow(slice_2, **imshow2_kwargs, extent=[*extent2[shown[0]], *extent2[shown[1]]])
+        plt.imshow(slice_2, **imshow2_kwargs, extent=extent(extent2, imshow2_kwargs))
     plt.xlim(*extent1[shown[0]])
     plt.ylim(*extent1[shown[1]])
 

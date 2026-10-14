@@ -458,14 +458,11 @@ class PETLMSystemMatrix(SystemMatrix):
             norm_BP  = transform.backward(norm_BP)
         return norm_BP.cpu()
     
-    def set_n_subsets(self, n_subsets: int) -> list:
-        """Returns a list where each element consists of an array of indices corresponding to a partitioned version of the projections. 
+    def set_n_subsets(self, n_subsets: int) -> None:
+        """Partitions the projections into ``n_subsets`` subsets: sets ``subset_indices_array``, one array of the indices of the events of each subset (every ``n_subsets``-th one).
 
         Args:
             n_subsets (int): Number of subsets to partition the projections into
-
-        Returns:
-            list: List of arrays where each array corresponds to the projection indices of a particular subset.
         """
         indices = torch.arange(self.proj_meta.detector_ids.shape[0]).to(torch.long).cpu()
         subset_indices_array = []

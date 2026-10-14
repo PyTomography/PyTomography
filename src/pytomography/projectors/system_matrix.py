@@ -368,6 +368,19 @@ class SystemMatrix():
         """
         ...
 
+    def get_weighting_subset(self, subset_idx: int | None) -> float:
+        r"""The share of the projections in subset :math:`m`, which scales parameters relative to :math:`H_m^T 1` in reconstruction algorithms (a prior's :math:`\beta`, BSREM's step); 1 without subsets. The subsets ``set_n_subsets`` makes partition the projections, so this is the number of projections in the subset over the number in all of them: for StarGuide, whose subsets are groups of angles, the views of the subset's angles over all views. System matrices whose projections do not all weigh the same override it.
+
+        Args:
+            subset_idx (int | None): Subset index, or None for all the projections.
+
+        Returns:
+            float: Weighting for the subset.
+        """
+        if subset_idx is None:
+            return 1
+        return len(self.subset_indices_array[subset_idx]) / sum(len(subset) for subset in self.subset_indices_array)
+
     @staticmethod
     def _check_n_subsets(n_subsets: int, n_views: int, views: str = 'angles') -> None:
         """Stops a partition into subsets that would leave a subset empty, with the most there can be.
@@ -460,7 +473,12 @@ class ExtendedSystemMatrix(SystemMatrix):
     def set_n_subsets(
         self,
         n_subsets: int
-    ) -> list:
+    ) -> None:
+        """Sets the same subsets on every system matrix, and their ``subset_indices_array`` (that of the first) on this one.
+
+        Args:
+            n_subsets (int): Number of subsets.
+        """
         # assumes all are similar
         for system_matrix in self.system_matrices:
             system_matrix.set_n_subsets(n_subsets)

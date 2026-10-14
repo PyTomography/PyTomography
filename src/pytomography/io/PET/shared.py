@@ -547,13 +547,15 @@ def listmode_to_sinogram(
         detector_ids (torch.Tensor): Listmode detector ID data
         info (dict): PET geometry information dictionary
         weights (torch.Tensor, optional): Binning weights for each listmode event. Defaults to None.
-        normalization (bool, optional): Whether or not this is a normalization sinogram (need to do some extra steps). Defaults to False.
+        normalization (bool, optional): Whether or not this is a normalization sinogram (need to do some extra steps). A normalization sinogram has no TOF bins (the normalization of a line of response is the same in all of them): not available with ``tof_meta``. Defaults to False.
         tof_meta (PETTOFMeta, optional): PET TOF metadata. Defaults to None.
         lazy (bool | None, optional): Return a :class:`LazySinogram`, which bins the events of the angles it is asked for when it is asked for them, instead of the whole sinogram. A TOF sinogram is large (34.6 GB with 21 TOF bins for the Siemens Biograph mMR), while a reconstruction reads one subset of angles at a time. Not available with ``normalization``. Defaults to None: lazy when the whole sinogram would take more than a quarter of the memory budget (:func:`pytomography.set_memory_budget`), or more than 8 GB without a budget.
 
     Returns:
         torch.Tensor | LazySinogram: PET sinogram
     """
+    if normalization and tof_meta is not None:
+        raise ValueError("a normalization sinogram has no TOF bins (it applies to every one): bin it without tof_meta")
     if lazy is None:
         lazy = not normalization and prefer_lazy(4 * np.prod(_sinogram_shape(info)) * (1 if tof_meta is None else tof_meta.num_bins))
     if lazy:
@@ -806,9 +808,11 @@ def _convolve_last_axis(x: torch.Tensor, kernel: torch.nn.Conv1d) -> torch.Tenso
     """``x`` convolved with a 1D ``kernel`` along its last axis, a block of rows at a time into one output. The convolution
     of all rows at once took about 13 times the input in temporaries on the CPU (21 GB for the randoms sinogram of the
     Siemens Biograph mMR); the blocks hold an eighth of the memory budget (:func:`pytomography.set_memory_budget`), or
-    about 0.5 GB without one. Each row is convolved on its own, so the result does not depend on the blocks."""
+    about 0.5 GB without one. Each row is convolved on its own, so the result does not depend on the blocks. The
+    kernel is applied on the device and in the dtype of ``x``."""
+    kernel = kernel.to(device=x.device, dtype=x.dtype)
     out = torch.empty(x.shape, dtype=x.dtype, device=x.device)
-    bytes_per_row = 64 * x.shape[-1]   # 16 float32 temporaries per sample
+    bytes_per_row = 16 * x.element_size() * x.shape[-1]   # 16 temporaries per sample
     rows_per_slice = max(1, int(np.prod(x.shape[1:-1])))
     slices = max(1, block_size(bytes_per_row, default=max(1, int(5e8 // bytes_per_row))) // rows_per_slice)
     for start in range(0, x.shape[0], slices):
@@ -830,7 +834,8 @@ def smooth_randoms_sinogram(
     """Smooths a PET randoms sinogram using a Gaussian filter in the r, theta, and z direction. Rebins the sinogram into (r,theta,z1,z2) before blurring (same blurring applied to z1 and z2)
 
     Args:
-        sinogram_random (torch.Tensor): PET sinogram of randoms
+        sinogram_random (torch.Tensor): PET sinogram of randoms, on any device, in any floating point dtype (the result
+            is on the same device, in the same dtype)
         info (dict): PET geometry information dictionary
         sigma_r (float, optional): Blurring (in pixel size) in r direction. Defaults to 4.
         sigma_theta (float, optional): Blurring (in pixel size) in r direction. Defaults to 4.

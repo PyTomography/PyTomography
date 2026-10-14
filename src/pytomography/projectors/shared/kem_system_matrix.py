@@ -20,7 +20,12 @@ class KEMSystemMatrix(SystemMatrix):
         # Inherit required functions from system matrix
         self.set_n_subsets = self.system_matrix.set_n_subsets
         self.get_projection_subset = self.system_matrix.get_projection_subset
-        self.get_weighting_subset = self.system_matrix.get_projection_subset
+        self.get_weighting_subset = self.system_matrix.get_weighting_subset
+
+    @property
+    def subset_indices_array(self):
+        """The subsets of the system matrix it wraps (set by :meth:`set_n_subsets`)."""
+        return self.system_matrix.subset_indices_array
 
     @property
     def memory_allocator_fraction(self) -> float | None:

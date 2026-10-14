@@ -98,6 +98,26 @@ def test_dicom_series_any_orientation(tmp_path, A):
     _check_markers(raw, A)
 
 
+def test_dicom_series_affine_comes_from_every_file(tmp_path):
+    """#223, #231: v3's open_multifile gave the multi-file affine function a single path, which it read as a list of
+    files. v4 has no open_multifile: io.load_image reads a series (a folder, or a list or tuple of its files in any
+    order) and places it by every file's position, so the slice step is the files' spacing even where the headers'
+    SliceThickness and SpacingBetweenSlices say otherwise. One file of the series alone is that one slice."""
+    import pytomography.io
+    files = _series(tmp_path, AXIAL, SliceThickness='5.0', SpacingBetweenSlices='5.0')    # the slices are 2.5 mm apart
+    by_position = sorted(files, key=lambda f: float(pydicom.dcmread(str(f)).ImagePositionPatient[2]))
+    for source in (tmp_path / 's', str(tmp_path / 's'), [str(f) for f in files][::-1], tuple(files[3:] + files[:3])):
+        image = load_image(source)
+        assert image.shape == SHAPE and np.allclose(image.affine, AXIAL)
+        assert [str(f) for f in image.meta['files']] == [str(f) for f in by_position]
+        _check_markers(image, AXIAL)
+    one = load_image(by_position[3])
+    assert one.shape == (*SHAPE[:2], 1)
+    assert np.allclose(one.affine[:3, :2], AXIAL[:3, :2]) and np.allclose(one.affine[:3, 3], (AXIAL @ [0, 0, 3, 1])[:3])
+    assert not any(hasattr(module, name) for module in (pytomography.io, pytomography.io.shared)
+                   for name in ('open_multifile', 'open_singlefile', '_get_affine_multifile'))
+
+
 def test_dicom_series_ge_ipp_is_the_corner(tmp_path):
     """GE CT writes the corner of the first pixel; the vendor table moves it to the centre (half a pixel)."""
     A = NON_SQUARE
