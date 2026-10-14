@@ -18,13 +18,11 @@ DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_da
 OUTPUT = datasets.output_dir("SPECT/Lu177-PSMA-GEDisc")
 
 import os
-import numpy as np
-from pytomography.io.SPECT import dicom
+from pytomography import io
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.algorithms import OSEM, PGAAMultiBedSPECT
 from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.likelihoods import PoissonLogLikelihood
-from pytomography.utils import print_collimator_parameters
 import matplotlib.pyplot as plt
 import torch
 from rt_utils import RTStructBuilder
@@ -35,13 +33,14 @@ save_path = DATA / 'SPECT'
 file_NM = os.path.join(save_path, 'Lu177-PSMA-GEDisc', 'bed2_projections.dcm')
 path_CT = os.path.join(save_path, 'Lu177-PSMA-GEDisc', 'CT')
 files_CT = [os.path.join(path_CT, file) for file in os.listdir(path_CT)]
-object_meta, proj_meta = dicom.get_metadata(file_NM, index_peak=1)
-projections = dicom.get_projections(file_NM)
+projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)
 photopeak = projections[1]
-scatter, scatter_variance_estimate = dicom.get_energy_window_scatter_estimate(file_NM, index_peak=1, index_lower=3, index_upper=2, return_scatter_variance_estimate=True)
+scatter, scatter_variance_estimate = io.SPECT.energy_window_scatter(projections, proj_meta, peak=1, lower=3, upper=2,
+                                                                    return_scatter_variance_estimate=True)
 # Build system matrix
-attenuation_map = dicom.get_attenuation_map_from_CT_slices(files_CT, file_NM, index_peak=1)
-psf_meta = dicom.get_psfmeta_from_scanner_params('GI-MEGP', energy_keV=208)
+photon_keV = proj_meta.energy_windows[1].photon_keV  # the 208 keV window
+attenuation_map = io.attenuation_map(files_CT, object_meta, energy_keV=photon_keV)
+psf_meta = io.SPECT.collimator_psf('GI-MEGP', photon_keV)
 att_transform = SPECTAttenuationTransform(attenuation_map)
 psf_transform = SPECTPSFTransform(psf_meta)
 system_matrix = SPECTSystemMatrix(
@@ -56,6 +55,7 @@ recon_algorithm = OSEM(likelihood)
 
 data_storage_callback = DataStorageCallback(likelihood, torch.clone(recon_algorithm.object_prediction))
 
+print(recon_algorithm.estimate_memory(n_subsets=8))
 recon_OSEM = recon_algorithm(n_iters = 4, n_subsets = 8, callback=data_storage_callback)
 
 maximum_intensity_projection = recon_OSEM.max(axis=1)[0].cpu()
@@ -68,12 +68,7 @@ rtstruct = RTStructBuilder.create_from(
 print(rtstruct.get_roi_names())
 
 mask_name = 'kidney_left'
-kidney_mask = dicom.get_aligned_rtstruct(
-    file_RT = file_RT,
-    file_NM = file_NM,
-    dicom_series_path = path_CT,
-    rt_struct_name = mask_name
-)
+kidney_mask = io.load_mask(file_RT, reference=path_CT, rois=[mask_name]).on(object_meta, label=mask_name, threshold=0.5)
 
 uncertainty_abs, uncertainty_pct = recon_algorithm.compute_uncertainty(
     mask = kidney_mask,
@@ -91,22 +86,20 @@ files_NM = [
 path_CT = os.path.join(save_path, 'Lu177-PSMA-GEDisc', 'CT')
 files_CT = [os.path.join(path_CT, file) for file in os.listdir(path_CT)]
 
-projectionss = dicom.load_multibed_projections(files_NM)
+beds = io.SPECT.read_dicom_beds(files_NM)  # (projections, object_meta, proj_meta) of each bed, the inferior bed first
 
 
-def initialize_reconstruction_algorithm_singlebed(i):
+def initialize_reconstruction_algorithm_singlebed(projections, object_meta, proj_meta):
     # Change these depending on your file:
     index_peak = 1
     index_lower = 3
     index_upper = 2
-    projections = projectionss[i]
-    file_NM = files_NM[i]
-    object_meta, proj_meta = dicom.get_metadata(file_NM, index_peak=index_peak)
     photopeak = projections[index_peak]
-    scatter = dicom.get_energy_window_scatter_estimate_projections(file_NM, projections, index_peak, index_lower, index_upper)
+    scatter = io.SPECT.energy_window_scatter(projections, proj_meta, index_peak, index_lower, index_upper)
     # Build system matrix
-    attenuation_map = dicom.get_attenuation_map_from_CT_slices(files_CT, file_NM, index_peak=index_peak)
-    psf_meta = dicom.get_psfmeta_from_scanner_params('GI-MEGP', energy_keV=208)
+    photon_keV = proj_meta.energy_windows[index_peak].photon_keV
+    attenuation_map = io.attenuation_map(files_CT, object_meta, energy_keV=photon_keV)
+    psf_meta = io.SPECT.collimator_psf('GI-MEGP', photon_keV)
     att_transform = SPECTAttenuationTransform(attenuation_map)
     psf_transform = SPECTPSFTransform(psf_meta)
     # Create system matrix
@@ -120,22 +113,21 @@ def initialize_reconstruction_algorithm_singlebed(i):
     # Return only the reconstruction algorithm initialization (not calling it for any iterations/subsets yet)
     return reconstruction_algorithm
 
-recon_algo_upper = initialize_reconstruction_algorithm_singlebed(0)
-recon_algo_lower  = initialize_reconstruction_algorithm_singlebed(1)
-recon_algo = PGAAMultiBedSPECT(files_NM, [recon_algo_upper, recon_algo_lower])
+recon_algo = PGAAMultiBedSPECT([initialize_reconstruction_algorithm_singlebed(*bed) for bed in beds])
 # Initialize callback for each bed position
 callbacks = [DataStorageCallback(r.likelihood, r.object_prediction) for r in recon_algo.reconstruction_algorithms]
+print(recon_algo.estimate_memory(n_subsets=8))
 reconstructed_image_multibed = recon_algo(4, 8, callback=callbacks)
+object_meta_stitched = recon_algo.object_meta  # the grid of the stitched image
 
 mask_name = 'liver'
-liver_mask = dicom.get_aligned_rtstruct(
-    file_RT = file_RT,
-    file_NM = files_NM[0],
-    dicom_series_path = path_CT,
-    rt_struct_name = mask_name,
-    shape=reconstructed_image_multibed.shape
-)
+liver_mask = io.load_mask(file_RT, reference=path_CT, rois=[mask_name]).on(object_meta_stitched, label=mask_name, threshold=0.5)
 
 uncertainty_abs, uncertainty_pct = recon_algo.compute_uncertainty(liver_mask, callbacks, return_pct=True)
 
 print(f'Estimated uncertainty in {mask_name}: {uncertainty_pct:.2f}%')
+
+# %% Save the images
+for name, image, meta in [('osem_bed2', recon_OSEM, object_meta), ('osem_stitched', reconstructed_image_multibed, object_meta_stitched)]:
+    io.save_dicom(image, OUTPUT / 't_uncertainty_spect' / name, meta, reference=file_NM,
+                  series_description=name, overwrite=True)

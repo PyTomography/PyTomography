@@ -22,7 +22,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-from pytomography.io.SPECT import dicom
+from pytomography import io
 from pytomography.utils import plot_utils
 
 save_path = DATA / 'SPECT'
@@ -32,10 +32,10 @@ files_CT = [os.path.join(path_CT, file) for file in os.listdir(path_CT)]
 path_SPECT = os.path.join(save_path, 'Lu177-PSMA-GEDisc', 'pytomo_recon')
 file_SPECT = os.path.join(path_SPECT, os.listdir(path_SPECT)[0])
 
-affine_SPECT = dicom._get_affine_single_file(file_SPECT)
-affine_CT = dicom._get_affine_multifile(files_CT)
-SPECT = dicom.open_singlefile(file_SPECT)
-CT = dicom.open_multifile(files_CT)
+spect = io.load_image(file_SPECT)
+ct = io.load_image(files_CT)
+print(spect)
+print(ct)
 
 SPECT_imshow_kwargs = {
     'cmap': plot_utils.pet_cmap,
@@ -58,11 +58,11 @@ CT_imshow_kwargs = {
 fig, ax = plt.subplots(1,3,figsize=(9,4.5), gridspec_kw={'wspace':0.0}, facecolor='k')
 plt.sca(ax[0])
 plot_utils.dual_imshow_coronal(
-    im1 = SPECT,
-    im2 = CT,
+    im1 = spect.data,
+    im2 = ct.data,
     im1_idx = 80,
-    affine1 = affine_SPECT,
-    affine2 = affine_CT,
+    affine1 = spect.affine,
+    affine2 = ct.affine,
     imshow1_kwargs=SPECT_imshow_kwargs,
     imshow2_kwargs=CT_imshow_kwargs,
 )
@@ -73,11 +73,11 @@ plt.text(0.03, 0.97, 'Coronal', color='white', fontsize=15, fontweight='bold', t
 
 plt.sca(ax[1])
 plot_utils.dual_imshow_sagittal(
-    im1 = SPECT,
-    im2 = CT,
+    im1 = spect.data,
+    im2 = ct.data,
     im1_idx = 50,
-    affine1 = affine_SPECT,
-    affine2 = affine_CT,
+    affine1 = spect.affine,
+    affine2 = ct.affine,
     imshow1_kwargs=SPECT_imshow_kwargs,
     imshow2_kwargs=CT_imshow_kwargs,
 )
@@ -88,11 +88,11 @@ plt.text(0.03, 0.97, 'Sagittal', color='white', fontsize=15, fontweight='bold', 
 
 plt.sca(ax[2])
 plot_utils.dual_imshow_axial(
-    im1 = SPECT,
-    im2 = CT,
+    im1 = spect.data,
+    im2 = ct.data,
     im1_idx = 117,
-    affine1 = affine_SPECT,
-    affine2 = affine_CT,
+    affine1 = spect.affine,
+    affine2 = ct.affine,
     imshow1_kwargs=SPECT_imshow_kwargs,
     imshow2_kwargs=CT_imshow_kwargs,
 )
@@ -129,11 +129,11 @@ CT_imshow_kwargs = {
 fig, ax = plt.subplots(1,3,figsize=(9,4.5), gridspec_kw={'wspace':0.0}, facecolor='k')
 plt.sca(ax[0])
 plot_utils.dual_imshow_coronal(
-    im1 = SPECT,
-    im2 = CT,
+    im1 = spect.data,
+    im2 = ct.data,
     im1_idx = 80,
-    affine1 = affine_SPECT,
-    affine2 = affine_CT,
+    affine1 = spect.affine,
+    affine2 = ct.affine,
     imshow1_kwargs=SPECT_imshow_kwargs,
     imshow2_kwargs=CT_imshow_kwargs,
 )
@@ -144,11 +144,11 @@ plt.text(0.03, 0.97, 'Coronal', color='white', fontsize=15, fontweight='bold', t
 
 plt.sca(ax[1])
 plot_utils.dual_imshow_sagittal(
-    im1 = SPECT,
-    im2 = CT,
+    im1 = spect.data,
+    im2 = ct.data,
     im1_idx = 50,
-    affine1 = affine_SPECT,
-    affine2 = affine_CT,
+    affine1 = spect.affine,
+    affine2 = ct.affine,
     imshow1_kwargs=SPECT_imshow_kwargs,
     imshow2_kwargs=CT_imshow_kwargs,
 )
@@ -159,11 +159,11 @@ plt.text(0.03, 0.97, 'Sagittal', color='white', fontsize=15, fontweight='bold', 
 
 plt.sca(ax[2])
 plot_utils.dual_imshow_axial(
-    im1 = SPECT,
-    im2 = CT,
+    im1 = spect.data,
+    im2 = ct.data,
     im1_idx = 117,
-    affine1 = affine_SPECT,
-    affine2 = affine_CT,
+    affine1 = spect.affine,
+    affine2 = ct.affine,
     imshow1_kwargs=SPECT_imshow_kwargs,
     imshow2_kwargs=CT_imshow_kwargs,
 )
@@ -171,3 +171,7 @@ plt.xlim(-200,220)
 plt.ylim(200,-100)
 plt.axis('off')
 plt.text(0.03, 0.97, 'Axial', color='white', fontsize=15, fontweight='bold', transform=plt.gca().transAxes, ha='left', va='top')
+
+# %% Save the images
+saved = io.save_dicom(spect, OUTPUT / 't_plotting' / 'spect', reference=file_SPECT,
+                      series_description='Stitched OSEM', overwrite=True)

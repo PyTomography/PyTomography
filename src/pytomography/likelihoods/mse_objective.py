@@ -1,3 +1,4 @@
+"""Least squares objectives, for CT and other data without Poisson statistics."""
 from __future__ import annotations
 import pytomography
 import torch
@@ -5,13 +6,17 @@ from .likelihood import Likelihood
 from pytomography.projectors import SystemMatrix
 
 class NegativeMSELikelihood(Likelihood):
-    r"""Negative mean squared error likelihood function :math:`L(g|f) = -\frac{1}{2} \alpha \sum_i \left(g_i-(Hf)_i\right)^2` where :math:`g` is the acquired data, :math:`H` is the system matrix, :math:`f` is the object being reconstructed, and :math:`\alpha` is the scaling constant. The negative is taken so that the it works in gradient ascent (as opposed to descent) algorithms
+    r"""The negative squared error :math:`L(g|f) = -\frac{1}{2} \alpha \sum_i \left(g_i-(Hf+s)_i\right)^2`.
+
+    :math:`g` is the measured data, :math:`H` the system matrix, :math:`s` the additive term, :math:`f` the object
+    and :math:`\alpha` the scaling constant. It is negative so that gradient ascent algorithms maximise it.
 
     Args:
-        system_matrix (SystemMatrix): The system matrix modeling the particular system whereby the projections were obtained
-        projections (torch.Tensor): Acquired data
-        additive_term (torch.Tensor, optional): Additional term added after forward projection by the system matrix. This term might include things like scatter and randoms. Defaults to None.
-        additive_term_variance_estimate (torch.tensor, optional): Variance estimate of the additive term. If none, then uncertainty estimation does not include contribution from the additive term. Defaults to None.
+        system_matrix (SystemMatrix): The system matrix :math:`H`.
+        projections (torch.Tensor | None, optional): The measured data :math:`g`. Defaults to None.
+        additive_term (torch.Tensor, optional): The additive term :math:`s`, added after forward projection. Defaults
+            to None.
+        scaling_constant (float, optional): The constant :math:`\alpha`. Defaults to 1.
     """
     def __init__(
         self,
@@ -28,21 +33,33 @@ class NegativeMSELikelihood(Likelihood):
         subset_idx: int | None = None,
         norm_BP_subset_method: str = 'subset_specific'
         ) -> torch.Tensor:
-        r"""Computes the gradient for the mean squared error objective function given by :math:`\nabla_f L(g|f) =  H^T \left(g-Hf\right)`. 
+        r"""The gradient :math:`\nabla_f L(g|f) = \alpha H_m^T \left(g_m - (H_m f + s_m)\right)` over subset :math:`m`.
 
         Args:
-            object (torch.Tensor): Object :math:`f` on which the likelihood is computed
-            subset_idx (int | None, optional): Specifies the subset for forward/back projection. If none, then forward/back projection is done over all subsets, and the entire projections :math:`g` are used. Defaults to None.
-            norm_BP_subset_method (str, optional): Specifies how :math:`H^T 1` is calculated when subsets are used. If 'subset_specific', then uses :math:`H_m^T 1`. If `average_of_subsets`, then uses the average of all :math:`H_m^T 1`s for any given subset (scaled to the relative size of the subset if subsets are not equal size). Defaults to 'subset_specific'.
+            object (torch.Tensor): The object :math:`f`, [Lx, Ly, Lz].
+            subset_idx (int | None, optional): Subset index :math:`m`. Defaults to None: all the projections.
+            norm_BP_subset_method (str, optional): Not used here; accepted for the interface of the likelihoods.
+                Defaults to ``'subset_specific'``.
 
         Returns:
-            torch.Tensor: The gradient of the Poisson likelihood.
+            torch.Tensor: The gradient, [Lx, Ly, Lz].
         """
         proj_subset = self._get_projection_subset(self.projections, subset_idx)
         self._forward_with_additive_term(object, subset_idx)
         return self.system_matrix.backward(proj_subset - self.projections_predicted , subset_idx) * self.scaling_constant
     
 class SARTWeightedNegativeMSELikelihood(Likelihood):
+    r"""The squared error weighted by the line lengths :math:`H 1`, whose gradient is SART's update direction.
+
+    :class:`~pytomography.algorithms.SART` uses it: its gradient is
+    :math:`H_m^T \left((g_m - (H_m f + s_m)) / H_m 1\right)`.
+
+    Args:
+        system_matrix (SystemMatrix): The system matrix :math:`H`.
+        projections (torch.Tensor): The measured data :math:`g`.
+        additive_term (torch.Tensor, optional): The additive term :math:`s`, added after forward projection. Defaults
+            to None.
+    """
     def __init__(
         self,
         system_matrix: SystemMatrix,
@@ -57,15 +74,16 @@ class SARTWeightedNegativeMSELikelihood(Likelihood):
         subset_idx: int | None = None,
         norm_BP_subset_method: str = 'subset_specific'
         ) -> torch.Tensor:
-        r"""Computes the gradient for the mean squared error objective function given by :math:`\nabla_f L(g|f) =  H^T \left(g-Hf\right)`. 
+        r"""The weighted gradient :math:`H_m^T \left((g_m - (H_m f + s_m)) / H_m 1\right)` over subset :math:`m`.
 
         Args:
-            object (torch.Tensor): Object :math:`f` on which the likelihood is computed
-            subset_idx (int | None, optional): Specifies the subset for forward/back projection. If none, then forward/back projection is done over all subsets, and the entire projections :math:`g` are used. Defaults to None.
-            norm_BP_subset_method (str, optional): Specifies how :math:`H^T 1` is calculated when subsets are used. If 'subset_specific', then uses :math:`H_m^T 1`. If `average_of_subsets`, then uses the average of all :math:`H_m^T 1`s for any given subset (scaled to the relative size of the subset if subsets are not equal size). Defaults to 'subset_specific'.
+            object (torch.Tensor): The object :math:`f`, [Lx, Ly, Lz].
+            subset_idx (int | None, optional): Subset index :math:`m`. Defaults to None: all the projections.
+            norm_BP_subset_method (str, optional): Not used here; accepted for the interface of the likelihoods.
+                Defaults to ``'subset_specific'``.
 
         Returns:
-            torch.Tensor: The gradient of the Poisson likelihood.
+            torch.Tensor: The gradient, [Lx, Ly, Lz].
         """
         proj_subset = self._get_projection_subset(self.projections, subset_idx)
         self._forward_with_additive_term(object, subset_idx)

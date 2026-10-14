@@ -50,6 +50,8 @@ html.ptv-noscroll, html.ptv-noscroll body { overflow: hidden; }
 .ptv-pick select option { background: var(--ptv-3); color: var(--ptv-fg); }
 .ptv-btn { appearance: none; font: 600 .76rem var(--ptv-sans); padding: 6px 10px; border-radius: 7px; border: 1px solid var(--ptv-line); background: var(--ptv-3); color: var(--ptv-fg); cursor: pointer; line-height: 1.2; }
 .ptv-btn:hover { border-color: var(--ptv-mut); }
+.ptv-btn:disabled, .ptv-pick select:disabled { opacity: .45; cursor: default; }
+.ptv-btn:disabled:hover { border-color: var(--ptv-line); }
 .ptv-ctlbtn[aria-expanded="true"] { border-color: var(--ptv-acc); }
 /* narrow: the Image switch takes its own row, so the buttons keep the top right corner */
 @container (max-width: 620px) {
@@ -75,7 +77,16 @@ html.ptv-noscroll, html.ptv-noscroll body { overflow: hidden; }
 .ptv-slc { position: absolute; left: 8px; right: 8px; bottom: 3px; width: calc(100% - 16px); margin: 0; height: 20px; accent-color: var(--ptv-acc); }
 .ptv-mipbar { position: absolute; right: 6px; top: 6px; display: flex; gap: 4px; }
 .ptv-mipbar .ptv-btn { background: rgba(15, 17, 22, .85); padding: 4px 8px; font-size: .7rem; }
-.ptv-loading { position: absolute; inset: 0; display: grid; place-items: center; font: 500 .88rem var(--ptv-mono); color: var(--ptv-mut); z-index: 5; background: var(--ptv-bg); padding: 16px; text-align: center; }
+/* the loading screen: over everything below the header (images, toolbar, readout and controls) until every image is
+   in and drawn, so the viewer never shows half-loaded; the header around it is already as it will be */
+.ptv-loading { position: absolute; inset: 0; z-index: 8; display: grid; place-items: center; background: var(--ptv-bg); padding: 16px; }
+.ptv-ld { width: min(24rem, 100%); display: grid; gap: 10px; text-align: center; }
+.ptv-ld-what { margin: 0; font: 600 .9rem var(--ptv-sans); color: var(--ptv-fg); }
+.ptv-prog { height: 8px; border-radius: 4px; background: var(--ptv-3); border: 1px solid var(--ptv-line); overflow: hidden; }
+.ptv-prog-fill { height: 100%; width: 0; background: var(--ptv-acc); border-radius: 3px; transition: width .15s linear; }
+.ptv-ld-num { margin: 0; min-height: 1.4em; font: 500 .74rem var(--ptv-mono); color: var(--ptv-mut); font-variant-numeric: tabular-nums; }
+.ptv-loading[data-state="error"] .ptv-prog { display: none; }
+.ptv-loading[data-state="error"] .ptv-ld-num { color: var(--ptv-bad); font: 500 .8rem/1.5 var(--ptv-sans); }
 
 .ptv-status { flex: none; display: grid; gap: 3px; padding: 6px 10px 7px; border-top: 1px solid var(--ptv-line); background: var(--ptv-2); }
 .ptv-cbar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; font: 500 .7rem var(--ptv-mono); font-variant-numeric: tabular-nums; }
@@ -105,6 +116,8 @@ html.ptv-noscroll, html.ptv-noscroll body { overflow: hidden; }
 .ptv-ctl { display: grid; grid-template-columns: 4.8rem minmax(0, 1fr) 4.4rem; gap: 6px; align-items: center; font-size: .74rem; color: var(--ptv-mut); }
 .ptv-ctl label { margin: 0; font-weight: 400; }
 .ptv-ctl output { font: 500 .72rem var(--ptv-mono); color: var(--ptv-fg); text-align: right; font-variant-numeric: tabular-nums; }
+.ptv-ctl output.ptv-busy { color: var(--ptv-acc); }
+.ptv-ctl output.ptv-busy::after { content: "…"; }
 .ptv-ctl select { -webkit-appearance: none; appearance: none; font: 500 .76rem var(--ptv-sans); color: var(--ptv-fg); border: 1px solid var(--ptv-line); border-radius: 6px; padding: 3px 22px 3px 6px; grid-column: 2 / 4; min-width: 0; text-overflow: ellipsis;
   background: var(--ptv-3) no-repeat right 8px center / 9px 6px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 6'%3E%3Cpath d='M0 0h9L4.5 6z' fill='%238b91a1'/%3E%3C/svg%3E"); }
 .ptv-ctl select option { background: var(--ptv-3); color: var(--ptv-fg); }

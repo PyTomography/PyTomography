@@ -23,6 +23,7 @@ from pytomography.metadata import ObjectMeta
 from pytomography.metadata.PET import PETLMProjMeta, PETSinogramPolygonProjMeta, PETTOFMeta
 from pytomography.projectors.PET import PETLMSystemMatrix, PETSinogramSystemMatrix
 from pytomography.utils import memory, sss
+from pytomography.io.PET.scanner import crystal_parts, scanner_info, scanner_lut
 
 HAVE_KERNELS = hasattr(sys.modules["parallelproj_core"], "joseph3d_fwd")
 if not HAVE_KERNELS:
@@ -30,7 +31,7 @@ if not HAVE_KERNELS:
 needs_kernels = pytest.mark.skipif(not HAVE_KERNELS, reason="requires parallelproj 2 (parallelproj_core)")
 
 DEV = pytomography.device
-INFO = dict(min_rsector_difference=0, crystal_length=20.0, radius=120.0, firstCrystalAxis=0,
+INFO = scanner_info(min_rsector_difference=0, crystal_length=20.0, radius=120.0, rsector0_angle_deg=90.0, transaxial_direction=-1, axial_direction=-1,
             rsectorTransNr=16, rsectorAxialNr=1, moduleTransNr=1, moduleAxialNr=2, moduleTransSpacing=0.0, moduleAxialSpacing=17.0,
             submoduleTransNr=1, submoduleAxialNr=1, submoduleTransSpacing=0.0, submoduleAxialSpacing=0.0,
             crystalTransNr=4, crystalAxialNr=4, crystalTransSpacing=4.0, crystalAxialSpacing=4.0,
@@ -126,12 +127,15 @@ def test_normalization_weights_in_blocks_equal_all_pairs_at_once(budget):
     histo = torch.rand(shape, generator=torch.Generator().manual_seed(3)) * 100
     cylinder_radius = 100.0
     # the previous implementation
-    vals_all_pairs = gate.get_symmetry_histogram_all_combos(INFO)
+    # every pair's symmetry class from the parts of every pair at once, as get_symmetry_histogram_all_combos did
+    tc, ac, ts, as_, tm, am, tr, ar = (torch.combinations(p, 2) for p in crystal_parts(INFO, sort_by_detector_ids=True))
+    vals_all_pairs = torch.vstack([ac[:, 0], ac[:, 1], tc[:, 0], tc[:, 1], (as_[:, 1] - as_[:, 0]) + (INFO['submoduleAxialNr'] - 1),
+                                   (am[:, 1] - am[:, 0]) + (INFO['moduleAxialNr'] - 1), (tr[:, 1] - tr[:, 0]) % INFO['rsectorTransNr']]).T
     bin_edges = [torch.arange(n + 1).to(torch.float32) - 0.5 for n in shape]
     N_bins = torch.histogramdd(vals_all_pairs.to(torch.float32), bin_edges)[0]
-    scanner_LUT = shared.get_scanner_LUT(INFO)
+    scanner_LUT = scanner_lut(INFO)
     all_LOR_ids = torch.combinations(torch.arange(scanner_LUT.shape[0]).to(torch.int32), 2)
-    geometric_correction_factor = 1/(torch.sqrt(1-(torch.abs(gate.get_radius(all_LOR_ids, scanner_LUT)) / cylinder_radius )**2) + pytomography.delta)
+    geometric_correction_factor = 1/(torch.sqrt(1-(torch.abs(gate.lor_radius(all_LOR_ids, scanner_LUT)) / cylinder_radius )**2) + pytomography.delta)
     expected = (histo/N_bins)[tuple(vals_all_pairs.T)] * geometric_correction_factor
     assert expected.isnan().any() and not expected.isnan().all()
     for pairs_per_block in (5000, None):

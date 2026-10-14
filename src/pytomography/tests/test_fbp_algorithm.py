@@ -4,6 +4,7 @@ DICOM-CT-PD projections (low-signal filtering, per-column scale, table feed, vie
 from __future__ import annotations
 
 import os
+import warnings
 import struct
 
 import numpy as np
@@ -188,7 +189,7 @@ def _write_dicom(path, instance):
 def _write_ctpd(path, instance, manufacturer, n_cols=21, n_rows=4, column_tag=11.25, value=0):
     """A minimal DICOM-CT-PD projection: the tags the reader needs and a projection of ``value`` everywhere."""
     ds = pydicom.Dataset()
-    ds.InstanceNumber, ds.Manufacturer = instance, manufacturer
+    ds.InstanceNumber, ds.Manufacturer, ds.PatientPosition = instance, manufacturer, 'FFS'
     ds.Rows, ds.Columns, ds.SamplesPerPixel, ds.PhotometricInterpretation = n_cols, n_rows, 1, 'MONOCHROME2'
     ds.BitsAllocated, ds.BitsStored, ds.HighBit, ds.PixelRepresentation = 16, 16, 15, 0
     ds.RescaleSlope, ds.RescaleIntercept = 1, 0
@@ -204,14 +205,15 @@ def _write_ctpd(path, instance, manufacturer, n_cols=21, n_rows=4, column_tag=11
 
 def test_views_are_read_in_acquisition_order(tmp_path):
     for name, instance in (('a.dcm', 3), ('b.dcm', 1), ('c.dcm', 2)):
-        _write_dicom(os.path.join(tmp_path, name), instance)
-    assert [os.path.basename(p) for p in dicom_ct_pd.sorted_paths(str(tmp_path))] == ['b.dcm', 'c.dcm', 'a.dcm']
+        _write_ctpd(os.path.join(tmp_path, name), instance, 'GE')
+    _, _, meta = dicom_ct_pd.read_dicom_ct_pd(str(tmp_path), filter_low_signal=False)
+    assert torch.allclose(meta.source_phis + torch.pi / 2, torch.tensor([0.1, 0.2, 0.3]))   # by InstanceNumber
 
 
 def test_the_central_column_follows_the_manufacturer(tmp_path):
     # GE counts DetectorCentralElement from the other end of the detector, from zero
     tag = torch.full((3,), 11.25)
-    assert torch.equal(dicom_ct_pd._central_column(tag, 21, 'GE MEDICAL SYSTEMS'), 21 - tag)
+    assert torch.equal(dicom_ct_pd._central_column(tag, 21, 'GE'), 21 - tag)
     assert torch.equal(dicom_ct_pd._central_column(tag, 21, 'SIEMENS'), tag)
     assert torch.equal(dicom_ct_pd._central_column(tag, 21, 'GE', 'tag'), tag)
     assert torch.equal(dicom_ct_pd._central_column(tag, 21, 'GE', 10.5), torch.full((3,), 10.5))
@@ -222,18 +224,20 @@ def test_the_central_column_follows_the_manufacturer(tmp_path):
         folder.mkdir()
         for i in (1, 2, 3):
             _write_ctpd(str(folder / f'{i}.dcm'), i, manufacturer)
-        _, meta = dicom_ct_pd.get_projections_and_metadata_gen3(str(folder), low_signal_filter=False)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')                               # Siemens' patient frame is to check
+            _, _, meta = dicom_ct_pd.read_dicom_ct_pd(str(folder), filter_low_signal=False)
         assert float(meta.detector_centers_col_idx[0]) == pytest.approx(expected)
-    _, meta = dicom_ct_pd.get_projections_and_metadata_gen3(str(tmp_path / 'GE'), low_signal_filter=False, central_column='tag',
-                                                           central_column_offset=0.5)
+    _, _, meta = dicom_ct_pd.read_dicom_ct_pd(str(tmp_path / 'GE'), filter_low_signal=False, central_column='tag',
+                                              central_column_offset=0.5)
     assert float(meta.detector_centers_col_idx[0]) == pytest.approx(11.75)
 
 
 def test_the_reader_applies_the_column_scale(tmp_path):
     for i in (1, 2, 3):
         _write_ctpd(str(tmp_path / f'{i}.dcm'), i, 'GE', value=1000)
-    plain, meta = dicom_ct_pd.get_projections_and_metadata_gen3(str(tmp_path), low_signal_filter=False)
+    plain, _, meta = dicom_ct_pd.read_dicom_ct_pd(str(tmp_path), filter_low_signal=False)
     scale = dict(g0=-0.01, g2=0.5)
-    scaled, _ = dicom_ct_pd.get_projections_and_metadata_gen3(str(tmp_path), low_signal_filter=False, column_scale=scale)
+    scaled, _, _ = dicom_ct_pd.read_dicom_ct_pd(str(tmp_path), filter_low_signal=False, column_scale=scale)
     expected = preprocessing.scale_columns(plain, meta, **scale)
     assert not torch.equal(expected, plain) and torch.equal(scaled, expected)

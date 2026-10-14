@@ -19,7 +19,7 @@ DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_da
 OUTPUT = datasets.output_dir("SPECT/Tc99m-Cardiac")
 
 import os
-from pytomography.io.SPECT import dicom
+from pytomography import io
 from pytomography.transforms.SPECT import SPECTPSFTransform
 from pytomography.algorithms import OSEM
 from pytomography.projectors.SPECT import SPECTSystemMatrix
@@ -32,10 +32,9 @@ import torch
 PATH = DATA / 'SPECT' / 'Tc99m-Cardiac'
 
 file_NM = os.path.join(PATH, 'anonymized_file.dcm')
-object_meta, proj_meta = dicom.get_metadata(file_NM, index_peak=0)
-photopeak = dicom.get_projections(file_NM, index_peak=0)
+photopeak, object_meta, proj_meta = io.SPECT.read_dicom(file_NM, energy_window=0)
 
-psf_meta = dicom.get_psfmeta_from_scanner_params('SY-LEHR', energy_keV=140.5)
+psf_meta = io.SPECT.collimator_psf('SY-LEHR', proj_meta.energy_windows[0].photon_keV)  # 140.5 keV, Tc-99m
 psf_transform = SPECTPSFTransform(psf_meta)
 system_matrix = SPECTSystemMatrix(
     obj2obj_transforms = [psf_transform],
@@ -44,18 +43,8 @@ system_matrix = SPECTSystemMatrix(
     proj_meta = proj_meta)
 likelihood = PoissonLogLikelihood(system_matrix, photopeak)
 reconstruction_algorithm = OSEM(likelihood)
+print(reconstruction_algorithm.estimate_memory(n_subsets=8))
 recon = reconstruction_algorithm(n_iters=4, n_subsets=8)
-
-# # Modify the path below to a location on your computer where you want to save the data
-# # # Code only works if folder doesnt exist, so delete it if present
-# if os.path.exists(save_path) and os.path.isdir(save_path):
-#     shutil.rmtree(save_path)
-# # Save
-# dicom.save_dcm(
-#     save_path = save_path,
-#     object = recon,
-#     file_NM = file_NM,
-#     recon_name = 'OSEM_4it_8ss')
 
 # %% Reorientation
 from pytomography.utils.cardiac_spect import get_mask, get_shift_values, get_angle, shift_object, rotate_object, plot_arrow, create_circular_mask, masking
@@ -65,7 +54,7 @@ testObject = recon[:,:,30:45]
 testObjectMask = get_mask(testObject, 0.55, 0.9)
 
 # Finding the shift values
-ShiftedAxial, ty, tx = get_shift_values(testObjectMask[:,:,7])
+ShiftedAxial, tx, ty = get_shift_values(testObjectMask[:,:,7])
 ShiftedSagittal, _, tz = get_shift_values(testObjectMask[40,:,:])
 
 # Finding the angles values
@@ -122,3 +111,7 @@ def plot_views(tensor: torch.Tensor):
     
 plot_views(RotatedObject)
 plot_views(maskedObject)
+
+# %% Save the images
+saved = io.save_dicom(recon, OUTPUT / 't_CardiacReorientation' / 'osem', object_meta, reference=file_NM,
+                      series_description='OSEM 4x8', overwrite=True)

@@ -51,11 +51,13 @@ def _write_thumbnails(app) -> None:
     srcdir = Path(app.srcdir)
     out = srcdir / THUMB_DIR
     out.mkdir(parents=True, exist_ok=True)
+    # tutorials.yaml chooses each thumbnail's image, so a change there counts as much as one to the notebook
+    yaml_mtime = (srcdir / "tutorials" / "tutorials.yaml").stat().st_mtime
     for section in app.env.pytomo_tutorials:
         for tut in section["tutorials"]:
             nb_path = srcdir / "notebooks" / f"{tut['notebook']}.ipynb"
             target = out / f"{tut['notebook']}.png"
-            if target.exists() and target.stat().st_mtime >= nb_path.stat().st_mtime:
+            if target.exists() and target.stat().st_mtime >= max(nb_path.stat().st_mtime, yaml_mtime):
                 continue  # unchanged, and rewriting would retrigger sphinx-autobuild
             nb = json.loads(nb_path.read_text(encoding="utf8"))
             images = [o["data"]["image/png"] for c in nb["cells"]
@@ -165,20 +167,23 @@ class FeatureBoard(Directive):
                  '<div class="pt-fgroup"><span>Area</span>',
                  '<button type="button" class="pt-chip" data-key="area" data-value="All" aria-pressed="true">All</button>']
         parts += [f'<button type="button" class="pt-chip" data-key="area" data-value="{esc(a)}" aria-pressed="false">{esc(a)}</button>' for a in areas]
-        parts.append('</div><span class="pt-count" aria-live="polite"></span></div><div class="pt-cols">')
+        parts.append('</div><span class="pt-count" aria-live="polite"></span></div><div class="pt-levels">')
         for key, title, desc in self.LEVELS:
             col = [i for i in items if (i["level"] in ("advanced", "research")) == (key == "advanced") and (key == "advanced" or i["level"] == key)]
-            parts.append(f'<div class="pt-col"><div class="pt-colhead"><b>{title}</b><span>{len(col)}</span></div><p>{desc}</p>')
+            parts.append(f'<section class="pt-level"><div class="pt-levelhead"><h2>{title}</h2><span>{len(col)}</span>'
+                         f'<p>{desc}</p></div>')
+            if not col:
+                parts.append('<p class="pt-none">None open right now.</p>')
             for i in col:
                 issue = (f'<a href="https://github.com/{REPO}/issues/{i["issue"]}">#{i["issue"]}</a>'
                          if str(i["issue"]).isdigit() else "<span>issue to open</span>")
                 parts.append(
-                    f'<article class="pt-bcard" data-area="{esc(i["area"])}"><h3>{esc(i["title"])}</h3>'
-                    f'<div class="pt-tags"><span class="pt-lvl-{i["level"]}">{self.LABELS[i["level"]]}</span><span>{esc(i["area"])}</span>{issue}</div>'
-                    f'<p>{esc(i["why"])}</p><dl><dt>Data</dt><dd>{esc(i["data"])}</dd><dt>Start</dt><dd>{esc(i["start"])}</dd>'
-                    f'<dt>Done</dt><dd>{esc(i["done"])}</dd></dl></article>'
+                    f'<article class="pt-bcard" data-area="{esc(i["area"])}"><div class="pt-bhead"><h3>{esc(i["title"])}</h3>'
+                    f'<div class="pt-tags"><span class="pt-lvl-{i["level"]}">{self.LABELS[i["level"]]}</span><span>{esc(i["area"])}</span>{issue}</div></div>'
+                    f'<p>{esc(i["why"])}</p><dl><div><dt>Data</dt><dd>{esc(i["data"])}</dd></div><div><dt>Start</dt><dd>{esc(i["start"])}</dd></div>'
+                    f'<div><dt>Done</dt><dd>{esc(i["done"])}</dd></div></dl></article>'
                 )
-            parts.append("</div>")
+            parts.append("</section>")
         parts.append("</div></div>")
         return [nodes.raw("", "".join(parts), format="html")]
 
@@ -233,6 +238,11 @@ def add_source_meta(app, pagename, templatename, context, doctree):
 LLMS_SUMMARY = (
     "PyTomography is an open-source Python library for quantitative SPECT, PET and CT "
     "reconstruction on the GPU. Each link below is a Markdown version of one documentation page."
+)
+LLMS_FIRST = (
+    "**Agents, first:** before running PyTomography on a machine, check that it uses the GPU when the machine has "
+    "one (\"Check that PyTomography uses the GPU\" in _md/ai.md). An NVIDIA GPU with PyTomography on the CPU means a "
+    "broken install: tell the user and fix it rather than carrying on at CPU speed."
 )
 
 
@@ -292,7 +302,7 @@ def write_markdown(app, exception):
     env, outdir = app.env, Path(app.outdir)
     title = lambda d: env.titles[d].astext() if d in env.titles else d
     groups = {"Guides": [], "Tutorials": [], "API reference": []}
-    full = [f"# PyTomography documentation\n\n> {LLMS_SUMMARY}\n"]
+    full = [f"# PyTomography documentation\n\n> {LLMS_SUMMARY}\n\n{LLMS_FIRST}\n"]
     for doc in _toctree_order(env):
         if doc in ("genindex", "search", "py-modindex"):
             continue
@@ -304,7 +314,7 @@ def write_markdown(app, exception):
                  "Tutorials" if doc.startswith("notebooks/") else "Guides")
         groups[group].append(f"- [{title(doc)}](_md/{doc}.md)")
         full.append(f"\n\n---\n\n<!-- page: {doc} -->\n\n{md}")
-    index = [f"# PyTomography\n\n> {LLMS_SUMMARY}\n"]
+    index = [f"# PyTomography\n\n> {LLMS_SUMMARY}\n\n{LLMS_FIRST}\n"]
     for name, links in groups.items():
         index.append(f"\n## {name}\n\n" + "\n".join(links) + "\n")
     (outdir / "llms.txt").write_text("".join(index), encoding="utf8")

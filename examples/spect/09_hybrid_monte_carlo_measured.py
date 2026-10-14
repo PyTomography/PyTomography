@@ -19,15 +19,10 @@ DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_da
 OUTPUT = datasets.output_dir("SPECT/Lu177-NEMA-SymT2")
 
 import os
-import sys
 import matplotlib.pyplot as plt
 import torch
-import itk
-import numpy as np
-from torch.nn.functional import avg_pool3d
 import pytomography
-from pytomography.io.SPECT import simind, dicom
-from pytomography.io.SPECT.shared import subsample_projections_and_modify_metadata, subsample_amap, subsample_projections
+from pytomography import io
 from pytomography.projectors.SPECT import MonteCarloHybridSPECTSystemMatrix
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.algorithms import OSEM
@@ -38,21 +33,20 @@ path = DATA / 'SPECT'
 
 file_NM = os.path.join(path, 'Lu177-NEMA-SymT2', 'projection_data.dcm')
 path_CT = os.path.join(path, 'Lu177-NEMA-SymT2', 'CT')
-files_CT = [os.path.join(path_CT, f) for f in os.listdir(path_CT)] 
+files_CT = [os.path.join(path_CT, f) for f in os.listdir(path_CT)]
+projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)
+photon_keV = proj_meta.energy_windows[0].photon_keV  # the 208 keV window
 # 140 keV map is needed for MC forward projector
-amap140 = dicom.get_attenuation_map_from_CT_slices(files_CT, file_NM, E_SPECT=140.5)
+amap140 = io.attenuation_map(files_CT, object_meta, energy_keV=140.5)
 # 208keV is needed for analytical back projection
-amap208 = dicom.get_attenuation_map_from_CT_slices(files_CT, file_NM, E_SPECT=208)
-projections = dicom.get_projections(file_NM)
-object_meta, proj_meta = dicom.get_metadata(file_NM)
+amap208 = io.attenuation_map(files_CT, object_meta, energy_keV=photon_keV)
 att_transform = SPECTAttenuationTransform(amap208)
 collimator_name = 'SY-ME'
-energy_kev = 208 #keV
-intrinsic_resolution=0.38 #mm
-psf_meta = dicom.get_psfmeta_from_scanner_params(
+intrinsic_fwhm_mm = 3.8 # mm
+psf_meta = io.SPECT.collimator_psf(
     collimator_name,
-    energy_kev,
-    intrinsic_resolution=intrinsic_resolution
+    photon_keV,
+    intrinsic_fwhm_mm=intrinsic_fwhm_mm
 )
 psf_transform = SPECTPSFTransform(psf_meta)
 
@@ -62,19 +56,19 @@ energy_window_params
 isotope_names = ['lu177'] # isotope we want to simulate
 isotope_ratios = [1] # ratio of isotopes (in this case only 1)
 collimator_type = 'SY-ME' # collimator type to use
-cover_thickness = 0.1 # cover thickness in cm (aluminum assumed)
-backscatter_thickness = 6.6 # backscatter thickness in cm (pyrex)
-advanced_energy_resolution_model='siemens' 
+cover_thickness_mm = 1.0 # cover thickness in mm (aluminum assumed)
+backscatter_thickness_mm = 66.0 # backscatter thickness in mm (pyrex)
+advanced_energy_resolution_model='siemens'
 # if the energy resolution model above is not used, then
 # the energy resolution needs to be provided at 140keV in
 # units of percent.
 energy_resolution_140keV = 10 # %
-crystal_thickness = 0.9525 # thickness in crystal in cm (NaI)
+crystal_thickness_mm = 9.525 # thickness of the crystal in mm (NaI)
 
 # 200 million events take about 20 minutes on 90 CPU cores, and 45 minutes on 24. Fewer events run faster
 # but give a noisier Monte Carlo estimate.
 n_events = 200e6
-n_parallel = os.cpu_count()  # SIMIND processes run at once, one per CPU core
+n_parallel = max(1, os.cpu_count() - 4)  # SIMIND processes run at once, one per core; 4 cores left for the rest of the computer
 
 system_matrix = MonteCarloHybridSPECTSystemMatrix(
     object_meta,
@@ -87,9 +81,9 @@ system_matrix = MonteCarloHybridSPECTSystemMatrix(
     isotope_names=isotope_names,
     isotope_ratios=isotope_ratios,
     collimator_type=collimator_type,
-    crystal_thickness=crystal_thickness,
-    cover_thickness=cover_thickness,
-    backscatter_thickness=backscatter_thickness,
+    crystal_thickness_mm=crystal_thickness_mm,
+    cover_thickness_mm=cover_thickness_mm,
+    backscatter_thickness_mm=backscatter_thickness_mm,
     advanced_energy_resolution_model=advanced_energy_resolution_model,
     advanced_collimator_modeling=True,
     n_events=n_events,
@@ -98,4 +92,9 @@ system_matrix = MonteCarloHybridSPECTSystemMatrix(
 
 likelihood = MonteCarloHybridSPECTPoissonLogLikelihood(system_matrix, projections[0])
 algorithm = OSEM(likelihood)
+print(algorithm.estimate_memory(n_subsets=16))
 recon_MC = algorithm(n_iters=1, n_subsets=16)
+
+# %% Save the images
+saved = io.save_dicom(recon_MC, OUTPUT / 't_spect_mc2' / 'osem_monte_carlo', object_meta, reference=file_NM,
+                      units='MBq.s', series_description='OSEM 1x16, Monte Carlo', overwrite=True)

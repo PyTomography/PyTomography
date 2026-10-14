@@ -18,15 +18,15 @@ html_theme.sidebar_secondary.remove: true
     <div class="pt-install"><span class="pt-prompt">$</span><code>pip install pytomography</code><button type="button" class="pt-copy" data-copy="pip install pytomography">Copy</button></div>
   </div>
   <figure class="pt-hero-fig">
-    <img src="_static/landing/mip.gif" alt="Rotating maximum intensity projection of a Tc-99m NEMA IQ phantom reconstructed with PyTomography, over a CT line integral" width="1478" height="492">
-    <figcaption><span>Tc-99m NEMA IQ phantom · GE StarGuide, 12 CZT heads</span><span>OSEM 10×10 with attenuation, scatter and PSF</span></figcaption>
+    <video src="_static/landing/mip.mp4" poster="_static/landing/mip_poster.webp" autoplay muted loop playsinline preload="auto" width="600" height="900" role="img" aria-label="A Lu-177-PSMA patient, upright, turning about the body's long axis: a maximum intensity projection of the SPECT, reconstructed with PyTomography from two bed positions on a GE Discovery 670 Pro (OSEM, 4 iterations of 8 subsets, with CT attenuation, collimator PSF and triple-energy-window scatter correction) and stitched, in PyTomography's PET colour scale over a maximum intensity projection of the patient's CT"></video>
+    <figcaption><span>Lu-177-PSMA patient · GE Discovery 670 Pro, two beds</span><span>OSEM 4×8, attenuation, PSF, TEW scatter</span></figcaption>
   </figure>
 </section>
 
 <section class="pt-modalities" aria-label="Supported modalities">
   <div><b>SPECT</b><span>DICOM from GE, Siemens and StarGuide, and SIMIND. Multiple beds and photopeaks, cardiac reorientation, hybrid Monte Carlo scatter.</span></div>
   <div><b>PET</b><span>GATE sinograms and list mode, time of flight, GE Discovery MI and PETSIRD. Randoms and single scatter simulation.</span></div>
-  <div><b>CT</b><span>DICOM-CT-PD projections from 3rd-generation clinical scanners, reconstructed with OS-SART.</span></div>
+  <div><b>CT</b><span>Raw DICOM-CT-PD projections from 3rd-generation clinical scanners, and cone-beam micro-CT. Helical filtered back projection, FDK and OS-SART.</span></div>
   <div><b>Your own system</b><span>Every system matrix is a forward and back projector you can replace, so new geometries, priors and networks reuse every algorithm.</span></div>
 </section>
 
@@ -38,26 +38,28 @@ html_theme.sidebar_secondary.remove: true
   <dl class="pt-steps">
     <dt>1 · Data</dt><dd>Projections, energy windows and geometry, read from the file the scanner wrote.</dd>
     <dt>2 · Physics</dt><dd>Attenuation from the CT and the collimator-detector response, applied inside the projector.</dd>
-    <dt>3 · Statistics</dt><dd>A Poisson likelihood with scatter as an additive term, solved by the algorithm of your choice.</dd>
+    <dt>3 · Statistics</dt><dd>A Poisson likelihood with scatter as an additive term, solved by the iterative algorithm of your choice. Filtered back projection needs no likelihood.</dd>
   </dl>
 </div>
 <div class="pt-split-code">
 
 ```python
-from pytomography.io.SPECT import dicom
+from pytomography import io
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.algorithms import OSEM
 
-# 1. Data: Lu-177 SPECT/CT exported from the scanner
-object_meta, proj_meta = dicom.get_metadata(file_NM, index_peak=0)
-photopeak = dicom.get_projections(file_NM, index_peak=0)
-scatter = dicom.get_energy_window_scatter_estimate(file_NM, index_peak=0, index_lower=1, index_upper=2)
+# 1. Data: Lu-177 SPECT/CT exported from the scanner, every energy window
+projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)
+photopeak = projections[0]
+scatter = io.SPECT.energy_window_scatter(projections, proj_meta, peak=0, lower=1, upper=2)
 
-# 2. Physics
-attenuation = SPECTAttenuationTransform(filepath=files_CT)
-psf_meta = dicom.get_psfmeta_from_scanner_params("SY-ME", 208, intrinsic_resolution=0.38)
+# 2. Physics, in mm
+photon_keV = proj_meta.energy_windows[0].photon_keV  # 208 keV
+mu = io.attenuation_map(files_CT, object_meta, energy_keV=photon_keV)  # 1/mm
+attenuation = SPECTAttenuationTransform(mu)
+psf_meta = io.SPECT.collimator_psf("SY-ME", photon_keV, intrinsic_fwhm_mm=3.8)
 psf = SPECTPSFTransform(psf_meta)
 system_matrix = SPECTSystemMatrix(
     obj2obj_transforms=[attenuation, psf],
@@ -83,7 +85,7 @@ recon = OSEM(likelihood)(n_iters=4, n_subsets=8)
     <a href="gallery.html#figure-1-lu-177-spect"><img src="_images/figure2.jpg" alt="Lu-177 PSMA SPECT reconstructed with four algorithms" loading="lazy"><span><b>Lu-177 PSMA SPECT</b>Four algorithms compared with a commercial reconstruction</span></a>
     <a href="gallery.html#figure-2-ac-225-spect"><img src="_images/ac225_patient_dual.jpg" alt="Ac-225 PSMA SPECT at four time points" loading="lazy"><span><b>Ac-225 PSMA SPECT</b>Monte Carlo PSF modelling and uncertainty over four time points</span></a>
     <a href="gallery.html#figure-3-pet-with-deep-image-prior"><img src="_images/figure4_left_hoz.jpg" alt="Brain PET reconstructed with OSEM and Deep Image Prior" loading="lazy"><span><b>PET with Deep Image Prior</b>Low-count TOF list mode with a network as the image model</span></a>
-    <a href="gallery.html#figure-4-clinical-ct-reconstruction"><img src="_images/CT_slice.png" alt="Clinical CT slice reconstructed with OS-SART" loading="lazy"><span><b>Clinical CT</b>OS-SART on raw DICOM-CT-PD projections</span></a>
+    <a href="gallery.html#figure-4-clinical-ct"><img src="_images/CT_slice.png" alt="Coronal slice of a clinical CT reconstructed from its raw projections" loading="lazy"><span><b>Clinical CT</b>Reconstructed from the scanner's raw DICOM-CT-PD projections</span></a>
   </div>
 </section>
 
@@ -136,8 +138,6 @@ architecture
 API <api/pytomography/index>
 Contribute <contributing/index>
 Migrate to v4 <migration>
-concepts
 Memory and speed <memory>
 For AI agents <ai>
-Data tables <external_data>
 ```

@@ -29,6 +29,7 @@ extensions = [
     "pytomo_docs",                  # _ext/pytomo_docs.py: gallery, launch bars, llms.txt
     "pytomo_viewer",                # _ext/pytomo_viewer.py: the 3D image viewer on tutorial pages and cards
     "pytomo_memory",                # _ext/pytomo_memory.py: the generated tables of the Memory and speed page
+    "pytomo_io",                    # _ext/pytomo_io.py: the Architecture page's "Data and conventions" tab
 ]
 
 source_suffix = {".rst": "restructuredtext", ".md": "myst-nb", ".ipynb": "myst-nb"}
@@ -73,6 +74,10 @@ html_theme = "pydata_sphinx_theme"
 html_title = "PyTomography"
 html_logo = "images/PT1.png"
 html_favicon = "images/PT1.png"
+# _ext/pytomo_docs.py writes the gallery's thumbnails into _generated/thumbs when the build starts, but Sphinx drops a
+# missing html_static_path entry before that. _generated is gitignored, so on a fresh checkout (Read the Docs builds
+# from one every time) the thumbnails would never be copied: create the folder first.
+os.makedirs(os.path.join(os.path.dirname(os.path.abspath(__file__)), "_generated", "thumbs"), exist_ok=True)
 html_static_path = ["_static", "_generated"]
 html_css_files = [
     "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap",
@@ -90,8 +95,8 @@ html_context = {
 html_theme_options = {
     "logo": {"text": "PyTomography"},
     "navbar_align": "left",
-    # Installation, Tutorials, Gallery, Architecture, API and Contribute in the top bar; Migrate to v4, Concepts and the
-    # rest under More
+    # Installation, Tutorials, Gallery, Architecture, API and Contribute in the top bar; Migrate to v4 and the rest
+    # under More
     "header_links_before_dropdown": 6,
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
     "icon_links": [

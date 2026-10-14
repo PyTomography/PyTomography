@@ -15,17 +15,17 @@ N, NA = 16, 12
 
 
 def tiny_spect_system(attenuation=True, psf=True):
-    dx = 0.4
+    dx = 4.0
     object_meta = SPECTObjectMeta([dx] * 3, (N, N, N))
     angles = list(np.linspace(0, 360, NA, endpoint=False) + 0.37)
-    proj_meta = SPECTProjMeta((N, N), [dx, dx], angles, radii=[15.0 + (i % 3) for i in range(NA)])
+    proj_meta = SPECTProjMeta((N, N), [dx, dx], angles, radii=[150.0 + 10 * (i % 3) for i in range(NA)])
     gen = torch.Generator().manual_seed(0)
     transforms = []
     if attenuation:
-        mu = (0.15 * torch.rand(N, N, N, generator=gen)).to(pytomography.device)
+        mu = (0.015 * torch.rand(N, N, N, generator=gen)).to(pytomography.device)
         transforms.append(SPECTAttenuationTransform(attenuation_map=mu))
     if psf:
-        transforms.append(SPECTPSFTransform(psf_meta=SPECTPSFMeta((0.03, 0.1))))
+        transforms.append(SPECTPSFTransform(psf_meta=SPECTPSFMeta((0.03, 1.0))))
     H = SPECTSystemMatrix(obj2obj_transforms=transforms, proj2proj_transforms=[], object_meta=object_meta, proj_meta=proj_meta)
     f = torch.rand(N, N, N, generator=gen).to(pytomography.device)
     g = torch.rand(NA, N, N, generator=gen).to(pytomography.device)

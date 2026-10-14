@@ -10,8 +10,9 @@ import torch
 
 from pytomography.io.PET import shared
 from pytomography.metadata.PET import PETSinogramPolygonProjMeta, PETTOFMeta
+from pytomography.io.PET.scanner import scanner_info, scanner_lut
 
-INFO = dict(min_rsector_difference=0, crystal_length=20.0, radius=120.0, firstCrystalAxis=0,
+INFO = scanner_info(min_rsector_difference=0, crystal_length=20.0, radius=120.0, rsector0_angle_deg=90.0, transaxial_direction=-1, axial_direction=-1,
             rsectorTransNr=16, rsectorAxialNr=1, moduleTransNr=1, moduleAxialNr=2, moduleTransSpacing=0.0,
             moduleAxialSpacing=17.0, submoduleTransNr=1, submoduleAxialNr=1, submoduleTransSpacing=0.0,
             submoduleAxialSpacing=0.0, crystalTransNr=4, crystalAxialNr=4, crystalTransSpacing=4.0,
@@ -81,7 +82,7 @@ def test_listmode_to_sinogram_follows_the_sinogram_geometry():
     """The line of response of the bin an event is binned in joins that event's two crystals, and its TOF bin is
     mirrored exactly when the bin's line of response runs from the event's second crystal to its first."""
     proj_meta = PETSinogramPolygonProjMeta(INFO)
-    lut = shared.get_scanner_LUT(INFO).cpu().double()
+    lut = scanner_lut(INFO).cpu().double()
     detector_coordinates = proj_meta.detector_coordinates.cpu().double()   # [angle, r, crystal, x/y]
     ring_coordinates = proj_meta.ring_coordinates.cpu().double()           # [plane, crystal] -> z
     for event in _events(300, None, seed=3):

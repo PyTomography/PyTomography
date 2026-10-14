@@ -69,6 +69,12 @@
 .pto-legend { margin: 22px 0 0; text-align: center; color: var(--pt-muted); font-size: 0.86rem; }
 .pto-legend-iface { background: var(--pt-ink); color: var(--pst-color-background); font: 600 0.72rem/1 var(--pst-font-family-monospace); padding: 3px 7px; border-radius: 5px; }
 
+/* analytic reconstruction, under the diagram: no likelihood, one call per geometry */
+.pt-arch-analytic { margin: 30px 0 0; padding: 20px 0 0; border-top: 1px solid var(--pt-line); }
+.pt-arch-analytic h3 { margin: 0 0 6px; font: 700 1.05rem/1.25 var(--pst-font-family-heading); }
+.pt-arch-analytic td:first-child { white-space: nowrap; }
+.pt-arch-analytic td code { white-space: normal; overflow-wrap: anywhere; }
+
 .pto.is-narrow { grid-template-columns: minmax(0, 1fr); row-gap: 60px; }
 .pto.is-narrow .pto-l1-body { grid-template-columns: minmax(0, 1fr); }
 .pto.is-narrow .pto-chain { flex-direction: column; }
