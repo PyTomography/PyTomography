@@ -16,8 +16,6 @@ DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_da
 OUTPUT = datasets.output_dir("SPECT/SIMIND-Jaszak")
 
 import os
-import torch
-import pytomography
 from pytomography import io
 from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.transforms.SPECT  import SPECTAttenuationTransform, SPECTPSFTransform
@@ -72,23 +70,23 @@ def perform_reconstruction(psf_transform):
     return algorithm(n_iters=50, n_subsets=4)
 
 # %% The camera
-collimator = Collimator(hole_diameter_mm=4.0, septal_thickness_mm=2.0, hole_length_mm=59.7,
-                        hole_shape='hex', rotated=True, material='lead')
-stack = DetectorStack(collimator, crystal_mm=9.525, crystal_material='nai',
-                      cover_mm=1.0, cover_material='aluminium',
-                      backscatter_mm=100.0, backscatter_material='pmt')
-energy_resolution = EnergyResolution.geb(a_keV=-0.534, b=0.946, c_per_keV=0.006)   # SIMIND's siemens.erf
-response = DetectorResponse(energy_resolution, intrinsic_fwhm_mm_140=3.6,
+collimator = io.SPECT.collimator('SY-HE')            # the Symbia high energy collimator
+detector = io.SPECT.detector('NaI-9.5mm')            # 3/8 inch NaI(Tl), its cover and backscatter
+camera = io.SPECT.camera('Siemens Symbia T')          # its energy resolution model
+# Or every value explicitly:
+# collimator = dict(hole_diameter_mm=4.0, septal_thickness_mm=2.0, hole_length_mm=59.7, hole_shape='hex', rotated=True, material='lead')
+# detector = dict(crystal_mm=9.525, crystal_material='nai', cover_mm=1.0, cover_material='aluminium',
+#                 backscatter_mm=100.0, backscatter_material='pmt')
+stack = DetectorStack(Collimator(**collimator), **detector)
+# SIMIND adds its own 3.6 mm Gaussian (FWHM at 140 keV) on top of its transport
+response = DetectorResponse(EnergyResolution.geb(**camera['energy_resolution']), intrinsic_fwhm_mm_140=3.6,
                             residual_sigma_mm_140=3.6 * FWHM_TO_SIGMA)
 
 # %% The ARFs
-arfs = generate_arfs(stack, response, proj_meta, peak=idx_peak, lower=idx_lower, upper=idx_upper)
-for name, arf in arfs.items():
-    print(f"{name}: {arf.window[1]:.0f}-{arf.window[2]:.0f} keV, {arf.energy_keV:.1f} keV photons, "
-          f"grid (theta, phi, dx, dy) {arf.data.shape}")
+arfs = generate_arfs(stack, response, proj_meta, peak=idx_peak)
 
 # %% Reconstruct
-psf_transform_arf = psf_transform(arfs, memory_budget_bytes=2 * 2**30)
+psf_transform_arf = psf_transform(arfs, normalize=True)
 recon_arf = perform_reconstruction(psf_transform_arf)
 
 path_bi213_prim = files_NM[1][1]
