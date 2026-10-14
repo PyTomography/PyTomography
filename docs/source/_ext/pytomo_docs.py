@@ -167,20 +167,23 @@ class FeatureBoard(Directive):
                  '<div class="pt-fgroup"><span>Area</span>',
                  '<button type="button" class="pt-chip" data-key="area" data-value="All" aria-pressed="true">All</button>']
         parts += [f'<button type="button" class="pt-chip" data-key="area" data-value="{esc(a)}" aria-pressed="false">{esc(a)}</button>' for a in areas]
-        parts.append('</div><span class="pt-count" aria-live="polite"></span></div><div class="pt-cols">')
+        parts.append('</div><span class="pt-count" aria-live="polite"></span></div><div class="pt-levels">')
         for key, title, desc in self.LEVELS:
             col = [i for i in items if (i["level"] in ("advanced", "research")) == (key == "advanced") and (key == "advanced" or i["level"] == key)]
-            parts.append(f'<div class="pt-col"><div class="pt-colhead"><b>{title}</b><span>{len(col)}</span></div><p>{desc}</p>')
+            parts.append(f'<section class="pt-level"><div class="pt-levelhead"><h2>{title}</h2><span>{len(col)}</span>'
+                         f'<p>{desc}</p></div>')
+            if not col:
+                parts.append('<p class="pt-none">None open right now.</p>')
             for i in col:
                 issue = (f'<a href="https://github.com/{REPO}/issues/{i["issue"]}">#{i["issue"]}</a>'
                          if str(i["issue"]).isdigit() else "<span>issue to open</span>")
                 parts.append(
-                    f'<article class="pt-bcard" data-area="{esc(i["area"])}"><h3>{esc(i["title"])}</h3>'
-                    f'<div class="pt-tags"><span class="pt-lvl-{i["level"]}">{self.LABELS[i["level"]]}</span><span>{esc(i["area"])}</span>{issue}</div>'
-                    f'<p>{esc(i["why"])}</p><dl><dt>Data</dt><dd>{esc(i["data"])}</dd><dt>Start</dt><dd>{esc(i["start"])}</dd>'
-                    f'<dt>Done</dt><dd>{esc(i["done"])}</dd></dl></article>'
+                    f'<article class="pt-bcard" data-area="{esc(i["area"])}"><div class="pt-bhead"><h3>{esc(i["title"])}</h3>'
+                    f'<div class="pt-tags"><span class="pt-lvl-{i["level"]}">{self.LABELS[i["level"]]}</span><span>{esc(i["area"])}</span>{issue}</div></div>'
+                    f'<p>{esc(i["why"])}</p><dl><div><dt>Data</dt><dd>{esc(i["data"])}</dd></div><div><dt>Start</dt><dd>{esc(i["start"])}</dd></div>'
+                    f'<div><dt>Done</dt><dd>{esc(i["done"])}</dd></div></dl></article>'
                 )
-            parts.append("</div>")
+            parts.append("</section>")
         parts.append("</div></div>")
         return [nodes.raw("", "".join(parts), format="html")]
 
