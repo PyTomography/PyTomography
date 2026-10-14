@@ -16,5 +16,7 @@ except ImportError:
         '(choose a libparallelproj build matching your CUDA version, e.g. libparallelproj=*=cuda130*). '
         'See https://parallelproj.readthedocs.io/en/stable/'
     )
+import pytomography
+pytomography._check_parallelproj(parallelproj_core)
 from .petlm_system_matrix import PETLMSystemMatrix
 from .pet_sinogram_system_matrix import PETSinogramSystemMatrix, create_sinogramSM_from_LMSM
