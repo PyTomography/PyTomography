@@ -1,3 +1,4 @@
+"""The Poisson log-likelihood of emission data (SPECT, PET)."""
 from __future__ import annotations
 from typing import Callable
 import pytomography
@@ -6,12 +7,25 @@ from .likelihood import Likelihood, _rows_per_block
 from pytomography.transforms.SPECT import AdditiveTermTransform
 
 class PoissonLogLikelihood(Likelihood):
-    r"""The log-likelihood function for Poisson random variables. The likelihood is given by :math:`L(g|f) = \sum_i g_i [\ln(Hf)]_i - [Hf]_i - ...`. The :math:`...` contains terms that are not dependent on :math:`f`.
+    r"""The Poisson log-likelihood :math:`L(g|f) = \sum_i g_i \ln(Hf+s)_i - (Hf+s)_i` (up to terms without :math:`f`).
+
+    :math:`g` is the measured data, :math:`H` the system matrix, :math:`s` the additive term (scatter, randoms) and
+    :math:`f` the object. The likelihood of OSEM, OSMAPOSL, BSREM and the other emission algorithms.
 
     Args:
-        system_matrix (SystemMatrix): The system matrix :math:`H` modeling the particular system whereby the projections were obtained
-        projections (torch.Tensor): Acquired data (assumed to have Poisson statistics).
-        additive_term (torch.Tensor, optional): Additional term added after forward projection by the system matrix. This term might include things like scatter and randoms. Defaults to None.
+        system_matrix (SystemMatrix): The system matrix :math:`H`.
+        projections (torch.Tensor | None, optional): The measured data :math:`g`, with Poisson statistics (left out for
+            list mode). A :class:`~pytomography.io.PET.LazySinogram` is accepted too. Defaults to None.
+        additive_term (torch.Tensor, optional): The additive term :math:`s`, added after forward projection. Defaults
+            to None.
+        additive_term_variance_estimate (Callable, optional): A function that applies the variance of the additive
+            term, for uncertainty estimates. Defaults to None.
+
+    Example:
+        .. code-block:: python
+
+            likelihood = PoissonLogLikelihood(system_matrix, photopeak, additive_term=scatter)
+            recon = OSEM(likelihood)(n_iters=4, n_subsets=8)
     """
                 
     def compute_gradient(
@@ -20,15 +34,16 @@ class PoissonLogLikelihood(Likelihood):
         subset_idx: int | None = None,
         norm_BP_subset_method: str = 'subset_specific'
         ) -> torch.Tensor:
-        r"""Computes the gradient for the Poisson log likelihood given by :math:`\nabla_f L(g|f) =  H^T (g / Hf) - H^T 1`. 
+        r"""The gradient :math:`\nabla_f L(g|f) = H_m^T \left(g_m / (H_m f + s_m)\right) - H_m^T 1` over subset :math:`m`.
 
         Args:
-            object (torch.Tensor): Object :math:`f` on which the likelihood is computed
-            subset_idx (int | None, optional): Specifies the subset for forward/back projection. If none, then forward/back projection is done over all subsets, and the entire projections :math:`g` are used. Defaults to None.
-            norm_BP_subset_method (str, optional): Specifies how :math:`H^T 1` is calculated when subsets are used. If 'subset_specific', then uses :math:`H_m^T 1`. If `average_of_subsets`, then uses the average of all :math:`H_m^T 1`s for any given subset (scaled to the relative size of the subset if subsets are not equal size). Defaults to 'subset_specific'.
+            object (torch.Tensor): The object :math:`f`, [Lx, Ly, Lz].
+            subset_idx (int | None, optional): Subset index :math:`m`. Defaults to None: all the projections.
+            norm_BP_subset_method (str, optional): Not used: :math:`H_m^T 1` is always the subset's own. Accepted for
+                the interface of the likelihoods. Defaults to ``'subset_specific'``.
 
         Returns:
-            torch.Tensor: The gradient of the Poisson likelihood.
+            torch.Tensor: The gradient, [Lx, Ly, Lz].
         """
         proj_subset = self._get_projection_subset(self.projections, subset_idx)
         FP = self._forward_with_additive_term(object, subset_idx)
@@ -56,15 +71,16 @@ class PoissonLogLikelihood(Likelihood):
         precomputed_forward_projection: torch.Tensor | None = None,
         subset_idx: int = None,
         ) -> Callable:
-        r"""Computes the second order derivative :math:`\nabla_{ff} L(g|f) = -H^T (g/(Hf+s)^2) H`. 
+        r"""The second derivative :math:`\nabla_{ff} L(g|f) = -H^T \left(g/(Hf+s)^2\right) H`, as an operator.
 
         Args:
-            object (torch.Tensor): Object :math:`f` used in computation.
-            precomputed_forward_projection (torch.Tensor | None, optional): The quantity :math:`Hf`. If this value is None, then the forward projection is recomputed. Defaults to None.
-            subset_idx (int, optional): Specifies the subset for all computations. Defaults to None.
+            object (torch.Tensor): The object :math:`f`, [Lx, Ly, Lz].
+            precomputed_forward_projection (torch.Tensor | None, optional): The expected projections :math:`Hf + s`.
+                Defaults to None: :math:`Hf` is computed (without the additive term).
+            subset_idx (int, optional): Subset index :math:`m`. Defaults to None: all the projections.
 
         Returns:
-            Callable: The operator given by the second order derivative.
+            Callable: A function that applies the operator to an object.
         """
         if precomputed_forward_projection is None:
             FP = self.system_matrix.forward(object, subset_idx)
@@ -83,15 +99,16 @@ class PoissonLogLikelihood(Likelihood):
         precomputed_forward_projection = None,
         subset_idx=None,
         ):
-        r"""Computes the second order derivative :math:`\nabla_{gf} L(g|f) = 1/(Hf+s) H`. 
+        r"""The second derivative :math:`\nabla_{gf} L(g|f) = H / (Hf+s)`, as an operator.
 
         Args:
-            object (torch.Tensor): Object :math:`f` used in computation.
-            precomputed_forward_projection (torch.Tensor | None, optional): The quantity :math:`Hf`. If this value is None, then the forward projection is recomputed. Defaults to None.
-            subset_idx (int, optional): Specifies the subset for all computations. Defaults to None.
+            object (torch.Tensor): The object :math:`f`, [Lx, Ly, Lz].
+            precomputed_forward_projection (torch.Tensor | None, optional): The expected projections :math:`Hf + s`.
+                Defaults to None: :math:`Hf` is computed (without the additive term).
+            subset_idx (int, optional): Subset index :math:`m`. Defaults to None: all the projections.
 
         Returns:
-            Callable: The operator given by the second order derivative.
+            Callable: A function that applies the operator to an object (giving projections).
         """
         if precomputed_forward_projection is None:
             FP = self.system_matrix.forward(object, subset_idx)
@@ -108,15 +125,16 @@ class PoissonLogLikelihood(Likelihood):
         precomputed_forward_projection = None,
         subset_idx=None,
         ):
-        r"""Computes the second order derivative :math:`\nabla_{sf} L(g|f,s) = -g/(Hf+s)^2 H` where :math:`s` is an additive term representative of scatter. 
+        r"""The second derivative :math:`\nabla_{sf} L(g|f,s) = -g H / (Hf+s)^2`, as an operator (:math:`s` the scatter).
 
         Args:
-            object (torch.Tensor): Object :math:`f` used in computation.
-            precomputed_forward_projection (torch.Tensor | None, optional): The quantity :math:`Hf`. If this value is None, then the forward projection is recomputed. Defaults to None.
-            subset_idx (int, optional): Specifies the subset for all computations. Defaults to None.
+            object (torch.Tensor): The object :math:`f`, [Lx, Ly, Lz].
+            precomputed_forward_projection (torch.Tensor | None, optional): The expected projections :math:`Hf + s`.
+                Defaults to None: :math:`Hf` is computed (without the additive term).
+            subset_idx (int, optional): Subset index :math:`m`. Defaults to None: all the projections.
 
         Returns:
-            Callable: The operator given by the second order derivative.
+            Callable: A function that applies the operator to an object (giving projections).
         """
         proj_subset = self._get_projection_subset(self.projections, subset_idx)
         if precomputed_forward_projection is None:
@@ -129,7 +147,13 @@ class PoissonLogLikelihood(Likelihood):
         return operator
     
 class MonteCarloHybridSPECTPoissonLogLikelihood(PoissonLogLikelihood):
-    """Adapated Poisson log likelihood for Monte Carlo hybrid SPECT system matrix.
+    """The Poisson log-likelihood for :class:`~pytomography.projectors.SPECT.MonteCarloHybridSPECTSystemMatrix`.
+
+    Its gradient guards against the noise of the Monte Carlo forward projection: where the simulation predicts no
+    counts but some were measured, the ratio of measured to expected counts is left out, and the ratio is clipped at
+    1000. If the system matrix has an :class:`~pytomography.transforms.SPECT.AdditiveTermTransform`, its additive term
+    is scaled by the mean ratio at every gradient (and the new value printed). The arguments are those of
+    :class:`PoissonLogLikelihood`.
     """
     def compute_gradient(
         self,
@@ -137,13 +161,15 @@ class MonteCarloHybridSPECTPoissonLogLikelihood(PoissonLogLikelihood):
         subset_idx: int | None = None,
         norm_BP_subset_method: str = 'subset_specific'
         ) -> torch.Tensor:
-        """Returns the gradient of the log likelihood with respect to the object.
+        """The gradient of the log-likelihood with respect to the object, with the guards above.
+
         Args:
-            object (torch.Tensor): Object to simulate
-            subset_idx (int | None, optional): Index of the subset to use. If None, then all projections are used. Defaults to None.
-            norm_BP_subset_method (str, optional): Method to use for normalizing the back projection. Defaults to 'subset_specific'.
+            object (torch.Tensor): The object :math:`f`, [Lx, Ly, Lz] (the source of the simulation).
+            subset_idx (int | None, optional): Subset index :math:`m`. Defaults to None: all the projections.
+            norm_BP_subset_method (str, optional): Not used. Defaults to ``'subset_specific'``.
+
         Returns:
-            torch.Tensor: Gradient of the log likelihood with respect to the object
+            torch.Tensor: The gradient, [Lx, Ly, Lz].
         """
         proj_subset = self._get_projection_subset(self.projections, subset_idx)
         self._forward_with_additive_term(object, subset_idx)
