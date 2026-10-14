@@ -647,7 +647,11 @@ def test_registry_entry(name):
 
 
 def test_registry_matches_the_tutorial_list():
-    """Every tutorial's datasets in docs/source/tutorials/tutorials.yaml are the registry's, and the other way round."""
+    """Every tutorial in docs/source/tutorials/tutorials.yaml reads exactly the datasets the registry lists it under.
+
+    The registry may also list tutorials these docs don't have yet: a tutorial's datasets go into development first,
+    and the docs pull request that adds the tutorial comes after.
+    """
     tutorials_yaml = REPO / "docs" / "source" / "tutorials" / "tutorials.yaml"
     if not tutorials_yaml.exists():
         pytest.skip("no docs/source/tutorials/tutorials.yaml in this checkout")
@@ -658,4 +662,4 @@ def test_registry_matches_the_tutorial_list():
     for name, e in registry.DATASETS.items():
         for notebook in e["tutorials"]:
             from_registry.setdefault(notebook, set()).add(name)
-    assert {k: v for k, v in listed.items() if v} == from_registry
+    assert {k: v for k, v in listed.items() if v} == {k: v for k, v in from_registry.items() if k in listed}
