@@ -8,5 +8,7 @@ except ImportError:
         '(choose a libparallelproj build matching your CUDA version, e.g. libparallelproj=*=cuda130*). '
         'See https://parallelproj.readthedocs.io/en/stable/'
     )
+import pytomography
+pytomography._check_parallelproj(parallelproj_core)
 from .ct_conebeam_flatpanel_system_matrix import CTConeBeamFlatPanelSystemMatrix
 from .ct_gen3_system_matrix import CTGen3SystemMatrix
