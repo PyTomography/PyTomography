@@ -39,6 +39,8 @@ def _transform_memory(transform, object_shape: Sequence[int], n_views: int) -> t
       every radius if it caches them (``cache_kernel``); a call takes eight arrays of the zero padded object (signal, its
       spectrum, the kernel's, their product and the result, rounded up for the first call, which also runs the
       operator's own convolution to check the fast one). Not measured.
+    * A transform with a ``memory(object_shape)`` method (e.g.
+      :class:`~pytomography.transforms.SPECT.SPECTKernelPSFTransform`): what it reports.
     * Any other transform: the tensors it keeps, and two objects per call.
     """
     from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
@@ -75,6 +77,8 @@ def _transform_memory(transform, object_shape: Sequence[int], n_views: int) -> t
             else:
                 temporaries = max(temporaries, 4 * obj)
         return ram, gpu, temporaries
+    if callable(getattr(transform, 'memory', None)):
+        return transform.memory(object_shape)
     ram, gpu = tensor_bytes(transform)
     return ram, gpu, 2 * obj
 
