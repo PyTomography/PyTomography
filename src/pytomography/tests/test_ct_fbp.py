@@ -179,6 +179,28 @@ def test_conebeam_fdk_reconstructs_the_phantom_in_the_central_slices(n_cols):
     assert (image - ram_lak).abs().max() > 0.01 * MU                   # the window is applied
 
 
+def test_conebeam_fdk_with_the_rotation_axis_off_the_central_ray():
+    """With the rotation axis 8 mm from the central ray (the axis at (0, -8) mm), FDK's distance weight takes each
+    voxel's distance from the source along the central ray from the axis, and the phantom comes back as without an
+    offset. (The weight before PyTomography 4 was off by 2 COR sin(theta): 8 % here, a modulation in the image.)"""
+    angles = torch.linspace(0, 2 * np.pi, 121)[:-1]
+    meta = CTConeBeamFlatPanelProjMeta(angles, torch.zeros(120), detector_radius=100.0, beam_radius=200.0,
+                                       shape=(72, 24), dr=(2.0, 2.0), COR=8.0)
+    sphere = ((8.0, 5.0, 0.0), 8.0, 0.004)
+    object_meta = ObjectMeta(dr=(2.0, 2.0, 2.0), shape=(40, 40, 6))
+    image = FilteredBackProjection(_conebeam_line_integrals(meta, sphere).to(pytomography.device),
+                                   CTConeBeamFlatPanelSystemMatrix(object_meta, meta), filter='hann')()
+    x, z = (np.arange(40) - 19.5) * 2.0, (np.arange(6) - 2.5) * 2.0
+    X, Y, Z = np.meshgrid(x, x, z, indexing='ij')
+    (cx, cy, cz), radius, dmu = sphere
+    to_sphere = np.sqrt((X - cx) ** 2 + (Y - cy) ** 2 + (Z - cz) ** 2)
+    truth = MU * (np.hypot(X, Y) <= 30.0) + dmu * (to_sphere <= radius)
+    safe = (np.hypot(X, Y) < 24.0) & (np.abs(to_sphere - radius) > 4)
+    err = (image.cpu().numpy() - truth)[safe] / MU
+    # measured on an RTX 5090: mean -0.0008, max 0.020; with v3's weight, mean 0.0043, max 0.045
+    assert abs(err.mean()) < 0.002 and np.abs(err).max() < 0.03
+
+
 def test_the_column_scale_is_fitted_back_from_a_reference_image():
     # the "scanner" applied a per-column scale before reconstructing; the fit finds it from the two images
     meta = _helix(rotations=3)
@@ -263,22 +285,20 @@ def test_c145_matches_the_scanner_images(data_dir):
     the scan: the GE central column read automatically, the per-column scale fitted to the scanner's own (STANDARD)
     images, and then soft tissue, fat and lung within 5 HU of those images, with no radial trend."""
     from scipy import ndimage
-    from pytomography.io.shared import open_multifile, align_images_affine
+    from pytomography.io import load_image
     folder = data_dir / 'CT' / 'ldct-c145'
     if not (folder / 'full_dose_projections').is_dir():
         pytest.skip('CT/ldct-c145 is not in the tutorial data folder')
-    proj, meta = dicom_ct_pd.get_projections_and_metadata_gen3(folder / 'full_dose_projections', table_feed='pitch')
+    scanner = load_image(sorted(glob.glob(str(folder / 'full_dose_images' / '*.dcm'))))
+    ps = float(scanner.voxel_size[0])
+    proj, object_meta, meta = dicom_ct_pd.read_dicom_ct_pd(folder / 'full_dose_projections', table_feed='pitch',
+                                                           object_meta=ObjectMeta(dr=(ps, ps, 1.0), shape=(512, 512, 40)))
     assert float(meta.detector_centers_col_idx[0]) == pytest.approx(888 - 444.75)   # GE counts it from the other end
-    # the scanner's images on our grid; GE's ImagePositionPatient marks the corner of the first pixel, not its centre
-    scanner, scanner_meta = open_multifile(sorted(glob.glob(str(folder / 'full_dose_images' / '*.dcm'))), return_object_meta=True)
-    ps = float(scanner_meta.dr[0])
-    object_meta = ObjectMeta(dr=(ps, ps, 1.0), shape=(512, 512, 40))
+    assert object_meta.frame == 'patient' and object_meta.centre[2] == pytest.approx(meta.z_center)
     system_matrix = CTGen3SystemMatrix(object_meta, meta)
-    affine = scanner_meta.affine_matrix.copy()
-    affine[:2, 3] += 0.5 * ps
-    theirs = align_images_affine(np.zeros(object_meta.shape, np.float32), scanner.cpu().numpy(),
-                                 meta.get_patient_affine(object_meta).numpy(), affine, cval=-3000)
-    del scanner
+    # the scanner's images on our grid, by the two files' geometry alone (GE's corner ImagePositionPatient is a rule
+    # of the vendor table; k runs foot to head in both)
+    theirs = scanner.on(object_meta, fill=-3000).cpu().numpy()
     fit = preprocessing.fit_column_scale(proj, meta, system_matrix, meta.water_attenuation * (1 + theirs / 1000),
                                          filter='hann', slice_thickness=1.25)
     assert fit['g0'] == pytest.approx(-0.012, abs=0.003) and fit['g2'] == pytest.approx(0.0165, abs=0.003)
@@ -293,3 +313,47 @@ def test_c145_matches_the_scanner_images(data_dir):
     soft = ndimage.binary_erosion((smooth >= 10) & (smooth < 70) & valid, np.ones((9, 9, 3)))
     d = ours - theirs
     assert d[soft & (r < 40)].mean() - d[soft & (r >= 140) & (r < 180)].mean() == pytest.approx(0, abs=12)
+    # where: the scanner's images, placed by their own geometry and ours by object_meta, need less than 0.05 mm more
+    # to coincide (the audit's ct_c145_halfpixel), with no half-pixel patch; any axis flipped correlates far worse
+    shift, r_fit = _residual_shift(ours, scanner, object_meta)
+    assert np.abs(shift).max() < 0.05 and r_fit >= 0.99, (shift, r_fit)
+    blur = lambda a: ndimage.gaussian_filter(np.where(a > -1500, a, -1000), 1 / np.asarray(object_meta.dr))
+
+    def correlation(other):
+        m = (other > -900) & valid
+        return np.corrcoef(blur(ours)[m], blur(other)[m])[0, 1]
+    as_placed = correlation(theirs)
+    for axis in range(3):
+        assert correlation(np.flip(theirs, axis)) < as_placed - 0.02, axis
+
+
+def _residual_shift(ours: np.ndarray, scanner, object_meta, iters: int = 4) -> tuple:
+    """The translation (mm, patient LPS) to add to the scanner image's affine so that it best matches ``ours`` (on
+    ``object_meta``), with a linear intensity map, by Gauss-Newton on the 1 mm-blurred images over the body; and the
+    correlation of the two before the last step."""
+    from scipy import ndimage
+    from pytomography.io import Image
+    dr = np.asarray(object_meta.dr)
+    sigma = 1.0 / dr
+    o = ndimage.gaussian_filter(ours, sigma)
+    t = np.zeros(3)
+    r = float('nan')
+    for _ in range(iters):
+        A = scanner.affine.copy()
+        A[:3, 3] += t
+        S = Image(scanner.data, A).on(object_meta, fill=-3000).cpu().numpy()
+        valid = S > -1500
+        Sb = ndimage.gaussian_filter(np.where(valid, S, -1000), sigma)
+        mask = ndimage.binary_erosion(valid & (Sb > -900), iterations=3)
+        mask[:, :, :3] = mask[:, :, -3:] = False
+        g = np.gradient(Sb, *dr)                               # the grid's axes are the patient's (LPS, k up)
+        G = np.stack([g[a][mask] for a in range(3)], 1).astype(np.float64)
+        y = o[mask].astype(np.float64)
+        X = np.column_stack([np.ones(len(y)), Sb[mask].astype(np.float64), G])
+        coef = np.linalg.lstsq(X, y, rcond=None)[0]
+        step = -coef[2:] / coef[1]
+        t = t + step
+        r = float(np.corrcoef(y, Sb[mask])[0, 1])
+        if np.abs(step).max() < 0.005:
+            break
+    return t, r

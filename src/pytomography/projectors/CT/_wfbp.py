@@ -281,7 +281,7 @@ def fbp_helical(proj: torch.Tensor, meta, X: torch.Tensor, Y: torch.Tensor, Z: n
     Z = np.asarray(Z, dtype=np.float64)
     if np.any(np.diff(Z) <= 0):
         raise ValueError('Z must increase')
-    dt = float(meta.source_rhos.double().mean()) * abs(float(meta.col_det_spacing))
+    dt = float(meta.source_rhos.double().mean()) * abs(float(meta.col_angle_spacing))
     groups = view_groups(meta)
     out = torch.zeros((X.shape[0], X.shape[1], len(Z)), dtype=torch.float32, device=device)
     cuda = device.type == 'cuda'
@@ -337,7 +337,7 @@ def memory_parts(proj: torch.Tensor, meta, X: torch.Tensor, Y: torch.Tensor, Z: 
     uniform = Nz < 2 or np.allclose(np.diff(Z), float(Z[1] - Z[0]), rtol=1e-6, atol=1e-6)
     use_cuda = backend == 'cuda' or (backend == 'auto' and uniform and _wfbp_cuda.available(device)
                                       and (k_range is None or k_range <= _wfbp_cuda.MAX_K_RANGE))
-    dt = float(meta.source_rhos.double().mean()) * abs(float(meta.col_det_spacing))
+    dt = float(meta.source_rhos.double().mean()) * abs(float(meta.col_angle_spacing))
     r_fov = float(torch.sqrt(X.double() ** 2 + Y.double() ** 2).max())
     available = gpu_budget(budget, device)
     cuda = device.type == 'cuda'

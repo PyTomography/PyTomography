@@ -23,8 +23,8 @@ def get_smoothed_scatter(
         scatter (torch.Tensor): Input projection data
         proj_meta (ProjMeta): Projection metadata
         sigma_theta (float, optional): Smoothing in theta (specified in degrees). Defaults to 0.
-        sigma_r (float, optional): Smoothing in r (specified in cm). Defaults to 0.
-        sigma_z (float, optional): Smoothing in z (specified in cm). Defaults to 0.
+        sigma_r (float, optional): Smoothing in r (sigma, mm). Defaults to 0.
+        sigma_z (float, optional): Smoothing in z (sigma, mm). Defaults to 0.
         N_sigmas (int, optional): Number of sigmas to include in the smoothing kernel. Defaults to 3.
         FOV_mask (torch.Tensor, optional): Field of view mask. Defaults to None.
 

@@ -1,7 +1,3 @@
-"""Shared functionality between different imaging modalities. 
-"""
+"""Shared functionality between different imaging modalities: the image writers."""
 
-from .dicom_creation import create_ds
-from .interfile import get_header_value, get_attenuation_map_interfile
-from .dicom import open_multifile, open_singlefile, align_images_affine, _get_affine_multifile, _get_affine_single_file
-from .output import save_nifti, save_dicom, patient_affine, centred_affine
+from .output import save_nifti, save_dicom

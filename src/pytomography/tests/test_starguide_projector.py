@@ -19,16 +19,16 @@ DEV = pytomography.device
 LX, LY, LZ = 40, 40, 12
 
 
-def _system(psf_params=(0.02, 0.05), n_subsets=3, seed=0):
+def _system(psf_params=(0.02, 0.5), n_subsets=3, seed=0):
     gen = torch.Generator().manual_seed(seed)
-    dx = 0.4
+    dx = 4.0
     object_meta = SPECTObjectMeta(dr=(dx, dx, dx), shape=(LX, LY, LZ))
     angles = torch.tensor(np.repeat([0.0, 33.7, 90.0, 137.2, 200.5, 300.1], 4), dtype=torch.float32)
     offsets = (torch.rand(24, generator=gen) * 2 - 1) * 6 * dx                       # up to 6 voxels either way
     times = 0.5 + torch.rand(24, generator=gen)
-    radii = np.array([10 + i for i in range(24)], dtype=float)
+    radii = np.array([100 + 10 * i for i in range(24)], dtype=float)
     proj_meta = StarGuideProjMeta((24, 16, LZ), angles.to(DEV), times.to(DEV), offsets.to(DEV), radii)
-    mu = (0.15 * torch.rand(LX, LY, LZ, generator=gen)).to(DEV)
+    mu = (0.015 * torch.rand(LX, LY, LZ, generator=gen)).to(DEV)
     transforms = [SPECTAttenuationTransform(mu, assume_padded=False)]
     if psf_params is not None:
         transforms.append(SPECTPSFTransform(SPECTPSFMeta(psf_params), assume_padded=False))
@@ -58,7 +58,7 @@ def _reference_forward(sm, object, subset_idx=None):
         obj_translate_rot = sm._translate_object(obj_rotate, offsets_i / sm.object_meta.dx)
         center = int(obj_translate_rot.shape[2] / 2)
         projections[idx] = obj_translate_rot[:, :, center - 8:center + 8].sum(axis=1)
-    return projections * sm.times[angle_indices]
+    return projections * sm.frame_duration_s[angle_indices]
 
 
 def _reference_backward(sm, proj, subset_idx=None):
@@ -68,7 +68,7 @@ def _reference_backward(sm, proj, subset_idx=None):
     boundary_box_bp = torch.ones(*sm.object_meta.shape).to(DEV)
     proj_pad = int((sm.object_meta.shape[1] - sm.proj_meta.shape[1]) / 2)
     object = torch.zeros(*sm.object_meta.shape).to(DEV)
-    proj = proj * sm.times[angle_indices]
+    proj = proj * sm.frame_duration_s[angle_indices]
     for angle in torch.unique(sm.proj_meta.angles[angle_indices]):
         idx = sm.proj_meta.angles[angle_indices] == angle
         offsets_i = sm.proj_meta.offsets[angle_indices][idx]

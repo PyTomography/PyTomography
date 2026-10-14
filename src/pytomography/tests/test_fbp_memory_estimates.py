@@ -49,7 +49,7 @@ def test_the_helical_fbp_estimate_counts_the_chunk_it_holds():
     assert chunk <= 0.004e9 / 8 < whole['rebinned views of one chunk'].ram_bytes
     # the chunks the reconstruction went through are those of the estimate
     geo = _wfbp.group_geometry(meta, _wfbp.view_groups(meta)[0])
-    theta, t, _ = _wfbp.parallel_grid(geo, float(meta.source_rhos.double().mean()) * abs(float(meta.col_det_spacing)))
+    theta, t, _ = _wfbp.parallel_grid(geo, float(meta.source_rhos.double().mean()) * abs(float(meta.col_angle_spacing)))
     assert stats['groups'][0]['chunks'] == -(-len(theta) // (chunk // (len(t) * meta.shape[1] * 4)))
 
 
@@ -136,8 +136,8 @@ def test_the_fbp_estimate_bounds_its_gpu_peak(which):
     else:                                                      # a typical SPECT grid, 128 x 128 x 32
         from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta
         from pytomography.projectors.SPECT import SPECTSystemMatrix
-        sm = SPECTSystemMatrix([], [], SPECTObjectMeta([0.4] * 3, (128, 128, 32)),
-                               SPECTProjMeta((128, 32), [0.4, 0.4], list(np.linspace(0, 360, 60, endpoint=False))))
+        sm = SPECTSystemMatrix([], [], SPECTObjectMeta([4.0] * 3, (128, 128, 32)),
+                               SPECTProjMeta((128, 32), [4.0, 4.0], list(np.linspace(0, 360, 60, endpoint=False))))
         proj = torch.rand(sm.proj_meta.shape)
     fbp = FilteredBackProjection(proj, sm)
     estimate = _gpu(fbp.estimate_memory())

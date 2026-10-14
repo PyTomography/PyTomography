@@ -178,7 +178,8 @@ def _pet_info(crystals: int, rings: int) -> dict:
     """A polygonal scanner of ``crystals`` per ring (blocks of 8 x 8 crystals of 4 mm) and ``rings`` rings."""
     sectors = crystals // 8
     apothem = 32.0 / (2 * math.tan(math.pi / sectors))
-    return dict(min_rsector_difference=0, crystal_length=20.0, radius=round(1.03 * apothem, 1), firstCrystalAxis=0,
+    return dict(min_rsector_difference=0, crystal_length=20.0, radius=round(1.03 * apothem, 1), rsector0_angle_deg=90.0,
+                transaxial_direction=-1, axial_direction=-1,
                 rsectorTransNr=sectors, rsectorAxialNr=1, moduleTransNr=1, moduleAxialNr=rings // 8, moduleTransSpacing=0.0,
                 moduleAxialSpacing=33.0, submoduleTransNr=1, submoduleAxialNr=1, submoduleTransSpacing=0.0,
                 submoduleAxialSpacing=0.0, crystalTransNr=8, crystalAxialNr=8, crystalTransSpacing=4.0,
@@ -503,13 +504,13 @@ def build_fbp(p: dict) -> Case:
 
 
 # ------------------------------------------------------------------------------------------------------- SPECT
-def _spect_metas(p: dict):
+def _spect_metas(p: dict, z_mm: float = 0.0):
     import numpy as np
     from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta
     n, views = p['n'], p.get('views', 120)
-    dx = p.get('dx', 0.48 * 128 / n)
-    object_meta = SPECTObjectMeta([dx] * 3, (n, n, n))
-    radii = 35.0 + 5 * np.sin(np.linspace(0, 2 * np.pi, views, endpoint=False))            # a non-circular orbit, cm
+    dx = p.get('dx', 4.8 * 128 / n)                                                          # mm
+    object_meta = SPECTObjectMeta([dx] * 3, (n, n, n), centre=(0.0, 0.0, z_mm))
+    radii = 350.0 + 50 * np.sin(np.linspace(0, 2 * np.pi, views, endpoint=False))          # a non-circular orbit, mm
     proj_meta = SPECTProjMeta((n, n), [dx, dx], list(np.linspace(0, 360, views, endpoint=False)), radii=radii)
     return object_meta, proj_meta
 
@@ -518,7 +519,7 @@ class _GaussianOperator:
     """A PSF operator that exposes its kernel (as SPECTPSFToolbox operators do): a Gaussian widening with distance."""
     def _get_kernel(self, xv, yv, distances):
         import torch
-        sigma = (0.03235 * distances + 0.1324).reshape(-1, 1, 1)
+        sigma = (0.03235 * distances + 1.324).reshape(-1, 1, 1)                               # mm
         k = torch.exp(-(xv ** 2 + yv ** 2) / (2 * sigma ** 2))
         return k / k.sum(dim=(1, 2), keepdim=True)
 
@@ -528,19 +529,19 @@ class _GaussianOperator:
         return torch.nn.functional.conv2d(input.unsqueeze(0), kernel, padding='same', groups=input.shape[0]).squeeze(0)
 
 
-def _spect_system_matrix(p: dict):
+def _spect_system_matrix(p: dict, z_mm: float = 0.0):
     import pytomography
     from pytomography.metadata.SPECT import SPECTPSFMeta
     from pytomography.projectors.SPECT import SPECTSystemMatrix
     from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
-    object_meta, proj_meta = _spect_metas(p)
+    object_meta, proj_meta = _spect_metas(p, z_mm)
     transforms = []
     if p.get('attenuation', True):
-        transforms.append(SPECTAttenuationTransform(_uniform(object_meta.shape, pytomography.device, 0, 0.15),
+        transforms.append(SPECTAttenuationTransform(_uniform(object_meta.shape, pytomography.device, 0, 0.015),   # 1/mm
                                                     cache_probabilities=p.get('cache_probabilities', False)))
     psf = p.get('psf', 'gaussian')
     if psf == 'gaussian':
-        transforms.append(SPECTPSFTransform(SPECTPSFMeta((0.03235, 0.1324))))
+        transforms.append(SPECTPSFTransform(SPECTPSFMeta((0.03235, 1.324))))                  # sigma = 0.03235 d + 1.324 mm
     elif psf == 'operator':
         transforms.append(SPECTPSFTransform(psf_operator=_GaussianOperator(), cache_kernel=True))
     return SPECTSystemMatrix(transforms, [], object_meta, proj_meta)
@@ -568,16 +569,16 @@ def build_starguide(p: dict) -> Case:
     from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
     dev = pytomography.device
     n, lz = p['n'], p['lz']
-    object_meta = SPECTObjectMeta((0.25, 0.25, 0.25), (n, n, lz))
+    object_meta = SPECTObjectMeta((2.5, 2.5, 2.5), (n, n, lz))                                 # mm
     n_angles, heads = p.get('angles', 30), 12
     angles = torch.tensor(np.repeat(np.linspace(0, 360, n_angles, endpoint=False), heads), dtype=torch.float32)
     views = n_angles * heads
-    offsets = (torch.rand(views) * 2 - 1) * 8
+    offsets = (torch.rand(views) * 2 - 1) * 80                                                 # mm
     proj_meta = StarGuideProjMeta((views, 16, lz), angles.to(dev), (0.5 + torch.rand(views)).to(dev), offsets.to(dev),
-                                  15.0 + 10 * torch.rand(views).numpy())
-    transforms = [SPECTAttenuationTransform(_uniform((n, n, lz), dev, 0, 0.15), assume_padded=False)]
+                                  150.0 + 100 * torch.rand(views).numpy())                   # mm
+    transforms = [SPECTAttenuationTransform(_uniform((n, n, lz), dev, 0, 0.015), assume_padded=False)]   # 1/mm
     if p.get('psf', True):
-        transforms.append(SPECTPSFTransform(SPECTPSFMeta((0.02, 0.05)), assume_padded=False))
+        transforms.append(SPECTPSFTransform(SPECTPSFMeta((0.02, 0.5)), assume_padded=False))   # sigma = 0.02 d + 0.5 mm
     sm = StarGuideSystemMatrix(object_meta, proj_meta, obj2obj_transforms=transforms)
     return Case(_spect_algorithm(sm, p), p.get('n_subsets', 5), sm)
 
@@ -613,23 +614,18 @@ def build_motion(p: dict) -> Case:
 
 
 def build_multibed(p: dict) -> Case:
-    """Multi-bed SPECT: ``beds`` beds of SPECT, each with its own OSEM, stitched as ``dicom.stitch_multibed`` stitches
-    them. The DICOM headers it reads (each bed's position, rows and pixel spacing) are made up."""
-    import types
+    """Multi-bed SPECT: ``beds`` beds of SPECT, each with its own OSEM, stitched as ``io.SPECT.stitch_beds`` stitches
+    them. The beds' grids are placed along z, overlapping by a quarter of their length."""
     import torch
-    from pytomography.io.SPECT import dicom
+    from pytomography.io import SPECT as io_spect
     from pytomography.algorithms import PGAAMultiBedSPECT
     beds = p.get('beds', 3)
     n = p['n']
     object_meta, _ = _spect_metas(p)
-    dz = object_meta.dr[2] * 10                                    # mm
+    dz = object_meta.dr[2]                                         # mm
     overlap = n // 4
-    headers = {f'bed{k}': types.SimpleNamespace(
-        DetectorInformationSequence=[types.SimpleNamespace(ImagePositionPatient=[0.0, 0.0, k * (n - overlap) * dz])],
-        Rows=n, PixelSpacing=[dz, dz]) for k in range(beds)}
-    dicom.pydicom.dcmread = lambda name, *a, **k: headers[name]
-    algorithms = [_spect_algorithm(_spect_system_matrix(p), p) for _ in range(beds)]
-    multibed = PGAAMultiBedSPECT(list(headers), algorithms)
+    algorithms = [_spect_algorithm(_spect_system_matrix(p, z_mm=k * (n - overlap) * dz), p) for k in range(beds)]
+    multibed = PGAAMultiBedSPECT(algorithms)
 
     class MultiBedCase(Case):
         def estimate(self):
@@ -647,7 +643,7 @@ def build_multibed(p: dict) -> Case:
                 self.result = multibed(self.iterations, self.n_subsets)
                 return
             recons = [a(1, self.n_subsets, n_subset_specific=0) for a in algorithms]
-            self.result = dicom.stitch_multibed(recons=torch.stack(recons), files_NM=multibed.files_NM)
+            self.result = io_spect.stitch_beds(torch.stack(recons), multibed.object_metas)[0]
     return MultiBedCase(None, p.get('n_subsets', 8))
 
 

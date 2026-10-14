@@ -11,38 +11,56 @@ class CTGen3ProjMeta(ProjMeta):
         source_phi_offsets: torch.Tensor,
         source_rho_offsets: torch.Tensor,
         source_z_offsets: torch.Tensor,
-        detector_centers_col_idx: float,
-        detector_centers_row_idx: float,
-        col_det_spacing: float,
+        detector_centers_col_idx: torch.Tensor,
+        detector_centers_row_idx: torch.Tensor,
+        col_angle_spacing: float,
         row_det_spacing: float,
         DSD: float,
         shape: tuple,
         patient_position: str | None = None
     ) -> None:
-        r"""Metadata for 3rd generation clinical CT scanners. For more information, see the DICOM-CT-PD user manual in the PyTomography tutorial files. Currently only supports cylindrical detectors.
+        r"""Metadata of a third generation CT scan (a cylindrical detector opposite a focal spot that turns, and moves along
+        the axis for a helical scan), as DICOM-CT-PD files give it: the focal spot of every view in cylindrical
+        coordinates. For more information, see the DICOM-CT-PD user manual in the PyTomography tutorial files.
 
-        The object is centred on the isocentre in x and y and on the middle of the focal spot path in z. The original axial position of that middle is kept in ``z_center``, and :meth:`get_patient_affine` maps object voxels to DICOM patient coordinates.
+        The geometry is put in PyTomography's object frame, the patient's LPS axes (k runs foot to head), in mm and
+        radians, centred in x and y on the isocentre and along z on the middle of the focal spot path:
+
+        * focal spot centre of a view: :math:`(\rho\cos\phi', \rho\sin\phi', z - z_c)`, with :math:`\phi' = \phi - \pi/2`
+          and :math:`z_c` (``z_center``) the mean focal spot position, which is the patient z of the grid's centre;
+        * flying focal spot: the focal spot itself is at :math:`(\rho + \Delta\rho, \phi' + \Delta\phi, z - z_c + \Delta z)`;
+          the detector stays where the focal spot centre puts it;
+        * detector element (column :math:`c`, row :math:`r`, counted from 1): focal spot centre :math:`-
+          \mathrm{DSD}(\cos(\phi' + \gamma_c), \sin(\phi' + \gamma_c), 0) + (0, 0, -(r - r_0)\,\Delta z)`, with
+          :math:`\gamma_c = (c - c_0)` ``col_angle_spacing``.
+
+        The patient frame (FFS) was checked against the scanner's own images of TCIA LDCT-and-Projection-data case C145
+        (GE): within 0.006 mm in x, y and z. Before PyTomography 4 the frame's z was the patient's -z (k ran head to
+        foot), which put the same rays in the mirrored frame.
 
         Args:
-            source_phis (torch.Tensor): Angle of detectors in cylindrical coordinates
-            source_rhos (torch.Tensor): Radius of detectors in cylindrical coordinates
-            source_zs (torch.Tensor): Z coordinate of detectors (cylindrical coordinates)
-            source_phi_offsets (torch.Tensor): :math:`\phi` offset if flying focal spot used
-            source_rho_offsets (torch.Tensor): :math:`\rho` offset if flying focal spot used
-            source_z_offsets (torch.Tensor): :math:`z` offset if flying focal spot used
-            detector_centers_col_idx (float): Detector element (in column) that aligns with detectors focal center and isocenter
-            detector_centers_row_idx (float): Detector element (in row) that aligns with detectors focal center and isocenter
-            col_det_spacing (float): Spacing between columns of detector data (in mm)
-            row_det_spacing (float): Spacing between rows of detector data (in mm)
-            DSD (float): Distance between focal spot and detector center.
-            shape (tuple): Shape of projection data
-            patient_position (str | None, optional): DICOM PatientPosition of the scan (e.g. ``'FFS'``), used by :meth:`get_patient_affine`. Defaults to None.
+            source_phis (torch.Tensor): Angle of the focal spot centre of each view, DICOM-CT-PD's (rad)
+            source_rhos (torch.Tensor): Its distance from the axis (mm)
+            source_zs (torch.Tensor): Its axial position, the patient's z (mm)
+            source_phi_offsets (torch.Tensor): :math:`\Delta\phi` of a flying focal spot (rad)
+            source_rho_offsets (torch.Tensor): :math:`\Delta\rho` of a flying focal spot (mm)
+            source_z_offsets (torch.Tensor): :math:`\Delta z` of a flying focal spot (mm)
+            detector_centers_col_idx (torch.Tensor): Column :math:`c_0` (from 1, fractional) of each view through which
+                the ray from the focal spot centre passes the isocentre
+            detector_centers_row_idx (torch.Tensor): Row :math:`r_0` (from 1, fractional) of that ray
+            col_angle_spacing (float): Angle between neighbouring columns, seen from the focal spot (rad): the
+                transverse spacing at the detector over ``DSD``. (Before PyTomography 4, ``col_det_spacing``,
+                documented wrongly as mm.)
+            row_det_spacing (float): Spacing between rows at the detector (mm)
+            DSD (float): Distance from the focal spot to the detector (mm)
+            shape (tuple): Shape of the projections of a view: (columns, rows)
+            patient_position (str | None, optional): DICOM PatientPosition of the scan (e.g. ``'FFS'``). Defaults to None.
         """
         # copies: the geometry is shifted and rotated below, which must not change the caller's tensors
         self.source_phis = source_phis.clone()
         self.source_rhos = source_rhos.clone()
         self.source_zs = source_zs.clone()
-        # make (0,0,0) at center, keeping where the center was
+        # the patient z of the grid's centre, then the axis centred on it
         self.z_center = float(self.source_zs.double().mean())
         self.source_zs -= self.source_zs.mean()
         self.patient_position = patient_position
@@ -57,16 +75,13 @@ class CTGen3ProjMeta(ProjMeta):
         self.source_rho_offsets = source_rho_offsets
         self.detector_centers_col_idx = detector_centers_col_idx
         self.detector_centers_row_idx = detector_centers_row_idx
-        self.col_det_spacing = col_det_spacing
+        self.col_angle_spacing = col_angle_spacing
         self.row_det_spacing = row_det_spacing
         self.N_angles = len(self.source_phis)
         self.DSD = DSD
         self.shape = shape
-        # Reorient for DICOM system
-        self.source_zs = - self.source_zs
-        self.source_z_offsets = - self.source_z_offsets
+        # the object frame: x and y of DICOM-CT-PD's cylinder turned by -pi/2; z is the patient's
         self.source_phis -= torch.pi/2
-        # Compute things that are required
         self.source_focal_centers = torch.stack([
             self.source_rhos*torch.cos(self.source_phis),
             self.source_rhos*torch.sin(self.source_phis),
@@ -77,31 +92,10 @@ class CTGen3ProjMeta(ProjMeta):
             (self.source_rhos+self.source_rho_offsets)*torch.sin((self.source_phis+self.source_phi_offsets)),
             self.source_zs + self.source_z_offsets
         ], dim=-1)
-        phis_det = (torch.arange(1,shape[0]+1) - detector_centers_col_idx[0]) * col_det_spacing
-        zs_det = (torch.arange(1,shape[1]+1) - detector_centers_row_idx[0]) * row_det_spacing
-        #zs_det = torch.flip(zs_det, dims=(0,))
+        phis_det = (torch.arange(1,shape[0]+1) - detector_centers_col_idx[0]) * col_angle_spacing
+        # rows run towards -z: row 1 is the most superior
+        zs_det = -(torch.arange(1,shape[1]+1) - detector_centers_row_idx[0]) * row_det_spacing
         self.phis_det, self.zs_det = torch.meshgrid(phis_det, zs_det, indexing='ij')
-
-    def get_patient_affine(self, object_meta) -> torch.Tensor:
-        r"""Affine matrix mapping the voxel index :math:`(i, j, k, 1)` of an object reconstructed with this metadata to DICOM patient coordinates :math:`(x, y, z, 1)` in mm (LPS, the frame of ``ImagePositionPatient``). In-plane the object is centred on the isocentre, with :math:`i` along :math:`+x` and :math:`j` along :math:`+y`; along the axis :math:`z` decreases with :math:`k`, from ``z_center``, the mean focal spot position, at the middle slice.
-
-        This was checked against the scanner's own reconstruction of a feet first supine scan (TCIA LDCT-and-Projection-data case C145, GE): resampled with this affine, the two agree to within 0.5 mm in-plane and 0.34 mm axially, and every other choice of axis directions correlates worse. Other patient positions have not been checked, so they raise rather than return an untested mapping.
-
-        Args:
-            object_meta (ObjectMeta): Object space the reconstruction is on.
-
-        Returns:
-            torch.Tensor: 4x4 affine matrix (float64).
-        """
-        if self.patient_position != 'FFS':
-            raise NotImplementedError(f'The mapping to patient coordinates has only been verified for feet first supine (FFS) scans; this scan is {self.patient_position!r}. Compare a reconstruction with the scanner images to extend it.')
-        (Nx, Ny, Nz), (dx, dy, dz) = object_meta.shape, object_meta.dr
-        return torch.tensor([
-            [dx, 0, 0, -(Nx - 1) / 2 * dx],
-            [0, dy, 0, -(Ny - 1) / 2 * dy],
-            [0, 0, -dz, self.z_center + (Nz - 1) / 2 * dz],
-            [0, 0, 0, 1]
-        ], dtype=torch.float64)
 
     def get_detector_coordinates(self, idxs: torch.Tensor[int]) -> torch.Tensor:
         """Obtain detector coordinates and the angles corresponding to idxs. They are computed on the device ``idxs`` is on, so a projector running on the GPU need not build them on the host and copy them across.
@@ -120,4 +114,3 @@ class CTGen3ProjMeta(ProjMeta):
             -self.DSD*torch.sin(source_phis + phis_det[None]),
             0*source_phis + zs_det[None]
         ], dim=-1) + self.source_focal_centers.to(device)[idxs,None,None]
-        

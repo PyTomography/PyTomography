@@ -68,18 +68,18 @@ def diff_compton_cross_section(cos_theta: torch.Tensor, energy: torch.Tensor) ->
 #: :func:`detector_energy_window`): a lower threshold of 430 keV, no upper limit, and a resolution of 15% FWHM at
 #: 511 keV. These are the values the scatter simulation always used, so data whose ``info`` has none of the keys (GATE,
 #: the GE scanners) get the same estimate as before, bit for bit.
-DEFAULT_ENERGY_WINDOW = {'energy_window_low': 430.0, 'energy_window_high': None, 'energy_resolution': 0.15}
+DEFAULT_ENERGY_WINDOW = {'energy_window_low_keV': 430.0, 'energy_window_high_keV': None, 'energy_resolution': 0.15}
 
 def detector_energy_window(info: dict) -> tuple[float, float | None, float]:
     """The detector's energy window and energy resolution, as the scatter simulation reads them from the scanner's
     ``info``:
 
-    * ``info['energy_window_low']``: the lower limit of the energy window, in keV;
-    * ``info['energy_window_high']``: its upper limit, in keV;
+    * ``info['energy_window_low_keV']``: the lower limit of the energy window, in keV;
+    * ``info['energy_window_high_keV']``: its upper limit, in keV;
     * ``info['energy_resolution']``: the FWHM of the photopeak at 511 keV, as a fraction of 511 keV (PETSIRD's
       ``energy_resolution_at_511``).
 
-    The PETSIRD reader (:func:`pytomography.io.PET.petsird.get_detector_info`) gives all three, from the file. The
+    The PETSIRD and GE readers give them from the file; the GATE reader from its arguments. The
     GATE and GE readers give none of them; set them in ``info`` to use a scanner's own values. Each key that is absent
     (or None) takes its default on its own (:data:`DEFAULT_ENERGY_WINDOW`): 430 keV, no upper limit, 0.15.
 
@@ -96,12 +96,12 @@ def detector_energy_window(info: dict) -> tuple[float, float | None, float]:
         v = info.get(key)
         v = DEFAULT_ENERGY_WINDOW[key] if v is None else v
         return None if v is None else float(v)
-    low, high, resolution = value('energy_window_low'), value('energy_window_high'), value('energy_resolution')
+    low, high, resolution = value('energy_window_low_keV'), value('energy_window_high_keV'), value('energy_resolution')
     if not 0 < resolution < 1:
         raise ValueError(f"info['energy_resolution'] is the FWHM at 511 keV as a fraction of 511 keV (0.15 for 15%), "
                          f"between 0 and 1; it is {resolution}. Set it to the scanner's value, or remove it to use 0.15")
     if high is not None and not high > low:
-        raise ValueError(f"the energy window's upper limit (info['energy_window_high'] = {high} keV) must be above its "
+        raise ValueError(f"the energy window's upper limit (info['energy_window_high_keV'] = {high} keV) must be above its "
                          f"lower limit ({low} keV)")
     return low, high, resolution
 
@@ -215,7 +215,7 @@ class SparseSinogram:
     def __init__(self, detector_ids: torch.Tensor, weights: torch.Tensor, info: dict, tof_meta: PETTOFMeta | None = None):
         self.info = info
         self.tof_meta = tof_meta
-        self.shape = (int(info['NrCrystalsPerRing']/2), int(info['NrCrystalsPerRing'])+1, int((info['moduleAxialNr']*info['crystalAxialNr'])**2))
+        self.shape = (int(info['NrCrystalsPerRing']/2), int(info['NrCrystalsPerRing'])+1, int(info['NrRings']**2))
         lor_coordinates, sinogram_index = sinogram_coordinates(info)
         ids = detector_ids[:, :2].to(torch.long).cpu()
         within_ring_id = ids % info['NrCrystalsPerRing']
@@ -365,8 +365,8 @@ def compute_sss_sparse_sinogram(
     """Generates a sparse single scatter simulation sinogram for non-TOF PET data.
 
     The detector's energy window and resolution, which give the probability that a scattered photon is detected, come
-    from ``proj_meta.info`` (``energy_window_low`` and ``energy_window_high`` in keV, ``energy_resolution`` as the FWHM
-    at 511 keV over 511 keV, as the PETSIRD reader gives them; see :func:`detector_energy_window`). Each one that is
+    from ``proj_meta.info`` (``energy_window_low_keV`` and ``energy_window_high_keV``, ``energy_resolution`` as the FWHM
+    at 511 keV over 511 keV, as the readers give them; see :func:`detector_energy_window`). Each one that is
     absent takes its default: 430 keV, no upper limit, 0.15.
 
     Args:
@@ -598,7 +598,9 @@ def interpolate_sparse_sinogram(
     # Now interpolate Z using grid_sample
     z1_sparse = z2_sparse = ring_coordinates[idx_ring][:,0].cpu().numpy().astype(np.float32)
     z1 = z2 = ring_coordinates[np.arange(proj_meta.info['NrRings'])][:,0].cpu().numpy().astype(np.float32)
-    idx = torch.searchsorted(torch.tensor(-z1_sparse), torch.tensor(-z1[1:-1]), side='right') - 1
+    # the rings' z runs up or down with their number (info['axial_direction']): search along increasing z
+    direction = 1.0 if z1[-1] >= z1[0] else -1.0
+    idx = torch.searchsorted(torch.tensor(direction * z1_sparse), torch.tensor(direction * z1[1:-1]), side='right') - 1
     idx += -(z1_sparse[idx] - z1[1:-1]) / (z1_sparse[idx+1] - z1_sparse[idx])
     idx = torch.concatenate([torch.tensor([0]), idx, torch.tensor([z1_sparse.shape[0]-1])])
     idx = 2/idx.max() * idx  - 1
@@ -639,8 +641,7 @@ def interpolate_sparse_sinogram(
         # once): LazySinogram.to_dense computed groups of up to 1 GB and copied them in, 1.7 GB of temporaries for
         # the 1.65 GB sinogram of the mMR
         return interpolate_z(torch.arange(N_theta))
-    return LazySinogram(interpolate_z, shape, description="interpolated single scatter estimate", compute_on=interpolate_z,
-                        memory_bytes=rtheta.nbytes)
+    return LazySinogram(interpolate_z, shape, description="interpolated single scatter estimate", compute_on=interpolate_z, memory_bytes=rtheta.nbytes)
 
 def _masked(subset: torch.Tensor, projections, mask: torch.Tensor) -> torch.Tensor:
     """``subset * mask``, computed in the memory of ``subset`` when it is a tensor of its own (a copy that indexing
@@ -758,10 +759,10 @@ def get_sss_scatter_estimate(
 ) -> torch.Tensor | LazySinogram:
     """Main function used to get SSS scatter estimation during PET reconstruction
 
-    The detector's energy window and resolution come from ``proj_meta.info``: ``energy_window_low`` and
-    ``energy_window_high`` in keV, and ``energy_resolution``, the FWHM at 511 keV as a fraction of 511 keV. The PETSIRD
-    reader gives them; without them (GATE and GE data, unless set by hand) the defaults are 430 keV, no upper limit and
-    0.15, each on its own (see :func:`detector_energy_window`).
+    The detector's energy window and resolution come from ``proj_meta.info``: ``energy_window_low_keV`` and
+    ``energy_window_high_keV``, and ``energy_resolution``, the FWHM at 511 keV as a fraction of 511 keV. The readers
+    give them where their source does; each one that is None takes its default, 430 keV, no upper limit and 0.15 (see
+    :func:`detector_energy_window`).
 
     Args:
         object_meta (ObjectMeta): Object metadata corresponding to ``pet_image``.

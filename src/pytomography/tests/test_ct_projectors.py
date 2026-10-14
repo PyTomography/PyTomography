@@ -34,7 +34,7 @@ def _gen3_meta(n_views=48, n_cols=48, n_rows=8):
         source_z_offsets=zero.clone(),
         detector_centers_col_idx=torch.full((n_views,), (n_cols + 1) / 2),
         detector_centers_row_idx=torch.full((n_views,), (n_rows + 1) / 2),
-        col_det_spacing=float(np.arcsin(5.0 / DSD)), row_det_spacing=2.0, DSD=DSD, shape=(n_cols, n_rows))
+        col_angle_spacing=float(np.arcsin(5.0 / DSD)), row_det_spacing=2.0, DSD=DSD, shape=(n_cols, n_rows))
 
 
 def _conebeam_meta(n_views=24):

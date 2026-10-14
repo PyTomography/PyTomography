@@ -6,7 +6,6 @@ import subprocess
 import tempfile
 from copy import copy
 import numpy as np
-from pytomography.io.SPECT import dicom, simind
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.SPECT import SPECTProjMeta
 import pydicom
@@ -36,10 +35,11 @@ def save_attenuation_map(
     temp_path: str
 ):
     """Save attenuation map as binary file to temporary directory for subsequent use by Monte Carlo scatter simulation.
+    SIMIND reads the attenuation per voxel (mu times the voxel size), which does not depend on the length unit.
 
     Args:
-        attenuation_map (torch.Tensor): Attenuation map to save
-        dx (float): Spacing of attenuation map in cm
+        attenuation_map (torch.Tensor): Attenuation map to save (1/mm)
+        dx (float): Spacing of attenuation map (mm)
         temp_path (str): Temporary folder to save to
     """
     d = (attenuation_map).cpu().numpy().astype(np.float32) * dx
@@ -69,7 +69,8 @@ def get_simind_params_from_metadata(
     object_meta: ObjectMeta,
     proj_meta: SPECTProjMeta
 ) -> dict:
-    """Obtain dictionary of SIMIND parameters from object and projection metadata
+    """Obtain dictionary of SIMIND parameters from object and projection metadata. PyTomography's lengths are in mm;
+    SIMIND's indices 02-10, 28 and 31 are in cm.
 
     Args:
         object_meta (ObjectMeta): SPECT object metadata used in reconstruction
@@ -84,8 +85,9 @@ def get_simind_params_from_metadata(
         index_30 = 0 # clockwise
     else:
         index_30 = 2 # counter-clockwise
+    cm = 0.1                                    # mm to cm
     index_dict = {
-        '28': proj_meta.dr[0], # pixel spacing
+        '28': proj_meta.dr[0] * cm, # pixel spacing
         '29': num_angles, # number of projetions
         '30': index_30,
         '41': -proj_meta.angles[0].item(), # first angle
@@ -95,37 +97,54 @@ def get_simind_params_from_metadata(
         '79': object_meta.shape[0], # X voxels (phantom)
         '81': object_meta.shape[1], # Y voxels (source)
         '82': object_meta.shape[1], # Y voxels (phantom)
-        '31': object_meta.dr[0], # size of source/CT slices
+        '31': object_meta.dr[0] * cm, # size of source/CT slices
         '34': object_meta.shape[2], # number of source/CT slices (in this case aligned with SPECT)
-        '02': object_meta.dr[2]*object_meta.shape[2]/2, # size of source phantom
-        '03': object_meta.dr[0]*object_meta.shape[0]/2, # size of source phantom
-        '04': object_meta.dr[1]*object_meta.shape[1]/2, # size of source phantom
-        '05': object_meta.dr[2]*object_meta.shape[2]/2, # size of CT phantom
-        '06': object_meta.dr[0]*object_meta.shape[0]/2, # size of CT phantom
-        '07': object_meta.dr[1]*object_meta.shape[1]/2, # size of CT phantom
-        '08': object_meta.dr[0]*object_meta.shape[0]/2,
-        '10': object_meta.dr[2]*object_meta.shape[2]/2,
+        '02': object_meta.dr[2]*object_meta.shape[2]/2 * cm, # size of source phantom
+        '03': object_meta.dr[0]*object_meta.shape[0]/2 * cm, # size of source phantom
+        '04': object_meta.dr[1]*object_meta.shape[1]/2 * cm, # size of source phantom
+        '05': object_meta.dr[2]*object_meta.shape[2]/2 * cm, # size of CT phantom
+        '06': object_meta.dr[0]*object_meta.shape[0]/2 * cm, # size of CT phantom
+        '07': object_meta.dr[1]*object_meta.shape[1]/2 * cm, # size of CT phantom
+        '08': object_meta.dr[0]*object_meta.shape[0]/2 * cm,
+        '10': object_meta.dr[2]*object_meta.shape[2]/2 * cm,
     }
     return index_dict
+
+#: The detector thicknesses' keywords before PyTomography 4, in cm; they are now in mm, with ``_mm`` in their names.
+_THICKNESSES_IN_CM = ('crystal_thickness', 'cover_thickness', 'backscatter_thickness')
+
+
+def refuse_thicknesses_in_cm(kwargs: dict) -> None:
+    """Raise a TypeError that explains the rename when ``kwargs`` holds a detector thickness under its old name (cm)."""
+    for name in _THICKNESSES_IN_CM:
+        if name in kwargs:
+            raise TypeError(f'{name} (cm) is now {name}_mm, in mm like every length in PyTomography 4: '
+                            f'{name}={kwargs[name]} is {name}_mm={10 * kwargs[name]:g}')
+    if kwargs:
+        raise TypeError(f'unexpected keyword arguments {sorted(kwargs)}')
+
 
 def get_simind_isotope_detector_params(
     isotope_name: str,
     collimator_type: str,
-    cover_thickness: float,
-    backscatter_thickness: float,
-    crystal_thickness: float,
+    cover_thickness_mm: float | None = None,
+    backscatter_thickness_mm: float | None = None,
+    crystal_thickness_mm: float | None = None,
     energy_resolution_140keV: float = 0,
     advanced_energy_resolution_model: str | None = None,
     advanced_collimator_modeling: bool = False,
     random_collimator_movement: bool = False,
+    **removed,
 ) -> dict:
-    """Obtain SIMIND parameter dictionary from isotope and detector parameters 
+    """Obtain SIMIND parameter dictionary from isotope and detector parameters. The thicknesses are in mm, like every
+    length in PyTomography; SIMIND's indices 09, 11 and 13 are in cm, so they are converted here.
 
     Args:
         isotope_name (str): Name of isotope used for Monte Carlo scatter simulation
-        collimator_type (str): Collimator type used for Monte Carlo scatter simulation. 
-        cover_thickness (float): Cover thickness used for simulation. Currently assumes aluminum is used.
-        backscatter_thickness (float): Equivalent backscatter thickness used for simulation. Currently assumes pyrex is used.
+        collimator_type (str): Collimator type used for Monte Carlo scatter simulation.
+        cover_thickness_mm (float): Cover thickness (mm) used for simulation. Currently assumes aluminum is used.
+        backscatter_thickness_mm (float): Equivalent backscatter thickness (mm) used for simulation. Currently assumes pyrex is used.
+        crystal_thickness_mm (float): Crystal thickness (mm) used for simulation. Currently assumes NaI.
         energy_resolution_140keV (float): Energy resolution in percent of the detector at 140keV. Currently uses the relationship that resolution is proportional to sqrt(E) for E in keV.
         advanced_collimator_modeling (bool, optional): Whether or not to use advanced collimator modeling that can be used to model septal penetration and scatter. Defaults to False.
         random_collimator_movement (bool, optional): Whether or not to include random collimator movement (e.g. holes are not fixed in place). Defaults to False.
@@ -133,6 +152,12 @@ def get_simind_isotope_detector_params(
     Returns:
         dict: Dictionary of SIMIND parameters obtainable from isotope and detector parameters
     """
+    refuse_thicknesses_in_cm(removed)
+    missing = [n for n, v in (('cover_thickness_mm', cover_thickness_mm), ('backscatter_thickness_mm', backscatter_thickness_mm),
+                              ('crystal_thickness_mm', crystal_thickness_mm)) if v is None]
+    if missing:
+        raise TypeError(f'missing {", ".join(missing)}')
+    per_cm = 10.0                               # mm per cm: SIMIND's unit for these indices is cm
     if advanced_energy_resolution_model is not None:
         if advanced_energy_resolution_model=='siemens':
             energy_resolution_140keV = 0
@@ -144,9 +169,9 @@ def get_simind_isotope_detector_params(
         '22': energy_resolution_140keV, # TODO: add energy resolution arbitrary function as argument
         '53': int(advanced_collimator_modeling),
         '59': int(random_collimator_movement),
-        '13': cover_thickness, # TODO: add material as argument, default aluminum
-        '11': backscatter_thickness, # TODO: add material as argument, default pyrex
-        '09': crystal_thickness
+        '13': cover_thickness_mm / per_cm, # TODO: add material as argument, default aluminum
+        '11': backscatter_thickness_mm / per_cm, # TODO: add material as argument, default pyrex
+        '09': crystal_thickness_mm / per_cm
     }
     if advanced_energy_resolution_model is not None:
         index_dict['Fe'] = advanced_energy_resolution_model
@@ -165,14 +190,11 @@ def get_energy_window_params_dicom(
     Returns:
         Sequence[str]: Lines of the "scattwin.win" file corresponding to the energy windows specified by the indices.
     """
-    lines = []
+    from pytomography.io.SPECT.dicom import read_metadata
+    windows = read_metadata(file_NM)[1].energy_windows
     if idxs is None:
-        num_energy_windows = len(pydicom.dcmread(file_NM).EnergyWindowInformationSequence)
-        idxs = range(num_energy_windows)
-    for idx in idxs:
-        lower, upper = dicom.get_energy_window_bounds(file_NM, idx)
-        lines.append(f'{lower},{upper},0')
-    return lines
+        idxs = range(len(windows))
+    return [f'{windows[idx].lower_keV},{windows[idx].upper_keV},0' for idx in idxs]
         
 def get_energy_window_params_simind(headerfiles: Sequence[str]|str)-> Sequence[str]:
     """Obtain energy window parameters from a list of SIMIND header files: this includes a list of strings which, when written to a file, correspond to a typical "scattwin.win" file used by SIMIND.
@@ -183,12 +205,13 @@ def get_energy_window_params_simind(headerfiles: Sequence[str]|str)-> Sequence[s
     Returns:
         Sequence[str]: Lines of the "scattwin.win" file corresponding to the energy windows specified by the header files.
     """
-    if type(headerfiles) is str:
+    from pytomography.io.SPECT.simind import _energy_window, _header
+    if isinstance(headerfiles, (str, os.PathLike)):
         headerfiles = [headerfiles]
     lines = []
     for headerfile in headerfiles:
-        lower, upper = simind.get_energy_window_bounds(headerfile)
-        lines.append(f'{lower},{upper},0')
+        window = _energy_window(_header(headerfile))
+        lines.append(f'{window.lower_keV},{window.upper_keV},0')
     return lines
         
 def create_simind_command(index_dict: dict, parallel_idx: int) -> str:
@@ -278,7 +301,7 @@ def run_scatter_simulation(
     with open(os.path.join(temp_dir.name, 'simind.win'), 'w') as f:
         f.write('\n'.join(energy_window_params))
     # Radial positions
-    np.savetxt(os.path.join(temp_dir.name, f'radii_corfile.cor'), proj_meta.radii)
+    np.savetxt(os.path.join(temp_dir.name, f'radii_corfile.cor'), np.asarray(proj_meta.radii) / 10)   # SIMIND: cm
     # Save attenuation map and source map to TEMP directory
     save_attenuation_map(attenuation_map_140keV, object_meta.dr[0], temp_dir.name)
     save_source_map(source_map, temp_dir.name, scaling=n_events/n_parallel/n_batches)
@@ -302,12 +325,10 @@ def run_scatter_simulation(
                 print(f"Error in process {p.args}:\n{error_output}")
     # Add together projection data from all seperate processes
     add_together(n_parallel*n_batches, len(energy_window_params), temp_dir.name)
-    proj_simind_scatter = simind.get_projections([f'{temp_dir.name}/sca_w{i+1}.h00' for i in range(len(energy_window_params))])
-    proj_simind_tot = simind.get_projections([f'{temp_dir.name}/tot_w{i+1}.h00' for i in range(len(energy_window_params))])
-    # if length of energy window params is 1 then we need to unsqueeze
-    if len(energy_window_params) == 1:
-        proj_simind_scatter = proj_simind_scatter.unsqueeze(0)
-        proj_simind_tot = proj_simind_tot.unsqueeze(0)
+    from pytomography.io.SPECT import read_simind
+    radii_file = os.path.join(temp_dir.name, 'radii_corfile.cor')
+    proj_simind_scatter = read_simind([f'{temp_dir.name}/sca_w{i+1}.h00' for i in range(len(energy_window_params))], radii_file=radii_file)[0]
+    proj_simind_tot = read_simind([f'{temp_dir.name}/tot_w{i+1}.h00' for i in range(len(energy_window_params))], radii_file=radii_file)[0]
     # Remove data files from temporary directory
     temp_dir.cleanup()
     # Return data

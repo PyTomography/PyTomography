@@ -368,7 +368,7 @@ class SPECTSystemMatrix(SystemMatrix):
         window = get_fbp_filter(filter)
         # The projector samples r on the object grid (y, once rotated) and adds up the voxels along x: the ramp filter,
         # per mm of r, times the voxel length along x gives the object per voxel. Lengths in mm, the unit of the windows.
-        dx, dy = 10 * self.object_meta.dr[0], 10 * self.object_meta.dr[1]
+        dx, dy = self.object_meta.dr[0], self.object_meta.dr[1]
         weights = _view_weights(self.proj_meta.angles.tolist())
         phis = self._host_phis()
         boundary_box_bp = pad_object(torch.ones(self.object_meta.shape, device=pytomography.device), mode='back_project')
@@ -411,19 +411,25 @@ class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
         isotope_names: Sequence[str],
         isotope_ratios: Sequence[float],
         collimator_type: str,
-        crystal_thickness: float,
-        cover_thickness: float,
-        backscatter_thickness: float,
+        crystal_thickness_mm: float | None = None,
+        cover_thickness_mm: float | None = None,
+        backscatter_thickness_mm: float | None = None,
         energy_resolution_140keV: float = 0,
         advanced_energy_resolution_model: str | None = None,
         advanced_collimator_modeling: bool = False,
+        **removed,
     ):
         """Monte Carlo Hybrid SPECT System Matrix class that uses SIMIND to simulate scatter and total projections.
+        Lengths are in mm, like every length in PyTomography: the detector thicknesses are converted to SIMIND's cm only
+        where SIMIND is called (:func:`pytomography.utils.simind_mc.get_simind_isotope_detector_params`); their names
+        before PyTomography 4, in cm (``crystal_thickness``...), raise a TypeError that gives the new value.
+
         Args:
             object_meta (ObjectMeta): SPECT ObjectMeta used in reconstruction
             proj_meta (SPECTProjMeta): SPECT projection metadata used in reconstruction
             n_events (int): Number of photons to simulate per projection angle
-            n_parallel (int): Number of simulations to perform in parallel, should not exceed number of CPU cores.
+            n_parallel (int): Number of SIMIND processes run at once, one per CPU core. Leave a few cores for the rest of the
+                computer, e.g. ``max(1, os.cpu_count() - 4)``.
             obj2obj_transforms (Sequence[Transform]): List of object to object transforms for back projection
             proj2proj_transforms (Sequence[Transform]): List of projection to projection transforms for back projection
             attenuation_map_140keV (torch.Tensor): Attenuation map at 140keV (used in MC simulation)
@@ -432,13 +438,18 @@ class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
             isotope_names (Sequence[str]): List of isotope names used in the simulation
             isotope_ratios (Sequence[float]): Proportion of all isotopes.
             collimator_type (str): Collimator type used for Monte Carlo scatter simulation (should use SIMIND name).
-            crystal_thickness (float): Crystal thickness used for Monte Carlo scatter simulation (currently assumes NaI)
-            cover_thickness (float): Cover thickness used for simulation. Currently assumes aluminum is used.
-            backscatter_thickness (float): Equivalent backscatter thickness used for simulation. Currently assumes pyrex is used.
+            crystal_thickness_mm (float): Crystal thickness (mm) used for Monte Carlo scatter simulation (currently assumes NaI)
+            cover_thickness_mm (float): Cover thickness (mm) used for simulation. Currently assumes aluminum is used.
+            backscatter_thickness_mm (float): Equivalent backscatter thickness (mm) used for simulation. Currently assumes pyrex is used.
             energy_resolution_140keV (float): Energy resolution in percent of the detector at 140keV. Currently uses the relationship that resolution is proportional to sqrt(E) for E in keV.
             advanced_energy_resolution_model (str | None, optional): Advanced energy resolution model to use. If provided, then ``energy_resolution_140keV`` is not used. Currently only 'siemens' is supported. Defaults to None.
             advanced_collimator_modeling (bool, optional): Whether or not to use advanced collimator modeling that can be used to model septal penetration and scatter. Defaults to False.
         """
+        simind_mc.refuse_thicknesses_in_cm(removed)
+        missing = [n for n, v in (('crystal_thickness_mm', crystal_thickness_mm), ('cover_thickness_mm', cover_thickness_mm),
+                                  ('backscatter_thickness_mm', backscatter_thickness_mm)) if v is None]
+        if missing:
+            raise TypeError(f'missing {", ".join(missing)}')
         # check if "simind" is PATH variable and if not raise error
         if not shutil.which("simind"):
             raise RuntimeError(
@@ -456,9 +467,9 @@ class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
         self.isotope_names = isotope_names
         self.isotope_ratios = isotope_ratios
         self.collimator_type = collimator_type
-        self.cover_thickness = cover_thickness
-        self.crystal_thickness = crystal_thickness  
-        self.backscatter_thickness = backscatter_thickness
+        self.cover_thickness_mm = cover_thickness_mm
+        self.crystal_thickness_mm = crystal_thickness_mm
+        self.backscatter_thickness_mm = backscatter_thickness_mm
         self.energy_resolution_140keV = energy_resolution_140keV
         self.advanced_energy_resolution_model = advanced_energy_resolution_model
         self.advanced_collimator_modeling = advanced_collimator_modeling
@@ -534,9 +545,9 @@ class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
             index_dict.update(simind_mc.get_simind_isotope_detector_params(
                 isotope_name = isotope_name,
                 collimator_type= self.collimator_type,
-                crystal_thickness=self.crystal_thickness,
-                cover_thickness=self.cover_thickness,
-                backscatter_thickness=self.backscatter_thickness,
+                crystal_thickness_mm=self.crystal_thickness_mm,
+                cover_thickness_mm=self.cover_thickness_mm,
+                backscatter_thickness_mm=self.backscatter_thickness_mm,
                 energy_resolution_140keV=self.energy_resolution_140keV,
                 advanced_energy_resolution_model=self.advanced_energy_resolution_model,
                 advanced_collimator_modeling=self.advanced_collimator_modeling

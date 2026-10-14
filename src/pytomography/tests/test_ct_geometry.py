@@ -1,5 +1,5 @@
-"""Geometry details of the third generation CT model: the metadata leaves the tensors it is given unchanged and maps
-object voxels to patient coordinates, and the system matrix models only the voxels inside the scan field of view and
+"""Geometry details of the third generation CT model: the metadata leaves the tensors it is given unchanged and puts
+the scan in the patient's frame, and the system matrix models only the voxels inside the scan field of view and
 starts reconstructions from zero wherever no ray reaches."""
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ def _inputs(n_views=48, n_cols=48, n_rows=8):
                 source_zs=torch.linspace(90, 110, n_views), source_phi_offsets=zero.clone(), source_rho_offsets=zero.clone(),
                 source_z_offsets=zero.clone(), detector_centers_col_idx=torch.full((n_views,), (n_cols + 1) / 2),
                 detector_centers_row_idx=torch.full((n_views,), (n_rows + 1) / 2),
-                col_det_spacing=float(np.arcsin(5.0 / DSD)), row_det_spacing=2.0, DSD=DSD, shape=(n_cols, n_rows))
+                col_angle_spacing=float(np.arcsin(5.0 / DSD)), row_det_spacing=2.0, DSD=DSD, shape=(n_cols, n_rows))
 
 
 def test_metadata_leaves_its_inputs_unchanged():
@@ -40,24 +40,25 @@ def test_metadata_leaves_its_inputs_unchanged():
     assert torch.equal(first.source_focal_spots, second.source_focal_spots)
 
 
-def test_patient_affine_maps_the_focal_spot_path_back_to_its_axial_position():
-    """Object voxels map to patient coordinates: the isocentre in-plane, and along the axis the slice through each focal
-    spot position lies at that position's z as read from the files (which is DICOM patient z, checked against the
-    scanner's own reconstruction of an FFS scan)."""
+def test_the_object_frame_is_the_patients_with_k_foot_to_head():
+    """The focal spot path keeps the patient z the files give it (DICOM-CT-PD's z is the patient's, checked against the
+    scanner's own reconstruction of an FFS scan), centred on z_center; detector row 1 is the most superior; the grid
+    centred there is the reader's object_meta (centre (0, 0, z_center))."""
     inputs = _inputs()
     raw_z = inputs['source_zs'].double()
     meta = CTGen3ProjMeta(**inputs, patient_position='FFS')
     assert meta.z_center == pytest.approx(100.0)
-    object_meta = ObjectMeta(dr=(2.0, 2.0, 3.0), shape=(10, 12, 7))
-    A = meta.get_patient_affine(object_meta)
-    centre = torch.tensor([(10 - 1) / 2, (12 - 1) / 2, (7 - 1) / 2, 1.0], dtype=torch.float64)
-    assert torch.allclose(A @ centre, torch.tensor([0.0, 0.0, 100.0, 1.0], dtype=torch.float64))
-    # slice index of each focal spot in the object, then its patient z
+    assert torch.allclose(meta.source_focal_centers[:, 2].double() + meta.z_center, raw_z, atol=1e-4)
+    rows = meta.zs_det[0]
+    assert rows[0] > 0 and torch.all(rows[1:] < rows[:-1])                 # rows run towards -z
+    detector = meta.get_detector_coordinates(torch.tensor([0]))[0]
+    assert torch.allclose(detector[:, :, 2] - meta.source_focal_centers[0, 2], meta.zs_det)
+    object_meta = ObjectMeta(dr=(2.0, 2.0, 3.0), shape=(10, 12, 7), centre=(0.0, 0.0, meta.z_center), frame='patient')
+    # slice index of each focal spot in the object, then its patient z through the affine
     k = meta.source_focal_centers[:, 2].double() / 3.0 + (7 - 1) / 2
-    patient_z = A[2, 2] * k + A[2, 3]
-    assert torch.allclose(patient_z, raw_z, atol=1e-4)
-    with pytest.raises(NotImplementedError):
-        CTGen3ProjMeta(**_inputs(), patient_position='HFS').get_patient_affine(object_meta)
+    patient_z = object_meta.affine[2, 2] * k.numpy() + object_meta.affine[2, 3]
+    assert np.allclose(patient_z, raw_z.numpy(), atol=1e-4)
+    assert not hasattr(meta, 'get_patient_affine') and not hasattr(meta, 'col_det_spacing')
 
 
 def _system(shape, fov_mask=True):

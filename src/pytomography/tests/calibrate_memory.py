@@ -41,6 +41,7 @@ import torch
 
 import pytomography
 from pytomography.utils import memory
+from pytomography.io.PET.scanner import scanner_info
 
 
 # ------------------------------------------------------------------ measurement
@@ -111,9 +112,9 @@ class _ChildMemory:
 def _spect_metas(scale: float, n_views: int = 120, n: int = 128):
     from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta
     n = int(round(n * math.sqrt(scale) / 2)) * 2
-    object_meta = SPECTObjectMeta([0.4] * 3, (n, n, n))
-    radii = 20.0 + 5 * np.sin(np.linspace(0, 2 * np.pi, n_views, endpoint=False))       # a non-circular orbit
-    proj_meta = SPECTProjMeta((n, n), [0.4, 0.4], list(np.linspace(0, 360, n_views, endpoint=False)), radii=radii)
+    object_meta = SPECTObjectMeta([4.0] * 3, (n, n, n))
+    radii = 200.0 + 50 * np.sin(np.linspace(0, 2 * np.pi, n_views, endpoint=False))       # a non-circular orbit
+    proj_meta = SPECTProjMeta((n, n), [4.0, 4.0], list(np.linspace(0, 360, n_views, endpoint=False)), radii=radii)
     return object_meta, proj_meta
 
 
@@ -122,14 +123,14 @@ def _spect_system_matrix(scale: float, psf: str = 'gaussian', cache_probabilitie
     from pytomography.projectors.SPECT import SPECTSystemMatrix
     from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
     object_meta, proj_meta = _spect_metas(scale, n=96 if psf == 'operator' else 128)
-    transforms = [SPECTAttenuationTransform((0.15 * torch.rand(object_meta.shape)).to(pytomography.device), cache_probabilities=cache_probabilities)]
+    transforms = [SPECTAttenuationTransform((0.015 * torch.rand(object_meta.shape)).to(pytomography.device), cache_probabilities=cache_probabilities)]
     if psf == 'gaussian':
-        transforms.append(SPECTPSFTransform(SPECTPSFMeta((0.03235, 0.1324))))
+        transforms.append(SPECTPSFTransform(SPECTPSFMeta((0.03235, 1.324))))
     elif psf == 'operator':
         class _GaussianOperator:
             """A PSF operator that exposes its kernel (as SPECTSPSFToolbox operators do): a Gaussian widening with distance."""
             def _get_kernel(self, xv, yv, distances):
-                sigma = (0.03235 * distances + 0.1324).reshape(-1, 1, 1)
+                sigma = (0.03235 * distances + 1.324).reshape(-1, 1, 1)
                 k = torch.exp(-(xv ** 2 + yv ** 2) / (2 * sigma ** 2))
                 return k / k.sum(dim=(1, 2), keepdim=True)
 
@@ -191,15 +192,15 @@ def case_starguide(scale):
     from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
     n = int(round(128 * math.sqrt(scale) / 2)) * 2
     lz = int(100 * math.sqrt(scale))
-    object_meta = SPECTObjectMeta((0.25, 0.25, 0.25), (n, n, lz))
+    object_meta = SPECTObjectMeta((2.5, 2.5, 2.5), (n, n, lz))
     n_angles, per_angle = 30, 12
     angles = torch.tensor(np.repeat(np.linspace(0, 360, n_angles, endpoint=False), per_angle), dtype=torch.float32)
     views = n_angles * per_angle
-    offsets = (torch.rand(views) * 2 - 1) * 8
-    proj_meta = StarGuideProjMeta((views, 16, lz), angles.to(pytomography.device), (0.5 + torch.rand(views)).to(pytomography.device),
-                                  offsets.to(pytomography.device), 15.0 + 10 * torch.rand(views).numpy())
-    transforms = [SPECTAttenuationTransform((0.15 * torch.rand(n, n, lz)).to(pytomography.device), assume_padded=False),
-                  SPECTPSFTransform(SPECTPSFMeta((0.02, 0.05)), assume_padded=False)]
+    offsets = (torch.rand(views) * 2 - 1) * 80
+    proj_meta = StarGuideProjMeta((views, 16, lz), angles.to(pytomography.device), (0.5 + torch.rand(views)).to(pytomography.device),   # s
+                                  offsets.to(pytomography.device), 150.0 + 100 * torch.rand(views).numpy())
+    transforms = [SPECTAttenuationTransform((0.015 * torch.rand(n, n, lz)).to(pytomography.device), assume_padded=False),
+                  SPECTPSFTransform(SPECTPSFMeta((0.02, 0.5)), assume_padded=False)]
     return _osem_case(StarGuideSystemMatrix(object_meta, proj_meta, obj2obj_transforms=transforms), 5)
 
 
@@ -236,7 +237,7 @@ def case_motion(scale):
 def _pet_info(scale):
     """A scanner of 256 crystals per ring and 16 rings (32 at scale 4)."""
     rings = 16 if scale < 4 else 32
-    return dict(min_rsector_difference=0, crystal_length=20.0, radius=300.0, firstCrystalAxis=0,
+    return scanner_info(min_rsector_difference=0, crystal_length=20.0, radius=300.0, rsector0_angle_deg=90.0, transaxial_direction=-1, axial_direction=-1,
                 rsectorTransNr=32, rsectorAxialNr=1, moduleTransNr=1, moduleAxialNr=rings // 8, moduleTransSpacing=0.0,
                 moduleAxialSpacing=33.0, submoduleTransNr=1, submoduleAxialNr=1, submoduleTransSpacing=0.0,
                 submoduleAxialSpacing=0.0, crystalTransNr=8, crystalAxialNr=8, crystalTransSpacing=4.0,
@@ -401,8 +402,8 @@ def case_simind(scale):
     sm = MonteCarloHybridSPECTSystemMatrix(object_meta, proj_meta, n_events=int(1e6), n_parallel=2, obj2obj_transforms=[],
                                            proj2proj_transforms=[], attenuation_map_140keV=0.15 * torch.rand(object_meta.shape),
                                            energy_window_params=['126,154,0'], primary_window_idx=0, isotope_names=['tc99m'],
-                                           isotope_ratios=[1.0], collimator_type='SY-LEHR', crystal_thickness=0.95,
-                                           cover_thickness=0.1, backscatter_thickness=5.0, energy_resolution_140keV=9.0)
+                                           isotope_ratios=[1.0], collimator_type='SY-LEHR', crystal_thickness_mm=9.5,
+                                           cover_thickness_mm=1.0, backscatter_thickness_mm=50.0, energy_resolution_140keV=9.0)
     from pytomography.algorithms import OSEM
     from pytomography.likelihoods import MonteCarloHybridSPECTPoissonLogLikelihood
     projections = torch.poisson(10 * torch.rand(proj_meta.shape)).to(pytomography.device)

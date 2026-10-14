@@ -54,13 +54,16 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         Nx, Ny, Nz = self.object_meta.shape
         dx, dy, dz = self.object_meta.dr
         du, dv = self.proj_meta.dr
-        ox, oy =  self.proj_meta.COR[:2].to(pytomography.device)
-        x = (torch.arange(-Nx/2+0.5, Nx/2+0.5, 1)*dx).to(pytomography.device) + ox
-        y = (torch.arange(-Ny/2+0.5, Ny/2+0.5, 1)*dy).to(pytomography.device) + oy
+        # the voxel centres, and the rotation axis, which is at COR[:2] = (0, -COR) of the object frame
+        ax, ay = self.proj_meta.COR[:2].to(pytomography.device)
+        x = (torch.arange(-Nx/2+0.5, Nx/2+0.5, 1)*dx).to(pytomography.device)
+        y = (torch.arange(-Ny/2+0.5, Ny/2+0.5, 1)*dy).to(pytomography.device)
         z = (torch.arange(-Nz/2+0.5, Nz/2+0.5, 1)*dz).to(pytomography.device)
-        # Typical post-weight from FDK algorithm
+        # Typical post-weight from FDK algorithm: (DSO / U)^2, with U the voxel's distance from the source along the
+        # central ray, DSO + (x - ax) cos(theta) + (y - ay) sin(theta) measured from the rotation axis. (Before
+        # PyTomography 4 the axis was added instead of subtracted, which put U off by 2 COR sin(theta).)
         if self._FBP_postweight_component1 is None:
-            xv, yv = torch.meshgrid(x, y, indexing='ij')
+            xv, yv = torch.meshgrid(x - ax, y - ay, indexing='ij')
             post_weight = (self.proj_meta.DSO / (self.proj_meta.DSO + yv.unsqueeze(0) * torch.sin(self.proj_meta.angles.to(pytomography.device)).reshape((-1,1,1)) + xv.unsqueeze(0) * torch.cos(self.proj_meta.angles.to(pytomography.device)).reshape((-1,1,1))))**2
             self._FBP_postweight_component1 = post_weight.unsqueeze(-1)
         # Weight that removes length scaling Joseph projector to make projector "unmatched" (see Ander Biguri thesis chapter 4).
@@ -105,7 +108,7 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
             return projections
         else:
             subset_indices = self.subset_indices_array[subset_idx]
-            proj_subset = projections[subset_indices]
+            proj_subset = projections[subset_indices.to(projections.device)]   # projections may stay on the CPU
             return proj_subset
         
     def get_weighting_subset(

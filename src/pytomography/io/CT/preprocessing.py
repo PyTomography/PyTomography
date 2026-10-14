@@ -205,8 +205,8 @@ def fit_column_scale(projections: torch.Tensor, proj_meta, system_matrix, refere
                      sigma: float = 2.0, **fbp_options) -> dict:
     r"""Fit the per-column scale of :func:`scale_columns` that makes the filtered back projection of ``projections``
     match ``reference``, another reconstruction of the same scan on the object grid of ``system_matrix``: typically the
-    scanner's own images, resampled onto that grid (for example with :func:`pytomography.io.shared.align_images_affine`
-    and :meth:`~pytomography.metadata.CT.CTGen3ProjMeta.get_patient_affine`).
+    scanner's own images put on that grid, ``io.CT.from_hu(io.load_image(files).on(object_meta, fill=-3000),
+    proj_meta)`` with the ``object_meta`` of :func:`~pytomography.io.CT.read_dicom_ct_pd`.
 
     Reconstruction is linear in the line integrals, so scaling them by :math:`1 + g_0 + g_2 u^2`, with
     :math:`u = \min(|t|, t_\mathrm{hold}) / 100\,\mathrm{mm}`, changes the image by :math:`g_0 f_0 + g_2 f_2`, where
@@ -229,7 +229,7 @@ def fit_column_scale(projections: torch.Tensor, proj_meta, system_matrix, refere
 
     Returns:
         dict: ``g0``, ``g2`` and ``t_hold``, to pass as ``column_scale`` to
-        :func:`~pytomography.io.CT.dicom_ct_pd.get_projections_and_metadata_gen3` or as keywords to
+        :func:`~pytomography.io.CT.read_dicom_ct_pd` or as keywords to
         :func:`scale_columns`.
     """
     from pytomography.algorithms import FilteredBackProjection

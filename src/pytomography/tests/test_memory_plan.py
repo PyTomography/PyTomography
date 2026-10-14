@@ -17,6 +17,7 @@ from pytomography.metadata import ObjectMeta
 from pytomography.projectors import SystemMatrix
 from pytomography.utils import memory
 from pytomography.utils.memory import MemoryEstimate, MemoryPart, MemoryPlan, plan_settings
+from pytomography.io.PET.scanner import scanner_info
 
 
 @pytest.fixture(autouse=True)
@@ -232,7 +233,7 @@ def test_available_memory_reads_this_machine():
 
 
 # ------------------------------------------------------------------ PET and CT system matrices
-INFO = dict(min_rsector_difference=0, crystal_length=20.0, radius=120.0, firstCrystalAxis=0,
+INFO = scanner_info(min_rsector_difference=0, crystal_length=20.0, radius=120.0, rsector0_angle_deg=90.0, transaxial_direction=-1, axial_direction=-1,
             rsectorTransNr=16, rsectorAxialNr=1, moduleTransNr=1, moduleAxialNr=2, moduleTransSpacing=0.0, moduleAxialSpacing=17.0,
             submoduleTransNr=1, submoduleAxialNr=1, submoduleTransSpacing=0.0, submoduleAxialSpacing=0.0,
             crystalTransNr=4, crystalAxialNr=4, crystalTransSpacing=4.0, crystalAxialSpacing=4.0,
@@ -408,12 +409,12 @@ def _spect(n_views=60, shape=(32, 32, 16), cache_probabilities=False, psf=True, 
     from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
     from pytomography.projectors.SPECT import SPECTSystemMatrix
     from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
-    object_meta = SPECTObjectMeta([0.4] * 3, shape)
-    radii = 20.0 + (np.arange(n_views) % n_radii)
-    proj_meta = SPECTProjMeta((shape[1], shape[2]), [0.4, 0.4], list(np.linspace(0, 360, n_views, endpoint=False)), radii=radii)
-    transforms = [SPECTAttenuationTransform(torch.rand(shape) * 0.1, cache_probabilities=cache_probabilities)]
+    object_meta = SPECTObjectMeta([4.0] * 3, shape)
+    radii = 200.0 + 10 * (np.arange(n_views) % n_radii)
+    proj_meta = SPECTProjMeta((shape[1], shape[2]), [4.0, 4.0], list(np.linspace(0, 360, n_views, endpoint=False)), radii=radii)
+    transforms = [SPECTAttenuationTransform(torch.rand(shape) * 0.01, cache_probabilities=cache_probabilities)]
     if psf:
-        transforms.append(SPECTPSFTransform(SPECTPSFMeta((0.03, 0.1))))
+        transforms.append(SPECTPSFTransform(SPECTPSFMeta((0.03, 1.0))))
     return SPECTSystemMatrix(transforms, [], object_meta, proj_meta)
 
 
@@ -491,12 +492,42 @@ def test_monte_carlo_hybrid_adds_simind(monkeypatch):
                                            obj2obj_transforms=base.obj2obj_transforms, proj2proj_transforms=[],
                                            attenuation_map_140keV=torch.rand(base.object_meta.shape), energy_window_params=['a', 'b', 'c'],
                                            primary_window_idx=1, isotope_names=['lu177'], isotope_ratios=[1.0], collimator_type='SY-ME',
-                                           crystal_thickness=0.95, cover_thickness=0.1, backscatter_thickness=5.0)
+                                           crystal_thickness_mm=9.5, cover_thickness_mm=1.0, backscatter_thickness_mm=50.0)
     parts = _parts(sm.estimate_memory(4))
     simind = parts['SIMIND processes (6)']
     assert simind.ram_bytes >= 6 * sm.SIMIND_PROCESS_BYTES and simind.scope == 'chunk'
     assert parts['attenuation map at 140 keV'].ram_bytes == 4 * np.prod(base.object_meta.shape)
     assert sm.estimate_memory(4).ram_gb > base.estimate_memory(4).ram_gb
+
+
+def test_extended_system_matrix_adds_up_its_system_matrices():
+    """ExtendedSystemMatrix (two photopeaks in one reconstruction, as t_dualpeak): the first system matrix's arrays,
+    with the projections of a subset counted for each photopeak, kept and stacked; what the other system matrix holds
+    of its own (its attenuation map, not the shared images and caches); and the projections of ones of both, for
+    H^T 1. A system matrix given twice is counted once. The algorithms estimate it through it, as for any system
+    matrix."""
+    from pytomography.projectors import ExtendedSystemMatrix
+    from pytomography.likelihoods import PoissonLogLikelihood
+    from pytomography.algorithms import OSEM
+    a, b = _spect(psf=True), _spect(psf=False)
+    ext = ExtendedSystemMatrix([a, b])
+    alone, both = _parts(a.estimate_memory(8)), _parts(ext.estimate_memory(8))
+    name = 'projections of a subset: measured, expected, additive term, of ones, padded copy'
+    assert _bytes(both[f'{name}, for each of 2, kept and stacked']) == 2 * 2 * _bytes(alone[name])
+    own = [p for p in b.estimate_memory(8).parts if p.scope == 'held' and p.name == 'what the object transforms keep']
+    assert _bytes(both['system matrix 2: what it holds']) == sum(_bytes(p) for p in own) > 0
+    assert _bytes(both['projections of ones of all 2 (for H^T 1)']) == 4 * 2 * np.prod(a.proj_meta.shape)
+    for key, part in alone.items():                  # the rest is the first system matrix's (but the overheads, which grow)
+        if key != name and part.scope != 'overhead':
+            assert key in both and _bytes(both[key]) == _bytes(part), key
+    assert 'system matrix 2: what it holds' not in _parts(ExtendedSystemMatrix([a, a]).estimate_memory(8))
+    single = a.estimate_memory(8)
+    joint = ext.estimate_memory(8)
+    assert joint.ram_gb + joint.gpu_gb > single.ram_gb + single.gpu_gb
+    projections = torch.ones((2, *a.proj_meta.shape))
+    algorithm = OSEM(PoissonLogLikelihood(ext, projections, torch.zeros_like(projections)))
+    estimate = algorithm.estimate_memory(n_subsets=8)
+    assert estimate.ram_gb + estimate.gpu_gb >= joint.ram_gb + joint.gpu_gb - 1e-9
 
 
 def _starguide(psf=True):
@@ -642,7 +673,7 @@ def test_kem_sart_and_multibed_reconstructions():
     sart = SART(sm, torch.rand(sm.proj_meta.shape))
     assert sart.estimate_memory(3).settings == {'n_subsets': 3} and sart.plan_memory(ram_gb=1000, gpu_gb=1000, n_subsets=5).fits
     beds = [OSEM(_likelihood(_spect(psf=False))) for _ in range(3)]
-    multibed = PGAAMultiBedSPECT(['bed1', 'bed2', 'bed3'], beds)
+    multibed = PGAAMultiBedSPECT(beds)
     estimate = multibed.estimate_memory(n_subsets=4)
     parts = _parts(estimate)
     assert {f'bed {k}: what its reconstruction holds' for k in (1, 2, 3)} <= set(parts)

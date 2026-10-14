@@ -16,8 +16,9 @@ import pytomography
 from pytomography.io.PET import shared
 from pytomography.metadata.PET import PETTOFMeta
 from pytomography.utils import memory
+from pytomography.io.PET.scanner import scanner_info, scanner_lut
 
-INFO = dict(min_rsector_difference=0, crystal_length=20.0, radius=120.0, firstCrystalAxis=0,
+INFO = scanner_info(min_rsector_difference=0, crystal_length=20.0, radius=120.0, rsector0_angle_deg=90.0, transaxial_direction=-1, axial_direction=-1,
             rsectorTransNr=16, rsectorAxialNr=1, moduleTransNr=1, moduleAxialNr=2, moduleTransSpacing=0.0,
             moduleAxialSpacing=17.0, submoduleTransNr=1, submoduleAxialNr=1, submoduleTransSpacing=0.0,
             submoduleAxialSpacing=0.0, crystalTransNr=4, crystalAxialNr=4, crystalTransSpacing=4.0,
@@ -194,12 +195,12 @@ def test_sinogram_to_spatial_raises_no_numpy_deprecation_warning():
     with warnings.catch_warnings():
         warnings.simplefilter("error", DeprecationWarning)
         detector_coordinates, ring_coordinates = shared.sinogram_to_spatial.__wrapped__(INFO)   # not the cached tables
-    scanner_lut = shared.get_scanner_LUT(INFO)
+    lut = scanner_lut(INFO)
     shape = shared._sinogram_shape(INFO)
     assert detector_coordinates.shape == (shape[0], shape[1], 2, 2) and detector_coordinates.dtype == torch.float32
     assert ring_coordinates.shape == (INFO['NrRings']**2, 2)
     # every crystal of the table is one of the scanner's (its x and y), and every ring position one of its z
-    rows = {tuple(r) for r in scanner_lut[:, :2].tolist()}
+    rows = {tuple(r) for r in lut[:, :2].tolist()}
     filled = detector_coordinates.reshape(-1, 2)[detector_coordinates.reshape(-1, 2).abs().sum(dim=1) > 0]
     assert filled.shape[0] > 0 and all(tuple(r) in rows for r in filled.tolist())
-    assert set(ring_coordinates.flatten().tolist()) <= set(scanner_lut[:, 2].tolist())
+    assert set(ring_coordinates.flatten().tolist()) <= set(lut[:, 2].tolist())
