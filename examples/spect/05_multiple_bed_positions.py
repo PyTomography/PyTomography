@@ -19,17 +19,13 @@ DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_da
 OUTPUT = datasets.output_dir("SPECT/Lu177-PSMA-GEDisc")
 
 import os
-import numpy as np
-from pytomography.io.SPECT import dicom
+import matplotlib.pyplot as plt
+import torch
+from pytomography import io
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.algorithms import OSEM
 from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.likelihoods import PoissonLogLikelihood
-from pytomography.utils import print_collimator_parameters
-import matplotlib.pyplot as plt
-import pydicom
-import torch
-import shutil
 
 # Paths are set in the data cell at the top of this tutorial
 save_path = DATA / 'SPECT'
@@ -42,27 +38,25 @@ files_NM = [
 path_CT = os.path.join(save_path, 'Lu177-PSMA-GEDisc', 'CT')
 files_CT = [os.path.join(path_CT, file) for file in os.listdir(path_CT)]
 
-dicom.print_energy_window_info(files_NM[0])
+_, _, proj_meta = io.SPECT.read_dicom(files_NM[0])
+for i, window in enumerate(proj_meta.energy_windows):
+    print(f'Index {i}:   Name: "{window.name}", Energies: {window.lower_keV:g}-{window.upper_keV:g} keV')
 
-projections_upper_fov = dicom.get_projections(files_NM[0])
-projections_lower_fov = dicom.get_projections(files_NM[1])
+projections_upper_fov, _, _ = io.SPECT.read_dicom(files_NM[0])
+projections_lower_fov, _, _ = io.SPECT.read_dicom(files_NM[1])
 
 # %% Part 2: Reconstruction
-object_meta, proj_meta = dicom.get_metadata(files_NM[0], index_peak=1)
-
-def reconstruct_singlebed(i):
+def reconstruct_singlebed(projections, object_meta, proj_meta):
     # Change these depending on your file:
     index_peak = 1
     index_lower = 3
     index_upper = 2
-    projections = projectionss[i]
-    file_NM = files_NM[i]
-    object_meta, proj_meta = dicom.get_metadata(file_NM, index_peak=index_peak)
     photopeak = projections[index_peak]
-    scatter = dicom.get_energy_window_scatter_estimate_projections(file_NM, projections, index_peak, index_lower, index_upper)
+    scatter = io.SPECT.energy_window_scatter(projections, proj_meta, index_peak, index_lower, index_upper)
     # Build system matrix
-    attenuation_map = dicom.get_attenuation_map_from_CT_slices(files_CT, file_NM, index_peak=index_peak)
-    psf_meta = dicom.get_psfmeta_from_scanner_params('GI-MEGP', energy_keV=208)
+    photon_keV = proj_meta.energy_windows[index_peak].photon_keV
+    attenuation_map = io.attenuation_map(files_CT, object_meta, energy_keV=photon_keV)
+    psf_meta = io.SPECT.collimator_psf('GI-MEGP', photon_keV)
     att_transform = SPECTAttenuationTransform(attenuation_map)
     psf_transform = SPECTPSFTransform(psf_meta)
     # Create system matrix
@@ -73,18 +67,17 @@ def reconstruct_singlebed(i):
         proj_meta = proj_meta)
     likelihood = PoissonLogLikelihood(system_matrix, photopeak, additive_term=scatter)
     reconstruction_algorithm = OSEM(likelihood)
+    print(reconstruction_algorithm.estimate_memory(n_subsets=8))
     return reconstruction_algorithm(n_iters=4, n_subsets=8)
 
-recon_upper = reconstruct_singlebed(0)
-recon_lower = reconstruct_singlebed(1)
+recon_upper = reconstruct_singlebed(projections_upper, object_meta_upper, proj_meta_upper)
+recon_lower = reconstruct_singlebed(projections_lower, object_meta_lower, proj_meta_lower)
 
-recon_stitched = dicom.stitch_multibed(
+recon_stitched, object_meta_stitched = io.SPECT.stitch_beds(
     recons=torch.stack([recon_upper, recon_lower]),
-    files_NM = files_NM)
+    object_metas=[object_meta_upper, object_meta_lower])
+object_meta_stitched
 
 # %% Save the images
-from pytomography.io import save_dicom
-
-object_meta_lower, _ = dicom.get_metadata(files_NM[1], index_peak=1)  # the lower bed, where the stitched image starts
-saved = save_dicom(recon_stitched, OUTPUT / 't_dicommultibed' / 'osem_stitched', object_meta_lower,
-                   reference=files_NM[1], series_description='OSEM 4x8, two beds stitched', overwrite=True)
+saved = io.save_dicom(recon_stitched, OUTPUT / 't_dicommultibed' / 'osem_stitched', object_meta_stitched,
+                      reference=files_NM[1], series_description='OSEM 4x8, two beds stitched', overwrite=True)

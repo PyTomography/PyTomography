@@ -495,6 +495,61 @@ def test_unknown_and_pending_datasets(monkeypatch, tmp_path):
     assert datasets.fetch("PET/Later", data_dir=tmp_path) == tmp_path / "PET" / "Later"
 
 
+def test_pending_dataset_gets_its_package_files(monkeypatch, tmp_path):
+    """A pending dataset's package parts (a mask made for its tutorial) need no download: once its folder holds the
+    data, fetch() copies them in, and replaces a copy that differs."""
+    model = _parts.FILES / "ac225_psf_model.json"
+    part = {"kind": "package", "file": model.name, "size": model.stat().st_size, "sha256": sha256(model.read_bytes())}
+    use(monkeypatch, {"PET/Later": entry([part], status="pending", note="Soon.")})
+    with pytest.raises(datasets.DatasetNotAvailable):
+        datasets.fetch("PET/Later", data_dir=tmp_path, progress=False)
+    folder = tmp_path / "PET" / "Later"
+    folder.mkdir(parents=True)
+    (folder / "copied.root").write_bytes(b"by hand")
+    assert datasets.fetch("PET/Later", data_dir=tmp_path, progress=False) == folder
+    assert (folder / model.name).read_bytes() == model.read_bytes()
+    (folder / model.name).write_bytes(b"an older mask")
+    datasets.fetch("PET/Later", data_dir=tmp_path, progress=False)
+    assert (folder / model.name).read_bytes() == model.read_bytes()
+    assert (folder / "copied.root").read_bytes() == b"by hand"
+
+
+def test_parts_of_records_not_published_yet(server, monkeypatch, tmp_path, capsys):
+    """A part whose record is not out yet (status "pending", such as a tutorial's regions) is not downloaded: the rest
+    of the dataset is, fetch() says the part is missing, and a copy put in the folder is used."""
+    data = b"regions" * 100
+    waiting = {"kind": "file", "status": "pending", "record": "a record to come", "to": "rois.seg.nrrd",
+               "size": len(data), "sha256": sha256(data)}
+    part = zip_part(server, prefix="T/")
+    use(monkeypatch, {"X/T": entry([part, waiting])})
+    folder = datasets.fetch("X/T", data_dir=tmp_path)
+    assert "rois.seg.nrrd cannot be downloaded yet: it will be in a record to come" in capsys.readouterr().out
+    assert (folder / "a.txt").exists() and not (folder / "rois.seg.nrrd").exists()
+    d = datasets.info("X/T", data_dir=tmp_path)
+    assert d["state"] == "downloaded" and d["download_bytes"] == part["size"]
+    assert any("a record to come, not published yet" in p for p in d["parts"])
+    assert datasets.verify("X/T", data_dir=tmp_path) == {"X/T": []}
+    (folder / "rois.seg.nrrd").write_bytes(data)                    # the copy the tutorials read until then
+    datasets.fetch("X/T", data_dir=tmp_path)
+    assert "cannot be downloaded yet" not in capsys.readouterr().out
+
+
+def test_a_part_moved_to_a_record_not_published_yet_keeps_its_copy(monkeypatch, tmp_path):
+    """A file that was a package part and is now a pending part of a record stays in the folder when fetch() drops
+    the old part."""
+    model = _parts.FILES / "ac225_psf_model.json"
+    body = model.read_bytes()
+    use(monkeypatch, {"X/T": entry([{"kind": "package", "file": model.name, "to": "rois.json", "size": len(body),
+                                     "sha256": sha256(body)}])})
+    folder = datasets.fetch("X/T", data_dir=tmp_path, progress=False)
+    assert (folder / "rois.json").read_bytes() == body
+    use(monkeypatch, {"X/T": entry([{"kind": "file", "status": "pending", "record": "a record to come",
+                                     "to": "rois.json", "size": len(body), "sha256": sha256(body)}])})
+    datasets.fetch("X/T", data_dir=tmp_path, progress=False, verify="hash")   # verify="hash" drops the old part
+    assert (folder / "rois.json").read_bytes() == body
+    assert not json.loads((folder / _store.MARKER).read_text())["parts"]
+
+
 def test_path_info_and_available(server, monkeypatch, tmp_path):
     part = zip_part(server, prefix="T/")
     use(monkeypatch, {"X/T": entry([part])})
@@ -567,7 +622,11 @@ def test_registry_entry(name):
         assert not rel.startswith("/") and "\\" not in rel and ".." not in rel.split("/"), rel
         assert isinstance(size, int) and size > 0 and re.fullmatch(r"[0-9a-f]{64}", digest), rel
     for part in e["parts"] + [p for x in e.get("extras", {}).values() for p in x["parts"]]:
-        assert set(KINDS[part["kind"]]) <= set(part), part
+        if part.get("status") == "pending":   # in a record not published yet: a file with no address, pinned
+            assert part["kind"] == "file" and {"to", "size", "sha256", "record"} <= set(part), part
+            assert "url" not in part and "urls" not in part and part["record"], part
+        else:
+            assert set(KINDS[part["kind"]]) <= set(part), part
         assert isinstance(part["size"], int) and part["size"] > 0
         assert "TODO" not in json.dumps(part)
         for url in _parts.urls(part) if "url" in part or "urls" in part else []:
