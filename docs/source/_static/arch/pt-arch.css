@@ -113,24 +113,6 @@
 .pt-arch-scrim { position: fixed; inset: 0; background: rgba(8, 8, 20, .28); z-index: 1090; opacity: 0; pointer-events: none; transition: opacity .2s; }
 .pt-arch-scrim.is-open { opacity: 1; pointer-events: auto; }
 
-/* ---------- second figure: who talks to whom ---------- */
-.pt-arch-calls { border: 1px solid var(--pt-line); border-radius: 14px; padding: 16px; background: var(--pt-surface); margin: 8px 0 6px; }
-.pt-arch-calls .pt-arch-bar { margin-bottom: 8px; }
-.pt-arch-calls svg { display: block; width: 100%; height: auto; max-width: 980px; margin: 0 auto; color: var(--pt-ink); }
-.pt-arch-calls svg .box { fill: var(--pt-surface); stroke: var(--pt-line); stroke-width: 1.5; transition: stroke .2s, fill .2s; }
-.pt-arch-calls svg .box.swap { stroke: var(--pt-purple); stroke-width: 2.5; fill: var(--pt-wash); }
-.pt-arch-calls svg .box.keep { stroke: var(--pt-line); }
-.pt-arch-calls svg text { fill: currentColor; font-family: var(--pst-font-family-base); }
-.pt-arch-calls svg .t { font: 700 15px var(--pst-font-family-heading); }
-.pt-arch-calls svg .s { font: 500 11.5px var(--pst-font-family-monospace); fill: var(--pt-muted); }
-.pt-arch-calls svg .m { font: 500 12px var(--pst-font-family-monospace); fill: var(--pt-ink-2); }
-.pt-arch-calls svg .tag { font: 700 11px var(--pst-font-family-monospace); }
-.pt-arch-calls svg .tag.swap { fill: var(--pt-purple); }
-.pt-arch-calls svg .tag.keep { fill: var(--pt-muted); }
-.pt-arch-calls svg line, .pt-arch-calls svg path.a { stroke: var(--pt-muted); stroke-width: 1.5; fill: none; }
-.pt-arch-calls svg polygon { fill: var(--pt-muted); }
-.pt-arch-calls figcaption, .pt-arch-fig figcaption { color: var(--pt-muted); font-size: 0.88rem; margin-top: 8px; text-align: center; }
-
 /* ---------- extend table ---------- */
 .pt-arch-extend td:first-child, .pt-arch-extend td:nth-child(2) { white-space: nowrap; }
 

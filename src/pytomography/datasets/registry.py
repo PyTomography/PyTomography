@@ -336,7 +336,7 @@ DATASETS = {
         "cite": "McCollough C, Chen B, Holmes D III, Duan X, Yu Z, Yu L, Leng S, Fletcher J. Low Dose CT Image and"
                 " Projection Data (LDCT-and-Projection-data), version 7. The Cancer Imaging Archive (2020)."
                 " doi:10.7937/9npb-2637. Supported by NIBIB grants EB017095 and EB017185.",
-        "tutorials": ["t_CT_GEN3"],
+        "tutorials": ["t_CT_GEN3", "t_fbp_ct"],
         "parts": [
             {"kind": "idc", "series": "1.2.840.113713.4.100.1.2.234724616712334404725906500152169",
              "crdc": "0b94e451-0b29-48d8-8abd-c2c78ee5111d", "release": "v24", "to": "full_dose_projections",

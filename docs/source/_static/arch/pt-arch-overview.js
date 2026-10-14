@@ -1,6 +1,7 @@
-/* The Architecture page's overview: the whole library as one diagram, with the reconstruction's three layers nested so
-   encapsulation shows (the algorithm holds a likelihood, which holds a system matrix), input on the left and output on
-   the right. Every box and name opens a popup listing what the library has of that kind (window.PT_CATALOG), which
+/* The Architecture page's overview: the whole library as one diagram, with statistical iterative reconstruction's three
+   layers nested so encapsulation shows (the algorithm holds a likelihood, which holds a system matrix), input on the left
+   and output on the right. Analytic reconstruction (FBP, FDK), which has no likelihood, is the table under it
+   (architecture.md). Every box and name opens a popup listing what the library has of that kind (window.PT_CATALOG), which
    the reader can step through. Also the page's tabs. */
 (function () {
   "use strict";
@@ -32,14 +33,14 @@
     <div class="pto-col pto-in">
       <p class="pto-eyebrow">Input</p>
       ${node("files", "files", "Data files", "from scanners and simulators", [chip("files", "DICOM NM projections", "DICOM"), chip("files", "SIMIND interfile", "SIMIND"), chip("files", "GATE (ROOT and .mac)", "GATE"), chip("files", "PETSIRD"), chip("files", "GE Discovery MI (HDF5)", "GE HDF5"), chip("files", "DICOM-CT-PD")])}
-      ${node("readers", "readers", "Readers", "pytomography.io", [chip("readers", "io.SPECT.dicom", "SPECT.dicom"), chip("readers", "io.SPECT.simind", "SPECT.simind"), chip("readers", "io.PET.gate", "PET.gate"), chip("readers", "io.PET.petsird", "PET.petsird"), chip("readers", "io.CT.dicom_ct_pd", "CT.dicom_ct_pd")])}
+      ${node("readers", "readers", "Readers", "pytomography.io", [chip("readers", "io.SPECT.read_dicom", "SPECT.read_dicom"), chip("readers", "io.SPECT.read_simind", "SPECT.read_simind"), chip("readers", "io.PET.read_gate", "PET.read_gate"), chip("readers", "io.PET.read_petsird", "PET.read_petsird"), chip("readers", "io.CT.read_dicom_ct_pd", "CT.read_dicom_ct_pd"), chip("readers", "io.load_image, attenuation_map, load_mask", "load_image")])}
       ${node("metadata", "metadata", "Standard objects", "pytomography.metadata + tensors", [chip("metadata", "ObjectMeta"), chip("metadata", "SPECTProjMeta"), chip("metadata", "PETLMProjMeta"), chip("metadata", "CTGen3ProjMeta"), chip("metadata", "Tensors", "tensors")])}
     </div>
     <div class="pto-engine">
-      <p class="pto-eyebrow">Reconstruction</p>
+      <p class="pto-eyebrow">Statistical iterative reconstruction · analytic FBP below</p>
       <div class="pto-layer pto-l1" id="pto-alg" data-cat="algorithm">
         ${head("algorithm", "Algorithm", "pytomography.algorithms · the update rule")}
-        <div class="pto-chips">${["OSEM", "BSREM", "OSMAPOSL", "KEM", "SART", "FilteredBackProjection", "DIPRecon"].map((n) => chip("algorithm", n, n === "FilteredBackProjection" ? "FBP" : n)).join("")}</div>
+        <div class="pto-chips">${["OSEM", "BSREM", "OSMAPOSL", "KEM", "SART", "DIPRecon"].map((n) => chip("algorithm", n)).join("")}</div>
         <div class="pto-l1-body">
           <div class="pto-layer pto-l2" id="pto-lik" data-cat="likelihood">
             <span class="pto-iface" title="The only call the algorithm makes">compute_gradient(f, m)</span>
@@ -234,7 +235,8 @@
       show(n.getAttribute("aria-controls"), true);
     });
   });
-  const fromHash = () => { const id = "tab-" + location.hash.slice(1); if (document.getElementById(id) && tabs.some((t) => t.getAttribute("aria-controls") === id)) show(id, false); };
+  // a tab's hash may name a part of it after a dash ("#io-standard": the io tab, which shows that view itself)
+  const fromHash = () => { const id = "tab-" + location.hash.slice(1).split("-")[0]; if (document.getElementById(id) && tabs.some((t) => t.getAttribute("aria-controls") === id)) show(id, false); };
   window.addEventListener("hashchange", fromHash);
   fromHash();
 
