@@ -60,12 +60,68 @@ autodoc_typehints = "description"
 suppress_warnings = ["autoapi.python_import_resolution", "myst.header", "misc.highlighting_failure", "mystnb.unknown_mime_type"]
 
 
-def _skip_attributes(app, what, name, obj, skip, options):
-    return True if what == "attribute" else skip
+_SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "src")
+
+
+def _skip_member(app, what, name, obj, skip, options):
+    """Leave out class attributes, show ``__call__``, and show what a package imports from its private modules.
+
+    Calling an algorithm (``OSEM(likelihood)(n_iters=4, n_subsets=8)``) is how it is used, so a documented
+    ``__call__`` is shown, although other special methods are not. ``pytomography.io`` defines ``load_image`` in
+    ``io/_load.py``: the private module has no page, so without this the function would have none either. It is
+    documented as ``pytomography.io.load_image``, where users import it from.
+    """
+    if what == "attribute":
+        return True
+    if what == "method" and obj.short_name == "__call__" and obj.docstring and not obj.obj.get("hide"):
+        return False
+    original = obj.obj.get("original_path", "")
+    if skip and original and not obj.obj.get("hide") and not obj.short_name.startswith("_"):
+        defined_in, importer = original.rsplit(".", 1)[0], name.rsplit(".", 1)[0]
+        is_package = os.path.isfile(os.path.join(_SRC, *importer.split("."), "__init__.py"))
+        if is_package and any(part.startswith("_") for part in defined_in.split(".")):
+            return False
+    return skip
+
+
+def _link_imported_names(app, env, node, contnode):
+    """Link a name as users import it to the page that documents it.
+
+    ``pytomography.metadata.ObjectMeta`` (in a type hint or a docstring) is documented as
+    ``pytomography.metadata.metadata.ObjectMeta``, where it is defined: follow the package's import to it. Members
+    (``pytomography.projectors.SystemMatrix.forward``) follow their class.
+    """
+    if node.get("refdomain") != "py":
+        return None
+    objects = getattr(env, "autoapi_all_objects", {})
+    target, module, cls = node["reftarget"], node.get("py:module"), node.get("py:class")
+    candidates = [target]
+    if module:
+        candidates += [f"{module}.{cls}.{target}"] if cls else []
+        candidates += [f"{module}.{target}"]
+    for candidate in candidates:
+        parts = candidate.split(".")
+        for _ in range(5):  # follow re-exports of re-exports
+            # the longest prefix that was imported (a member of an imported class is not marked itself)
+            for i in range(len(parts), 0, -1):
+                obj = objects.get(".".join(parts[:i]))
+                if obj is not None and obj.obj.get("original_path"):
+                    break
+            else:
+                break
+            parts = obj.obj["original_path"].split(".") + parts[i:]
+        resolved = ".".join(parts)
+        if resolved != candidate:
+            ref = env.get_domain("py").resolve_xref(env, node["refdoc"], app.builder, node["reftype"], resolved,
+                                                     node, contnode)
+            if ref is not None:
+                return ref
+    return None
 
 
 def setup(app):
-    app.connect("autoapi-skip-member", _skip_attributes)
+    app.connect("autoapi-skip-member", _skip_member)
+    app.connect("missing-reference", _link_imported_names)
 
 
 # -- HTML output -------------------------------------------------------------
