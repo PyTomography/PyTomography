@@ -65,15 +65,18 @@ def test_set_n_subsets_sets_the_partition_and_returns_none():
     import importlib
     import inspect
     import torch
-    classes = set()
+    classes, have_ct = set(), True
     for name in ('system_matrix', 'SPECT', 'PET', 'CT', 'shared'):
         try:
             module = importlib.import_module(f'pytomography.projectors.{name}')
-        except ImportError:                       # CT needs parallelproj 2
+        except Exception:                         # projectors.CT raises without parallelproj 2
+            if name != 'CT':
+                raise
+            have_ct = False
             continue
         classes.update(c for c in vars(module).values() if inspect.isclass(c) and issubclass(c, SystemMatrix))
     with_subsets = [c for c in classes if 'set_n_subsets' in vars(c)]
-    assert len(with_subsets) >= 7
+    assert len(with_subsets) >= (7 if have_ct else 5)
     for cls in with_subsets:
         assert inspect.signature(cls.set_n_subsets).return_annotation in (None, 'None'), cls.__name__
     system_matrix = tiny_spect_system()[0]
