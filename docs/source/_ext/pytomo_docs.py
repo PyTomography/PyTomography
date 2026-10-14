@@ -236,6 +236,11 @@ LLMS_SUMMARY = (
     "PyTomography is an open-source Python library for quantitative SPECT, PET and CT "
     "reconstruction on the GPU. Each link below is a Markdown version of one documentation page."
 )
+LLMS_FIRST = (
+    "**Agents, first:** before running PyTomography on a machine, check that it uses the GPU when the machine has "
+    "one (\"Check that PyTomography uses the GPU\" in _md/ai.md). An NVIDIA GPU with PyTomography on the CPU means a "
+    "broken install: tell the user and fix it rather than carrying on at CPU speed."
+)
 
 
 def _notebook_to_markdown(path: Path) -> str:
@@ -294,7 +299,7 @@ def write_markdown(app, exception):
     env, outdir = app.env, Path(app.outdir)
     title = lambda d: env.titles[d].astext() if d in env.titles else d
     groups = {"Guides": [], "Tutorials": [], "API reference": []}
-    full = [f"# PyTomography documentation\n\n> {LLMS_SUMMARY}\n"]
+    full = [f"# PyTomography documentation\n\n> {LLMS_SUMMARY}\n\n{LLMS_FIRST}\n"]
     for doc in _toctree_order(env):
         if doc in ("genindex", "search", "py-modindex"):
             continue
@@ -306,7 +311,7 @@ def write_markdown(app, exception):
                  "Tutorials" if doc.startswith("notebooks/") else "Guides")
         groups[group].append(f"- [{title(doc)}](_md/{doc}.md)")
         full.append(f"\n\n---\n\n<!-- page: {doc} -->\n\n{md}")
-    index = [f"# PyTomography\n\n> {LLMS_SUMMARY}\n"]
+    index = [f"# PyTomography\n\n> {LLMS_SUMMARY}\n\n{LLMS_FIRST}\n"]
     for name, links in groups.items():
         index.append(f"\n## {name}\n\n" + "\n".join(links) + "\n")
     (outdir / "llms.txt").write_text("".join(index), encoding="utf8")
