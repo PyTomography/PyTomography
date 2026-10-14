@@ -5,9 +5,10 @@ converters (STIR2PETSIRD, GATE to PETSIRD, CASToR) and STIR write. Install it wi
 "pytomography[petsird]"``. The events are decoded by PyTomography's own compiled reader (numba), about 75 times faster
 than ETSI's Python reader: the 197 million prompts of a 60-minute scan on a Siemens mMR take about 8 s.
 
-:func:`read_petsird` returns the data in PyTomography's standard form::
+:func:`read_petsird` returns the data in PyTomography's standard form, and :func:`read_header` reads a file's header
+once, to pass on to it::
 
-    header = petsird.read_header(path)
+    header = io.PET.petsird.read_header(path)
     prompts, object_meta, proj_meta = io.PET.read_petsird(path, up="+x", towards_bed="+z", patient_position="HFS",
                                                           header=header)
 
@@ -38,7 +39,9 @@ from pytomography.metadata.PET import PETLMProjMeta, PETTOFMeta
 from .scanner import keep_rsector_difference, scanner_info, scanner_lut
 from ._standard import default_grid, reader_object_meta
 
-SUPPORTED = (0, 9)  # petsird major, minor: the format of ETSI's converters and STIR
+SUPPORTED = (0, 9)
+"""The version (major, minor) of ETSI's ``petsird`` package that PyTomography reads PETSIRD files with, the format
+that ETSI's converters and STIR write."""
 
 
 def _petsird():
@@ -71,10 +74,20 @@ def _file_key(petsird_file) -> tuple:
 
 
 def read_header(petsird_file: str):
-    """The header of a PETSIRD file: the scanner (``header.scanner``) and the exam.
+    """Reads the header of a PETSIRD file with ETSI's ``petsird`` package: its scanner (``header.scanner``) and exam.
 
-    Pass it on to :func:`read_petsird` (``header=``) so that the file's header is not read again: the
-    normalisation tables of a clinical scanner take seconds to read, and gigabytes.
+    Pass it on to :func:`read_petsird` (``header=``) so that the file's header is not read again: the normalisation
+    tables of a clinical scanner take seconds to read, and gigabytes.
+
+    Args:
+        petsird_file (str): The PETSIRD file.
+
+    Returns:
+        petsird.Header: The header, as ETSI's package reads it.
+
+    Raises:
+        ImportError: If ETSI's ``petsird`` package, version 0.9, is not installed
+            (``pip install "pytomography[petsird]"``).
     """
     return _read_header_and_stream_start(petsird_file)[0]
 
@@ -118,16 +131,17 @@ def _element_positions(scanner) -> np.ndarray:
 
 
 def element_positions(scanner) -> torch.Tensor:
-    """Position of every detecting element, the centre of its box, in mm in the gantry coordinate system.
+    """Returns the position of every detecting element, the centre of its box, in PETSIRD's gantry coordinates in mm.
 
-    This is PETSIRD's own numbering and coordinates (before PyTomography 4, ``get_scanner_LUT``); the scanner lookup
-    table of the standard form is :func:`~pytomography.io.PET.scanner_lut` of ``proj_meta.info``.
+    These are PETSIRD's own numbering and coordinates; the scanner lookup table of the standard form, in the object
+    frame, is :func:`~pytomography.io.PET.scanner_lut` of ``proj_meta.info``.
 
     Args:
-        scanner: a PETSIRD ``ScannerInformation``, or a header.
+        scanner (petsird.ScannerInformation | petsird.Header | str): A PETSIRD ``ScannerInformation``, a header, or a
+            PETSIRD file.
 
     Returns:
-        torch.Tensor: ``N x 3`` positions, numbered as described at the top of this module.
+        torch.Tensor: float32 positions, ``[N, 3]`` in mm, numbered as described at the top of this module.
     """
     return torch.tensor(_element_positions(scanner), dtype=torch.float32)
 
@@ -532,42 +546,51 @@ def read_petsird(
     min_rsector_difference: int = 0,
     tolerance_mm: float = 0.25,
 ) -> tuple[torch.Tensor, ObjectMeta, PETLMProjMeta]:
-    """The coincidences of a PETSIRD 0.9 file in PyTomography's standard form, with the scanner, its TOF bins and its
-    detection efficiencies.
+    """Reads the coincidences of a PETSIRD 0.9 file in PyTomography's standard form, with the scanner and its TOF bins.
 
     The scanner must be a cylinder of rings around PETSIRD's z axis, made of one type of module with one layer of
     crystals. Each detecting element is matched to the crystal of PyTomography's description of the scanner
-    (``proj_meta.info``) at its place, within ``tolerance_mm``. PETSIRD 0.9 does not say which way its gantry axes point,
-    nor how the patient lies, so ``up``, ``towards_bed`` and ``patient_position`` give them. The object frame is the
-    patient's LPS, with the origin at the centre of the rings (``frame='scanner'``). Files written by ETSI's
+    (``proj_meta.info``) at its place, within ``tolerance_mm``. PETSIRD 0.9 does not say which way its gantry axes
+    point, nor how the patient lies, so ``up``, ``towards_bed`` and ``patient_position`` give them. The object frame is
+    the patient's LPS, with the origin at the centre of the rings (``frame='scanner'``). Files written by ETSI's
     STIR2PETSIRD have ``up="+x"`` and ``towards_bed="+z"``: STIR's gantry axes are x to the right looking into the
     gantry from the bed, y down and z towards the bed, and STIR2PETSIRD writes them as (x, y, z) = (-y, -x, z) of STIR.
+    For the prompts, the file's detection efficiencies give the sensitivity weight of every crystal pair.
 
     Args:
-        path (str | os.PathLike): the PETSIRD file.
-        object_meta (ObjectMeta, optional): the reconstruction grid (``dr`` and ``shape``); its centre and frame are
-            set by the reader. Defaults to None: voxels half the crystal pitch, a square covering 80 % of the ring's
-            diameter, and every ring.
+        path (str | os.PathLike): The PETSIRD file.
+        object_meta (ObjectMeta, optional): The reconstruction grid (``dr`` in mm, and ``shape``); its centre and
+            frame are set by the reader. Defaults to None: voxels half the crystal pitch, a square covering 80 % of
+            the ring's diameter, and every ring.
         events (str, optional): ``'prompts'`` or ``'delayeds'``. Defaults to ``'prompts'``.
-        up (str, optional): the gantry axis that points up: "+x", "-x", "+y" or "-y". Defaults to "+x".
-        towards_bed (str, optional): the scanner's axis, pointing out of the gantry towards the bed: "+z" or "-z".
-            Defaults to "+z".
-        patient_position (str, optional): "HFS", "FFS", "HFP" or "FFP" (head or feet first, supine or prone).
-            Defaults to "HFS".
-        time_interval_s (tuple[float, float], optional): read only the time blocks that start in [start, stop), in
-            seconds. Defaults to None: every time block.
-        header (optional): this file's header, from :func:`read_header`, so that it is not read again (a clinical
-            scanner's normalisation tables take seconds to read, and gigabytes). Defaults to None.
-        min_rsector_difference (int, optional): keep only events whose crystals are at least this many modules apart
+        up (str, optional): The gantry axis that points up: ``'+x'``, ``'-x'``, ``'+y'`` or ``'-y'``. Defaults to
+            ``'+x'``.
+        towards_bed (str, optional): The scanner's axis, pointing out of the gantry towards the bed: ``'+z'`` or
+            ``'-z'``. Defaults to ``'+z'``.
+        patient_position (str, optional): ``'HFS'``, ``'FFS'``, ``'HFP'`` or ``'FFP'`` (head or feet first, supine or
+            prone). Defaults to ``'HFS'``.
+        time_interval_s (tuple[float, float], optional): Read only the time blocks that start in [start, stop), in
+            s. Defaults to None: every time block.
+        header (petsird.Header, optional): This file's header, from :func:`read_header`, so that it is not read again
+            (a clinical scanner's normalisation tables take seconds to read, and gigabytes). Defaults to None.
+        min_rsector_difference (int, optional): Keep only events whose crystals are at least this many modules apart
             around the ring. Defaults to 0.
-        tolerance_mm (float, optional): the largest distance allowed between a detecting element and the crystal
-            PyTomography's description puts there. Defaults to 0.25.
+        tolerance_mm (float, optional): The largest distance allowed between a detecting element and the crystal
+            PyTomography's description puts there, in mm. Defaults to 0.25.
 
     Returns:
-        tuple[torch.Tensor, ObjectMeta, PETLMProjMeta]: the events (int32 ``[N, 2]``, or ``[N, 3]`` with the TOF bin
-        as stored, when the scanner has TOF bins), the object grid (modality ``'PT'``, units ``'counts'``), and the
-        projection metadata: ``info``, ``tof_meta`` and, for the prompts, the detection efficiency of every crystal
-        pair as ``weights_sensitivity`` (in ``torch.combinations`` order; 4 bytes per pair, 2 GB for the mMR).
+        tuple[torch.Tensor, ObjectMeta, PETLMProjMeta]: The events (int32 ``[N, 2]`` detector ids, or ``[N, 3]`` with
+        the TOF bin as stored, when the scanner has TOF bins), the object grid (modality ``'PT'``, units
+        ``'counts'``), and the projection metadata: ``info``, ``tof_meta`` and, for the prompts, the detection
+        efficiency of every crystal pair as ``weights_sensitivity`` (in ``torch.combinations`` order; 4 bytes per
+        pair, 2 GB for the mMR).
+
+    Raises:
+        ValueError: If ``events``, ``up``, ``towards_bed`` or ``patient_position`` is not one of the values above,
+            the scanner is not one PyTomography can describe (within ``tolerance_mm``), its TOF bins are not of equal
+            width and symmetric about 0, the file stores no delayed coincidences (with ``'delayeds'``), or the file
+            cannot be read (incomplete, or with events outside its scanner).
+        ImportError: If ETSI's ``petsird`` package, version 0.9, is not installed.
     """
     if events not in ("prompts", "delayeds"):
         raise ValueError(f"events must be 'prompts' or 'delayeds', not {events!r}")

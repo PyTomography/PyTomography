@@ -1,6 +1,8 @@
-"""Memory budgets, estimates and plans. The host (RAM) budget set with :func:`pytomography.set_memory_budget` sizes the
-blocks and subsets of PyTomography's memory-heavy steps (without a budget, every step keeps its fixed default); the GPU
-budget of chunked computations keeps them from taking over a shared GPU.
+"""Memory budgets, estimates and plans for PyTomography's memory-heavy computations.
+
+The host (RAM) budget set with :func:`pytomography.set_memory_budget` sizes the blocks and subsets of PyTomography's
+memory-heavy steps (without a budget, every step keeps its fixed default); the GPU budget of chunked computations
+(:func:`gpu_budget`) keeps them from taking over a shared GPU.
 
 Two questions can be asked of a computation before running it:
 
@@ -29,13 +31,16 @@ DEFAULT_BUDGET = 1.5e9
 
 
 def gpu_budget(budget: float | None = None, device: str | torch.device | None = None, fraction: float = 0.25) -> float:
-    """Bytes a chunked computation may hold on ``device``: ``budget`` (default :data:`DEFAULT_BUDGET`), and on a CUDA
-    device never more than ``fraction`` of the memory free when it is called, since the GPU may be shared with other
-    jobs. On other devices the budget is returned as given; it then bounds host memory instead.
+    """Bytes a chunked computation may hold on ``device``, capped on a CUDA device by the memory free now.
+
+    The budget is ``budget`` (default :data:`DEFAULT_BUDGET`), and on a CUDA device never more than ``fraction`` of the
+    memory free when this is called, since the GPU may be shared with other jobs. On other devices the budget is
+    returned as given; it then bounds host memory instead.
 
     Args:
-        budget (float, optional): Requested budget in bytes. Defaults to :data:`DEFAULT_BUDGET`.
-        device (str | torch.device, optional): Device the computation runs on. Defaults to ``pytomography.device``.
+        budget (float | None, optional): Requested budget in bytes. Defaults to None: :data:`DEFAULT_BUDGET`.
+        device (str | torch.device | None, optional): Device the computation runs on. Defaults to
+            ``pytomography.device``.
         fraction (float, optional): Largest fraction of the free CUDA memory to use. Defaults to 0.25.
 
     Returns:
@@ -50,8 +55,16 @@ def gpu_budget(budget: float | None = None, device: str | torch.device | None = 
 
 
 class PeakMemory:
-    """Context manager that measures the peak memory allocated by PyTorch on a CUDA device above the level at entry,
-    in bytes (``peak``). On other devices ``peak`` stays 0.
+    """Context manager that measures the peak GPU memory PyTorch allocates inside its block.
+
+    ``peak`` is the most memory PyTorch allocated on the CUDA device during the block, above what it had allocated at
+    entry, in bytes. On other devices ``peak`` stays 0.
+
+    Args:
+        device (str | torch.device | None, optional): The device to watch. Defaults to ``pytomography.device``.
+
+    Attributes:
+        peak (int): The peak, in bytes, once the block has ended.
 
     Example:
         >>> with PeakMemory() as m:
@@ -82,7 +95,10 @@ BLOCK_CAP_BYTES = 5e8
 
 
 def block_size(bytes_per_item: float, default: int, fraction: float = 1 / 8) -> int:
-    """Number of items (crystal pairs, events, rows) a step processes at once: as many as fit in ``fraction`` of the memory budget, but at most :data:`BLOCK_CAP_BYTES` of temporaries; ``default`` without a budget.
+    """Number of items (crystal pairs, events, rows) a blocked step processes at once, from the memory budget.
+
+    The block holds as many items as fit in ``fraction`` of the memory budget (:func:`pytomography.set_memory_budget`),
+    but at most :data:`BLOCK_CAP_BYTES` of temporaries; without a budget it holds ``default`` items.
 
     Args:
         bytes_per_item (float): Memory the step needs per item, temporaries included.
@@ -103,10 +119,13 @@ LAZY_WITHOUT_BUDGET_BYTES = 8e9
 
 
 def prefer_lazy(nbytes: float) -> bool:
-    """Whether an array of ``nbytes`` bytes should be computed one part at a time instead of held whole: when it would take more than a quarter of the memory budget, or, without a budget, more than :data:`LAZY_WITHOUT_BUDGET_BYTES` (8 GB).
+    """Whether an array of ``nbytes`` bytes should be computed one part at a time instead of held whole.
+
+    It should when it would take more than a quarter of the memory budget (:func:`pytomography.set_memory_budget`), or,
+    without a budget, more than :data:`LAZY_WITHOUT_BUDGET_BYTES` (8 GB).
 
     Args:
-        nbytes (float): Size of the whole array.
+        nbytes (float): Size of the whole array, in bytes.
 
     Returns:
         bool: True if the array should be computed a part at a time.
@@ -125,9 +144,10 @@ def subsets_for_budget(projection_bytes: float, arrays: int = 3, held_bytes: flo
     data, the additive term, the images; half the budget if not given).
 
     Args:
-        projection_bytes (float): Size of all the projections (e.g. a whole time of flight sinogram, even if it is never held whole).
+        projection_bytes (float): Size of all the projections, in bytes (e.g. a whole time of flight sinogram, even if
+            it is never held whole).
         arrays (int, optional): Number of subset-sized arrays held at once. Defaults to 3.
-        held_bytes (float | None, optional): Memory held besides them. Defaults to None (half the budget).
+        held_bytes (float | None, optional): Memory held besides them, in bytes. Defaults to None (half the budget).
         minimum (int, optional): Fewest subsets to return. Defaults to 1.
         maximum (int | None, optional): Most subsets there can be, such as the number of angles: each subset needs at
             least one. Defaults to None (no limit).
@@ -155,9 +175,13 @@ def subsets_for_budget(projection_bytes: float, arrays: int = 3, held_bytes: flo
 
 @contextmanager
 def memory_budget_set(gb: float | None):
-    """Context manager that sets the memory budget (:func:`pytomography.set_memory_budget`) to ``gb`` inside its block and
-    restores the previous budget afterwards, also if the block raises. Estimates use it to see what a lower budget
-    would change.
+    """Context manager that sets the memory budget to ``gb`` inside its block and restores the previous one afterwards.
+
+    The budget is set with :func:`pytomography.set_memory_budget` and restored also if the block raises. Estimates use
+    it to see what a lower budget would change.
+
+    Args:
+        gb (float | None): The memory budget inside the block, in GB, or None for no budget.
 
     Example:
         >>> with memory_budget_set(16):
@@ -227,6 +251,9 @@ class MemoryPart:
         scope (str, optional): ``'held'`` for the whole computation, ``'subset'`` for one subset at a time,
             ``'chunk'`` for projector or kernel temporaries, or ``'overhead'`` (Python, CUDA, allocator). Defaults to
             ``'held'``.
+
+    Raises:
+        ValueError: ``scope`` is not one of these.
     """
     name: str
     ram_bytes: float = 0.0
@@ -239,19 +266,26 @@ class MemoryPart:
 
 
 def counts_gpu_as_ram() -> bool:
-    """Whether GPU memory a process holds also counts as its RAM: on Windows, where the GPU memory PyTorch holds (in
-    use or cached) is part of the process's committed memory, the measure the 25 GB tutorial cap uses."""
+    """Whether the GPU memory a process holds also counts as its RAM, as it does on Windows.
+
+    On Windows the GPU memory PyTorch holds (in use or cached) is part of the process's committed memory, the measure
+    the 25 GB cap of the tutorials uses.
+
+    Returns:
+        bool: True on Windows.
+    """
     return sys.platform == 'win32'
 
 
 def projector_uses_gpu(device: str | torch.device | None = None) -> bool:
-    """Whether parallelproj, the projector of the PET and CT system matrices, runs on a GPU although PyTomography's
-    device (``device``, default ``pytomography.device``) is not a CUDA device: its CUDA build
-    (``parallelproj_core.cuda_enabled``) projects arrays in host memory on a visible CUDA device, copying them there,
-    which makes a CUDA context in the process. Measured by ``tests/validate_memory.py`` (11 Oct 2026, RTX 5090,
-    Windows): a PET sinogram reconstruction on the CPU device committed 1.7 GB more at its first projection, and the GPU
-    held 0.65 GB more. (With no CUDA device visible, that build refuses arrays in host memory: a CPU build of
-    parallelproj is needed.)
+    """Whether parallelproj, the projector of PET and CT, uses a GPU although PyTomography's device is not CUDA.
+
+    That happens when PyTomography's device (``device``, default ``pytomography.device``) is not a CUDA device but
+    parallelproj is its CUDA build (``parallelproj_core.cuda_enabled``): it projects arrays in host memory on a visible
+    CUDA device, copying them there, which makes a CUDA context in the process. Measured by
+    ``tests/validate_memory.py`` (11 Oct 2026, RTX 5090, Windows): a PET sinogram reconstruction on the CPU device
+    committed 1.7 GB more at its first projection, and the GPU held 0.65 GB more. (With no CUDA device visible, that
+    build refuses arrays in host memory: a CPU build of parallelproj is needed.)
 
     Args:
         device (str | torch.device | None, optional): PyTomography's device. Defaults to ``pytomography.device``.
@@ -270,10 +304,19 @@ def projector_uses_gpu(device: str | torch.device | None = None) -> bool:
 
 
 def fixed_overhead_bytes(device: str | torch.device | None = None, cuda_projector: bool = False) -> float:
-    """Committed memory of Python, PyTorch and CUDA in a process running PyTomography on ``device`` (default
-    ``pytomography.device``): :data:`FIXED_OVERHEAD_BYTES` on a CUDA device, :data:`FIXED_OVERHEAD_CPU_BYTES` otherwise,
-    except for a computation that projects with parallelproj (``cuda_projector``) whose CUDA build runs on a visible
-    GPU (:func:`projector_uses_gpu`): that makes a CUDA context, so :data:`FIXED_OVERHEAD_BYTES` on the CPU too."""
+    """Committed memory of Python, PyTorch and CUDA in a process running PyTomography on ``device``.
+
+    It is :data:`FIXED_OVERHEAD_BYTES` on a CUDA device and :data:`FIXED_OVERHEAD_CPU_BYTES` otherwise, except for a
+    computation that projects with parallelproj (``cuda_projector``) whose CUDA build runs on a visible GPU
+    (:func:`projector_uses_gpu`): that makes a CUDA context, so :data:`FIXED_OVERHEAD_BYTES` on the CPU too.
+
+    Args:
+        device (str | torch.device | None, optional): PyTomography's device. Defaults to ``pytomography.device``.
+        cuda_projector (bool, optional): Whether the computation projects with parallelproj. Defaults to False.
+
+    Returns:
+        float: The overhead, in bytes.
+    """
     device = torch.device(pytomography.device if device is None else device)
     if device.type == 'cuda' or (cuda_projector and projector_uses_gpu(device)):
         return FIXED_OVERHEAD_BYTES
@@ -281,18 +324,29 @@ def fixed_overhead_bytes(device: str | torch.device | None = None, cuda_projecto
 
 
 def fixed_overhead(cuda_projector: bool = False) -> MemoryPart:
-    """Python, PyTorch and the CUDA context (:func:`fixed_overhead_bytes`), as the ``'overhead'`` part every estimate adds.
+    """The RAM of Python, PyTorch and CUDA, as the ``'overhead'`` part every estimate adds.
+
+    Its size is :func:`fixed_overhead_bytes` on ``pytomography.device``.
 
     Args:
         cuda_projector (bool, optional): Whether the computation projects with parallelproj, whose CUDA build makes a
             CUDA context on the CPU device too. Defaults to False.
+
+    Returns:
+        MemoryPart: The part, in RAM.
     """
     return MemoryPart('Python, PyTorch and CUDA', ram_bytes=fixed_overhead_bytes(cuda_projector=cuda_projector), scope='overhead')
 
 
 def cuda_context(device: str | torch.device | None = None) -> MemoryPart | None:
-    """The GPU memory of the CUDA context and libraries (:data:`CUDA_CONTEXT_GPU_BYTES`) on ``device`` (default
-    ``pytomography.device``), as an ``'overhead'`` part; None on other devices."""
+    """The GPU memory of the CUDA context and libraries, as an ``'overhead'`` part.
+
+    Args:
+        device (str | torch.device | None, optional): PyTomography's device. Defaults to ``pytomography.device``.
+
+    Returns:
+        MemoryPart | None: :data:`CUDA_CONTEXT_GPU_BYTES` of GPU memory on a CUDA device; None on other devices.
+    """
     device = torch.device(pytomography.device if device is None else device)
     if device.type != 'cuda':
         return None
@@ -300,8 +354,15 @@ def cuda_context(device: str | torch.device | None = None) -> MemoryPart | None:
 
 
 def cuda_cache(gpu_bytes: float) -> MemoryPart | None:
-    """PyTorch's CUDA cache above ``gpu_bytes`` of arrays (:data:`CUDA_CACHE_BYTES` and :data:`CUDA_CACHE_FRACTION` of
-    them), as an ``'overhead'`` part; None without GPU arrays."""
+    """PyTorch's CUDA cache above ``gpu_bytes`` of arrays, as an ``'overhead'`` part.
+
+    Args:
+        gpu_bytes (float): GPU memory of the computation's arrays, in bytes.
+
+    Returns:
+        MemoryPart | None: :data:`CUDA_CACHE_BYTES` plus :data:`CUDA_CACHE_FRACTION` of ``gpu_bytes`` of GPU memory;
+        None when ``gpu_bytes`` is not positive.
+    """
     if gpu_bytes <= 0:
         return None
     return MemoryPart("PyTorch's GPU cache (rounded and kept blocks)", gpu_bytes=CUDA_CACHE_BYTES + CUDA_CACHE_FRACTION * gpu_bytes, scope='overhead')
@@ -315,13 +376,13 @@ WINDOWS_ALLOCATOR_FRACTION = 0.35
 
 def memory_estimate(title: str, parts: Sequence[MemoryPart], alternatives: Sequence[tuple] = (), allocator_fraction: float | None = None,
                     settings: Mapping | None = None, cuda_projector: bool = False) -> MemoryEstimate:
-    """A :class:`MemoryEstimate` of a computation's own arrays (``parts``), with the overheads every estimate adds: Python,
-    PyTorch and CUDA (:func:`fixed_overhead`), on a CUDA device the GPU memory of the CUDA context and libraries
-    (:func:`cuda_context`, taken out of the RAM overhead on Windows, where that includes it), PyTorch's CUDA cache above
-    the GPU arrays (:func:`cuda_cache`) and, on
-    Windows, the memory PyTorch's allocator keeps after freeing (:data:`WINDOWS_ALLOCATOR_FRACTION` of the arrays). The
-    alternatives get the same overheads, so their totals compare with the main one. The ``estimate_memory`` methods
-    build their estimates with it.
+    """A :class:`MemoryEstimate` of a computation's own arrays (``parts``), with the overheads every estimate adds.
+
+    The overheads are Python, PyTorch and CUDA (:func:`fixed_overhead`); on a CUDA device, the GPU memory of the CUDA
+    context and libraries (:func:`cuda_context`, taken out of the RAM overhead on Windows, where that includes it);
+    PyTorch's CUDA cache above the GPU arrays (:func:`cuda_cache`); and, on Windows, the memory PyTorch's allocators
+    keep after freeing (:data:`WINDOWS_ALLOCATOR_FRACTION` of the arrays). The alternatives get the same overheads, so
+    their totals compare with the main one. The ``estimate_memory`` methods build their estimates with it.
 
     Args:
         title (str): What is estimated, with its settings.
@@ -382,9 +443,17 @@ def tensor_nbytes(x: torch.Tensor) -> float:
 
 
 def nbytes(x) -> tuple[float, float]:
-    """Memory an array keeps, as (RAM bytes, GPU bytes): a tensor's elements (:func:`tensor_nbytes`) on its device, or
-    what a :class:`~pytomography.io.PET.shared.LazySinogram` keeps (``memory_bytes``, on the host); 0 for anything
-    else."""
+    """Memory an array keeps, as (RAM bytes, GPU bytes).
+
+    For a tensor, its elements (:func:`tensor_nbytes`) on its device; for an object with a ``memory_bytes`` attribute,
+    such as a :class:`~pytomography.io.PET.LazySinogram`, that many bytes on the host; 0 for anything else.
+
+    Args:
+        x (torch.Tensor | LazySinogram): The array.
+
+    Returns:
+        tuple[float, float]: RAM and GPU bytes.
+    """
     if isinstance(x, torch.Tensor):
         size = tensor_nbytes(x)
         return (0.0, size) if x.device.type == 'cuda' else (size, 0.0)
@@ -392,12 +461,14 @@ def nbytes(x) -> tuple[float, float]:
 
 
 def tensor_bytes(obj, exclude: Sequence[str] = ()) -> tuple[float, float]:
-    """Memory the tensors an object keeps as attributes take, as (RAM bytes, GPU bytes): its tensor attributes and the
-    tensors in its list, tuple and dict attributes (one level deep), each at its own size (:func:`tensor_nbytes`) and
-    each counted once. Estimates use it for the arrays of transforms they do not know in detail.
+    """Memory taken by the tensors an object keeps as attributes, as (RAM bytes, GPU bytes).
+
+    The tensors are its tensor attributes and the tensors in its list, tuple and dict attributes (one level deep), each
+    at its own size (:func:`tensor_nbytes`) and each counted once. Estimates use it for the arrays of transforms they do
+    not know in detail.
 
     Args:
-        obj: Any object (None gives 0).
+        obj (object): Any object (None gives 0).
         exclude (Sequence[str], optional): Attribute names to leave out. Defaults to none.
 
     Returns:
@@ -465,9 +536,12 @@ def _settings_text(settings: Mapping) -> str:
 
 
 class MemoryEstimate:
-    """The predicted peak memory of a computation: the arrays it holds (:class:`MemoryPart`), their total RAM and GPU
-    memory, and what other settings would need. ``print`` it to see the estimate; ``ram_gb`` and ``gpu_gb`` give the
-    numbers to code, and :meth:`to_dict` all of it as JSON.
+    """The predicted peak RAM and GPU memory of a computation, with what it is made of and what other settings need.
+
+    The estimate lists the arrays the computation holds (:class:`MemoryPart`), their total RAM and GPU memory, and what
+    other settings would need. ``print`` it to see the estimate; :attr:`ram_gb` and :attr:`gpu_gb` give the numbers to
+    code, and :meth:`to_dict` all of it as JSON. The ``estimate_memory`` methods return one, built by
+    :func:`memory_estimate`.
 
     On Windows the GPU memory also counts as RAM (:func:`counts_gpu_as_ram`), so ``ram_gb`` includes it there.
 
@@ -478,6 +552,12 @@ class MemoryEstimate:
             "To use less" line (e.g. ``('28 subsets', estimate_28)``). Defaults to none.
         settings (Mapping | None, optional): The settings this estimate is for, by name (e.g.
             ``{'n_subsets': 14, 'N_splits': 1}``). Defaults to none.
+
+    Attributes:
+        title (str): What is estimated.
+        parts (list[MemoryPart]): The arrays, including the overhead.
+        alternatives (list[tuple[str, MemoryEstimate]]): Other settings and their estimates.
+        settings (dict): The settings this estimate is for.
     """
     def __init__(self, title: str, parts: Sequence[MemoryPart], alternatives: Sequence[tuple[str, MemoryEstimate]] = (),
                  settings: Mapping | None = None) -> None:
@@ -521,10 +601,12 @@ class MemoryEstimate:
         return self.__str__()
 
     def to_dict(self) -> dict:
-        """The estimate as plain Python values, which ``json.dumps`` takes (and ``json.loads`` gives back): ``title``;
-        ``settings``, the settings it is for; ``ram_gb`` and ``gpu_gb``, the peak in GB; ``gpu_counts_as_ram``, whether
-        ``ram_gb`` includes the GPU memory (on Windows); ``parts``, each as ``{name, ram_gb, gpu_gb, scope}``; and
-        ``alternatives``, each as ``{label, ram_gb, gpu_gb, settings}``. GB are rounded to the kilobyte.
+        """The estimate as plain Python values, which ``json.dumps`` takes (and ``json.loads`` gives back).
+
+        The keys are ``title``; ``settings``, the settings it is for; ``ram_gb`` and ``gpu_gb``, the peak in GB;
+        ``gpu_counts_as_ram``, whether ``ram_gb`` includes the GPU memory (on Windows); ``parts``, each as
+        ``{name, ram_gb, gpu_gb, scope}``; and ``alternatives``, each as ``{label, ram_gb, gpu_gb, settings}``. GB are
+        rounded to the kilobyte.
 
         Returns:
             dict: The estimate.
@@ -561,7 +643,9 @@ PLAN_MAX_SUBSETS = 256
 
 
 def split_candidates(present: int | None = None, most: int = 256) -> list[int]:
-    """The projector splits ``N_splits`` a plan tries, fewest (fastest) first: 1, 2, 4, ... ``most``, and ``present``.
+    """The projector splits ``N_splits`` a plan tries, fewest (fastest) first.
+
+    They are the powers of two from 1 up to ``most``, and ``present``.
 
     Args:
         present (int | None, optional): The present value, tried too. Defaults to None.
@@ -689,15 +773,17 @@ def _gpu_memory(device) -> tuple[float, float]:
 
 
 def available_memory(device: str | torch.device | None = None) -> tuple[float, float]:
-    """RAM and GPU memory, in GB, a computation in this process can plan for now: what is free on the machine, less a
-    margin kept free for everything else (:data:`RAM_MARGIN_BYTES`, 16 GB, or :data:`RAM_MARGIN_FRACTION` of the RAM on
-    machines with less than 64 GB; :data:`GPU_MARGIN_FRACTION` of the GPU). The RAM also includes the Python, PyTorch
-    and CUDA overhead this process already holds (at most :func:`fixed_overhead_bytes`), since every estimate counts it;
-    arrays the process already holds are not added back, since an estimate may not count them. The ``plan_memory``
-    methods use it when they are not given budgets.
+    """RAM and GPU memory, in GB, that a computation in this process can plan for now.
 
-    On Windows GPU memory counts as RAM (:func:`counts_gpu_as_ram`): the RAM returned is what is left for both, and a plan
-    checks an estimate's ``ram_gb``, which includes its GPU memory there, against it.
+    Each is what is free on the machine, less a margin kept free for everything else (:data:`RAM_MARGIN_BYTES`, 16 GB,
+    or :data:`RAM_MARGIN_FRACTION` of the RAM on machines with less than 64 GB; :data:`GPU_MARGIN_FRACTION` of the
+    GPU). The GPU memory PyTorch's cache holds unused counts as free. The RAM also includes the Python, PyTorch and CUDA
+    overhead this process already holds (at most :func:`fixed_overhead_bytes`), since every estimate counts it; arrays
+    the process already holds are not added back, since an estimate may not count them. The ``plan_memory`` methods use
+    it when they are not given budgets.
+
+    On Windows GPU memory counts as RAM (:func:`counts_gpu_as_ram`): the RAM returned is what is left for both, and a
+    plan checks an estimate's ``ram_gb``, which includes its GPU memory there, against it.
 
     Args:
         device (str | torch.device | None, optional): The GPU. Defaults to ``pytomography.device``.
@@ -717,11 +803,12 @@ def available_memory(device: str | torch.device | None = None) -> tuple[float, f
 
 
 class MemoryPlan:
-    """Settings of a computation chosen to fit a memory budget, which the ``plan_memory`` methods return (e.g.
-    :meth:`pytomography.projectors.SystemMatrix.plan_memory`): the fastest settings whose estimate fits both the RAM and
-    the GPU budget, keeping the settings that were given, with their estimate and every setting tried. If nothing fits,
-    ``fits`` is False and the settings are those that come closest. ``print`` it to see the settings chosen and those
-    tried; :meth:`to_dict` gives it as JSON.
+    """Settings of a computation chosen to fit a RAM and a GPU budget, as the ``plan_memory`` methods return them.
+
+    A plan (e.g. from :meth:`pytomography.projectors.SystemMatrix.plan_memory`, built by :func:`plan_settings`) holds
+    the fastest settings whose estimate fits both the RAM and the GPU budget, keeping the settings that were given,
+    with their estimate and every setting tried. If nothing fits, ``fits`` is False and the settings are those that
+    come closest. ``print`` it to see the settings chosen and those tried; :meth:`to_dict` gives it as JSON.
 
     Args:
         title (str): What is planned (e.g. ``'OSEM (PETSinogramSystemMatrix)'``).
@@ -806,11 +893,12 @@ class MemoryPlan:
         return self.__str__()
 
     def to_dict(self) -> dict:
-        """The plan as plain Python values, which ``json.dumps`` takes (and ``json.loads`` gives back): ``title``;
-        ``fits``; ``settings``, those chosen; ``fixed``, the names of those that were given; ``budget``, the RAM and
-        GPU budgets used in GB (None for no limit) and where they came from (``'given'`` or ``'available'``);
-        ``gpu_counts_as_ram``; ``estimate``, the estimate of the settings chosen (:meth:`MemoryEstimate.to_dict`); and
-        ``options``, every setting tried, as ``{settings, ram_gb, gpu_gb, fits}``.
+        """The plan as plain Python values, which ``json.dumps`` takes (and ``json.loads`` gives back).
+
+        The keys are ``title``; ``fits``; ``settings``, those chosen; ``fixed``, the names of those that were given;
+        ``budget``, the RAM and GPU budgets used in GB (None for no limit) and where they came from (``'given'`` or
+        ``'available'``); ``gpu_counts_as_ram``; ``estimate``, the estimate of the settings chosen
+        (:meth:`MemoryEstimate.to_dict`); and ``options``, every setting tried, as ``{settings, ram_gb, gpu_gb, fits}``.
 
         Returns:
             dict: The plan.
@@ -829,8 +917,9 @@ class MemoryPlan:
 def plan_settings(title: str, settings: Mapping[str, tuple], estimate: Callable[[dict, bool], MemoryEstimate],
                   fixed: Mapping | None = None, ram_gb: float | None = None, gpu_gb: float | None = None,
                   device: str | torch.device | None = None) -> MemoryPlan:
-    """The fastest settings of a computation whose estimate fits in ``ram_gb`` of RAM and ``gpu_gb`` of GPU memory, as a
-    :class:`MemoryPlan`. The ``plan_memory`` methods build their plans with it.
+    """The fastest settings of a computation whose estimate fits in ``ram_gb`` of RAM and ``gpu_gb`` of GPU memory.
+
+    The result is a :class:`MemoryPlan`; the ``plan_memory`` methods build their plans with this function.
 
     The settings are tried in order: every combination of the candidates of each setting, the first setting's being the
     outer loop, each list fastest first, so that the first combination that fits is the plan (e.g. the fewest projector

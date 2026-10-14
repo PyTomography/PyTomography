@@ -1,4 +1,17 @@
-r"""This module consists of preconditioned gradient ascent (PGA) algorithms: these algorithms are both statistical (since they depend on a likelihood function dependent on the imaging system) and iterative. Common clinical reconstruction algorithms, such as OSEM, correspond to a subclass of PGA algorithms. PGA algorithms are characterized by the update rule :math:`f^{n+1} = f^{n} + C^{n}(f^{n}) \left[\nabla_{f} L(g^n|f^{n}) - \beta \nabla_{f} V(f^{n}) \right]` where :math:`L(g^n|f^{n})` is the likelihood function, :math:`V(f^{n})` is the prior function, :math:`C^{n}(f^{n})` is the preconditioner, and :math:`\beta` is a scalar used to scale the prior function."""
+r"""Preconditioned gradient ascent (PGA) algorithms: OSEM, MLEM, OSMAPOSL, BSREM, RBI-EM, RBI-MAP, KEM and SART.
+
+These algorithms are statistical (they maximise a likelihood of the data) and iterative. Each subiteration updates the
+object with the gradient of one subset :math:`m` of the data,
+
+.. math::
+
+    f^{n+1} = f^{n} + C^{n}(f^{n}) \left[\nabla_{f} L(g_m|f^{n}) - \beta \nabla_{f} V(f^{n}) \right],
+
+where :math:`L` is the likelihood, :math:`V` the prior, :math:`\beta` its weight and :math:`C^{n}` the preconditioner,
+which is what distinguishes the algorithms. Call an algorithm with the number of iterations and subsets to
+reconstruct; :meth:`~PreconditionedGradientAscentAlgorithm.estimate_memory` and
+:meth:`~PreconditionedGradientAscentAlgorithm.plan_memory` say beforehand what it will need.
+"""
 
 from __future__ import annotations
 from collections.abc import Callable, Sequence
@@ -14,16 +27,22 @@ from pytomography.projectors.system_matrix import held_parts, on_device
 from pytomography.utils.memory import MemoryEstimate, MemoryPart, MemoryPlan, memory_estimate, plan_settings, tensor_bytes
 
 class PreconditionedGradientAscentAlgorithm:
-    r"""Generic class for preconditioned gradient ascent algorithms: i.e. those that have the form :math:`f^{n+1} = f^{n} + C^{n}(f^{n}) \left[\nabla_{f} L(g^n|f^{n}) - \beta \nabla_{f} V(f^{n}) \right]`.
+    r"""The base class of the preconditioned gradient ascent algorithms, whose subclasses define the preconditioner.
 
-    Before running one, :meth:`estimate_memory` predicts its peak RAM and GPU memory for given settings (e.g. the number
-    of subsets), and :meth:`plan_memory` chooses the fastest settings that fit the memory there is.
+    Each subiteration does :math:`f^{n+1} = f^{n} + C^{n}(f^{n}) \left[\nabla_{f} L(g_m|f^{n}) - \beta \nabla_{f}
+    V(f^{n}) \right]` for one subset :math:`m`. Calling the algorithm reconstructs. Before running one,
+    :meth:`estimate_memory` predicts its peak RAM and GPU memory for given settings (e.g. the number of subsets), and
+    :meth:`plan_memory` chooses the fastest settings that fit the memory there is.
 
     Args:
-        likelihood (Likelihood): Likelihood class that facilitates computation of :math:`L(g^n|f^{n})` and its associated derivatives.
-        prior (Prior, optional): Prior class that faciliates the computation of function :math:`V(f)` and its associated derivatives. If None, then no prior is used Defaults to None.
-        object_initial (torch.Tensor | None, optional): Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
-        addition_after_iteration (float, optional): Value to add to the object after each iteration. This prevents image voxels getting "locked" at values of 0 for certain algorithms. Defaults to 0.
+        likelihood (Likelihood): The likelihood :math:`L`, with the data and the system matrix.
+        prior (Prior, optional): The prior :math:`V` (with its weight :math:`\beta`). Defaults to None (no prior).
+        object_initial (torch.Tensor | None, optional): The initial object, [Lx, Ly, Lz]. Defaults to None: the
+            system matrix's initial object (ones; for SPECT, zero outside the camera's path when the system matrix asks
+            for it).
+        addition_after_iteration (float, optional): A floor for the object: after every update, voxels at or below
+            this value are set to it, so that voxels cannot get "locked" at 0. Defaults to 0.
+        **kwargs: Accepted and not used.
     """
     #: Whether the algorithm adds up the :math:`H_m^T 1` of every subset at each update (BSREM, RBI-EM, RBI-MAP), which
     #: stacks them: for memory estimates.
@@ -97,12 +116,14 @@ class PreconditionedGradientAscentAlgorithm:
         return f"{type(self).__name__} ({type(self.likelihood.system_matrix).__name__})"
 
     def estimate_memory(self, n_subsets: int | None = None, N_splits: int | None = None) -> MemoryEstimate:
-        """The predicted peak RAM and GPU memory of this reconstruction, without running it, for ``n_subsets`` subsets
-        (the number its call will be given) and ``N_splits`` projector splits: the estimate of its system matrix
-        (:meth:`~pytomography.projectors.SystemMatrix.estimate_memory`) with the arrays the algorithm holds, which are
-        the likelihood's projections and additive term, the prior's arrays, and the stacked :math:`H_m^T 1` of BSREM and
-        RBI. Callbacks are not counted (a ``DataStorageCallback`` keeps an image and the expected projections of every
-        subiteration). ``print`` it, or ``to_dict()`` for JSON. For the opposite question, see :meth:`plan_memory`.
+        """The predicted peak RAM and GPU memory of this reconstruction, without running it.
+
+        The estimate is for ``n_subsets`` subsets (the number its call will be given) and ``N_splits`` projector
+        splits: the estimate of its system matrix (:meth:`~pytomography.projectors.SystemMatrix.estimate_memory`) with
+        the arrays the algorithm holds, which are the likelihood's projections and additive term, the prior's arrays,
+        and the stacked :math:`H_m^T 1` of BSREM and RBI. Callbacks are not counted (a ``DataStorageCallback`` keeps an
+        image and the expected projections of every subiteration). ``print`` it, or ``to_dict()`` for JSON. For the
+        opposite question, see :meth:`plan_memory`.
 
         Args:
             n_subsets (int | None, optional): Number of subsets. Defaults to None: those of the last call, or 1.
@@ -124,12 +145,14 @@ class PreconditionedGradientAscentAlgorithm:
                                               title=self._memory_title(), title_settings={'N_splits': N_splits})
 
     def plan_memory(self, ram_gb: float | None = None, gpu_gb: float | None = None, **fixed) -> MemoryPlan:
-        """The fastest settings of this reconstruction that fit in ``ram_gb`` of RAM and ``gpu_gb`` of GPU memory, as a
-        :class:`~pytomography.utils.memory.MemoryPlan`: as :meth:`~pytomography.projectors.SystemMatrix.plan_memory` of
-        its system matrix (the fewest projector splits, then the fewest subsets that fit), with the arrays the algorithm
-        holds counted as in :meth:`estimate_memory`. Settings passed by name are kept, e.g. ``n_subsets=8`` (the number
-        its call will be given). Without budgets, the plan is for what is free on this machine now. If nothing fits, the
-        plan has ``fits`` False and the settings that come closest; it does not raise.
+        """The fastest settings of this reconstruction that fit in the given RAM and GPU memory.
+
+        The result is a :class:`~pytomography.utils.memory.MemoryPlan`: as
+        :meth:`~pytomography.projectors.SystemMatrix.plan_memory` of its system matrix (the fewest projector splits,
+        then the fewest subsets that fit), with the arrays the algorithm holds counted as in :meth:`estimate_memory`.
+        Settings passed by name are kept, e.g. ``n_subsets=8`` (the number its call will be given). Without budgets,
+        the plan is for what is free on this machine now. If nothing fits, the plan has ``fits`` False and the
+        settings that come closest; it does not raise.
 
         Args:
             ram_gb (float | None, optional): RAM to fit in, in GB (on Windows it covers GPU memory too). Defaults to
@@ -186,17 +209,21 @@ class PreconditionedGradientAscentAlgorithm:
         n_subset_specific: int | None = None,
         callback: Callback | None = None,
         ):
-        """_summary_
+        """Reconstructs: ``n_iters`` iterations of ``n_subsets`` subiterations each, starting from the current object.
+
+        Calling the algorithm again continues from where the last call stopped.
 
         Args:
-            Args:
-            n_iters (int): Number of iterations
-            n_subsets (int): Number of subsets
-            n_subset_specific (int): Ignore all updates except for this subset.
-            callback (Callback, optional): Callback function to be called after each subiteration. Defaults to None.
+            n_iters (int): Number of iterations.
+            n_subsets (int, optional): Number of subsets. Defaults to 1.
+            n_subset_specific (int | None, optional): Do only the subiterations of this subset, skipping the others
+                (used by algorithms that drive this one, such as :class:`~pytomography.algorithms.DIPRecon`). Defaults to
+                None: every subset.
+            callback (Callback, optional): Run after each subiteration, e.g. a
+                :class:`~pytomography.callbacks.DataStorageCallback` for uncertainty estimates. Defaults to None.
 
         Returns:
-            torch.Tensor: Reconstructed object.
+            torch.Tensor: The reconstructed object, [Lx, Ly, Lz], on ``pytomography.device``.
         """
         self.callback = callback
         self.n_iters = n_iters
@@ -235,13 +262,12 @@ class PreconditionedGradientAscentAlgorithm:
         return self.object_prediction
 
 class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAlgorithm):
-    r"""Implementation of a special case of ``PreconditionedGradientAscentAlgorithm`` whereby :math:`C^{n}(f^n) = D^{n} f^{n}`
+    r"""The algorithms whose preconditioner is linear in the object, :math:`C^{n}(f^n) = D^{n} f^{n}`.
 
-    Args:
-        likelihood (Likelihood): Likelihood class that facilitates computation of :math:`L(g^n|f^{n})` and its associated derivatives.
-        prior (Prior, optional): Prior class that faciliates the computation of function :math:`V(f)` and its associated derivatives. If None, then no prior is used Defaults to None.
-        object_initial (torch.Tensor | None, optional): Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
-        addition_after_iteration (float, optional): Value to add to the object after each iteration. This prevents image voxels getting "locked" at values of 0 for certain algorithms. Defaults to 0.
+    :math:`D^n` does not depend on the object (OSEM, BSREM, RBI-EM). For them, :meth:`compute_uncertainty` estimates
+    the uncertainty of the counts in a region from a reconstruction run with a
+    :class:`~pytomography.callbacks.DataStorageCallback`. The arguments are those of
+    :class:`PreconditionedGradientAscentAlgorithm`.
     """
     def _linear_preconditioner_factor(self, n_iter: int, n_subset: int):
         r"""Implementation of object independent scaling factor :math:`D^{n}` in :math:`C^{n}(f^{n}) = D^{n} f^{n}`
@@ -282,17 +308,26 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
         include_additive_term: bool = False,
         post_recon_filter: Transform | None = None
         ) -> float | Sequence[float]:
-        """Estimates the uncertainty of the sum of voxels in a reconstructed image. Calling this method requires a masked region `mask` as well as an instance of `DataStorageCallback` that has been used in a reconstruction algorithm: this data storage contains the estimated object and associated forward projection at each subiteration number.
+        """Estimates the uncertainty (standard deviation) of the sum of the reconstructed image over a region.
+
+        The reconstruction must have been run with a :class:`~pytomography.callbacks.DataStorageCallback`, which keeps
+        the object and its expected projections at every subiteration: the uncertainty is propagated from the Poisson
+        noise of the data through every update.
 
         Args:
-            mask (torch.Tensor): Masked region of the reconstructed object: a boolean Tensor.
-            data_storage_callback (Callback): Callback that has been used in a reconstruction algorithm.
-            subiteration_number (int | None, optional): Subiteration number to compute the uncertainty for. If None, then computes the uncertainty for the last iteration. Defaults to None.
-            return_pct (bool, optional): If true, then additionally returns the percent uncertainty for the sum of counts. Defaults to False.
-            include_additive_term (bool): Whether or not to include uncertainty contribution from the additive term. This requires the ``additive_term_variance_estimate`` as an argument to the initialized likelihood. Defaults to False.
+            mask (torch.Tensor): The region, a boolean tensor [Lx, Ly, Lz] on the object grid.
+            data_storage_callback (DataStorageCallback): The callback the reconstruction was run with.
+            subiteration_number (int | None, optional): The subiteration whose image is used. Defaults to None: the
+                last.
+            return_pct (bool, optional): Also return the uncertainty in percent of the sum. Defaults to False.
+            include_additive_term (bool, optional): Include the uncertainty of the additive term; this needs the
+                likelihood's ``additive_term_variance_estimate``. Defaults to False.
+            post_recon_filter (Transform | None, optional): A filter applied to the reconstruction (and the region)
+                after it, e.g. a :class:`~pytomography.transforms.shared.GaussianFilter`. Defaults to None.
 
         Returns:
-            float | Sequence[float]: Absolute uncertainty in the sum of counts in the masked region (if `return_pct` is False) OR absolute uncertainty and relative uncertainty in percent (if `return_pct` is True)
+            float | tuple[float, float]: The uncertainty of the sum, in the image's units, and, with ``return_pct``,
+            the uncertainty in percent of the sum.
         """
         V, final_recon = self._compute_V(mask, data_storage_callback, subiteration_number, include_additive_term, post_recon_filter)
         uncertainty_abs2 = torch.sum(V[0] * self.likelihood.projections * V[0])
@@ -428,12 +463,21 @@ class LinearPreconditionedGradientAscentAlgorithm(PreconditionedGradientAscentAl
         return output_total
         
 class OSEM(LinearPreconditionedGradientAscentAlgorithm):
-    r"""Implementation of the ordered subset expectation maximum algorithm :math:`f^{n+1} = f^{n} + \frac{f^n}{H_n^T} \nabla_{f} L(g^n|f^{n})`.
+    r"""Ordered subset expectation maximisation: :math:`f^{n+1} = f^{n} + \frac{f^n}{H_m^T 1} \nabla_{f} L(g_m|f^{n})`.
 
-        Args:
-            likelihood (Likelihood): Likelihood function :math:`L`.
-            object_initial (torch.Tensor | None, optional): Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
-        """
+    With :class:`~pytomography.likelihoods.PoissonLogLikelihood` this is the multiplicative OSEM update
+    :math:`f^{n+1} = \frac{f^n}{H_m^T 1} H_m^T \frac{g_m}{H_m f^n + s_m}`.
+
+    Args:
+        likelihood (Likelihood): The likelihood :math:`L`.
+        object_initial (torch.Tensor | None, optional): The initial object, [Lx, Ly, Lz]. Defaults to None: the system
+            matrix's initial object.
+
+    Example:
+        .. code-block:: python
+
+            recon = OSEM(likelihood)(n_iters=4, n_subsets=8)
+    """
     def __init__(
         self,
         likelihood: Likelihood,
@@ -458,13 +502,17 @@ class OSEM(LinearPreconditionedGradientAscentAlgorithm):
         return 1/(self.likelihood._get_normBP(n_subset) + pytomography.delta)
     
 class OSMAPOSL(PreconditionedGradientAscentAlgorithm):
-    r"""Implementation of the ordered subset maximum a posteriori one step late algorithm :math:`f^{n+1} = f^{n} + \frac{f^n}{H_n^T+\nabla_f V(f^n)} \left[ \nabla_{f} L(g^n|f^{n}) - \nabla_f V(f^n) \right]`
+    r"""Ordered subset maximum a posteriori one step late (OSMAPOSL), OSEM with a prior.
 
-        Args:
-            likelihood (Likelihood): Likelihood function :math:`L`.
-            object_initial (torch.Tensor | None, optional): Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
-            prior (Prior, optional): Prior class that faciliates the computation of function :math:`V(f)` and its associated derivatives. If None, then no prior is used. Defaults to None.
-        """
+    The update is :math:`f^{n+1} = f^{n} + \frac{f^n}{H_m^T 1+\beta\nabla_f V(f^n)} \left[ \nabla_{f} L(g_m|f^{n}) -
+    \beta\nabla_f V(f^n) \right]`.
+
+    Args:
+        likelihood (Likelihood): The likelihood :math:`L`.
+        object_initial (torch.Tensor | None, optional): The initial object, [Lx, Ly, Lz]. Defaults to None: the system
+            matrix's initial object.
+        prior (Prior | None, optional): The prior :math:`V` (with its weight :math:`\beta`). Defaults to None.
+    """
     def __init__(
         self,
         likelihood: Likelihood,
@@ -491,13 +539,19 @@ class OSMAPOSL(PreconditionedGradientAscentAlgorithm):
         return object/(self.likelihood._get_normBP(n_subset) + self.prior_gradient + pytomography.delta)
     
 class RBIEM(LinearPreconditionedGradientAscentAlgorithm):
-    r"""Implementation of the rescaled block iterative expectation maximum algorithm
+    r"""Rescaled block iterative expectation maximisation (RBI-EM).
 
-        Args:
-            likelihood (Likelihood): Likelihood function :math:`L`.
-            object_initial (torch.Tensor | None, optional): Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
-            prior (Prior, optional): Prior class that faciliates the computation of function :math:`V(f)` and its associated derivatives. If None, then no prior is used. Defaults to None.
-        """
+    The preconditioner is :math:`C^n(f^n) = f^n / (r_m \sum_k H_k^T 1)`, with :math:`r_m` the largest ratio over the
+    voxels of :math:`H_m^T 1` to :math:`\sum_k H_k^T 1`: each subset's step is scaled to the whole data's
+    sensitivity.
+
+    Args:
+        likelihood (Likelihood): The likelihood :math:`L`.
+        object_initial (torch.Tensor | None, optional): The initial object, [Lx, Ly, Lz]. Defaults to None: the system
+            matrix's initial object.
+        prior (Prior | None, optional): The prior :math:`V`; RBI-EM's preconditioner does not include it (see
+            :class:`RBIMAP`). Defaults to None.
+    """
     _sums_normalisation = True
 
     def __init__(
@@ -513,15 +567,15 @@ class RBIEM(LinearPreconditionedGradientAscentAlgorithm):
             )
         
     def _compute_preconditioner(self, object: torch.Tensor, n_iter: int, n_subset: int) -> torch.Tensor:
-        r"""Computes the preconditioner factor :math:`C^n(f^n) = \frac{f^n}{H_n^T+\nabla_f V(f^n)}`
+        r"""The preconditioner :math:`C^n(f^n) = f^n / (r_m \sum_k H_k^T 1)`.
 
         Args:
-            object (torch.Tensor): Object estimate :math:`f^n`
-            n_iter (int): iteration number
-            n_subset (int): subset number
+            object (torch.Tensor): The object :math:`f^n`.
+            n_iter (int): Iteration number.
+            n_subset (int): Subset index :math:`m`.
 
         Returns:
-            torch.Tensor: preconditioner factor.
+            torch.Tensor: The preconditioner, [Lx, Ly, Lz].
         """
         norm_BP = self.likelihood._get_normBP(n_subset)
         norm_BP_allsubsets = self.likelihood._get_normBP(n_subset, return_sum=True)
@@ -529,13 +583,17 @@ class RBIEM(LinearPreconditionedGradientAscentAlgorithm):
         return object/(norm_BP_allsubsets*rm + pytomography.delta)
     
 class RBIMAP(PreconditionedGradientAscentAlgorithm):
-    r"""Implementation of the rescaled block iterative maximum a posteriori algorithm
+    r"""Rescaled block iterative maximum a posteriori (RBI-MAP), RBI-EM with a prior.
 
-        Args:
-            likelihood (Likelihood): Likelihood function :math:`L`.
-            object_initial (torch.Tensor | None, optional): Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
-            prior (Prior, optional): Prior class that faciliates the computation of function :math:`V(f)` and its associated derivatives. If None, then no prior is used. Defaults to None.
-        """
+    The preconditioner is :math:`C^n(f^n) = f^n / (r_m \sum_k H_k^T 1 + \beta\nabla_f V(f^n))`, with :math:`r_m` the
+    largest ratio over the voxels of :math:`H_m^T 1 + \beta\nabla_f V` to :math:`\sum_k H_k^T 1 + \beta\nabla_f V`.
+
+    Args:
+        likelihood (Likelihood): The likelihood :math:`L`.
+        object_initial (torch.Tensor | None, optional): The initial object, [Lx, Ly, Lz]. Defaults to None: the system
+            matrix's initial object.
+        prior (Prior | None, optional): The prior :math:`V` (with its weight :math:`\beta`). Defaults to None.
+    """
     _sums_normalisation = True
 
     def __init__(
@@ -551,15 +609,15 @@ class RBIMAP(PreconditionedGradientAscentAlgorithm):
             )
         
     def _compute_preconditioner(self, object: torch.Tensor, n_iter: int, n_subset: int) -> torch.Tensor:
-        r"""Computes the preconditioner factor :math:`C^n(f^n) = \frac{f^n}{H_n^T+\nabla_f V(f^n)}`
+        r"""The preconditioner :math:`C^n(f^n) = f^n / (r_m \sum_k H_k^T 1 + \beta\nabla_f V(f^n))`.
 
         Args:
-            object (torch.Tensor): Object estimate :math:`f^n`
-            n_iter (int): iteration number
-            n_subset (int): subset number
+            object (torch.Tensor): The object :math:`f^n`.
+            n_iter (int): Iteration number.
+            n_subset (int): Subset index :math:`m`.
 
         Returns:
-            torch.Tensor: preconditioner factor.
+            torch.Tensor: The preconditioner, [Lx, Ly, Lz].
         """
         norm_BP = self.likelihood._get_normBP(n_subset)
         norm_BP_allsubsets = self.likelihood._get_normBP(n_subset, return_sum=True)
@@ -567,15 +625,23 @@ class RBIMAP(PreconditionedGradientAscentAlgorithm):
         return object/(norm_BP_allsubsets*rm + self.prior_gradient + pytomography.delta)
     
 class BSREM(LinearPreconditionedGradientAscentAlgorithm):
-    r"""Implementation of the block sequential regularized expectation maximum algorithm :math:`f^{n+1} = f^{n} + \frac{\alpha(n)}{\omega_n H^T 1} \left[\nabla_{f} L(g^n|f^{n}) - \nabla_f V(f^n) \right]`
+    r"""Block sequential regularized expectation maximisation (BSREM).
 
-        Args:
-            likelihood (Likelihood): likelihood function :math:`L`
-            object_initial (torch.Tensor | None, optional): Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
-            prior (Prior, optional): Prior class that faciliates the computation of function :math:`V(f)` and its associated derivatives. If None, then no prior is used. Defaults to None.
-            relaxation_sequence (Callable, optional): Relxation sequence :math:`\alpha(n)` used to scale future updates. Defaults to 1 for all :math:`n`. Note that when this function is provided, it takes the iteration number (not the subiteration) so that e.g. if 4 iterations and 8 subsets are used, it would call :math:`\alpha(4)` for all 8 subiterations of the final iteration.
-            addition_after_iteration (float, optional): Value to add to the object after each iteration. This prevents image voxels getting "locked" at values of 0. Defaults to 1e-4.
-        """
+    The update is :math:`f^{n+1} = f^{n} + \frac{\alpha(n) f^n}{\omega_m \sum_k H_k^T 1} \left[\nabla_{f} L(g_m|f^{n})
+    - \beta\nabla_f V(f^n) \right]`, with :math:`\omega_m` the share of the data in subset :math:`m` and
+    :math:`\alpha` the relaxation sequence.
+
+    Args:
+        likelihood (Likelihood): The likelihood :math:`L`.
+        object_initial (torch.Tensor | None, optional): The initial object, [Lx, Ly, Lz]. Defaults to None: the system
+            matrix's initial object.
+        prior (Prior | None, optional): The prior :math:`V` (with its weight :math:`\beta`). Defaults to None.
+        relaxation_sequence (Callable, optional): The relaxation :math:`\alpha(n)`, a function of the iteration number
+            (counted from 0; every subiteration of an iteration uses the same value). Defaults to 1 for every
+            iteration.
+        addition_after_iteration (float, optional): A floor for the object: after every update, voxels at or below
+            this value are set to it, so that voxels cannot get "locked" at 0. Defaults to 1e-4.
+    """
     _sums_normalisation = True
 
     def __init__(
@@ -609,52 +675,81 @@ class BSREM(LinearPreconditionedGradientAscentAlgorithm):
         return relaxation_factor/(norm_BP_weight * norm_BP + pytomography.delta)
     
 class KEM(OSEM):
-    r"""Implementation of the ordered subset expectation maximum algorithm :math:`\alpha^{n+1} = \alpha^{n} + \frac{\alpha^n}{\tilde{H}_n^T} \nabla_{f} L(g^n|\alpha^{n})` and where the final predicted object is :math:`f^n = K \hat{\alpha}^{n}`. The system matrix :math:`\tilde{H}` includes the kernel transform :math:`K`.
+    r"""The kernel method: OSEM of the coefficients :math:`\alpha` of an image :math:`f = K\alpha`.
+
+    The update is :math:`\alpha^{n+1} = \alpha^{n} + \frac{\alpha^n}{\tilde{H}_m^T 1} \nabla_{\alpha}
+    L(g_m|\alpha^{n})`, with :math:`\tilde{H} = HK` the system matrix of the likelihood, a
+    :class:`~pytomography.projectors.shared.KEMSystemMatrix` (which holds the kernel :math:`K`). The image
+    :math:`f = K\alpha` is returned, and given to the callbacks.
+
+    Args:
+        likelihood (Likelihood): The likelihood :math:`L`, whose system matrix is a KEMSystemMatrix.
+        object_initial (torch.Tensor | None, optional): The initial coefficients, [Lx, Ly, Lz]. Defaults to None: the
+            system matrix's initial object.
+    """
+    def _compute_callback(self, n_iter: int, n_subset: int):
+        r"""Runs the callback on the image :math:`f^n = K \hat{\alpha}^{n}` rather than on the coefficients.
 
         Args:
-            likelihood (Likelihood): Likelihood function :math:`L`.
-            object_initial (torch.Tensor | None, optional): Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
-        """
-    def _compute_callback(self, n_iter: int, n_subset: int):
-        r"""Method for computing callbacks after each reconstruction iteration. This is reimplemented for KEM because the callback needs to be called on :math:`f^n = K \hat{\alpha}^{n}` as opposed to :math:`\hat{\alpha}^{n}`
-        
-        Args:
-            n_iter (int): Number of iterations
-            n_subset (int): Number of subsets
+            n_iter (int): Iteration number.
+            n_subset (int): Subset index.
         """
         self.callback.run(self.likelihood.system_matrix.kem_transform.forward(self.object_prediction), n_iter, n_subset)
     def __call__(
         self, *args, **kwargs
     ):
-        r"""Reimplementation of the call method such that :math:`f^n = K \hat{\alpha}^{n}` is returned as opposed to :math:`\hat{\alpha}^{n}`
+        r"""Reconstructs the coefficients as OSEM does, and returns the image :math:`K\hat{\alpha}`.
+
+        Args:
+            *args: As for :class:`PreconditionedGradientAscentAlgorithm` (``n_iters``, ``n_subsets``...).
+            **kwargs: As for :class:`PreconditionedGradientAscentAlgorithm`.
 
         Returns:
-            torch.Tensor: reconstructed object
+            torch.Tensor: The image :math:`f = K\hat{\alpha}`, [Lx, Ly, Lz] (not the coefficients).
         """
         object_prediction = super(KEM, self).__call__(*args, **kwargs)
         return self.likelihood.system_matrix.kem_transform.forward(object_prediction)
     
 class MLEM(OSEM):
-    r"""Implementation of the maximum likelihood expectation maximum algorithm :math:`f^{n+1} = f^{n} + \frac{f^n}{H^T} \nabla_{f} L(g|f^{n})`.
+    r"""Maximum likelihood expectation maximisation (MLEM): OSEM with one subset.
 
-        Args:
-            likelihood (Likelihood): Likelihood function :math:`L`.
-            object_initial (torch.Tensor | None, optional): Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
-        """
+    The update is :math:`f^{n+1} = f^{n} + \frac{f^n}{H^T 1} \nabla_{f} L(g|f^{n})`.
+
+    Args:
+        likelihood (Likelihood): The likelihood :math:`L`.
+        object_initial (torch.Tensor | None, optional): The initial object, [Lx, Ly, Lz]. Defaults to None: the system
+            matrix's initial object.
+    """
     _memory_fixed = {'n_subsets': 1}
 
     def __call__(self, n_iters, callback=None):
+        """Reconstructs: ``n_iters`` iterations with all the data.
+
+        Args:
+            n_iters (int): Number of iterations.
+            callback (Callback, optional): Run after each iteration. Defaults to None.
+
+        Returns:
+            torch.Tensor: The reconstructed object, [Lx, Ly, Lz].
+        """
         return super(MLEM, self).__call__(n_iters, n_subsets=1, callback=callback)
 
 class SART(PreconditionedGradientAscentAlgorithm):
-    r"""Implementation of the SART algorithm. This algorithm takes as input the system matrix and projections (as opposed to a likelihood). This is an implementation of equation 3 of https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8506772/
+    r"""Simultaneous algebraic reconstruction technique (SART), from a system matrix and projections.
 
-        Args:
-            system_matrix (SystemMatrix): System matrix for the imaging system.
-            projections (torch.Tensor): Projections for the imaging system.
-            additive_term (torch.Tensor | None, optional): Additive term for the imaging system. If None, then no additive term is used. Defaults to None.
-            object_initial (torch.Tensor | None, optional): Initial object for reconstruction algorithm. If None, then an object with 1 in every voxel is used. Defaults to None.
-        """
+    The update (equation 3 of https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8506772/) is
+    :math:`f^{n+1} = f^{n} + \frac{\alpha(n)}{H_m^T 1} H_m^T \frac{g_m - (H_m f^n + s_m)}{H_m 1}`; it makes its own
+    likelihood (:class:`~pytomography.likelihoods.SARTWeightedNegativeMSELikelihood`).
+
+    Args:
+        system_matrix (SystemMatrix): The system matrix :math:`H`.
+        projections (torch.Tensor): The measured projections :math:`g` (for CT, line integrals).
+        additive_term (torch.Tensor | None, optional): The additive term :math:`s`. Defaults to None.
+        object_initial (torch.Tensor | None, optional): The initial object, [Lx, Ly, Lz]. Defaults to None: the system
+            matrix's initial object.
+        relaxation_sequence (Callable, optional): The relaxation :math:`\alpha(n)`, a function of the iteration number
+            (counted from 0). Defaults to 1 for every iteration.
+    """
     def __init__(
         self,
         system_matrix: SystemMatrix,
@@ -671,25 +766,40 @@ class SART(PreconditionedGradientAscentAlgorithm):
         self.relaxation_sequence = relaxation_sequence
         
     def _compute_preconditioner(self, object: torch.Tensor, n_iter: int, n_subset: int) -> torch.Tensor:
-        r"""Computes the preconditioner factor :math:`C^n(f^n) = \frac{1}{H_n^T+\nabla_f V(f^n)}`
+        r"""The preconditioner :math:`C^n = \alpha(n) / H_m^T 1`.
 
         Args:
-            object (torch.Tensor): Object estimate :math:`f^n`
-            n_iter (int): iteration number
-            n_subset (int): subset number
+            object (torch.Tensor): The object :math:`f^n` (not used).
+            n_iter (int): Iteration number.
+            n_subset (int): Subset index :math:`m`.
 
         Returns:
-            torch.Tensor: preconditioner factor.
+            torch.Tensor: The preconditioner, [Lx, Ly, Lz].
         """
         relaxation_factor = self.relaxation_sequence(n_iter)
         return relaxation_factor/(self.likelihood._get_normBP(n_subset) + pytomography.delta)
     
 class PGAAMultiBedSPECT(PreconditionedGradientAscentAlgorithm):
-    """Assistant class for performing reconstruction on multi-bed SPECT data. This class is a wrapper around a reconstruction algorithm that is called for each bed and then the results are stitched together (:func:`~pytomography.io.SPECT.stitch_beds`), each bed placed by the ``object_meta`` of its system matrix (as :func:`~pytomography.io.SPECT.read_dicom_beds` gives them). After a reconstruction, ``object_meta`` is the grid of the stitched image.
+    """Reconstructs several SPECT bed positions together, one algorithm per bed, and stitches their images.
 
-        Args:
-            reconstruction_algorithms (Sequence[Algorithm]): Reconstruction algorithm of each bed position
-        """
+    Each subiteration runs one subiteration of every bed's algorithm and stitches the beds' images
+    (:func:`~pytomography.io.SPECT.stitch_beds`), each bed placed by the ``object_meta`` of its system matrix (as
+    :func:`~pytomography.io.SPECT.read_dicom_beds` gives them). After a reconstruction, ``object_meta`` is the grid of
+    the stitched image; masks for :meth:`compute_uncertainty` go on it.
+
+    Args:
+        reconstruction_algorithms (Sequence[PreconditionedGradientAscentAlgorithm]): The algorithm of each bed, e.g.
+            an :class:`OSEM` per bed, each with its own likelihood and system matrix.
+
+    Example:
+        .. code-block:: python
+
+            algorithms = []
+            for projections, object_meta, proj_meta in io.SPECT.read_dicom_beds(files_NM):
+                system_matrix = SPECTSystemMatrix([], [], object_meta, proj_meta)   # with each bed's transforms
+                algorithms.append(OSEM(PoissonLogLikelihood(system_matrix, projections[peak])))
+            recon = PGAAMultiBedSPECT(algorithms)(n_iters=4, n_subsets=8)
+    """
     def __init__(
         self,
         reconstruction_algorithms: Sequence[object],
@@ -767,15 +877,18 @@ class PGAAMultiBedSPECT(PreconditionedGradientAscentAlgorithm):
         n_subsets: int,
         callback: Callback | Sequence[Callback] | None = None,
         ) -> torch.Tensor:
-        """Perform reconstruction of each bed position for specified iteraitons and subsets, and return the stitched image
+        """Reconstructs every bed for ``n_iters`` iterations of ``n_subsets`` subsets, and returns the stitched image.
 
         Args:
-            n_iters (int): Number of iterations to perform reconstruction for.
-            n_subsets (int): Number of subsets to perform reconstruction for.
-            callback (Callback | Sequence[Callback] | None, optional): Callback function. If a single Callback is given, then the callback is computed for the stitched image. If a sequence of callbacks is given, then it must be the same length as the number of bed positions; each callback is called on the reconstruction for each bed position. If None, no Callback is used. Defaults to None.
+            n_iters (int): Number of iterations.
+            n_subsets (int): Number of subsets.
+            callback (Callback | list[Callback] | None, optional): A callback run on the stitched image after each
+                subiteration, or a list of one callback per bed, each run on its bed's image (e.g. a
+                :class:`~pytomography.callbacks.DataStorageCallback` per bed, for :meth:`compute_uncertainty`).
+                Defaults to None.
 
         Returns:
-            torch.Tensor: _description_
+            torch.Tensor: The stitched image, [Lx, Ly, Lz'], on the grid ``object_meta``.
         """
         self.callback = callback
         for i in range(n_iters):
@@ -823,25 +936,44 @@ class PGAAMultiBedSPECT(PreconditionedGradientAscentAlgorithm):
         return_pct: bool = False,
         include_additive_term: bool = False
     ):
-        r"""Estimates the uncertainty in a mask (should be same shape as the stitched image). Calling this method requires a sequence of ``DataStorageCallback`` instances that have been used in a reconstruction algorithm: these data storage contain required information for each bed position.
+        r"""Estimates the uncertainty (standard deviation) of the sum of the stitched image over a region.
 
-        The counts in the mask are :math:`S = \sum_k (w_k\xi)\cdot x_k`: each bed :math:`k` contributes its reconstruction :math:`x_k` in the part of the mask :math:`\xi` the stitched image takes from it (its stitching weights :math:`w_k`, see :func:`~pytomography.io.SPECT.stitch_beds`). With :math:`v_k = [V_k]'(w_k\xi)` the derivative of bed :math:`k`'s part with respect to its projections :math:`y_k`, the variance is
+        The reconstruction must have been run with a list of one :class:`~pytomography.callbacks.DataStorageCallback`
+        per bed, and the beds' algorithms must estimate uncertainty (their preconditioner linear in the object, e.g.
+        OSEM). The counts in the mask are :math:`S = \sum_k (w_k\xi)\cdot x_k`: each bed :math:`k` contributes its
+        reconstruction :math:`x_k` in the part of the mask :math:`\xi` the stitched image takes from it (its stitching
+        weights :math:`w_k`, see :func:`~pytomography.io.SPECT.stitch_beds`). With :math:`v_k = [V_k]'(w_k\xi)` the
+        derivative of bed :math:`k`'s part with respect to its projections :math:`y_k`, the variance is
 
         .. math::
 
             \text{Var}(S) = \sum_k y_k\cdot v_k^2 + 2\sum_{k<l} \sum_{j\in k\cap l} y_j\, v_{k,j}\, v_{l,j}
 
-        where the second sum runs over the projection data that beds :math:`k` and :math:`l` share. :func:`~pytomography.io.SPECT.read_dicom_beds` fills the overlap of each bed's projections with its neighbour's counts, so neighbouring beds share all of their overlap and their estimates there are correlated; beds reconstructed from their own projections share nothing, and their variances add. A slice of projections (all angles and radial positions at one :math:`z`) is taken to be shared by two beds where the two beds' projections are equal there. The additive term (if ``include_additive_term``) is treated the same way, its data taken to be shared in the same slices as the projections (:func:`~pytomography.io.SPECT.read_dicom_beds` fills every energy window) and with the variance estimate of the lower bed; this is exact when the additive term's variance estimate is that of an unsmoothed energy window estimate, and approximate within a few kernel widths of a bed's edge when it is smoothed.
+        where the second sum runs over the projection data that beds :math:`k` and :math:`l` share.
+        :func:`~pytomography.io.SPECT.read_dicom_beds` fills the overlap of each bed's projections with its neighbour's
+        counts, so neighbouring beds share all of their overlap and their estimates there are correlated; beds
+        reconstructed from their own projections share nothing, and their variances add. A slice of projections (all
+        angles and radial positions at one :math:`z`) is taken to be shared by two beds where the two beds'
+        projections are equal there. The additive term (if ``include_additive_term``) is treated the same way, its data
+        taken to be shared in the same slices as the projections (:func:`~pytomography.io.SPECT.read_dicom_beds` fills
+        every energy window) and with the variance estimate of the lower bed; this is exact when the additive term's
+        variance estimate is that of an unsmoothed energy window estimate, and approximate within a few kernel widths
+        of a bed's edge when it is smoothed.
 
         Args:
-            mask (torch.Tensor): Masked region of the reconstructed object: a boolean Tensor. This mask should be the same shape as the stitched object, and aligned with it: on the grid ``object_meta`` of the stitched image (e.g. ``io.load_mask(...).on(object_meta, label=..., threshold=0.5)``).
-            data_storage_callbacks (Sequence[Callback]): Sequence of data storage callbacks used in reconstruction corresponding to each bed position.
-            subiteration_number (int | None, optional): Subiteration number to compute the uncertainty for. If None, then computes the uncertainty for the last iteration. Defaults to None.
-            return_pct (bool, optional): If true, then additionally returns the percent uncertainty for the sum of counts. Defaults to False.
-            include_additive_term (bool): Whether or not to include uncertainty contribution from the additive term. This requires the ``additive_term_variance_estimate`` as an argument to the initialized likelihood. Defaults to False.
+            mask (torch.Tensor): The region, a boolean tensor on the grid ``object_meta`` of the stitched image (e.g.
+                ``io.load_mask(...).on(object_meta, label=..., threshold=0.5)``).
+            data_storage_callbacks (Sequence[DataStorageCallback]): The callbacks the reconstruction was run with, one
+                per bed, in the order of ``reconstruction_algorithms``.
+            subiteration_number (int | None, optional): The subiteration whose images are used. Defaults to None: the
+                last.
+            return_pct (bool, optional): Also return the uncertainty in percent of the sum. Defaults to False.
+            include_additive_term (bool, optional): Include the uncertainty of the additive term; this needs the
+                likelihoods' ``additive_term_variance_estimate``. Defaults to False.
 
         Returns:
-            float | Sequence[float]: Absolute uncertainty in the sum of counts in the masked region (if `return_pct` is False) OR absolute uncertainty and relative uncertainty in percent (if `return_pct` is True)
+            float | tuple[float, float]: The uncertainty of the sum, in the image's units, and, with ``return_pct``,
+            the uncertainty in percent of the sum.
         """
         if subiteration_number is None:
             subiteration_number = len(data_storage_callbacks[0].objects) - 1

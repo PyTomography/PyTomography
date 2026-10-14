@@ -1,9 +1,14 @@
-"""Corrections of DICOM-CT-PD projections (line integrals) before reconstruction. They change the data, so they apply
-to every reconstruction (filtered back projection and the iterative algorithms alike). The DICOM-CT-PD reader applies
-:func:`filter_low_signal` by default and :func:`scale_columns` on request.
+"""Corrections of DICOM-CT-PD projections (line integrals) before reconstruction, and fits to a scanner's images.
 
-Two fits reproduce a scanner's own images from its projections: :func:`fit_column_scale` (the per-column scale of
-:func:`scale_columns`) and :func:`fit_window` (the window of filtered back projection, the scanner's kernel)."""
+The corrections change the data, so they apply to every reconstruction (filtered back projection and the iterative
+algorithms alike). :func:`~pytomography.io.CT.read_dicom_ct_pd` applies :func:`filter_low_signal` by default and
+:func:`scale_columns` on request.
+
+* :func:`filter_low_signal`: adaptive filtering of photon-starved rays.
+* :func:`scale_columns` and :func:`column_scale`: a per-column scale of the line integrals.
+* :func:`fit_column_scale`: the per-column scale that reproduces a scanner's own images.
+* :func:`fit_window`: the window of filtered back projection that reproduces a scanner's reconstruction kernel.
+"""
 from __future__ import annotations
 import numpy as np
 import torch
@@ -13,8 +18,8 @@ from scipy import ndimage
 import pytomography
 from pytomography.utils.memory import gpu_budget
 
-#: Neighbourhoods (views, columns, rows) of :func:`filter_low_signal`, in order of size.
 LOW_SIGNAL_SIZES = ((1, 1, 1), (1, 3, 1), (1, 3, 3), (3, 3, 3), (3, 5, 3), (5, 5, 3), (5, 7, 5))
+"""Neighbourhoods (views, columns, rows) that :func:`filter_low_signal` averages over, in order of size."""
 
 
 def _box(a: torch.Tensor, size) -> torch.Tensor:
@@ -70,10 +75,10 @@ def _filter_low_signal_gpu(proj: torch.Tensor, n0: torch.Tensor, n_target: float
 
 def filter_low_signal(projections: torch.Tensor, photon_counts, n_target: float = 30.0, views: tuple | None = None,
                       chunk: int | None = None, device=None, budget: float | None = None, inplace: bool = False) -> torch.Tensor:
-    r"""Adaptive filtering of photon-starved rays, in the spirit of Hsieh (Med. Phys. 25, 2139, 1998) and Kachelriess
-    et al. (Med. Phys. 28, 475, 2001).
+    r"""Filter photon-starved rays adaptively, by averaging their transmission over neighbouring rays.
 
-    A ray that expects :math:`N = N_0 e^{-p}` photons has a line integral with a variance of about :math:`1/N`, and at
+    The method follows Hsieh (Med. Phys. 25, 2139, 1998) and Kachelriess et al. (Med. Phys. 28, 475, 2001). A ray that
+    expects :math:`N = N_0 e^{-p}` photons has a line integral with a variance of about :math:`1/N`, and at
     a few photons the logarithm is biased as well: these rays make the streaks between the shoulders, or across the
     abdomen beside the arms. Each ray with :math:`N` below ``n_target`` is replaced by :math:`-\log` of the mean
     transmission :math:`e^{-p}` over a neighbourhood (views, columns, rows) of about ``n_target / N`` rays, so about
@@ -81,22 +86,31 @@ def filter_low_signal(projections: torch.Tensor, photon_counts, n_target: float 
     Averaging transmission rather than line integrals keeps the mean right. :math:`N` is estimated from transmission
     smoothed over 3 x 3 x 3 rays, so the choice of filter is not driven by the noise itself. Rays with enough photons
     are returned exactly as they were. It runs a chunk of views at a time: on a CUDA ``device`` within ``budget``
-    bytes, otherwise on the host.
+    bytes, otherwise on the host with NumPy.
 
     Args:
-        projections (torch.Tensor): Line integrals (views, columns, rows), in acquisition order.
-        photon_counts (array): Incident photons per detector column of every view (views, columns), as DICOM-CT-PD
-            stores them in (7033,1065) PhotonStatistics.
-        n_target (float, optional): Photons a filtered ray should represent. Defaults to 30.
-        views (tuple, optional): (start, stop) range of views to filter; the others are returned unchanged.
-        chunk (int, optional): Views processed at a time. Defaults to what fits the budget (GPU) or 400 (host).
-        device (str, optional): Where to compute. Defaults to ``pytomography.device``.
-        budget (float, optional): GPU memory budget in bytes (see :func:`pytomography.utils.gpu_budget`).
+        projections (torch.Tensor | np.ndarray): Line integrals [views, columns, rows], in acquisition order.
+        photon_counts (torch.Tensor | np.ndarray): Incident photons per detector column of every view, [views,
+            columns], as DICOM-CT-PD stores them in PhotonStatistics (7033,1065) (``proj_meta.photon_counts``).
+        n_target (float, optional): Expected photons below which a ray is filtered, and about as many as a filtered
+            ray represents. Defaults to 30.
+        views (tuple[int, int] | None, optional): ``(start, stop)`` range of views to filter; the others are returned
+            unchanged. Defaults to None: every view.
+        chunk (int | None, optional): Views processed at a time. Defaults to None: what fits ``budget`` on a CUDA
+            device, 400 on the host.
+        device (str | torch.device | None, optional): Where to compute: a CUDA device, or anything else for the host.
+            Defaults to None: ``pytomography.device``.
+        budget (float | None, optional): GPU memory budget in bytes on a CUDA device (see
+            :func:`~pytomography.utils.gpu_budget`). Defaults to None: 1.5 GB, at most a quarter of the free GPU memory.
         inplace (bool, optional): Filter float32 projections on the host in place, without a second copy of them
             (others are copied first); the result is the same. Defaults to False.
 
     Returns:
-        torch.Tensor: Filtered line integrals (float32), on the device of ``projections``.
+        torch.Tensor: Filtered line integrals [views, columns, rows], float32, on the device of ``projections`` (the
+        CPU for a NumPy array).
+
+    Raises:
+        ValueError: ``photon_counts`` is not [views, columns] of the projections.
     """
     out_device = projections.device if isinstance(projections, torch.Tensor) else torch.device('cpu')
     work = torch.device(pytomography.device if device is None else device)
@@ -146,12 +160,21 @@ def filter_low_signal(projections: torch.Tensor, photon_counts, n_target: float 
 
 
 def column_scale(proj_meta, g0: float, g2: float, t_hold: float = 140.0) -> torch.Tensor:
-    r"""Factors :math:`1 + g(t)` of :func:`scale_columns` for the detector columns of a
-    :class:`~pytomography.metadata.CT.CTGen3ProjMeta`, with :math:`g(t) = g_0 + g_2 (t / 100\,\mathrm{mm})^2`, held
-    constant beyond ``t_hold``, and :math:`t = \rho \sin\gamma` the distance of a column's rays from the isocentre.
+    r"""Compute the factor :math:`1 + g(t)` of :func:`scale_columns` for every detector column.
+
+    :math:`g(t) = g_0 + g_2 (\min(t, t_\mathrm{hold}) / 100\,\mathrm{mm})^2`, with :math:`t = |\rho \sin\gamma|` the
+    distance of a column's rays from the isocentre: :math:`\rho` the mean distance of the focal spot from the axis and
+    :math:`\gamma` the column's fan angle.
+
+    Args:
+        proj_meta (CTGen3ProjMeta): Metadata of the projections.
+        g0 (float): Relative change :math:`g_0` at the centre of the detector (the factor there is :math:`1 + g_0`).
+        g2 (float): Coefficient :math:`g_2` of :math:`(t / 100\,\mathrm{mm})^2`.
+        t_hold (float, optional): Distance from the isocentre, in mm, beyond which the scale is held constant.
+            Defaults to 140.
 
     Returns:
-        torch.Tensor: (columns,) float64.
+        torch.Tensor: The factors, [columns], float64.
     """
     rho = float(proj_meta.source_rhos.double().mean())
     t = torch.abs(rho * torch.sin(proj_meta.phis_det[:, 0].double()))
@@ -164,19 +187,21 @@ def scale_columns(projections: torch.Tensor, proj_meta, g0: float, g2: float, t_
     This is the form a bowtie-dependent (per column) beam hardening calibration takes. For GE Discovery CT750 HD
     scans at 100 kV, :func:`fit_column_scale` finds :math:`g_0 = -1.2\%`, :math:`g_2 = +1.65\%` from the scanner's own
     images of TCIA LDCT-and-Projection-data C145, and :math:`-1.35\%`, :math:`+1.84\%` from C001's: without the scale,
-    filtered back projection reads soft tissue 25-35 HU above the scanner's at the centre and 25 HU below at 16-20 cm;
-    with it, within 6 HU everywhere. It matches the scanner's values, which are not necessarily the true ones, so it is
-    not applied unless asked for.
+    filtered back projection reads soft tissue 25-35 HU above the scanner's at the centre and 25 HU below at 160-200 mm
+    from it; with it, within 6 HU everywhere. It matches the scanner's values, which are not necessarily the true ones,
+    so it is not applied unless asked for.
 
     Args:
-        projections (torch.Tensor): Line integrals (views, columns, rows).
+        projections (torch.Tensor): Line integrals [views, columns, rows].
         proj_meta (CTGen3ProjMeta): Metadata of the projections.
-        g0 (float): Scale at the centre of the detector.
-        g2 (float): Coefficient of :math:`(t / 100\,\mathrm{mm})^2`.
-        t_hold (float, optional): Distance (mm) beyond which the scale is held constant. Defaults to 140.
+        g0 (float): Relative change :math:`g_0` at the centre of the detector (the factor there is :math:`1 + g_0`).
+        g2 (float): Coefficient :math:`g_2` of :math:`(t / 100\,\mathrm{mm})^2`.
+        t_hold (float, optional): Distance from the isocentre, in mm, beyond which the scale is held constant.
+            Defaults to 140.
 
     Returns:
-        torch.Tensor: Scaled line integrals, float32, on the device of ``projections``.
+        torch.Tensor: Scaled line integrals [views, columns, rows], float32, on the device of ``projections`` (a new
+        tensor).
     """
     factors = column_scale(proj_meta, g0, g2, t_hold).to(torch.float32).to(projections.device)
     return projections.to(torch.float32) * factors[None, :, None]
@@ -203,10 +228,12 @@ def _soft_tissue(blurred_reference: np.ndarray, image: np.ndarray, proj_meta, px
 
 def fit_column_scale(projections: torch.Tensor, proj_meta, system_matrix, reference, mask=None, t_hold: float = 140.0,
                      sigma: float = 2.0, **fbp_options) -> dict:
-    r"""Fit the per-column scale of :func:`scale_columns` that makes the filtered back projection of ``projections``
-    match ``reference``, another reconstruction of the same scan on the object grid of ``system_matrix``: typically the
-    scanner's own images put on that grid, ``io.CT.from_hu(io.load_image(files).on(object_meta, fill=-3000),
-    proj_meta)`` with the ``object_meta`` of :func:`~pytomography.io.CT.read_dicom_ct_pd`.
+    r"""Fit the per-column scale of :func:`scale_columns` that matches filtered back projection to another image.
+
+    The fit makes the filtered back projection of ``projections`` match ``reference``, another reconstruction of the
+    same scan on the object grid of ``system_matrix``: typically the scanner's own images put on that grid,
+    ``io.CT.from_hu(io.load_image(files).on(object_meta, fill=-3000), proj_meta)`` with the ``object_meta`` of
+    :func:`~pytomography.io.CT.read_dicom_ct_pd`.
 
     Reconstruction is linear in the line integrals, so scaling them by :math:`1 + g_0 + g_2 u^2`, with
     :math:`u = \min(|t|, t_\mathrm{hold}) / 100\,\mathrm{mm}`, changes the image by :math:`g_0 f_0 + g_2 f_2`, where
@@ -215,22 +242,26 @@ def fit_column_scale(projections: torch.Tensor, proj_meta, system_matrix, refere
     ``sigma`` mm, so that differences in resolution and noise do not count.
 
     Args:
-        projections (torch.Tensor): Line integrals as read (views, columns, rows), before any column scale.
+        projections (torch.Tensor): Line integrals as read, [views, columns, rows], before any column scale.
         proj_meta (CTGen3ProjMeta): Their metadata.
         system_matrix (CTGen3SystemMatrix): System matrix of the projections; its object grid is the grid of
             ``reference``.
-        reference (torch.Tensor | numpy.ndarray): The image to match, in attenuation per mm, on that grid.
-        mask (array of bool, optional): Voxels to fit. Defaults to the soft tissue and fat of the blurred reference
-            (-200 to 200 HU, with ``proj_meta.water_attenuation``), 2 sigma away from other materials.
-        t_hold (float, optional): As in :func:`column_scale`. Defaults to 140.
-        sigma (float, optional): Blur (mm) before the fit. Defaults to 2.
+        reference (torch.Tensor | np.ndarray): The image to match, in 1/mm, on that grid ([Lx, Ly, Lz]).
+        mask (np.ndarray | None, optional): Voxels to fit, as booleans on that grid. Defaults to None:
+            the soft tissue and fat of the blurred reference (-200 to 200 HU, with ``proj_meta.water_attenuation``),
+            2 sigma or more from other materials.
+        t_hold (float, optional): As in :func:`column_scale`, in mm. Defaults to 140.
+        sigma (float, optional): Standard deviation of the Gaussian blur before the fit, in mm. Defaults to 2.
         **fbp_options: Passed to :class:`~pytomography.algorithms.FilteredBackProjection` (``filter``,
             ``slice_thickness``, ...).
 
     Returns:
         dict: ``g0``, ``g2`` and ``t_hold``, to pass as ``column_scale`` to
-        :func:`~pytomography.io.CT.read_dicom_ct_pd` or as keywords to
-        :func:`scale_columns`.
+        :func:`~pytomography.io.CT.read_dicom_ct_pd` or as keywords to :func:`scale_columns`.
+
+    Raises:
+        ValueError: ``reference`` is not on the object grid of ``system_matrix``, the mask has fewer than 100 voxels,
+            or no mask is given and ``proj_meta`` has no water attenuation to find soft tissue with.
     """
     from pytomography.algorithms import FilteredBackProjection
     ref = _image(reference)
@@ -291,10 +322,12 @@ def _shared_noise_window(f: np.ndarray, ref: np.ndarray, mask: np.ndarray, dr, b
 
 def fit_window(projections: torch.Tensor, proj_meta, system_matrix, reference, mask=None, block: float = 32.0,
                normalize_below: float | None = 0.15, refinements: int = 1, taper: float = 0.1, **fbp_options):
-    r"""Fit the window of filtered back projection that gives the reconstruction of ``projections`` the sharpness and
-    noise texture of ``reference``, another reconstruction of the same scan on the object grid of ``system_matrix``:
-    typically the scanner's own images, resampled onto that grid as for :func:`fit_column_scale`. The window then
-    stands in for the scanner's reconstruction kernel.
+    r"""Fit the window of filtered back projection that reproduces the sharpness and noise texture of another image.
+
+    The window gives the reconstruction of ``projections`` the sharpness and noise texture of ``reference``, another
+    reconstruction of the same scan on the object grid of ``system_matrix``: typically the scanner's own images,
+    resampled onto that grid as for :func:`fit_column_scale`. The window then stands in for the scanner's
+    reconstruction kernel.
 
     Both images come from the same projections, so they share their noise, which spans every frequency. The fit
     reconstructs the projections with the plain ramp (Ram-Lak), :math:`f`, and finds, at each spatial frequency
@@ -316,20 +349,21 @@ def fit_window(projections: torch.Tensor, proj_meta, system_matrix, reference, m
     the true window, and within 0.02 below the top ring on a grid much coarser than the projections.
 
     Args:
-        projections (torch.Tensor): Line integrals (views, columns, rows), with any column scale already applied.
+        projections (torch.Tensor): Line integrals [views, columns, rows], with any column scale already applied.
         proj_meta (CTGen3ProjMeta): Their metadata.
         system_matrix (CTGen3SystemMatrix): System matrix of the projections; its object grid is the grid of
             ``reference``.
-        reference (torch.Tensor | numpy.ndarray): The image to match, in attenuation per mm, on that grid.
-        mask (array of bool, optional): Voxels the blocks must lie in, which should be uniform: the taper leaks the
-            strong low frequencies of an edge into the frequencies around them, where they would pull the window up.
-            Defaults to uniform soft tissue: the reference blurred by 2 mm between -50 and 100 HU (with
-            ``proj_meta.water_attenuation``; so neither fat nor bone), 4 mm or more from anything else.
-        block (float, optional): Side of the blocks (mm); the table is spaced 1 / ``block`` cycles per mm. Defaults
+        reference (torch.Tensor | np.ndarray): The image to match, in 1/mm, on that grid ([Lx, Ly, Lz]).
+        mask (np.ndarray | None, optional): Voxels the blocks must lie in, as booleans on that grid, which should be
+            uniform: the taper leaks the strong low frequencies of an edge into the frequencies around them, where they
+            would pull the window up. Defaults to None: uniform soft tissue, the reference blurred by 2 mm between -50
+            and 100 HU (with ``proj_meta.water_attenuation``; so neither fat nor bone), 4 mm or more from anything
+            else.
+        block (float, optional): Side of the blocks, in mm; the table is spaced 1 / ``block`` cycles per mm. Defaults
             to 32.
         normalize_below (float | None, optional): Frequency (cycles per mm) below which the window is 1 on average;
             None keeps the ratio as fitted. Defaults to 0.15.
-        refinements (int, optional): Refinements, each one more reconstruction. Defaults to 1.
+        refinements (int, optional): Number of refinements, each one more reconstruction. Defaults to 1.
         taper (float, optional): Beyond the table, which ends at the Nyquist frequency of the object grid, the window
             falls linearly to zero over this many cycles per mm. Defaults to 0.1.
         **fbp_options: Passed to :class:`~pytomography.algorithms.FilteredBackProjection` (``slice_thickness``, ...),
@@ -338,6 +372,12 @@ def fit_window(projections: torch.Tensor, proj_meta, system_matrix, reference, m
     Returns:
         TabulatedFilter: The window, to pass as ``filter`` to :class:`~pytomography.algorithms.FilteredBackProjection`;
         its ``frequencies`` and ``values`` hold the table.
+
+    Raises:
+        TypeError: ``filter`` is among ``fbp_options``.
+        ValueError: ``reference`` is not on the object grid of ``system_matrix``, a block is under 8 voxels or larger
+            than the image, fewer than 10 blocks lie inside the mask, or no mask is given and ``proj_meta`` has no
+            water attenuation to find soft tissue with.
     """
     from pytomography.algorithms import FilteredBackProjection
     from pytomography.utils import TabulatedFilter

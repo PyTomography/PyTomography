@@ -1,3 +1,11 @@
+"""PET system matrices, which project with parallelproj 2 (conda-forge's ``parallelproj`` package).
+
+* :class:`PETLMSystemMatrix`: list mode, with or without time of flight;
+* :class:`PETSinogramSystemMatrix`: sinograms of a polygonal scanner, with or without time of flight;
+* :func:`create_sinogramSM_from_LMSM`: the sinogram system matrix of the scanner of a list mode one.
+
+Importing this package raises an error that says how to install parallelproj when it is missing.
+"""
 try:
     import parallelproj_core
 except ImportError:

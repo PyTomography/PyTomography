@@ -1,5 +1,4 @@
-"""Read GATE simulations of PET scanners: the coincidences of GATE's ROOT output, with the scanner described by the
-simulation's geometry macro.
+"""Read GATE simulations of cylindrical PET scanners: the coincidences of GATE's ROOT output, and its geometry macro.
 
 :func:`read_gate` returns the events in PyTomography's standard form, with the object grid placed in the patient and
 the projection metadata (:class:`~pytomography.metadata.PET.PETLMProjMeta`)::
@@ -10,11 +9,14 @@ the projection metadata (:class:`~pytomography.metadata.PET.PETLMProjMeta`)::
 GATE's world frame is whatever the simulation made it: the phantom sits in it wherever the simulation placed it. Two
 arguments say how: ``world_axes``, the patient direction (L or R, P or A, S or I) that GATE's +x, +y and +z point to,
 and ``world_origin``, where GATE's origin is in the patient's LPS coordinates (mm). The datasets PyTomography hosts
-record theirs in the dataset registry (``pytomography/datasets/registry.py``, a dataset's ``geometry``), and the reader
-uses them when it reads those files.
+record theirs in the dataset registry (:data:`pytomography.datasets.registry.DATASETS`, a dataset's ``geometry``), and
+the reader uses them when it reads those files.
 
-:func:`gate_normalization` computes the normalisation weights of every crystal pair from a simulated calibration
-scan of a cylindrical shell.
+* :func:`read_gate`: the events, ``object_meta`` and ``proj_meta``;
+* :func:`gate_normalization`: the normalisation weights of every crystal pair, from a simulated calibration scan of a
+  cylindrical shell;
+* :func:`gate_image`: an image in GATE's world (a voxelised phantom or attenuation map), placed in the patient;
+* :func:`world_matrix` and :func:`lor_radius`: the geometry these use.
 """
 from __future__ import annotations
 
@@ -47,16 +49,21 @@ _KINDS = ("trues", "scatters", "randoms")
 
 
 def world_matrix(world_axes: str) -> np.ndarray:
-    """The 3 x 3 matrix that takes positions in GATE's world (mm) to the patient's LPS axes: column ``i`` is the
-    patient direction GATE's axis ``i`` points to.
+    """Returns the 3 x 3 matrix that takes positions along GATE's world axes to the patient's LPS axes.
+
+    Column ``i`` is the patient direction (a unit vector in LPS) that GATE's axis ``i`` points to.
 
     Args:
-        world_axes (str): three letters, one per GATE axis (x, y, z), from L or R, P or A, and S or I: ``'LPS'`` when
+        world_axes (str): Three letters, one per GATE axis (x, y, z), from L or R, P or A, and S or I: ``'LPS'`` when
             GATE's axes are the patient's, ``'LPI'`` when GATE's z runs towards the feet. GATE's z, the scanner's axis,
             must be the patient's head-foot axis.
 
     Returns:
-        np.ndarray: the matrix (a rotation or a reflection).
+        np.ndarray: float64 ``[3, 3]`` matrix (a rotation or a reflection).
+
+    Raises:
+        ValueError: If ``world_axes`` is not three such letters, names a patient axis twice, or does not put GATE's z
+            along S or I.
     """
     letters = str(world_axes).upper()
     if len(letters) != 3 or any(c not in _DIRECTIONS for c in letters):
@@ -278,7 +285,7 @@ def read_gate(
     min_rsector_difference: int = 0,
     crystal_volume: str = "crystal",
 ) -> tuple[torch.Tensor, ObjectMeta, PETLMProjMeta]:
-    r"""The coincidences of a GATE simulation of a cylindrical PET scanner, in PyTomography's standard form.
+    """Reads the coincidences of a GATE simulation of a cylindrical PET scanner in PyTomography's standard form.
 
     The scanner is read from the simulation's geometry macro: a ring of rsectors (GATE's ``ring`` repeater), each made
     of modules, submodules and crystals (``cubicArray`` or ``linear`` repeaters), placed along +x. Each event's two
@@ -289,41 +296,50 @@ def read_gate(
     Args:
         root_files (str | os.PathLike | Sequence): GATE's ROOT output, one file or several (their events are joined
             in order).
-        macro (str | os.PathLike): the GATE macro that describes the scanner (``.mac``).
-        object_meta (ObjectMeta, optional): the reconstruction grid (``dr`` and ``shape``); its centre and frame are
-            set by the reader. Defaults to None: voxels half the crystal pitch, a square covering 80 % of the ring's
-            diameter, and every ring.
+        macro (str | os.PathLike): The GATE macro that describes the scanner (``.mac``).
+        object_meta (ObjectMeta, optional): The reconstruction grid (``dr`` in mm, and ``shape``); its centre and
+            frame are set by the reader. Defaults to None: voxels half the crystal pitch, a square covering 80 % of
+            the ring's diameter, and every ring.
         events (str | Sequence[str], optional): ``'prompts'`` (every coincidence), ``'delayeds'`` (the delayed
             coincidence window, GATE's ``delay`` tree), or one or more of ``'trues'``, ``'scatters'`` (not random,
             with a Compton or Rayleigh interaction in the phantom) and ``'randoms'`` (two photons from different
             annihilations) of the prompts. Defaults to ``'prompts'``.
-        tof_meta (PETTOFMeta, optional): TOF bins to sort the events into, by (t1 - t2) c / 2; events outside the bins
-            are dropped. Defaults to None: no TOF.
-        world_axes (str, optional): the patient directions GATE's +x, +y and +z point to, e.g. ``'LPS'`` (GATE's world
-            is the patient's frame) or ``'LPI'`` (GATE's z runs towards the feet). Defaults to None: the placement the
-            dataset registry records for a hosted dataset, else ``'LPS'``.
-        world_origin (Sequence[float], optional): where GATE's origin lies in the patient's LPS coordinates (mm). With
-            it, ``object_meta.frame`` is ``'patient'``. Defaults to None: the registry's placement for a hosted
-            dataset; else GATE's origin is the origin, with ``frame='scanner'``.
-        doi_mm (float, optional): depth of interaction: the LORs end this far inside the crystals' inner face (mm).
+        tof_meta (PETTOFMeta, optional): TOF bins to sort the events into, by their position (t1 - t2) c / 2 along
+            the LOR (so TOF bins increase towards column 1's crystal); events outside the bins are dropped. Defaults
+            to None: no TOF.
+        world_axes (str, optional): The patient directions GATE's +x, +y and +z point to, e.g. ``'LPS'`` (GATE's world
+            is the patient's frame) or ``'LPI'`` (GATE's z runs towards the feet). Defaults to None: when
+            ``world_origin`` is None too, the placement the dataset registry records for a dataset PyTomography hosts;
+            else ``'LPS'``.
+        world_origin (Sequence[float], optional): Where GATE's origin lies in the patient's LPS coordinates, in mm.
+            With it, ``object_meta.frame`` is ``'patient'``. Defaults to None: when ``world_axes`` is None too, the
+            registry's placement for a hosted dataset; else GATE's origin is the origin, with ``frame='scanner'``.
+        doi_mm (float, optional): Depth of interaction: the LORs end this far inside the crystals' inner face, in mm.
             Defaults to 0.
-        energy_window_keV (Sequence[float], optional): the simulation's energy window (low, high) in keV, which is in
-            the digitizer, not in the output (for the scatter estimate). Defaults to None.
-        energy_resolution (float, optional): the digitizer's energy resolution, the FWHM at 511 keV as a fraction of
+        energy_window_keV (Sequence[float], optional): The simulation's energy window (low, high) in keV, which is in
+            the digitizer, not in the output; the scatter estimate reads it from ``info``. Defaults to None.
+        energy_resolution (float, optional): The digitizer's energy resolution, the FWHM at 511 keV as a fraction of
             511 keV. Defaults to None.
-        normalization (str | os.PathLike | np.ndarray | torch.Tensor, optional): normalisation weights of every
+        normalization (str | os.PathLike | np.ndarray | torch.Tensor, optional): Normalisation weights of every
             crystal pair, in ``torch.combinations`` order (a ``.npy`` file, or the array; see
             :func:`gate_normalization`). Pairs whose weight is NaN (no calibration data) get 0, with a warning. They
             become ``proj_meta.weights_sensitivity``. Defaults to None.
-        min_rsector_difference (int, optional): keep only events whose crystals are at least this many rsectors apart
+        min_rsector_difference (int, optional): Keep only events whose crystals are at least this many rsectors apart
             around the ring (GATE's ``setMinSectorDifference``). Defaults to 0.
-        crystal_volume (str, optional): the GATE volume of the crystals, whose ``setXLength`` is their depth. Defaults
+        crystal_volume (str, optional): The GATE volume of the crystals, whose ``setXLength`` is their depth. Defaults
             to ``'crystal'``.
 
     Returns:
-        tuple[torch.Tensor, ObjectMeta, PETLMProjMeta]: the events (int32 ``[N, 2]``, or ``[N, 3]`` with the TOF bin;
-        column 0 is the first single), the object grid (modality ``'PT'``, units ``'counts'``) and the projection
-        metadata (the events, ``info``, ``tof_meta`` and the normalisation weights).
+        tuple[torch.Tensor, ObjectMeta, PETLMProjMeta]: The events (int32 ``[N, 2]`` detector ids, or ``[N, 3]`` with
+        the TOF bin; column 0 is the first single), the object grid (modality ``'PT'``, units ``'counts'``) and the
+        projection metadata (the events, ``info``, ``tof_meta`` and the normalisation weights, with ``world_axes``
+        and ``world_origin`` kept for :func:`gate_image`).
+
+    Raises:
+        ValueError: If no ROOT file is given, ``events`` or ``world_axes`` is not one of the values above, the macro
+            lacks what the reader needs, or ``normalization`` does not have one weight per crystal pair.
+        NotImplementedError: If the macro builds the scanner in a way the reader does not support (rsectors placed
+            off the x axis, crystals repeated along x, a ring that is not full, other repeaters).
     """
     if isinstance(root_files, (str, os.PathLike)):
         root_files = [root_files]
@@ -355,27 +371,27 @@ def read_gate(
 
 def gate_image(source, proj_meta: PETLMProjMeta, *, units: str | None = None,
                placement_mm: Sequence[float] = (0.0, 0.0, 0.0)):
-    """An image in a GATE simulation's world (a voxelised phantom or attenuation map, e.g. GATE/STIR Interfile ``.hv``),
-    placed in the patient frame of :func:`read_gate`'s ``object_meta``: through ``world_axes`` and ``world_origin``,
-    which ``proj_meta`` keeps.
+    """Places an image in a GATE simulation's world in the frame of :func:`read_gate`'s ``object_meta``.
 
-    GATE centres a voxelised phantom on its placement (``/gate/<phantom>/placement/setTranslation``), with its axes
-    along GATE's x, y and z; :func:`~pytomography.io.load_image` reads such a file centred, with its axes as LPS
-    (the vendor rule 'gate-stir-interfile-image'), in the frame ``'scanner'``. Here it is moved to where the simulation
-    put it. Use the image with :func:`~pytomography.io.attenuation_map` or :meth:`~pytomography.io.Image.on`. (An image
-    with its own patient geometry, such as the phantom's NIfTI, needs none of this: load it with ``load_image``.)
+    The image is a voxelised phantom or attenuation map, e.g. a GATE/STIR Interfile ``.hv``. It is placed through
+    ``world_axes`` and ``world_origin``, which ``proj_meta`` keeps. GATE centres a voxelised phantom on its placement
+    (``/gate/<phantom>/placement/setTranslation``), with its axes along GATE's x, y and z;
+    :func:`~pytomography.io.load_image` reads such a file centred, with its axes as LPS, in the frame ``'scanner'``.
+    Here it is moved to where the simulation put it. Use the image with :func:`~pytomography.io.attenuation_map` or
+    :meth:`~pytomography.io.Image.on`. An image with its own patient geometry, such as the phantom's NIfTI, needs none
+    of this: load it with :func:`~pytomography.io.load_image`.
 
     Args:
-        source: the image file (anything :func:`~pytomography.io.load_image` reads), or an
-            :class:`~pytomography.io.Image` read from it.
-        proj_meta (PETLMProjMeta): from :func:`read_gate`.
-        units (str, optional): the units of the image's values when the file does not say (``'1/cm'`` for a GATE mu
-            map). Defaults to None.
-        placement_mm (Sequence[float], optional): where the image's centre was in GATE's world (the phantom's
-            placement). Defaults to GATE's origin.
+        source (str | os.PathLike | Image): The image file (anything :func:`~pytomography.io.load_image` reads), or
+            an :class:`~pytomography.io.Image` read from it.
+        proj_meta (PETLMProjMeta): The projection metadata from :func:`read_gate`.
+        units (str, optional): The units of the image's values, e.g. ``'1/cm'`` for a GATE attenuation map; they
+            replace any the file gives. Defaults to None: those of the file.
+        placement_mm (Sequence[float], optional): Where the image's centre was in GATE's world, in mm (the phantom's
+            placement). Defaults to (0, 0, 0), GATE's origin.
 
     Returns:
-        Image: the image, in the patient frame when ``read_gate`` had a ``world_origin`` (else ``'scanner'``).
+        Image: The image, in the frame ``'patient'`` when :func:`read_gate` had a ``world_origin``, else ``'scanner'``.
     """
     from pytomography.io import Image, load_image
     image = source if isinstance(source, Image) else load_image(source, units=units)
@@ -441,8 +457,19 @@ def _symmetry_shape(info: dict) -> list[int]:
 
 
 def lor_radius(detector_ids: torch.Tensor, lut: torch.Tensor) -> torch.Tensor:
-    """Signed distance of each LOR from the scanner's axis, in the transaxial plane (mm): for a pair of crystals at
-    the same transaxial position, the distance of that position from the axis."""
+    """Returns the signed distance of each LOR from the scanner's axis in the transaxial plane, in mm.
+
+    For crystals at (x1, y1) and (x2, y2) it is ``(x1 * y2 - y1 * x2) / sqrt((x1 - x2)**2 + (y1 - y2)**2)``; for a
+    pair of crystals at the same transaxial position, the (positive) distance of that position from the axis.
+
+    Args:
+        detector_ids (torch.Tensor): Crystal pairs, ``[N, 2]`` detector ids (further columns are ignored).
+        lut (torch.Tensor): The scanner lookup table, ``[N_crystals, 3]`` in mm
+            (:func:`~pytomography.io.PET.scanner_lut`).
+
+    Returns:
+        torch.Tensor: ``[N]`` signed distances, in mm.
+    """
     x1, y1, _ = lut[detector_ids[:, 0]].T
     x2, y2, _ = lut[detector_ids[:, 1]].T
     return torch.where((x1 == x2) & (y1 == y2), torch.sqrt(x1**2 + y1**2),
@@ -497,27 +524,28 @@ def _weights_from_symmetry_histogram(histo: torch.Tensor, info: dict, cylinder_r
 
 def gate_normalization(root_files: str | os.PathLike | Sequence, info: dict, cylinder_radius_mm: float, *,
                        include_randoms: bool = False) -> torch.Tensor:
-    """Normalisation weights of every crystal pair from a GATE simulation of a calibration scan: a uniform cylindrical
-    shell of radius ``cylinder_radius_mm`` centred on the scanner's axis.
+    """Computes the normalisation weight of every crystal pair from a GATE simulation of a calibration scan.
 
-    The coincidences are counted per symmetry class of crystal pairs (the crystals' positions within their modules, and
-    their modules' and rsectors' differences), divided by the number of pairs in the class, and corrected for the
-    longer path of slanted LORs through the shell. The weight of every crystal pair (411 million for the Siemens
-    Biograph mMR) is computed a block of pairs at a time, sized from the memory budget
+    The calibration scan is of a uniform cylindrical shell of radius ``cylinder_radius_mm`` centred on the scanner's
+    axis. Its coincidences (GATE's ``Coincidences`` tree) are counted per symmetry class of crystal pairs (the two
+    crystals' axial and transaxial positions within their submodules, the axial differences of their submodules and of
+    their modules, and the difference of their rsectors around the ring), divided by the number of pairs in the class,
+    and corrected for the longer path of slanted LORs through the shell. The weight of every crystal pair (411 million
+    for the Siemens Biograph mMR) is computed a block of pairs at a time, sized from the memory budget
     (:func:`pytomography.set_memory_budget`).
 
     Pairs whose LOR passes outside the shell have no calibration data: their weight is 0, and a warning says how many
     there are.
 
     Args:
-        root_files (str | os.PathLike | Sequence): the calibration scan's ROOT files.
-        info (dict): the scanner's ``info`` (``proj_meta.info`` from :func:`read_gate`).
-        cylinder_radius_mm (float): radius of the calibration shell (mm).
-        include_randoms (bool, optional): count the random coincidences too. Defaults to False.
+        root_files (str | os.PathLike | Sequence): The calibration scan's ROOT files.
+        info (dict): The scanner's ``info`` (``proj_meta.info`` from :func:`read_gate`).
+        cylinder_radius_mm (float): Radius of the calibration shell, in mm.
+        include_randoms (bool, optional): Count the random coincidences too. Defaults to False.
 
     Returns:
-        torch.Tensor: float32 weight of every crystal pair, in ``torch.combinations`` order: pass it to
-        :func:`read_gate` as ``normalization``.
+        torch.Tensor: float32 weight of every crystal pair, ``[N_crystals * (N_crystals - 1) / 2]``, in
+        ``torch.combinations`` order: pass it to :func:`read_gate` as ``normalization``.
     """
     if isinstance(root_files, (str, os.PathLike)):
         root_files = [root_files]

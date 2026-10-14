@@ -1,3 +1,7 @@
+"""Energy window scatter estimates of SPECT projections, and their smoothing.
+
+:func:`pytomography.io.SPECT.energy_window_scatter` computes these estimates from the energy windows the readers give.
+"""
 from __future__ import annotations
 from collections.abc import Sequence
 from .misc import get_1d_gaussian_kernel   # from its module: importing it from pytomography.utils, which imports this module, is a cycle
@@ -16,19 +20,27 @@ def get_smoothed_scatter(
     N_sigmas: int = 3,
     FOV_mask: torch.tensor | None = None,
 ) -> torch.Tensor:
-    """Smooths SPECT projection metadata
+    """Smooths SPECT projections with Gaussians along the views, r and z, normalised at the edge of the field of view.
+
+    Each dimension whose standard deviation is positive is convolved with a Gaussian kernel truncated at ``N_sigmas``
+    standard deviations, wrapping around along the views and repeating the edge values along r and z. The same
+    smoothing is applied to the field of view mask (all ones without ``FOV_mask``), and the smoothed projections are
+    divided by the smoothed mask and multiplied by the mask: values near the edge of the field of view are not pulled
+    towards the zeros outside it, and the result is 0 outside it. The view spacing is the angle between the first two
+    views, whichever way the views turn and across 0/360 degrees.
 
     Args:
-        scatter (torch.Tensor): Input projection data
-        proj_meta (ProjMeta): Projection metadata
-        sigma_theta (float, optional): Smoothing in theta (specified in degrees). Defaults to 0.
-        sigma_r (float, optional): Smoothing in r (sigma, mm). Defaults to 0.
-        sigma_z (float, optional): Smoothing in z (sigma, mm). Defaults to 0.
-        N_sigmas (int, optional): Number of sigmas to include in the smoothing kernel. Defaults to 3.
-        FOV_mask (torch.Tensor, optional): Field of view mask. Defaults to None.
+        scatter (torch.Tensor): Projections [θ, r, z].
+        proj_meta (ProjMeta): Their metadata (:class:`~pytomography.metadata.SPECT.SPECTProjMeta`), for the pixel size
+            ``dr`` and the ``angles``.
+        sigma_theta (float, optional): Standard deviation of the smoothing along the views, in degrees. Defaults to 0.
+        sigma_r (float, optional): Standard deviation of the smoothing along r, in mm. Defaults to 0.
+        sigma_z (float, optional): Standard deviation of the smoothing along z, in mm. Defaults to 0.
+        N_sigmas (int, optional): Half-width of the kernels, in standard deviations. Defaults to 3.
+        FOV_mask (torch.Tensor | None, optional): Mask [r, z] of the detector's field of view. Defaults to None.
 
     Returns:
-        torch.Tensor: Smoothed projections
+        torch.Tensor: The smoothed projections [θ, r, z].
     """
     # spacing: the angle between neighbouring views, whichever way they turn (a negative step, as with decreasing
     # angles, gave negative kernel sizes) and across 0/360 degrees
@@ -76,19 +88,53 @@ def compute_EW_scatter(
     return_scatter_variance_estimate: bool = False,
     fov_mask: torch.tensor | None = None
     ) -> torch.Tensor | Sequence[torch.Tensor]:
-    """Computes triple energy window estimate from lower and upper scatter projections as well as window widths
+    r"""Dual or triple energy window scatter estimate of the photopeak window of SPECT projections, optionally smoothed.
+
+    The estimate is
+
+    .. math::
+
+        s = \left(w_l \frac{p_l}{\Delta_l} + w_u \frac{p_u}{\Delta_u}\right) \Delta_p,
+
+    with :math:`p_l` and :math:`p_u` the projections of the lower and upper scatter windows, :math:`\Delta_l`,
+    :math:`\Delta_u` and :math:`\Delta_p` the widths of the lower, upper and photopeak windows, and :math:`w_l` and
+    :math:`w_u` the weights (0.5 each for the triple energy window method). Without an upper window (the dual energy
+    window method) its term is left out. If any of ``sigma_theta``, ``sigma_r`` and ``sigma_z`` is positive, the
+    estimate is then smoothed with :func:`get_smoothed_scatter`. :func:`pytomography.io.SPECT.energy_window_scatter`
+    calls this function with the widths of ``proj_meta.energy_windows``.
 
     Args:
-        projection_lower (torch.Tensor): Projection data corresponding to lower energy window
-        projection_upper (torch.Tensor): Projection data corresponding to upper energy window
-        width_lower (float): Width of lower energy window
-        width_upper (float): Width of upper energy window
-        width_peak (float): Width of peak energy window
-        return_scatter_variance_estimate (bool, optional): Return scatter variance estimate. Defaults to False.
-        fov_mask (torch.tensor, optional): Field of view mask; may be required when blurring scatter to avoid blurring accross edges. Defaults to None.
+        projection_lower (torch.Tensor): Projections of the lower scatter window [θ, r, z] (any shape without
+            smoothing).
+        projection_upper (torch.Tensor | None): Projections of the upper scatter window, of the same shape, or None for
+            the dual energy window method.
+        width_lower (float): Width of the lower window, in keV.
+        width_upper (float | None): Width of the upper window, in keV, or None without an upper window.
+        width_peak (float): Width of the photopeak window, in keV.
+        weighting_lower (float, optional): Weight :math:`w_l` of the lower window. Defaults to 0.5.
+        weighting_upper (float, optional): Weight :math:`w_u` of the upper window. Defaults to 0.5.
+        proj_meta (SPECTProjMeta | None, optional): Metadata of the projections, needed only to smooth (for the pixel
+            size and the angles). Defaults to None.
+        sigma_theta (float, optional): Standard deviation of the smoothing along the views, in degrees. Defaults to 0
+            (none).
+        sigma_r (float, optional): Standard deviation of the smoothing along r, in mm. Defaults to 0 (none).
+        sigma_z (float, optional): Standard deviation of the smoothing along z, in mm. Defaults to 0 (none).
+        N_sigmas (int, optional): Half-width of the smoothing kernels, in standard deviations. Defaults to 3.
+        return_scatter_variance_estimate (bool, optional): Also return the variance of the estimate, as a function (see
+            Returns). Defaults to False.
+        fov_mask (torch.Tensor | None, optional): Mask [r, z] of the detector's field of view
+            (:func:`pytomography.io.SPECT.fov_mask`), so that smoothing does not blur across its edge. Defaults to None.
 
     Returns:
-        torch.Tensor | Sequence[torch.Tensor]: Scatter estimate (and scatter variance estimate if specified)
+        torch.Tensor | Sequence[torch.Tensor]: The scatter estimate [θ, r, z]. With
+        ``return_scatter_variance_estimate``, the tuple (estimate, variance), where variance is a function that maps a
+        tensor :math:`x` [θ, r, z] to
+        :math:`F(x)\,v\,F(x)` (element by element), with :math:`F` the smoothing (the identity without smoothing) and
+        :math:`v = (w_l \Delta_p / \Delta_l)^2 p_l + (w_u \Delta_p / \Delta_u)^2 p_u` the variance of the unsmoothed
+        estimate.
+
+    Raises:
+        ValueError: Smoothing is asked for without ``proj_meta``.
     """
     projection_upper = 0 if projection_upper is None else projection_upper
     width_upper = 1 if width_upper is None else width_upper

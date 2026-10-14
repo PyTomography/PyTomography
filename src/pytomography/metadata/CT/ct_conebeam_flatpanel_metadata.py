@@ -1,3 +1,4 @@
+"""Projection metadata of cone-beam CT with a flat panel detector."""
 from __future__ import annotations
 import torch
 import pytomography
@@ -5,6 +6,36 @@ from pytomography.metadata import ProjMeta
 import numpy as np
 
 class CTConeBeamFlatPanelProjMeta(ProjMeta):
+    r"""Projection metadata of a cone-beam CT scan with a flat panel detector, the source and panel turning about z.
+
+    In the object frame (mm), the view at angle :math:`\theta` has its source at
+    :math:`(-R_s\cos\theta, -R_s\sin\theta, z)` and its detector centre at :math:`(R_d\cos\theta, R_d\sin\theta, z)`,
+    with :math:`R_s` ``beam_radius``, :math:`R_d` ``detector_radius`` and :math:`z` the view's ``z_locations``. The
+    detector faces the rotation axis, its normal in the axial plane at every z; its u axis runs along
+    :math:`(-\sin\theta, \cos\theta, 0)` and its v axis along -z (v = 0 is the top row). With ``COR``, the source and detector of every view are shifted so that they turn about the
+    axis at (0, -COR) instead of the z axis; the view at :math:`\theta = 0` does not move.
+    :func:`~pytomography.io.CT.read_nikon` builds this metadata from a Nikon XTek scan.
+
+    Args:
+        angles (torch.Tensor): Angle :math:`\theta` of each view, in radians, [views].
+        z_locations (torch.Tensor): Axial position :math:`z` of the source and detector centre at each view, in mm,
+            [views].
+        detector_radius (float): Distance from the rotation axis to the detector along the central ray, in mm.
+        beam_radius (float): Distance from the source to the rotation axis along the central ray, in mm.
+        shape (tuple[int, int]): Number of detector pixels along u and v.
+        dr (tuple[float, float]): Detector pixel size along u and v, in mm.
+        COR (float | None, optional): Offset of the rotation axis from the central ray, in mm: the axis is at
+            (0, -COR) in the object frame. Defaults to None: no offset.
+
+    Attributes:
+        N_angles (int): Number of views.
+        beam_locations (torch.Tensor): Source position of each view, [views, 3], in mm.
+        detector_locations (torch.Tensor): Detector centre of each view, [views, 3], in mm.
+        detector_orientations (torch.Tensor): Unit normal of the detector at each view, [views, 3], in the axial plane,
+            pointing from the detector centre towards the z axis (computed before the ``COR`` shift).
+        DSD (float): Distance from the source to the detector, ``|beam_radius| + |detector_radius|``, in mm.
+        DSO (float): Distance from the source to the rotation axis, ``|beam_radius|``, in mm.
+    """
     def __init__(self,
                  angles,
                  z_locations,

@@ -1,3 +1,4 @@
+"""The base class of the likelihoods: the measured data, the system matrix and the additive term together."""
 from __future__ import annotations
 import pytomography
 from pytomography.projectors import SystemMatrix
@@ -11,13 +12,26 @@ def _rows_per_block(x: torch.Tensor, block_bytes: float = 2.5e8) -> int:
     return max(1, int(block_bytes // max(1, x[0].numel() * x.element_size()))) if x.ndim > 0 and x.shape[0] > 0 else 1
 
 class Likelihood:
-    """Generic likelihood class in PyTomography. Subclasses may implement specific likelihoods with methods to compute the likelihood itself as well as particular gradients of the likelihood 
+    r"""The base class of the likelihoods :math:`L(g|f)`, which reconstruction algorithms maximise.
+
+    A likelihood holds the measured projections :math:`g`, the system matrix :math:`H` and the additive term
+    :math:`s` (scatter, randoms), so that the expected projections are :math:`Hf + s`. Subclasses compute the
+    gradient (``compute_gradient``) and, for uncertainty estimates, second derivatives. The reconstruction algorithm
+    sets the number of subsets; with a memory budget (:func:`pytomography.set_memory_budget`) a number of subsets
+    whose projections would not fit stops the reconstruction before it starts.
 
     Args:
-        system_matrix (SystemMatrix): The system matrix modeling the particular system whereby the projections were obtained
-        projections (torch.Tensor | None): Acquired data. If listmode, then this argument need not be provided, and it is set to a tensor of ones. A sinogram that is computed one subset at a time (:class:`~pytomography.io.PET.shared.LazySinogram`) is also accepted, for reconstructions with subsets. Defaults to None.
-        additive_term (torch.Tensor, optional): Additional term added after forward projection by the system matrix. This term might include things like scatter and randoms. Like ``projections``, it may be computed one subset at a time. Defaults to None (no additive term).
-        additive_term_variance_estimate (Callable, optional): Operator for variance estimate of additive term. If none, then uncertainty estimation does not include contribution from the additive term. Defaults to None.
+        system_matrix (SystemMatrix): The system matrix :math:`H` of the acquisition.
+        projections (torch.Tensor | None, optional): The measured projections :math:`g`. For list mode, leave it out:
+            it is then a tensor of ones (one count per event). A sinogram computed one subset at a time
+            (:class:`~pytomography.io.PET.LazySinogram`) is also accepted, for reconstructions with subsets. Defaults
+            to None.
+        additive_term (torch.Tensor, optional): The additive term :math:`s`, added after forward projection, in the
+            projections' shape (one value per event in list mode). Like ``projections``, it may be computed one subset
+            at a time. Defaults to None (no additive term).
+        additive_term_variance_estimate (Callable, optional): A function that applies the variance of the additive
+            term, for uncertainty estimates (e.g. from :func:`~pytomography.io.SPECT.energy_window_scatter` with
+            ``return_scatter_variance_estimate=True``). Defaults to None: the additive term adds no uncertainty.
     """
     def __init__(
         self,
@@ -193,33 +207,39 @@ class Likelihood:
                 return self.norm_BPs[subset_idx].to(pytomography.device)
         
     def compute_gradient(self, *args, **kwargs):
-        r"""Function used to compute the gradient of the likelihood :math:`\nabla_{f} L(g|f)`
+        r"""The gradient of the likelihood with respect to the object, :math:`\nabla_{f} L(g|f)`; subclasses implement it.
 
         Raises:
-            NotImplementedError: Must be implemented by sub classes
+            NotImplementedError: In this base class.
         """
         raise NotImplementedError("Compute gradient not implemented for this likelihood function")
     
     def compute_gradient_ff(self, *args, **kwargs):
-        r"""Function used to compute the second order gradient (with respect to the object twice) of the likelihood :math:`\nabla_{ff} L(g|f)`
+        r"""The second derivative of the likelihood with respect to the object twice, :math:`\nabla_{ff} L(g|f)`.
+
+        Subclasses implement it, for uncertainty estimates.
 
         Raises:
-            NotImplementedError: Must be implemented by sub classes
+            NotImplementedError: In this base class.
         """
         raise NotImplementedError("gradient_ff not implemented for this likelihood function")
     
     def compute_gradient_gf(self, *args, **kwargs):
-        r"""Function used to compute the second order gradient (with respect to the object then image) of the likelihood :math:`\nabla_{gf} L(g|f)`
+        r"""The second derivative of the likelihood with respect to the object, then the projections, :math:`\nabla_{gf} L`.
+
+        Subclasses implement it, for uncertainty estimates.
 
         Raises:
-            NotImplementedError: Must be implemented by sub classes
+            NotImplementedError: In this base class.
         """
         raise NotImplementedError("gradient_gf not implemented for this likelihood function")
     
     def compute_gradient_sf(self, *args, **kwargs):
-        r"""Function used to compute the second order gradient (with respect to the object then additive term) of the likelihood :math:`\nabla_{sf} L(g|f,s)`
+        r"""The second derivative of the likelihood with respect to the object, then the additive term, :math:`\nabla_{sf} L`.
+
+        Subclasses implement it, for uncertainty estimates.
 
         Raises:
-            NotImplementedError: Must be implemented by sub classes
+            NotImplementedError: In this base class.
         """
         raise NotImplementedError("gradient_sf not implemented for this likelihood function")

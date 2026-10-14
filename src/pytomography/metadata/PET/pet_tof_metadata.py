@@ -1,9 +1,10 @@
+"""Time of flight binning of PET data."""
 from __future__ import annotations
 import pytomography
 import torch
 
 class PETTOFMeta():
-    r"""Class for PET time of flight metadata. Contains information such as spatial binning and resolution.
+    r"""Time of flight binning of PET data: the number, width and resolution of the TOF bins, in mm along the LOR.
 
     Every quantity is a length along the LOR, in mm. Bin :math:`k` of :math:`n` covers
     :math:`[(k - n/2)\,w, (k + 1 - n/2)\,w]`, with :math:`w` = ``tof_range / num_bins``, measured from the LOR's midpoint
@@ -11,12 +12,25 @@ class PETTOFMeta():
     :math:`(t_1 - t_2)\,c/2`, with :math:`t_1` the time of column 0's detection (PETSIRD's definition), so its bin is
     the one that holds that position. The bins are centred on the midpoint for any number of bins.
 
-        Args:
-            num_bins (int): Number of bins used to discretize time of flight data
-            tof_range (float): Total range accross all TOF bins in mm.
-            fwhm (float): FWHM corresponding to TOF uncertainty in mm.
-            n_sigmas (float): Number of sigmas to consider when using TOF projection. Defaults to 3.
-            bin_type (str, optional): How the bins are arranged. Currently, the only option is symmetry, which means the bins are distributed symmetrically (evenly on each side) between the center of all LOR pairs. Defaults to 'symmetric'.
+    Args:
+        num_bins (int): Number of TOF bins.
+        tof_range (float): Total length covered by all the bins, in mm.
+        fwhm (float): FWHM of the TOF resolution, in mm.
+        n_sigmas (float, optional): How far the TOF kernel reaches in the projector, in sigmas. Defaults to 3.
+        bin_type (str, optional): How the bins are arranged. The only option is ``'symmetric'``: the bins are spread
+            evenly on each side of the LOR's midpoint. Defaults to ``'symmetric'``.
+
+    Attributes:
+        num_bins (int): Number of TOF bins.
+        bin_width (torch.Tensor): Width of a bin, in mm.
+        sigma (torch.Tensor): Sigma of the TOF resolution (``fwhm / 2.355``), in mm.
+        n_sigmas (float): How far the TOF kernel reaches, in sigmas.
+        bin_edges (torch.Tensor): The ``num_bins + 1`` bin edges, in mm from the LOR's midpoint.
+        bin_positions (torch.Tensor): The bins' centres, in mm from the LOR's midpoint.
+        center_offset (torch.Tensor): Offset of the bins from the LOR's midpoint given to the projector (0).
+
+    Raises:
+        ValueError: If ``bin_type`` is not ``'symmetric'``.
     """
     def __init__(
         self,

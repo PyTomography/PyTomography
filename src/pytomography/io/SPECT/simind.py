@@ -1,5 +1,8 @@
-"""SIMIND Monte Carlo projections (Interfile ``.h00`` headers and ``.a00`` data), one pair per energy window (and per
-organ when the source was simulated organ by organ)."""
+"""Reading SIMIND Monte Carlo projections: Interfile ``.h00`` headers and ``.a00`` data, one pair per energy window.
+
+When the source was simulated organ by organ there is one pair per organ and window. :func:`read_simind` reads them
+into PyTomography's standard form, and :func:`simind_psf` gives the collimator's PSF from a header.
+"""
 from __future__ import annotations
 
 import os
@@ -17,7 +20,17 @@ from ._energy import _mu_per_mm, _psf_meta, photon_energy
 
 
 def simind_version(header: Interfile) -> int:
-    """The major version of the SIMIND that wrote ``header``: the number after 'V' in 'program version'."""
+    """The major version of the SIMIND that wrote a header: the number after 'V' in 'program version'.
+
+    Args:
+        header (Interfile): The header, as PyTomography's Interfile reader reads it.
+
+    Returns:
+        int: The major version, e.g. 8.
+
+    Raises:
+        ValueError: If 'program version' has no version number.
+    """
     text = header.get('program version')
     found = re.search(r'[vV]\s*(\d+)', text)
     if not found:
@@ -117,27 +130,39 @@ def _geometry(header: Interfile, radii_file=None) -> dict:
 
 def read_simind(headers, energy_window: int | None = None, *, weights: Sequence[float] | None = None,
                 radii_file: str | None = None):
-    """SIMIND projections in PyTomography's standard form.
+    """Reads SIMIND projections (one ``.h00`` header per energy window) into PyTomography's standard form.
 
     * The version is read as an integer (V7 keys in cm, V8 and later mm); lengths become mm.
     * Views are sorted by angle (β as for DICOM); rows are flipped so that z runs foot to head.
+    * The radii are the header's radius for every view, or, for a non-circular orbit, those of SIMIND's ``.cor``
+      orbit file (``radii_file``, or the file the header names as its non-uniform orbit file).
     * Every window's bounds and photon energy go into ``proj_meta.energy_windows`` (the window's nuclide line, not the
-      simulation's main photon energy); the values are counts per second per MBq, 1 s per view.
+      simulation's main photon energy); the values are counts per second per MBq (``proj_meta.units``), and
+      ``proj_meta.frame_duration_s`` is the header's time per projection.
     * The grid is the projections' (Lr x Lr x Lz), centred on the rotation axis (frame ``'scanner'``).
 
     Args:
-        headers (str | Sequence[str] | Sequence[Sequence[str]]): the ``.h00`` file of one window, of every window, or
+        headers (str | Sequence[str] | Sequence[Sequence[str]]): The ``.h00`` file of one window, of every window, or
             for each window the files of every organ (added up with ``weights``).
-        energy_window (int, optional): the window to return. Defaults to None: all of them.
-        weights (Sequence[float], optional): for organ-by-organ simulations, each organ's weight (e.g. its activity).
-        radii_file (str, optional): SIMIND's ``.cor`` file of a non-circular orbit: one line per view, the
-            detector distance (cm, read as mm) and, as SIMIND writes it, the centre of rotation (pixels), which must
-            be the centre of the projections. Defaults to None: the file the header names as its non-uniform orbit
-            file (next to the header), else the header's radius for every view.
+        energy_window (int, optional): Index of the window to return. Defaults to None: all of them.
+        weights (Sequence[float], optional): For organ-by-organ simulations, each organ's weight (e.g. its activity).
+            Defaults to None (organs added up with weight 1).
+        radii_file (str, optional): SIMIND's ``.cor`` file of a non-circular orbit, as SIMIND writes it: one line per
+            view, in acquisition order, with the distance from the rotation axis to the detector surface in cm (read
+            as mm), and the centre of rotation in pixels, which must be the centre of the projections (files with the
+            distances alone, as :mod:`pytomography.utils.simind_mc` writes them for SIMIND, are read too). Defaults
+            to None: the orbit file the header names, next to it, if it names one; else the header's radius for every
+            view.
 
     Returns:
-        (torch.Tensor, SPECTObjectMeta, SPECTProjMeta): projections [W, θ, r, z] (or [θ, r, z] for one
-        ``energy_window``), the grid and the projection metadata.
+        tuple[torch.Tensor, SPECTObjectMeta, SPECTProjMeta]: The projections [W, θ, r, z] (or [θ, r, z] for one
+        ``energy_window``) on ``pytomography.device``, the grid (mm) and the projection metadata (radii in mm).
+
+    Raises:
+        ValueError: If a file was not written by SIMIND or holds no projections, the weights are not one per organ
+            file, the files' shapes differ, or the orbit file does not have one line (and at most two columns) per view
+            or puts the centre of rotation elsewhere than the centre of the projections.
+        FileNotFoundError: If the header names an orbit file that is not next to it and ``radii_file`` is not given.
     """
     if isinstance(headers, (str, os.PathLike)):
         headers = [headers]
@@ -167,16 +192,22 @@ def read_simind(headers, energy_window: int | None = None, *, weights: Sequence[
 
 
 def simind_psf(header: str, photon_keV: float | None = None, min_sigmas: float = 3) -> SPECTPSFMeta:
-    """The Gaussian collimator PSF (mm) of a SIMIND simulation, from the collimator and camera keys of its header, at
-    the photon energy of the header's window (or ``photon_keV``).
+    """The Gaussian collimator PSF of a SIMIND simulation, from the collimator and camera keys of its header.
+
+    The hole diameter, the collimator thickness and the camera's intrinsic FWHM (at 140 keV, scaled as
+    :math:`E^{-1/2}`) come from the header; the PSF is that of a lead parallel-hole collimator, as for
+    :func:`~pytomography.io.SPECT.collimator_psf`, at the photon energy of the header's window (or ``photon_keV``).
 
     Args:
-        header (str): a ``.h00`` file of the simulation (its window sets the photon energy).
-        photon_keV (float, optional): the photon energy, instead of the window's.
-        min_sigmas (float): kernel half-width in sigmas. Defaults to 3.
+        header (str): A ``.h00`` file of the simulation (its window sets the photon energy).
+        photon_keV (float, optional): The photon energy in keV, instead of the window's. Defaults to None.
+        min_sigmas (float, optional): Kernel half-width in sigmas. Defaults to 3.
 
     Returns:
-        SPECTPSFMeta: the PSF, in mm.
+        SPECTPSFMeta: The PSF, its width as a function of the distance in mm.
+
+    Raises:
+        ValueError: If the file was not written by SIMIND or holds no projections.
     """
     h = _header(header)
     unit = _mm_per_unit(h)

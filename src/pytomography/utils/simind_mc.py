@@ -1,3 +1,15 @@
+"""Running the SIMIND Monte Carlo program to simulate SPECT projections, scatter included.
+
+:class:`~pytomography.projectors.SPECT.MonteCarloHybridSPECTSystemMatrix` uses these functions. SIMIND's parameters
+come from the metadata (:func:`get_simind_params_from_metadata`) and from the isotope and the detector
+(:func:`get_simind_isotope_detector_params`), its energy windows from a DICOM file
+(:func:`get_energy_window_params_dicom`) or from SIMIND headers (:func:`get_energy_window_params_simind`), and
+:func:`run_scatter_simulation` writes the maps, runs SIMIND in parallel processes and reads back the projections.
+
+PyTomography's lengths are in mm and SIMIND's in cm; the conversion happens only in this module. SIMIND (tested with
+version 8.0) must be on the PATH as ``simind``; no other command-line tools are needed. A SIMIND run that fails raises
+a ``RuntimeError`` with its exit code and error output.
+"""
 from __future__ import annotations
 from typing import Sequence
 import os
@@ -13,6 +25,8 @@ import pydicom
 import torch
 from pytomography.transforms import Transform
 
+#: The energy resolution models of SIMIND (``<name>.erf`` files in ``pytomography/data``) that
+#: :func:`run_scatter_simulation` copies into SIMIND's folder, for ``advanced_energy_resolution_model``.
 ENERGY_RESOLUTION_MODELS = ['siemens']
 
 #: The simind.ini changes every simulation is run with (SIMIND's ``/in:`` switch; each change needs a switch of its own,
@@ -36,13 +50,16 @@ def save_attenuation_map(
     dx: float,
     temp_path: str
 ):
-    """Save attenuation map as binary file to temporary directory for subsequent use by Monte Carlo scatter simulation.
-    SIMIND reads the attenuation per voxel (mu times the voxel size), which does not depend on the length unit.
+    """Writes an attenuation map into ``temp_path`` as the binary file SIMIND reads, ``phantom140_atn_av.bin``.
+
+    SIMIND reads the attenuation per voxel (μ times the voxel size), which does not depend on the length unit. The
+    file holds it as float32, x varying fastest and z slowest.
 
     Args:
-        attenuation_map (torch.Tensor): Attenuation map to save (1/mm)
-        dx (float): Spacing of attenuation map (mm)
-        temp_path (str): Temporary folder to save to
+        attenuation_map (torch.Tensor): Attenuation map [Lx, Ly, Lz], in 1/mm (at 140 keV, as
+            :func:`run_scatter_simulation` takes it).
+        dx (float): Voxel size, in mm.
+        temp_path (str): Folder to write into.
     """
     d = (attenuation_map).cpu().numpy().astype(np.float32) * dx
     d_flat = d.swapaxes(0,2).ravel()
@@ -54,12 +71,17 @@ def save_source_map(
     scaling: float,
     vmax: float = 1e6
 ):
-    """Save source map as binary file to temporary directory for subsequent use by Monte Carlo scatter simulation.
+    """Writes a source map into ``temp_path`` as the binary file SIMIND reads, ``source_act_av.bin``.
+
+    The map is clipped to [0, ``vmax``], scaled to sum to ``scaling`` and written as float32, x varying fastest and z
+    slowest.
 
     Args:
-        source_map (torch.Tensor): Source map to save
-        temp_path (str): Temporary folder to save to
-        vmax (float, optional): Maximum value of source map, prevents divergence at early iterations. Defaults to 1e6.
+        source_map (torch.Tensor): Source map [Lx, Ly, Lz].
+        temp_path (str): Folder to write into.
+        scaling (float): Sum of the map written (:func:`run_scatter_simulation` gives each SIMIND process its share of
+            the events).
+        vmax (float, optional): Largest value kept, which prevents divergence at early iterations. Defaults to 1e6.
     """
     source_map = source_map.clamp(0, vmax)
     d = source_map.cpu().numpy().astype(np.float32)
@@ -71,15 +93,20 @@ def get_simind_params_from_metadata(
     object_meta: ObjectMeta,
     proj_meta: SPECTProjMeta
 ) -> dict:
-    """Obtain dictionary of SIMIND parameters from object and projection metadata. PyTomography's lengths are in mm;
-    SIMIND's indices 02-10, 28 and 31 are in cm.
+    """SIMIND's parameters that come from the object and projection metadata, by SIMIND index.
+
+    They are the pixel size (28), the number of views (29), the direction of rotation (30: 0 when the angles increase, 2
+    otherwise), the first angle (41, negated), the projection size (76, 77), the voxels of the source and density maps
+    (78, 79, 81, 82, 34), their voxel size (31), the half-sizes of the source and density phantoms (02 to 07), and 08
+    and 10 from the object's half-sizes along x and z. PyTomography's lengths are in mm; SIMIND's indices 02 to 10, 28
+    and 31 are in cm, so they are converted here.
 
     Args:
-        object_meta (ObjectMeta): SPECT object metadata used in reconstruction
-        proj_meta (SPECTProjMeta): SPECT projection metadata used in reconstruction
+        object_meta (ObjectMeta): Object metadata of the reconstruction.
+        proj_meta (SPECTProjMeta): SPECT projection metadata of the reconstruction.
 
     Returns:
-        dict: Dictionary of SIMIND parameters obtainable from object and projection metadata
+        dict: SIMIND index (a string, e.g. ``'28'``) to value.
     """
     num_angles = len(proj_meta.angles)
     # save radii to corr file
@@ -117,7 +144,16 @@ _THICKNESSES_IN_CM = ('crystal_thickness', 'cover_thickness', 'backscatter_thick
 
 
 def refuse_thicknesses_in_cm(kwargs: dict) -> None:
-    """Raise a TypeError that explains the rename when ``kwargs`` holds a detector thickness under its old name (cm)."""
+    """Raises a TypeError for leftover keyword arguments, explaining the renaming of the detector thicknesses to mm.
+
+    Args:
+        kwargs (dict): The keyword arguments a function did not take (nothing happens when it is empty).
+
+    Raises:
+        TypeError: ``kwargs`` holds a detector thickness under its name before PyTomography 4, in cm
+            (``crystal_thickness``, ``cover_thickness`` or ``backscatter_thickness``; the message gives the value in
+            mm), or any other keyword.
+    """
     for name in _THICKNESSES_IN_CM:
         if name in kwargs:
             raise TypeError(f'{name} (cm) is now {name}_mm, in mm like every length in PyTomography 4: '
@@ -138,21 +174,38 @@ def get_simind_isotope_detector_params(
     random_collimator_movement: bool = False,
     **removed,
 ) -> dict:
-    """Obtain SIMIND parameter dictionary from isotope and detector parameters. The thicknesses are in mm, like every
-    length in PyTomography; SIMIND's indices 09, 11 and 13 are in cm, so they are converted here.
+    """SIMIND's parameters that come from the isotope and the detector, by SIMIND index.
+
+    They are the isotope (``fi``), the collimator (``cc``), the energy resolution at 140 keV (22), the collimator
+    modelling (53, 59), the thicknesses of the cover (13), the backscatter layer (11) and the crystal (09), and the
+    energy resolution model (``Fe``) if one is given. The thicknesses are in mm, like every length in PyTomography;
+    SIMIND's indices 09, 11 and 13 are in cm, so they are converted here. The thickness keywords before PyTomography 4
+    (``crystal_thickness`` and the others, in cm) raise a TypeError that gives the new value.
 
     Args:
-        isotope_name (str): Name of isotope used for Monte Carlo scatter simulation
-        collimator_type (str): Collimator type used for Monte Carlo scatter simulation.
-        cover_thickness_mm (float): Cover thickness (mm) used for simulation. Currently assumes aluminum is used.
-        backscatter_thickness_mm (float): Equivalent backscatter thickness (mm) used for simulation. Currently assumes pyrex is used.
-        crystal_thickness_mm (float): Crystal thickness (mm) used for simulation. Currently assumes NaI.
-        energy_resolution_140keV (float): Energy resolution in percent of the detector at 140keV. Currently uses the relationship that resolution is proportional to sqrt(E) for E in keV.
-        advanced_collimator_modeling (bool, optional): Whether or not to use advanced collimator modeling that can be used to model septal penetration and scatter. Defaults to False.
-        random_collimator_movement (bool, optional): Whether or not to include random collimator movement (e.g. holes are not fixed in place). Defaults to False.
+        isotope_name (str): SIMIND's name of the isotope.
+        collimator_type (str): SIMIND's code of the collimator (see
+            :func:`~pytomography.utils.print_collimator_parameters`).
+        cover_thickness_mm (float): Thickness of the detector's cover, in mm; the cover is taken to be aluminium.
+            Required.
+        backscatter_thickness_mm (float): Equivalent thickness of the backscattering material behind the crystal, in
+            mm; it is taken to be pyrex. Required.
+        crystal_thickness_mm (float): Thickness of the crystal, in mm; it is taken to be NaI. Required.
+        energy_resolution_140keV (float, optional): Energy resolution (FWHM) of the detector at 140 keV, in percent;
+            the FWHM in keV is taken to grow as the square root of the energy. Defaults to 0.
+        advanced_energy_resolution_model (str | None, optional): Energy resolution model to use instead of
+            ``energy_resolution_140keV`` (which is then set to 0); only ``'siemens'`` is supported. Defaults to None.
+        advanced_collimator_modeling (bool, optional): Whether to use SIMIND's advanced collimator modelling, which
+            models septal penetration and scatter. Defaults to False.
+        random_collimator_movement (bool, optional): Whether the collimator moves at random (its holes are not fixed
+            in place). Defaults to False.
 
     Returns:
-        dict: Dictionary of SIMIND parameters obtainable from isotope and detector parameters
+        dict: SIMIND index (a string, e.g. ``'09'``) to value.
+
+    Raises:
+        TypeError: A thickness is missing, or a keyword is not one of these (:func:`refuse_thicknesses_in_cm`).
+        ValueError: ``advanced_energy_resolution_model`` is not ``'siemens'``.
     """
     refuse_thicknesses_in_cm(removed)
     missing = [n for n, v in (('cover_thickness_mm', cover_thickness_mm), ('backscatter_thickness_mm', backscatter_thickness_mm),
@@ -183,14 +236,15 @@ def get_energy_window_params_dicom(
     file_NM: str,
     idxs: Sequence[int] | None = None
 ) -> Sequence[str]:
-    """Obtain energy window parameters from a DICOM file: this includes a list of strings which, when written to a file, correspond to a typical "scattwin.win" file used by SIMIND.
+    """The energy windows of a SPECT DICOM file, as the lines of SIMIND's window file (``scattwin.win``).
 
     Args:
-        file_NM (str): DICOM projection file name
-        idxs (Sequence[int]): Indices corresponding to the energy windows to extract. More than one index is provided in cases where multi-photopeak reconstruction is used and scatter needs to be obtained at all windows.
+        file_NM (str): Path of the DICOM projection (NM) file.
+        idxs (Sequence[int] | None, optional): Indices of the windows to keep; more than one for multi-photopeak
+            reconstruction, where scatter is needed in every photopeak window. Defaults to None: every window.
 
     Returns:
-        Sequence[str]: Lines of the "scattwin.win" file corresponding to the energy windows specified by the indices.
+        Sequence[str]: One line per window, ``'<lower keV>,<upper keV>,0'``.
     """
     from pytomography.io.SPECT.dicom import read_metadata
     windows = read_metadata(file_NM)[1].energy_windows
@@ -199,13 +253,13 @@ def get_energy_window_params_dicom(
     return [f'{windows[idx].lower_keV},{windows[idx].upper_keV},0' for idx in idxs]
         
 def get_energy_window_params_simind(headerfiles: Sequence[str]|str)-> Sequence[str]:
-    """Obtain energy window parameters from a list of SIMIND header files: this includes a list of strings which, when written to a file, correspond to a typical "scattwin.win" file used by SIMIND.
+    """The energy windows of SIMIND header files, as the lines of SIMIND's window file (``scattwin.win``).
 
     Args:
-        headerfiles (Sequence[str]): SIMIND header files
+        headerfiles (Sequence[str] | str): SIMIND header (``.h00``) files, one per window, or a single file.
 
     Returns:
-        Sequence[str]: Lines of the "scattwin.win" file corresponding to the energy windows specified by the header files.
+        Sequence[str]: One line per header file, ``'<lower keV>,<upper keV>,0'``.
     """
     from pytomography.io.SPECT.simind import _energy_window, _header
     if isinstance(headerfiles, (str, os.PathLike)):
@@ -222,16 +276,19 @@ def get_energy_window_params_simind(headerfiles: Sequence[str]|str)-> Sequence[s
 SCATTWIN_IMAGES = 'CA:2'
 
 def create_simind_command(index_dict: dict, parallel_idx: int) -> str:
-    """Creates the terminal command to run SIMIND with the specified parameters: voxel source and attenuation maps
-    (XCAT format), the total and scatter images of every window (:data:`SCATTWIN_IMAGES`), and the simind.ini changes
-    in :data:`SIMIND_INI_CHANGES`.
+    """The output name and switches of one SIMIND run, as the argument of its command line.
+
+    The switches select voxel source and attenuation maps (XCAT format), the total and scatter images of every window
+    (:data:`SCATTWIN_IMAGES`), and the simind.ini changes in :data:`SIMIND_INI_CHANGES`, followed by
+    ``/<index>:<value>`` for each item of ``index_dict`` (one switch per element for a list).
 
     Args:
-        index_dict (dict): Dictionary of SIMIND parameters
-        parallel_idx (int): Random seed used for simulation, used to differentiate between parallel simulations
+        index_dict (dict): SIMIND's parameters, by index.
+        parallel_idx (int): Index of the run: SIMIND's random seed (``RR``) and the name of its output files
+            (``temp_output<parallel_idx>``), which tell parallel runs apart.
 
     Returns:
-        str: Terminal command to run SIMIND with the specified parameters
+        str: The argument, e.g. ``'temp_output0/14:-7/15:-7/...'``.
     """
     simind_command = f'temp_output{parallel_idx}/14:-7/15:-7/{SCATTWIN_IMAGES}/RR:{parallel_idx}/01:-208'
     for change in SIMIND_INI_CHANGES:
@@ -245,13 +302,16 @@ def create_simind_command(index_dict: dict, parallel_idx: int) -> str:
     return simind_command
 
 def add_together(n_parallel: int, n_windows: int, temp_path: str):
-    """Adds together all the parallel SIMIND simulations to obtain the final scatter and total projections, with
-    headers made from the first simulation's (``sca_w<n>.h00`` and ``tot_w<n>.h00``, pointing at the added data).
+    """Averages the projections of parallel SIMIND runs, and writes them with headers.
+
+    For each window ``w``, the scatter (``temp_output<i>_sca_w<w>.a00``) and total (``temp_output<i>_tot_w<w>.a00``)
+    projections of the runs are averaged into ``sca_w<w>.a00`` and ``tot_w<w>.a00``, with headers made from run 0's
+    (``sca_w<w>.h00``, ``tot_w<w>.h00``, pointing at the averaged data).
 
     Args:
-        n_parallel (int): Number of parallel simulations
-        n_windows (int): Number of energy windows used in the simulation
-        temp_path (str): Temporary directory where files were saved
+        n_parallel (int): Number of runs.
+        n_windows (int): Number of energy windows.
+        temp_path (str): Folder of the runs' files.
     """
     xscats = [0] * n_windows
     xtots = [0] * n_windows
@@ -285,22 +345,34 @@ def run_scatter_simulation(
     n_parallel: int = 1,
     return_total: bool = False
 ) -> torch.Tensor:
-    """Runs a Monte Carlo scatter simulation using SIMIND
+    """Runs SIMIND on a source map and an attenuation map, and returns the simulated projections of every window.
+
+    In a temporary folder it writes the energy windows (``simind.win``), the detector distances of the views
+    (``radii_corfile.cor``, in cm) and the two maps (:func:`save_attenuation_map`, :func:`save_source_map`), and copies
+    ``simind.smc`` and the energy resolution models (:data:`ENERGY_RESOLUTION_MODELS`) from ``pytomography/data``. It
+    then runs ``n_parallel`` SIMIND processes with different seeds (:func:`create_simind_command`), averages their
+    projections (:func:`add_together`), reads them with :func:`~pytomography.io.SPECT.read_simind` and deletes the
+    folder. A process that fails prints its error output; it does not raise.
 
     Args:
-        source_map (torch.Tensor): Source map used in the simulation
-        attenuation_map_140keV (torch.Tensor): Attenuation map at 140keV used in the simulation
-        object_meta (ObjectMeta): SPECT ObjectMeta used in reconstruction
-        proj_meta (SPECTProjMeta): SPECT projection metadata used in reconstruction
-        energy_window_params (list): List of strings which constitute a typical "scattwin.win" file used by SIMIND
-        primary_window_idxs (Sequence[int]): Indices from the energy_window_params list corresponding to indices used as photopeak in reconstruction. For single photopeak reconstruction, this will be a list of length 1, while for multi-photopeak reconstruction, this will be a list of length > 1.
-        simind_index_dict (dict): Dictionary of SIMIND parameters
-        n_events (int): Number of events to simulate per projection angle
-        n_parallel (int, optional): Number of simulations to perform in parallel, should not exceed number of CPU cores. Defaults to 1.
-        return_total (bool, optional): Whether or not to also return the total projections. Defaults to False.
+        source_map (torch.Tensor): Source map [Lx, Ly, Lz].
+        attenuation_map_140keV (torch.Tensor): Attenuation map [Lx, Ly, Lz] at 140 keV, in 1/mm.
+        object_meta (ObjectMeta): Object metadata of the maps (the voxel size along x scales the attenuation).
+        proj_meta (SPECTProjMeta): SPECT projection metadata, for the detector distances ``radii`` (mm).
+        energy_window_params (list): Lines of SIMIND's window file, one per window (from
+            :func:`get_energy_window_params_dicom` or :func:`get_energy_window_params_simind`).
+        simind_index_dict (dict): SIMIND's parameters (from :func:`get_simind_params_from_metadata` and
+            :func:`get_simind_isotope_detector_params`).
+        n_events (int): Number of photons to simulate per projection angle; the source map of each process sums to
+            ``n_events / n_parallel``.
+        n_parallel (int, optional): Number of SIMIND processes run at once; at most the number of CPU cores. Defaults
+            to 1.
+        return_total (bool, optional): Return the total projections instead of the scatter projections. Defaults to
+            False.
 
     Returns:
-        torch.Tensor: Simulated projections
+        torch.Tensor: The simulated scatter projections, or the total projections with ``return_total``, [W, θ, r, z]
+        (W windows), as :func:`~pytomography.io.SPECT.read_simind` reads them.
     """
     
     n_batches = 1

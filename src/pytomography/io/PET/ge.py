@@ -1,18 +1,22 @@
-"""Read GE PET list mode (the HDF5 RDF files of the Discovery MI) and GE's corrections, in PyTomography's standard
-form::
+"""Read GE PET list mode (the HDF5 RDF files of the Discovery MI) and GE's corrections in PyTomography's standard form.
+
+* :func:`read_ge_hdf5`: the events, ``object_meta`` and ``proj_meta`` of a list mode file;
+* :func:`read_ge_corrections`: GE's corrections for those events, and the valid crystal pairs with their weights.
+
+For example::
 
     events, object_meta, proj_meta = io.PET.read_ge_hdf5('LIST0000.BLF')
     event_weights, additive_counts, pair_ids, pair_weights = io.PET.read_ge_corrections('corrections.h5', proj_meta=proj_meta)
 
-The scanner's geometry comes from PyTomography's table of clinical scanners (``data/pet_scanner_info.txt``), which
-agrees with the file's ``SystemGeometry``; its TOF bins too (GE's file does not give the TOF resolution). The energy
-window comes from the file.
+The scanner's geometry comes from PyTomography's table of clinical scanners (``data/pet_scanner_info.txt``), and is
+checked against the file's ``SystemGeometry`` (crystals per ring and rings); its TOF bins too (GE's file does not give
+the TOF resolution). The energy window comes from the file.
 
-**The frame (GE's vendor rule, "check").** A detector id is ``544 ring + crystal``. Crystal 0 is at the top of the
-gantry, and the rings and crystals are placed so that the bed lies posterior (+y): the object frame is turned 180
-degrees about the axis from the geometry PyTomography used before version 4, in which images were upside down. That
-the bed is posterior is verified (GE's attenuation factors back-projected); left-right and head-foot are not (there is
-no GE reconstruction or CT of the local data), so the reader warns.
+**The frame.** A detector id is ``544 ring + crystal``. Crystal 0 is at the top of the gantry, and the rings and
+crystals are placed so that the bed lies posterior (+y): the object frame is turned 180 degrees about the axis from
+the geometry PyTomography used before version 4, in which images were upside down. That the bed is posterior is
+verified (GE's attenuation factors back-projected); left-right and head-foot are not (there is no GE reconstruction or
+CT of the local data), so the reader warns.
 """
 from __future__ import annotations
 
@@ -68,30 +72,38 @@ def _check_geometry(f: h5py.File, info: dict, path: str) -> None:
 def read_ge_hdf5(listmode_file: str | os.PathLike, *, object_meta: ObjectMeta | None = None,
                  scanner: str = "discovery_MI", min_rsector_difference: int = 0
                  ) -> tuple[torch.Tensor, ObjectMeta, PETLMProjMeta]:
-    """The coincidences of a GE HDF5 list mode file (RDF, e.g. ``LIST0000.BLF``) in PyTomography's standard form.
+    """Reads the coincidences of a GE HDF5 list mode file (RDF, e.g. ``LIST0000.BLF``) in PyTomography's standard form.
 
-    Each event of ``MiceList/TofCoinc`` is (ring, crystal, ring, crystal, TOF): its detector ids are ``ring * 544 +
-    crystal`` and its TOF bin ``14 - raw / 13`` (the raw values are multiples of 13 fine units of 13.02 ps), so that
-    TOF bins increase from column 0's crystal to column 1's. Events outside the TOF bins, and with
-    ``min_rsector_difference`` those whose crystals are closer, are dropped: then ``proj_meta.kept_events`` marks the
-    rows of the file that were kept (None when all were), and the reader warns. GE's corrections have one value per
-    row of the file: pass ``proj_meta`` to :func:`read_ge_corrections` so that they line up with the events. The
-    events are read a block at a time (8 million rows).
+    Each event of ``MiceList/TofCoinc`` is (ring, crystal, ring, crystal, TOF): its detector ids are
+    ``ring * NrCrystalsPerRing + crystal`` (544 crystals per ring for the Discovery MI) and its TOF bin
+    ``num_bins // 2 - floor(raw / 13)`` (``14 - raw / 13`` for the Discovery MI's 29 bins; the raw values are
+    multiples of 13 fine units of 13.02 ps), so that TOF bins increase from column 0's crystal to column 1's. Events
+    outside the TOF bins, and with ``min_rsector_difference`` those whose crystals are closer, are dropped: then
+    ``proj_meta.kept_events`` marks the rows of the file that were kept (None when all were), and the reader warns.
+    GE's corrections have one value per row of the file: pass ``proj_meta`` to :func:`read_ge_corrections` so that
+    they line up with the events. The events are read a block at a time (8 million rows). Left-right and head-foot
+    of the frame are not verified (see the top of this module), so a warning says so.
 
     Args:
-        listmode_file (str | os.PathLike): the list mode file.
-        object_meta (ObjectMeta, optional): the reconstruction grid (``dr`` and ``shape``); its centre and frame are
-            set by the reader. Defaults to None: voxels half the crystal pitch, a square covering 80 % of the ring's
-            diameter, and every ring.
-        scanner (str, optional): the scanner, by its name in PyTomography's table. Defaults to ``'discovery_MI'``.
-        min_rsector_difference (int, optional): keep only events whose crystals are at least this many modules apart
+        listmode_file (str | os.PathLike): The list mode file.
+        object_meta (ObjectMeta, optional): The reconstruction grid (``dr`` in mm, and ``shape``); its centre and
+            frame are set by the reader. Defaults to None: voxels half the crystal pitch, a square covering 80 % of
+            the ring's diameter, and every ring.
+        scanner (str, optional): The scanner, by its name in PyTomography's table of clinical scanners. Defaults to
+            ``'discovery_MI'``.
+        min_rsector_difference (int, optional): Keep only events whose crystals are at least this many modules apart
             around the ring. Defaults to 0.
 
     Returns:
-        tuple[torch.Tensor, ObjectMeta, PETLMProjMeta]: the events (int32 ``[N, 3]``), the object grid (modality
-        ``'PT'``, units ``'counts'``, frame ``'scanner'``) and the projection metadata (``info``, with the energy
-        window from the file, ``tof_meta`` and ``kept_events``). GE's corrections (event weights, the additive term,
-        the valid pairs and their weights) are read by :func:`read_ge_corrections`.
+        tuple[torch.Tensor, ObjectMeta, PETLMProjMeta]: The events (int32 ``[N, 3]``: two detector ids and the TOF
+        bin), the object grid (modality ``'PT'``, units ``'counts'``, frame ``'scanner'``, centred on the rings) and
+        the projection metadata (``info``, with the energy window from the file, ``tof_meta``, ``kept_events`` and
+        ``duration_s``, the acquisition time in s from the file's header, or None). GE's corrections (event weights,
+        the additive term, the valid pairs and their weights) are read by :func:`read_ge_corrections`.
+
+    Raises:
+        ValueError: If ``scanner`` is not in PyTomography's table, or the file's ``SystemGeometry`` is not that
+            scanner's.
     """
     _vendors.use("ge-dmi-listmode", str(listmode_file))   # a rule to check: it warns
     with h5py.File(listmode_file, "r") as f:
@@ -154,7 +166,7 @@ def _line_up(event_weights: torch.Tensor, additive_counts: torch.Tensor, proj_me
 
 def read_ge_corrections(corrections_file: str | os.PathLike, *, proj_meta: PETLMProjMeta | None = None,
                         pairs: bool = True, crystals_per_ring: int = 544) -> tuple:
-    """GE's corrections for a list mode file (``corrections.h5``), in PyTomography's standard form.
+    """Reads GE's corrections for a list mode file (``corrections.h5``) in PyTomography's standard form.
 
     * ``event_weights``: the multiplicative factor of each event, attenuation x sensitivity
       (``correction_lists/atten * sens``): the ``weights`` of :class:`~pytomography.metadata.PET.PETLMProjMeta`. They
@@ -165,8 +177,8 @@ def read_ge_corrections(corrections_file: str | os.PathLike, *, proj_meta: PETLM
       stores (crystal, ring, crystal, ring), the other order from the list mode): ``detector_ids_sensitivity``.
     * ``pair_weights``: their attenuation x sensitivity: ``weights_sensitivity``.
 
-    The 146 million valid pairs of the Discovery MI are read a block of 8 million at a time (2 GB in all for the ids and
-    weights).
+    The 146 million valid pairs of the Discovery MI are read a block of 8 million at a time (about 2 GB in all for the
+    ids and weights).
 
     The file has a correction for every event of the list mode file, while :func:`read_ge_hdf5` drops the events
     outside the TOF bins (and with ``min_rsector_difference`` those whose crystals are closer); with the
@@ -176,14 +188,17 @@ def read_ge_corrections(corrections_file: str | os.PathLike, *, proj_meta: PETLM
 
     Args:
         corrections_file (str | os.PathLike): GE's corrections file.
-        proj_meta (PETLMProjMeta, optional): the projection metadata :func:`read_ge_hdf5` returned for the list mode
+        proj_meta (PETLMProjMeta, optional): The projection metadata :func:`read_ge_hdf5` returned for the list mode
             file: the corrections are made to line up with its events, and checked to be as many. Defaults to None.
-        pairs (bool, optional): read the valid pairs and their weights too. Defaults to True.
-        crystals_per_ring (int, optional): crystals in a ring of the scanner. Defaults to 544 (the Discovery MI).
+        pairs (bool, optional): Read the valid pairs and their weights too. Defaults to True.
+        crystals_per_ring (int, optional): Crystals in a ring of the scanner. Defaults to 544 (the Discovery MI).
 
     Returns:
-        tuple: ``event_weights``, ``additive_counts`` (float32 ``[N]``), ``pair_ids`` (int32 ``[M, 2]``) and
-        ``pair_weights`` (float32 ``[M]``); the last two are None without ``pairs``.
+        tuple: ``event_weights`` and ``additive_counts`` (float32 ``[N]``), ``pair_ids`` (int32 ``[M, 2]``) and
+        ``pair_weights`` (float32 ``[M]``); the last two are None if ``pairs`` is False.
+
+    Raises:
+        ValueError: If ``proj_meta`` is given and the file's corrections are not one per event of its list mode file.
     """
     with h5py.File(corrections_file, "r") as f:
         lists = f["correction_lists"]

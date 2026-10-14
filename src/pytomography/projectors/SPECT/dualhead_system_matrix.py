@@ -1,3 +1,11 @@
+"""The system matrix of parallel-hole SPECT cameras, which projects by rotating the object and summing it.
+
+:class:`SPECTSystemMatrix` takes the ``object_meta`` and ``proj_meta`` of :func:`pytomography.io.SPECT.read_dicom` or
+:func:`~pytomography.io.SPECT.read_simind`, and transforms such as
+:class:`~pytomography.transforms.SPECT.SPECTAttenuationTransform` and
+:class:`~pytomography.transforms.SPECT.SPECTPSFTransform`. :class:`MonteCarloHybridSPECTSystemMatrix` forward projects
+with SIMIND instead.
+"""
 from __future__ import annotations
 import math
 import warnings
@@ -90,14 +98,32 @@ def _view_weights(angles: Sequence[float]) -> list[float]:
     return np.deg2rad(weights).tolist()
 
 class SPECTSystemMatrix(SystemMatrix):
-    r"""System matrix for SPECT imaging implemented using the rotate+sum technique.
-    
+    r"""System matrix of a parallel-hole SPECT camera, which projects by rotating the object and summing it.
+
+    For each view, the (padded) object is rotated so that the detector is along +x, the object-to-object transforms
+    are applied to the rotated object (with the view's index, e.g. attenuation towards the detector and the
+    distance-dependent PSF), and the object is summed along x. The projection-to-projection transforms are then applied
+    to the projections of all the views (e.g. an additive term or a cut-off). Back projection does the transposes in
+    the reverse order. Projections are [θ, r, z] (one energy window), objects [Lx, Ly, Lz]; with subsets, the views are
+    split into interleaved groups (view ``i`` in subset ``i % n_subsets``).
+
     Args:
-        obj2obj_transforms (Sequence[Transform]): Sequence of object mappings that occur before forward projection.
-        proj2proj_transforms (Sequence[Transform]): Sequence of proj mappings that occur after forward projection.
-        object_meta (SPECTObjectMeta): SPECT Object metadata.
-        proj_meta (SPECTProjMeta): SPECT projection metadata.
-        object_initial_based_on_camera_path (bool): Whether or not to initialize the object estimate based on the camera path; this sets voxels to zero that are outside the SPECT camera path. Defaults to False.
+        obj2obj_transforms (list[Transform]): Object-to-object transforms, applied to the rotated object of each view.
+        proj2proj_transforms (list[Transform]): Projection-to-projection transforms, applied after the sum.
+        object_meta (SPECTObjectMeta): The object grid.
+        proj_meta (SPECTProjMeta): The projection space.
+        object_initial_based_on_camera_path (bool, optional): Make the initial object of a reconstruction zero outside
+            the camera's path (voxels further from the axis than the detector at any view). Defaults to False.
+
+    Example:
+        .. code-block:: python
+
+            projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM, energy_window=0)
+            mu = io.attenuation_map(files_CT, object_meta, proj_meta.energy_windows[0].photon_keV)
+            psf_meta = io.SPECT.collimator_psf('SY-ME', proj_meta.energy_windows[0].photon_keV)
+            system_matrix = SPECTSystemMatrix(
+                obj2obj_transforms=[SPECTAttenuationTransform(mu), SPECTPSFTransform(psf_meta)],
+                proj2proj_transforms=[], object_meta=object_meta, proj_meta=proj_meta)
     """
     def __init__(
         self,
@@ -135,10 +161,15 @@ class SPECTSystemMatrix(SystemMatrix):
         self,
         n_subsets: int
     ) -> None:
-        """Sets the subsets for this system matrix given ``n_subsets`` total subsets: ``subset_indices_array``, the indices of the projections of each subset.
-        
+        """Partitions the views into ``n_subsets`` interleaved subsets: view ``i`` goes in subset ``i % n_subsets``.
+
+        The partition is kept in ``subset_indices_array`` (one index tensor per subset).
+
         Args:
-            n_subsets (int): number of subsets used in OSEM 
+            n_subsets (int): Number of subsets, from 1 to the number of views.
+
+        Raises:
+            ValueError: If ``n_subsets`` is less than 1 or more than the number of views.
         """
         self._check_n_subsets(n_subsets, self.proj_meta.shape[0], 'projections')
         indices = torch.arange(self.proj_meta.shape[0]).to(torch.long).to(pytomography.device)
@@ -152,14 +183,14 @@ class SPECTSystemMatrix(SystemMatrix):
         projections: torch.tensor,
         subset_idx: int
     ) -> torch.tensor: 
-        """Gets the subset of projections :math:`g_m` corresponding to index :math:`m`.
+        """The projections :math:`g_m` of subset :math:`m`: its views.
 
         Args:
-            projections (torch.tensor): full projections :math:`g`
-            subset_idx (int): subset index :math:`m`
+            projections (torch.Tensor): All the projections :math:`g`, [..., θ, r, z].
+            subset_idx (int): Subset index :math:`m`.
 
         Returns:
-            torch.tensor: subsampled projections :math:`g_m`
+            torch.Tensor: The subset's projections :math:`g_m`, [..., θ_m, r, z].
         """
         return projections[...,self.subset_indices_array[subset_idx],:,:]
     
@@ -167,13 +198,16 @@ class SPECTSystemMatrix(SystemMatrix):
         self,
         subset_idx: int
     ) -> float:
-        r"""Computes the relative weighting of a given subset (given that the projection space is reduced). This is used for scaling parameters relative to :math:`H_m^T 1` in reconstruction algorithms, such as prior weighting :math:`\beta`
+        r"""The relative weight of subset :math:`m`: its share of the views.
+
+        Reconstruction algorithms scale parameters that are relative to :math:`H_m^T 1` by it, such as the prior
+        weight :math:`\beta`.
 
         Args:
-            subset_idx (int): Subset index
+            subset_idx (int | None): Subset index :math:`m`; None for all the views.
 
         Returns:
-            float: Weighting for the subset.
+            float: The number of views of the subset over the number of views (1 for None).
         """
         if subset_idx is None:
             return 1
@@ -181,13 +215,13 @@ class SPECTSystemMatrix(SystemMatrix):
             return len(self.subset_indices_array[subset_idx]) / self.proj_meta.num_projections
 
     def compute_normalization_factor(self, subset_idx : int | None = None) -> torch.tensor:
-        """Function used to get normalization factor :math:`H^T_m 1` corresponding to projection subset :math:`m`.
+        """The normalization :math:`H_m^T 1`: the back projection of ones over the views of subset :math:`m`.
 
         Args:
-            subset_idx (int | None, optional): Index of subset. If none, then considers all projections. Defaults to None.
+            subset_idx (int | None, optional): Subset index :math:`m`. Defaults to None: all the views.
 
         Returns:
-            torch.Tensor: normalization factor :math:`H^T_m 1`
+            torch.Tensor: :math:`H_m^T 1`, [Lx, Ly, Lz].
         """
         norm_proj = torch.ones(self.proj_meta.shape).to(pytomography.device)
         if subset_idx is not None:
@@ -276,14 +310,16 @@ class SPECTSystemMatrix(SystemMatrix):
         object: torch.tensor,
         subset_idx: int | None = None,
     ) -> torch.tensor:
-        r"""Applies forward projection to ``object`` for a SPECT imaging system.
+        r"""Forward projection :math:`g_m = H_m f` of an object.
 
         Args:
-            object (torch.tensor[Lx, Ly, Lz]): The object to be forward projected
-            subset_idx (int, optional): Only uses a subset of angles :math:`g_m` corresponding to the provided subset index :math:`m`. If None, then defaults to the full projections :math:`g`.
+            object (torch.Tensor): The object, [Lx, Ly, Lz].
+            subset_idx (int | None, optional): Subset index :math:`m`: project onto the subset's views only. Defaults
+                to None: all the views.
 
         Returns:
-            torch.tensor: forward projection estimate :math:`g_m=H_mf`
+            torch.Tensor: The projections, [θ, r, z] (the subset's views with ``subset_idx``), on
+            ``pytomography.device``.
         """
         # Deal with subset stuff (Python ints/floats: the loop below must not synchronise with the device)
         angle_indices = self._host_angle_indices(subset_idx)
@@ -311,15 +347,15 @@ class SPECTSystemMatrix(SystemMatrix):
         proj: torch.tensor,
         subset_idx: int | None = None,
     ) -> torch.tensor:
-        r"""Applies back projection to ``proj`` for a SPECT imaging system.
+        r"""Back projection :math:`H_m^T g_m` of projections.
 
         Args:
-            proj (torch.tensor): projections :math:`g` which are to be back projected
-            subset_idx (int, optional): Only uses a subset of angles :math:`g_m` corresponding to the provided subset index :math:`m`. If None, then defaults to the full projections :math:`g`.
-            return_norm_constant (bool): Whether or not to return :math:`H_m^T 1` along with back projection. Defaults to 'False'.
+            proj (torch.Tensor): The projections, [θ, r, z] (only the subset's views with ``subset_idx``).
+            subset_idx (int | None, optional): Subset index :math:`m` of the projections. Defaults to None: all the
+                views.
 
         Returns:
-            torch.tensor: the object :math:`\hat{f} = H_m^T g_m` obtained via back projection.
+            torch.Tensor: The object, [Lx, Ly, Lz], on ``pytomography.device``.
         """
         # Deal with subset stuff (Python ints/floats: the loop below must not synchronise with the device)
         angle_indices = self._host_angle_indices(subset_idx)
@@ -397,6 +433,46 @@ class SPECTSystemMatrix(SystemMatrix):
                 MemoryPart('one view: spread and rotated', **on(6 * padded), scope='chunk')]
 
 class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
+    """A SPECT system matrix whose forward projection is a SIMIND Monte Carlo simulation of the object.
+
+    The forward projection simulates the object (as the source) in the 140 keV attenuation map with SIMIND, for every
+    isotope, and returns the total projections of the photopeak window, scaled by the object's sum and the isotope's
+    proportion; the projection-to-projection transforms are then applied. The back projection is
+    :class:`SPECTSystemMatrix`'s, with the transforms given. SIMIND must be on the PATH. Lengths are in mm, like every length in
+    PyTomography: the detector thicknesses are converted to SIMIND's cm only where SIMIND is called
+    (:func:`pytomography.utils.simind_mc.get_simind_isotope_detector_params`); their names before PyTomography 4, in
+    cm (``crystal_thickness``...), raise a TypeError that gives the new value.
+
+    Args:
+        object_meta (SPECTObjectMeta): The object grid.
+        proj_meta (SPECTProjMeta): The projection space.
+        n_events (int): Number of photons to simulate per view.
+        n_parallel (int): Number of SIMIND processes run at once, one per CPU core. Leave a few cores for the rest of
+            the computer, e.g. ``max(1, os.cpu_count() - 4)``.
+        obj2obj_transforms (Sequence[Transform]): Object-to-object transforms for back projection.
+        proj2proj_transforms (Sequence[Transform]): Projection-to-projection transforms, applied after the simulation
+            (e.g. an additive term or a cut-off) and before back projection.
+        attenuation_map_140keV (torch.Tensor): Attenuation map at 140 keV, in 1/mm, [Lx, Ly, Lz], for the simulation.
+        energy_window_params (Sequence[str]): The lines of a SIMIND ``scattwin.win`` file: the energy windows to
+            simulate.
+        primary_window_idx (int): Index (in ``energy_window_params``) of the photopeak window that is reconstructed.
+        isotope_names (Sequence[str]): The isotopes to simulate (SIMIND's names).
+        isotope_ratios (Sequence[float]): The proportion of each isotope.
+        collimator_type (str): The collimator (SIMIND's name).
+        crystal_thickness_mm (float): Crystal thickness in mm (NaI).
+        cover_thickness_mm (float): Cover thickness in mm (aluminium).
+        backscatter_thickness_mm (float): Equivalent backscatter thickness in mm (pyrex).
+        energy_resolution_140keV (float, optional): Energy resolution of the detector at 140 keV, in percent, scaled
+            as the square root of the energy. Defaults to 0.
+        advanced_energy_resolution_model (str | None, optional): An energy resolution model used instead of
+            ``energy_resolution_140keV``; only ``'siemens'``. Defaults to None.
+        advanced_collimator_modeling (bool, optional): Model septal penetration and scatter in the collimator. Defaults
+            to False.
+
+    Raises:
+        TypeError: If a thickness is missing, or given in cm under its name from before PyTomography 4.
+        RuntimeError: If SIMIND is not on the PATH.
+    """
     def __init__(
         self,
         object_meta: SPECTObjectMeta,
@@ -419,32 +495,6 @@ class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
         advanced_collimator_modeling: bool = False,
         **removed,
     ):
-        """Monte Carlo Hybrid SPECT System Matrix class that uses SIMIND to simulate scatter and total projections.
-        Lengths are in mm, like every length in PyTomography: the detector thicknesses are converted to SIMIND's cm only
-        where SIMIND is called (:func:`pytomography.utils.simind_mc.get_simind_isotope_detector_params`); their names
-        before PyTomography 4, in cm (``crystal_thickness``...), raise a TypeError that gives the new value.
-
-        Args:
-            object_meta (ObjectMeta): SPECT ObjectMeta used in reconstruction
-            proj_meta (SPECTProjMeta): SPECT projection metadata used in reconstruction
-            n_events (int): Number of photons to simulate per projection angle
-            n_parallel (int): Number of SIMIND processes run at once, one per CPU core. Leave a few cores for the rest of the
-                computer, e.g. ``max(1, os.cpu_count() - 4)``.
-            obj2obj_transforms (Sequence[Transform]): List of object to object transforms for back projection
-            proj2proj_transforms (Sequence[Transform]): List of projection to projection transforms for back projection
-            attenuation_map_140keV (torch.Tensor): Attenuation map at 140keV (used in MC simulation)
-            energy_window_params (Sequence[str]): List of strings which constitute a typical "scattwin.win" file used by SIMIND
-            primary_window_idx (int): Index from the energy_window_params list corresponding to indices used as photopeak in reconstruction. For single photopeak reconstruction, this will be a list of length 1, while for multi-photopeak reconstruction, this will be a list of length > 1.
-            isotope_names (Sequence[str]): List of isotope names used in the simulation
-            isotope_ratios (Sequence[float]): Proportion of all isotopes.
-            collimator_type (str): Collimator type used for Monte Carlo scatter simulation (should use SIMIND name).
-            crystal_thickness_mm (float): Crystal thickness (mm) used for Monte Carlo scatter simulation (currently assumes NaI)
-            cover_thickness_mm (float): Cover thickness (mm) used for simulation. Currently assumes aluminum is used.
-            backscatter_thickness_mm (float): Equivalent backscatter thickness (mm) used for simulation. Currently assumes pyrex is used.
-            energy_resolution_140keV (float): Energy resolution in percent of the detector at 140keV. Currently uses the relationship that resolution is proportional to sqrt(E) for E in keV.
-            advanced_energy_resolution_model (str | None, optional): Advanced energy resolution model to use. If provided, then ``energy_resolution_140keV`` is not used. Currently only 'siemens' is supported. Defaults to None.
-            advanced_collimator_modeling (bool, optional): Whether or not to use advanced collimator modeling that can be used to model septal penetration and scatter. Defaults to False.
-        """
         simind_mc.refuse_thicknesses_in_cm(removed)
         missing = [n for n, v in (('crystal_thickness_mm', crystal_thickness_mm), ('cover_thickness_mm', cover_thickness_mm),
                                   ('backscatter_thickness_mm', backscatter_thickness_mm)) if v is None]
@@ -477,10 +527,11 @@ class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
         self.n_events = n_events
         self.n_parallel = n_parallel
 
-    #: Memory of one SIMIND process besides the maps and projections it keeps, in bytes, for memory estimates. Measured
-    #: with ``tests/calibrate_memory.py`` (case ``simind``: 128^3 maps, 60 views, one window): about 10 MB a process,
-    #: maps and images included; rounded up.
     SIMIND_PROCESS_BYTES = 0.05e9
+    """Memory of one SIMIND process besides the maps and projections it keeps, in bytes, for memory estimates.
+
+    Measured with ``tests/calibrate_memory.py`` (case ``simind``: 128^3 maps, 60 views, one window): about 10 MB a
+    process, maps and images included; rounded up."""
 
     def _memory_parts(self, n_subsets: int, N_splits: int | None = None) -> list[MemoryPart]:
         """What a reconstruction with this system matrix holds at its peak: as :class:`SPECTSystemMatrix` (whose back
@@ -535,12 +586,16 @@ class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
         return proj_meta_new
         
     def forward(self, object: torch.Tensor, subset_idx: int | None = None):
-        """Runs the Monte Carlo scatter simulation using SIMIND and returns the simulated projections.
+        """Forward projection by a SIMIND simulation of the object: the photopeak window's total projections.
+
         Args:
-            object (torch.Tensor): Object to simulate
-            subset_idx (int | None, optional): Index of the subset to use. If None, then all projections are used. Defaults to None.
+            object (torch.Tensor): The object (the source), [Lx, Ly, Lz].
+            subset_idx (int | None, optional): Subset index: simulate the subset's views only. Defaults to None: all
+                the views.
+
         Returns:
-            torch.Tensor: Simulated projections
+            torch.Tensor: The simulated projections, [θ, r, z], scaled by the object's sum and the isotopes'
+            proportions.
         """
         # subsample proj_meta
         if subset_idx is not None:

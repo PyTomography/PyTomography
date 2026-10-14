@@ -1,27 +1,34 @@
+"""Motion of an object by a deformation vector field (:class:`DVFMotionTransform`), for motion correction."""
 from __future__ import annotations
 import torch
 import pytomography
 from pytomography.transforms import Transform
 
 class DVFMotionTransform(Transform):
+    r"""Object-to-object transform that deforms an object by a deformation vector field, conserving its activity.
+
+    The forward transform takes the object to the deformed frame: its value at voxel :math:`x` is the object at
+    :math:`\phi(x) = x + u_f(x)` (trilinear interpolation, zero outside the grid), times the volume change of the
+    deformation there, :math:`J(x) = |\det(I + \nabla u_f(x))|` (central differences, one-sided at the edges of the
+    grid). A region that expands keeps its activity and its concentration drops, so the total activity is conserved.
+    The backward transform is the adjoint of the forward one: the value at :math:`y` is the deformed object at
+    :math:`\psi(y) = y + u_b(y)`, where :math:`\psi = \phi^{-1}` (the Jacobian cancels in the change of variables,
+    so the backward transform has none). Give one per gate to
+    :class:`~pytomography.projectors.shared.MotionSystemMatrix`; it applies to whole objects (not to the rotated
+    objects of a SPECT system matrix's views).
+
+    Args:
+        dvf_forward (torch.Tensor | None, optional): Displacement :math:`u_f` of the forward transform, [Lx, Ly, Lz, 3],
+            in voxels, with the components along x, y and z. Defaults to None: the forward transform is the identity.
+        dvf_backward (torch.Tensor | None, optional): Displacement :math:`u_b` of the backward transform,
+            [Lx, Ly, Lz, 3], in voxels: the inverse deformation of ``dvf_forward``
+            (:math:`u_b(y) = -u_f(\psi(y))`). Defaults to None: the backward transform is the identity.
+    """
     def __init__(
         self,
         dvf_forward: torch.Tensor | None = None,
         dvf_backward: torch.Tensor | None = None,
         )-> None:
-        r"""Object to object transform that uses a deformation vector field to deform an object.
-
-        The forward transform takes the object to the deformed frame: its value at voxel :math:`x` is the object at
-        :math:`\phi(x) = x + u_f(x)` (trilinear interpolation), times the volume change of the deformation there,
-        :math:`J(x) = |\det(I + \nabla u_f(x))|`. A region that expands keeps its activity and its concentration drops,
-        so the total activity is conserved. The backward transform is the adjoint of the forward one: the value at
-        :math:`y` is the deformed object at :math:`\psi(y) = y + u_b(y)`, where :math:`\psi = \phi^{-1}` (the Jacobian
-        cancels in the change of variables, so the backward transform has none).
-
-        Args:
-            dvf_forward (torch.Tensor[Lx,Ly,Lz,3] | None, optional): Displacement :math:`u_f` of the forward transformation, in voxels, with the components along x, y and z. If None, then no transformation is used. Defaults to None.
-            dvf_backward (torch.Tensor[Lx,Ly,Lz,3] | None, optional): Displacement :math:`u_b` of the backward transformation, in voxels: the inverse deformation of ``dvf_forward`` (:math:`u_b(y) = -u_f(\psi(y))`). If None, then no transformation is used. Defaults to None.
-        """
         self.dvf_forward = None if dvf_forward is None else dvf_forward.to(pytomography.device).to(pytomography.dtype)
         self.dvf_backward = None if dvf_backward is None else dvf_backward.to(pytomography.device).to(pytomography.dtype)
         self.dvf_forward_vol_ratio = None if self.dvf_forward is None else self._get_vol_ratio(self.dvf_forward)
@@ -93,13 +100,13 @@ class DVFMotionTransform(Transform):
         self,
         object_i: torch.Tensor,
     )-> torch.Tensor:
-        """Forward transform of deformation vector field: the object deformed by ``dvf_forward``, times the volume change of the deformation (so that the total activity is conserved).
+        """Deforms the object by ``dvf_forward``, times the volume change of the deformation (activity conserved).
 
         Args:
-            object_i (torch.Tensor): Original object.
+            object_i (torch.Tensor): The object, [Lx, Ly, Lz].
 
         Returns:
-            torch.Tensor: Deformed object corresponding to forward transform.
+            torch.Tensor: The deformed object, [Lx, Ly, Lz] (``object_i`` itself without ``dvf_forward``).
         """
         if self.dvf_forward is None:
             return object_i
@@ -110,13 +117,13 @@ class DVFMotionTransform(Transform):
         self,
         object_i: torch.Tensor,
     )-> torch.Tensor:
-        """Backward transform of deformation vector field: the object deformed by ``dvf_backward``, the adjoint of :meth:`forward` when ``dvf_backward`` is the inverse deformation of ``dvf_forward``.
+        """Deforms the object by ``dvf_backward``: the adjoint of :meth:`forward` when it is the inverse deformation.
 
         Args:
-            object_i (torch.Tensor): Original object.
+            object_i (torch.Tensor): The object, [Lx, Ly, Lz].
 
         Returns:
-            torch.Tensor: Deformed object corresponding to backward transform.
+            torch.Tensor: The deformed object, [Lx, Ly, Lz] (``object_i`` itself without ``dvf_backward``).
         """
         if self.dvf_backward is None:
             return object_i

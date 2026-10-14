@@ -34,24 +34,29 @@ def _kind(path: Path) -> str:
 
 def load_image(source, *, layout: str | None = None, units: str | None = None, reorient: bool = True,
                frame: str | None = None) -> Image:
-    """Read an image file into an :class:`~pytomography.io.Image`: its values (x, y, z, on the CPU), its affine
-    (voxel index to LPS mm), its units, modality and what the source says about itself.
+    """Reads an image file into an :class:`~pytomography.io.Image`.
+
+    The image holds the values (axes x, y, z, on the CPU), the affine (voxel index to LPS mm), the units, the modality
+    and what the source says about itself. Put it on a reconstruction grid with :meth:`~pytomography.io.Image.on`.
 
     Args:
-        source: one of
+        source (str | os.PathLike | list | Image): What to read:
+
             * a DICOM series: a folder, or a list of files (CT, MR, PT... one slice per file, of one series);
             * a single DICOM file: an NM reconstruction (PyTomography's own NM output included), or an enhanced or
               classic multi-frame image;
             * a NIfTI file (``.nii``, ``.nii.gz``): its sform, else its qform;
             * an Interfile header (SIMIND ``.hct``, GATE/STIR ``.hv``, Siemens ``.v.hdr``...);
-            * a NRRD file (``.nrrd``, ``.seg.nrrd``; 3D Slicer segment names become ``labels``).
-        layout (str, optional): for a SIMIND density map (``.hct``), and required for one: ``'mu'`` or
+            * a NRRD file (``.nrrd``, ``.nhdr``, ``.seg.nrrd``; 3D Slicer segment names become ``labels``);
+            * an :class:`~pytomography.io.Image`, which is copied (and reoriented, with ``reorient``).
+
+        layout (str, optional): For a SIMIND density map (``.hct``), and required for one: ``'mu'`` or
             ``'mu-castor'``, as simind.ini index 22 was set (3 or 5) when the map was made. The header does not
-            record it.
-        units (str, optional): the units of the values when the file does not say (e.g. ``'1/cm'`` for a GATE mu
-            map), or to override what it says.
-        reorient (bool): permute and flip the axes (never interpolating) so that i, j and k run as close as possible
-            to +x, +y and +z (patient left, posterior, superior). Defaults to True.
+            record it. Defaults to None.
+        units (str, optional): The units of the values when the file does not say (e.g. ``'1/cm'`` for a GATE mu
+            map), or to override what it says. Defaults to None (the file's).
+        reorient (bool, optional): Permute and flip the axes (never interpolating) so that i, j and k run as close as
+            possible to +x, +y and +z (patient left, posterior, superior). Defaults to True.
         frame (str, optional): ``'patient'`` or ``'scanner'``, to override the frame the file implies. Files say it
             where their format allows: a NIfTI's sform (or qform) code, 1 for ``'patient'`` and any other for
             ``'scanner'`` (what :func:`~pytomography.io.save_nifti` writes); a NRRD's ``pytomography_frame:=`` field
@@ -59,7 +64,20 @@ def load_image(source, *, layout: str | None = None, units: str | None = None, r
             the file's.
 
     Returns:
-        Image: the image.
+        Image: The image.
+
+    Raises:
+        FileNotFoundError: If ``source`` does not exist.
+        ValueError: If ``layout`` is given for a file that is not Interfile, ``frame`` is not ``'patient'`` or
+            ``'scanner'``, or ``source`` is the data file of an Interfile image instead of its header.
+        NotImplementedError: For MetaImage files (``.mhd``, ``.mha``).
+
+    Example:
+        .. code-block:: python
+
+            ct = io.load_image('CT_folder')                   # a DICOM series
+            mu = io.attenuation_map(ct, object_meta, energy_keV=208)
+            mask = io.load_mask('liver.seg.nrrd').on(object_meta, label='liver', threshold=0.5)
     """
     from ._formats import dicom, interfile, nifti, nrrd
     if isinstance(source, Image):

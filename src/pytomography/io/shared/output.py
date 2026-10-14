@@ -95,18 +95,29 @@ def _volume(image) -> np.ndarray:
 # ---------- NIfTI ----------
 
 def save_nifti(image, path, object_meta=None, *, units: str | None = None, description: str | None = None):
-    """Save a 3D image as a NIfTI-1 file (float32), with its place in the patient.
+    """Saves a 3D image as a NIfTI-1 file (float32), with its place in the patient.
+
+    The affine (converted to NIfTI's RAS) is the sform and the qform, with code 1 (scanner anatomy) for an image in
+    the patient's frame and 2 (aligned) for one placed only relative to the scanner; :func:`~pytomography.io.load_image`
+    reads the frame back from it.
 
     Args:
-        image (torch.Tensor | np.ndarray | Image): the image, axes (x, y, z), or an :class:`~pytomography.io.Image`.
-        path (str | Path): the file to write; ``.nii`` or ``.nii.gz`` (added when the name has neither).
-        object_meta (ObjectMeta, optional): the image's grid and where it is (needed for a tensor or an array).
-        units (str, optional): the image's units, kept in the header's description (e.g. ``"counts"``, ``"Bq/mL"``).
+        image (torch.Tensor | np.ndarray | Image): The image, axes (x, y, z), or an :class:`~pytomography.io.Image`.
+        path (str | Path): The file to write; ``.nii`` or ``.nii.gz`` (``.nii.gz`` is added when the name has
+            neither). Missing folders are created.
+        object_meta (ObjectMeta, optional): The image's grid and where it is (needed for a tensor or an array, not
+            allowed with an Image). Defaults to None.
+        units (str, optional): The image's units, kept in the header's description (e.g. ``"counts"``, ``"Bq/mL"``).
             Defaults to the units of ``object_meta`` or of the Image.
-        description (str, optional): the rest of that description (80 characters in all).
+        description (str, optional): The rest of that description (80 characters in all). Defaults to
+            "PyTomography" and the version.
 
     Returns:
-        Path: the file written.
+        Path: The file written.
+
+    Raises:
+        ValueError: If a tensor or array comes without ``object_meta``, or its shape is not ``object_meta.shape``.
+        TypeError: If an Image comes with ``object_meta``.
     """
     import nibabel as nib
     arr, A_lps, own_units, _, frame = _source(image, object_meta)
@@ -252,32 +263,43 @@ def save_dicom(image, folder, object_meta=None, *, reference=None, units: str | 
                modality: str | None = None, slice_thickness: float | None = None,
                series_description: str = "PyTomography reconstruction", series_number: int = 1000,
                overwrite: bool = False) -> list:
-    """Save a 3D image as a DICOM series, each voxel in its place in the patient.
+    """Saves a 3D image as a DICOM series, each voxel in its place in the patient.
+
+    Values are stored as 16-bit integers with one rescale slope (see the module's description); CT in HU is stored in
+    whole HU.
 
     Args:
-        image (torch.Tensor | np.ndarray | Image): the image, axes (x, y, z), or an :class:`~pytomography.io.Image`.
-        folder (str | Path): the folder to write into (created if needed).
-        object_meta (ObjectMeta, optional): the image's grid and where it is (needed for a tensor or an array); its
-            units and modality are used unless given here.
-        reference (str | Path | pydicom.Dataset | list, optional): a DICOM file of the same acquisition (projections,
-            a CT slice, raw CT projections). The series takes its patient and study, and, for an image in the
-            patient's frame (``frame='patient'``), its frame of reference, so it lines up with that study's other
-            images. Without one, or for an image placed only relative to the scanner (``frame='scanner'``), the
-            series gets a new frame of reference.
-        units (str, optional): the image's units, e.g. ``"counts"`` or ``"Bq/mL"`` (PET: written as DICOM's code,
+        image (torch.Tensor | np.ndarray | Image): The image, axes (x, y, z), or an :class:`~pytomography.io.Image`.
+        folder (str | Path): The folder to write into (created if needed).
+        object_meta (ObjectMeta, optional): The image's grid and where it is (needed for a tensor or an array, not
+            allowed with an Image); its units and modality are used unless given here. Defaults to None.
+        reference (str | Path | pydicom.Dataset | list, optional): A DICOM file of the same acquisition (projections,
+            a CT slice, raw CT projections; for a list, its first file). The series takes its patient and study, and,
+            for an image in the patient's frame (``frame='patient'``), its frame of reference, so it lines up with
+            that study's other images. Without one, or for an image placed only relative to the scanner
+            (``frame='scanner'``), the series gets a new frame of reference. Defaults to None.
+        units (str, optional): The image's units, e.g. ``"counts"`` or ``"Bq/mL"`` (PET: written as DICOM's code,
             CNTS or BQML). CT is in HU, rounded to whole numbers, unless the units say otherwise (e.g. ``"1/mm"`` for
             attenuation), which keeps fractional values. Defaults to the units of ``object_meta`` or of the Image.
         modality (str, optional): ``"NM"`` (SPECT; one multi-frame file), ``"PT"`` (PET; one file per slice) or
             ``"CT"`` (one file per slice). Defaults to the modality of ``object_meta`` or of the Image; ``"PT"`` also
             saves a SPECT image as PET-style slices.
-        slice_thickness (float, optional): the nominal thickness of a slice in mm, written as SliceThickness. This is
+        slice_thickness (float, optional): The nominal thickness of a slice in mm, written as SliceThickness. This is
             not the distance between slices (which the slices' positions give), and is left empty when not given.
-        series_description (str): shown in DICOM viewers' series lists.
-        series_number (int): the series number.
-        overwrite (bool): replace DICOM files already in ``folder``. Defaults to False, which refuses to.
+        series_description (str, optional): Shown in DICOM viewers' series lists (64 characters at most). Defaults
+            to ``"PyTomography reconstruction"``.
+        series_number (int, optional): The series number. Defaults to 1000.
+        overwrite (bool, optional): Replace the DICOM files (``*.dcm``) already in ``folder``. Defaults to False,
+            which refuses to.
 
     Returns:
-        list[Path]: the files written, in slice order.
+        list[Path]: The files written, in slice order (one file for NM).
+
+    Raises:
+        ValueError: If the modality is unknown or not ``'NM'``, ``'PT'`` or ``'CT'``, a tensor or array comes without
+            ``object_meta`` (or with another shape), or the affine is sheared.
+        TypeError: If an Image comes with ``object_meta``.
+        FileExistsError: If ``folder`` already holds DICOM files and ``overwrite`` is False.
     """
     arr, A, own_units, own_modality, frame = _source(image, object_meta)
     units = units if units is not None else own_units
