@@ -51,11 +51,9 @@ def _morphis(a: float, b: float, c: float, e: float) -> float:
 
 def collimators_markdown(data: Path, fmt: str) -> str:
     rows = _rows(data / "collimators.csv")
-    lede = ("Every collimator ``io.SPECT.collimator(code)`` accepts: SIMIND's code, its dimensions in mm (the hole "
-            "diameter across the flats for hexagons; *rotated*: the hexagonal lattice turned 90 degrees, as SIMIND's "
-            "negative hole-shape codes mean), from SIMIND's collimator database (M. Ljungberg, Lund University): "
-            "SIMIND 9.0's dimensions, and the codes only its earlier database has. Only parallel-hole collimators can "
-            "be used; fan beams are listed for completeness.")
+    lede = ("SIMIND's codes and dimensions in mm, from its collimator database (version 9.0, and the codes only "
+            "earlier versions list). Holes are measured across the flats; *rotated*: the hexagonal lattice turned "
+            "90 degrees. Only parallel-hole collimators can be used.")
     if fmt == "md":
         lede = lede.replace("``", "`")
     body = [lede, ""]
@@ -75,9 +73,7 @@ def collimators_markdown(data: Path, fmt: str) -> str:
 
 def detectors_markdown(data: Path, fmt: str) -> str:
     rows = _rows(data / "detectors.csv")
-    lede = ("The detector behind the collimator, by label (``io.SPECT.detector(label)``): the crystal, the cover in "
-            "front of it and the backscatter behind it, in mm. Cover and backscatter are SIMIND 9.0's template "
-            "camera's. Choose the label of your camera's crystal; any value can be given explicitly instead.")
+    lede = "The crystal, with SIMIND 9.0's template cover and backscatter, in mm."
     if fmt == "md":
         lede = lede.replace("``", "`")
     table = [[f"`{r['label']}`", r["crystal"], _mm(r["crystal_mm"]), f"{_mm(r['cover_mm'])} {r['cover_material']}",
@@ -87,9 +83,8 @@ def detectors_markdown(data: Path, fmt: str) -> str:
 
 def cameras_markdown(data: Path, fmt: str) -> str:
     cams = json.loads((data / "cameras.json").read_text(encoding="utf-8"))["cameras"]
-    lede = ("A camera's energy resolution model and intrinsic spatial resolution, by name (``io.SPECT.camera(name)``). "
-            "The only energy resolution model so far is Morphis et al.'s, FWHM = a + b sqrt(E + c E^2), E and FWHM in "
-            "keV; its parameters go to ``spectarf.EnergyResolution.geb``.")
+    lede = ("The energy resolution model and intrinsic resolution. The only model so far is Morphis et al.'s, "
+            "FWHM = a + b sqrt(E + c E^2), E and FWHM in keV.")
     if fmt == "md":
         lede = lede.replace("``", "`")
     table, sources = [], []
@@ -113,7 +108,7 @@ def page_markdown(data: Path, fmt: str) -> str:
     if fmt == "html":
         out = ["::::::{tab-set}", ""]
         for label, make in TABS:
-            out += [f":::::{{tab-item}} {label}", f":class-container: pt-par-{label.lower()}", "", make(data, fmt), "", ":::::", ""]
+            out += [f":::::{{tab-item}} {label}", "", make(data, fmt), "", ":::::", ""]
         out.append("::::::")
         return "\n".join(out)
     return "\n\n".join(f"## {label}\n\n{make(data, fmt)}" for label, make in TABS)
