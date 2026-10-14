@@ -9,11 +9,15 @@ name: Tests
 # GPU runner is set up.
 # The rulesets on development and main require one check from this file, "All tests passed", which waits for every
 # job above, so adding or renaming a job never needs a settings change.
+# Draft pull requests skip every job: a PR that waits for another one opens as a draft, so it doesn't fail while its
+# prerequisite is unmerged, and runs in full when it is marked ready for review.
+# Pushes to development, docs/v4-site and main run too, for the README's badges.
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
-    branches: [development, main]
+    branches: [development, docs/v4-site, main]
   workflow_dispatch:
 
 concurrency:
@@ -27,6 +31,7 @@ env:
 
 jobs:
   pip:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     name: pip · ${{ matrix.os }} · Python ${{ matrix.python }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -54,6 +59,7 @@ jobs:
         run: pytest -m "not gpu and not data" -n auto -ra
 
   conda:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     name: parallelproj 2 · ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -77,6 +83,7 @@ jobs:
         run: pytest -m "not gpu and not data" -n auto -ra
 
   data:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     name: Regression tests on tutorial data
     runs-on: ubuntu-latest
     defaults:
@@ -106,6 +113,7 @@ jobs:
         run: PYTOMOGRAPHY_DATA=$HOME/pytomography_data pytest -m data -ra
 
   examples:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     name: Example scripts match the notebooks
     runs-on: ubuntu-latest
     steps:
@@ -121,7 +129,7 @@ jobs:
 
   all-passed:
     name: All tests passed
-    if: always()
+    if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
     needs: [pip, conda, data, examples]
     runs-on: ubuntu-latest
     steps:
