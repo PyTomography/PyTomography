@@ -10,14 +10,13 @@ import matplotlib
 matplotlib.use("Agg")  # no figure windows when run as a script
 
 # %% GATE (Deep Image Prior)
-import os
-from pathlib import Path
+from pytomography import datasets
 
-# Tutorial data: the folder set by the PYTOMOGRAPHY_DATA environment variable (see Tutorial data in the docs)
-DATA = Path(os.environ.get("PYTOMOGRAPHY_DATA", "~/pytomography_data")).expanduser()
+# The tutorial data: downloaded the first time it runs (see Tutorial data in the docs)
+datasets.fetch("PET/GATE-mMR-BrainInWater", extras=["mri"])  # with the MRI, the network's input
+DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_data
 # Results go here, never into the data folder
-OUTPUT = Path(os.environ.get("PYTOMOGRAPHY_OUTPUT", "pytomography_outputs")).expanduser() / "PET/GATE-mMR-BrainInWater"
-OUTPUT.mkdir(parents=True, exist_ok=True)
+OUTPUT = datasets.output_dir("PET/GATE-mMR-BrainInWater")
 
 import torch
 import torch.nn as nn
@@ -27,38 +26,38 @@ from pytomography.metadata import ObjectMeta
 from pytomography.metadata.PET import PETLMProjMeta, PETTOFMeta
 from pytomography.projectors.PET import PETLMSystemMatrix
 from pytomography.algorithms import OSEM, DIPRecon
-from pytomography.io.PET import gate
+from pytomography import io
 from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.transforms.shared import GaussianFilter
 from pytomography.utils import sss
 import matplotlib.pyplot as plt
 import gc
-import copy
-import os
-import numpy as np
 import numpy as np
 from monai.transforms import ScaleIntensityd, CropForeground, Compose, DivisiblePadd, SpatialCropd, ThresholdIntensityd
 
 # %% How much memory this needs
-RAM_GB = 25 # memory (RAM) this tutorial may use, in GB
+RAM_GB = 25 # memory (RAM) this tutorial may use, in GB; it needs about 22 GB however low this is
 NETWORK_GB = 7 # training the network takes about 7 GB of GPU memory, which on Windows counts as RAM too
 pytomography.set_memory_budget(RAM_GB - NETWORK_GB) # what the scatter estimate and the reconstructions may use
 
-path = DATA / 'PET' / 'GATE-mMR-BrainInWater'
-# Macro path where PET scanner geometry file is defined
-macro_path = os.path.join(path, 'mMR_Geometry.mac')
-# Get information dictionary about the scanner
-info = gate.get_detector_info(path = macro_path,
-    mean_interaction_depth=9, min_rsector_difference=0)
+LOAD_FROM_ROOT = False # True: read the ROOT files again instead of the results cached in OUTPUT
 
 path = DATA / 'PET' / 'GATE-mMR-BrainInWater'
-# Macro path where PET scanner geometry file is defined
-macro_path = os.path.join(path, 'mMR_Geometry.mac')
-# Get information dictionary about the scanner
-info = gate.get_detector_info(path = macro_path,
-    mean_interaction_depth=9, min_rsector_difference=0)
-# Paths to all ROOT files containing data
-paths = [os.path.join(path, f'simple_phantom/mMR_voxBrain_withSimplePhantom_{i}.root') for i in range(1, 55)]
+macro = path / 'mMR_Geometry.mac'  # the scanner, as the simulation's GATE macro describes it
+paths = [path / 'simple_phantom' / f'mMR_voxBrain_withSimplePhantom_{i}.root' for i in range(1, 55)]  # its 54 runs
+
+
+def read_gate(events, tof_meta=None, normalization=None):
+    """io.PET.read_gate for one kind of coincidence: (events, object_meta, proj_meta). Reading the 54 ROOT files takes
+    a few minutes, so the first run keeps the result in OUTPUT and later runs load it from there."""
+    name = f'gate_{events}' + ('' if tof_meta is None else f'_tof{tof_meta.num_bins}') + ('' if normalization is None else '_norm')
+    cache = OUTPUT / f'{name}.pt'
+    if LOAD_FROM_ROOT or not cache.exists():
+        # doi_mm: the lines of response end 9 mm inside the crystals, the mean depth of interaction
+        torch.save(io.PET.read_gate(paths, macro, events=events, tof_meta=tof_meta, normalization=normalization,
+                                    doi_mm=9), cache)
+    return torch.load(cache, weights_only=False)
+
 
 speed_of_light = 0.3 #mm/ps
 fwhm_tof_resolution = 550 * speed_of_light / 2 #ps to position along LOR
@@ -66,75 +65,54 @@ TOF_range = 1000 * speed_of_light #ps to position along LOR (full range)
 num_tof_bins = 21
 tof_meta = PETTOFMeta(num_tof_bins, TOF_range, fwhm_tof_resolution, n_sigmas=3)
 
-# Cached in OUTPUT by the GATE list-mode TOF tutorial; compute any that is missing (this reads the ROOT files once)
-if not os.path.exists(os.path.join(OUTPUT, 'normalization_weights.pt')):
-    # the calibration scan is shared with the earlier simulation, in PET/GATE-mMR-Brain
-    normalization_paths = [os.path.join(DATA / 'PET' / 'GATE-mMR-Brain', f'normalization_scan/mMR_Norm_{i}.root') for i in range(1,37)]
-    normalization_weights = gate.get_normalization_weights_cylinder_calibration(
-        normalization_paths,
-        info,
-        cylinder_radius = 318, # mm (radius of calibration cylindrical shell)
-        include_randoms=False
-    )
-    torch.save(normalization_weights, os.path.join(OUTPUT, 'normalization_weights.pt'))
-if not os.path.exists(os.path.join(OUTPUT, 'detector_ids_tof21bin_all_events.pt')):
-    detector_ids = gate.get_detector_ids_from_root(paths, info, tof_meta=tof_meta)
-    detector_ids = detector_ids[detector_ids[:,2]>-1] # For TOF, only take events within the TOF bins
-    torch.save(detector_ids, os.path.join(OUTPUT, 'detector_ids_tof21bin_all_events.pt'))
-if not os.path.exists(os.path.join(OUTPUT, 'detector_ids_delays.pt')):
-    detector_ids_delays = gate.get_detector_ids_from_root(paths, info, substr = 'delay')
-    torch.save(detector_ids_delays, os.path.join(OUTPUT, 'detector_ids_delays.pt'))
-normalization_weights = torch.load(os.path.join(OUTPUT, 'normalization_weights.pt'))
-detector_ids = torch.load(os.path.join(OUTPUT, 'detector_ids_tof21bin_all_events.pt'))
-detector_ids_delays= torch.load(os.path.join(OUTPUT, 'detector_ids_delays.pt'))
+# Every coincidence in its TOF bin, with the normalization weights of every crystal pair (read_gate sets those without
+# calibration data to 0), and the delayed coincidences
+detector_ids, object_meta, proj_meta = read_gate('prompts', tof_meta=tof_meta,
+                                                 normalization=path / 'normalization_weights.npy')
+detector_ids_delays, _, _ = read_gate('delayeds')
+info = proj_meta.info
 
-sinogram_randoms_estimate = gate.listmode_to_sinogram(
+sinogram_randoms_estimate = io.PET.listmode_to_sinogram(
     detector_ids_delays,
     info
 )
 del detector_ids_delays # binned: the events are not needed again
-sinogram_randoms_estimate = gate.smooth_randoms_sinogram(
+sinogram_randoms_estimate = io.PET.smooth_randoms_sinogram(
     sinogram_randoms_estimate,
     info,
     sigma_r=4,
     sigma_theta=4,
     sigma_z=4
 )
-sinogram_randoms_estimate = gate.randoms_sinogram_to_sinogramTOF(
+sinogram_randoms_estimate = io.PET.randoms_sinogram_to_sinogramTOF(
     sinogram_randoms_estimate,
     tof_meta = tof_meta,
     coincidence_timing_width = 4300
 ) # coinicidence timing window for this GATE simulation was set to 4300ps
-lm_randoms_estimate = gate.sinogram_to_listmode(
+lm_randoms_estimate = io.PET.sinogram_to_listmode(
     detector_ids,
     sinogram_randoms_estimate,
     info,
 )
 
-object_meta = ObjectMeta(
-    dr=(1.25,1.25,1.25), #mm
-    shape=(204,204,154) #voxels
-)
-# Get projection space metadata from PET geometry information dictionary
-atten_map = gate.get_aligned_attenuation_map(os.path.join(path, 'umap_mMR_brainSimplePhantom.hv'), object_meta).to(pytomography.dtype).to(pytomography.device)
-proj_meta = PETLMProjMeta(
-    detector_ids,
-    info,
-    weights_sensitivity=normalization_weights,
-    tof_meta=tof_meta
-    )
+# The grid: 1.25 mm voxels, centred where read_gate placed the scanner in the patient
+object_meta = object_meta.with_grid(dr=(1.25, 1.25, 1.25), shape=(204, 204, 154))  # mm, voxels
+# The phantom's attenuation map (1/cm, in GATE's world), placed in the patient and put on the grid, in 1/mm
+atten_map = io.attenuation_map(io.PET.gate_image(path / 'umap_mMR_brainSimplePhantom.hv', proj_meta, units='1/cm'),
+                               object_meta)
+# read_gate's proj_meta holds the events, the scanner's info, the TOF bins and the normalization weights
 psf_transform = GaussianFilter(4)
 system_matrix = PETLMSystemMatrix(
        object_meta,
        proj_meta,
        obj2obj_transforms = [psf_transform],
        N_splits=10,
-       attenuation_map=atten_map.to(pytomography.device),
+       attenuation_map=atten_map,
 )
 lm_norm = system_matrix._compute_sensitivity_projection(all_ids=False)
 additive_term = lm_randoms_estimate / lm_norm
 additive_term[additive_term.isnan()] = 0 # remove NaN values
-# Provide the random-only 
+# Provide the random-only
 likelihood = PoissonLogLikelihood(
         system_matrix,
         additive_term = additive_term
@@ -142,7 +120,10 @@ likelihood = PoissonLogLikelihood(
 recon_algorithm = OSEM(likelihood)
 recon_without_scatter_estimation = recon_algorithm(50,1)
 
-# Scatter correction
+# Scatter correction (its peak RAM and GPU memory first, before it runs)
+print(sss.estimate_sss_memory(object_meta, proj_meta, system_matrix, sinogram_random=sinogram_randoms_estimate,
+                              tof_meta=tof_meta, sinogram_interring_stepsize=6, sinogram_intraring_stepsize=6,
+                              num_dense_tof_bins=25))
 scatter_sinogram = sss.get_sss_scatter_estimate(
         object_meta,
         proj_meta,
@@ -156,7 +137,7 @@ scatter_sinogram = sss.get_sss_scatter_estimate(
         sinogram_interring_stepsize=6,
         sinogram_intraring_stepsize=6,
         N_splits=1)
-lm_scatter_estimate = gate.sinogram_to_listmode(proj_meta.detector_ids, scatter_sinogram, proj_meta.info)
+lm_scatter_estimate = io.PET.sinogram_to_listmode(proj_meta.detector_ids, scatter_sinogram, proj_meta.info)
 # Save memory, these are not needed anymore
 del(system_matrix)
 del(likelihood)
@@ -170,7 +151,7 @@ system_matrix = PETLMSystemMatrix(
        proj_meta,
        obj2obj_transforms = [],
        N_splits=10,
-       attenuation_map=atten_map.to(pytomography.device),
+       attenuation_map=atten_map,
 )
 additive_term = (lm_scatter_estimate + lm_randoms_estimate) / lm_norm
 additive_term[additive_term.isnan()] = 0
@@ -179,11 +160,12 @@ likelihood = PoissonLogLikelihood(
         additive_term = additive_term
     )
 recon_algorithm = OSEM(likelihood)
+print(recon_algorithm.estimate_memory(n_subsets=1)) # its peak RAM and GPU memory, before it runs
 recon_lm_tof = recon_algorithm(50,1)
 # The events' host copy (the system matrix keeps them on the GPU), the per-event estimates (in additive_term now) and
 # the normalization weights (used for the sensitivity image, computed above) are not needed again: freeing them
 # leaves room for the network
-del detector_ids, lm_randoms_estimate, lm_scatter_estimate, lm_norm, normalization_weights
+del detector_ids, lm_randoms_estimate, lm_scatter_estimate, lm_norm
 proj_meta.weights_sensitivity = None
 gc.collect()
 
@@ -332,34 +314,9 @@ class DIPPrior():
     def predict(self):        
         return self.prior_object.detach()
 
-import nibabel as nib
-import numpy.linalg as npl 
-from scipy.ndimage import affine_transform
-def align_highres_image(path, img=None):
-    # If img is none, extract data from path
-    data = nib.load(path)
-    # If img is none, extract data from path
-    if img is None:
-        img = data.get_fdata()
-    Sx, Sy, Sz = -(np.array(img.shape)-1) / 2
-    dx, dy, dz = data.header['pixdim'][1:4]
-    # Convert from RAS to LPS space for DICOM
-    dx*=-1; dy*=-1
-    M_highres = np.zeros((4,4))
-    M_highres[0] = np.array([dx, 0, 0, Sx*dx])
-    M_highres[1] = np.array([0, dy, 0, Sy*dy])
-    M_highres[2] = np.array([0, 0, dz, Sz*dz])
-    M_highres[3] = np.array([0, 0, 0, 1])
-    dx, dy, dz = object_meta.dr
-    Sx, Sy, Sz = -(np.array(object_meta.shape)-1) / 2
-    M_pet = np.zeros((4,4))
-    M_pet[0] = np.array([dx, 0, 0, Sx*dx])
-    M_pet[1] = np.array([0, dy, 0, Sy*dy])
-    M_pet[2] = np.array([0, 0, dz, Sz*dz])
-    M_pet[3] = np.array([0, 0, 0, 1])
-    M = npl.inv(M_highres) @ M_pet
-    return affine_transform(img, M, output_shape=object_meta.shape, mode='constant', order=1)
-mri_aligned = torch.tensor(align_highres_image(os.path.join(path, 'fdg_pet_phantom_mri.nii.gz'))).to(pytomography.device).to(torch.float32)
+# The phantom's MR (NIfTI, 0.4 mm voxels) on the PET grid: load_image reads it with its own place in the patient, and
+# .on() averages it over each 1.25 mm voxel
+mri_aligned = io.load_image(path / 'fdg_pet_phantom_mri.nii.gz').on(object_meta)
 
 mri_crop_above = 250
 mri_crop_below = 120
@@ -374,6 +331,7 @@ pipeline = Compose([
 ])
 
 start_channels = 12
+torch.manual_seed(0) # the network's starting weights: the same network, and the same images, on every run
 net = UNetCustom([start_channels,2*start_channels,4*start_channels,8*start_channels,16*start_channels]).to(pytomography.device)
 
 dip_prior = DIPPrior(
@@ -386,8 +344,7 @@ dip_prior = DIPPrior(
     )
 
 dip_prior.fit(recon_lm_tof)
-# kept, so that the end of this tutorial can compare values of rho from the same starting point
-pretrained_state = copy.deepcopy(net.state_dict())
+# the pretrained network's image, the starting point shown on the contrast-noise plot at the end
 pretrained_prediction = dip_prior.prior_object.clone()
 
 dip_prior.n_epochs = 1
@@ -395,12 +352,11 @@ dip_prior.max_iter = 10
 dip_prior.lr = 1
 dip_prior.line_search_fn = 'strong_wolfe'
 
-from scipy.ndimage import binary_erosion
 from pytomography.callbacks import Callback
-# grey and white matter, from the MR intensity classes, one voxel in from their edges
-mr = mri_aligned.cpu().numpy()
-grey = torch.tensor(binary_erosion((mr >= 180) & (mr < 195), np.ones((3, 3, 3)))).to(pytomography.device)
-white = torch.tensor(binary_erosion((mr >= 135) & (mr < 150), np.ones((3, 3, 3)))).to(pytomography.device)
+# grey and white matter on the grid
+brain = io.load_mask(path / 'gate_braininwater_rois.seg.nrrd')
+grey = brain.on(object_meta, label='grey_matter', threshold=0.5)
+white = brain.on(object_meta, label='white_matter', threshold=0.5)
 
 def contrast_noise(image):
     """Mean grey matter over mean white matter (contrast), and the standard deviation over the mean in white matter (noise)."""
@@ -431,7 +387,7 @@ for name, image in (('OSEM', recon_lm_tof), ('OSEM, 3 mm filter', recon_lm_tof_f
     c, n = contrast_noise(image)
     print(f'{name:18s} contrast {c:.2f}, noise {n:.2f}')
 
-# %% Contrast against noise, and the choice of `rho`
+# %% Contrast against noise
 # post-filtered OSEM
 osem_curve = []
 for fwhm in (0, 2, 3, 4, 5, 6):
@@ -441,23 +397,18 @@ for fwhm in (0, 2, 3, 4, 5, 6):
         gauss.configure(object_meta, proj_meta)
         image = gauss(recon_lm_tof)
     osem_curve.append(contrast_noise(image))
-# the Deep Image Prior with larger values of rho, each from the pretrained network
-curves = {rho: curve_DIP}
-for rho_other in (2.4e3, 2.4e4, 2.4e5):
-    net.load_state_dict(pretrained_state)
-    dip_prior.prior_object = pretrained_prediction.clone()
-    curves[rho_other] = ContrastNoise()
-    DIPRecon(likelihood=likelihood, prior_network=dip_prior, rho=rho_other)(n_iters=30, subit1=2, callback=curves[rho_other])
 
 fig, ax = plt.subplots(figsize=(7, 4.5))
 ax.plot([n for c, n in osem_curve], [c for c, n in osem_curve], 'k--o', ms=4, label='OSEM 50x1, Gaussian filter 0-6 mm')
 c, n = contrast_noise(pretrained_prediction)
 ax.plot(n, c, 'ks', label='pretrained network')
-for r, curve in curves.items():
-    line, = ax.plot(curve.noise, curve.contrast, '.-', ms=3, lw=1,
-                    label=f'Deep Image Prior, rho = {r:g}' + (' (above, 100 iterations)' if r == rho else ' (30 iterations)'))
-    ax.plot(curve.noise[-1], curve.contrast[-1], 'o', color=line.get_color(), ms=6)
+line, = ax.plot(curve_DIP.noise, curve_DIP.contrast, '.-', ms=3, lw=1, label=f'Deep Image Prior, rho = {rho:g}, 100 iterations')
+ax.plot(curve_DIP.noise[-1], curve_DIP.contrast[-1], 'o', color=line.get_color(), ms=6)
 ax.set_xlabel('noise in white matter (standard deviation / mean)')
 ax.set_ylabel('grey / white matter contrast')
 ax.grid(alpha=0.3)
 ax.legend(fontsize=8)
+
+# %% Save the images
+for name, image in [('deep_image_prior', recon_DIP), ('osem', recon_lm_tof)]:
+    io.save_dicom(image, OUTPUT / 't_PETGATE_DIP' / name, object_meta, series_description=name, overwrite=True)

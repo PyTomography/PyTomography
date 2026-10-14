@@ -26,6 +26,7 @@ from pytomography.metadata import ObjectMeta
 from pytomography.metadata.PET import PETLMProjMeta, PETSinogramPolygonProjMeta, PETTOFMeta
 from pytomography.projectors.PET import PETLMSystemMatrix, PETSinogramSystemMatrix
 from pytomography.utils import sss
+from pytomography.io.PET.scanner import scanner_info
 
 HAVE_KERNELS = hasattr(sys.modules["parallelproj_core"], "joseph3d_fwd")
 if not HAVE_KERNELS:
@@ -33,7 +34,7 @@ if not HAVE_KERNELS:
 needs_kernels = pytest.mark.skipif(not HAVE_KERNELS, reason="requires parallelproj 2 (parallelproj_core)")
 
 DEV = pytomography.device
-INFO = dict(min_rsector_difference=0, crystal_length=20.0, radius=120.0, firstCrystalAxis=0,
+INFO = scanner_info(min_rsector_difference=0, crystal_length=20.0, radius=120.0, rsector0_angle_deg=90.0, transaxial_direction=-1, axial_direction=-1,
             rsectorTransNr=16, rsectorAxialNr=1, moduleTransNr=1, moduleAxialNr=2, moduleTransSpacing=0.0, moduleAxialSpacing=17.0,
             submoduleTransNr=1, submoduleAxialNr=1, submoduleTransSpacing=0.0, submoduleAxialSpacing=0.0,
             crystalTransNr=4, crystalAxialNr=4, crystalTransSpacing=4.0, crystalAxialSpacing=4.0,
@@ -107,6 +108,33 @@ def test_lazy_indexing_errors():
         lazy[[1, 2], :, :, [0, 1]]       # two array indices: numpy would pair them up
     with pytest.raises(NotImplementedError):
         shared.listmode_to_sinogram(_events(100, False), INFO, normalization=True, lazy=True)
+
+
+def test_smoothed_randoms_on_any_dtype_and_device():
+    """smooth_randoms_sinogram built its kernels in float32 on the CPU, so a float64 or GPU sinogram raised; the
+    kernels now follow the sinogram, which gives the same result."""
+    randoms = torch.rand(SHAPE, generator=torch.Generator().manual_seed(5))
+    reference = shared.smooth_randoms_sinogram(randoms, INFO)
+    assert reference.dtype == torch.float32 and reference.shape == SHAPE
+    as_float64 = shared.smooth_randoms_sinogram(randoms.double(), INFO)
+    assert as_float64.dtype == torch.float64 and torch.allclose(as_float64, reference.double(), rtol=1e-5)
+    if torch.cuda.is_available():
+        on_gpu = shared.smooth_randoms_sinogram(randoms.cuda(), INFO)
+        assert on_gpu.device.type == 'cuda' and torch.allclose(on_gpu.cpu(), reference, rtol=1e-5, atol=1e-7)
+
+
+@pytest.mark.parametrize('lazy', [None, False, True])
+def test_normalization_sinogram_with_tof_meta_is_refused(lazy):
+    """normalization=True with a tof_meta was ignored: the events were binned as a plain TOF sinogram, in one order of
+    their crystals instead of both. A normalization sinogram has no TOF bins, so it is refused; without tof_meta it is
+    binned as before (both orders, averaged)."""
+    with pytest.raises(ValueError, match='no TOF bins'):
+        shared.listmode_to_sinogram(_events(100, True), INFO, normalization=True, tof_meta=_tof_meta(True), lazy=lazy)
+    events = _events(100, False)
+    norm = shared.listmode_to_sinogram(events, INFO, normalization=True)
+    plain = shared.listmode_to_sinogram(events, INFO)
+    assert norm.shape == plain.shape and norm.sum() == pytest.approx(plain.sum().item())
+    assert not torch.equal(norm, plain)                                   # both orders of the crystals, averaged
 
 
 def test_lazy_arithmetic_equals_dense(small_chunks):
@@ -350,6 +378,28 @@ def test_lazy_scatter_estimate_equals_dense(tof, small_chunks):
     assert isinstance(estimates[1], LazySinogram)
     assert _close(estimates[1].to_dense(), estimates[0])      # the scale factor is fitted to back projections
     assert torch.isfinite(estimates[0]).all() and estimates[0].sum() > 0
+
+
+@needs_kernels
+@pytest.mark.parametrize("tof", [False, True])
+def test_scatter_scaled_in_place_equals_a_scaled_copy(tof):
+    """get_sss_scatter_estimate scales its own dense estimate in place, instead of making a scaled copy (a second
+    1.65 GB sinogram for the mMR without TOF): scale_estimated_scatter(in_place=True) returns the tensor it is given,
+    scaled as the copy is. A lazy estimate is scaled lazily, as before."""
+    activity, attenuation = _phantom()
+    sm = _sinogram_system_matrix(tof, attenuation)
+    data = shared.listmode_to_sinogram(_events(60000, tof, seed=16), INFO, tof_meta=_tof_meta(tof))
+    randoms = torch.rand(SHAPE, generator=torch.Generator().manual_seed(17)) * 0.01
+    unscaled = torch.rand(data.shape, generator=torch.Generator().manual_seed(18))
+    copy = sss.scale_estimated_scatter(unscaled, sm, data, attenuation, sinogram_random=randoms)
+    assert copy.data_ptr() != unscaled.data_ptr()
+    own = unscaled.clone()
+    scaled = sss.scale_estimated_scatter(own, sm, data, attenuation, sinogram_random=randoms, in_place=True)
+    assert scaled is own and not torch.equal(own, unscaled)
+    assert _close(scaled, copy)                               # the scale factor is fitted to back projections
+    lazy = sss.scale_estimated_scatter(LazySinogram(lambda angles: unscaled[angles], unscaled.shape), sm, data, attenuation,
+                                       sinogram_random=randoms, in_place=True)
+    assert isinstance(lazy, LazySinogram) and _close(lazy.to_dense(), copy)
 
 
 @needs_kernels

@@ -337,75 +337,7 @@
     walkBtn.addEventListener("click", () => startWalk(state.modality === "all" ? D.modalities[0].id : state.modality, 0));
   }
 
-  // ---------- second figure: who talks to whom, and what a swap changes ----------
-  function callsFigure() {
-    const fig = document.getElementById("pt-arch-calls");
-    if (!fig || !D.calls) return;
-    const C = D.calls;
-    const bar = el("div", "pt-arch-bar");
-    const segc = el("div", "pt-arch-seg");
-    segc.setAttribute("role", "group");
-    segc.setAttribute("aria-label", "What to swap");
-    bar.append(segc);
-    const note = el("p", "pt-arch-hint");
-    bar.append(note);
-    const svgc = svgEl("svg", { viewBox: `0 0 ${C.w} ${C.h}`, role: "img", "aria-label": C.aria });
-    svgc.innerHTML = `<defs></defs>`;
-    const nodes = {};
-    C.edges.forEach((e) => {
-      const a = C.nodes.find((n) => n.id === e.from), b = C.nodes.find((n) => n.id === e.to);
-      const horiz = Math.abs(a.y - b.y) < 1;
-      let x1, y1, x2, y2;
-      if (horiz) { x1 = a.x + a.w; y1 = a.y + a.h / 2; x2 = b.x - 8; y2 = y1; }
-      else { x1 = a.x + a.w / 2 + (e.dx || 0); y1 = a.y + a.h; x2 = b.x + b.w / 2 + (e.dx || 0); y2 = b.y - 8; }
-      svgc.append(svgEl("line", { x1, y1, x2, y2 }));
-      svgc.append(svgEl("polygon", { points: horiz ? `${x2},${y2 - 5} ${x2},${y2 + 5} ${x2 + 8},${y2}` : `${x2 - 5},${y2} ${x2 + 5},${y2} ${x2},${y2 + 8}` }));
-      (e.label || []).forEach((t, k) => {
-        const tx = horiz ? (x1 + x2) / 2 : x1 + 10, ty = horiz ? y1 - 10 - (e.label.length - 1 - k) * 15 : (y1 + y2) / 2 - (e.label.length - 1) * 7 + k * 15 + 4;
-        const txt = svgEl("text", { x: tx, y: ty, class: "m", "text-anchor": horiz ? "middle" : "start" });
-        txt.textContent = t;
-        svgc.append(txt);
-      });
-    });
-    C.nodes.forEach((n) => {
-      const g = svgEl("g", {});
-      const r = svgEl("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 12, class: "box" });
-      g.append(r);
-      const t = svgEl("text", { x: n.x + 14, y: n.y + 24, class: "t" }); t.textContent = n.title; g.append(t);
-      (n.sub || []).forEach((s, k) => { const u = svgEl("text", { x: n.x + 14, y: n.y + 44 + k * 16, class: "s" }); u.textContent = s; g.append(u); });
-      const tag = svgEl("text", { x: n.x + 14, y: n.y + n.h - 12, class: "tag" });
-      g.append(tag);
-      svgc.append(g);
-      nodes[n.id] = { r, tag };
-    });
-    const figure = el("figure", "pt-arch-fig");
-    figure.append(svgc);
-    const cap = el("figcaption", null, C.caption);
-    figure.append(cap);
-    fig.append(bar, figure);
-    function setSwap(id) {
-      const s = C.swaps.find((x) => x.id === id);
-      segc.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.s === id)));
-      C.nodes.forEach((n) => {
-        const on = s.swap.includes(n.id);
-        nodes[n.id].r.setAttribute("class", "box " + (s.id === "none" ? "" : on ? "swap" : "keep"));
-        nodes[n.id].tag.setAttribute("class", "tag " + (on ? "swap" : "keep"));
-        nodes[n.id].tag.textContent = s.id === "none" ? "" : on ? "you change this" : "unchanged";
-      });
-      note.innerHTML = s.note;
-    }
-    C.swaps.forEach((s) => {
-      const b = el("button", null, esc(s.name));
-      b.type = "button";
-      b.dataset.s = s.id;
-      b.addEventListener("click", () => setSwap(s.id));
-      segc.append(b);
-    });
-    setSwap(C.swaps[0].id);
-  }
-
   build();
-  callsFigure();
   layout();
   if (window.ResizeObserver) new ResizeObserver(() => layout()).observe(host);
   else window.addEventListener("resize", layout);

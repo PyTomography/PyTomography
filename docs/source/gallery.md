@@ -35,6 +35,6 @@ GATE Monte Carlo PET data of a brain phantom. Shown are the ground-truth PET/MR 
 Clinical CT projections in DICOM-CT-PD format from a 3rd-generation scanner, reconstructed with OS-SART using 3 iterations and 40 subsets.
 
 ```{image} images/CT_slice.png
-:alt: Axial slice of a clinical CT reconstructed with OS-SART
+:alt: Coronal slice of a clinical CT reconstructed with OS-SART
 :width: 500px
 ```

@@ -1,4 +1,4 @@
-"""``gate.get_symmetry_histogram_from_ROOTfile`` counts a calibration scan's coincidences per symmetry class of crystal pairs.
+"""``gate._symmetry_histogram_values`` (the calibration scan of ``gate_normalization``) counts a calibration scan's coincidences per symmetry class of crystal pairs.
 With ``include_randoms=False`` it must leave out the random coincidences, whose two photons come from different
 annihilations (their source positions differ), and with ``include_randoms=True`` keep them. From April 2024 it did the
 opposite, so the GATE tutorials, which ask for ``include_randoms=False``, computed their normalization with the randoms in.
@@ -9,8 +9,9 @@ import numpy as np
 import torch
 
 from pytomography.io.PET import gate
+from pytomography.io.PET.scanner import scanner_info
 
-INFO = dict(min_rsector_difference=0, crystal_length=20.0, radius=120.0, firstCrystalAxis=0,
+INFO = scanner_info(min_rsector_difference=0, crystal_length=20.0, radius=120.0, rsector0_angle_deg=90.0, transaxial_direction=-1, axial_direction=-1,
             rsectorTransNr=16, rsectorAxialNr=1, moduleTransNr=1, moduleAxialNr=2, moduleTransSpacing=0.0,
             moduleAxialSpacing=17.0, submoduleTransNr=1, submoduleAxialNr=1, submoduleTransSpacing=0.0,
             submoduleAxialSpacing=0.0, crystalTransNr=4, crystalAxialNr=4, crystalTransSpacing=4.0,
@@ -40,8 +41,8 @@ def _calibration_file():
 
 def test_include_randoms_false_leaves_the_randoms_out():
     f = _calibration_file()
-    with_randoms = gate.get_symmetry_histogram_from_ROOTfile(f, INFO, include_randoms=True)
-    without_randoms = gate.get_symmetry_histogram_from_ROOTfile(f, INFO, include_randoms=False)
+    with_randoms = gate._symmetry_histogram_values(f, INFO, include_randoms=True)
+    without_randoms = gate._symmetry_histogram_values(f, INFO, include_randoms=False)
     assert with_randoms.shape[0] == 6
     assert without_randoms.shape[0] == 4
     assert torch.equal(without_randoms, with_randoms[:4])     # the trues, in their order
@@ -49,4 +50,4 @@ def test_include_randoms_false_leaves_the_randoms_out():
 
 def test_default_keeps_the_randoms():
     f = _calibration_file()
-    assert torch.equal(gate.get_symmetry_histogram_from_ROOTfile(f, INFO), gate.get_symmetry_histogram_from_ROOTfile(f, INFO, include_randoms=True))
+    assert torch.equal(gate._symmetry_histogram_values(f, INFO), gate._symmetry_histogram_values(f, INFO, include_randoms=True))
