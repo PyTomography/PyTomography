@@ -31,7 +31,7 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
-GPU_CHECK_URL = "https://pytomography.readthedocs.io/en/latest/ai.html#check-that-pytomography-uses-the-gpu"
+_GPU_CHECK_URL = "https://pytomography.readthedocs.io/en/latest/ai.html#check-that-pytomography-uses-the-gpu"
 
 
 def _device_message(device: torch.device, nvidia_smi: str | None, cuda_visible_devices: str | None) -> str | None:
@@ -64,7 +64,7 @@ def _device_message(device: torch.device, nvidia_smi: str | None, cuda_visible_d
         cause = (f"PyTorch {torch.__version__} is built for CUDA {torch.version.cuda} but cannot use the GPU: the NVIDIA "
                  "driver may be too old for it (nvidia-smi shows the newest CUDA version the driver supports).")
     return ("WARNING: this machine has an NVIDIA GPU, but PyTomography is running on the CPU, which is many times "
-            f"slower. {cause} See {GPU_CHECK_URL}")
+            f"slower. {cause} See {_GPU_CHECK_URL}")
 
 
 def _parallelproj_message(device: torch.device | str, cuda_enabled: bool) -> str | None:
@@ -82,7 +82,7 @@ def _parallelproj_message(device: torch.device | str, cuda_enabled: bool) -> str
         return None
     return ("WARNING: PyTomography uses the GPU, but parallelproj is its CPU build, so PET and CT projections run on the "
             "CPU, many times slower. Install the libparallelproj build that matches your CUDA version, e.g. "
-            '`conda install -c conda-forge "libparallelproj=*=cuda130*" parallelproj`. See ' + GPU_CHECK_URL)
+            '`conda install -c conda-forge "libparallelproj=*=cuda130*" parallelproj`. See ' + _GPU_CHECK_URL)
 
 
 def _say(message: str | None) -> None:
@@ -102,6 +102,8 @@ def _check_parallelproj(parallelproj_core) -> None:
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
+"""The device PyTomography computes on: CUDA when PyTorch sees an NVIDIA GPU, else Apple's MPS, else the CPU. Change it
+with :func:`set_device`. On import, PyTomography warns if the machine has an NVIDIA GPU that PyTorch cannot use."""
 _say(_device_message(device, shutil.which("nvidia-smi"), os.environ.get("CUDA_VISIBLE_DEVICES")))
 dtype = torch.float32
 """The floating point type of PyTomography's tensors. Set it with :func:`set_dtype`."""

@@ -20,7 +20,7 @@ def test_nothing_to_say_on_a_cuda_gpu():
 
 def test_an_unused_nvidia_gpu_is_a_warning_with_the_docs_link():
     message = _device_message(CPU, "/usr/bin/nvidia-smi", None)
-    assert message.startswith("WARNING: this machine has an NVIDIA GPU") and pytomography.GPU_CHECK_URL in message
+    assert message.startswith("WARNING: this machine has an NVIDIA GPU") and pytomography._GPU_CHECK_URL in message
 
 
 def test_the_warning_names_the_likely_cause(monkeypatch):
