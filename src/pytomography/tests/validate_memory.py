@@ -515,25 +515,21 @@ def _spect_metas(p: dict, z_mm: float = 0.0):
     return object_meta, proj_meta
 
 
-class _GaussianOperator:
-    """A PSF operator that exposes its kernel (as SPECTPSFToolbox operators do): a Gaussian widening with distance."""
-    def _get_kernel(self, xv, yv, distances):
-        import torch
-        sigma = (0.03235 * distances + 1.324).reshape(-1, 1, 1)                               # mm
-        k = torch.exp(-(xv ** 2 + yv ** 2) / (2 * sigma ** 2))
-        return k / k.sum(dim=(1, 2), keepdim=True)
-
-    def __call__(self, input, xv, yv, distances, normalize=False):
-        import torch
-        kernel = self._get_kernel(xv, yv, distances).unsqueeze(1)
-        return torch.nn.functional.conv2d(input.unsqueeze(0), kernel, padding='same', groups=input.shape[0]).squeeze(0)
+def _gaussian_kernels(distances_mm, pixel_mm, shape):
+    """A Gaussian widening with distance as 2D kernels (sigma = 0.03235 d + 1.324 mm), for SPECTKernelPSFTransform."""
+    import torch
+    sigma = torch.as_tensor(0.03235 * distances_mm + 1.324, dtype=torch.float32).reshape(-1, 1, 1)
+    r = torch.arange(shape[0]) - shape[0] // 2
+    z = torch.arange(shape[1]) - shape[1] // 2
+    k = torch.exp(-((r[:, None] * pixel_mm[0]) ** 2 + (z[None, :] * pixel_mm[1]) ** 2) / (2 * sigma ** 2))
+    return k / k.sum(dim=(1, 2), keepdim=True)
 
 
 def _spect_system_matrix(p: dict, z_mm: float = 0.0):
     import pytomography
     from pytomography.metadata.SPECT import SPECTPSFMeta
     from pytomography.projectors.SPECT import SPECTSystemMatrix
-    from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
+    from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTKernelPSFTransform, SPECTPSFTransform
     object_meta, proj_meta = _spect_metas(p, z_mm)
     transforms = []
     if p.get('attenuation', True):
@@ -542,8 +538,8 @@ def _spect_system_matrix(p: dict, z_mm: float = 0.0):
     psf = p.get('psf', 'gaussian')
     if psf == 'gaussian':
         transforms.append(SPECTPSFTransform(SPECTPSFMeta((0.03235, 1.324))))                  # sigma = 0.03235 d + 1.324 mm
-    elif psf == 'operator':
-        transforms.append(SPECTPSFTransform(psf_operator=_GaussianOperator(), cache_kernel=True))
+    elif psf == 'kernels':
+        transforms.append(SPECTKernelPSFTransform(_gaussian_kernels, kernel_shape=(31, 31)))
     return SPECTSystemMatrix(transforms, [], object_meta, proj_meta)
 
 
@@ -856,7 +852,7 @@ def cases(full: bool) -> list[dict]:
     for n in ([128, 192, 256] if full else [128]):
         C.append(_c(f'spect/{n}/att-psf', 'spect', 'estimate', str(n), dict(n=n, n_subsets=8)))
     C.append(_c('spect/128/no-psf', 'spect', 'estimate', '128', dict(n=128, n_subsets=8, psf=None)))
-    C.append(_c('spect/128/psf-operator', 'spect', 'estimate', '128', dict(n=128, n_subsets=8, psf='operator')))
+    C.append(_c('spect/128/psf-kernels', 'spect', 'estimate', '128', dict(n=128, n_subsets=8, psf='kernels')))
     if full:
         C.append(_c('spect/128/cached-attenuation', 'spect', 'estimate', '128', dict(n=128, n_subsets=8, cache_probabilities=True)))
         for n in (1, 4, 15, 30):

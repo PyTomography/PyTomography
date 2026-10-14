@@ -461,27 +461,19 @@ def test_spect_normalisation_images_are_images_of_their_own():
     assert likelihood.norm_BP.untyped_storage().nbytes() == image
 
 
-def test_spect_psf_operator_and_its_kernel_cache():
-    from pytomography.transforms.SPECT import SPECTPSFTransform
-    from pytomography.tests.test_psf2d_operator import _KernelOperator
-    sm = _spect(psf=False)
-
-    class _Operator(_KernelOperator):
-        def _get_kernel(self, xv, yv, a):
-            return torch.ones(len(a), xv.shape[0], xv.shape[1]) / xv.numel()
-    without = _bytes(_parts(sm.estimate_memory(2))['what the object transforms keep'])
-    for cache in (False, True):
-        transform = SPECTPSFTransform(psf_operator=_Operator(None), cache_kernel=cache)
+def test_spect_kernel_psf_and_its_spectra():
+    from pytomography.transforms.SPECT import SPECTKernelPSFTransform
+    for n_radii in (1, 12):                                 # exact kernels, and a distance grid
+        sm = _spect(psf=False, n_radii=n_radii)
+        without = _bytes(_parts(sm.estimate_memory(2))['what the object transforms keep'])
+        transform = SPECTKernelPSFTransform(lambda d, p, s: torch.ones((len(d), *s)) / (s[0] * s[1]), kernel_shape=(15, 9))
         transform.configure(sm.object_meta, sm.proj_meta)
         sm.obj2obj_transforms = sm.obj2obj_transforms[:1] + [transform]
         parts = _parts(sm.estimate_memory(2))
-        Lx, Ly, Lz = sm.object_meta.padded_shape
-        k = sm.object_meta.shape[0] - 1
-        width = Lz + k - 1 + (Lz + k - 1) % 2
-        spectrum = 8 * Lx * (Ly + k - 1) * (width // 2 + 1)
-        extra = _bytes(parts['what the object transforms keep']) - without
-        assert (extra >= spectrum) == cache
-        assert _bytes(parts["one view: rotated object and the transforms' temporaries"]) >= 8 * 4 * Lx * (Ly + k - 1) * width
+        ram, gpu, call = transform.memory(sm.object_meta.padded_shape)
+        assert _bytes(parts['what the object transforms keep']) - without == pytest.approx(ram + gpu)
+        assert ram + gpu >= transform.kernels.numel() * 4
+        assert _bytes(parts["one view: rotated object and the transforms' temporaries"]) >= call
 
 
 def test_monte_carlo_hybrid_adds_simind(monkeypatch):
