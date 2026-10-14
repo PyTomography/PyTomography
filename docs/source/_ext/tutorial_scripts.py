@@ -7,7 +7,8 @@ editors such as VS Code and Spyder can run it cell by cell.
 
 Code cells whose metadata tags include ``plot`` (or ``skip-script``) are left out. The
 docs build reads the same files to show a Script view on every tutorial page, and
-``docs/tools/export_scripts.py --check`` fails in CI when a script is out of date.
+``docs/tools/export_scripts.py --check`` fails in CI when a script is out of date or
+does not compile. ``from __future__`` imports are moved to the top of the script.
 
 This module only needs the standard library and PyYAML, so it can run outside Sphinx.
 """
@@ -59,6 +60,30 @@ def is_plot_cell(source: str) -> bool:
     return hits >= 0.6 * len(lines)
 
 
+def _pop_future_imports(lines: list[str], future: list[str]) -> list[str]:
+    """Move top-level ``from __future__ import ...`` statements out of ``lines`` into ``future``.
+
+    Python only accepts them at the top of a file, and a notebook may have them in any cell
+    (the GATE tutorials have them after the data cell), so the script puts them first.
+    """
+    kept = []
+    i = 0
+    while i < len(lines):
+        if lines[i].startswith("from __future__ import"):
+            stmt = [lines[i]]
+            if "(" in lines[i] and ")" not in lines[i]:  # parenthesised over several lines
+                while i + 1 < len(lines) and ")" not in stmt[-1]:
+                    i += 1
+                    stmt.append(lines[i])
+            stmt = "\n".join(stmt)
+            if stmt not in future:
+                future.append(stmt)
+        else:
+            kept.append(lines[i])
+        i += 1
+    return kept
+
+
 def notebook_to_script(nb_path: Path, tut: dict, docs_url: str) -> str:
     nb = json.loads(Path(nb_path).read_text(encoding="utf8"))
     title = tut.get("title", Path(nb_path).stem)
@@ -71,10 +96,13 @@ def notebook_to_script(nb_path: Path, tut: dict, docs_url: str) -> str:
         "It keeps the computation and leaves out the plots and explanations.",
         "Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.",
         '"""',
+    ]
+    preamble = [
         "import matplotlib",
         'matplotlib.use("Agg")  # no figure windows when run as a script',
         "",
     ]
+    future: list[str] = []  # from __future__ imports, which must come first
     body: list[str] = []
     pending_heading: str | None = None
     for cell in nb["cells"]:
@@ -93,6 +121,7 @@ def notebook_to_script(nb_path: Path, tut: dict, docs_url: str) -> str:
             continue
         lines = [l for l in src.rstrip().splitlines()
                  if not l.lstrip().startswith(("%", "!")) and l.strip() != "plt.show()"]
+        lines = _pop_future_imports(lines, future)
         code = "\n".join(lines).strip("\n")
         if not code.strip():
             continue
@@ -101,7 +130,24 @@ def notebook_to_script(nb_path: Path, tut: dict, docs_url: str) -> str:
             pending_heading = None
         body.append(code)
         body.append("")
-    return "\n".join(header + body).rstrip() + "\n"
+    return "\n".join(header + future + preamble + body).rstrip() + "\n"
+
+
+def compile_errors(srcdir: Path, docs_base: str = "https://pytomography.readthedocs.io/en/latest/") -> list[str]:
+    """Compile every script as the exporter writes it. Returns one message per script that does not compile."""
+    srcdir = Path(srcdir)
+    paths = script_paths(srcdir)
+    errors = []
+    for section in load_sections(srcdir):
+        for tut in section["tutorials"]:
+            nb_path = srcdir / "notebooks" / f"{tut['notebook']}.ipynb"
+            text = notebook_to_script(nb_path, tut, f"{docs_base}notebooks/{tut['notebook']}.html")
+            rel = paths[f"notebooks/{tut['notebook']}"].as_posix()
+            try:
+                compile(text, rel, "exec")
+            except SyntaxError as e:
+                errors.append(f"{rel}:{e.lineno}: {e.msg}")
+    return errors
 
 
 def readme(srcdir: Path, docs_base: str) -> str:
@@ -114,8 +160,8 @@ def readme(srcdir: Path, docs_base: str) -> str:
         "These files are generated from the notebooks in `docs/source/notebooks` by `docs/tools/export_scripts.py`.",
         "Edit the notebook, then run that script; CI checks the two match.",
         "",
-        "`data/` holds small files that tutorials read alongside their datasets, such as the fitted Ac-225 PSF model",
-        "(`data/ac225_psf_model.json`). The data page of the docs says where each one goes.",
+        "Each script downloads the data it reads with `pytomography.datasets.fetch()`; the Tutorial data page of the",
+        "docs lists every dataset.",
         "",
     ]
     paths = script_paths(srcdir)

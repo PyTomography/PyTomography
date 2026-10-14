@@ -1,0 +1,15 @@
+# Dependabot opens a pull request into development when an action used in .github/workflows has a new version.
+# Python dependencies are not updated this way: their minimum versions are a decision (see pyproject.toml).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: development
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+    labels:
+      - dependencies
+      - no-issue

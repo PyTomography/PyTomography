@@ -1,0 +1,147 @@
+/* The Architecture page: an interactive map of the library (pt-arch.js draws it from pt-arch-data.js). */
+
+.pt-arch-page { --arch-gap: 54px; --arch-core: var(--pt-wash); }
+.bd-container .bd-main .bd-content .bd-article-container:has(.pt-arch-page) { max-width: none; }
+.bd-page-width:has(.pt-arch-page) { max-width: 110rem; }
+.pt-arch-lede { font-size: 1.1rem; color: var(--pt-ink-2); max-width: 54rem; margin: 6px 0 22px; }
+
+/* ---------- toolbar: modality switch and the walkthrough ---------- */
+.pt-arch-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin: 0 0 14px; }
+.pt-arch-seg { display: inline-flex; border: 1px solid var(--pt-line); border-radius: 999px; padding: 3px; background: var(--pt-surface); }
+.pt-arch-seg button { border: 0; background: none; color: var(--pt-ink-2); font: 600 0.88rem/1 var(--pst-font-family-base);
+  padding: 8px 14px; border-radius: 999px; cursor: pointer; }
+.pt-arch-seg button[aria-pressed="true"] { background: var(--pt-ink); color: var(--pst-color-background); }
+.pt-arch-seg button:focus-visible, .pt-arch-card:focus-visible, .pt-arch-btn:focus-visible { outline: 2px solid var(--pt-cyan); outline-offset: 2px; }
+.pt-arch-hint { color: var(--pt-muted); font-size: 0.88rem; margin: 0; }
+.pt-arch-btn { border: 1px solid var(--pt-line); background: var(--pt-surface); color: var(--pt-ink); border-radius: 8px;
+  font: 600 0.88rem/1 var(--pst-font-family-base); padding: 9px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.pt-arch-btn:hover { border-color: var(--pt-muted); }
+.pt-arch-btn.is-primary { background: var(--pt-purple); border-color: var(--pt-purple); color: var(--pt-on-accent); }
+.pt-arch-btn[disabled] { opacity: 0.4; cursor: default; }
+
+/* ---------- the map ---------- */
+.pt-arch-map { position: relative; margin: 0 0 8px; }
+.pt-arch-grid { position: relative; display: grid; column-gap: var(--arch-gap); row-gap: 14px; align-items: stretch; }
+.pt-arch-head { align-self: start; padding: 0 2px 4px; position: relative; z-index: 2; }
+.pt-arch-head b { display: block; font: 700 1rem/1.2 var(--pst-font-family-heading); color: var(--pt-ink); }
+.pt-arch-head .sub { display: block; font: 400 0.74rem/1.35 var(--pst-font-family-monospace); color: var(--pt-muted); margin-top: 3px; }
+.pt-arch-step { display: inline-block; font: 600 0.68rem/1 var(--pst-font-family-monospace); color: var(--pt-muted);
+  border: 1px solid var(--pt-line); border-radius: 999px; padding: 3px 7px; margin-bottom: 6px; }
+.pt-arch-verb { position: absolute; transform: translate(-50%, -50%); font: 500 0.66rem/1.15 var(--pst-font-family-monospace);
+  color: var(--pt-muted); text-align: center; pointer-events: none; white-space: nowrap; padding: 0 2px; z-index: 3; }
+
+/* the modality-independent core sits on a wash, behind its cards */
+.pt-arch-core { position: absolute; border-radius: 16px; background: var(--arch-core); z-index: 0; }
+.pt-arch-core-label { position: absolute; font: 600 0.7rem/1.2 var(--pst-font-family-monospace); letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--pt-purple); z-index: 1; white-space: nowrap; }
+.pt-arch-boundary { position: absolute; border-left: 2px dashed var(--pt-purple); z-index: 1; }
+.pt-arch-boundary-tag { position: absolute; transform: translate(-50%, 0); z-index: 3; background: var(--pt-purple); color: var(--pt-on-accent);
+  font: 600 0.7rem/1.25 var(--pst-font-family-monospace); padding: 5px 8px; border-radius: 6px; text-align: center; white-space: nowrap; }
+
+.pt-arch-lane { font: 700 0.72rem/1 var(--pst-font-family-monospace); letter-spacing: 0.1em; text-transform: uppercase; color: var(--pt-muted);
+  writing-mode: vertical-rl; transform: rotate(180deg); align-self: center; justify-self: center; }
+
+.pt-arch-card { position: relative; z-index: 2; text-align: left; display: flex; flex-direction: column; gap: 6px; width: 100%;
+  border: 1px solid var(--pt-line); border-radius: 12px; background: var(--pt-surface); color: var(--pt-ink);
+  padding: 11px 12px 12px; cursor: pointer; font: inherit; transition: border-color .15s, box-shadow .15s, opacity .2s; }
+.pt-arch-card:hover { border-color: var(--pt-purple); box-shadow: 0 2px 14px rgba(20, 10, 40, .08); }
+.pt-arch-card.is-on { border-color: var(--pt-purple); box-shadow: 0 0 0 2px var(--pt-purple); }
+.pt-arch-card.is-dim { opacity: 0.28; }
+.pt-arch-card h3 { margin: 0; font: 700 0.9rem/1.22 var(--pst-font-family-heading); color: var(--pt-ink); overflow-wrap: break-word; }
+.pt-arch-card .k { font: 500 0.68rem/1.3 var(--pst-font-family-monospace); color: var(--pt-muted); margin-top: -2px; }
+.pt-arch-card ul { list-style: none; margin: 2px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.pt-arch-card li { font: 400 0.8rem/1.3 var(--pst-font-family-base); color: var(--pt-ink-2); }
+.pt-arch-card li code { font-size: 0.72rem; overflow-wrap: anywhere; background: var(--pt-surface-2); border: 0; padding: 1px 4px; border-radius: 4px; color: var(--pt-ink); }
+.pt-arch-card .more { margin-top: auto; font: 600 0.72rem/1 var(--pst-font-family-base); color: var(--pt-purple); padding-top: 4px; }
+.pt-arch-card.is-shared { background: var(--pt-surface); }
+
+/* the inside of a system matrix: obj2obj, projector, proj2proj */
+.pt-arch-pipe { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 2px; }
+.pt-arch-pipe span { font: 500 0.68rem/1.2 var(--pst-font-family-monospace); border: 1px solid var(--pt-line); border-radius: 5px; padding: 3px 5px;
+  background: var(--pt-surface-2); color: var(--pt-ink-2); }
+.pt-arch-pipe i { font-style: normal; color: var(--pt-muted); font-size: 0.7rem; }
+.pt-arch-pipe span.p { border-color: var(--pt-purple); color: var(--pt-ink); }
+
+.pt-arch-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; overflow: visible; }
+.pt-arch-svg path { fill: none; stroke: var(--pt-muted); stroke-width: 1.5; }
+.pt-arch-svg polygon { fill: var(--pt-muted); }
+.pt-arch-svg .is-dim { opacity: 0.2; }
+.pt-arch-svg .is-on path, .pt-arch-svg path.is-on { stroke: var(--pt-purple); stroke-width: 2.25; }
+.pt-arch-svg .is-on polygon, .pt-arch-svg polygon.is-on { fill: var(--pt-purple); }
+
+/* ---------- walkthrough ---------- */
+.pt-arch-walk { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 18px; margin: 18px 0 0;
+  border: 1px solid var(--pt-line); border-radius: 14px; padding: 16px; background: var(--pt-surface);
+  position: sticky; bottom: 10px; z-index: 6; box-shadow: 0 10px 40px rgba(10, 10, 30, .16); }
+.pt-arch-walk[hidden] { display: none; }
+.pt-arch-walk-text .pt-arch-step { margin: 0 0 8px; }
+.pt-arch-walk-text h3 { margin: 0 0 6px; font: 700 1.15rem/1.25 var(--pst-font-family-heading); }
+.pt-arch-walk-text p { margin: 0 0 12px; color: var(--pt-ink-2); }
+.pt-arch-walk-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pt-arch-dots { display: inline-flex; gap: 5px; margin: 0 6px; }
+.pt-arch-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--pt-line); }
+.pt-arch-dots i.on { background: var(--pt-purple); }
+.pt-arch-code { margin: 0; border-radius: 10px; background: var(--pt-surface-2); padding: 10px 0; overflow: auto; max-height: 38vh;
+  font: 400 0.8rem/1.55 var(--pst-font-family-monospace); }
+.pt-arch-code span { display: block; padding: 0 14px; white-space: pre; color: var(--pt-ink-2); border-left: 3px solid transparent; }
+.pt-arch-code span.on { background: var(--pt-wash); color: var(--pt-ink); border-left-color: var(--pt-purple); }
+.pt-arch-code span.c { color: var(--pt-muted); }
+
+/* ---------- detail drawer ---------- */
+.pt-arch-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(460px, 100vw); z-index: 1100; background: var(--pst-color-background);
+  border-left: 1px solid var(--pt-line); box-shadow: -10px 0 40px rgba(10, 10, 30, .18); transform: translateX(105%);
+  transition: transform .22s ease; display: flex; flex-direction: column; }
+.pt-arch-drawer.is-open { transform: none; }
+.pt-arch-drawer header { display: flex; align-items: flex-start; gap: 12px; padding: 18px 18px 12px; border-bottom: 1px solid var(--pt-line); }
+.pt-arch-drawer header div { flex: 1; min-width: 0; }
+.pt-arch-drawer header .k { font: 500 0.74rem/1.3 var(--pst-font-family-monospace); color: var(--pt-muted); word-break: break-word; }
+.pt-arch-drawer header h2 { margin: 3px 0 0; font: 700 1.3rem/1.2 var(--pst-font-family-heading); }
+.pt-arch-x { border: 1px solid var(--pt-line); background: var(--pt-surface); color: var(--pt-ink); border-radius: 8px; padding: 7px 10px; cursor: pointer;
+  font: 600 0.85rem/1 var(--pst-font-family-base); }
+.pt-arch-body { overflow-y: auto; padding: 14px 18px 28px; }
+.pt-arch-body > p { color: var(--pt-ink-2); margin: 0 0 14px; }
+.pt-arch-body h4 { margin: 18px 0 8px; font: 700 0.78rem/1.2 var(--pst-font-family-monospace); letter-spacing: 0.08em; text-transform: uppercase; color: var(--pt-muted); }
+.pt-arch-kv { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pt-arch-kv div { border: 1px solid var(--pt-line); border-radius: 10px; padding: 10px 11px; font-size: 0.86rem; color: var(--pt-ink-2); }
+.pt-arch-kv b { display: block; font: 700 0.74rem/1.2 var(--pst-font-family-monospace); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+.pt-arch-kv .yes b { color: var(--pt-ok); }
+.pt-arch-kv .no b { color: var(--pt-muted); }
+.pt-arch-kv ul, .pt-arch-list { margin: 0; padding-left: 1.1em; }
+.pt-arch-list li { margin: 0 0 7px; font-size: 0.9rem; color: var(--pt-ink-2); }
+.pt-arch-list li code, .pt-arch-kv code { font-size: 0.8rem; }
+.pt-arch-body pre { margin: 0; font-size: 0.78rem; line-height: 1.5; background: var(--pt-surface-2); border-radius: 10px; padding: 10px 12px; overflow-x: auto; border: 0; }
+.pt-arch-scrim { position: fixed; inset: 0; background: rgba(8, 8, 20, .28); z-index: 1090; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.pt-arch-scrim.is-open { opacity: 1; pointer-events: auto; }
+
+/* ---------- second figure: who talks to whom ---------- */
+.pt-arch-calls { border: 1px solid var(--pt-line); border-radius: 14px; padding: 16px; background: var(--pt-surface); margin: 8px 0 6px; }
+.pt-arch-calls .pt-arch-bar { margin-bottom: 8px; }
+.pt-arch-calls svg { display: block; width: 100%; height: auto; max-width: 980px; margin: 0 auto; color: var(--pt-ink); }
+.pt-arch-calls svg .box { fill: var(--pt-surface); stroke: var(--pt-line); stroke-width: 1.5; transition: stroke .2s, fill .2s; }
+.pt-arch-calls svg .box.swap { stroke: var(--pt-purple); stroke-width: 2.5; fill: var(--pt-wash); }
+.pt-arch-calls svg .box.keep { stroke: var(--pt-line); }
+.pt-arch-calls svg text { fill: currentColor; font-family: var(--pst-font-family-base); }
+.pt-arch-calls svg .t { font: 700 15px var(--pst-font-family-heading); }
+.pt-arch-calls svg .s { font: 500 11.5px var(--pst-font-family-monospace); fill: var(--pt-muted); }
+.pt-arch-calls svg .m { font: 500 12px var(--pst-font-family-monospace); fill: var(--pt-ink-2); }
+.pt-arch-calls svg .tag { font: 700 11px var(--pst-font-family-monospace); }
+.pt-arch-calls svg .tag.swap { fill: var(--pt-purple); }
+.pt-arch-calls svg .tag.keep { fill: var(--pt-muted); }
+.pt-arch-calls svg line, .pt-arch-calls svg path.a { stroke: var(--pt-muted); stroke-width: 1.5; fill: none; }
+.pt-arch-calls svg polygon { fill: var(--pt-muted); }
+.pt-arch-calls figcaption, .pt-arch-fig figcaption { color: var(--pt-muted); font-size: 0.88rem; margin-top: 8px; text-align: center; }
+
+/* ---------- extend table ---------- */
+.pt-arch-extend td:first-child, .pt-arch-extend td:nth-child(2) { white-space: nowrap; }
+
+/* ---------- narrow screens: one modality, top to bottom ---------- */
+.pt-arch-map.is-narrow .pt-arch-grid { grid-template-columns: minmax(0, 1fr) !important; column-gap: 0; row-gap: 34px; }
+.pt-arch-map.is-narrow .pt-arch-head { display: none; }
+.pt-arch-map.is-narrow .pt-arch-card::before { content: attr(data-stage); display: block; font: 600 0.68rem/1 var(--pst-font-family-monospace);
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--pt-muted); margin-bottom: 2px; }
+.pt-arch-map.is-narrow .pt-arch-lane, .pt-arch-map.is-narrow .pt-arch-boundary, .pt-arch-map.is-narrow .pt-arch-core-label { display: none; }
+@media (max-width: 720px) {
+  .pt-arch-walk { grid-template-columns: minmax(0, 1fr); }
+  .pt-arch-kv { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .pt-arch-drawer, .pt-arch-card, .pt-arch-scrim { transition: none; } }

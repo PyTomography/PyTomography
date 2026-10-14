@@ -10,14 +10,13 @@ import matplotlib
 matplotlib.use("Agg")  # no figure windows when run as a script
 
 # %% Ac-225 Advanced PSF Modeling (DICOM)
-import os
-from pathlib import Path
+from pytomography import datasets
 
-# Tutorial data: the folder set by the PYTOMOGRAPHY_DATA environment variable (see Tutorial data in the docs)
-DATA = Path(os.environ.get("PYTOMOGRAPHY_DATA", "~/pytomography_data")).expanduser()
+# The tutorial data: downloaded the first time it runs (see Tutorial data in the docs)
+datasets.fetch("SPECT/Ac225-NEMA-SymT2")
+DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_data
 # Results go here, never into the data folder
-OUTPUT = Path(os.environ.get("PYTOMOGRAPHY_OUTPUT", "pytomography_outputs")).expanduser() / "SPECT/Ac225-NEMA-SymT2"
-OUTPUT.mkdir(parents=True, exist_ok=True)
+OUTPUT = datasets.output_dir("SPECT/Ac225-NEMA-SymT2")
 
 import matplotlib.pyplot as plt
 import torch # needed for kernels

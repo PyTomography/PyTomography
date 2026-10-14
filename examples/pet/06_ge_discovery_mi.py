@@ -10,14 +10,13 @@ import matplotlib
 matplotlib.use("Agg")  # no figure windows when run as a script
 
 # %% GE Discovery MI (Listmode Reconstruction; With Time of Flight)
-import os
-from pathlib import Path
+from pytomography import datasets
 
-# Tutorial data: the folder set by the PYTOMOGRAPHY_DATA environment variable (see Tutorial data in the docs)
-DATA = Path(os.environ.get("PYTOMOGRAPHY_DATA", "~/pytomography_data")).expanduser()
+# The tutorial data: downloaded the first time it runs (see Tutorial data in the docs)
+datasets.fetch("PET/GE-DMI-NEMA")
+DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_data
 # Results go here, never into the data folder
-OUTPUT = Path(os.environ.get("PYTOMOGRAPHY_OUTPUT", "pytomography_outputs")).expanduser() / "PET/GE-DMI-NEMA"
-OUTPUT.mkdir(parents=True, exist_ok=True)
+OUTPUT = datasets.output_dir("PET/GE-DMI-NEMA")
 GE_DATA = DATA / 'PET' / 'GE-DMI-NEMA'
 
 from pytomography.metadata import ObjectMeta

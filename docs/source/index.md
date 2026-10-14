@@ -131,11 +131,12 @@ recon = OSEM(likelihood)(n_iters=4, n_subsets=8)
 
 install
 tutorials/index
-concepts
 gallery
+architecture
 API <api/pytomography/index>
 Contribute <contributing/index>
 Migrate to v4 <migration>
+concepts
 For AI agents <ai>
 Data tables <external_data>
 ```

@@ -1,0 +1,33 @@
+name: Feature request
+description: A method, system or format you would like PyTomography to support
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check the [feature board](https://pytomography.readthedocs.io/en/latest/contributing/feature-board.html) first; it may already be there, with data and a starting point.
+  - type: textarea
+    id: need
+    attributes:
+      label: What you want to do
+      description: The reconstruction problem you have, not only the feature you have in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: approach
+    attributes:
+      label: How it could work
+      description: Papers, other software, or an outline of the implementation.
+  - type: textarea
+    id: data
+    attributes:
+      label: Data to test it on
+      description: Public datasets, phantoms or simulations that would show it works.
+  - type: dropdown
+    id: help
+    attributes:
+      label: Would you like to implement it?
+      options:
+        - "Yes, with some guidance"
+        - "Maybe, if it is not too large"
+        - "No, but I can test it"
