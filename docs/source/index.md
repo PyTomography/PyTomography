@@ -139,5 +139,6 @@ API <api/pytomography/index>
 Contribute <contributing/index>
 Migrate to v4 <migration>
 Memory and speed <memory>
+SPECT parameters <spect_parameters>
 For AI agents <ai>
 ```

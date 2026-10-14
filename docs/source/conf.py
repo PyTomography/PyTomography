@@ -30,6 +30,7 @@ extensions = [
     "pytomo_viewer",                # _ext/pytomo_viewer.py: the 3D image viewer on tutorial pages and cards
     "pytomo_memory",                # _ext/pytomo_memory.py: the generated tables of the Memory and speed page
     "pytomo_io",                    # _ext/pytomo_io.py: the Architecture page's "Data and conventions" tab
+    "pytomo_parameters",            # _ext/pytomo_parameters.py: the SPECT parameters page's tables
 ]
 
 source_suffix = {".rst": "restructuredtext", ".md": "myst-nb", ".ipynb": "myst-nb"}
