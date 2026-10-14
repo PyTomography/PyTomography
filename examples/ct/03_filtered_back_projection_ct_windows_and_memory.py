@@ -1,0 +1,115 @@
+"""Filtered back projection (CT): windows and memory
+
+Helical filtered back projection of a clinical chest CT with six windows, their noise against resolution, and the memory settings that fit a given machine.
+
+Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_fbp_ct.html
+It keeps the computation and leaves out the plots and explanations.
+Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
+"""
+import matplotlib
+matplotlib.use("Agg")  # no figure windows when run as a script
+
+from pytomography import datasets
+
+# The tutorial data: downloaded the first time it runs (see Tutorial data in the docs)
+datasets.fetch("CT/ldct-c145")
+DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_data
+# Results go here, never into the data folder
+OUTPUT = datasets.output_dir("CT/ldct-c145")
+
+import time
+import numpy as np
+import torch
+import matplotlib.pyplot as plt
+from scipy import ndimage
+import pytomography
+from pytomography.io.CT import dicom_ct_pd
+from pytomography.io.shared import open_multifile, align_images_affine
+from pytomography.metadata import ObjectMeta
+from pytomography.projectors.CT import CTGen3SystemMatrix
+from pytomography.algorithms import FilteredBackProjection
+from pytomography.utils import get_fbp_filter, HannFilter, PeakMemory
+
+# Memory: this tutorial needs about 13 GB of RAM: 2 GB of projections, the images it keeps, the reconstruction's
+# chunks of views and the GPU libraries. RAM_GB caps what the reconstruction uses for its own work: with less, it
+# rebins and filters fewer views at a time, which is a little slower and gives the same image. Section 3 prints the
+# estimate before anything runs (estimate_memory) and the settings that fit less memory (plan_memory); section 4
+# reconstructs with them. Most of the 13 GB is not the reconstruction's own, so a lower RAM_GB saves a few GB at most.
+RAM_GB = 25
+pytomography.set_memory_budget(RAM_GB)
+
+# %% 1. The projections
+folder = DATA / 'CT' / 'ldct-c145'
+t0 = time.time()
+proj, proj_meta = dicom_ct_pd.get_projections_and_metadata_gen3(folder / 'full_dose_projections')
+mu_water = proj_meta.water_attenuation  # mm^-1
+print(f"{proj.shape[0]} views of {proj.shape[1]} x {proj.shape[2]} detector elements, read in {time.time() - t0:.0f} s")
+behind = proj_meta.photon_counts[::100, :, None] * torch.exp(-proj[::100])  # every 100th view
+print(f"photons reaching a detector element, median over the rays through the patient: {behind[proj[::100] > 1].median():.0f}")
+object_meta = ObjectMeta(dr=(0.662109, 0.662109, 1.0), shape=(512, 512, 316))  # mm, voxels
+system_matrix = CTGen3SystemMatrix(object_meta, proj_meta)
+to_hu = lambda image: (1000 * (image / mu_water - 1)).cpu().numpy()
+
+# %% 3. Memory, before reconstructing
+fbp = FilteredBackProjection(proj, system_matrix, filter='hann', slice_thickness=1.25)
+print(fbp.estimate_memory())
+print()
+print(system_matrix.estimate_memory(n_subsets=40, held={'projections': proj}))
+
+plan = fbp.plan_memory(ram_gb=10, gpu_gb=2)
+print(plan)
+
+# %% 4. Reconstruct, with the default settings and with the plan's
+t0 = time.time()
+with PeakMemory() as peak:
+    hu = to_hu(fbp())
+print(f"default settings: {time.time() - t0:.0f} s, GPU peak {peak.peak / 1e9:.2f} GB")
+
+pytomography.set_memory_budget(plan.settings['memory_budget_gb'])
+fbp_planned = FilteredBackProjection(proj, system_matrix, filter='hann', slice_thickness=1.25, gpu_budget=plan.settings['gpu_budget'])
+print(fbp_planned.estimate_memory())
+t0 = time.time()
+with PeakMemory() as peak:
+    hu_planned = to_hu(fbp_planned())
+print(f"the plan's settings: {time.time() - t0:.0f} s, GPU peak {peak.peak / 1e9:.2f} GB; "
+      f"largest difference from the default image: {np.abs(hu_planned - hu).max():.1e} HU")
+pytomography.set_memory_budget(RAM_GB)
+del hu_planned
+
+# %% 5. Windows compared
+scanner_files = sorted((folder / 'full_dose_images').glob('*.dcm'))
+scanner, scanner_meta = open_multifile(scanner_files, return_object_meta=True)
+scanner = scanner.cpu().numpy()
+scanner_affine = scanner_meta.affine_matrix.copy()
+scanner_affine[:2, 3] += 0.5 * np.array(scanner_meta.dr[:2])  # GE: the corner of the first pixel, not its centre
+ct_affine = proj_meta.get_patient_affine(object_meta).numpy()
+scanner_hu = align_images_affine(hu, scanner, ct_affine, scanner_affine, cval=-3000)  # -3000: outside the scanner's images
+
+liver = (slice(100, 140), slice(200, 240), slice(280, 296))  # 26 x 26 x 16 mm of liver
+noise = {'Hann': float(hu[liver].std())}
+for name, window, thickness in [*[(n, w, 1.25) for n, w in windows.items() if n != 'Hann'], ('Hann, no slice_thickness', 'hann', None)]:
+    reconstruction = FilteredBackProjection(proj, system_matrix, filter=window, slice_thickness=thickness)
+    estimate = reconstruction.estimate_memory()
+    t0 = time.time()
+    image = to_hu(reconstruction())
+    noise[name] = float(image[liver].std())
+    print(f"{name:24s} estimate {estimate.ram_gb:4.1f} GB RAM, {estimate.gpu_gb:.1f} GB GPU; {time.time() - t0:3.0f} s; "
+          f"liver noise {noise[name]:5.1f} HU")
+    if name == 'Ram-Lak':
+        hu_ramlak = image
+    del image
+print(f"{'scanner':24s} liver noise {scanner_hu[liver].std():5.1f} HU; liver mean: scanner {scanner_hu[liver].mean():.1f} HU, "
+      f"ours {hu[liver].mean():.1f} HU")
+
+valid = scanner_hu > -1500  # inside the scanner's field of view
+blur = lambda a: ndimage.gaussian_filter(np.where(valid, a, -1000.0), 2 / object_meta.dr[0])  # 2 mm
+body = valid & (blur(scanner_hu) > -700)
+for name, image in images[1:]:
+    rms = np.sqrt(((blur(image) - blur(scanner_hu))[body] ** 2).mean())
+    print(f"{name:13s} RMS difference from the scanner's image after a 2 mm blur: {rms:4.1f} HU")
+
+# %% Save the images
+from pytomography.io import save_dicom
+
+saved = save_dicom(hu, OUTPUT / 't_fbp_ct' / 'fbp_hann', affine=ct_affine, modality='CT', reference=scanner_files[0],
+                   series_description='FBP, Hann, 1.25 mm', overwrite=True)
