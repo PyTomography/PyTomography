@@ -3,12 +3,9 @@
 Helical filtered back projection of a clinical chest CT with six windows, their noise against resolution, and the memory settings that fit a given machine.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_fbp_ct.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 from pytomography import datasets
 
 # The tutorial data: downloaded the first time it runs (see Tutorial data in the docs)
@@ -20,14 +17,13 @@ OUTPUT = datasets.output_dir("CT/ldct-c145")
 import time
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
 from scipy import ndimage
 import pytomography
 from pytomography import io
 from pytomography.metadata import ObjectMeta
 from pytomography.projectors.CT import CTGen3SystemMatrix
 from pytomography.algorithms import FilteredBackProjection
-from pytomography.utils import get_fbp_filter, HannFilter, PeakMemory
+from pytomography.utils import HannFilter, PeakMemory
 
 # Memory: this tutorial needs about 13 GB of RAM: 2 GB of projections, the images it keeps, the reconstruction's
 # chunks of views and the GPU libraries. RAM_GB caps what the reconstruction uses for its own work: with less, it
@@ -48,6 +44,10 @@ behind = proj_meta.photon_counts[::100, :, None] * torch.exp(-proj[::100])  # ev
 print(f"photons reaching a detector element, median over the rays through the patient: {behind[proj[::100] > 1].median():.0f}")
 system_matrix = CTGen3SystemMatrix(object_meta, proj_meta)
 to_hu = lambda image: io.CT.to_hu(image, proj_meta).cpu().numpy()
+
+# %% 2. Ramp and window
+windows = {'Ram-Lak': 'ram-lak', 'Shepp-Logan': 'shepp-logan', 'Cosine': 'cosine', 'Hamming': 'hamming', 'Hann': 'hann',
+           'Hann, cut-off 0.5': HannFilter(cutoff=0.5)}
 
 # %% 3. Memory, before reconstructing
 fbp = FilteredBackProjection(proj, system_matrix, filter='hann', slice_thickness=1.25)
@@ -97,6 +97,8 @@ for name, window, thickness in [*[(n, w, 1.25) for n, w in windows.items() if n 
     del image
 print(f"{'scanner':24s} liver noise {scanner_hu[liver].std():5.1f} HU; liver mean: scanner {scanner_hu[liver].mean():.1f} HU, "
       f"ours {hu[liver].mean():.1f} HU")
+
+images = [("Scanner's reconstruction", scanner_hu), ('FBP, Hann', hu), ('FBP, Ram-Lak', hu_ramlak)]
 
 valid = scanner_hu > -1500  # inside the scanner's field of view
 blur = lambda a: ndimage.gaussian_filter(np.where(valid, a, -1000.0), [2 / d for d in object_meta.dr])  # 2 mm

@@ -3,12 +3,9 @@
 Reconstruct the same true coincidences as list mode and as sinograms, with normalisation and attenuation.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_pet_introduction.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 from pytomography import datasets
 
 # The tutorial data: downloaded the first time it runs (see Tutorial data in the docs)
@@ -20,7 +17,6 @@ OUTPUT = datasets.output_dir("PET/GATE-mMR-BrainInWater")
 import time
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
 import pytomography
 from pytomography import io
 from pytomography.metadata.PET import PETSinogramPolygonProjMeta

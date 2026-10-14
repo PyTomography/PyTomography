@@ -1,7 +1,8 @@
 # PyTomography example scripts
 
-Plain-Python versions of every tutorial: the code only, without plots or explanations, so you can read
-a whole pipeline at a glance or run it as a script. Each file links to the full tutorial on the docs site.
+Plain-Python versions of every tutorial: the code that computes and saves the results, without the plots,
+what only the plots need, or the explanations, so you can read a whole pipeline at a glance or run it as a
+script. Each file links to the full tutorial on the docs site.
 
 These files are generated from the notebooks in `docs/source/notebooks` by `docs/tools/export_scripts.py`.
 Edit the notebook, then run that script; CI checks the two match.
@@ -23,11 +24,12 @@ docs lists every dataset.
 | [`spect/08_hybrid_monte_carlo_simulated.py`](spect/08_hybrid_monte_carlo_simulated.py) | Monte Carlo scatter estimated inside the reconstruction loop with SIMIND. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_spect_mc.html) |
 | [`spect/09_hybrid_monte_carlo_measured.py`](spect/09_hybrid_monte_carlo_measured.py) | The same hybrid approach on measured data. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_spect_mc2.html) |
 | [`spect/10_ge_starguide.py`](spect/10_ge_starguide.py) | A 12-head CZT system with body-contour sweeps. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_starguide.html) |
-| [`spect/11_ac_225_psf_modelling_simind.py`](spect/11_ac_225_psf_modelling_simind.py) | Alpha-emitter imaging with a Monte Carlo collimator response, including penetration. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_ac225_simind_recon.html) |
-| [`spect/12_ac_225_psf_modelling_dicom.py`](spect/12_ac_225_psf_modelling_dicom.py) | The Ac-225 PSF model applied to measured data. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_ac225_dicom_recon.html) |
-| [`spect/13_cardiac_reorientation.py`](spect/13_cardiac_reorientation.py) | Reconstruct myocardial perfusion data and reorient it to the short axis. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_CardiacReorientation.html) |
-| [`spect/14_reconstruction_algorithms_on_measured_data.py`](spect/14_reconstruction_algorithms_on_measured_data.py) | OSEM, OSMAPOSL, BSREM and KEM on a measured NEMA phantom, compared by sphere contrast, background noise and data fit at every iteration. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_algorithms_measured.html) |
-| [`spect/15_filtered_back_projection_spect.py`](spect/15_filtered_back_projection_spect.py) | Filtered back projection of a Lu-177 NEMA phantom scan, with Chang's attenuation correction, next to OSEM. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_fbp_spect.html) |
+| [`spect/11_psfs_from_angular_response_functions.py`](spect/11_psfs_from_angular_response_functions.py) | The collimator and detector simulated once, the PSF at any distance, and what each camera parameter changes. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_arf_psf.html) |
+| [`spect/12_ac_225_psf_modelling_simind.py`](spect/12_ac_225_psf_modelling_simind.py) | Alpha-emitter imaging with PSFs from Monte Carlo ARFs (spectarf), penetration and collimator scatter included. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_ac225_simind_recon.html) |
+| [`spect/13_ac_225_psf_modelling_dicom.py`](spect/13_ac_225_psf_modelling_dicom.py) | The same ARF PSFs on a measured Symbia T2 scan with a non-circular orbit. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_ac225_dicom_recon.html) |
+| [`spect/14_cardiac_reorientation.py`](spect/14_cardiac_reorientation.py) | Reconstruct myocardial perfusion data and reorient it to the short axis. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_CardiacReorientation.html) |
+| [`spect/15_reconstruction_algorithms_on_measured_data.py`](spect/15_reconstruction_algorithms_on_measured_data.py) | OSEM, OSMAPOSL, BSREM and KEM on a measured NEMA phantom, compared by sphere contrast, background noise and data fit at every iteration. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_algorithms_measured.html) |
+| [`spect/16_filtered_back_projection_spect.py`](spect/16_filtered_back_projection_spect.py) | Filtered back projection of a Lu-177 NEMA phantom scan, with Chang's attenuation correction, next to OSEM. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_fbp_spect.html) |
 
 ## PET
 

@@ -3,12 +3,9 @@
 OSEM, BSREM, OSMAPOSL and KEM side by side on the same data.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_algorithms.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 # %% Algorithms
 from pytomography import datasets
 
@@ -20,7 +17,6 @@ DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_da
 OUTPUT = datasets.output_dir("SPECT/SIMIND-Jaszak")
 
 import os
-import matplotlib.pyplot as plt
 import torch
 import pytomography
 from pytomography import io

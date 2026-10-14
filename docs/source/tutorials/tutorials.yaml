@@ -95,12 +95,20 @@ sections:
     summary: A 12-head CZT system with body-contour sweeps.
     datasets:
     - SPECT/Tc99m-NEMA-Starguide
+  - notebook: t_arf_psf
+    title: PSFs from angular response functions
+    modality: SPECT
+    data: DICOM
+    topic: Physics
+    summary: The collimator and detector simulated once, the PSF at any distance, and what each camera parameter changes.
+    datasets:
+    - SPECT/Ac225-NEMA-SymT2
   - notebook: t_ac225_simind_recon
     title: Ac-225 PSF modelling (SIMIND)
     modality: SPECT
     data: SIMIND
     topic: Physics
-    summary: Alpha-emitter imaging with a Monte Carlo collimator response, including penetration.
+    summary: Alpha-emitter imaging with PSFs from Monte Carlo ARFs (spectarf), penetration and collimator scatter included.
     datasets:
     - SPECT/SIMIND-Jaszak
   - notebook: t_ac225_dicom_recon
@@ -108,7 +116,7 @@ sections:
     modality: SPECT
     data: DICOM
     topic: Physics
-    summary: The Ac-225 PSF model applied to measured data.
+    summary: The same ARF PSFs on a measured Symbia T2 scan with a non-circular orbit.
     datasets:
     - SPECT/Ac225-NEMA-SymT2
   - notebook: t_CardiacReorientation

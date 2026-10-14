@@ -3,12 +3,9 @@
 Build a PyTorch network and use it as the image model inside the reconstruction.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_PETGATE_DIP.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 # %% GATE (Deep Image Prior)
 from pytomography import datasets
 
@@ -30,7 +27,6 @@ from pytomography import io
 from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.transforms.shared import GaussianFilter
 from pytomography.utils import sss
-import matplotlib.pyplot as plt
 import gc
 import numpy as np
 from monai.transforms import ScaleIntensityd, CropForeground, Compose, DivisiblePadd, SpatialCropd, ThresholdIntensityd
@@ -46,7 +42,6 @@ path = DATA / 'PET' / 'GATE-mMR-BrainInWater'
 macro = path / 'mMR_Geometry.mac'  # the scanner, as the simulation's GATE macro describes it
 paths = [path / 'simple_phantom' / f'mMR_voxBrain_withSimplePhantom_{i}.root' for i in range(1, 55)]  # its 54 runs
 
-
 def read_gate(events, tof_meta=None, normalization=None):
     """io.PET.read_gate for one kind of coincidence: (events, object_meta, proj_meta). Reading the 54 ROOT files takes
     a few minutes, so the first run keeps the result in OUTPUT and later runs load it from there."""
@@ -57,7 +52,6 @@ def read_gate(events, tof_meta=None, normalization=None):
         torch.save(io.PET.read_gate(paths, macro, events=events, tof_meta=tof_meta, normalization=normalization,
                                     doi_mm=9), cache)
     return torch.load(cache, weights_only=False)
-
 
 speed_of_light = 0.3 #mm/ps
 fwhm_tof_resolution = 550 * speed_of_light / 2 #ps to position along LOR
@@ -344,8 +338,6 @@ dip_prior = DIPPrior(
     )
 
 dip_prior.fit(recon_lm_tof)
-# the pretrained network's image, the starting point shown on the contrast-noise plot at the end
-pretrained_prediction = dip_prior.prior_object.clone()
 
 dip_prior.n_epochs = 1
 dip_prior.max_iter = 10
@@ -397,17 +389,6 @@ for fwhm in (0, 2, 3, 4, 5, 6):
         gauss.configure(object_meta, proj_meta)
         image = gauss(recon_lm_tof)
     osem_curve.append(contrast_noise(image))
-
-fig, ax = plt.subplots(figsize=(7, 4.5))
-ax.plot([n for c, n in osem_curve], [c for c, n in osem_curve], 'k--o', ms=4, label='OSEM 50x1, Gaussian filter 0-6 mm')
-c, n = contrast_noise(pretrained_prediction)
-ax.plot(n, c, 'ks', label='pretrained network')
-line, = ax.plot(curve_DIP.noise, curve_DIP.contrast, '.-', ms=3, lw=1, label=f'Deep Image Prior, rho = {rho:g}, 100 iterations')
-ax.plot(curve_DIP.noise[-1], curve_DIP.contrast[-1], 'o', color=line.get_color(), ms=6)
-ax.set_xlabel('noise in white matter (standard deviation / mean)')
-ax.set_ylabel('grey / white matter contrast')
-ax.grid(alpha=0.3)
-ax.legend(fontsize=8)
 
 # %% Save the images
 for name, image in [('deep_image_prior', recon_DIP), ('osem', recon_lm_tof)]:

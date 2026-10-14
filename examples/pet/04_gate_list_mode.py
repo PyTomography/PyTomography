@@ -3,13 +3,10 @@
 List-mode reconstruction with scatter and randoms correction.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_PETGATE_scat_lm.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
 from __future__ import annotations
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 # %% GATE (Listmode Reconstruction; Without Time of Flight)
 from pytomography import datasets
 
@@ -29,7 +26,6 @@ from pytomography.algorithms import OSEM
 from pytomography import io
 from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.transforms.shared import GaussianFilter
-import matplotlib.pyplot as plt
 from pytomography.utils import sss
 import gc
 
@@ -45,7 +41,6 @@ path = DATA / 'PET' / 'GATE-mMR-BrainInWater'
 macro = path / 'mMR_Geometry.mac'  # the scanner, as the simulation's GATE macro describes it
 paths = [path / 'simple_phantom' / f'mMR_voxBrain_withSimplePhantom_{i}.root' for i in range(1, 55)]  # its 54 runs
 
-
 def read_gate(events, tof_meta=None, normalization=None):
     """io.PET.read_gate for one kind of coincidence: (events, object_meta, proj_meta). Reading the 54 ROOT files takes
     a few minutes, so the first run keeps the result in OUTPUT and later runs load it from there."""
@@ -57,13 +52,10 @@ def read_gate(events, tof_meta=None, normalization=None):
                                     doi_mm=9), cache)
     return torch.load(cache, weights_only=False)
 
-
 # The true coincidences (used from "Primary-Only Reconstruction" on), with the normalization weights of every crystal
 # pair (below). proj_meta.info describes the scanner
 detector_ids, object_meta, proj_meta = read_gate('trues', normalization=path / 'normalization_weights.npy')
 info = proj_meta.info
-
-info
 
 # %% Normalization Correction
 # The weights come with the dataset. They were computed from the calibration scan (36 ROOT files, 46 GB, in
@@ -94,8 +86,6 @@ likelihood = PoissonLogLikelihood(
 # Initialize reconstruction algorithm
 recon_algorithm = OSEM(likelihood)
 print(recon_algorithm.estimate_memory(n_subsets=14)) # its peak RAM and GPU memory, before it runs
-# Reconstruct
-recon_primaryonly = recon_algorithm(n_iters=4, n_subsets=14)
 
 # %% Reconstructing With Random/Scatter Estimation
 # The primary-only reconstruction is done: free its events and system matrix (and PyTorch's GPU cache) before loading all the events

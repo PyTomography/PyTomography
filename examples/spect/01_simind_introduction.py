@@ -3,12 +3,9 @@
 A complete OSEM pipeline on Monte Carlo data, from projections to a reconstructed image.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_siminddata.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 from pytomography import datasets
 
 # The tutorial data: downloaded the first time it runs (see Tutorial data in the docs)
@@ -17,7 +14,6 @@ DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_da
 # Results go here, never into the data folder
 OUTPUT = datasets.output_dir("SPECT/SIMIND-Jaszak")
 
-import matplotlib.pyplot as plt
 import torch
 from pytomography import io
 from pytomography.projectors.SPECT import SPECTSystemMatrix
@@ -39,12 +35,7 @@ projections, object_meta, proj_meta = io.SPECT.read_simind([photopeak_path, lowe
 for name, window in zip(['photopeak', 'lower', 'upper'], proj_meta.energy_windows):
     print(f'{name:9s} window: {window.lower_keV:.1f}-{window.upper_keV:.1f} keV')
 
-object_meta
-
-proj_meta
-
 photopeak = projections[0]
-photopeak.shape
 
 activity = 1000 # MBq 
 time_per_proj = 15 # s

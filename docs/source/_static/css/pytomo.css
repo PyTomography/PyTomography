@@ -226,3 +226,10 @@ section#pytomography > h1 {
 .pt-dataset dd { margin: 0; color: var(--pt-ink-2); overflow-wrap: anywhere; }
 @media (max-width: 600px) { .pt-dataset dl { grid-template-columns: 1fr; gap: 0; } .pt-dataset dd { margin-bottom: 8px; } }
 .pt-launch .pt-badge code { font-size: 0.78rem; background: none; border: 0; padding: 0; }
+
+/* SPECT parameters page: a filter above the collimator table, compact numeric tables */
+.pt-par-lede { font-size: 1.05rem; color: var(--pt-ink-2); max-width: 60rem; }
+.pt-par-filter { width: min(100%, 26rem); margin: 4px 0 12px; padding: 7px 10px; border: 1px solid var(--pt-line); border-radius: 6px; background: var(--pt-surface); color: inherit; font: inherit; }
+.pt-spect-parameters table { font-size: 0.86rem; }
+.pt-spect-parameters td, .pt-spect-parameters th { padding: 4px 10px; border-bottom: 1px solid var(--pt-line); }
+.pt-spect-parameters td:nth-child(n+5) { font-variant-numeric: tabular-nums; }

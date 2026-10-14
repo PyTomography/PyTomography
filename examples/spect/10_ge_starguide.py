@@ -3,12 +3,9 @@
 A 12-head CZT system with body-contour sweeps.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_starguide.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 # %% StarGuide Reconstruction
 from pytomography import datasets
 
@@ -19,7 +16,6 @@ DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_da
 OUTPUT = datasets.output_dir("SPECT/Tc99m-NEMA-Starguide")
 
 import pydicom
-import matplotlib.pyplot as plt
 import os
 from pytomography import io
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
@@ -66,8 +62,6 @@ likelihood = PoissonLogLikelihood(system_matrix, photopeak, additive_term=scatte
 reconstruction_algorithm = OSEM(likelihood)
 print(reconstruction_algorithm.estimate_memory(n_subsets=10))
 recon_pytomography = reconstruction_algorithm(n_iters=10, n_subsets=10)
-
-recon_vendor = io.load_image(os.path.join(PATH, 'Tc99m-NEMA-Starguide', 'vendor_recon', 'i196884.NMDC.1')).on(object_meta)
 
 # %% Save the images
 saved = io.save_dicom(recon_pytomography, OUTPUT / 't_starguide' / 'osem', object_meta,

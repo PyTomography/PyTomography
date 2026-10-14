@@ -1,14 +1,11 @@
 """Ac-225 PSF modelling (SIMIND)
 
-Alpha-emitter imaging with a Monte Carlo collimator response, including penetration.
+Alpha-emitter imaging with PSFs from Monte Carlo ARFs (spectarf), penetration and collimator scatter included.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_ac225_simind_recon.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 # %% Ac-225 Advanced PSF Modeling (SIMIND)
 from pytomography import datasets
 
@@ -19,17 +16,14 @@ DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_da
 OUTPUT = datasets.output_dir("SPECT/SIMIND-Jaszak")
 
 import os
-import json
-import torch
-import pytomography
 from pytomography import io
 from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.transforms.SPECT  import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.algorithms import OSEM
 from pytomography.likelihoods import PoissonLogLikelihood
-from spectpsftoolbox.kernel1d import ArbitraryKernel1D, FunctionKernel1D
-from spectpsftoolbox.operator2d import GaussianOperator, Rotate1DConvOperator, RotateSeperable2DConvOperator
-import matplotlib.pyplot as plt
+from spectarf import Collimator, DetectorStack, DetectorResponse, EnergyResolution
+from spectarf.pytomography import generate_arfs, psf_transform
+from spectarf.response import FWHM_TO_SIGMA
 
 # change to where you saved the data
 PATH = DATA / 'SPECT' / 'SIMIND-Jaszak'
@@ -75,44 +69,32 @@ def perform_reconstruction(psf_transform):
     print(algorithm.estimate_memory(n_subsets=4))
     return algorithm(n_iters=50, n_subsets=4)
 
-with open(os.path.join(PATH, 'ac225_psf_model.json')) as f:
-    fit = {k: torch.tensor(v) if isinstance(v, list) else v for k, v in json.load(f).items()}
-two_exponentials = lambda a, b: b[0] * torch.exp(-a * b[1]) + b[2] * torch.exp(-a * b[3])
-width = lambda a, b: b[0] + b[1] * (torch.sqrt(a**2 + b[2]**2) - torch.abs(b[2]))
-tail_width = lambda a, b: 1 + b[0] * (torch.sqrt((a - fit['tail_sigma_a_min'])**2 + b[1]**2) - torch.abs(b[1]))
-gaussian = GaussianOperator(two_exponentials, width, fit['gaussian_amplitude'], fit['gaussian_sigma'])
-tails = Rotate1DConvOperator(
-    ArbitraryKernel1D(fit['tail_kernel'], two_exponentials, tail_width, fit['tail_amplitude'], fit['tail_sigma'],
-                      fit['tail_kernel_spacing'], grid_sample_mode='bicubic'),
-    N_angles=3, additive=True, rot=90)
-background = RotateSeperable2DConvOperator(
-    FunctionKernel1D(lambda x: torch.exp(-torch.abs(x)), two_exponentials, width, fit['background_amplitude'],
-                     fit['background_sigma'], a_min=fit['background_a_min'], a_max=fit['background_a_max']),
-    N_angles=1, additive=False)
-psf_operator = (tails + background) * gaussian + gaussian
-psf_operator.set_device(pytomography.device)
+# %% The camera
+collimator = io.SPECT.collimator('SY-HE')            # the Symbia high energy collimator
+detector = io.SPECT.detector('NaI-9.5mm')            # 3/8 inch NaI(Tl), its cover and backscatter
+camera = io.SPECT.camera('Siemens Symbia T')          # its energy resolution model
+# Or every value explicitly:
+# collimator = dict(hole_diameter_mm=4.0, septal_thickness_mm=2.0, hole_length_mm=59.7, hole_shape='hex', rotated=True, material='lead')
+# detector = dict(crystal_mm=9.525, crystal_material='nai', cover_mm=1.0, cover_material='aluminium',
+#                 backscatter_mm=100.0, backscatter_material='pmt')
+stack = DetectorStack(Collimator(**collimator), **detector)
+# SIMIND adds its own 3.6 mm Gaussian (FWHM at 140 keV) on top of its transport
+response = DetectorResponse(EnergyResolution.geb(**camera['energy_resolution']), intrinsic_fwhm_mm_140=3.6,
+                            residual_sigma_mm_140=3.6 * FWHM_TO_SIGMA)
 
-class OperatorInCm:
-    """The fitted model takes lengths in cm, SPECTPSFToolbox's unit when it was fitted; PyTomography's are mm. This
-    passes the PSF transform's coordinates and distances to the model in cm (the kernel is normalised, so nothing else
-    changes)."""
-    def __init__(self, operator):
-        self.operator = operator
-    def __call__(self, input, xv, yv, distances, normalize=False):
-        return self.operator(input, xv / 10, yv / 10, distances / 10, normalize=normalize)
+# %% The ARFs
+arfs = generate_arfs(stack, response, proj_meta, peak=idx_peak)
 
-psf_transform = SPECTPSFTransform(psf_operator=OperatorInCm(psf_operator))
-recon_1Dfit = perform_reconstruction(psf_transform)
+# %% Reconstruct
+psf_transform_arf = psf_transform(arfs, normalize=True)
+recon_arf = perform_reconstruction(psf_transform_arf)
 
 path_bi213_prim = files_NM[1][1]
 psf_meta = io.SPECT.simind_psf(path_bi213_prim)
 psf_transform = SPECTPSFTransform(psf_meta)
 reconbad = perform_reconstruction(psf_transform)
 
-recons = [reconbad, recon_1Dfit]
-titles = ['Gaussian PSF', 'Full PSF']
-
 # %% Save the images
-for name, image in [('full_psf', recon_1Dfit), ('gaussian_psf', reconbad)]:
+for name, image in [('arf_psf', recon_arf), ('gaussian_psf', reconbad)]:
     io.save_dicom(image, OUTPUT / 't_ac225_simind_recon' / name, object_meta, units='counts',
                   series_description=f'OSEM 50x4, {name}', overwrite=True)

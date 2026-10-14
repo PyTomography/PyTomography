@@ -3,12 +3,9 @@
 OSEM, OSMAPOSL, BSREM and KEM on a measured NEMA phantom, compared by sphere contrast, background noise and data fit at every iteration.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_algorithms_measured.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 from pytomography import datasets
 
 # The tutorial data: downloaded the first time it runs (see Tutorial data in the docs)
@@ -20,7 +17,6 @@ OUTPUT = datasets.output_dir("SPECT/Lu177-NEMA-SymT2")
 import time
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
 import pytomography
 from pytomography import io
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
@@ -139,6 +135,10 @@ times['KEM'] = time.time() - t0
 for name, t in times.items():
     print(f"{name:12s} {t:5.1f} s")
 
+# %% 5. Convergence
+scanner_contrast, scanner_noise = contrast_and_noise(recon_scanner)
+iterations = np.arange(1, n_iters + 1)
+
 # %% 6. Contrast against noise
 final = {name: (r.contrast[-1], r.noise[-1]) for name, r in results.items()}
 final['OSEM + 10 mm filter'] = (results['OSEM'].contrast_filtered[-1], results['OSEM'].noise_filtered[-1])
@@ -162,6 +162,9 @@ print(f"contrast at that noise   " + "  ".join(f"{name:>6s}" for name in list(sp
 for name, (noise, contrast) in curves.items():
     print(f"{name:22s} " + "  ".join(f"{c:6.2f}" for c in at_noise(noise, contrast, scanner_noise)[:5]))
 print(f"{'scanner':22s} " + "  ".join(f"{c:6.2f}" for c in scanner_contrast[:5]))
+
+# %% 7. The images
+beta_shown = 0.1
 
 # %% Save the images
 for name, image in [('OSEM', recon_osem), ('OSEM_filtered', recon_osem_filtered), ('OSMAPOSL', recon_osmaposl),

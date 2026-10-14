@@ -3,12 +3,9 @@
 Voxel and region uncertainty that comes out of the reconstruction itself.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_uncertainty_spect.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 from pytomography import datasets
 
 # The tutorial data: downloaded the first time it runs (see Tutorial data in the docs)
@@ -23,7 +20,6 @@ from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTra
 from pytomography.algorithms import OSEM, PGAAMultiBedSPECT
 from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.likelihoods import PoissonLogLikelihood
-import matplotlib.pyplot as plt
 import torch
 from rt_utils import RTStructBuilder
 from pytomography.callbacks import DataStorageCallback
@@ -58,8 +54,6 @@ data_storage_callback = DataStorageCallback(likelihood, torch.clone(recon_algori
 print(recon_algorithm.estimate_memory(n_subsets=8))
 recon_OSEM = recon_algorithm(n_iters = 4, n_subsets = 8, callback=data_storage_callback)
 
-maximum_intensity_projection = recon_OSEM.max(axis=1)[0].cpu()
-
 file_RT = os.path.join(save_path, 'Lu177-PSMA-GEDisc', 'segmentations.dcm')
 rtstruct = RTStructBuilder.create_from(
         dicom_series_path=path_CT, 
@@ -87,7 +81,6 @@ path_CT = os.path.join(save_path, 'Lu177-PSMA-GEDisc', 'CT')
 files_CT = [os.path.join(path_CT, file) for file in os.listdir(path_CT)]
 
 beds = io.SPECT.read_dicom_beds(files_NM)  # (projections, object_meta, proj_meta) of each bed, the inferior bed first
-
 
 def initialize_reconstruction_algorithm_singlebed(projections, object_meta, proj_meta):
     # Change these depending on your file:

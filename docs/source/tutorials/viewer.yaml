@@ -139,16 +139,16 @@ tutorials:
 
   t_ac225_simind_recon:
     title: Ac-225 Jaszczak phantom (SIMIND)
-    description: The full PSF model, with penetration and scatter in the collimator, next to a Gaussian PSF
+    description: spectarf's PSF, with penetration and scatter in the collimator, next to a Gaussian PSF
     credit: Monte Carlo data simulated with SIMIND (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
     layers:
     - {name: Attenuation, kind: mu, array: amap, affine: object_meta.affine, units: 1/mm}
-    - {name: Full PSF, kind: spect, array: recon_1Dfit, affine: object_meta.affine, units: counts}
+    - {name: ARF PSF, label: spectarf PSF, kind: spect, array: recon_arf, affine: object_meta.affine, units: counts}
     - {name: Gaussian PSF, kind: spect, array: reconbad, affine: object_meta.affine, units: counts}
 
   t_ac225_dicom_recon:
     title: Ac-225 NEMA phantom
-    description: The full PSF model on a measured scan, smoothed with a 20 mm Gaussian, and unsmoothed
+    description: spectarf's PSF on a measured scan, smoothed with a 20 mm Gaussian, and unsmoothed
     credit: Siemens Symbia T2 scan of a NEMA IQ phantom (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
     layers:
     - {name: CT, kind: ct, image: ct, window: phantom, units: HU}

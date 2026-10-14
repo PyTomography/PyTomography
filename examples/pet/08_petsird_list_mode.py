@@ -3,12 +3,9 @@
 A Siemens Biograph mMR scan in ETSI's open PETSIRD format, reconstructed without and with scatter correction.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_PETSIRD.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 # %% PETSIRD list mode: a Siemens Biograph mMR scan
 from pytomography import datasets
 
@@ -21,7 +18,6 @@ OUTPUT = datasets.output_dir("PET/PETSIRD-mMR-NEMA")
 import time
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
 import pytomography
 from pytomography import io
 from pytomography.metadata import ObjectMeta
@@ -72,7 +68,6 @@ print(f"{n_events:,} prompts cross the image")
 # The scan's attenuation map (Siemens Interfile, 1/cm) on the grid, in 1/mm
 folder = DATA / 'PET' / 'PETSIRD-mMR-NEMA'
 attenuation_map = io.attenuation_map(folder / '20170809_NEMA_MUMAP_UCL.v.hdr', object_meta)
-mu_map = attenuation_map.cpu().numpy()  # for the figures
 
 # %% 3. The system matrix and the randoms
 t0 = time.time()
@@ -102,15 +97,8 @@ print(f"OSEM without scatter correction: {seconds_without:.1f} s")
 
 # The phantom and its largest sphere, through whose centre the figures look
 regions = io.load_mask(folder / 'petsird_mmr_nema_rois.seg.nrrd')
-body = regions.on(object_meta, label='phantom', threshold=0.5).cpu().numpy()
 sphere = regions.on(object_meta, label='sphere_37mm', threshold=0.5).cpu().numpy()
 i, j, k = np.argwhere(sphere).mean(axis=0).round().astype(int)
-dx, dy, dz = object_meta.dr
-# The phantom's extent with a margin, for the figures
-xs, ys, zs = np.nonzero(body)
-x0, x1 = max(xs.min() - 4, 0), min(xs.max() + 5, body.shape[0])
-y0, y1 = max(ys.min() - 4, 0), min(ys.max() + 5, body.shape[1])
-z0, z1 = max(zs.min() - 3, 0), min(zs.max() + 4, body.shape[2])
 print(f"centre of the 37 mm sphere: voxel ({i}, {j}, {k})")
 
 # %% 5. Scatter correction
@@ -142,11 +130,9 @@ background = regions.on(object_meta, label='background', threshold=0.5).cpu().nu
 rings = {10 * int(name.removeprefix('ring_')) + 5: regions.on(object_meta, label=name, threshold=0.5).cpu().numpy()
          for name in regions.labels if name.startswith('ring_')}
 
-
 def radial_profile(img):
     # mean of each ring, relative to the mean of the whole background
     return np.array(list(rings)), np.array([img[ring].mean() / img[background].mean() for ring in rings.values()])
-
 
 images = {'without': recon_without_scatter.cpu().numpy(), 'with': recon_with_scatter.cpu().numpy()}
 profiles = {name: radial_profile(img) for name, img in images.items()}

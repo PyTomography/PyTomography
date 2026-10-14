@@ -3,12 +3,9 @@
 The same hybrid approach on measured data.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_spect_mc2.html
-It keeps the computation and leaves out the plots and explanations.
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
 Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
 """
-import matplotlib
-matplotlib.use("Agg")  # no figure windows when run as a script
-
 # %% Hybrid-MC: DICOM Data
 from pytomography import datasets
 
@@ -19,7 +16,6 @@ DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_da
 OUTPUT = datasets.output_dir("SPECT/Lu177-NEMA-SymT2")
 
 import os
-import matplotlib.pyplot as plt
 import torch
 import pytomography
 from pytomography import io
@@ -51,7 +47,6 @@ psf_meta = io.SPECT.collimator_psf(
 psf_transform = SPECTPSFTransform(psf_meta)
 
 energy_window_params = simind_mc.get_energy_window_params_dicom(file_NM) 
-energy_window_params
 
 isotope_names = ['lu177'] # isotope we want to simulate
 isotope_ratios = [1] # ratio of isotopes (in this case only 1)
