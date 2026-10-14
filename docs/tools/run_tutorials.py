@@ -4,6 +4,7 @@
     python docs/tools/run_tutorials.py --only t_dicomdata,t_siminddata
     python docs/tools/run_tutorials.py --section SPECT --write-back
     python docs/tools/run_tutorials.py --write-back-from docs/build/tutorial_runs/20261007-091700
+    python docs/tools/run_tutorials.py --only t_dicomdata --validate-dicom
 
 Notebooks are executed into a run folder (docs/build/tutorial_runs/<timestamp>/), never in place.
 Each run records pass/fail, the failing cell and error, wall time, peak GPU memory and the versions
@@ -15,6 +16,16 @@ running anything, and skips any notebook whose cells have been edited since that
 After each tutorial listed in docs/source/tutorials/viewer.yaml, one more cell in the same kernel exports its images
 for the docs' 3D viewer into <run>/viewer/<tutorial>/ (docs/tools/viewer_export.py; --no-viewer skips it). A failed
 export is reported, and never fails the tutorial; the cell is not written back.
+
+DICOM: the tutorials end by saving their reconstructions with pytomography.io.save_dicom. With --validate-dicom, the
+.dcm files a tutorial that passed wrote in this run (under the output folder or its working folder, modified since it
+started) are checked against the DICOM standard with dicom-validator's validate_iods
+(https://github.com/pydicom/dicom-validator; `pip install dicom-validator`, ideally in an environment of its own; its
+first run downloads the standard). Any error reported marks the tutorial "DICOM invalid", except the two that NM files
+carry on purpose: Rescale Slope and Rescale Intercept, which the NM IOD doesn't list but GDCM (3D Slicer, SimpleITK) and
+pydicom need to read the values (see pytomography.io.save_dicom). validate_iods is taken from
+$PYTOMOGRAPHY_DICOM_VALIDATOR, else from PATH, else from a venv in <temp>/dv. The report gives each tutorial's DICOM
+files, their size and the first errors.
 
 The kernel runs with:
   --python       the interpreter that has PyTomography and its dependencies
@@ -45,7 +56,10 @@ import argparse
 import datetime as dt
 import json
 import os
+import shutil
+import subprocess
 import sys
+import tempfile
 import threading
 import time
 from pathlib import Path
@@ -190,6 +204,92 @@ class MemoryWatchdog(threading.Thread):
         self._done.set()
 
 
+# ---------- the DICOM check (--validate-dicom) ----------
+
+NM_SOP_CLASS = "1.2.840.10008.5.1.4.1.1.20"
+# What validate_iods says about the rescale tags save_dicom writes in NM files on purpose; nothing else is let through
+NM_ALLOWED = {"Tag (0028,1052) (Rescale Intercept) is unexpected", "Tag (0028,1053) (Rescale Slope) is unexpected"}
+# validate_iods's messages for a file it could not validate at all
+VALIDATOR_FAILURES = ("Missing SOP Class UID", "Unknown or retired SOP Class UID", "Not a DICOM File", "Missing DICOM File")
+
+
+def find_dicom_validator() -> str | None:
+    """dicom-validator's validate_iods: $PYTOMOGRAPHY_DICOM_VALIDATOR, else on PATH, else in a venv in <temp>/dv."""
+    venv = Path(tempfile.gettempdir()) / "dv" / ("Scripts/validate_iods.exe" if os.name == "nt" else "bin/validate_iods")
+    for candidate in (os.environ.get("PYTOMOGRAPHY_DICOM_VALIDATOR"), shutil.which("validate_iods"), str(venv)):
+        if candidate and Path(candidate).is_file():
+            return candidate
+    return None
+
+
+def new_dicom_files(folders, since: float) -> list:
+    """The .dcm files under these folders written (modified) at or after `since`."""
+    found = set()
+    for folder in folders:
+        if folder and Path(folder).is_dir():
+            found.update(p for p in Path(folder).rglob("*.dcm") if p.stat().st_mtime >= since)
+    return sorted(found)
+
+
+def parse_validator_output(text: str) -> tuple:
+    """validate_iods's report as (errors, allowed): one "file: message" per error, and how many of the allowed NM
+    messages there were. Its report has, for each file, "Validating DICOM file <path>", "SOP class is "<uid>" (...)",
+    then one "Tag (gggg,eeee) (name) is ..." line per error, under a "Module ..." heading."""
+    errors, allowed, current, nm = [], 0, "?", False
+    for line in text.splitlines():
+        s = line.strip()
+        if s.startswith("Validating DICOM file "):
+            current, nm = Path(s[len("Validating DICOM file "):]).name, False
+        elif s.startswith("SOP class is "):
+            nm = f'"{NM_SOP_CLASS}"' in s
+        elif s.startswith(VALIDATOR_FAILURES):          # these name their file themselves
+            errors.append(s)
+        elif s.startswith("Tag "):
+            if nm and s in NM_ALLOWED:
+                allowed += 1
+            else:
+                errors.append(f"{current}: {s}")
+    return errors, allowed
+
+
+def validate_dicom(validator: str, files: list, timeout: int = 1800) -> dict:
+    """Check the files with validate_iods, a few hundred at a time (Windows limits a command line to 32767 characters).
+    Returns the number of files, their size, the errors (file: message) and how many allowed NM messages there were."""
+    out = {"files": len(files), "bytes": sum(f.stat().st_size for f in files), "errors": [], "allowed": 0}
+    batch, length = [], 0
+    batches = []
+    for f in map(str, files):
+        if batch and length + len(f) + 3 > 24000:
+            batches.append(batch)
+            batch, length = [], 0
+        batch.append(f)
+        length += len(f) + 3
+    if batch:
+        batches.append(batch)
+    for batch in batches:
+        try:
+            proc = subprocess.run([validator, *batch], capture_output=True, text=True, timeout=timeout)
+        except (OSError, subprocess.TimeoutExpired) as e:
+            out["errors"].append(f"validate_iods did not run: {e}")
+            break
+        if "Validating DICOM file" not in proc.stdout:   # e.g. it could not get the DICOM standard
+            tail = (proc.stdout + proc.stderr).strip().splitlines()[-3:]
+            out["errors"].append("validate_iods failed: " + " / ".join(tail))
+            break
+        errors, allowed = parse_validator_output(proc.stdout)
+        out["errors"] += errors
+        out["allowed"] += allowed
+    return out
+
+
+def dicom_summary(d: dict) -> str:
+    if not d.get("files"):
+        return "no DICOM files"
+    text = f"{d['files']} files, {d['bytes'] / 1e6:.1f} MB, "
+    n = d.get("error_count", len(d["errors"]))
+    return text + ("valid" if not n else f"{n} errors, e.g. {d['errors'][0]}")
+
+
 def kernel_dir(run_dir: Path, python: str, path_prefix: str, env: dict) -> Path:
     """A private kernelspec so the run never depends on the user's installed kernels."""
     kdir = run_dir / "jupyter" / "kernels" / "pytomography-run"
@@ -203,7 +303,8 @@ def kernel_dir(run_dir: Path, python: str, path_prefix: str, env: dict) -> Path:
 
 
 def run_one(name: str, run_dir: Path, timeout: int, min_free_gb: float, max_kernel_gb: float,
-            viewer_spec: dict | None = None, ram_cap_gb: float = 0) -> dict:
+            viewer_spec: dict | None = None, ram_cap_gb: float = 0, dicom_validator: str | None = None,
+            output_dir: Path | None = None) -> dict:
     result = {"notebook": name, "status": "passed", "cell": None, "error": None, "date": dt.date.today().isoformat(),
               "wall_time_s": 0.0}
     free = free_memory_gb()
@@ -251,6 +352,13 @@ def run_one(name: str, run_dir: Path, timeout: int, min_free_gb: float, max_kern
                 result["viewer"] = json.loads(text.split(viewer_export.MARKER, 1)[1].strip().splitlines()[0])
                 result["wall_time_s"] = round(result["wall_time_s"] - result["viewer"].get("seconds", 0), 1)
     nbformat.write(nb, run_dir / f"{name}.ipynb")
+    # The DICOM files this tutorial wrote (tutorials run one at a time, so those modified since it started)
+    if dicom_validator and result["status"] == "passed":
+        d = validate_dicom(dicom_validator, new_dicom_files([output_dir, cwd], since=t0 - 1))
+        d["error_count"], d["errors"] = len(d["errors"]), d["errors"][:20]   # the first 20 in the report
+        result["dicom"] = d
+        if d["error_count"]:
+            result.update(status="DICOM invalid", error=dicom_summary(d))
     return result
 
 
@@ -300,6 +408,9 @@ def main() -> int:
                     help="the tutorials' RAM cap: a notebook using more is stopped and reported (default 25; 0 turns it off)")
     ap.add_argument("--no-viewer", action="store_true",
                     help="don't export the 3D viewer's images (by default, tutorials in viewer.yaml export them into RUN_DIR/viewer)")
+    ap.add_argument("--validate-dicom", action="store_true",
+                    help="check the DICOM files each passing tutorial writes with dicom-validator (validate_iods), and "
+                         "report the tutorial \"DICOM invalid\" on any error but the NM rescale tags")
     args = ap.parse_args()
 
     sections = yaml.safe_load(open(SRCDIR / "tutorials" / "tutorials.yaml", encoding="utf8"))["sections"]
@@ -318,6 +429,13 @@ def main() -> int:
 
     if "PYTOMOGRAPHY_DATA" not in os.environ:
         sys.exit("Set PYTOMOGRAPHY_DATA to the tutorial data folder first.")
+    validator = None
+    if args.validate_dicom:
+        validator = find_dicom_validator()
+        if validator is None:
+            sys.exit("--validate-dicom needs dicom-validator: `pip install dicom-validator` (ideally in an environment of "
+                     "its own), then put its validate_iods on PATH or set PYTOMOGRAPHY_DICOM_VALIDATOR to it.")
+        print(f"DICOM files are checked with {validator}", flush=True)
 
     # Absolute, and short: DICOM outputs are named by UID, and Windows limits paths to 260 characters
     default_root = Path(os.environ.get("PYTOMOGRAPHY_TUTORIAL_RUNS", SRCDIR.parent / "build" / "tutorial_runs"))
@@ -345,22 +463,28 @@ def main() -> int:
     results = []
     for name in names:
         print(f"running {name} ...", flush=True)
-        r = run_one(name, run_dir, args.timeout, args.min_free_gb, args.max_kernel_gb, viewer_specs.get(name), args.ram_cap_gb)
+        r = run_one(name, run_dir, args.timeout, args.min_free_gb, args.max_kernel_gb, viewer_specs.get(name), args.ram_cap_gb,
+                    dicom_validator=validator, output_dir=Path(env["PYTOMOGRAPHY_OUTPUT"]))
         results.append(r)
-        print(f"  {r['status']} in {r['wall_time_s']} s" + (f" (cell {r['cell']}: {r['error']})" if r["error"] else ""), flush=True)
+        where = f"cell {r['cell']}: " if r["cell"] is not None else ""
+        print(f"  {r['status']} in {r['wall_time_s']} s" + (f" ({where}{r['error']})" if r["error"] else ""), flush=True)
         if "viewer" in r:
             v = r["viewer"]
             print(f"  viewer: {v['status']}" + (f", {v['bytes'] / 1e6:.1f} MB in {v['folder']}" if "bytes" in v else f": {v.get('error')}"), flush=True)
+        if "dicom" in r:
+            print(f"  DICOM: {dicom_summary(r['dicom'])}", flush=True)
         if args.write_back and r["status"] == "passed":
             write_back(name, run_dir, r)
 
     (run_dir / "report.json").write_text(json.dumps(results, indent=1), encoding="utf8")
-    lines = ["| Tutorial | Status | Time (s) | Peak GPU (GB) | Peak RAM (GB) | Error |", "|---|---|---|---|---|---|"]
+    lines = ["| Tutorial | Status | Time (s) | Peak GPU (GB) | Peak RAM (GB) | Error |" + (" DICOM |" if validator else ""),
+             "|---|---|---|---|---|---|" + ("---|" if validator else "")]
     for r in results:
         err = (f"cell {r['cell']}: " if r["cell"] is not None else "") + (r["error"] or "")
         info = r.get("info", {})
+        dicom = (f" {dicom_summary(r['dicom']).replace('|', '/')} |" if "dicom" in r else " |") if validator else ""
         lines.append(f"| {r['notebook']} | {r['status']} | {r['wall_time_s']} | {info.get('peak_gpu_gb', '')} | "
-                     f"{info.get('peak_ram_gb') or r.get('peak_kernel_gb', '')} | {err.replace('|', '/')} |")
+                     f"{info.get('peak_ram_gb') or r.get('peak_kernel_gb', '')} | {err.replace('|', '/')} |" + dicom)
     (run_dir / "report.md").write_text("\n".join(lines) + "\n", encoding="utf8")
     print("\n".join(lines))
     print(f"\nExecuted notebooks and report: {run_dir}")

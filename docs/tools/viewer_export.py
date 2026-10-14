@@ -219,6 +219,16 @@ def _inside(over: dict, base: dict | None):
     return mask if mask.any() else None
 
 
+def _range_end(v, L) -> float:
+    """One end of a layer's range in viewer.yaml: a number, or "p99.9" for that percentile of the image's voxels (those
+    inside the anatomy when there is one). A percentile isn't set by a few hot voxels at the edge of the field of view,
+    which matters for an image with no anatomy image to bound it."""
+    if isinstance(v, str) and v.strip().lower().startswith("p"):
+        arr = L["arr"][L["inside"]] if L.get("inside") is not None else L["arr"]
+        return float(np.percentile(arr, float(v.strip()[1:])))
+    return float(v)
+
+
 def _density(arr, kind):
     return np.maximum(0, (arr + 1000) / 1000) if kind == "ct" else np.maximum(0, arr / max(float(arr.max()), 1e-12))
 
@@ -458,7 +468,7 @@ def _write(name: str, out_dir, spec: dict, raw: list, t0: float) -> dict:
         mn, mx = float(arr.min()), float(arr.max())
         hot = group_hot[L["group"]] if L["group"] else L["hot"]
         if ls.get("range"):
-            rng = [float(v) for v in ls["range"]]
+            rng = [_range_end(v, L) for v in ls["range"]]
         elif L["role"] == "overlay" or L["kind"] == "mu":  # absolute: 0 to the hottest voxel (inside the anatomy)
             rng = [0.0, hot]
         elif L["kind"] == "mr":

@@ -171,3 +171,9 @@ plt.xlim(-200,220)
 plt.ylim(200,-100)
 plt.axis('off')
 plt.text(0.03, 0.97, 'Axial', color='white', fontsize=15, fontweight='bold', transform=plt.gca().transAxes, ha='left', va='top')
+
+# %% Save the images
+from pytomography.io import save_dicom
+
+saved = save_dicom(SPECT, OUTPUT / 't_plotting' / 'spect', affine=affine_SPECT, modality='NM', reference=file_SPECT,
+                   series_description='Stitched OSEM', overwrite=True)

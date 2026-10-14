@@ -94,15 +94,8 @@ idx_z = 61
 slice_pytomography = reconstructed_object.cpu()[:,:,idx_z].T
 slice_vendor = recon_vendor[:,:,idx_z].T
 
-# %% Saving Data
-# Paths are set in the data cell at the top of this tutorial
-save_path = OUTPUT / 'Pytomo-Recon'
-# Code only works if folder doesnt exist, so delete it if present
-if os.path.exists(save_path) and os.path.isdir(save_path):
-    shutil.rmtree(save_path)
-# Save
-dicom.save_dcm(
-    save_path = save_path,
-    object = reconstructed_object,
-    file_NM = file_NM,
-    recon_name = 'OSEM_4it_8ss')
+# %% Save the images
+from pytomography.io import save_dicom
+
+saved = save_dicom(reconstructed_object, OUTPUT / 't_dicomdata' / 'osem', object_meta, reference=file_NM,
+                   series_description='OSEM 4x8', overwrite=True)

@@ -76,3 +76,9 @@ recon_OSEM = recon_algorithm(n_iters=2, n_subsets=34)
 prior = RelativeDifferencePrior(beta=25, gamma=2)
 recon_algorithm = BSREM(likelihood, prior=prior)
 recon_BSREM = recon_algorithm(n_iters=20, n_subsets=34)
+
+# %% Save the images
+from pytomography.io import save_dicom
+
+for name, image in [('osem', recon_OSEM), ('bsrem', recon_BSREM)]:
+    save_dicom(image, OUTPUT / 't_GE_HDF5' / name, object_meta, series_description=name.upper(), overwrite=True)

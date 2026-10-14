@@ -34,7 +34,10 @@ from pytomography.callbacks import Callback
 
 # %% 1. A noisy acquisition
 path = DATA / 'SPECT' / 'SIMIND-Jaszak' / 'lu177_SYME_jaszak'
-windows = {'photopeak': path / 'tot_w4.h00', 'lower': path / 'tot_w5.h00', 'upper': path / 'tot_w6.h00'}
+windows = {'photopeak': path / 'tot_w1.h00', 'lower': path / 'tot_w2.h00', 'upper': path / 'tot_w3.h00'}  # 208 keV
+for w, p in windows.items():
+    low, high = simind.get_energy_window_bounds(str(p))
+    print(f"{w:9s} window: {low:.1f}-{high:.1f} keV")
 object_meta, proj_meta = simind.get_metadata(str(windows['photopeak']))
 activity = 1000        # MBq in the whole phantom
 acquisition_time = 15  # seconds per projection
@@ -156,3 +159,10 @@ for ax, image, title in zip(axes, images, ['Truth', f'OSEM {n_iters}×{n_subsets
     ax.set_title(title)
     ax.axis('off')
 fig.colorbar(im, ax=axes, shrink=0.8, label='MBq/mL')
+
+# %% Save the images
+from pytomography.io import save_dicom
+
+for name, recon in [('OSEM', recon_osem), ('BSREM', recon_bsrem)]:
+    save_dicom(recon * activity / recon.sum() / voxel_mL, OUTPUT / 't_accuracy_known_truth' / name, object_meta,
+               units='MBq/mL', series_description=f'{name} {n_iters}x{n_subsets}', overwrite=True)

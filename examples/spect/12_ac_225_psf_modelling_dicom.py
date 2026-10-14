@@ -120,3 +120,10 @@ plot_utils.dual_imshow_axial(
 plt.axis('off')
 plt.xlim(-120,130)
 plt.ylim(-275,-25)
+
+# %% Save the images
+from pytomography.io import save_dicom
+
+for name, image in [('osem', recon), ('osem_smoothed', recon_smoothed)]:
+    save_dicom(image, OUTPUT / 't_ac225_dicom_recon' / name, object_meta, reference=file_NM,
+               series_description=f'OSEM 100x3, {name}', overwrite=True)

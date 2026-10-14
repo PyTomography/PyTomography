@@ -82,13 +82,9 @@ recon_stitched = dicom.stitch_multibed(
     recons=torch.stack([recon_upper, recon_lower]),
     files_NM = files_NM)
 
-save_path = OUTPUT / 'pytomo_recon'
-if os.path.exists(save_path) and os.path.isdir(save_path):
-    shutil.rmtree(save_path)
-dicom.save_dcm(
-    save_path = save_path,
-    object = recon_stitched,
-    file_NM = files_NM[0],
-    recon_name = 'OSEM_4it_8ss',
-    scale_by_number_projections=True,
-    single_dicom_file=True)
+# %% Save the images
+from pytomography.io import save_dicom
+
+object_meta_lower, _ = dicom.get_metadata(files_NM[1], index_peak=1)  # the lower bed, where the stitched image starts
+saved = save_dicom(recon_stitched, OUTPUT / 't_dicommultibed' / 'osem_stitched', object_meta_lower,
+                   reference=files_NM[1], series_description='OSEM 4x8, two beds stitched', overwrite=True)

@@ -10,14 +10,13 @@ import matplotlib
 matplotlib.use("Agg")  # no figure windows when run as a script
 
 # %% GATE (Deep Image Prior)
-import os
-from pathlib import Path
+from pytomography import datasets
 
-# Tutorial data: the folder set by the PYTOMOGRAPHY_DATA environment variable (see Tutorial data in the docs)
-DATA = Path(os.environ.get("PYTOMOGRAPHY_DATA", "~/pytomography_data")).expanduser()
+# The tutorial data: downloaded the first time it runs (see Tutorial data in the docs)
+datasets.fetch("PET/GATE-mMR-BrainInWater", extras=["mri"])  # with the MRI, the network's input
+DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_data
 # Results go here, never into the data folder
-OUTPUT = Path(os.environ.get("PYTOMOGRAPHY_OUTPUT", "pytomography_outputs")).expanduser() / "PET/GATE-mMR-BrainInWater"
-OUTPUT.mkdir(parents=True, exist_ok=True)
+OUTPUT = datasets.output_dir("PET/GATE-mMR-BrainInWater")
 
 import torch
 import torch.nn as nn
@@ -33,7 +32,6 @@ from pytomography.transforms.shared import GaussianFilter
 from pytomography.utils import sss
 import matplotlib.pyplot as plt
 import gc
-import copy
 import os
 import numpy as np
 import numpy as np
@@ -67,16 +65,6 @@ num_tof_bins = 21
 tof_meta = PETTOFMeta(num_tof_bins, TOF_range, fwhm_tof_resolution, n_sigmas=3)
 
 # Cached in OUTPUT by the GATE list-mode TOF tutorial; compute any that is missing (this reads the ROOT files once)
-if not os.path.exists(os.path.join(OUTPUT, 'normalization_weights.pt')):
-    # the calibration scan is shared with the earlier simulation, in PET/GATE-mMR-Brain
-    normalization_paths = [os.path.join(DATA / 'PET' / 'GATE-mMR-Brain', f'normalization_scan/mMR_Norm_{i}.root') for i in range(1,37)]
-    normalization_weights = gate.get_normalization_weights_cylinder_calibration(
-        normalization_paths,
-        info,
-        cylinder_radius = 318, # mm (radius of calibration cylindrical shell)
-        include_randoms=False
-    )
-    torch.save(normalization_weights, os.path.join(OUTPUT, 'normalization_weights.pt'))
 if not os.path.exists(os.path.join(OUTPUT, 'detector_ids_tof21bin_all_events.pt')):
     detector_ids = gate.get_detector_ids_from_root(paths, info, tof_meta=tof_meta)
     detector_ids = detector_ids[detector_ids[:,2]>-1] # For TOF, only take events within the TOF bins
@@ -84,7 +72,11 @@ if not os.path.exists(os.path.join(OUTPUT, 'detector_ids_tof21bin_all_events.pt'
 if not os.path.exists(os.path.join(OUTPUT, 'detector_ids_delays.pt')):
     detector_ids_delays = gate.get_detector_ids_from_root(paths, info, substr = 'delay')
     torch.save(detector_ids_delays, os.path.join(OUTPUT, 'detector_ids_delays.pt'))
-normalization_weights = torch.load(os.path.join(OUTPUT, 'normalization_weights.pt'))
+# The weights come with the dataset. They were computed from the calibration scan (36 ROOT files, 46 GB, in
+# PET/GATE-mMR-Brain/normalization_scan) with randoms left out (PyTomography PR #290):
+# normalization_weights = gate.get_normalization_weights_cylinder_calibration(
+#     normalization_paths, info, cylinder_radius=318, include_randoms=False)  # shell radius in mm
+normalization_weights = torch.from_numpy(np.load(os.path.join(path, 'normalization_weights.npy')))
 detector_ids = torch.load(os.path.join(OUTPUT, 'detector_ids_tof21bin_all_events.pt'))
 detector_ids_delays= torch.load(os.path.join(OUTPUT, 'detector_ids_delays.pt'))
 
@@ -386,8 +378,7 @@ dip_prior = DIPPrior(
     )
 
 dip_prior.fit(recon_lm_tof)
-# kept, so that the end of this tutorial can compare values of rho from the same starting point
-pretrained_state = copy.deepcopy(net.state_dict())
+# the pretrained network's image, the starting point shown on the contrast-noise plot at the end
 pretrained_prediction = dip_prior.prior_object.clone()
 
 dip_prior.n_epochs = 1
@@ -431,7 +422,7 @@ for name, image in (('OSEM', recon_lm_tof), ('OSEM, 3 mm filter', recon_lm_tof_f
     c, n = contrast_noise(image)
     print(f'{name:18s} contrast {c:.2f}, noise {n:.2f}')
 
-# %% Contrast against noise, and the choice of `rho`
+# %% Contrast against noise
 # post-filtered OSEM
 osem_curve = []
 for fwhm in (0, 2, 3, 4, 5, 6):
@@ -441,23 +432,22 @@ for fwhm in (0, 2, 3, 4, 5, 6):
         gauss.configure(object_meta, proj_meta)
         image = gauss(recon_lm_tof)
     osem_curve.append(contrast_noise(image))
-# the Deep Image Prior with larger values of rho, each from the pretrained network
-curves = {rho: curve_DIP}
-for rho_other in (2.4e3, 2.4e4, 2.4e5):
-    net.load_state_dict(pretrained_state)
-    dip_prior.prior_object = pretrained_prediction.clone()
-    curves[rho_other] = ContrastNoise()
-    DIPRecon(likelihood=likelihood, prior_network=dip_prior, rho=rho_other)(n_iters=30, subit1=2, callback=curves[rho_other])
 
 fig, ax = plt.subplots(figsize=(7, 4.5))
 ax.plot([n for c, n in osem_curve], [c for c, n in osem_curve], 'k--o', ms=4, label='OSEM 50x1, Gaussian filter 0-6 mm')
 c, n = contrast_noise(pretrained_prediction)
 ax.plot(n, c, 'ks', label='pretrained network')
-for r, curve in curves.items():
-    line, = ax.plot(curve.noise, curve.contrast, '.-', ms=3, lw=1,
-                    label=f'Deep Image Prior, rho = {r:g}' + (' (above, 100 iterations)' if r == rho else ' (30 iterations)'))
-    ax.plot(curve.noise[-1], curve.contrast[-1], 'o', color=line.get_color(), ms=6)
+line, = ax.plot(curve_DIP.noise, curve_DIP.contrast, '.-', ms=3, lw=1, label=f'Deep Image Prior, rho = {rho:g}, 100 iterations')
+ax.plot(curve_DIP.noise[-1], curve_DIP.contrast[-1], 'o', color=line.get_color(), ms=6)
 ax.set_xlabel('noise in white matter (standard deviation / mean)')
 ax.set_ylabel('grey / white matter contrast')
 ax.grid(alpha=0.3)
 ax.legend(fontsize=8)
+
+# %% Save the images
+from pytomography.io import save_dicom
+
+affine_mr = gate.get_patient_affine_from_nifti(os.path.join(path, 'fdg_pet_phantom_mri.nii.gz'), object_meta)
+for name, image in [('deep_image_prior', recon_DIP), ('osem', recon_lm_tof)]:
+    save_dicom(image, OUTPUT / 't_PETGATE_DIP' / name, affine=affine_mr, modality='PT',
+               series_description=name, overwrite=True)

@@ -9,16 +9,17 @@ Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, 
 import matplotlib
 matplotlib.use("Agg")  # no figure windows when run as a script
 
-import os
-from pathlib import Path
+from pytomography import datasets
 
-# Tutorial data: the folder set by the PYTOMOGRAPHY_DATA environment variable (see Tutorial data in the docs)
-DATA = Path(os.environ.get("PYTOMOGRAPHY_DATA", "~/pytomography_data")).expanduser()
+# The tutorial data: downloaded the first time it runs (see Tutorial data in the docs)
+datasets.fetch("PET/GATE-mMR-BrainInWater")
+DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_data
 # Results go here, never into the data folder
-OUTPUT = Path(os.environ.get("PYTOMOGRAPHY_OUTPUT", "pytomography_outputs")).expanduser() / "PET/GATE-mMR-BrainInWater"
-OUTPUT.mkdir(parents=True, exist_ok=True)
+OUTPUT = datasets.output_dir("PET/GATE-mMR-BrainInWater")
 
+import os
 import time
+import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import pytomography
@@ -40,14 +41,11 @@ info = gate.get_detector_info(path=os.path.join(path, 'mMR_Geometry.mac'), mean_
 print(f"{info['NrRings']} rings of {info['NrCrystalsPerRing']} crystals, radius {info['radius']} mm")
 
 # %% 2. Normalisation
-weights_file = os.path.join(OUTPUT, 'normalization_weights.pt')
-if not os.path.exists(weights_file):
-    # the calibration scan is shared with the earlier simulation, in PET/GATE-mMR-Brain
-    normalization_paths = [os.path.join(DATA / 'PET' / 'GATE-mMR-Brain', f'normalization_scan/mMR_Norm_{i}.root') for i in range(1, 37)]
-    normalization_weights = gate.get_normalization_weights_cylinder_calibration(
-        normalization_paths, info, cylinder_radius=318, include_randoms=False)  # shell radius in mm
-    torch.save(normalization_weights, weights_file)
-normalization_weights = torch.load(weights_file)
+# The weights come with the dataset. They were computed from the calibration scan (36 ROOT files, 46 GB, in
+# PET/GATE-mMR-Brain/normalization_scan) with randoms left out (PyTomography PR #290):
+# normalization_weights = gate.get_normalization_weights_cylinder_calibration(
+#     normalization_paths, info, cylinder_radius=318, include_randoms=False)  # shell radius in mm
+normalization_weights = torch.from_numpy(np.load(os.path.join(path, 'normalization_weights.npy')))
 
 # %% 3. The true coincidences
 ids_file = os.path.join(OUTPUT, 'detector_ids_primary_only.pt')
@@ -104,3 +102,11 @@ t0 = time.time()
 mlem_lm = OSEM(likelihood_lm)(n_iters=40, n_subsets=1)
 mlem_sino = OSEM(likelihood_sino)(n_iters=40, n_subsets=1)
 print(f"MLEM, 40 iterations ({time.time() - t0:.0f} s): the images differ by {difference(mlem_lm, mlem_sino):.1f}%")
+
+# %% Save the images
+from pytomography.io import save_dicom
+
+affine_mr = gate.get_patient_affine_from_nifti(os.path.join(path, 'fdg_pet_phantom_mri.nii.gz'), object_meta)
+for name, image in [('list_mode', recon_lm), ('sinogram', recon_sino)]:
+    save_dicom(image, OUTPUT / 't_pet_introduction' / name, affine=affine_mr, modality='PT',
+               series_description=f'OSEM 4x14, {name}', overwrite=True)

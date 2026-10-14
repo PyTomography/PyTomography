@@ -45,9 +45,10 @@ TYPE = 'DICOM' # DICOM or SIMIND
 if TYPE=='SIMIND':
     data_path = os.path.join(PATH, 'SIMIND-Jaszak', 'lu177_SYME_jaszak')
     IDX_AXIAL = 64 # for plotting
-    photopeak_path = os.path.join(data_path,'tot_w4.h00')
-    lower_path = os.path.join(data_path, 'tot_w5.h00')
-    upper_path = os.path.join(data_path, 'tot_w6.h00')
+    # the 208 keV photopeak (tot_w1) and its scatter windows: the energy of amap.hct and of the header's PSF
+    photopeak_path = os.path.join(data_path,'tot_w1.h00')
+    lower_path = os.path.join(data_path, 'tot_w2.h00')
+    upper_path = os.path.join(data_path, 'tot_w3.h00')
     path_amap = os.path.join(data_path,'amap.hct')
     object_meta, proj_meta = simind.get_metadata(photopeak_path)
     photopeak = simind.get_projections(photopeak_path)
@@ -140,3 +141,10 @@ recon_kem = recon_algorithm_kem(40,8)
 # %% Comparison
 recons = [recon_OSEM, recon_osmaposl, recon_bsrem, recon_kem]
 recon_names = ['OSEM', 'OSMAPOSL', 'BSREM', 'KEM']
+
+# %% Save the images
+from pytomography.io import save_dicom
+
+for name, recon in zip(recon_names, recons):
+    save_dicom(recon, OUTPUT / 't_algorithms' / name, object_meta, reference=file_NM if TYPE == 'DICOM' else None,
+               series_description=name, overwrite=True)

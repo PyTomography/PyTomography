@@ -46,17 +46,6 @@ likelihood = PoissonLogLikelihood(system_matrix, photopeak)
 reconstruction_algorithm = OSEM(likelihood)
 recon = reconstruction_algorithm(n_iters=4, n_subsets=8)
 
-# # Modify the path below to a location on your computer where you want to save the data
-# # # Code only works if folder doesnt exist, so delete it if present
-# if os.path.exists(save_path) and os.path.isdir(save_path):
-#     shutil.rmtree(save_path)
-# # Save
-# dicom.save_dcm(
-#     save_path = save_path,
-#     object = recon,
-#     file_NM = file_NM,
-#     recon_name = 'OSEM_4it_8ss')
-
 # %% Reorientation
 from pytomography.utils.cardiac_spect import get_mask, get_shift_values, get_angle, shift_object, rotate_object, plot_arrow, create_circular_mask, masking
 
@@ -122,3 +111,9 @@ def plot_views(tensor: torch.Tensor):
     
 plot_views(RotatedObject)
 plot_views(maskedObject)
+
+# %% Save the images
+from pytomography.io import save_dicom
+
+saved = save_dicom(recon, OUTPUT / 't_CardiacReorientation' / 'osem', object_meta, reference=file_NM,
+                   series_description='OSEM 4x8', overwrite=True)

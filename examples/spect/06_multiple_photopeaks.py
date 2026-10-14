@@ -103,3 +103,9 @@ recon_algo = OSEM(likelihood)
 recon_OSEM = recon_algo(n_iters = 8, n_subsets=8)
 
 pydicom.dcmread(file_NM).RotationInformationSequence[0].ActualFrameDuration / 1000
+
+# %% Save the images
+from pytomography.io import save_dicom
+
+saved = save_dicom(recon_OSEM, OUTPUT / 't_dualpeak' / 'osem', object_meta, reference=file_NM, units='MBq.s',
+                   series_description='OSEM 8x8, 113 and 208 keV', overwrite=True)

@@ -99,3 +99,9 @@ system_matrix = MonteCarloHybridSPECTSystemMatrix(
 likelihood = MonteCarloHybridSPECTPoissonLogLikelihood(system_matrix, projections[0])
 algorithm = OSEM(likelihood)
 recon_MC = algorithm(n_iters=1, n_subsets=16)
+
+# %% Save the images
+from pytomography.io import save_dicom
+
+saved = save_dicom(recon_MC, OUTPUT / 't_spect_mc2' / 'osem_monte_carlo', object_meta, reference=file_NM,
+                   units='MBq.s', series_description='OSEM 1x16, Monte Carlo', overwrite=True)

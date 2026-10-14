@@ -53,7 +53,9 @@ projections *= dT
 # Based on how they are loaded, this is idx of peak, lower upper
 idx_peak, idx_lower, idx_upper = 1, 0, 2
 photopeak = projections[idx_peak]
-ww_lower, ww_peak, ww_upper = [simind.get_energy_window_width(path) for path in [files_NM[0][0], files_NM[0][1], files_NM[0][2]]]
+# files_NM[window][isotope]: each window's width from its header (the first isotope's; the isotopes share the windows)
+ww_lower, ww_peak, ww_upper = [simind.get_energy_window_width(files[0]) for files in files_NM]
+print(f'window widths: lower {ww_lower:.0f} keV, photopeak {ww_peak:.0f} keV, upper {ww_upper:.0f} keV')
 scatter_estimate_TEW = simind.compute_EW_scatter(
     projections[idx_lower], projections[idx_upper],
     ww_lower,
@@ -104,3 +106,10 @@ reconbad = perform_reconstruction(psf_transform)
 
 recons = [reconbad, recon_1Dfit]
 titles = ['Gaussian PSF', 'Full PSF']
+
+# %% Save the images
+from pytomography.io import save_dicom
+
+for name, image in [('full_psf', recon_1Dfit), ('gaussian_psf', reconbad)]:
+    save_dicom(image, OUTPUT / 't_ac225_simind_recon' / name, object_meta, series_description=f'OSEM 50x4, {name}',
+               overwrite=True)

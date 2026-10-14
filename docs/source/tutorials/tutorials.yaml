@@ -128,7 +128,7 @@ sections:
     topic: Basics
     summary: Reconstruct the same true coincidences as list mode and as sinograms, with normalisation and attenuation.
     datasets:
-    - PET/GATE-mMR-Brain
+    - PET/GATE-mMR-BrainInWater
   - notebook: t_PETGATE_scat_sino
     title: GATE sinogram
     modality: PET
@@ -136,7 +136,7 @@ sections:
     topic: Basics
     summary: Non-TOF sinogram reconstruction of a simulated brain phantom with scatter and randoms.
     datasets:
-    - PET/GATE-mMR-Brain
+    - PET/GATE-mMR-BrainInWater
   - notebook: t_PETGATE_scat_sinoTOF
     title: GATE TOF sinogram
     modality: PET
@@ -144,7 +144,7 @@ sections:
     topic: Corrections
     summary: Time-of-flight sinogram reconstruction with TOF scatter estimation.
     datasets:
-    - PET/GATE-mMR-Brain
+    - PET/GATE-mMR-BrainInWater
   - notebook: t_PETGATE_scat_lm
     title: GATE list mode
     modality: PET
@@ -152,7 +152,7 @@ sections:
     topic: Corrections
     summary: List-mode reconstruction with scatter and randoms correction.
     datasets:
-    - PET/GATE-mMR-Brain
+    - PET/GATE-mMR-BrainInWater
   - notebook: t_PETGATE_scat_lmTOF
     title: GATE TOF list mode
     modality: PET
@@ -160,7 +160,7 @@ sections:
     topic: Corrections
     summary: Time-of-flight list-mode reconstruction with TOF scatter.
     datasets:
-    - PET/GATE-mMR-Brain
+    - PET/GATE-mMR-BrainInWater
   - notebook: t_GE_HDF5
     title: GE Discovery MI
     modality: PET
@@ -182,7 +182,8 @@ sections:
     modality: PET
     data: Vendor
     topic: Systems
-    summary: Read list-mode data in the open PETSIRD format.
+    summary: A Siemens Biograph mMR scan in ETSI's open PETSIRD format, reconstructed without and with scatter correction.
+    thumbnail: 0
     datasets:
     - PET/PETSIRD-mMR-NEMA
   - notebook: t_PETGATE_DIP
@@ -192,7 +193,7 @@ sections:
     topic: Algorithms
     summary: Build a PyTorch network and use it as the image model inside the reconstruction.
     datasets:
-    - PET/GATE-mMR-Brain
+    - PET/GATE-mMR-BrainInWater
 - title: CT
   tutorials:
   - notebook: t_CT_GEN3
@@ -200,7 +201,8 @@ sections:
     modality: CT
     data: DICOM
     topic: Basics
-    summary: OS-SART on raw projections from a 3rd-generation clinical CT scanner.
+    summary: Filtered back projection of raw projections from a 3rd-generation clinical CT scanner, then the settings that reproduce the scanner's own images.
+    thumbnail: 3  # our FBP with the advanced settings beside the scanner's image; the last image is a line plot
     datasets:
     - CT/ldct-c145
   - notebook: t_CT_microct
