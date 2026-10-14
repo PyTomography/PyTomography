@@ -23,8 +23,7 @@ import torch
 import matplotlib.pyplot as plt
 from scipy import ndimage
 import pytomography
-from pytomography.io.CT import dicom_ct_pd
-from pytomography.io.shared import open_multifile, align_images_affine
+from pytomography import io
 from pytomography.metadata import ObjectMeta
 from pytomography.projectors.CT import CTGen3SystemMatrix
 from pytomography.algorithms import FilteredBackProjection
@@ -41,14 +40,14 @@ pytomography.set_memory_budget(RAM_GB)
 # %% 1. The projections
 folder = DATA / 'CT' / 'ldct-c145'
 t0 = time.time()
-proj, proj_meta = dicom_ct_pd.get_projections_and_metadata_gen3(folder / 'full_dose_projections')
-mu_water = proj_meta.water_attenuation  # mm^-1
+proj, object_meta, proj_meta = io.CT.read_dicom_ct_pd(
+    folder / 'full_dose_projections',
+    object_meta=ObjectMeta(dr=(0.662109, 0.662109, 1.0), shape=(512, 512, 316)))  # mm, voxels: the scanner's grid
 print(f"{proj.shape[0]} views of {proj.shape[1]} x {proj.shape[2]} detector elements, read in {time.time() - t0:.0f} s")
 behind = proj_meta.photon_counts[::100, :, None] * torch.exp(-proj[::100])  # every 100th view
 print(f"photons reaching a detector element, median over the rays through the patient: {behind[proj[::100] > 1].median():.0f}")
-object_meta = ObjectMeta(dr=(0.662109, 0.662109, 1.0), shape=(512, 512, 316))  # mm, voxels
 system_matrix = CTGen3SystemMatrix(object_meta, proj_meta)
-to_hu = lambda image: (1000 * (image / mu_water - 1)).cpu().numpy()
+to_hu = lambda image: io.CT.to_hu(image, proj_meta).cpu().numpy()
 
 # %% 3. Memory, before reconstructing
 fbp = FilteredBackProjection(proj, system_matrix, filter='hann', slice_thickness=1.25)
@@ -78,14 +77,12 @@ del hu_planned
 
 # %% 5. Windows compared
 scanner_files = sorted((folder / 'full_dose_images').glob('*.dcm'))
-scanner, scanner_meta = open_multifile(scanner_files, return_object_meta=True)
-scanner = scanner.cpu().numpy()
-scanner_affine = scanner_meta.affine_matrix.copy()
-scanner_affine[:2, 3] += 0.5 * np.array(scanner_meta.dr[:2])  # GE: the corner of the first pixel, not its centre
-ct_affine = proj_meta.get_patient_affine(object_meta).numpy()
-scanner_hu = align_images_affine(hu, scanner, ct_affine, scanner_affine, cval=-3000)  # -3000: outside the scanner's images
+scanner = io.load_image(scanner_files)  # in HU, with its place in the patient
+scanner_hu = scanner.on(object_meta, fill=-3000).cpu().numpy()  # -3000: outside the scanner's images
+# The body in the scanner's images and a block of liver: they come with the dataset, in its folder
+regions = io.load_mask(folder / 'ldct_c145_rois.seg.nrrd')
 
-liver = (slice(100, 140), slice(200, 240), slice(280, 296))  # 26 x 26 x 16 mm of liver
+liver = regions.on(object_meta, label='liver', threshold=0.5).cpu().numpy()  # 26 x 26 x 16 mm of liver
 noise = {'Hann': float(hu[liver].std())}
 for name, window, thickness in [*[(n, w, 1.25) for n, w in windows.items() if n != 'Hann'], ('Hann, no slice_thickness', 'hann', None)]:
     reconstruction = FilteredBackProjection(proj, system_matrix, filter=window, slice_thickness=thickness)
@@ -102,14 +99,12 @@ print(f"{'scanner':24s} liver noise {scanner_hu[liver].std():5.1f} HU; liver mea
       f"ours {hu[liver].mean():.1f} HU")
 
 valid = scanner_hu > -1500  # inside the scanner's field of view
-blur = lambda a: ndimage.gaussian_filter(np.where(valid, a, -1000.0), 2 / object_meta.dr[0])  # 2 mm
-body = valid & (blur(scanner_hu) > -700)
+blur = lambda a: ndimage.gaussian_filter(np.where(valid, a, -1000.0), [2 / d for d in object_meta.dr])  # 2 mm
+body = regions.on(object_meta, label='body', threshold=0.5).cpu().numpy()
 for name, image in images[1:]:
     rms = np.sqrt(((blur(image) - blur(scanner_hu))[body] ** 2).mean())
     print(f"{name:13s} RMS difference from the scanner's image after a 2 mm blur: {rms:4.1f} HU")
 
 # %% Save the images
-from pytomography.io import save_dicom
-
-saved = save_dicom(hu, OUTPUT / 't_fbp_ct' / 'fbp_hann', affine=ct_affine, modality='CT', reference=scanner_files[0],
-                   series_description='FBP, Hann, 1.25 mm', overwrite=True)
+saved = io.save_dicom(hu, OUTPUT / 't_fbp_ct' / 'fbp_hann', object_meta, units='HU', slice_thickness=1.25,
+                      reference=scanner_files[0], series_description='FBP, Hann, 1.25 mm', overwrite=True)

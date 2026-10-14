@@ -13,13 +13,13 @@ import torch
 import pytomography
 
 parallelproj_core = pytest.importorskip("parallelproj_core", reason="PET projection requires parallelproj 2")
-from pytomography.io.PET.shared import crystal_pair_index
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.PET import PETLMProjMeta, PETTOFMeta
 from pytomography.projectors.PET import PETLMSystemMatrix
+from pytomography.io.PET.scanner import crystal_pair_index, scanner_info, scanner_lut
 
 DEV = pytomography.device
-INFO = dict(min_rsector_difference=0, crystal_length=20.0, radius=120.0, firstCrystalAxis=0,
+INFO = scanner_info(min_rsector_difference=0, crystal_length=20.0, radius=120.0, rsector0_angle_deg=90.0, transaxial_direction=-1, axial_direction=-1,
             rsectorTransNr=16, rsectorAxialNr=1, moduleTransNr=1, moduleAxialNr=2, moduleTransSpacing=0.0,
             moduleAxialSpacing=17.0, submoduleTransNr=1, submoduleAxialNr=1, submoduleTransSpacing=0.0,
             submoduleAxialSpacing=0.0, crystalTransNr=4, crystalAxialNr=4, crystalTransSpacing=4.0,
@@ -159,8 +159,7 @@ def test_memory_report_is_not_optimistic(capsys, sort_events):
 
 def test_falls_back_when_the_scanner_geometry_is_unavailable():
     """Without ``info`` the events cannot be put in sinogram order; the projector must still work."""
-    from pytomography.io.PET.shared import get_scanner_LUT
-    proj_meta = PETLMProjMeta(_events(), scanner_LUT=get_scanner_LUT(INFO))
+    proj_meta = PETLMProjMeta(_events(), scanner_LUT=scanner_lut(INFO))
     sm = PETLMSystemMatrix(ObjectMeta(dr=(4, 4, 4), shape=(24, 24, 16)), proj_meta, N_splits=2)
     sm.set_n_subsets(2)
     assert sm._event_order(0) is None

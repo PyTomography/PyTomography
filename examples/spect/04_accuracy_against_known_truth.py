@@ -21,10 +21,9 @@ import re
 import time
 import numpy as np
 import torch
-import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import pytomography
-from pytomography.io.SPECT import simind
+from pytomography import io
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.likelihoods import PoissonLogLikelihood
@@ -34,18 +33,18 @@ from pytomography.callbacks import Callback
 
 # %% 1. A noisy acquisition
 path = DATA / 'SPECT' / 'SIMIND-Jaszak' / 'lu177_SYME_jaszak'
-windows = {'photopeak': path / 'tot_w4.h00', 'lower': path / 'tot_w5.h00', 'upper': path / 'tot_w6.h00'}
-object_meta, proj_meta = simind.get_metadata(str(windows['photopeak']))
+windows = {'photopeak': path / 'tot_w1.h00', 'lower': path / 'tot_w2.h00', 'upper': path / 'tot_w3.h00'}  # 208 keV
+expected, object_meta, proj_meta = io.SPECT.read_simind([str(p) for p in windows.values()])
+for w, window in zip(windows, proj_meta.energy_windows):
+    print(f"{w:9s} window: {window.lower_keV:.1f}-{window.upper_keV:.1f} keV")
 activity = 1000        # MBq in the whole phantom
 acquisition_time = 15  # seconds per projection
 
 torch.manual_seed(0)
-projections = {w: torch.poisson(simind.get_projections(str(p)) * activity * acquisition_time)
-               for w, p in windows.items()}
+projections = {w: torch.poisson(expected[i] * activity * acquisition_time) for i, w in enumerate(windows)}
 photopeak = projections['photopeak']
-widths = {w: simind.get_energy_window_width(str(p)) for w, p in windows.items()}
-scatter = simind.compute_EW_scatter(projections['lower'], projections['upper'],
-                                    widths['lower'], widths['upper'], widths['photopeak'])
+scatter = io.SPECT.energy_window_scatter(torch.stack(list(projections.values())), proj_meta,
+                                         peak=0, lower=1, upper=2)
 print(f"{photopeak.sum().item():.3g} counts in the photopeak window")
 
 # %% 2. The truth: sphere masks and concentrations
@@ -55,25 +54,19 @@ volume_mL = {('background' if name == 'BKG' else f'sphere {name}'): float(v)
 sphere_MBq_per_mL = activity / (sum(v for r, v in volume_mL.items() if r != 'background') + 0.1 * volume_mL['background'])
 truth_MBq_per_mL = {r: sphere_MBq_per_mL * (0.1 if r == 'background' else 1) for r in volume_mL}
 
-labels = torch.from_numpy(np.load(path.parent / 'jaszak_spheres.npz')['labels'])  # 0 outside the spheres
-masks = {}
-for k in range(1, 7):
-    fraction = F.avg_pool3d((labels == k).float()[None, None], kernel_size=4)[0, 0]
-    masks[f'sphere {k}'] = (fraction > 0.5).to(pytomography.device)
+rois = io.load_mask(path.parent / 'jaszak_rois.seg.nrrd')  # made once by docs/tools/make_roi_masks.py
+masks = {f'sphere {k}': rois.on(object_meta, label=f'sphere_{k}') > 0.5 for k in range(1, 7)}
+masks['background'] = rois.on(object_meta, label='background') > 0.5
 
-attenuation_map = simind.get_attenuation_map(str(path / 'amap.hct'))
-water = attenuation_map > 0.5 * attenuation_map.max()
-dilate = lambda mask: F.max_pool3d(mask.float()[None, None], 7, stride=1, padding=3)[0, 0] > 0
-erode = lambda mask: ~dilate(~mask)
-spheres = torch.stack(list(masks.values())).any(0)
-masks['background'] = erode(water) & ~dilate(spheres)
+attenuation_map = io.attenuation_map(path / 'amap.hct', object_meta, energy_keV=proj_meta.energy_windows[0].photon_keV,
+                                     layout='mu')  # 1/mm; SIMIND's map layout, simind.ini index 22 = 3
 
 regions = list(masks)
 for r in regions:
     print(f"{r:10s} {volume_mL[r]:8.2f} mL  {int(masks[r].sum()):6d} voxels  truth {truth_MBq_per_mL[r]:.3f} MBq/mL")
 
 # %% 3. System matrix and likelihood
-psf_meta = simind.get_psfmeta_from_header(str(windows['photopeak']))
+psf_meta = io.SPECT.simind_psf(windows['photopeak'])
 system_matrix = SPECTSystemMatrix(
     obj2obj_transforms=[SPECTAttenuationTransform(attenuation_map), SPECTPSFTransform(psf_meta)],
     proj2proj_transforms=[],
@@ -100,9 +93,11 @@ class RegionStatistics(Callback):
 # %% 5. Reconstruct with OSEM and BSREM
 n_iters, n_subsets = 40, 8
 
+osem = OSEM(likelihood)
+print(osem.estimate_memory(n_subsets=n_subsets))
 t0 = time.time()
 stats_osem = RegionStatistics(masks, n_subsets)
-recon_osem = OSEM(likelihood)(n_iters=n_iters, n_subsets=n_subsets, callback=stats_osem)
+recon_osem = osem(n_iters=n_iters, n_subsets=n_subsets, callback=stats_osem)
 print(f"OSEM:  {time.time() - t0:.1f} s")
 
 t0 = time.time()
@@ -112,7 +107,7 @@ recon_bsrem = bsrem(n_iters=n_iters, n_subsets=n_subsets, callback=stats_bsrem)
 print(f"BSREM: {time.time() - t0:.1f} s")
 
 # %% 6. From counts to activity
-voxel_mL = float(np.prod(object_meta.dr))  # SPECT voxel sizes are in cm
+voxel_mL = float(np.prod(object_meta.dr)) / 1000  # voxel sizes are in mm: mm³ to mL
 
 def bias_and_noise(stats, recon, region):
     """Bias and noise of a region at every iteration, in percent of its true concentration."""
@@ -144,6 +139,8 @@ for ax, region in zip(axes.ravel(), regions):
 axes[0, 0].legend()
 axes[-1, -1].axis('off')
 
+spheres = torch.stack([masks[f'sphere {k}'] for k in range(1, 7)]).any(0)
+water = attenuation_map > 0.5 * attenuation_map.max()  # the phantom
 z = int(torch.nonzero(spheres)[:, 2].float().mean())  # the slice through the spheres' centres
 truth_image = (water.float() * truth_MBq_per_mL['background']
                + spheres.float() * (sphere_MBq_per_mL - truth_MBq_per_mL['background'])).cpu()
@@ -158,8 +155,6 @@ for ax, image, title in zip(axes, images, ['Truth', f'OSEM {n_iters}×{n_subsets
 fig.colorbar(im, ax=axes, shrink=0.8, label='MBq/mL')
 
 # %% Save the images
-from pytomography.io import save_dicom
-
 for name, recon in [('OSEM', recon_osem), ('BSREM', recon_bsrem)]:
-    save_dicom(recon * activity / recon.sum() / voxel_mL, OUTPUT / 't_accuracy_known_truth' / name, object_meta,
-               units='MBq/mL', series_description=f'{name} {n_iters}x{n_subsets}', overwrite=True)
+    io.save_dicom(recon * activity / recon.sum() / voxel_mL, OUTPUT / 't_accuracy_known_truth' / name, object_meta,
+                  units='MBq/mL', series_description=f'{name} {n_iters}x{n_subsets}', overwrite=True)

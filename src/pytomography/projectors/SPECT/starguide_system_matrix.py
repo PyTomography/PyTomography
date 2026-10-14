@@ -1,27 +1,49 @@
+"""The system matrix of the GE StarGuide (:class:`StarGuideSystemMatrix`), whose every view has its own head offset."""
 from __future__ import annotations
+import inspect
+import math
 import torch
 import torch.nn.functional as F
 import pytomography
 from pytomography.utils import rotate_detector_z
-from pytomography.projectors.system_matrix import SystemMatrix
+from pytomography.utils.memory import MemoryPart, PLAN_MAX_SUBSETS
+from pytomography.utils.spatial import affine_grid_pixels
+from pytomography.projectors.system_matrix import SystemMatrix, on_device
 from pytomography.transforms.SPECT import SPECTPSFTransform
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.SPECT import StarGuideProjMeta
-from kornia.geometry.transform import Translate
 
 DETECTOR_WIDTH = 16   # transaxial pixels of a StarGuide detector head
+"""Number of transaxial pixels of a StarGuide detector head."""
 
 class StarGuideSystemMatrix(SystemMatrix):
-    r"""System matrix for the StarGuide SPECT imaging system form General Electric Healthcare.
+    r"""System matrix of the GE StarGuide: 12 swivelling CZT heads, each view with its own angle, radius and offset.
 
-    Each view is a 16 pixel wide detector head at a projection angle and a transaxial offset. Forward projection rotates the object to the angle (shared by all views at that angle) and applies the angle-dependent object transforms (e.g. attenuation); then each view blurs the object with its PSF, translates it by its offset (bilinear interpolation) and sums the 16 columns under the head along the projection axis. A view only ever samples the columns under the head plus the reach of its PSF kernel, so the blur and the translation are evaluated on a slab of that width gathered from the object, with all views of an angle batched: one grouped convolution per blurring axis and one sampling call per angle. Back projection is the adjoint of the same operations, with the views of an angle summed before the shared transforms and the rotation are applied. The angle-dependent (non-PSF) transforms are applied before the PSF transforms regardless of their order in ``obj2obj_transforms``.
+    Each view is a 16 pixel wide detector head at a projection angle and a transaxial offset. Forward projection
+    rotates the object to the angle (shared by all views at that angle) and applies the angle-dependent object transforms
+    (e.g. attenuation); then each view blurs the object with its PSF, translates it by its offset (bilinear
+    interpolation) and sums the 16 columns under the head along the projection axis. A view only ever samples the
+    columns under the head plus the reach of its PSF kernel, so the blur and the translation are evaluated on a slab of
+    that width gathered from the object, with all views of an angle batched: one grouped convolution per blurring axis
+    and one sampling call per angle. Back projection is the adjoint of the same operations, with the views of an angle
+    summed before the shared transforms and the rotation are applied. The angle-dependent (non-PSF) transforms are
+    applied before the PSF transforms regardless of their order in ``obj2obj_transforms``.
+
+    The object is in counts per second (``object_meta.units`` from :func:`~pytomography.io.SPECT.read_starguide`) and
+    the projections in counts: each view's projection is multiplied by its frame duration
+    (``proj_meta.frame_duration_s``). Projections are [views, r, z]; with subsets, the projection angles are split into
+    interleaved groups, each angle with all of its views.
 
     Args:
-        obj2obj_transforms (Sequence[Transform]): Sequence of object mappings that occur before forward projection.
-        proj2proj_transforms (Sequence[Transform]): Sequence of proj mappings that occur after forward projection.
-        object_meta (SPECTObjectMeta): SPECT Object metadata.
-        proj_meta (StarGuideProjMeta): Projection metadata pertaining to the StarGuide system.
-        object_initial_based_on_camera_path (bool): Whether or not to initialize the object estimate based on the camera path; this sets voxels to zero that are outside the SPECT camera path. Defaults to False.
+        object_meta (ObjectMeta): The object grid (mm), from :func:`~pytomography.io.SPECT.read_starguide`.
+        proj_meta (StarGuideProjMeta): The projection space of the acquisition.
+        obj2obj_transforms (list[Transform], optional): Object-to-object transforms: the angle-dependent ones (e.g.
+            :class:`~pytomography.transforms.SPECT.SPECTAttenuationTransform`) and
+            :class:`~pytomography.transforms.SPECT.SPECTPSFTransform`. Defaults to none.
+        proj2proj_transforms (list[Transform], optional): Projection-to-projection transforms, applied after forward
+            projection to the projections of a subset (counts, [views, 16, Lz], not padded: a transform that takes a
+            ``padded`` argument is given ``padded=False``); back projection applies their ``backward`` in reverse
+            order first. Defaults to none.
     """
     def __init__(
         self,
@@ -31,10 +53,18 @@ class StarGuideSystemMatrix(SystemMatrix):
         proj2proj_transforms = [],
     ):
         super().__init__(object_meta, proj_meta, obj2obj_transforms, proj2proj_transforms)
-        self.times = self.proj_meta.times.reshape(-1,1,1) / 1e3
+        # the projections are counts, the object counts per second: each view is the object's projection times its duration
+        self.frame_duration_s = torch.as_tensor(self.proj_meta.frame_duration_s, dtype=torch.float32, device=pytomography.device).reshape(-1,1,1)
         self._groups_cache = {}
 
     # ------------------------------------------------------------------ helpers
+    def _projection_transforms(self, proj: torch.Tensor, backward: bool = False) -> torch.Tensor:
+        """``proj`` through the projection to projection transforms: their ``forward`` in order, or (``backward``) their ``backward`` in reverse order. StarGuide's projections are not padded, so a transform that takes ``padded`` (``CutOffTransform``, ``AdditiveTermTransform``) is given ``padded=False``."""
+        for transform in (self.proj2proj_transforms[::-1] if backward else self.proj2proj_transforms):
+            method = transform.backward if backward else transform.forward
+            proj = method(proj, padded=False) if 'padded' in inspect.signature(method).parameters else method(proj)
+        return proj
+
     def _psf_transforms(self) -> list:
         return [t for t in self.obj2obj_transforms if type(t) == SPECTPSFTransform]
 
@@ -79,7 +109,7 @@ class StarGuideSystemMatrix(SystemMatrix):
     def _slab_geometry(self, translations: torch.Tensor) -> dict:
         """Slab of object columns each view needs, and the sampling grids between the slab and the 16 detector columns.
 
-        Detector column ``c`` of a view translated by ``s`` voxels samples the (blurred) object at column ``c - s`` (as ``kornia.geometry.transform.Translate`` does, bilinear, zero outside the object). The slab of a view therefore starts ``margin`` columns before ``floor(c_first - s)`` and is wide enough to hold the sampled columns and the PSF reach on both sides. ``cols`` are the object columns of the slab (clamped) and ``valid`` marks the ones inside the object, ``grid_fwd`` samples the detector columns from the slab and ``grid_bwd`` is its transpose (the slab columns sampled from the 16 detector columns).
+        Detector column ``c`` of a view translated by ``s`` voxels samples the (blurred) object at column ``c - s`` (as :meth:`_translate_object` does, bilinear, zero outside the object). The slab of a view therefore starts ``margin`` columns before ``floor(c_first - s)`` and is wide enough to hold the sampled columns and the PSF reach on both sides. ``cols`` are the object columns of the slab (clamped) and ``valid`` marks the ones inside the object, ``grid_fwd`` samples the detector columns from the slab and ``grid_bwd`` is its transpose (the slab columns sampled from the 16 detector columns).
 
         Args:
             translations (torch.Tensor): [B] translations of the views in voxels.
@@ -154,14 +184,16 @@ class StarGuideSystemMatrix(SystemMatrix):
         object: torch.Tensor,
         subset_idx: int | None = None,
     ):
-        r"""Applies forward projection to ``object``.
+        r"""Forward projection :math:`g_m = H_m f` of an object, in counts (each view times its frame duration).
 
         Args:
-            object (torch.tensor[Lx, Ly, Lz]): The object to be forward projected
-            subset_idx (int, optional): Only uses a subset of angles :math:`g_m` corresponding to the provided subset index :math:`m`. If None, then defaults to the full projections :math:`g`.
+            object (torch.Tensor): The object, [Lx, Ly, Lz], in counts per second.
+            subset_idx (int | None, optional): Subset index :math:`m`: project onto the subset's views only. Defaults
+                to None: all the views.
 
         Returns:
-            torch.tensor: forward projection estimate :math:`g_m=H_mf`
+            torch.Tensor: The projections, [views, r, z] (the subset's views with ``subset_idx``), on
+            ``pytomography.device``.
         """
         idx, groups = self._view_groups(subset_idx)
         Lx, Ly, Lz = self.object_meta.shape
@@ -179,7 +211,7 @@ class StarGuideSystemMatrix(SystemMatrix):
             # translate: sample the detector columns from the slabs, then sum along the projection axis
             sampled = F.grid_sample(slabs.permute(0, 3, 1, 2).contiguous(), group['grid_fwd'], mode='bilinear', padding_mode='zeros', align_corners=True)   # [B, Lz, Lx, 16]
             projections[group['pos']] = sampled.sum(dim=2).permute(0, 2, 1)
-        return projections * self.times[idx]
+        return self._projection_transforms(projections * self.frame_duration_s[idx])
 
     @torch.no_grad()
     def backward(
@@ -187,21 +219,21 @@ class StarGuideSystemMatrix(SystemMatrix):
         proj: torch.Tensor,
         subset_idx: int | None = None
     ):
-        r"""Applies back projection.
+        r"""Back projection :math:`H_m^T g_m` of projections, the adjoint of :meth:`forward` (frame durations included).
 
         Args:
-            proj (torch.tensor): projections :math:`g` which are to be back projected
-            subset_idx (int, optional): Only uses a subset of angles :math:`g_m` corresponding to the provided subset index :math:`m`. If None, then defaults to the full projections :math:`g`.
-            return_norm_constant (bool): Whether or not to return :math:`H_m^T 1` along with back projection. Defaults to 'False'.
+            proj (torch.Tensor): The projections, [views, r, z] (only the subset's views with ``subset_idx``).
+            subset_idx (int | None, optional): Subset index :math:`m` of the projections. Defaults to None: all the
+                views.
 
         Returns:
-            torch.tensor: the object :math:`\hat{f} = H_m^T g_m` obtained via back projection.
+            torch.Tensor: The object, [Lx, Ly, Lz], on ``pytomography.device``.
         """
         idx, groups = self._view_groups(subset_idx)
         Lx, Ly, Lz = self.object_meta.shape
         psf_transforms, shared_transforms = self._psf_transforms(), self._shared_transforms()
         object = torch.zeros((Lx, Ly, Lz), device=pytomography.device)
-        proj = proj * self.times[idx]
+        proj = self._projection_transforms(proj, backward=True) * self.frame_duration_s[idx]
         for group in groups:
             B, W = group['cols'].shape
             # every plane along the projection axis receives the view; transpose of the translation: sample the slab columns from the detector columns
@@ -217,29 +249,121 @@ class StarGuideSystemMatrix(SystemMatrix):
         return object
 
     def compute_normalization_factor(self, subset_idx : int | None = None):
-        """Function used to get normalization factor :math:`H^T_m 1` corresponding to projection subset :math:`m`.
+        """The normalization :math:`H_m^T 1`: the back projection of ones over the views of subset :math:`m`.
 
         Args:
-            subset_idx (int | None, optional): Index of subset. If none, then considers all projections. Defaults to None.
+            subset_idx (int | None, optional): Subset index :math:`m`. Defaults to None: all the views.
 
         Returns:
-            torch.Tensor: normalization factor :math:`H^T_m 1`
+            torch.Tensor: :math:`H_m^T 1`, [Lx, Ly, Lz].
         """
         norm_proj = torch.ones(*self.proj_meta.shape).to(pytomography.device)
         if subset_idx is not None:
             norm_proj = self.get_projection_subset(norm_proj, subset_idx)
         return self.backward(norm_proj, subset_idx)
 
+    def _angle_counts(self) -> tuple[int, int]:
+        """(number of projection angles, most views at one angle)."""
+        _, counts = torch.unique(torch.as_tensor(self.proj_meta.angles).cpu(), return_counts=True)
+        return len(counts), int(counts.max())
+
+    def _max_subsets(self) -> int:
+        """Most subsets :meth:`plan_memory` tries: one projection angle each (subsets are made of whole angles), at most
+        :data:`~pytomography.utils.memory.PLAN_MAX_SUBSETS`."""
+        return max(1, min(PLAN_MAX_SUBSETS, self._angle_counts()[0]))
+
+    def _memory_parts(self, n_subsets: int, N_splits: int | None = None) -> list[MemoryPart]:
+        r"""What a reconstruction with this system matrix holds at its peak (see
+        :meth:`~pytomography.projectors.SystemMatrix.estimate_memory`), all on ``pytomography.device``. Held for the
+        whole run: the image, one :math:`H_m^T 1` image per subset, the images of an update, the geometry
+        ``_view_groups`` caches for every view (slab columns, sampling grids, and the PSF kernels of each view), the
+        rotation grids of every angle (two, and one more per attenuation transform), and what the transforms keep. For a
+        subset: its projections (measured, expected, additive term, scaled by the times, of ones; at the start, the
+        projections of ones of every view) and two images. For an angle (the most views at one angle, :math:`B`): the
+        rotated object and two more images, three slabs of :math:`B` views (gathered, masked, resampled), five more per
+        PSF transform (the copies and outputs of its two convolutions; the views one at a time for a PSF operator), the
+        sampled detector columns twice, and the temporaries of the angle's other transforms. ``N_splits`` does not apply.
+
+        Args:
+            n_subsets (int): Number of subsets.
+            N_splits (int | None): Not used (no projector splits).
+
+        Returns:
+            list[MemoryPart]: The arrays.
+        """
+        from pytomography.transforms.SPECT import SPECTAttenuationTransform
+        from .dualhead_system_matrix import _transform_memory
+        n = max(1, int(n_subsets))
+        device = pytomography.device
+        Lx, Ly, Lz = self.object_meta.shape
+        image = 4 * Lx * Ly * Lz
+        n_views = self.proj_meta.num_projections
+        n_angles, B = self._angle_counts()
+        subset_views = min(n_views, -(-n_angles // n) * B)
+        view = 4 * math.prod(self.proj_meta.shape[1:])
+        W = DETECTOR_WIDTH + 2 + 2 * self._psf_margin()
+        psf_transforms, shared_transforms = self._psf_transforms(), self._shared_transforms()
+        kernels = 0                                                   # the grouped convolution weights of a view
+        for transform in psf_transforms:
+            widths = {'layer_r': 0, 'layer_z': 0}
+            for layer in getattr(transform, 'layers', {}).values():
+                for axis in widths:
+                    conv = getattr(layer, axis, None)
+                    if conv is not None:
+                        widths[axis] = max(widths[axis], int(conv.weight.shape[-1]))
+            kernels += 4 * Lx * sum(widths.values())
+        geometry = n_views * (12 * W + 8 * Lx * DETECTOR_WIDTH + 8 * Lx * W + 8 + kernels)
+        attenuations = sum(isinstance(t, SPECTAttenuationTransform) for t in shared_transforms)
+        parts = [MemoryPart('image', **on_device(device, image)),
+                 MemoryPart(f'H_m^T 1 of {n} subset{"s" if n > 1 else ""}', **on_device(device, n * image)),
+                 MemoryPart('images of an update', **on_device(device, 3 * image)),
+                 MemoryPart('geometry and PSF kernels of every view (cached)', **on_device(device, geometry)),
+                 MemoryPart('rotation grids of every angle (cached)', **on_device(device, (2 + attenuations) * n_angles * Lx * Ly * 8))]
+        ram = gpu = shared_temporaries = psf_temporaries = 0.0
+        slab = 4.0 * B * Lx * W * Lz
+        for transform in shared_transforms:                           # one after another: the largest counts
+            r, g, t = _transform_memory(transform, (Lx, Ly, Lz), n_angles)
+            ram, gpu, shared_temporaries = ram + r, gpu + g, max(shared_temporaries, t)
+        for transform in psf_transforms:
+            r, g, t = _transform_memory(transform, (Lx, W, Lz), n_views)
+            ram, gpu = ram + r, gpu + g
+            separable = all(getattr(layer, 'layer_r', None) is not None for layer in getattr(transform, 'layers', {}).values())
+            psf_temporaries += 5 * slab if separable else t + slab
+        if self.obj2obj_transforms:
+            parts.append(MemoryPart('what the transforms keep', ram, gpu))
+        projections = max(5 * subset_views * view, n_views * view + 2 * subset_views * view)
+        parts.append(MemoryPart('projections of a subset: measured, expected, additive term, scaled, of ones', **on_device(device, projections), scope='subset'))
+        parts.append(MemoryPart('images of a projection: the result and an angle', **on_device(device, 2 * image), scope='subset'))
+        sampled = 4.0 * B * Lz * Lx * DETECTOR_WIDTH
+        parts.append(MemoryPart(f"one angle ({B} views): rotated object, slabs, sampled columns and the transforms' temporaries",
+                                **on_device(device, 3 * image + 3 * slab + psf_temporaries + 2 * sampled + shared_temporaries), scope='chunk'))
+        return parts
+
+    def _memory_alternatives(self, n_subsets: int, N_splits: int | None) -> list:
+        """Half and twice the subsets (at most one angle each), where they take less memory: each subset keeps an
+        :math:`H_m^T 1` image while its projections shrink with more subsets."""
+        candidates = [(f'{n_subsets // 2} subsets', n_subsets // 2, None)] if n_subsets >= 2 else []
+        if 2 * n_subsets <= self._angle_counts()[0]:
+            candidates.append((f'{2 * n_subsets} subsets', 2 * n_subsets, None))
+        return self._saving_memory(candidates, n_subsets, N_splits)
+
     def set_n_subsets(
         self,
         n_subsets: int
-    ) -> list:
-        """Sets the subsets for this system matrix given ``n_subsets`` total subsets.
+    ) -> None:
+        """Partitions the projection angles into ``n_subsets`` interleaved subsets, each angle with all of its views.
+
+        Subset ``i`` holds the views of the angles ``i, i + n_subsets, ...`` (in increasing order of angle); the
+        partition is kept in ``subset_indices_array`` (the view indices of each subset).
 
         Args:
-            n_subsets (int): number of subsets used in OSEM
+            n_subsets (int): Number of subsets, from 1 to the number of projection angles.
+
+        Raises:
+            ValueError: If ``n_subsets`` is less than 1 or more than the number of projection angles.
         """
         indices_of_each_angle = [torch.where(self.proj_meta.angles == a)[0] for a in torch.unique(self.proj_meta.angles)]
+        self._check_n_subsets(n_subsets, len(indices_of_each_angle))
         subset_indicies_array = []
         for i in range(n_subsets):
             subset_indicies_array.append(torch.concatenate(indices_of_each_angle[i::n_subsets]))
@@ -251,19 +375,19 @@ class StarGuideSystemMatrix(SystemMatrix):
         projections: torch.tensor,
         subset_idx: int
     ) -> torch.tensor:
-        """Gets the subset of projections :math:`g_m` corresponding to index :math:`m`.
+        """The projections :math:`g_m` of subset :math:`m`: its views.
 
         Args:
-            projections (torch.tensor): full projections :math:`g`
-            subset_idx (int): subset index :math:`m`
+            projections (torch.Tensor): All the projections :math:`g`, [..., views, r, z].
+            subset_idx (int): Subset index :math:`m`.
 
         Returns:
-            torch.tensor: subsampled projections :math:`g_m`
+            torch.Tensor: The subset's projections :math:`g_m`, [..., views of the subset, r, z].
         """
         return projections[...,self.subset_indices_array[subset_idx],:,:]
 
     def _translate_object(self, obj: torch.Tensor, translations: torch.Tensor):
-        """Internal function that applies translations to an object with a batch size dimension.
+        """Internal function that applies translations to an object with a batch size dimension: each object of the batch is shifted by its translation (voxels) along y, bilinear, zero outside (bit-identical to ``kornia.geometry.transform.Translate``, which it used before 4.0).
 
         Args:
             obj (torch.Tensor): Object to be translated
@@ -272,8 +396,10 @@ class StarGuideSystemMatrix(SystemMatrix):
         Returns:
             torch.Tensor: Translated object
         """
-        # Takes in object with batch dimension
-        translation = torch.zeros(len(translations), 2).to(pytomography.device)
-        translation[:,0] = translations
-        obj_translated = Translate(translation)(obj.permute((0,3,1,2))).permute((0,2,3,1))
+        # Takes in object with batch dimension: [B, Lx, Ly, Lz] as [B, Lz, H=Lx, W=Ly], shifted along W
+        B, Lx, Ly, _ = obj.shape
+        translation = torch.eye(3, device=pytomography.device)[None].repeat(B, 1, 1)
+        translation[:, 0, 2] += translations.to(pytomography.device)
+        grid = affine_grid_pixels(translation[:, :2, :], Lx, Ly)
+        obj_translated = F.grid_sample(obj.permute((0,3,1,2)), grid, mode='bilinear', padding_mode='zeros', align_corners=True).permute((0,2,3,1))
         return obj_translated

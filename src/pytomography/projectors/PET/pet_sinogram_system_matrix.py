@@ -1,3 +1,4 @@
+"""The system matrix of PET sinograms (:class:`PETSinogramSystemMatrix`), and its construction from a list mode one."""
 from __future__ import annotations
 import torch
 import pytomography
@@ -5,26 +6,54 @@ from pytomography.metadata import ObjectMeta
 from pytomography.metadata.PET import PETSinogramPolygonProjMeta
 import math
 import numpy as np
-from pytomography.utils.memory import gpu_budget
+from pytomography.utils.memory import gpu_budget, MemoryPart, tensor_nbytes
 from pytomography.projectors import SystemMatrix
+from pytomography.projectors.system_matrix import on_device
 from pytomography.transforms import Transform
 from pytomography.io.PET.shared import listmode_to_sinogram, all_pairs_to_sinogram
 import parallelproj_core
 from .petlm_system_matrix import _float32, _pad, _crop, _padded_origin
 
 class PETSinogramSystemMatrix(SystemMatrix):
-    r"""System matrix for sinogram-based PET reconstruction. 
+    r"""System matrix of PET sinograms of a polygonal scanner, with or without time of flight (parallelproj, Joseph).
 
-        Args:
-            object_meta (ObjectMeta): Metadata of object space, containing information on voxel size and dimensions.
-            proj_meta (PETSinogramPolygonProjMeta): PET sinogram projection space metadata. This information contains the scanner lookup table and time-of-flight metadata. 
-            obj2obj_transforms (list[Transform], optional): Object to object space transforms applied before forward projection and after back projection. These are typically used for PSF modeling in PET imaging. Defaults to [].
-            attenuation_map (torch.tensor | None, optional): Attenuation map used for attenuation modeling. If provided, all weights will be scaled by detection probabilities derived from this map. Note that this scales on top of ``sinogram_sensitivity``, so if attenuation is already accounted for there, this is not needed. Defaults to None.
-            sinogram_sensitivity (torch.tensor | None, optional): Normalization sinogram used to scale projections after forward projection. This factor may include detector normalization :math:`\eta` and/or attenuation modeling :math:`\mu`. The attenuation modeling :math:`\mu` should not be included if ``attenuation_map`` is provided as an argument to the function. Defaults to None.
-            scale_projection_by_sensitivity (bool, optional): Whether or not to scale the projections by :math:`\mu \eta`. This is not needed in reconstruction algorithms using a PoissonLogLikelihood. Defaults to False.
-            N_splits (int, optional): Splits up computation of forward/back projection to save GPU memory. Defaults to 1.
-            device (str, optional): The device for any objects in projection space projection space (what it outputs in forward projection and what it expects for back projection). This is seperate from ``pytomography.device`` since the internal functionality may still use GPU even if this is CPU. This is used to save GPU memory since sinograms are often very large. Defaults to pytomography.device.
-        """
+    Sinograms are [angles, radial bins, planes] (and TOF bins last), as
+    :class:`~pytomography.metadata.PET.PETSinogramPolygonProjMeta` describes them; objects are [Lx, Ly, Lz] on the
+    ``object_meta`` grid, centred on the scanner's centre. With subsets, the angles are split into interleaved groups.
+    The sensitivity :math:`\mu \eta` (the sensitivity sinogram times the attenuation factors of the map) always enters
+    the normalization :math:`H_m^T \mu \eta`; with ``scale_projection_by_sensitivity`` it also multiplies the forward
+    and back projections. Without it, the reconstruction is the same when there is no additive term; an additive term
+    must then be given divided by the sensitivity.
+
+    Args:
+        object_meta (ObjectMeta): The object grid (mm).
+        proj_meta (PETSinogramPolygonProjMeta): The sinogram's geometry and TOF binning.
+        obj2obj_transforms (list[Transform], optional): Object-to-object transforms applied before forward projection
+            and (transposed, in reverse order) after back projection, typically the resolution model. Defaults to none.
+        attenuation_map (torch.Tensor | None, optional): Attenuation map at 511 keV, in 1/mm, on the object grid. Its
+            attenuation factors multiply ``sinogram_sensitivity``: leave attenuation out of that sinogram when giving
+            a map. Defaults to None.
+        sinogram_sensitivity (torch.Tensor | None, optional): The sensitivity sinogram [angles, radial bins, planes]:
+            the normalization :math:`\eta` and/or the attenuation factors :math:`\mu` (e.g. from
+            :func:`~pytomography.io.PET.normalization_sinogram`). Defaults to None (all 1).
+        scale_projection_by_sensitivity (bool, optional): Multiply the forward and back projections by the
+            sensitivity (see above). Defaults to False.
+        N_splits (int, optional): Smallest number of chunks a projection is computed in, to save GPU memory (more are
+            used when a chunk would not fit in :func:`~pytomography.utils.gpu_budget`). Defaults to 1.
+        device (str, optional): The device sinograms are returned on and expected on. It can differ from
+            ``pytomography.device``, where the computations are done, as sinograms are often too large for the GPU.
+            Defaults to ``pytomography.device``.
+    """
+    #: On Windows, memory PyTorch's allocators keep, as a fraction of a reconstruction's arrays, for memory estimates:
+    #: measured on the GATE mMR TOF sinogram tutorial (14 and 28 subsets, projections in RAM or on the GPU), where the
+    #: estimates then come within 15% of the measured peaks.
+    memory_allocator_fraction = 0.6
+
+    #: Memory estimates: this system matrix projects with parallelproj, whose CUDA build makes a CUDA context (and
+    #: runs on the GPU) also when PyTomography's device is the CPU, if a CUDA device is visible
+    #: (:func:`~pytomography.utils.memory.projector_uses_gpu`).
+    memory_cuda_projector = True
+
     def __init__(
         self,
         object_meta: ObjectMeta,
@@ -123,6 +152,40 @@ class PETSinogramSystemMatrix(SystemMatrix):
         xyz2 = torch.cat([dc[angle, r, 1], rc[plane, 1].unsqueeze(1)], dim=1)
         return xyz1, xyz2
 
+    def _memory_parts(self, n_subsets: int, N_splits: int | None) -> list[MemoryPart]:
+        """What a reconstruction with this system matrix holds at its peak (see :meth:`~pytomography.projectors.SystemMatrix.estimate_memory`):
+        the sensitivity sinogram, a normalisation image per subset and the images for the whole run; one subset's data,
+        expected counts, ratio and the temporaries of computing them (about three arrays of a subset's size, where the
+        projections are: ``device``); and the projector's chunk. The images and the chunk are on
+        ``pytomography.device``: GPU memory with a CUDA device, RAM without one. The data and the additive term are the
+        likelihood's: pass them to ``estimate_memory`` as ``held``.
+
+        Args:
+            n_subsets (int): Number of subsets.
+            N_splits (int | None): Projector splits, or None for this system matrix's own.
+
+        Returns:
+            list[MemoryPart]: The arrays.
+        """
+        n_angles, n_r, n_planes = self.proj_meta.N_angles, self.proj_meta.shape[1], self.proj_meta.shape[2]
+        n_bins = self.proj_meta.tof_meta.num_bins if self.TOF else 1
+        image_bytes = 4 * math.prod(self.object_meta.shape)
+        on_gpu = torch.device(self.output_device).type == 'cuda'
+        where = (lambda nbytes: {'gpu_bytes': nbytes}) if on_gpu else (lambda nbytes: {'ram_bytes': nbytes})
+        parts = []
+        if self.sinogram_sensitivity is not None:
+            parts.append(MemoryPart('sensitivity sinogram', **where(tensor_nbytes(self.sinogram_sensitivity))))
+        device = pytomography.device
+        parts.append(MemoryPart(f'normalisation images ({n_subsets})', **on_device(device, n_subsets * image_bytes)))
+        parts.append(MemoryPart('image, update and attenuation map', **on_device(device, 4 * image_bytes)))
+        lors = math.ceil(n_angles / n_subsets) * n_r * n_planes          # the LORs of the largest subset
+        parts.append(MemoryPart('data, expected counts, ratio and temporaries (one subset)', **where(3.0 * 4 * lors * n_bins), scope='subset'))
+        splits = self.N_splits if N_splits is None else N_splits
+        bytes_per_lor = 88 + 8 * n_bins
+        n_chunks = max(splits, math.ceil(lors * bytes_per_lor / gpu_budget()))
+        parts.append(MemoryPart('projector chunk', **on_device(device, math.ceil(lors / n_chunks) * bytes_per_lor), scope='chunk'))
+        return parts
+
     def _N_sinogram(self, subset_idx: int | None = None) -> int:
         """Number of sinogram elements (all angles, or the angles of subset ``subset_idx``)."""
         N_angles = self.proj_meta.N_angles if subset_idx is None else self.subset_indices_array[subset_idx].shape[0]
@@ -175,15 +238,18 @@ class PETSinogramSystemMatrix(SystemMatrix):
             sinogram_sensitivity = sinogram_sensitivity.unsqueeze(-1)
         return sinogram_sensitivity
     
-    def set_n_subsets(self, n_subsets: int) -> list:
-        """Returns a list where each element consists of an array of indices corresponding to a partitioned version of the projections. 
+    def set_n_subsets(self, n_subsets: int) -> None:
+        """Partitions the sinogram's angles into ``n_subsets`` interleaved subsets: angle ``i`` in subset ``i % n_subsets``.
+
+        The partition is kept in ``subset_indices_array`` (one index tensor per subset, on the output ``device``).
 
         Args:
-            n_subsets (int): Number of subsets to partition the projections into
+            n_subsets (int): Number of subsets, from 1 to the number of angles.
 
-        Returns:
-            list: List of arrays where each array corresponds to the projection indices of a particular subset.
+        Raises:
+            ValueError: If ``n_subsets`` is less than 1 or more than the number of angles.
         """
+        self._check_n_subsets(n_subsets, self.proj_meta.N_angles)
         indices = torch.arange(self.proj_meta.N_angles).to(torch.long).to(self.output_device)
         subset_indices_array = []
         for i in range(n_subsets):
@@ -191,14 +257,15 @@ class PETSinogramSystemMatrix(SystemMatrix):
         self.subset_indices_array = subset_indices_array
         
     def get_projection_subset(self, projections: torch.Tensor, subset_idx: int | None) -> torch.tensor:
-        """Obtains subsampled projections :math:`g_m` corresponding to subset index :math:`m`. Sinogram PET partitions projections based on angle.
+        """The sinogram :math:`g_m` of subset :math:`m`: its angles.
 
         Args:
-            projections (torch.Tensor): total projections :math:`g`
-            subset_idx (int): subset index :math:`m`
+            projections (torch.Tensor): The whole sinogram :math:`g`, [angles, ...] (a tensor, or anything indexed by
+                angle, such as a :class:`~pytomography.io.PET.LazySinogram`).
+            subset_idx (int | None): Subset index :math:`m`; None for the whole sinogram.
 
         Returns:
-            torch.Tensor: subsampled projections :math:`g_m`.
+            torch.Tensor: The subset's sinogram :math:`g_m`, [angles of the subset, ...].
         """
         if subset_idx is None:
             return projections
@@ -212,13 +279,16 @@ class PETSinogramSystemMatrix(SystemMatrix):
         self,
         subset_idx: int
     ) -> float:
-        r"""Computes the relative weighting of a given subset (given that the projection space is reduced). This is used for scaling parameters relative to :math:`\tilde{H}_m^T 1` in reconstruction algorithms, such as prior weighting :math:`\beta`
+        r"""The relative weight of subset :math:`m`: its share of the angles.
+
+        Reconstruction algorithms scale parameters that are relative to :math:`H_m^T 1` by it, such as the prior
+        weight :math:`\beta`.
 
         Args:
-            subset_idx (int): Subset index
+            subset_idx (int | None): Subset index :math:`m`; None for all the angles.
 
         Returns:
-            float: Weighting for the subset.
+            float: The number of angles of the subset over the number of angles (1 for None).
         """
         if subset_idx is None:
             return 1
@@ -226,13 +296,13 @@ class PETSinogramSystemMatrix(SystemMatrix):
             return len(self.subset_indices_array[subset_idx]) / self.proj_meta.N_angles
         
     def compute_normalization_factor(self, subset_idx: int = None):
-        r"""Computes the normalization factor :math:`H^T \mu \eta`
+        r"""The normalization :math:`H_m^T \mu \eta`: the back projection (without TOF) of the subset's sensitivity.
 
         Args:
-            subset_idx (int, optional): Subset index for ths sinogram. If None, considers all elements. Defaults to None..
+            subset_idx (int, optional): Subset index :math:`m`. Defaults to None: all the angles.
 
         Returns:
-            torch.Tensor: Normalization factor.
+            torch.Tensor: The normalization, [Lx, Ly, Lz], on ``pytomography.device``.
         """
         return self.backward(1, subset_idx, force_nonTOF=True, force_scale_by_sensitivity=True)
     
@@ -241,15 +311,17 @@ class PETSinogramSystemMatrix(SystemMatrix):
         object: torch.tensor,
         subset_idx: int = None,
     ) -> torch.tensor:
-        r"""PET Sinogram forward projection
+        r"""Forward projection :math:`H_m f` of an object onto the sinogram (of subset :math:`m`).
+
+        The projection is multiplied by the sensitivity :math:`\mu \eta` when the system matrix was made with
+        ``scale_projection_by_sensitivity``.
 
         Args:
-            object (torch.tensor): Object to be forward projected
-            subset_idx (int, optional): Subset index for ths sinogram. If None, considers all elements. Defaults to None.
-            scale_by_sensitivity (bool, optional): Whether or not to scale the projections by :math:`\mu \eta`. This is not necessarily needed in reconstruction algorithms. Defaults to False.
+            object (torch.Tensor): The object, [Lx, Ly, Lz].
+            subset_idx (int, optional): Subset index :math:`m`. Defaults to None: all the angles.
 
         Returns:
-            torch.tensor: Forward projection
+            torch.Tensor: The sinogram, [angles, radial bins, planes] (TOF bins last), on the output ``device``.
         """
         # Apply object space transforms
         object = _float32(object, pytomography.device)
@@ -288,16 +360,19 @@ class PETSinogramSystemMatrix(SystemMatrix):
         force_scale_by_sensitivity = False,
         force_nonTOF = False,
     ) -> torch.tensor:
-        r"""PET Sinogram back projection
+        r"""Back projection :math:`H_m^T g_m` of a sinogram (of subset :math:`m`).
 
         Args:
-            proj (torch.tensor): Sinogram to be back projected
-            subset_idx (int, optional): Subset index for ths sinogram. If None, considers all elements. Defaults to None.
-            scale_by_sensitivity (bool, optional): Whether or not to scale the projections by :math:`\mu \eta`. This is not necessarily needed in reconstruction algorithms. Defaults to False.
-            force_nonTOF (bool, optional): Force non-TOF projection, even if TOF metadata is contained in the projection metadata. This is used for computing normalization factors (which don't depend on TOF). Defaults to False.
+            proj (torch.Tensor): The sinogram, [angles, radial bins, planes] (TOF bins last), or the number 1 (with
+                ``force_scale_by_sensitivity``, for the normalization).
+            subset_idx (int, optional): Subset index :math:`m`. Defaults to None: all the angles.
+            force_scale_by_sensitivity (bool, optional): Multiply by the sensitivity :math:`\mu \eta` first, even when
+                the system matrix was made without ``scale_projection_by_sensitivity``. Defaults to False.
+            force_nonTOF (bool, optional): Back project without TOF, even with TOF metadata (for the normalization,
+                which does not depend on TOF). Defaults to False.
 
         Returns:
-            torch.tensor: Back projection.
+            torch.Tensor: The object, [Lx, Ly, Lz], on ``pytomography.device``.
         """
         # sensitivity scaling
         if force_scale_by_sensitivity or self.scale_projection_by_sensitivity:
@@ -325,14 +400,18 @@ class PETSinogramSystemMatrix(SystemMatrix):
         return BP
     
 def create_sinogramSM_from_LMSM(lm_system_matrix: SystemMatrix, device='cpu'):
-    """Generates a sinogram system matrix from a listmode system matrix. This is used in the single scatter simulation algorithm.   
+    """The sinogram system matrix of the scanner and object of a list mode one, as single scatter simulation uses.
+
+    It has the list mode system matrix's object grid, transforms, attenuation map and TOF binning; its sensitivity
+    sinogram bins ``proj_meta.weights_sensitivity`` (when there are any), and it projects in 20 chunks.
 
     Args:
-        lm_system_matrix (SystemMatrix): A listmode PET system matrix
-        device (str, optional): The device for any objects in projection space projection space (what it outputs in forward projection and what it expects for back projection). This is seperate from ``pytomography.device`` since the internal functionality may still use GPU even if this is CPU. This is used to save GPU memory since sinograms are often very large. Defaults to pytomography.device.
+        lm_system_matrix (PETLMSystemMatrix): A list mode PET system matrix.
+        device (str, optional): The device sinograms are returned on and expected on (see
+            :class:`PETSinogramSystemMatrix`). Defaults to ``'cpu'``.
 
     Returns:
-        SystemMatrix: PET sinogram system matrix generated via a corresponding PET listmode system matrix.
+        PETSinogramSystemMatrix: The sinogram system matrix.
     """
     lm_proj_meta = lm_system_matrix.proj_meta
     sino_proj_meta = PETSinogramPolygonProjMeta(

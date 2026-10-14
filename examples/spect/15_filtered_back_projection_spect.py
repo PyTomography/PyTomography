@@ -22,7 +22,7 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import pytomography
-from pytomography.io.SPECT import dicom
+from pytomography import io
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.likelihoods import PoissonLogLikelihood
@@ -38,14 +38,15 @@ pytomography.set_memory_budget(RAM_GB)
 path = DATA / 'SPECT' / 'Lu177-NEMA-SymT2'
 file_NM = str(path / 'projection_data.dcm')
 files_CT = sorted(str(f) for f in (path / 'CT').glob('*'))
-object_meta, proj_meta = dicom.get_metadata(file_NM, index_peak=0)
-photopeak = dicom.get_projections(file_NM, index_peak=0)
-scatter = dicom.get_energy_window_scatter_estimate(file_NM, index_peak=0, index_lower=1, index_upper=2)
-att_transform = SPECTAttenuationTransform(filepath=files_CT)
-psf_transform = SPECTPSFTransform(dicom.get_psfmeta_from_scanner_params('SY-ME', 208, intrinsic_resolution=0.38))
+projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)
+photopeak = projections[0]  # the 208 keV window
+scatter = io.SPECT.energy_window_scatter(projections, proj_meta, peak=0, lower=1, upper=2)
+photon_keV = proj_meta.energy_windows[0].photon_keV
+att_transform = SPECTAttenuationTransform(io.attenuation_map(files_CT, object_meta, energy_keV=photon_keV))
+psf_transform = SPECTPSFTransform(io.SPECT.collimator_psf('SY-ME', photon_keV, intrinsic_fwhm_mm=3.8))
 system_matrix = SPECTSystemMatrix(obj2obj_transforms=[att_transform, psf_transform], proj2proj_transforms=[],
                                   object_meta=object_meta, proj_meta=proj_meta)
-print(f"{proj_meta.num_projections} views of {photopeak.shape[1]} x {photopeak.shape[2]} pixels of {10 * object_meta.dr[0]:.2f} mm; "
+print(f"{proj_meta.num_projections} views of {photopeak.shape[1]} x {photopeak.shape[2]} pixels of {object_meta.dr[0]:.2f} mm; "
       f"{photopeak.sum():.3g} counts, of which TEW estimates {scatter.sum() / photopeak.sum():.0%} are scatter")
 print(f"counts in a pixel of one view: {photopeak[photopeak > 0.1 * photopeak.max()].median():.0f} over the phantom, {photopeak.max():.0f} at most")
 
@@ -71,9 +72,7 @@ recon_osem = osem(n_iters=4, n_subsets=8)
 print(f"OSEM 4 x 8: {time.time() - t0:.1f} s")
 
 # %% Save the images
-from pytomography.io import save_dicom
-
 for name, image, description in [('fbp', recon_fbp, 'FBP, Butterworth'), ('fbp_chang', recon_fbp_chang, 'FBP, Butterworth, Chang'),
                                  ('osem', recon_osem, 'OSEM 4x8')]:
-    save_dicom(image, OUTPUT / 't_fbp_spect' / name, object_meta, reference=file_NM, units='counts',
-               series_description=description, overwrite=True)
+    io.save_dicom(image, OUTPUT / 't_fbp_spect' / name, object_meta, reference=file_NM, units='counts',
+                  series_description=description, overwrite=True)

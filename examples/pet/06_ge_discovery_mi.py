@@ -19,6 +19,8 @@ DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_da
 OUTPUT = datasets.output_dir("PET/GE-DMI-NEMA")
 GE_DATA = DATA / 'PET' / 'GE-DMI-NEMA'
 
+import pytomography
+from pytomography import io
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.PET import PETLMProjMeta
 from pytomography.projectors.PET import PETLMSystemMatrix
@@ -27,31 +29,26 @@ from pytomography.priors import RelativeDifferencePrior
 from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.transforms.shared import GaussianFilter
 import matplotlib.pyplot as plt
-from pytomography.io.PET import clinical
 
-scanner_name = 'discovery_MI'
-info = clinical.get_detector_info(scanner_name)
+# %% How much memory this needs
+RAM_GB = 25 # memory (RAM) this tutorial may use, in GB; it needs about 9 GB however low this is
+pytomography.set_memory_budget(RAM_GB)
 
-# Get listmode events
-detector_ids = clinical.get_detector_ids_hdf5(str(GE_DATA / 'dmi_nema_lm' / 'LIST0000.BLF'), scanner_name)
-# Get scatter/random correction term at each event
-additive_term = clinical.get_additive_term_hdf5(str(GE_DATA / 'dmi_nema_lm' / 'corrections.h5'))
-# Get multiplicative weights (attenuation/normalization) at each event
-weights = clinical.get_weights_hdf5(str(GE_DATA / 'dmi_nema_lm' / 'corrections.h5'))
-# Get ALL valid detector-pairs and corresponding multiplicative weights
-detector_ids_sensitivity, weights_sensitivity = clinical.get_sensitivity_ids_and_weights_hdf5(str(GE_DATA / 'dmi_nema_lm' / 'corrections.h5'), scanner_name)
-
-# Define object space reconstruction matrix
-object_meta = ObjectMeta(
-    dr=(2.78,2.78,2.78), #mm
-    shape=(192,192,71) #voxels
+folder = GE_DATA / 'dmi_nema_lm'
+# The listmode events, the object grid and the projection metadata (the scanner's info and its TOF bins)
+detector_ids, object_meta, proj_meta = io.PET.read_ge_hdf5(
+    folder / 'LIST0000.BLF',
+    object_meta=ObjectMeta(dr=(2.78, 2.78, 2.78), shape=(192, 192, 71)) # mm, voxels
 )
-# Get time-of-flight metadata and define projection space metadata
-tof_meta = clinical.get_tof_meta(scanner_name)
+info = proj_meta.info
+
+weights, additive_counts, detector_ids_sensitivity, weights_sensitivity = io.PET.read_ge_corrections(folder / 'corrections.h5')
+
+# The projection metadata: the events, their TOF bins, and every valid crystal pair with its weight
 proj_meta = PETLMProjMeta(
     detector_ids,
     info,
-    tof_meta=tof_meta,
+    tof_meta=proj_meta.tof_meta,
     detector_ids_sensitivity=detector_ids_sensitivity,
     weights_sensitivity=weights_sensitivity
     )
@@ -66,19 +63,19 @@ system_matrix = PETLMSystemMatrix(
 
 likelihood = PoissonLogLikelihood(
     system_matrix,
-    additive_term=additive_term/weights,
+    additive_term=additive_counts/weights,
 )
 
 recon_algorithm = OSEM(likelihood)
+print(recon_algorithm.estimate_memory(n_subsets=34)) # its peak RAM and GPU memory, before it runs
 recon_OSEM = recon_algorithm(n_iters=2, n_subsets=34)
 
 # This is probably very similar to "Q.Clear" is ;)
 prior = RelativeDifferencePrior(beta=25, gamma=2)
 recon_algorithm = BSREM(likelihood, prior=prior)
+print(recon_algorithm.estimate_memory(n_subsets=34))
 recon_BSREM = recon_algorithm(n_iters=20, n_subsets=34)
 
 # %% Save the images
-from pytomography.io import save_dicom
-
 for name, image in [('osem', recon_OSEM), ('bsrem', recon_BSREM)]:
-    save_dicom(image, OUTPUT / 't_GE_HDF5' / name, object_meta, series_description=name.upper(), overwrite=True)
+    io.save_dicom(image, OUTPUT / 't_GE_HDF5' / name, object_meta, series_description=name.upper(), overwrite=True)
