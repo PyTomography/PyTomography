@@ -122,22 +122,21 @@ def _spect_system_matrix(scale: float, psf: str = 'gaussian', cache_probabilitie
     from pytomography.metadata.SPECT import SPECTPSFMeta
     from pytomography.projectors.SPECT import SPECTSystemMatrix
     from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
-    object_meta, proj_meta = _spect_metas(scale, n=96 if psf == 'operator' else 128)
+    object_meta, proj_meta = _spect_metas(scale, n=96 if psf == 'kernels' else 128)
     transforms = [SPECTAttenuationTransform((0.015 * torch.rand(object_meta.shape)).to(pytomography.device), cache_probabilities=cache_probabilities)]
     if psf == 'gaussian':
         transforms.append(SPECTPSFTransform(SPECTPSFMeta((0.03235, 1.324))))
-    elif psf == 'operator':
-        class _GaussianOperator:
-            """A PSF operator that exposes its kernel (as SPECTSPSFToolbox operators do): a Gaussian widening with distance."""
-            def _get_kernel(self, xv, yv, distances):
-                sigma = (0.03235 * distances + 1.324).reshape(-1, 1, 1)
-                k = torch.exp(-(xv ** 2 + yv ** 2) / (2 * sigma ** 2))
-                return k / k.sum(dim=(1, 2), keepdim=True)
+    elif psf == 'kernels':
+        from pytomography.transforms.SPECT import SPECTKernelPSFTransform
 
-            def __call__(self, input, xv, yv, distances, normalize=False):
-                kernel = self._get_kernel(xv, yv, distances).unsqueeze(1)
-                return torch.nn.functional.conv2d(input.unsqueeze(0), kernel, padding='same', groups=input.shape[0]).squeeze(0)
-        transforms.append(SPECTPSFTransform(psf_operator=_GaussianOperator(), cache_kernel=True))
+        def kernels(distances_mm, pixel_mm, shape):
+            """A Gaussian widening with distance, as 2D kernels: sigma = 0.03235 d + 1.324 mm."""
+            sigma = torch.as_tensor(0.03235 * distances_mm + 1.324, dtype=torch.float32).reshape(-1, 1, 1)
+            r = torch.arange(shape[0]) - shape[0] // 2
+            z = torch.arange(shape[1]) - shape[1] // 2
+            k = torch.exp(-((r[:, None] * pixel_mm[0]) ** 2 + (z[None, :] * pixel_mm[1]) ** 2) / (2 * sigma ** 2))
+            return k / k.sum(dim=(1, 2), keepdim=True)
+        transforms.append(SPECTKernelPSFTransform(kernels, kernel_shape=(31, 31)))
     return SPECTSystemMatrix(transforms, [], object_meta, proj_meta)
 
 
@@ -165,9 +164,9 @@ def case_spect_cached(scale):
     return _osem_case(_spect_system_matrix(scale, cache_probabilities=True), 8)
 
 
-def case_spect_psf_operator(scale):
-    """SPECT with a PSF operator (PSF2D, kernel spectra cached), 96^3, OSEM 4 subsets."""
-    return _osem_case(_spect_system_matrix(scale, psf='operator'), 4)
+def case_spect_psf_kernels(scale):
+    """SPECT with a PSF from 2D kernels (SPECTKernelPSFTransform, spectra kept per radius), 96^3, OSEM 4 subsets."""
+    return _osem_case(_spect_system_matrix(scale, psf='kernels'), 4)
 
 
 def case_spect_bsrem(scale):

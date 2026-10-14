@@ -1,0 +1,127 @@
+# PyTomography's SPECT collimators: the dimensions SIMIND's collimator database (collim.col, M. Ljungberg, Lund University) lists, in mm.
+# SIMIND 9.0 (collim.col sha256 b5d314ed9d508bd9...), and the codes only SIMIND's earlier collim.col has. hole_diameter_mm is across the flats for hexagons; rotated: the hexagonal lattice turned 90 degrees.
+code,family,type,kind,hole_shape,rotated,hole_diameter_mm,septal_thickness_mm,hole_length_mm,focal_length_mm,source
+HH-LEHR,CrystalCam (CZT),"low energy, high resolution",parallel,square,false,2.23,0.23,22.6,,SIMIND 9.0
+HH-LEHS,CrystalCam (CZT),"low energy, high sensitivity",parallel,square,false,2.04,0.42,11.2,,SIMIND 9.0
+HH-MEGP,CrystalCam (CZT),"medium energy, general purpose",parallel,circular,false,1.5,0.96,11.5,,SIMIND 9.0
+GZ-LEHR,GE Discovery NM 530c/570c/670 CZT,"low energy, high resolution",parallel,square,false,2.26,0.2,45.0,,SIMIND 9.0
+GZ-MEGP,GE Discovery NM 530c/570c/670 CZT,"medium energy, general purpose",parallel,hex,false,3.0,0.6,55.0,,SIMIND 9.0
+GZ-MEHR,GE Discovery NM 530c/570c/670 CZT,"medium energy, high resolution",parallel,hex,false,2.8,0.9,40.5,,SIMIND 9.0
+GZ-WEHR,GE Discovery NM 530c/570c/670 CZT,"wide energy, high resolution",parallel,square,false,2.26,0.2,45.0,,SIMIND 9.0
+GE-HEGP,GE Discovery NM/CT 670,"high energy, general purpose",parallel,circular,false,4.0,3.2,40.0,,SIMIND 9.0
+GE-LEGP,GE Discovery NM/CT 670,"low energy, general purpose",parallel,hex,false,2.5,0.3,41.0,,SIMIND 9.0
+GE-LEHR,GE Discovery NM/CT 670,"low energy, high resolution",parallel,hex,false,1.8,0.3,40.0,,SIMIND 9.0
+GE-LEHS,GE Discovery NM/CT 670,"low energy, high sensitivity",parallel,hex,false,3.4,0.5,36.0,,SIMIND 9.0
+GE-MEGP,GE Discovery NM/CT 670,"medium energy, general purpose",parallel,hex,false,3.4,1.4,42.0,,SIMIND 9.0
+G8-ELEG,GE Discovery NM/CT 870 DR,"extended low energy, general purpose",parallel,hex,false,2.5,0.4,40.0,,SIMIND 9.0
+G8-HEGP,GE Discovery NM/CT 870 DR,"high energy, general purpose",parallel,hex,false,4.0,1.8,66.0,,SIMIND 9.0
+G8-LEHR,GE Discovery NM/CT 870 DR,"low energy, high resolution",parallel,hex,false,1.5,0.2,35.0,,SIMIND 9.0
+G8-LEHS,GE Discovery NM/CT 870 DR,"low energy, high sensitivity",parallel,hex,false,2.31,1.52,34.0,,SIMIND 9.0
+G8-LHRS,GE Discovery NM/CT 870 DR,"low energy, high resolution and sensitivity",parallel,hex,false,1.43,0.13,32.0,,SIMIND 9.0
+G8-LUHR,GE Discovery NM/CT 870 DR,"low energy, ultra-high resolution",parallel,hex,false,1.22,0.15,38.0,,SIMIND 9.0
+G8-MEGP,GE Discovery NM/CT 870 DR,"medium energy, general purpose",parallel,hex,false,3.5,1.05,58.0,,SIMIND 9.0
+GI-ELEG,GE Infinia,"extended low energy, general purpose",parallel,hex,false,2.5,0.4,40.0,,SIMIND 9.0
+GI-HEGP,GE Infinia,"high energy, general purpose",parallel,hex,false,4.0,1.8,66.0,,SIMIND 9.0
+GI-LEGP,GE Infinia,"low energy, general purpose",parallel,hex,false,1.9,0.2,35.0,,SIMIND 9.0
+GI-LEHR,GE Infinia,"low energy, high resolution",parallel,hex,false,1.5,0.2,35.0,,SIMIND 9.0
+GI-LEHX,GE Infinia,,parallel,hex,false,1.5,0.2,40.0,,SIMIND 9.0
+GI-LUHR,GE Infinia,"low energy, ultra-high resolution",parallel,hex,false,1.22,0.15,38.0,,SIMIND 9.0
+GI-MEGP,GE Infinia,"medium energy, general purpose",parallel,hex,false,3.0,1.05,58.0,,SIMIND 9.0
+GM-LEGP,GE Millennium MPR,"low energy, general purpose",parallel,hex,false,2.5,0.25,43.0,,SIMIND 9.0
+GM-LEHR,GE Millennium MPR,"low energy, high resolution",parallel,hex,false,1.8,0.18,41.0,,SIMIND 9.0
+GV-EEGP,GE Millennium VG,"extended low energy, general purpose",parallel,hex,false,2.5,0.25,45.0,,SIMIND 9.0
+GV-HEGP,GE Millennium VG,"high energy, general purpose",parallel,hex,false,4.0,1.8,66.0,,SIMIND 9.0
+GV-LEGP,GE Millennium VG,"low energy, general purpose",parallel,hex,false,1.9,0.2,35.0,,SIMIND 9.0
+GV-LEHR,GE Millennium VG,"low energy, high resolution",parallel,hex,false,1.5,0.2,35.0,,SIMIND 9.0
+GV-LEUR,GE Millennium VG,"low energy, ultra-high resolution",fan,hex,false,1.5,0.2,40.0,350.0,SIMIND 9.0
+GV-MEGP,GE Millennium VG,"medium energy, general purpose",parallel,hex,false,3.0,1.05,58.0,,SIMIND 9.0
+GV-UEUH,GE Millennium VG,"ultra-high energy, ultra-high resolution",parallel,hex,false,3.0,1.9,80.0,,SIMIND 9.0
+GO-ELHR,GE Optima NM/CT 640,"extended low energy, high resolution",parallel,hex,false,2.5,0.4,40.0,,SIMIND 9.0
+GO-HEGP,GE Optima NM/CT 640,"high energy, general purpose",parallel,hex,false,4.0,1.8,66.0,,SIMIND 9.0
+GO-LEGP,GE Optima NM/CT 640,"low energy, general purpose",parallel,hex,false,1.9,0.2,32.0,,SIMIND before 9.0
+GO-LEHR,GE Optima NM/CT 640,"low energy, high resolution",parallel,hex,false,1.5,0.2,35.0,,SIMIND 9.0
+GO-MEGP,GE Optima NM/CT 640,"medium energy, general purpose",parallel,hex,false,3.0,1.05,58.0,,SIMIND 9.0
+GT-LEGP,GE Ventri,"low energy, general purpose",parallel,hex,false,1.9,0.2,32.0,,SIMIND 9.0
+GT-LEHR,GE Ventri,"low energy, high resolution",parallel,hex,false,1.4,0.15,30.0,,SIMIND 9.0
+MA-HEGP,Mediso AnyScan,"high energy, general purpose",parallel,hex,false,3.4,1.6,55.0,,SIMIND 9.0
+MA-LEGP,Mediso AnyScan,"low energy, general purpose",parallel,hex,false,1.9,0.2,35.0,,SIMIND 9.0
+MA-LEHR,Mediso AnyScan,"low energy, high resolution",parallel,hex,false,1.5,0.2,35.0,,SIMIND 9.0
+MA-LEHS,Mediso AnyScan,"low energy, high sensitivity",parallel,hex,false,2.5,0.3,26.0,,SIMIND 9.0
+MA-LEUHR,Mediso AnyScan,,parallel,hex,false,1.2,0.2,34.0,,SIMIND 9.0
+MA-LHRHS,Mediso AnyScan,,parallel,hex,false,1.2,0.2,23.8,,SIMIND 9.0
+MA-MEGP,Mediso AnyScan,"medium energy, general purpose",parallel,hex,false,2.5,1.2,35.0,,SIMIND 9.0
+MA-MHEGP,Mediso AnyScan,,parallel,hex,false,3.4,1.6,55.0,,SIMIND 9.0
+MA-MLEGP,Mediso AnyScan,,parallel,hex,false,1.9,0.5,28.0,,SIMIND 9.0
+ME-HEGP,Mediso Nucline Spirit DH-V,"high energy, general purpose",parallel,hex,false,3.4,1.6,55.0,,SIMIND 9.0
+ME-LEGP,Mediso Nucline Spirit DH-V,"low energy, general purpose",parallel,hex,false,1.9,0.2,35.0,,SIMIND 9.0
+ME-LEHR,Mediso Nucline Spirit DH-V,"low energy, high resolution",parallel,hex,false,1.5,0.16,35.0,,SIMIND 9.0
+ME-LEUHR,Mediso Nucline Spirit DH-V,,parallel,hex,false,1.4,0.16,40.0,,SIMIND 9.0
+ME-MEGP,Mediso Nucline Spirit DH-V,"medium energy, general purpose",parallel,hex,false,2.5,1.2,35.0,,SIMIND 9.0
+QR-LEGP,Other,"low energy, general purpose",parallel,square,false,2.33,0.28,40.1,,SIMIND before 9.0
+QR-MEGP,Other,"medium energy, general purpose",parallel,square,false,3.16,0.8,58.4,,SIMIND before 9.0
+QX-LEGP,Other,"low energy, general purpose",parallel,hex,false,2.5,0.3,40.1,,SIMIND before 9.0
+QX-MEGP,Other,"medium energy, general purpose",parallel,hex,false,3.4,0.86,58.4,,SIMIND before 9.0
+PB-CAHR,Philips BrightView,"cardiac, high resolution",parallel,hex,false,2.03,0.152,48.0,,SIMIND 9.0
+PB-HEGP,Philips BrightView,"high energy, general purpose",parallel,hex,false,3.81,1.73,58.4,,SIMIND 9.0
+PB-LEGP,Philips BrightView,"low energy, general purpose",parallel,hex,false,1.4,0.18,24.7,,SIMIND 9.0
+PB-LEHR,Philips BrightView,"low energy, high resolution",parallel,hex,false,1.22,0.152,27.0,,SIMIND 9.0
+PB-MEGP,Philips BrightView,"medium energy, general purpose",parallel,hex,false,3.4,0.86,58.4,,SIMIND 9.0
+PR-APFB,Picker PRISM 2000/3000,,fan,hex,false,1.57,0.24,25.4,500.0,SIMIND 9.0
+PR-HE,Picker PRISM 2000/3000,high energy,parallel,hex,false,3.81,1.73,58.4,,SIMIND 9.0
+PR-HRFB,Picker PRISM 2000/3000,,fan,hex,false,1.4,0.18,27.0,500.0,SIMIND 9.0
+PR-LEAP,Picker PRISM 2000/3000,"low energy, all purpose",parallel,hex,false,1.57,0.24,25.4,,SIMIND 9.0
+PR-LEHR,Picker PRISM 2000/3000,"low energy, high resolution",parallel,hex,false,1.4,0.18,27.0,,SIMIND 9.0
+PR-LEUR,Picker PRISM 2000/3000,"low energy, ultra-high resolution",parallel,hex,false,1.4,0.15,34.9,,SIMIND 9.0
+PR-ME,Picker PRISM 2000/3000,medium energy,parallel,hex,false,3.4,0.86,58.4,,SIMIND 9.0
+PR-URFB,Picker PRISM 2000/3000,,fan,hex,false,1.4,0.15,34.9,500.0,SIMIND 9.0
+SE-HE,Siemens E.CAM,high energy,parallel,hex,false,3.4,2.0,50.8,,SIMIND 9.0
+SE-LEAP,Siemens E.CAM,"low energy, all purpose",parallel,hex,false,1.45,0.2,24.1,,SIMIND 9.0
+SE-LEFB,Siemens E.CAM,,parallel,square,false,1.53,0.16,35.0,,SIMIND 9.0
+SE-LEHR,Siemens E.CAM,"low energy, high resolution",parallel,hex,false,1.11,0.16,24.05,,SIMIND 9.0
+SE-LEHS,Siemens E.CAM,"low energy, high sensitivity",parallel,hex,false,2.54,0.36,24.05,,SIMIND 9.0
+SE-LEUR,Siemens E.CAM,"low energy, ultra-high resolution",parallel,hex,false,1.16,0.13,35.8,,SIMIND 9.0
+SE-ME,Siemens E.CAM,medium energy,parallel,hex,false,2.94,1.14,40.64,,SIMIND 9.0
+SE-UHE,Siemens E.CAM,,parallel,hex,false,2.5,3.4,50.5,,SIMIND 9.0
+SI-511,Siemens Intevo,511 keV,parallel,hex,false,3.4,2.5,75.0,,SIMIND before 9.0
+SI-512,Siemens Intevo,511 keV,parallel,hex,false,3.4,3.0,75.0,,SIMIND before 9.0
+SI-DELU,Siemens Intevo,,parallel,hex,false,1.0,1.0,10.0,,SIMIND before 9.0
+SI-HE,Siemens Intevo,high energy,parallel,hex,false,4.0,2.0,59.7,,SIMIND 9.0
+SI-HEGP,Siemens Intevo,"high energy, general purpose",parallel,square,false,4.06,2.0,59.7,,SIMIND before 9.0
+SI-LEAP,Siemens Intevo,"low energy, all purpose",parallel,hex,false,1.45,0.2,24.05,,SIMIND 9.0
+SI-LEHR,Siemens Intevo,"low energy, high resolution",parallel,hex,false,1.11,0.16,24.05,,SIMIND 9.0
+SI-LPHR,Siemens Intevo,"low penetration, high resolution",parallel,hex,false,1.5,0.2,35.0,,SIMIND 9.0
+SI-LUHR,Siemens Intevo,"low energy, ultra-high resolution",parallel,hex,false,1.16,0.13,35.8,,SIMIND 9.0
+SI-ME,Siemens Intevo,medium energy,parallel,hex,false,2.94,1.14,40.64,,SIMIND 9.0
+SI-ME+,Siemens Intevo,medium energy,parallel,hex,false,2.07,0.66,32.84,,SIMIND before 9.0
+SI-MELP,Siemens Intevo,"medium energy, low penetration",parallel,hex,false,2.94,1.14,40.64,,SIMIND 9.0
+SI-THER,Siemens Intevo,therapy,parallel,hex,false,2.5,3.0,55.0,,SIMIND before 9.0
+SY-HE,Siemens Symbia,high energy,parallel,hex,true,4.0,2.0,59.7,,SIMIND 9.0
+SY-HE1,Siemens Symbia,high energy,parallel,hex,true,4.0,1.95,59.7,,SIMIND 9.0
+SY-HE2,Siemens Symbia,high energy,parallel,hex,true,4.0,2.05,59.7,,SIMIND 9.0
+SY-LEAP,Siemens Symbia,"low energy, all purpose",parallel,hex,true,1.45,0.2,24.05,,SIMIND 9.0
+SY-LEHR,Siemens Symbia,"low energy, high resolution",parallel,hex,true,1.11,0.16,24.05,,SIMIND 9.0
+SY-ME,Siemens Symbia,medium energy,parallel,hex,true,2.94,1.14,40.64,,SIMIND 9.0
+ED-LEGP,Von Gahlen,"low energy, general purpose",parallel,hex,false,1.6,0.2,25.4,,SIMIND 9.0
+ED-LEHR,Von Gahlen,"low energy, high resolution",parallel,hex,false,1.4,0.2,25.4,,SIMIND 9.0
+ED-LEHS,Von Gahlen,"low energy, high sensitivity",parallel,hex,false,1.6,0.23,20.3,,SIMIND 9.0
+ED-LEMS,Von Gahlen,,parallel,hex,false,1.6,0.23,22.9,,SIMIND 9.0
+ED-LEUR,Von Gahlen,"low energy, ultra-high resolution",parallel,hex,false,1.4,0.18,29.2,,SIMIND 9.0
+ED-LEUS,Von Gahlen,,parallel,hex,false,1.78,0.23,20.3,,SIMIND 9.0
+ED-MEHR,Von Gahlen,"medium energy, high resolution",parallel,square,false,2.0,1.02,47.9,,SIMIND 9.0
+ED-MEHS,Von Gahlen,,parallel,square,false,2.0,1.02,31.8,,SIMIND 9.0
+ED-MEUS,Von Gahlen,,parallel,hex,false,3.4,0.89,49.5,,SIMIND 9.0
+VG-HE51,Von Gahlen,,parallel,hex,false,5.5,2.5,136.0,,SIMIND 9.0
+VG-LEES,Von Gahlen,,parallel,hex,false,3.0,0.3,35.0,,SIMIND 9.0
+VG-LEGP,Von Gahlen,"low energy, general purpose",parallel,hex,false,2.0,0.25,35.0,,SIMIND 9.0
+VG-LEHR,Von Gahlen,"low energy, high resolution",parallel,hex,false,1.7,0.2,35.0,,SIMIND 9.0
+VG-LEHS,Von Gahlen,"low energy, high sensitivity",parallel,hex,false,2.4,0.25,35.0,,SIMIND 9.0
+VG-LESS,Von Gahlen,,parallel,hex,false,3.0,0.4,25.0,,SIMIND 9.0
+VG-LETY,Von Gahlen,,parallel,hex,false,3.0,0.2,58.0,,SIMIND 9.0
+VG-LEUR,Von Gahlen,"low energy, ultra-high resolution",parallel,hex,false,1.3,0.2,35.0,,SIMIND 9.0
+VG-LEUS,Von Gahlen,,parallel,hex,false,3.0,0.4,20.0,,SIMIND 9.0
+VG-ME19,Von Gahlen,,parallel,hex,false,2.4,0.5,38.0,,SIMIND 9.0
+VG-ME23,Von Gahlen,,parallel,hex,false,1.7,0.2,30.0,,SIMIND 9.0
+VG-ME26,Von Gahlen,,parallel,hex,false,4.5,1.9,30.0,,SIMIND 9.0
+VG-ME30,Von Gahlen,,parallel,hex,false,3.4,1.4,42.0,,SIMIND 9.0
+VG-ME36,Von Gahlen,,parallel,hex,false,4.5,1.9,65.0,,SIMIND 9.0
+VG-METY,Von Gahlen,,parallel,hex,false,4.5,1.9,65.0,,SIMIND 9.0

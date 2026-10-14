@@ -1,0 +1,18 @@
+{
+  "description": "PyTomography's SPECT cameras: each one's energy resolution model (FWHM against energy) and intrinsic spatial resolution (FWHM at 140 keV). The only energy resolution model so far is Morphis et al.'s, FWHM = a + b sqrt(E + c E^2), E and FWHM in keV.",
+  "cameras": [
+    {
+      "name": "Siemens Symbia T",
+      "aliases": ["Symbia T", "Symbia T2", "Symbia T6", "Symbia T16", "Siemens Symbia T2", "Siemens Symbia T6", "Siemens Symbia T16"],
+      "energy_resolution": {
+        "model": "Morphis",
+        "a_keV": -0.534,
+        "b": 0.946,
+        "c_per_keV": 0.006,
+        "source": "Morphis et al., Heliyon 7:e06097 (2021), https://doi.org/10.1016/j.heliyon.2021.e06097: the fit for a Siemens Symbia T16 (SIMIND's siemens.erf)"
+      },
+      "intrinsic_fwhm_mm_140": 3.8,
+      "intrinsic_source": "Siemens Radbook (2017): intrinsic spatial resolution FWHM at most 3.8 mm in the central field of view"
+    }
+  ]
+}

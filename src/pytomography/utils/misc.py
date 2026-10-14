@@ -69,18 +69,17 @@ def get_object_nearest_neighbour(object: torch.Tensor, shifts: list[int], mode='
         return neighbour[shift_max:-shift_max,shift_max:-shift_max,shift_max:-shift_max]
 
 def print_collimator_parameters():
-    """Prints PyTomography's table of SPECT collimators, which comes from SIMIND's collimator database.
-
-    Each record starts with ``*`` and gives the collimator's code (as :func:`pytomography.io.SPECT.collimator_psf` takes
-    it), then its hole diameter, septal thickness and hole length in cm (SIMIND's unit), its hole shape and type, and a
-    description; the other lines are comments.
+    """Prints PyTomography's table of SPECT collimators (from SIMIND's collimator database): each collimator's code (as
+    :func:`pytomography.io.SPECT.collimator` and :func:`~pytomography.io.SPECT.collimator_psf` take it), camera family,
+    kind and hole shape, and its hole diameter, septal thickness and hole length in mm. The docs' "SPECT parameters"
+    page lists the same table.
     """
-    module_path = os.path.dirname(os.path.abspath(__file__))
-    collimator_filepath = os.path.join(module_path, '../data/collim.col')
-    with open(collimator_filepath) as f:
-        for line in f.readlines():
-            print(line)
-            
+    from pytomography.io.SPECT import collimators
+    print(f"{'code':10} {'family':34} {'kind':9} {'shape':9} {'hole (mm)':>9} {'septa (mm)':>10} {'length (mm)':>11}")
+    for r in collimators():
+        print(f"{r['code']:10} {r['family']:34} {r['kind']:9} {r['hole_shape'] + (' rot.' if r['rotated'] else ''):9} "
+              f"{r['hole_diameter_mm']:9.2f} {r['septal_thickness_mm']:10.2f} {r['hole_length_mm']:11.2f}")
+
 def check_if_class_contains_method(instance, method_name):
     """Checks that an object has a method called ``method_name``, and raises an exception if it does not.
 

@@ -1,0 +1,7 @@
+# PyTomography's SPECT detectors by label: the NaI(Tl) crystal, the cover in front of it and the backscatter behind it,
+# in mm. The cover and backscatter are SIMIND 9.0's template camera's (simind.smc: 0.1 cm aluminium, 10 cm of its
+# "pmt" material). The crystal thickness is the camera's: 3/8 inch for most general purpose cameras, 5/8 inch for
+# some high energy ones.
+label,crystal,crystal_mm,crystal_material,cover_mm,cover_material,backscatter_mm,backscatter_material,source
+NaI-9.5mm,3/8 inch NaI(Tl),9.525,nai,1.0,aluminium,100.0,pmt,SIMIND 9.0 template camera; crystal 3/8 inch
+NaI-15.9mm,5/8 inch NaI(Tl),15.875,nai,1.0,aluminium,100.0,pmt,SIMIND 9.0 template camera; crystal 5/8 inch
