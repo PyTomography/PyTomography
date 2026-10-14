@@ -42,9 +42,31 @@ def mu_unit_factor(units: str | None) -> float:
     return MU_UNITS[key]
 
 
+# The fit of NIST's linear attenuation (1/cm) between 50 and 550 keV to dual_sqrt_exponential (c1, c2, d1, d2), as
+# PyTomography has always fitted it (scipy's curve_fit from its default start, scipy 1.16). The fit is ill conditioned
+# for some materials (air: d1 = d2 to 5 digits) and newer scipy versions end it elsewhere (air's mu 3 % lower), so the
+# coefficients are kept here; a material not listed is fitted from its file.
+_NIST_FITS = {
+    "adipose": (0.5084238572442676, 0.22995596965728382, 0.4167739762899255, 0.04112522253821483),
+    "air": (0.0012222402262801089, -0.000896917188852199, 0.0532547454123173, 0.053255346928010976),
+    "aluminum": (0.626380557034642, 81.19073580685898, 0.04571900959376883, 0.7189510527916857),
+    "bonecortical": (0.4780021602379895, 74.01093093078991, 0.045932671085777775, 0.7251278140727243),
+    "boneequivplastic": (33.53156327888144, 0.35899814172023253, 0.7049085832768899, 0.044591148420270225),
+    "breast": (0.24802401719725573, 0.9956581597550115, 0.04165383944654166, 0.47660183050923144),
+    "lead": (137.368692411092, 138.08423063118738, 0.19184949400711612, 0.1918566928999242),
+    "lungtissue": (1.8182141896016226, 0.25688947018380764, 0.530155514930805, 0.04205051302319352),
+    "muscle": (1.7896845547641105, 0.2569344007210017, 0.530209912294575, 0.042104269452948824),
+    "tissueequivplastic": (1.347836980771267, 0.2731178298790655, 0.4979230645725841, 0.04175075318931385),
+    "tungsten": (368.04210557408885, 368.0418887575505, 0.22213481197585846, 0.22206512656962943),
+    "water": (0.24620457887270375, 1.5132313833056925, 0.041975026729775045, 0.5156308920529875),
+}
+
+
 @functools.lru_cache(maxsize=None)
 def _nist_fit(material: str) -> np.ndarray:
     """The fit of NIST's linear attenuation (1/cm) between 50 and 550 keV that PyTomography has always used."""
+    if material in _NIST_FITS:
+        return np.array(_NIST_FITS[material])
     from scipy.optimize import curve_fit
     from pytomography.utils.nist_data import dual_sqrt_exponential, get_E_mu_data_from_datasheet
     energy, mu = get_E_mu_data_from_datasheet(os.path.join(_NIST, f"{material}.csv"))

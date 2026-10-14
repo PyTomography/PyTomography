@@ -173,7 +173,8 @@ class Likelihood:
         
         
     def _get_normBP(self, subset_idx: int, return_sum: bool = False):
-        """Gets normalization factor (back projection of ones)
+        """Gets normalization factor (back projection of ones), on PyTomography's device whichever device the system
+        matrix keeps it on (the third generation CT system matrix keeps them on the host).
 
         Args:
             subset_idx (int): Subset index
@@ -183,10 +184,10 @@ class Likelihood:
             torch.Tensor: Normalization factor
         """
         if subset_idx is None:
-            return self.norm_BP
+            return self.norm_BP.to(pytomography.device)
         else:
             if return_sum:
-                return torch.stack(self.norm_BPs).sum(axis=0)
+                return torch.stack([norm_BP.to(pytomography.device) for norm_BP in self.norm_BPs]).sum(axis=0)
             else:
                 # Put on PyTomography device in case stored on CPU
                 return self.norm_BPs[subset_idx].to(pytomography.device)

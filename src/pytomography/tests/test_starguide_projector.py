@@ -19,7 +19,7 @@ DEV = pytomography.device
 LX, LY, LZ = 40, 40, 12
 
 
-def _system(psf_params=(0.02, 0.5), n_subsets=3, seed=0):
+def _system(psf_params=(0.02, 0.5), n_subsets=3, seed=0, proj2proj_transforms=()):
     gen = torch.Generator().manual_seed(seed)
     dx = 4.0
     object_meta = SPECTObjectMeta(dr=(dx, dx, dx), shape=(LX, LY, LZ))
@@ -32,7 +32,7 @@ def _system(psf_params=(0.02, 0.5), n_subsets=3, seed=0):
     transforms = [SPECTAttenuationTransform(mu, assume_padded=False)]
     if psf_params is not None:
         transforms.append(SPECTPSFTransform(SPECTPSFMeta(psf_params), assume_padded=False))
-    sm = StarGuideSystemMatrix(object_meta, proj_meta, obj2obj_transforms=transforms)
+    sm = StarGuideSystemMatrix(object_meta, proj_meta, obj2obj_transforms=transforms, proj2proj_transforms=list(proj2proj_transforms))
     sm.set_n_subsets(n_subsets)
     f = torch.rand(LX, LY, LZ, generator=gen).to(DEV)
     g = torch.rand(24, 16, LZ, generator=gen).to(DEV)
@@ -133,3 +133,43 @@ def test_projection_loops_do_not_synchronise_with_device():
         counts = {e.key: e.count for e in p.key_averages()}
         assert counts.get("cudaLaunchKernel", 0) > 10
         assert counts.get("cudaStreamSynchronize", 0) == 0
+
+
+def test_projection_transforms_are_applied():
+    """proj2proj_transforms were configured but never applied. Forward projection now ends with them (a mask of the
+    detector pixels, then an additive term, on the counts of the subset's views), and back projection starts with
+    their adjoints in reverse order (the mask; adding is not part of the adjoint)."""
+    from pytomography.transforms.SPECT import AdditiveTermTransform, CutOffTransform
+    sm, f, g = _system()
+    mask = torch.ones(16, LZ, device=DEV)
+    mask[:5] = 0
+    mask[:, -2:] = 0
+    masked = _system(proj2proj_transforms=[CutOffTransform(mask), AdditiveTermTransform(2.0)])[0]
+    for subset_idx in (None, 1):
+        gs = g if subset_idx is None else sm.get_projection_subset(g, subset_idx)
+        assert torch.allclose(masked.forward(f, subset_idx), sm.forward(f, subset_idx) * mask + 2.0)
+        assert torch.allclose(masked.backward(gs, subset_idx), sm.backward(gs * mask, subset_idx))
+    assert not torch.allclose(masked.backward(g), sm.backward(g))
+
+
+@pytest.mark.parametrize("n_subsets, views", [(3, [8, 8, 8]), (4, [8, 8, 4, 4])])
+def test_weighting_subset_is_the_share_of_the_views(n_subsets, views):
+    """StarGuide had no get_weighting_subset (nor had the SystemMatrix base): its subsets are groups of angles, and a
+    subset weighs the share of the views it holds (6 angles of 4 views: 4 subsets hold 2, 2, 1 and 1 angles)."""
+    sm = _system(n_subsets=n_subsets)[0]
+    assert sm.get_weighting_subset(None) == 1
+    assert [sm.get_weighting_subset(k) for k in range(n_subsets)] == pytest.approx([v / 24 for v in views])
+
+
+@pytest.mark.parametrize("algorithm", ["BSREM", "OSMAPOSL"])
+def test_priors_run_on_starguide(algorithm):
+    """BSREM, OSMAPOSL and every algorithm with a prior scale the prior by get_weighting_subset: on StarGuide they
+    raised an AttributeError."""
+    import pytomography.algorithms as algorithms
+    from pytomography.likelihoods import PoissonLogLikelihood
+    from pytomography.priors import RelativeDifferencePrior
+    sm, f, _ = _system(n_subsets=3)
+    projections = torch.poisson(20 * sm.forward(f).cpu(), generator=torch.Generator().manual_seed(4)).to(DEV)
+    reconstruction = getattr(algorithms, algorithm)(PoissonLogLikelihood(sm, projections), prior=RelativeDifferencePrior(0.1, gamma=2))
+    image = reconstruction(n_iters=1, n_subsets=3)
+    assert image.shape == (LX, LY, LZ) and torch.isfinite(image).all() and image.sum() > 0

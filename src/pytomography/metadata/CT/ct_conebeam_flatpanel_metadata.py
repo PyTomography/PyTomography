@@ -32,7 +32,11 @@ class CTConeBeamFlatPanelProjMeta(ProjMeta):
             - beam_radius*torch.sin(self.angles),
             self.z_locations
         ], dim=-1)
-        self.detector_orientations = - self.detector_locations / torch.norm(self.detector_locations, dim=-1).unsqueeze(-1)
+        # the panel faces the rotation axis, perpendicular to it at every z (the detector's position projected on the
+        # axial plane: its position itself tilted the panel off z = 0)
+        in_plane = self.detector_locations.clone()
+        in_plane[:, 2] = 0
+        self.detector_orientations = - in_plane / torch.norm(in_plane, dim=-1).unsqueeze(-1)
         # Rotation offset
         offsetx, offsety = self._get_CORs()
         self.detector_locations[:,0] += offsetx

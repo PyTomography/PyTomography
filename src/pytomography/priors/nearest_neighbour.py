@@ -2,6 +2,7 @@ r"""The code here is implementation of priors that depend on summation over near
 
 from __future__ import annotations
 import abc
+from collections.abc import Sequence
 import torch
 import numpy as np
 from .prior import Prior
@@ -16,14 +17,16 @@ class NearestNeighbourPrior(Prior):
     Args:
             beta (float): Used to scale the weight of the prior
             weight (NeighbourWeight, optional). Weighting scheme to use for nearest neighbours: this specifies :math:`w_{r,s}` above. If ``None``, then uses EuclideanNeighbourWeight, which weights neighbouring voxels based on their euclidean distance. Defaults to None.
+            obj2obj_transforms (Sequence[Transform], optional): Transforms applied, in order, to the prior's value and gradients at every voxel (for example a ``GaussianFilter``). Defaults to none.
     """
     def __init__(
         self,
         beta: float,
         weight: NeighbourWeight | None = None,
+        obj2obj_transforms: Sequence[Transform] = (),
         **kwargs
     ) -> None:
-        super(NearestNeighbourPrior, self).__init__(beta)
+        super(NearestNeighbourPrior, self).__init__(beta, obj2obj_transforms)
         if weight is None:
             self.weight = EuclideanNeighbourWeight()
         else:
@@ -36,8 +39,8 @@ class NearestNeighbourPrior(Prior):
         Args:
             object_meta (ObjectMeta): Object metadata describing the system.
         """
+        super(NearestNeighbourPrior, self).set_object_meta(object_meta)
         self.weight.set_object_meta(object_meta)
-        self.object_meta = object_meta
         # Set to ones, but possibly updated by recon algorithm in reconstruction
         self.FOV_scale = torch.ones(self.object_meta.shape).to(pytomography.device)
         
@@ -116,14 +119,16 @@ class QuadraticPrior(NearestNeighbourPrior):
             beta (float): Used to scale the weight of the prior
             weight (NeighbourWeight, optional). Weighting scheme to use for nearest neighbours. If ``None``, then uses EuclideanNeighbourWeight. Defaults to None.
             delta (float, optional): Parameter :math:`\delta` in equation above. Defaults to 1.
+            obj2obj_transforms (Sequence[Transform], optional): Transforms applied, in order, to the prior's value and gradients at every voxel (for example a ``GaussianFilter``). Defaults to none.
     """
     def __init__(
         self,
         beta: float,
         weight: NeighbourWeight | None = None,
         delta: float = 1,
+        obj2obj_transforms: Sequence[Transform] = (),
     ) -> None:
-        super(QuadraticPrior, self).__init__(beta, weight=weight, delta=delta)
+        super(QuadraticPrior, self).__init__(beta, weight=weight, obj2obj_transforms=obj2obj_transforms, delta=delta)
         
     def phi0(self, fr, fs):
         return 1/4 * ((fr - fs)/self.delta)**2
@@ -138,14 +143,16 @@ class LogCoshPrior(NearestNeighbourPrior):
             beta (float): Used to scale the weight of the prior
             delta (float, optional): Parameter :math:`\delta` in equation above. Defaults to 1.
             weight (NeighbourWeight, optional). Weighting scheme to use for nearest neighbours. If ``None``, then uses EuclideanNeighbourWeight. Defaults to None.
+            obj2obj_transforms (Sequence[Transform], optional): Transforms applied, in order, to the prior's value and gradients at every voxel (for example a ``GaussianFilter``). Defaults to none.
     """
     def __init__(
         self,
         beta: float,
         delta: float = 1,
         weight: NeighbourWeight | None = None,
+        obj2obj_transforms: Sequence[Transform] = (),
     ) -> None:
-        super(LogCoshPrior, self).__init__(beta, weight=weight, delta=delta)
+        super(LogCoshPrior, self).__init__(beta, weight=weight, obj2obj_transforms=obj2obj_transforms, delta=delta)
         
     def phi0(self, fr, fs):
         return torch.log(torch.cosh((fr-fs)/self.delta))
@@ -160,15 +167,17 @@ class RelativeDifferencePrior(NearestNeighbourPrior):
             beta (float): Used to scale the weight of the prior
             gamma (float, optional): Parameter :math:`\gamma` in equation above. Defaults to 1.
             weight (NeighbourWeight, optional). Weighting scheme to use for nearest neighbours. If ``None``, then uses EuclideanNeighbourWeight. Defaults to None.
+            obj2obj_transforms (Sequence[Transform], optional): Transforms applied, in order, to the prior's value and gradients at every voxel (for example a ``GaussianFilter``). Defaults to none.
     """
     def __init__(
         self,
         beta: float,
         weight: NeighbourWeight | None = None,
         gamma: float = 1,
-        delta = pytomography.delta
+        delta = pytomography.delta,
+        obj2obj_transforms: Sequence[Transform] = (),
     ) -> None:
-        super(RelativeDifferencePrior, self).__init__(beta, weight=weight, gamma = gamma, delta=delta)
+        super(RelativeDifferencePrior, self).__init__(beta, weight=weight, obj2obj_transforms=obj2obj_transforms, gamma = gamma, delta=delta)
         
     def phi0(self, fr, fs):
         return (fr-fs)**2 / (fr + fs + self.gamma*torch.abs(fr-fs) + self.delta)

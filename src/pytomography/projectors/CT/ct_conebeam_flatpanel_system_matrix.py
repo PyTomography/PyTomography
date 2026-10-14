@@ -78,14 +78,11 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         w.div_((lx * d[0] + ly * d[1] + lz * d[2]).pow_(3)).mul_(self.proj_meta.DSD**2 * dx*dy*dz / (du*dv))
         return self._FBP_postweight_component1[idx] / w
     
-    def set_n_subsets(self, n_subsets: int) -> list:
-        """Returns a list where each element consists of an array of indices corresponding to a partitioned version of the projections. 
+    def set_n_subsets(self, n_subsets: int) -> None:
+        """Partitions the projections into ``n_subsets`` subsets: sets ``subset_indices_array``, one array of the indices of the views of each subset (every ``n_subsets``-th one).
 
         Args:
             n_subsets (int): Number of subsets to partition the projections into
-
-        Returns:
-            list: List of arrays where each array corresponds to the projection indices of a particular subset.
         """
         self._check_n_subsets(n_subsets, self.proj_meta.N_angles)
         indices = torch.arange(self.proj_meta.N_angles).to(torch.long).to(self.device)
@@ -158,19 +155,12 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         # Project into one buffer: parallelproj writes the line integrals of each angle into the array it is given
         proj = torch.zeros((len(angle_indices), *self.proj_meta.shape), dtype=torch.float32, device=self.device)
         for i in range(len(angle_indices)):
-            idx = angle_indices[i] # index of angle
-            detector_coordinates = _float32(self.proj_meta._get_detector_coordinates(idx), pytomography.device)
-            beam_coordinate = _float32(self.proj_meta.beam_locations[idx], pytomography.device).expand(detector_coordinates.shape).contiguous()
-            proj_i = torch.zeros(self.proj_meta.shape, dtype=torch.float32, device=pytomography.device)
-            parallelproj_core.joseph3d_fwd(
-                beam_coordinate,
-                detector_coordinates,
-                object_i,
-                self.origin,
-                self.voxel_size,
-                proj_i
-            )
-            proj[i] = proj_i.to(self.device)
+            beam_coordinate, detector_coordinates = self._rays_of_view(angle_indices[i])
+            proj_i = torch.zeros(detector_coordinates.shape[0], dtype=torch.float32, device=pytomography.device)
+            # the rays of the view in N_splits kernel calls, as back projection does; each ray is computed on its own
+            for beam_coordinate_s, detector_coordinates_s, proj_s in zip(torch.tensor_split(beam_coordinate, self.N_splits), torch.tensor_split(detector_coordinates, self.N_splits), torch.tensor_split(proj_i, self.N_splits)):
+                parallelproj_core.joseph3d_fwd(beam_coordinate_s, detector_coordinates_s, object_i, self.origin, self.voxel_size, proj_s)
+            proj[i] = proj_i.reshape(self.proj_meta.shape).to(self.device)
         return proj
     
     def _angle_indices(self, subset_idx: int | None) -> torch.Tensor:
@@ -204,7 +194,13 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
 
         Returns:
             torch.Tensor: Attenuation on the object grid, on ``pytomography.device``.
+
+        Raises:
+            ValueError: if the scan is not a full turn of evenly spaced views at one z. Every view is weighted by
+                2 pi / N and there are no short-scan (Parker) weights, so a shorter arc, or one with views missing,
+                would be reconstructed with the wrong weights.
         """
+        self._check_fdk_scan()
         window = get_fbp_filter(filter)
         BP = torch.zeros(tuple(n + 2 for n in self.object_meta.shape), dtype=torch.float32, device=pytomography.device)
         for idx in range(self.proj_meta.N_angles):
@@ -218,6 +214,23 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
             BP[1:-1, 1:-1, 1:-1] += weighted
             del BP_i, weighted
         return _crop(BP)
+
+    def _check_fdk_scan(self) -> None:
+        """Raises unless the views are evenly spaced over a full turn (every gap between neighbouring angles within 10 %
+        of 360 / N degrees: measured stage angles jitter, by up to 0.8 % of the step for the SophiaBeads scan) at one z."""
+        n = self.proj_meta.N_angles
+        angles = np.sort(np.mod(self.proj_meta.angles.detach().cpu().double().numpy(), 2 * np.pi))
+        gaps = np.diff(np.append(angles, angles[0] + 2 * np.pi))
+        step = 2 * np.pi / n
+        if n < 2 or np.abs(gaps - step).max() > 0.1 * step:
+            raise ValueError(f'FDK needs views evenly spread over a full turn ({n} views {np.degrees(step):.3g} degrees '
+                             f'apart); the largest gap between these is {np.degrees(gaps.max()):.3g} degrees. A short '
+                             'scan needs short-scan (Parker) weights, which this FDK does not have: reconstruct it '
+                             'iteratively (e.g. SART)')
+        z = self.proj_meta.z_locations.detach().cpu()
+        if (z.max() - z.min()).item() > 1e-3 * self.object_meta.dz:
+            raise ValueError('FDK needs a circular scan, at one z; this one moves from z = '
+                             f'{z.min().item():.4g} to {z.max().item():.4g} mm')
 
     def _fbp_memory_parts(self, projections: torch.Tensor, filter=None) -> list:
         """The memory :meth:`_fbp` takes, without running it, for
