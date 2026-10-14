@@ -16,8 +16,13 @@ Coding assistants such as Claude often answer from what they saw during training
 - **In an agent such as Claude Code:** point it at `llms.txt` and ask it to read the pages it needs, for example: *"Read https://pytomography.readthedocs.io/en/latest/llms.txt, then help me reconstruct my Lu-177 DICOM data."*
 - **For a whole project:** save `llms-full.txt` next to your code so the agent can search it.
 
+## Planning memory before a reconstruction
+
+Before running a large reconstruction, have the agent read [Memory and speed](memory.md). It shows how to call `estimate_memory()` and `plan_memory()`, which read the machine's free memory and give the fastest settings that fit. It also links the memory model behind them as data (`_static/memory/model.json`, with a JavaScript evaluator and tables of PET scanners and GPUs), for planning for a machine the agent cannot run Python on.
+
 ## Tips that avoid common mistakes
 
 - Tell the assistant which PyTomography version you have installed (`pytomography.__version__`). v4 changed the PET requirements and the PSF interface.
 - Ask it to check tensor shapes and devices against the docstrings. Projections, objects and attenuation maps each have a fixed axis order, and mixing CPU and GPU tensors is the most common error.
 - Ask for code that runs on a small subset of angles first, then scale up.
+- Ask it to print `estimate_memory()` before the heavy step and to call `pytomography.set_memory_budget(...)` for the machine, so that a reconstruction does not run out of memory halfway.

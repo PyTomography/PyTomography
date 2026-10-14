@@ -22,11 +22,10 @@ import os
 import json
 import torch
 import pytomography
-from pytomography.io.SPECT import simind
+from pytomography import io
 from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.transforms.SPECT  import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.algorithms import OSEM
-from pytomography.io.SPECT.shared import subsample_projections_and_modify_metadata, subsample_amap
 from pytomography.likelihoods import PoissonLogLikelihood
 from spectpsftoolbox.kernel1d import ArbitraryKernel1D, FunctionKernel1D
 from spectpsftoolbox.operator2d import GaussianOperator, Rotate1DConvOperator, RotateSeperable2DConvOperator
@@ -41,33 +40,28 @@ CPSpMBq = 17 # an approximate calibration factor
 
 # Specify the isotopes and equilibirum ratios based on Bateman equations
 isotopes = ['ac225', 'bi213', 'fr221', 'tl209']
-isotopes_ratios = [1,1,1,0.0209] 
+isotopes_ratios = [1,1,1,0.0209]
 # look at the .h00 files; there are many E windows simulated. These are 5% scat win for 440peak
-i_peak, i_lower, i_upper = 10, 11, 14 
+i_peak, i_lower, i_upper = 10, 11, 14
 files_NM = [[os.path.join(PATH, f'{isotope}', f'tot_w{i}.h00') for isotope in isotopes] for i in [i_lower, i_peak, i_upper]]
-object_meta, proj_meta = simind.get_metadata(files_NM[0][0])
 activity_concs = [activity_conc * ratio for ratio in isotopes_ratios]
-projections = simind.get_projections(files_NM, activity_concs)
+projections, object_meta, proj_meta = io.SPECT.read_simind(files_NM, weights=activity_concs)
 projections *= dT
 
 # Based on how they are loaded, this is idx of peak, lower upper
 idx_peak, idx_lower, idx_upper = 1, 0, 2
 photopeak = projections[idx_peak]
-# files_NM[window][isotope]: each window's width from its header (the first isotope's; the isotopes share the windows)
-ww_lower, ww_peak, ww_upper = [simind.get_energy_window_width(files[0]) for files in files_NM]
+# each window's width from its header (the first isotope's; the isotopes share the windows)
+ww_lower, ww_peak, ww_upper = [window.width_keV for window in proj_meta.energy_windows]
 print(f'window widths: lower {ww_lower:.0f} keV, photopeak {ww_peak:.0f} keV, upper {ww_upper:.0f} keV')
-scatter_estimate_TEW = simind.compute_EW_scatter(
-    projections[idx_lower], projections[idx_upper],
-    ww_lower,
-    ww_upper,
-    ww_peak,
-    sigma_r=0.5,
-    sigma_z=0.5,
-    proj_meta=proj_meta
+scatter_estimate_TEW = io.SPECT.energy_window_scatter(
+    projections, proj_meta, peak=idx_peak, lower=idx_lower, upper=idx_upper,
+    sigma_r_mm=5,
+    sigma_z_mm=5,
 )
 
 path_amap = os.path.join(PATH, 'attenuation_maps', 'amap440.hct')
-amap = simind.get_attenuation_map(path_amap)
+amap = io.attenuation_map(path_amap, object_meta, energy_keV=proj_meta.energy_windows[idx_peak].photon_keV, layout='mu')
 
 def perform_reconstruction(psf_transform):
     att_transform = SPECTAttenuationTransform(attenuation_map=amap)
@@ -78,6 +72,7 @@ def perform_reconstruction(psf_transform):
             proj_meta = proj_meta)
     likelihood = PoissonLogLikelihood(system_matrix, photopeak, scatter_estimate_TEW)
     algorithm = OSEM(likelihood)
+    print(algorithm.estimate_memory(n_subsets=4))
     return algorithm(n_iters=50, n_subsets=4)
 
 with open(os.path.join(PATH, 'ac225_psf_model.json')) as f:
@@ -96,11 +91,21 @@ background = RotateSeperable2DConvOperator(
     N_angles=1, additive=False)
 psf_operator = (tails + background) * gaussian + gaussian
 psf_operator.set_device(pytomography.device)
-psf_transform = SPECTPSFTransform(psf_operator=psf_operator)
+
+class OperatorInCm:
+    """The fitted model takes lengths in cm, SPECTPSFToolbox's unit when it was fitted; PyTomography's are mm. This
+    passes the PSF transform's coordinates and distances to the model in cm (the kernel is normalised, so nothing else
+    changes)."""
+    def __init__(self, operator):
+        self.operator = operator
+    def __call__(self, input, xv, yv, distances, normalize=False):
+        return self.operator(input, xv / 10, yv / 10, distances / 10, normalize=normalize)
+
+psf_transform = SPECTPSFTransform(psf_operator=OperatorInCm(psf_operator))
 recon_1Dfit = perform_reconstruction(psf_transform)
 
 path_bi213_prim = files_NM[1][1]
-psf_meta = simind.get_psfmeta_from_header(path_bi213_prim)
+psf_meta = io.SPECT.simind_psf(path_bi213_prim)
 psf_transform = SPECTPSFTransform(psf_meta)
 reconbad = perform_reconstruction(psf_transform)
 
@@ -108,8 +113,6 @@ recons = [reconbad, recon_1Dfit]
 titles = ['Gaussian PSF', 'Full PSF']
 
 # %% Save the images
-from pytomography.io import save_dicom
-
 for name, image in [('full_psf', recon_1Dfit), ('gaussian_psf', reconbad)]:
-    save_dicom(image, OUTPUT / 't_ac225_simind_recon' / name, object_meta, series_description=f'OSEM 50x4, {name}',
-               overwrite=True)
+    io.save_dicom(image, OUTPUT / 't_ac225_simind_recon' / name, object_meta, units='counts',
+                  series_description=f'OSEM 50x4, {name}', overwrite=True)

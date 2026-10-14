@@ -137,6 +137,7 @@ API <api/pytomography/index>
 Contribute <contributing/index>
 Migrate to v4 <migration>
 concepts
+Memory and speed <memory>
 For AI agents <ai>
 Data tables <external_data>
 ```
