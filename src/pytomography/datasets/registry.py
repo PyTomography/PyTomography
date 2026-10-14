@@ -1,8 +1,9 @@
 """Every dataset the tutorials read: what it is, where it is published, and how to download and check it.
 
-Keys are folders under the data folder (``PYTOMOGRAPHY_DATA``). :func:`pytomography.datasets.fetch` reads this file,
-and so does the "Tutorial data" page of the docs, so a dataset is added, moved or re-pinned here and nowhere else.
-The file has no imports, so the docs can load it without importing PyTomography.
+The datasets are in :data:`DATASETS`, keyed by their folders under the data folder (``PYTOMOGRAPHY_DATA``).
+:func:`pytomography.datasets.fetch` reads this file, and so does the "Tutorial data" page of the docs, so a dataset is
+added, moved or re-pinned here and nowhere else. The file has no imports, so the docs can load it without importing
+PyTomography.
 
 A dataset has these fields::
 
@@ -12,6 +13,9 @@ A dataset has these fields::
     parts               what to download; every part is pinned by size and checksum
     extras              optional, named groups of parts that fetch(name, extras=[...]) adds
     status, note        "pending" while the data cannot be downloaded yet; note says why
+    geometry            facts about the data that the files do not record, which the readers use when they read the
+                        dataset's files: "gate" gives how the phantom sat in GATE's world (world_axes, world_origin
+                        in LPS mm; see pytomography.io.PET.read_gate)
     files               of a pending dataset: the files it will hold, {path: [size, sha256]}, pinned before they
                         can be downloaded; they become parts once they have addresses
 
@@ -29,6 +33,11 @@ A part is one of these kinds::
                its files.
 
 Sizes are in bytes. ``url`` may be replaced by ``urls``, a list of mirrors of the same file tried in order.
+
+A part of a record that is not published yet has ``"status": "pending"`` and ``record`` (which record it will be in)
+instead of an address: a file part with ``to``, pinned by size and sha256. fetch() downloads nothing for it, and the
+tutorials read the copy in the dataset's folder; it gets its ``url`` once the record is out. The regions the tutorials
+measure (``*_rois.seg.nrrd``) are such parts, or files of a pending dataset, until their records are published.
 """
 
 # The 2025 PyTomography SPECT tutorial record holds one SPECT.zip. Each SPECT dataset is a contiguous block of it, so
@@ -45,6 +54,10 @@ _SPECT_2025_DATASET = {
     "licence": "CC BY 4.0",
     "cite": "Polson L. PyTomography SPECT Tutorial data. Zenodo (2025). doi:10.5281/zenodo.15314460",
 }
+# Records that are not published yet, which pending parts name: the new version of the 2025 SPECT record, with one
+# zip per dataset, and PyTomography's copy of the TCIA case C145 (IDC stays its fallback)
+_SPECT_V2 = "PyTomography SPECT tutorial data, version 2 (Zenodo; the new version of record 15314460)"
+_CT_C145 = "PyTomography's copy of LDCT-and-Projection-data case C145 (Zenodo)"
 # The fitted Ac-225 PSF model that replaced the pickled operator in the 2025 record
 _AC225_PSF_MODEL = {"kind": "package", "file": "ac225_psf_model.json", "size": 10092,
                     "sha256": "edb5e15edf5b648d948c7d87ed876fdcfef4bea976649eaa000f337db015a168"}
@@ -118,19 +131,28 @@ DATASETS = {
              "ranges": [[64, 710598502, "64ef103e5701ffb73581d1a90212072204c833cdcfe2d4008109cc761625a510"]],
              "unpacked": 1858656588},
             _AC225_PSF_MODEL,
-            # The six spheres of the Jaszczak phantom on SIMIND's 512^3 grid, for the accuracy tutorial
+            # The six spheres of the Jaszczak phantom on SIMIND's 512^3 grid, from which jaszak_rois.seg.nrrd was made
             {"kind": "package", "file": "jaszak_spheres.npz", "size": 136312,
              "sha256": "2c0b2891d92f570e436e1c14ba602bd8029201c5b9a048254513717267c2edc0"},
+            # The regions that the accuracy tutorial measures (the six spheres and the background), made by
+            # docs/tools/make_roi_masks.py
+            {"kind": "file", "status": "pending", "record": _SPECT_V2, "to": "jaszak_rois.seg.nrrd", "size": 51595,
+             "sha256": "909f1e31ab1bd99af9809ac2e067a008cd821ffbab37762c2c80928df18f0df9"},
         ],
     },
     "SPECT/Lu177-NEMA-SymT2": {
         "title": "Lu-177 NEMA IQ phantom on a Siemens Symbia T2, with CT and the scanner's reconstruction",
         **_SPECT_2025_DATASET,
-        "tutorials": ["t_dicomdata", "t_algorithms", "t_dualpeak", "t_spect_mc2"],
+        "tutorials": ["t_dicomdata", "t_algorithms", "t_dualpeak", "t_spect_mc2", "t_algorithms_measured",
+                      "t_fbp_spect"],
         "parts": [
             {"kind": "zip_range", **_SPECT_2025, "prefix": "SPECT/Lu177-NEMA-SymT2/",
              "ranges": [[710628303, 721637143, "c7d9149f2f52f6663fb2edbcc1cbcc16d84c4b914dbdc58e0cf4854b86ec2a98"]],
              "unpacked": 71623548},
+            # The regions that the tutorials measure (the six spheres, the lung insert and the background), made by
+            # docs/tools/make_roi_masks.py
+            {"kind": "file", "status": "pending", "record": _SPECT_V2, "to": "lu177_nema_symt2_rois.seg.nrrd",
+             "size": 246468, "sha256": "be3d1878f5693999cc054d69a508df7f8feeb986d985f20c036173a13bbb4b46"},
         ],
     },
     "SPECT/Ac225-NEMA-SymT2": {
@@ -188,6 +210,11 @@ DATASETS = {
         "licence": "to be confirmed (the phantom images: CC BY 4.0)",
         "cite": "Belzunce MA. High-Resolution Heterogeneous Digital PET [18F]FDG Brain Phantom based on the BigBrain"
                 " Atlas. Zenodo (2018). doi:10.5281/zenodo.8045458",
+        # GATE's world is the phantom's NIfTI flipped head to foot (GATE's x, y, z are the patient's L, P, I), with
+        # GATE's origin at the centre of the phantom's MR (fdg_pet_phantom_mri.nii.gz: its sform puts the centre of its
+        # middle voxel at RAS (0.35, -17.65, 22.35) mm): the audit of 11 Oct 2026 (pet_verify_gate*) placed the
+        # simulated annihilations on the MR, every axis flip worse
+        "geometry": {"gate": {"world_axes": "LPI", "world_origin": [-0.35, 17.65, 22.35]}},
         "tutorials": [],
         "status": "pending",
         "note": "The tutorials now read PET/GATE-mMR-BrainInWater, the October 2024 re-simulation. This dataset is"
@@ -211,19 +238,28 @@ DATASETS = {
         "licence": "to be confirmed (the brain phantom: CC BY 4.0)",
         "cite": "Belzunce MA. High-Resolution Heterogeneous Digital PET [18F]FDG Brain Phantom based on the BigBrain"
                 " Atlas. Zenodo (2018). doi:10.5281/zenodo.8045458",
+        # GATE's world is the phantom's NIfTI flipped head to foot (GATE's x, y, z are the patient's L, P, I), with
+        # GATE's origin at the centre of the phantom's MR (fdg_pet_phantom_mri.nii.gz: its sform puts the centre of its
+        # middle voxel at RAS (0.35, -17.65, 22.35) mm): the audit of 11 Oct 2026 (pet_verify_gate*) placed the
+        # simulated annihilations on the MR, every axis flip worse
+        "geometry": {"gate": {"world_axes": "LPI", "world_origin": [-0.35, 17.65, 22.35]}},
         "tutorials": ["t_pet_introduction", "t_PETGATE_scat_sino", "t_PETGATE_scat_sinoTOF", "t_PETGATE_scat_lm",
                       "t_PETGATE_scat_lmTOF", "t_PETGATE_DIP"],
         "status": "pending",
         "note": "The GATE simulation (54 runs of 10 s: 116.9 million coincidences and 14.4 million delays), its"
                 " water-cube attenuation map and the scanner's normalisation weights are being published on Zenodo;"
-                " they can be downloaded once that record is out. The MRI that the Deep Image Prior tutorial uses comes"
-                " from Belzunce's record.",
+                " they can be downloaded once that record is out, with the grey and white matter that the Deep Image"
+                " Prior tutorial measures. The MRI that tutorial uses comes from Belzunce's record.",
         "parts": [],
         "files": {
+            # Grey and white matter of the brain phantom, from its MR's intensity classes on the Deep Image Prior
+            # tutorial's grid (docs/tools/make_tutorial_regions.py, 13 Oct 2026)
+            "gate_braininwater_rois.seg.nrrd":
+                [12844, "c702e33efaad4160f08f7bf30ff291394f15a04b9f2f416ecf9a876864fa08ab"],
             **{f"simple_phantom/mMR_voxBrain_withSimplePhantom_{i}.root": run
                for i, run in enumerate(_GATE_BRAININWATER_RUNS, start=1)},
             # The water-cube attenuation map: 344 x 344 x 127 float32 voxels of 1.67475 x 1.67475 x 2.0315 mm in the .v
-            # file, with two Interfile headers, .hv (which gate.get_aligned_attenuation_map reads) and .ahv
+            # file, with two Interfile headers, .hv (which io.load_image and io.attenuation_map read) and .ahv
             "umap_mMR_brainSimplePhantom.hv":
                 [762, "53054ffa66434b06f83c2f787f317a6c0462d3288479d73ee8775e41c24a62ab"],
             "umap_mMR_brainSimplePhantom.ahv":
@@ -235,8 +271,9 @@ DATASETS = {
                 [2813, "6623f0e2f73c9e7e8a86e1ca2d7ca9eb2e3b231c2148bfd462816ef7d7fdbddb"],
             # The normalisation weight of each of the 411,027,456 crystal pairs (float32, torch.combinations order),
             # from the normalisation scan with gate.get_normalization_weights_cylinder_calibration(...,
-            # cylinder_radius=318, include_randoms=False), randoms left out since PyTomography #290. 88,983,552 are
-            # NaN: the pairs whose line passes outside the 318 mm calibration shell.
+            # cylinder_radius=318, include_randoms=False) (io.PET.gate_normalization since PyTomography 4), randoms
+            # left out since PyTomography #290. 88,983,552 are NaN: the pairs whose line passes outside the 318 mm
+            # calibration shell (io.PET.read_gate sets them to 0).
             "normalization_weights.npy":
                 [1644109952, "5f86af901a6c56abad7508f122a621f78497508ba989984b0f8f14a67309e12c"],
         },
@@ -258,9 +295,12 @@ DATASETS = {
         "parts": [
             {"kind": "zip", "url": "https://zenodo.org/records/8404015/files/dmi_nema_lm.zip", "size": 16234398763,
              "md5": "192ca209456f080ab95d03a1ee41d00c", "unpacked": 16719773369},
-            # 3D Slicer mask of the six spheres, made for the PET uncertainty tutorial
-            {"kind": "package", "file": "fdg_spheres.seg.nrrd", "size": 11399,
-             "sha256": "be239bc852277803d7b8a036c629aab003a033269d6763d4b7957c5c95fdab6d"},
+            # 3D Slicer mask of the six spheres, the lung insert and a background region, made for the PET uncertainty
+            # tutorial. Its geometry was corrected for PyTomography 4's upright GE frame (docs/tools/fix_ge_sphere_mask.py,
+            # 12 Oct 2026): it was drawn by index on version 3's upside-down grid, with its first two axes swapped. Its
+            # pytomography_frame:=scanner field puts it in the GE grid's frame
+            {"kind": "package", "file": "fdg_spheres.seg.nrrd", "size": 11411,
+             "sha256": "792162c695aa42568ce5f0c3eeb366a156895e621f28f89daa3d9681b39f8873"},
         ],
     },
     # The 60-minute NEMA scan of Zenodo 1304454 converted to PETSIRD 0.9.1 with ETSI's STIR2PETSIRD (October 2026). It
@@ -276,9 +316,16 @@ DATASETS = {
         "status": "pending",
         "note": "The scan in PETSIRD 0.9.1 (4.2 GB: 196.6 million prompts and 20.7 million delayed coincidences over"
                 " 60 minutes, with the scanner's normalisation) is being published on Zenodo; it can be downloaded once"
-                " that record is out. Its attenuation map, 20170809_NEMA_MUMAP_UCL.v with its .hdr, is in the source"
-                " record's NEMA_IQ.zip (Zenodo 1304454).",
+                " that record is out, with the regions of the phantom that the tutorial measures. Its attenuation"
+                " map, 20170809_NEMA_MUMAP_UCL.v with its .hdr, is in the source record's NEMA_IQ.zip (Zenodo"
+                " 1304454).",
         "parts": [],
+        "files": {
+            # The phantom, its six spheres and its background (also in 10 mm rings round its axis), found from its
+            # attenuation map and the tutorial's reconstruction (docs/tools/make_tutorial_regions.py, 13 Oct 2026)
+            "petsird_mmr_nema_rois.seg.nrrd":
+                [110965, "cd85b63d55651b6ecb6142c211e8fd31616224da85ef88bd566033e672860612"],
+        },
     },
     "CT/ldct-c145": {
         "title": "Chest CT (case C145) from a GE LightSpeed VCT, with the full-dose projections in DICOM-CT-PD format"
@@ -299,6 +346,10 @@ DATASETS = {
              "crdc": "02122def-1663-4507-a99e-e21cd8b784e8", "release": "v24", "to": "full_dose_images",
              "files": 316, "size": 166418304,
              "sha256": "be874455af32354452d41db9eb421ab530fb5b6f1cd910446e1ba757602245c4"},
+            # The body, soft tissue and a block of liver, found from the scanner's images on the CT tutorials' grid
+            # (docs/tools/make_tutorial_regions.py, 13 Oct 2026)
+            {"kind": "file", "status": "pending", "record": _CT_C145, "to": "ldct_c145_rois.seg.nrrd", "size": 1385511,
+             "sha256": "fc0553f07b976a5bba4b24d05518422c0aa743e3b2d4197a16353aaf8e68e60d"},
         ],
     },
     "CT/SophiaBeads-256": {
@@ -314,3 +365,5 @@ DATASETS = {
         ],
     },
 }
+"""Every dataset, ``{name: entry}``, where the name is the dataset's folder under the data folder and the entry holds
+the fields described at the top of this module."""
