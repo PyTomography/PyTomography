@@ -32,9 +32,12 @@ PATH = DATA / 'SPECT'
 data_path = os.path.join(PATH, 'SIMIND-Jaszak', 'lu177_SYME_jaszak')
 
 # %% 1. Opening Data
-photopeak_path = os.path.join(data_path,'tot_w4.h00')
-lower_path = os.path.join(data_path, 'tot_w5.h00')
-upper_path = os.path.join(data_path, 'tot_w6.h00')
+photopeak_path = os.path.join(data_path,'tot_w1.h00')  # the 208 keV photopeak
+lower_path = os.path.join(data_path, 'tot_w2.h00')
+upper_path = os.path.join(data_path, 'tot_w3.h00')
+for name, path in [('photopeak', photopeak_path), ('lower', lower_path), ('upper', upper_path)]:
+    low, high = simind.get_energy_window_bounds(path)
+    print(f'{name:9s} window: {low:.1f}-{high:.1f} keV')
 
 object_meta, proj_meta = simind.get_metadata(photopeak_path)
 
