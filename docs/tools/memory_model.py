@@ -403,6 +403,7 @@ class MemoryModel:
             env[k] = _value(v)
         for k, v in (settings or {}).items():
             env[k] = _value(v)
+        env['cuda_projector'] = 1.0 if model.get('cuda_projector') else 0.0   # projects with parallelproj (PET, CT, SSS)
         for k, v in model.get('constants', {}).items():     # what this computation always uses, whatever is given
             env[k] = _value(evaluate(v, env))
         for group in self.data.get('derived', []), *(self.derived_sets[name] for name in model.get('use', [])), model.get('derived', []):
@@ -488,6 +489,9 @@ class MemoryModel:
         o = self.overheads
         out = list(parts)
         out.append((o['fixed']['name'], 'overhead', _num(evaluate(o['fixed']['bytes'], env)), 0.0))
+        context = o.get('cuda_context')
+        if context is not None and _truthy(evaluate(context['when'], env)):
+            out.append((context['name'], 'overhead', 0.0, _num(evaluate(context['gpu_bytes'], env))))
         gpu_arrays = sum(p[3] for p in parts)
         if gpu_arrays > 0:
             out.append((o['cuda_cache']['name'], 'overhead', 0.0, o['cuda_cache']['bytes'] + o['cuda_cache']['fraction'] * gpu_arrays))

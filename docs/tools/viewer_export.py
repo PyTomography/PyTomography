@@ -11,7 +11,12 @@ namespace and writes, into out_dir/<name>/:
   thumb.png       an anterior maximum-intensity projection of the SPECT or PET over a line integral of the anatomy.
 
 The cell never raises, so a failed export never fails the tutorial; it prints one line starting with MARKER that the
-runner reads. The expressions can use the helpers below as `vx.<name>`, e.g. `vx.ct_dicom(files_CT)`.
+runner reads. A layer gives its image in one of two ways (both placed in LPS mm, as PyTomography places them):
+
+  image: io.load_image(files_CT)                     an io.Image: its values, affine and units
+  array: recon, affine: object_meta.affine           a tensor or array on a grid, and that grid's affine
+
+The expressions run in the tutorial's namespace, with `io` (pytomography.io) and `np` in it.
 
 The cache: each image is also kept as the tutorial computed it (full precision, with its affine) in
 <run>/viewer_cache/<name>/, keyed by its expressions in viewer.yaml. Editing anything else in viewer.yaml (ranges,
@@ -33,6 +38,7 @@ import hashlib
 import io
 import json
 import math
+import shutil
 import sys
 import time
 import traceback
@@ -47,64 +53,6 @@ MARKER = "__PYTOMOGRAPHY_VIEWER__"
 FORMAT = "pytomography-viewer/1"
 ROLE = {"spect": "overlay", "pet": "overlay", "ct": "base", "mr": "base", "mu": "base", "image": "base"}
 DEFAULT_MAX_MB = 15.0
-
-
-# ---------- helpers for the expressions in viewer.yaml ----------
-
-def centred(dr_mm, shape) -> np.ndarray:
-    """PyTomography's object grid with no scanner frame: voxel i's centre at (i - (N-1)/2) * dr, in mm (LPS)."""
-    dr = np.broadcast_to(np.asarray(dr_mm, float), (3,))
-    A = np.diag([*dr, 1.0])
-    A[:3, 3] = [-(n - 1) / 2 * d for n, d in zip(shape, dr)]
-    return A
-
-
-def flip_axis(A, n: int, axis: int) -> np.ndarray:
-    """The affine of an image flipped along one array axis of length n (index k becomes n - 1 - k)."""
-    F = np.eye(4)
-    F[axis, axis], F[axis, 3] = -1.0, n - 1
-    return np.asarray(A, float) @ F
-
-
-def object_affine(object_meta) -> np.ndarray:
-    """PyTomography's object grid for PET and CT, whose object_meta.dr is in mm."""
-    return centred(object_meta.dr, object_meta.shape)
-
-
-def simind_affine(object_meta) -> np.ndarray:
-    """A SIMIND reconstruction's grid; SIMIND's object_meta.dr is in cm."""
-    return centred([10 * d for d in object_meta.dr], object_meta.shape)
-
-
-def spect_affine(file_NM: str) -> np.ndarray:
-    """The SPECT reconstruction grid of a DICOM projection file (LPS mm)."""
-    from pytomography.io.SPECT import dicom
-    return dicom._get_affine_spect_projections(file_NM)
-
-
-def ct_dicom(files) -> tuple:
-    """A CT series in HU and its affine (LPS mm), as PyTomography opens it, on the CPU."""
-    from pytomography.io.shared.dicom import _get_affine_multifile, open_multifile
-    files = [str(f) for f in files]
-    return _to_numpy(open_multifile(files)), _get_affine_multifile(files)
-
-
-def nifti_centred(path, step_mm: float = 2.0) -> tuple:
-    """A NIfTI image placed as PyTomography's GATE helpers place it (centred, LPS; gate.get_attenuation_map_nifti),
-    averaged down to about step_mm, a few slices at a time so a large MR never sits in memory whole."""
-    import nibabel as nib
-    img = nib.load(str(path))
-    d = np.asarray(img.header["pixdim"][1:4], float)
-    n = img.shape[:3]
-    f = [max(1, int(round(step_mm / x))) for x in d]
-    m = [k // fk for k, fk in zip(n, f)]
-    out = np.empty(m, np.float32)
-    for k in range(m[2]):
-        block = np.asarray(img.dataobj[: m[0] * f[0], : m[1] * f[1], k * f[2]:(k + 1) * f[2]], np.float32)
-        out[:, :, k] = block.reshape(m[0], f[0], m[1], f[1], f[2]).mean(axis=(1, 3, 4))
-    A = np.diag([-d[0], -d[1], d[2], 1.0])
-    A[:3, 3] = [(n[0] - 1) / 2 * d[0], (n[1] - 1) / 2 * d[1], -(n[2] - 1) / 2 * d[2]]
-    return out, A @ _block_matrix(f)
 
 
 # ---------- the export ----------
@@ -239,6 +187,8 @@ def _thumbnail(layers, path: Path, height_px: int = 320) -> None:
     from matplotlib.backends.backend_agg import FigureCanvasAgg
     from matplotlib.figure import Figure
 
+    import pytomography.utils  # noqa: F401  registers PyTomography's colormaps ('pet') with matplotlib
+
     base = next((L for L in layers if L["role"] == "base"), None)
     over = next((L for L in layers if L["role"] == "overlay"), None)
     frame = base or over
@@ -276,7 +226,9 @@ def _thumbnail(layers, path: Path, height_px: int = 320) -> None:
 def _layer_key(ls: dict, spec: dict) -> str:
     """What a layer's image depends on: its expressions and the spec's setup code. Display settings are left out, so
     changing them re-exports from the cache without a new run."""
-    what = {"array": ls["array"], "affine": ls.get("affine"), "setup": spec.get("setup", "")}
+    what = {"array": ls.get("array"), "affine": ls.get("affine"), "setup": spec.get("setup", "")}
+    if ls.get("image"):
+        what["image"] = ls["image"]
     return hashlib.sha1(json.dumps(what, sort_keys=True).encode("utf8")).hexdigest()[:16]
 
 
@@ -300,9 +252,10 @@ def _cache_write(folder: Path, name: str, spec: dict, raw: list, notebook_sha: s
     for ls, arr, A, space in raw:
         key = _layer_key(ls, spec)
         keep = arr.astype(np.float32) if arr.dtype == np.float64 else arr
-        np.savez_compressed(folder / f"{key}.npz", arr=keep, A=A, space=np.array(space or ""))
-        entries.append({"key": key, "name": ls["name"], "array": ls["array"], "affine": ls.get("affine"),
-                        "shape": list(arr.shape), "dtype": str(keep.dtype)})
+        np.savez_compressed(folder / f"{key}.npz", arr=keep, A=A, space=np.array(space or ""),
+                            units=np.array(ls.get("units") or ""))
+        entries.append({"key": key, "name": ls["name"], "array": ls.get("array"), "image": ls.get("image"),
+                        "affine": ls.get("affine"), "shape": list(arr.shape), "dtype": str(keep.dtype)})
     for old in folder.glob("*.npz"):                    # images of expressions that are gone
         if old.stem not in {e["key"] for e in entries}:
             old.unlink()
@@ -322,6 +275,8 @@ def _cache_read(folder: Path, spec: dict) -> list:
         key = _layer_key(ls, spec)
         if key in have:
             with np.load(folder / f"{key}.npz") as z:
+                if not ls.get("units") and "units" in z.files and str(z["units"]):   # an Image's own units
+                    ls = {**ls, "units": str(z["units"])}
                 raw.append((ls, z["arr"], z["A"], str(z["space"]) or None))
         elif not ls.get("when"):
             missing.append(ls["name"])
@@ -336,23 +291,25 @@ def export(name: str, out_dir, namespace: dict, spec: dict, notebook_sha: str | 
     raises on failure."""
     t0 = time.time()
     env = dict(namespace)
-    env["vx"] = sys.modules[__name__]
     env["np"] = np
+    if "io" not in env:                                 # image: io.load_image(...), as the tutorials import it
+        import pytomography.io
+        env["io"] = pytomography.io
     if spec.get("setup"):
         exec(spec["setup"], env)
     raw = []
     for ls in spec["layers"]:
         if ls.get("when") and not eval(ls["when"], env):   # a layer for one version of the tutorial only
             continue
-        got = eval(ls["array"], env)
-        space = None
-        if isinstance(got, tuple):
-            arr, A = got[0], got[1]
-            if len(got) > 2:
-                space = got[2]
-        else:
-            arr, A = got, eval(ls["affine"], env)
-        raw.append((ls, _to_numpy(arr), np.asarray(_to_numpy(A), float).reshape(4, 4).copy(), space))
+        if ls.get("image"):                             # an io.Image: its values, its affine (LPS mm), its units
+            image = eval(ls["image"], env)
+            arr, A = image.data, image.affine
+            if not ls.get("units") and getattr(image, "units", None):
+                ls = {**ls, "units": image.units}
+            del image
+        else:                                           # an array on a grid, and the grid's affine (LPS mm)
+            arr, A = eval(ls["array"], env), eval(ls["affine"], env)
+        raw.append((ls, _to_numpy(arr), np.asarray(_to_numpy(A), float).reshape(4, 4).copy(), None))
     try:
         _cache_write(cache_dir(out_dir, name), name, spec, raw, notebook_sha)
         cached = True
@@ -369,19 +326,47 @@ def rebuild(name: str, out_dir, spec: dict) -> dict:
     return _write(name, out_dir, spec, _cache_read(cache_dir(out_dir, name), spec), time.time())
 
 
+def _replace(new: Path, old: Path) -> None:
+    """Put the finished export ``new`` in the place of ``old``; the old export is removed only now."""
+    if not old.exists():
+        new.rename(old)
+        return
+    trash = old.with_name(f".{old.name}.old")
+    if trash.exists():
+        shutil.rmtree(trash)
+    old.rename(trash)
+    try:
+        new.rename(old)
+    except OSError:
+        trash.rename(old)                               # the old export back, as it was
+        raise
+    shutil.rmtree(trash, ignore_errors=True)
+
+
 def _write(name: str, out_dir, spec: dict, raw: list, t0: float) -> dict:
-    """The viewer files from evaluated images: [(layer spec, array, affine, space from the expression or None)]."""
-    out = Path(out_dir) / name
-    out.mkdir(parents=True, exist_ok=True)
-    for old in list(out.glob("*.nii.gz")) + [out / "manifest.json", out / "thumb.png"]:
-        old.unlink(missing_ok=True)
+    """The viewer files from evaluated images: [(layer spec, array, affine, space from the expression or None)]. They
+    are written into a folder of their own, which replaces out_dir/<name>/ only once every file is written, so an
+    export that fails leaves the old one as it was."""
+    final = Path(out_dir) / name
+    out = Path(out_dir) / f".{name}.partial"
+    if out.exists():
+        shutil.rmtree(out)
+    out.mkdir(parents=True)
+    try:
+        result = _write_files(name, out, spec, raw, t0)
+        _replace(out, final)
+    except BaseException:
+        shutil.rmtree(out, ignore_errors=True)
+        raise
+    return dict(result, folder=str(final))
+
+
+def _write_files(name: str, out: Path, spec: dict, raw: list, t0: float) -> dict:
     layers = []
     for ls, arr, A, space in raw:
         kind = ls["kind"]
         A = np.asarray(A, float).copy()
-        space = space or ls.get("space", "lps")
-        if ls.get("affine_scale"):                      # e.g. 10 for an affine in cm
-            A[:3, :] *= float(ls["affine_scale"])
+        space = space or "lps"                          # caches from before PyTomography 4 may say "ras"
         while arr.ndim > 3 and arr.shape[0] == 1:
             arr = arr[0]
         if arr.ndim != 3:
@@ -476,7 +461,9 @@ def _write(name: str, out_dir, spec: dict, raw: list, t0: float) -> dict:
         else:
             rng = [mn, mx]
         L["range"] = rng
-        L["colormap"] = ls.get("colormap", "inferno" if L["role"] == "overlay" else "gray")
+        # SPECT and PET in PyTomography's PET colour scale (Luke, 13 Oct 2026), other overlays inferno, anatomy gray
+        default = ("pet" if L["kind"] in ("spect", "pet") else "inferno") if L["role"] == "overlay" else "gray"
+        L["colormap"] = ls.get("colormap", default)
         entry = {"name": ls["name"], "label": ls.get("label", ls["name"]), "kind": L["kind"], "role": L["role"],
                  "file": L["file"], "units": ls.get("units", ""), "colormap": L["colormap"], "range": [round(v, 6) for v in rng],
                  "shape": list(arr.shape), "voxel_mm": [round(float(L["A"][j, j]), 4) for j in range(3)],
@@ -510,7 +497,7 @@ def _write(name: str, out_dir, spec: dict, raw: list, t0: float) -> dict:
                 "pytomography": getattr(pytomography, "__version__", "?"), "start_mm": start, "layers": man_layers,
                 "thumb": "thumb.png", "bytes": sum(e["bytes"] for e in man_layers)}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1), encoding="utf8")
-    return {"status": "exported", "folder": str(out), "layers": [e["name"] for e in man_layers],
+    return {"status": "exported", "layers": [e["name"] for e in man_layers],
             "bytes": manifest["bytes"], "seconds": round(time.time() - t0, 1)}
 
 

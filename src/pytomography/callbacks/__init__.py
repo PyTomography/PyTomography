@@ -1,4 +1,14 @@
-"""Callbacks can be used to compute various metrics on a reconstructed object throughout each iteration in an iterative reconstruction algorithm. For example, you may want to look at the noise in the liver as a function of iteration number in OSEM. A callback is simply a class which can take in an object and perform an operation. Callbacks are optional input to reconstruction algorithms; the ``run`` method of a callback is called after each subiteration of an iterative reconstruction algorithm. All user-defined callbacks should inherit from the base class ``CallBack``. A subclass of this class could be used to compute noise-bias curves provided the ``__init__`` method was redefined to take in some ground truth, and the run method was redefined to compare the obj to the ground truth.
+"""Callbacks: code a reconstruction algorithm runs after each subiteration.
+
+A callback can compute a metric of the image as the reconstruction goes (e.g. the noise in the liver at every
+iteration of OSEM, or a noise-bias curve against a ground truth), or keep what uncertainty estimates need. Pass one
+to the algorithm's call (``callback=``); its ``run`` method is called after each subiteration. User-defined callbacks
+inherit from :class:`Callback`.
+
+* :class:`DataStorageCallback`: keeps the object and expected projections of every subiteration, for
+  ``compute_uncertainty``;
+* :class:`MultiCallback`: several callbacks as one;
+* :class:`Callback`: the base class.
 """
 from .callback import Callback, MultiCallback
 from .data_saving import DataStorageCallback

@@ -21,13 +21,12 @@ OUTPUT = datasets.output_dir("SPECT/Ac225-NEMA-SymT2")
 import matplotlib.pyplot as plt
 import torch # needed for kernels
 import pytomography
+from pytomography import io
 from pytomography.projectors.SPECT import SPECTSystemMatrix
-from pytomography.io.SPECT import dicom
 from pytomography.algorithms import OSEM
 from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.transforms.shared import GaussianFilter
-from pytomography.io.SPECT.shared import subsample_projections_and_modify_metadata
 import json
 import os
 from spectpsftoolbox.kernel1d import ArbitraryKernel1D, FunctionKernel1D
@@ -57,18 +56,27 @@ background = RotateSeperable2DConvOperator(
 psf_operator = (tails + background) * gaussian + gaussian
 psf_operator.set_device(pytomography.device)
 
+class OperatorInCm:
+    """The fitted model takes lengths in cm, SPECTPSFToolbox's unit when it was fitted; PyTomography's are mm. This
+    passes the PSF transform's coordinates and distances to the model in cm (the kernel is normalised, so nothing else
+    changes)."""
+    def __init__(self, operator):
+        self.operator = operator
+    def __call__(self, input, xv, yv, distances, normalize=False):
+        return self.operator(input, xv / 10, yv / 10, distances / 10, normalize=normalize)
+
 index_peak = 3
 index_lower = 4
 index_upper = 5
-object_meta, proj_meta = dicom.get_metadata(file_NM, index_peak=index_peak)
-projections = dicom.get_projections(file_NM)
-attenuation_map = dicom.get_attenuation_map_from_CT_slices(files_CT, file_NM, index_peak=index_peak)
+projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)
+attenuation_map = io.attenuation_map(files_CT, object_meta, energy_keV=proj_meta.energy_windows[index_peak].photon_keV)
 
 photopeak = projections[index_peak]
-scatter = dicom.get_energy_window_scatter_estimate_projections(file_NM, projections, index_peak=index_peak, index_lower=index_lower, index_upper=index_upper, sigma_theta=2, sigma_r=0.48, sigma_z=0.48, proj_meta=proj_meta)
+scatter = io.SPECT.energy_window_scatter(projections, proj_meta, peak=index_peak, lower=index_lower, upper=index_upper,
+                                         sigma_theta=2, sigma_r_mm=4.8, sigma_z_mm=4.8)
 
 att_transform = SPECTAttenuationTransform(attenuation_map=attenuation_map)
-psf_transform = SPECTPSFTransform(psf_operator=psf_operator)
+psf_transform = SPECTPSFTransform(psf_operator=OperatorInCm(psf_operator))
 system_matrix = SPECTSystemMatrix(
         obj2obj_transforms = [att_transform,psf_transform],
         proj2proj_transforms = [],
@@ -77,16 +85,15 @@ system_matrix = SPECTSystemMatrix(
 
 likelihood = PoissonLogLikelihood(system_matrix, photopeak, scatter)
 algorithm = OSEM(likelihood)
+print(algorithm.estimate_memory(n_subsets=3))
 
 recon = algorithm(n_iters=100, n_subsets=3)
 
-filter = GaussianFilter(2) # 2cm FWHM
+filter = GaussianFilter(20) # FWHM in mm
 filter.configure(object_meta, proj_meta)
 recon_smoothed = filter(recon)
 
-CT = dicom.open_multifile(files_CT)
-affine_SPECT = dicom._get_affine_spect_projections(file_NM)
-affine_CT = dicom._get_affine_multifile(files_CT)
+ct = io.load_image(files_CT)
 SPECT_imshow_kwargs = {
     'cmap': plot_utils.pet_cmap,
     'interpolation': 'Gaussian',
@@ -105,25 +112,23 @@ CT_imshow_kwargs = {
     'origin': 'lower'
 }
 
-plt.figure(figsize=(10,4))
-plt.subplot(121)
-plt.title('440keV Peak: OSEM100it3ss')
+plt.figure(figsize=(5,5), facecolor='k')
+plt.title('440keV Peak: OSEM100it3ss', color='white')
 plot_utils.dual_imshow_axial(
     im1 = recon_smoothed,
-    im2 = CT,
+    im2 = ct.data,
     im1_idx = 70,
-    affine1 = affine_SPECT,
-    affine2 = affine_CT,
+    affine1 = object_meta.affine,
+    affine2 = ct.affine,
     imshow1_kwargs=SPECT_imshow_kwargs,
     imshow2_kwargs=CT_imshow_kwargs,
 )
 plt.axis('off')
 plt.xlim(-120,130)
 plt.ylim(-275,-25)
+plt.tight_layout()
 
 # %% Save the images
-from pytomography.io import save_dicom
-
 for name, image in [('osem', recon), ('osem_smoothed', recon_smoothed)]:
-    save_dicom(image, OUTPUT / 't_ac225_dicom_recon' / name, object_meta, reference=file_NM,
-               series_description=f'OSEM 100x3, {name}', overwrite=True)
+    io.save_dicom(image, OUTPUT / 't_ac225_dicom_recon' / name, object_meta, reference=file_NM,
+                  series_description=f'OSEM 100x3, {name}', overwrite=True)
