@@ -204,11 +204,11 @@ def collimator_psf(collimator: str, photon_keV: float, intrinsic_fwhm_mm: float 
     L_\text{eff}`, with :math:`D` the hole diameter and :math:`L_\text{eff} = L - 2/\mu` the hole length shortened by
     the septal penetration of the material at ``photon_keV``. With ``shape='gaussian'`` it becomes a Gaussian sigma,
     added in quadrature to the intrinsic resolution; with ``shape='square'`` it is the half-width of a triangle (the
-    intrinsic resolution is then not modelled). List the table's collimators with
-    :func:`pytomography.utils.print_collimator_parameters`.
+    intrinsic resolution is then not modelled). The table is :func:`collimators` (the docs' "SPECT parameters" page
+    lists it).
 
     Args:
-        collimator (str): The collimator's code, e.g. ``'SY-ME'`` or ``'G8-LEHR'``.
+        collimator (str): The collimator's code, e.g. ``'SY-ME'`` or ``'G8-LEHR'`` (any case).
         photon_keV (float): The photon energy, in keV (``proj_meta.energy_windows[i].photon_keV``).
         intrinsic_fwhm_mm (float, optional): The detector's intrinsic resolution (FWHM, mm) at ``photon_keV``.
             Defaults to 0.
@@ -224,16 +224,15 @@ def collimator_psf(collimator: str, photon_keV: float, intrinsic_fwhm_mm: float 
         :class:`~pytomography.transforms.SPECT.SPECTPSFTransform`.
 
     Raises:
-        ValueError: If the table has no such collimator, or ``shape`` is not ``'gaussian'`` or ``'square'``.
+        ValueError: If the table has no such parallel-hole collimator, or ``shape`` is not ``'gaussian'`` or
+            ``'square'``.
     """
-    module_path = os.path.dirname(os.path.abspath(__file__))
-    with open(os.path.join(module_path, '../../data/collim.col')) as f:
-        lines = [line for line in f if line.startswith('*')]
-    found = [line for line in lines if line[1:].split()[0] == collimator]
-    if not found:
-        raise ValueError(f"no collimator '{collimator}' in the table; see pytomography.utils.print_collimator_parameters()")
-    fields = found[0][1:].split()
-    hole_diameter_mm, hole_length_mm = 10 * float(fields[1]), 10 * float(fields[3])     # the table is in cm
+    from pytomography.io.SPECT._camera import collimator as _collimator
+    try:
+        dimensions = _collimator(collimator)
+    except KeyError as error:
+        raise ValueError(error.args[0]) from None
+    hole_diameter_mm, hole_length_mm = dimensions['hole_diameter_mm'], dimensions['hole_length_mm']
     if intrinsic_fwhm_140keV_mm is not None:
         intrinsic_fwhm_mm = intrinsic_fwhm_140keV_mm * (photon_keV / 140) ** -0.5
     return _psf_meta(hole_diameter_mm, hole_length_mm, _mu_per_mm(material, photon_keV), intrinsic_fwhm_mm, shape,
