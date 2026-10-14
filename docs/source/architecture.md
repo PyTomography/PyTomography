@@ -7,12 +7,14 @@ html_theme.sidebar_secondary.remove: true
 <div class="pt-arch-page">
 <link rel="stylesheet" href="_static/arch/pt-arch.css">
 <link rel="stylesheet" href="_static/arch/pt-arch-overview.css">
+<link rel="stylesheet" href="_static/arch/pt-io.css">
 
 <div class="pt-arch-tabs" role="tablist" aria-label="Views of the library">
   <button type="button" role="tab" id="t-overview" aria-controls="tab-overview" aria-selected="true">Overview</button>
   <button type="button" role="tab" id="t-modality" aria-controls="tab-modality" aria-selected="false" tabindex="-1">By modality</button>
   <button type="button" role="tab" id="t-swap" aria-controls="tab-swap" aria-selected="false" tabindex="-1">Swap a part</button>
   <button type="button" role="tab" id="t-extend" aria-controls="tab-extend" aria-selected="false" tabindex="-1">Build your own</button>
+  <button type="button" role="tab" id="t-io" aria-controls="tab-io" aria-selected="false" tabindex="-1">Data and conventions</button>
 </div>
 
 <section class="pt-arch-panel" id="tab-overview" role="tabpanel" aria-labelledby="t-overview">
@@ -48,15 +50,49 @@ html_theme.sidebar_secondary.remove: true
 | A penalty | `NearestNeighbourPrior` | `phi0`, `phi1` (and `phi2_*` for uncertainty) | `RelativeDifferencePrior` |
 | An update rule | `PreconditionedGradientAscentAlgorithm` | `_compute_preconditioner` | `OSEM`, `BSREM` |
 | Something after every subiteration | `Callback` | `run`, `finalize` | `DataStorageCallback` |
-| A file format | a reader function | return the standard objects: `object_meta`, `proj_meta`, the data as tensors | `io.SPECT.simind` |
+| A file format | a reader function `read_<format>` | return `(projections, object_meta, proj_meta)` in the <a href="#io-standard">standard form</a> | `io.SPECT.read_simind` |
 
 </div>
 
 <p class="pt-arch-intro">The mathematics behind these parts and the conventions they share (coordinates, units, the transpose rule) are in <a href="concepts.html">Concepts</a>.</p>
 </section>
 
+<section class="pt-arch-panel pt-io" id="tab-io" role="tabpanel" aria-labelledby="t-io" hidden>
+<script>document.documentElement.classList.add("pt-io-js");</script>
+<div class="pt-io-views" role="tablist" aria-label="Data and conventions">
+  <button type="button" role="tab" id="t-io-map" aria-controls="io-map" aria-selected="true">Map</button>
+  <button type="button" role="tab" id="t-io-standard" aria-controls="io-standard" aria-selected="false" tabindex="-1">The standard form</button>
+  <button type="button" role="tab" id="t-io-vendors" aria-controls="io-vendors" aria-selected="false" tabindex="-1">Vendor rules</button>
+</div>
+
+<div class="pt-io-view" id="io-map" role="tabpanel" aria-labelledby="t-io-map">
+<div id="pt-io" class="pt-io-tool" data-src="_static/arch/io-conventions.json"></div>
+<div class="pt-io-static">
+
+```{io-map}
+```
+
+</div>
+</div>
+
+<div class="pt-io-view" id="io-standard" role="tabpanel" aria-labelledby="t-io-standard">
+
+```{io-standard}
+```
+
+</div>
+
+<div class="pt-io-view" id="io-vendors" role="tabpanel" aria-labelledby="t-io-vendors">
+
+```{io-vendors}
+```
+
+</div>
+</section>
+
 <script src="_static/arch/pt-arch-data.js"></script>
 <script src="_static/arch/pt-arch-catalog.js"></script>
 <script src="_static/arch/pt-arch.js"></script>
 <script src="_static/arch/pt-arch-overview.js"></script>
+<script src="_static/arch/pt-io.js"></script>
 </div>
