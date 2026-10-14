@@ -1,3 +1,10 @@
+"""Helpers to reorient a cardiac SPECT image along the axes of the heart.
+
+The steps, as in the cardiac reorientation tutorial: :func:`get_mask` thresholds the myocardium,
+:func:`get_shift_values` and :func:`get_angle` find the centre and the orientation of the ventricle in a slice of the
+mask, :func:`shift_object` and :func:`rotate_object` move the image accordingly, and :func:`masking` keeps the voxels
+near the centre. :func:`plot_arrow` shows an angle on a slice. Shifts are in voxels and angles in degrees.
+"""
 import math
 import torch
 import torch.nn.functional as F
@@ -9,36 +16,43 @@ from matplotlib.patches import FancyArrowPatch
 from scipy.ndimage import rotate
 
 def shift_object(object: torch.Tensor, tx: float, ty: float, tz: float) -> torch.Tensor:
-    """
-    Shift the 3D volume based on the given translation parameters.
+    """Shifts a 3D image by whole or fractional voxels, with linear interpolation.
 
-    Parameters:
-        object: Input 3D volume to be shifted (torch.Tensor[Lx, Ly, Lz]).
-        tx (float): Translation in x direction (voxels).
-        ty (float): Translation in y direction (voxels).
-        tz (float): Translation in z direction (voxels).
+    The value of the result at voxel :math:`(i, j, k)` is that of ``object`` at :math:`(i + t_x, j + t_y, k + t_z)` (0
+    outside it), so the content moves by :math:`(-t_x, -t_y, -t_z)` voxels along the three axes. Before
+    PyTomography 4.0, ``tx`` and ``ty`` were applied the other way round.
+
+    Args:
+        object (torch.Tensor): Image [Lx, Ly, Lz] (a NumPy array also works).
+        tx (float): Offset along the first axis (x), in voxels.
+        ty (float): Offset along the second axis (y), in voxels.
+        tz (float): Offset along the third axis (z), in voxels.
+
     Returns:
-        Shifted 3D volume: The shifted object (torch.Tensor[Lx, Ly, Lz]).
+        torch.Tensor: The shifted image [Lx, Ly, Lz], of ``pytomography.dtype`` on ``pytomography.device``.
     """
-    
-    object = object.cpu().numpy() if isinstance(object, torch.Tensor) else object 
-    translation = [ty, tx, tz]
+
+    object = object.cpu().numpy() if isinstance(object, torch.Tensor) else object
+    translation = [tx, ty, tz]   # x and y were swapped before PyTomography 4.0
     identity_matrix = np.eye(3)
     shifted_object = affine_transform(object, identity_matrix, offset=translation, order=1)
     
     return torch.tensor(shifted_object).to(pytomography.dtype).to(pytomography.device)
 
 def rotate_object(object: torch.Tensor, transaxial_angle: float, transsagittal_angle: float) -> torch.Tensor:
-    """
-    Rotates the volume around the transaxial and transsagittal slices.
+    """Rotates a 3D image about its third axis and then about its second, keeping its shape.
 
-    Parameters:
-        object: The 3D volume to be rotated (torch.Tensor[Lx, Ly, Lz]).
-        angle_transaxial (float): The angle to rotate around the transaxial slice (z-axis).
-        angle_transsagittal (float): The angle to rotate around the transsagittal slice (y-axis).
+    ``scipy.ndimage.rotate`` turns the image by ``transaxial_angle`` in the plane of its first two axes (about z), then
+    by ``transsagittal_angle`` in the plane of its first and third axes (about y), each time about the centre of the
+    array, with cubic spline interpolation and 0 outside the image.
+
+    Args:
+        object (torch.Tensor): Image [Lx, Ly, Lz].
+        transaxial_angle (float): Rotation about the third axis (z), in degrees.
+        transsagittal_angle (float): Rotation about the second axis (y), in degrees.
 
     Returns:
-        The reoriented object (torch.Tensor[Lx, Ly, Lz]).
+        torch.Tensor: The rotated image [Lx, Ly, Lz], of ``pytomography.dtype`` on ``pytomography.device``.
     """
     
     rotated_object = rotate(object.cpu(), transaxial_angle, axes=(1, 0), reshape=False)
@@ -47,13 +61,16 @@ def rotate_object(object: torch.Tensor, transaxial_angle: float, transsagittal_a
     return torch.tensor(rotated_object).to(pytomography.dtype).to(pytomography.device)
 
 def get_mask(object: torch.Tensor, lowerThreshold: float, upperThreshold: float) -> torch.Tensor:
-    """
-    Segment the object based on the given thresholds.
-    
+    """Mask of the voxels whose value lies strictly between two fractions of the image's maximum.
+
     Args:
-        object: torch.Tensor[Lx, Ly, Lz]
-        lowerThreshold: Lower threshold for the binary mask
-        upperThreshold: Upper threshold for the binary mask
+        object (torch.Tensor): Image [Lx, Ly, Lz].
+        lowerThreshold (float): Lower threshold, as a fraction of ``object.max()``.
+        upperThreshold (float): Upper threshold, as a fraction of ``object.max()``.
+
+    Returns:
+        torch.Tensor: The mask [Lx, Ly, Lz]: 1 where ``lowerThreshold * max < object < upperThreshold * max`` and 0
+        elsewhere, of ``pytomography.dtype`` on ``pytomography.device``.
     """
     
     lower_threshold, upper_threshold = lowerThreshold * object.max(), upperThreshold * object.max()
@@ -62,15 +79,18 @@ def get_mask(object: torch.Tensor, lowerThreshold: float, upperThreshold: float)
     return torch.tensor(mask).to(pytomography.dtype).to(pytomography.device)
 
 def get_shift_values(slice: torch.Tensor) -> torch.Tensor:
-    """
-    Calculate the shift values for the given object based on the center of mass.
+    """Shifts that move the centre of mass of a 2D slice to the centre of the slice, and the slice so shifted.
+
+    For a slice of shape :math:`(N_0, N_1)` the centre is the index :math:`(N_0/2, N_1/2)`; the shifts are the centre
+    minus the centre of mass, and the slice is shifted by them with nearest-neighbour interpolation (0 outside).
 
     Args:
-        slice (torch.Tensor): torch.Tensor[Lx, Ly] representing the slice.
+        slice (torch.Tensor): Slice [N0, N1], e.g. a slice of a mask from :func:`get_mask`.
 
     Returns:
-        shifted_image (torch.Tensor): The shifted image.
-        shift_values (torch.Tensor): The shift values in x and y directions.
+        tuple[torch.Tensor, torch.Tensor, torch.Tensor]: The shifted slice [N0, N1] (``pytomography.dtype``, on
+        ``pytomography.device``), then the shifts along its first axis (rows) and its second axis (columns), in voxels,
+        as 0-dimensional float32 tensors on the CPU.
     """
     
     com = center_of_mass(slice.cpu().numpy())
@@ -83,15 +103,19 @@ def get_shift_values(slice: torch.Tensor) -> torch.Tensor:
     return shifted_image, shift_values[0], shift_values[1]
 
 def get_angle(slice: torch.Tensor, angle_range_degrees: torch.Tensor) -> float:
-    """
-    Get the angle of the best line passing through the center of the image.
+    r"""Angle of the line through the centre of a 2D slice that lies closest to the slice's nonzero pixels.
+
+    The second axis (columns) is taken as x and the first (rows) as y. For each candidate angle :math:`\theta`, the line
+    passes through the pixel ``(N0 // 2, N1 // 2)`` with slope :math:`\tan\theta`; the angle whose line has the smallest
+    sum of perpendicular distances to the nonzero pixels is returned. Each nonzero pixel counts once, whatever its
+    value.
 
     Args:
-        slice (torch.Tensor): torch.Tensor[Lx, Ly] representing the slice.
-        angle_range_degrees (torch.Tensor): torch.Tensor[N] with angles in degrees.
+        slice (torch.Tensor): Slice [N0, N1], e.g. a shifted mask from :func:`get_shift_values`.
+        angle_range_degrees (torch.Tensor): Candidate angles [N], in degrees, on the device of ``slice``.
 
     Returns:
-        best_angle_degree: The best angle in degrees.
+        float: The best of the candidate angles, in degrees.
     """
     
     angle_range_radians = angle_range_degrees * (math.pi / 180)
@@ -111,13 +135,16 @@ def get_angle(slice: torch.Tensor, angle_range_degrees: torch.Tensor) -> float:
     return best_angle_degree
 
 def plot_arrow(image, angle_degrees, fontsize=10):
-    """
-    Draws an arrow from the center of the image based on the given angle and displays a polar plot around it.
-    The angle is also displayed inside the plot.
-    
-    Parameters:
-    image (np.ndarray): 2D numpy array representing the image.
-    angle_degrees (float): Angle of the arrow with respect to the vertical, measured clockwise.
+    """Shows a 2D slice with an arrow from its centre at a given angle, inside a dial of angles.
+
+    The slice is drawn in grey with its first axis running down the screen and its second to the right. The arrow's
+    angle is measured clockwise from straight up; a dashed circle labelled every 10 degrees surrounds it, and the angle
+    is written at the centre. The figure is shown with ``plt.show()``.
+
+    Args:
+        image (torch.Tensor): Slice [N0, N1].
+        angle_degrees (float): Angle of the arrow, in degrees clockwise from up.
+        fontsize (int, optional): Font size of the labels. Defaults to 10.
     """
     center_x, center_y = image.shape[1] // 2, image.shape[0] // 2
     angle_radians = np.deg2rad(angle_degrees)
@@ -152,8 +179,16 @@ def plot_arrow(image, angle_degrees, fontsize=10):
     plt.show()
     
 def create_circular_mask(height, width, radius):
-    """
-    Create a circular mask.
+    """Mask of the pixels of a 2D grid that lie within ``radius`` of its centre.
+
+    Args:
+        height (int): Number of rows (first axis).
+        width (int): Number of columns (second axis).
+        radius (float): Radius of the disc, in pixels.
+
+    Returns:
+        torch.Tensor: The mask [height, width], boolean: True where the distance to the pixel
+        ``(height // 2, width // 2)`` is at most ``radius``.
     """
     
     Y, X = torch.meshgrid(torch.arange(height), torch.arange(width), indexing='ij')
@@ -163,8 +198,17 @@ def create_circular_mask(height, width, radius):
     return mask
 
 def masking(object: torch.Tensor, radius: int) -> torch.Tensor:
-    """
-    Apply a circular mask to the object in all three views.
+    """Sets to 0 the voxels of a 3D image outside three cylinders about its centre, one along each axis.
+
+    For each axis, the disc of :func:`create_circular_mask` is applied to every slice across that axis, so the voxels
+    kept are those inside all three cylinders. ``object`` itself is not changed.
+
+    Args:
+        object (torch.Tensor): Image [L0, L1, L2].
+        radius (int): Radius of the cylinders, in voxels.
+
+    Returns:
+        torch.Tensor: The masked image [L0, L1, L2], of ``pytomography.dtype`` on ``pytomography.device``.
     """
     
     depth, height, width = object.shape

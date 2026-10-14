@@ -34,7 +34,7 @@ def _gen3_meta(n_views=48, n_cols=48, n_rows=8):
         source_z_offsets=zero.clone(),
         detector_centers_col_idx=torch.full((n_views,), (n_cols + 1) / 2),
         detector_centers_row_idx=torch.full((n_views,), (n_rows + 1) / 2),
-        col_det_spacing=float(np.arcsin(5.0 / DSD)), row_det_spacing=2.0, DSD=DSD, shape=(n_cols, n_rows))
+        col_angle_spacing=float(np.arcsin(5.0 / DSD)), row_det_spacing=2.0, DSD=DSD, shape=(n_cols, n_rows))
 
 
 def _conebeam_meta(n_views=24):
@@ -126,6 +126,74 @@ def test_gen3_projection_is_split_to_bound_the_rays_per_call(monkeypatch):
     assert all(end - start <= 5 for start, end, _ in splits)
     assert torch.equal(sm.forward(f), full)
     assert (sm.backward(g) - BP).abs().max() <= 1e-5 * BP.abs().max()
+
+
+@pytest.mark.parametrize("algorithm", ["OSEM", "BSREM", "RBIEM"])
+@pytest.mark.parametrize("n_subsets", [1, 3])
+def test_normalization_factors_kept_on_the_host_reach_the_algorithms_on_the_device(algorithm, n_subsets):
+    """The gen3 system matrix keeps H_m^T 1 on the host (its memory estimate counts them in RAM), the cone beam one on
+    the device. The likelihood handed them to the algorithms on the host with one subset, and summed over the subsets
+    (BSREM, RBIEM), so on a GPU those reconstructions mixed devices; they are now on PyTomography's device."""
+    import pytomography.algorithms as algorithms
+    from pytomography.likelihoods import PoissonLogLikelihood
+    from pytomography.priors import RelativeDifferencePrior
+    sm = _gen3()
+    assert sm.compute_normalization_factor().device.type == "cpu"
+    projections = sm.forward(_object()).to(DEV)
+    likelihood = PoissonLogLikelihood(sm, projections)
+    kwargs = dict(prior=RelativeDifferencePrior(0.01)) if algorithm == "BSREM" else {}
+    image = getattr(algorithms, algorithm)(likelihood, **kwargs)(n_iters=1, n_subsets=n_subsets)
+    assert image.device.type == torch.device(DEV).type
+    assert torch.isfinite(image).all()
+    for subset_idx in ([None] if n_subsets == 1 else [0, 2]):
+        assert likelihood._get_normBP(subset_idx).device.type == torch.device(DEV).type
+        if subset_idx is not None:
+            assert likelihood._get_normBP(subset_idx, return_sum=True).device.type == torch.device(DEV).type
+
+
+def test_conebeam_scan_off_z0_sees_the_object_as_moved():
+    """A circular scan at z = 4 mm sees the object as a scan at z = 0 sees it moved down 4 mm (two slices): the panel
+    faces the rotation axis at every z. Its orientation was the direction from the detector to the origin, which off
+    z = 0 tilted the panel (and stretched its rows)."""
+    n_views = 24
+    angles = torch.linspace(0, 2 * np.pi, n_views + 1)[:-1]
+    def scan(z):
+        meta = CTConeBeamFlatPanelProjMeta(angles, torch.full((n_views,), z), detector_radius=100.0, beam_radius=150.0,
+                                           shape=(40, 16), dr=(2.5, 2.5))
+        return CTConeBeamFlatPanelSystemMatrix(OBJECT_META, meta)
+    raised = scan(4.0)
+    assert torch.equal(raised.proj_meta.detector_orientations[:, 2].cpu(), torch.zeros(n_views))
+    flat = scan(0.0).proj_meta                                     # at z = 0, the orientation is as it was, bit for bit
+    assert torch.equal(flat.detector_orientations, -flat.detector_locations / torch.norm(flat.detector_locations, dim=-1).unsqueeze(-1))
+    f = _object()
+    f[..., :2] = 0
+    f[..., -2:] = 0
+    moved = torch.zeros_like(f)
+    moved[..., :-2] = f[..., 2:]
+    expected = scan(0.0).forward(moved)
+    assert (raised.forward(f) - expected).abs().max() <= 1e-4 * expected.abs().max()
+
+
+def test_conebeam_forward_projection_is_split_like_back_projection(monkeypatch):
+    """``N_splits`` split each view's back projection into that many kernel calls, but not its forward projection;
+    both are split now, and the projection is the same."""
+    import types
+    import pytomography.projectors.CT.ct_conebeam_flatpanel_system_matrix as conebeam
+    f = _object()
+    expected = _conebeam(N_splits=1).forward(f)
+    calls = {'fwd': 0, 'back': 0}
+    real = conebeam.parallelproj_core
+    def counted(name):
+        def kernel(*args):
+            calls[name] += 1
+            return getattr(real, f'joseph3d_{name}')(*args)
+        return kernel
+    monkeypatch.setattr(conebeam, 'parallelproj_core', types.SimpleNamespace(joseph3d_fwd=counted('fwd'), joseph3d_back=counted('back')))
+    sm = _conebeam(N_splits=4)
+    assert torch.equal(sm.forward(f), expected)
+    sm.backward(_like(expected))
+    n_views = sm.proj_meta.N_angles
+    assert calls == {'fwd': 4 * n_views, 'back': 4 * n_views}
 
 
 @SYSTEMS
