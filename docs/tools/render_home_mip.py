@@ -2,9 +2,11 @@
 
 Each frame is a maximum intensity projection (MIP) of the SPECT, in PyTomography's 'pet' colour scale, laid over a MIP of
 the patient's CT in grey, seen from one angle round the patient's long axis. The colour limits are the same in every
-frame. The patient stands upright, head at the top, and turns about the body's long axis. The site uses an animated
-WebP: a GIF of the same frames is several times larger. It runs on the CPU in under a minute and needs about 3 GB of
-RAM.
+frame. The patient stands upright, head at the top, and turns about the body's long axis.
+
+The site uses an H.264 MP4 at 60 frames per second, one frame per degree, with its first frame as a still poster
+(``<name>_poster.webp``): an animated WebP or GIF that smooth is several times larger. ``--out`` ending in .webp or
+.gif writes those instead. It runs on the CPU in a few minutes and needs about 6 GB of RAM.
 
 Its inputs are what t_dicommultibed saves and reads, found from PYTOMOGRAPHY_OUTPUT and PYTOMOGRAPHY_DATA by default:
 
@@ -12,11 +14,12 @@ Its inputs are what t_dicommultibed saves and reads, found from PYTOMOGRAPHY_OUT
              folder of SPECT/Lu177-PSMA-GEDisc
     --ct     the CT folder of the SPECT/Lu177-PSMA-GEDisc dataset
 
-    python docs/tools/render_home_mip.py --out docs/source/_static/landing/mip.webp
+    python docs/tools/render_home_mip.py --out docs/source/_static/landing/mip.mp4
     python docs/tools/render_home_mip.py --recon RUN/outputs/.../NM_0001.dcm --ct DATA/SPECT/Lu177-PSMA-GEDisc/CT \\
-        --out docs/source/_static/landing/mip.webp --frames-dir preview/    # also every 6th frame as PNG
+        --out docs/source/_static/landing/mip.mp4 --frames-dir preview/    # also every 30th frame as PNG
 
-It needs PyTomography 4 (for io.load_image), SciPy and Pillow. The colour settings are render()'s defaults.
+It needs PyTomography 4 (for io.load_image), SciPy, Pillow and, for MP4, imageio-ffmpeg (its ffmpeg). The colour
+settings are render()'s defaults.
 """
 from __future__ import annotations
 
@@ -155,17 +158,42 @@ def render(ct_mips, spect_mips, *, spect_max=0.75, gamma=0.7, opacity=(0.16, 0.5
     return [PILImage.fromarray((255 * np.clip(f, 0, 1)).astype(np.uint8)).resize(size, PILImage.LANCZOS) for f in rgb]
 
 
-def write(frames: list[PILImage.Image], out: Path, ms: int, quality: int = 80) -> None:
-    """An animated WebP (lossy, a fifth of the GIF's size for the same look), or a GIF with one palette for every
-    frame, so that colours don't flicker, and no dithering, so that the black stays black."""
+def write_mp4(frames: list[PILImage.Image], out: Path, fps: float, crf: int = 20) -> None:
+    """An H.264 MP4 that browsers play muted and looped: yuv420p in BT.709 (what browsers assume), the height padded
+    to even with black, the index at the front so that it starts before it has all downloaded. The first frame is also
+    written as ``<name>_poster.webp``, shown until the video plays."""
+    import subprocess
+    import imageio_ffmpeg
+    w, h = frames[0].size
+    command = [imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error",
+               "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-r", f"{fps:g}", "-i", "-", "-an",
+               "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2,scale=out_color_matrix=bt709:out_range=tv",
+               "-c:v", "libx264", "-preset", "veryslow", "-crf", str(crf), "-pix_fmt", "yuv420p",
+               "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709",
+               "-movflags", "+faststart", str(out)]
+    with subprocess.Popen(command, stdin=subprocess.PIPE) as ffmpeg:
+        for f in frames:
+            ffmpeg.stdin.write(f.convert("RGB").tobytes())
+        ffmpeg.stdin.close()
+    if ffmpeg.returncode:
+        raise RuntimeError(f"ffmpeg failed with exit code {ffmpeg.returncode}")
+    frames[0].save(out.with_name(out.stem + "_poster.webp"), quality=90, method=6)
+
+
+def write(frames: list[PILImage.Image], out: Path, ms: float, quality: int = 80) -> None:
+    """An MP4 (see write_mp4), an animated WebP (lossy, a fifth of the GIF's size for the same look), or a GIF with one
+    palette for every frame, so that colours don't flicker, and no dithering, so that the black stays black."""
     out.parent.mkdir(parents=True, exist_ok=True)
+    if out.suffix.lower() == ".mp4":
+        write_mp4(frames, out, 1000 / ms)
+        return
     if out.suffix.lower() == ".webp":
-        frames[0].save(out, save_all=True, append_images=frames[1:], duration=ms, loop=0, quality=quality, method=6)
+        frames[0].save(out, save_all=True, append_images=frames[1:], duration=round(ms), loop=0, quality=quality, method=6)
         return
     sample = PILImage.fromarray(np.concatenate([np.asarray(f) for f in frames[::5]], axis=0))
     palette = sample.quantize(colors=255, method=PILImage.Quantize.MEDIANCUT, dither=PILImage.Dither.NONE)
     indexed = [f.quantize(palette=palette, dither=PILImage.Dither.NONE) for f in frames]
-    indexed[0].save(out, save_all=True, append_images=indexed[1:], duration=ms, loop=0, optimize=True, disposal=1)
+    indexed[0].save(out, save_all=True, append_images=indexed[1:], duration=round(ms), loop=0, optimize=True, disposal=1)
 
 
 def main():
@@ -174,23 +202,23 @@ def main():
     p.add_argument("--recon", type=Path, default=outputs / DATASET / "t_dicommultibed" / "osem_stitched" / "NM_0001.dcm")
     p.add_argument("--ct", type=Path, default=datasets.data_dir() / DATASET / "CT")
     p.add_argument("--out", type=Path, required=True, help="the image to write: .webp (the site's) or .gif")
-    p.add_argument("--frames", type=int, default=72, help="views round the patient (default 72, every 5 degrees)")
-    p.add_argument("--ms", type=int, default=70, help="milliseconds per frame")
+    p.add_argument("--frames", type=int, default=360, help="views round the patient (default 360, every degree)")
+    p.add_argument("--fps", type=float, default=60, help="frames per second (default 60: one turn in 6 s)")
     p.add_argument("--width", type=int, default=600, help="width of the image in pixels")
     p.add_argument("--quality", type=int, default=80, help="WebP quality, 0 to 100")
     p.add_argument("--voxel-mm", type=float, default=2.0, help="the grid the projections are made on")
     p.add_argument("--spect-fwhm-mm", type=float, default=8.0, help="Gaussian filter on the SPECT before projecting")
-    p.add_argument("--frames-dir", type=Path, help="also save every 6th frame here as PNG, to look at")
+    p.add_argument("--frames-dir", type=Path, help="also save every 30th frame here as PNG, to look at")
     args = p.parse_args()
     t0 = time.time()
     torch.set_num_threads(max(1, min(8, (os.cpu_count() or 4) - 4)))  # leave cores for other work
 
     ct_mips, spect_mips = projections(args.recon, args.ct, args.frames, args.voxel_mm, args.spect_fwhm_mm)
     frames = render(ct_mips, spect_mips, width=args.width)
-    write(frames, args.out, args.ms, args.quality)
+    write(frames, args.out, 1000 / args.fps, args.quality)
     if args.frames_dir:
         args.frames_dir.mkdir(parents=True, exist_ok=True)
-        for k in range(0, len(frames), 6):
+        for k in range(0, len(frames), 30):
             frames[k].save(args.frames_dir / f"frame_{k:03d}.png")
     print(f"{args.out}: {len(frames)} frames of {frames[0].size[0]} x {frames[0].size[1]}, "
           f"{args.out.stat().st_size / 1e6:.2f} MB, {time.time() - t0:.0f} s")

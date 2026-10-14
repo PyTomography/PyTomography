@@ -91,7 +91,7 @@ section#pytomography > h1 {
 .pt-copy { margin-left: auto; background: none; border: 0; color: var(--pt-purple); font: 500 0.8rem var(--pst-font-family-monospace); cursor: pointer; }
 
 .pt-hero-fig { width: clamp(280px, 26vw, 360px); justify-self: end; margin: 0; border-radius: 12px; overflow: hidden; background: var(--pt-black); border: 1px solid var(--pt-line); box-shadow: 0 30px 60px -32px rgba(20, 16, 40, 0.55); }
-.pt-hero-fig img { display: block; width: 100%; height: auto; }
+.pt-hero-fig img, .pt-hero-fig video { display: block; width: 100%; height: auto; }
 @media (max-width: 960px) { .pt-hero-fig { width: min(100%, 320px); justify-self: center; } }
 .pt-hero-fig figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; padding: 9px 14px; font: 0.74rem var(--pst-font-family-monospace); color: #9aa1b5; background: #0d0f15; }
 
