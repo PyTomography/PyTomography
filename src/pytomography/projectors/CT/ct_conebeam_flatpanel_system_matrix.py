@@ -84,6 +84,7 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         Returns:
             list: List of arrays where each array corresponds to the projection indices of a particular subset.
         """
+        self._check_n_subsets(n_subsets, self.proj_meta.N_angles)
         indices = torch.arange(self.proj_meta.N_angles).to(torch.long).to(self.device)
         subset_indices_array = []
         for i in range(n_subsets):
