@@ -9,15 +9,17 @@ name: Tests
 # GPU runner is set up.
 # The rulesets on development and main require one check from this file, "All tests passed", which waits for every
 # job above, so adding or renaming a job never needs a settings change.
+# Pushes to development, docs/v4-site and main run too, and the README's badges show their results.
 
 on:
   pull_request:
   push:
-    branches: [development, main]
+    branches: [development, docs/v4-site, main]
   workflow_dispatch:
 
+# A new push to a pull request cancels its older run. A push to a branch is never cancelled, so every merge is tested.
 concurrency:
-  group: tests-${{ github.ref }}
+  group: ${{ github.event_name == 'pull_request' && format('tests-pr-{0}', github.event.pull_request.number) || format('tests-run-{0}', github.run_id) }}
   cancel-in-progress: true
 
 env:
