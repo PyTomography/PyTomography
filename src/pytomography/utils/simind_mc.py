@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Sequence
 import os
 import time
+import shutil
 import subprocess
 import tempfile
 from copy import copy
@@ -27,6 +28,7 @@ ENERGY_RESOLUTION_MODELS = ['siemens']
 #:   times too large and lacked attenuation, so its reconstructions were too low and brighter at the edge of the body.
 #:   With every voxel in the second material, the attenuation agrees with PyTomography's attenuated projector to a few
 #:   percent. Both phantom materials are water in the ``simind.smc`` file used here, so nothing else changes.
+#:   SIMIND V9.0 attenuates the photons in both materials, with or without this change, so it is kept for V8.
 SIMIND_INI_CHANGES = ('in:x2,6x', 'in:x21,0x')
 
 def save_attenuation_map(
@@ -214,9 +216,15 @@ def get_energy_window_params_simind(headerfiles: Sequence[str]|str)-> Sequence[s
         lines.append(f'{window.lower_keV},{window.upper_keV},0')
     return lines
         
+#: The scattwin images SIMIND writes for every energy window (switch ``/CA``): 2 gives the total, scatter, primary and
+#: air images in SIMIND V8 and V9. PyTomography reads the total and scatter images; V9 writes the scatter images only
+#: with 2 (1 gives the total and air images there), V8 with 1 or 2.
+SCATTWIN_IMAGES = 'CA:2'
+
 def create_simind_command(index_dict: dict, parallel_idx: int) -> str:
     """Creates the terminal command to run SIMIND with the specified parameters: voxel source and attenuation maps
-    (XCAT format), scatter and air images, and the simind.ini changes in :data:`SIMIND_INI_CHANGES`.
+    (XCAT format), the total and scatter images of every window (:data:`SCATTWIN_IMAGES`), and the simind.ini changes
+    in :data:`SIMIND_INI_CHANGES`.
 
     Args:
         index_dict (dict): Dictionary of SIMIND parameters
@@ -225,7 +233,7 @@ def create_simind_command(index_dict: dict, parallel_idx: int) -> str:
     Returns:
         str: Terminal command to run SIMIND with the specified parameters
     """
-    simind_command = f'temp_output{parallel_idx}/14:-7/15:-7/CA:1/RR:{parallel_idx}/01:-208'
+    simind_command = f'temp_output{parallel_idx}/14:-7/15:-7/{SCATTWIN_IMAGES}/RR:{parallel_idx}/01:-208'
     for change in SIMIND_INI_CHANGES:
         simind_command += f'/{change}'
     for key, value in index_dict.items():
@@ -237,7 +245,8 @@ def create_simind_command(index_dict: dict, parallel_idx: int) -> str:
     return simind_command
 
 def add_together(n_parallel: int, n_windows: int, temp_path: str):
-    """Adds together all the parallel SIMIND simulations to obtain the final scatter and total projections
+    """Adds together all the parallel SIMIND simulations to obtain the final scatter and total projections, with
+    headers made from the first simulation's (``sca_w<n>.h00`` and ``tot_w<n>.h00``, pointing at the added data).
 
     Args:
         n_parallel (int): Number of parallel simulations
@@ -251,20 +260,20 @@ def add_together(n_parallel: int, n_windows: int, temp_path: str):
             w_scat = np.fromfile(os.path.join(temp_path, f'temp_output{i}_sca_w{j+1}.a00'), dtype=np.float32)
             xscats[j] += w_scat
             w_tot = np.fromfile(os.path.join(temp_path, f'temp_output{i}_tot_w{j+1}.a00'), dtype=np.float32)
-            xtots[j] += w_tot 
+            xtots[j] += w_tot
     for i in range(n_windows):
         # Take mean
         xscat = xscats[i] / n_parallel
         xtot = xtots[i] / n_parallel
         xscat.tofile(os.path.join(temp_path, f'sca_w{i+1}.a00'))
         xtot.tofile(os.path.join(temp_path, f'tot_w{i+1}.a00'))
-        # Create a header file for it
-        subprocess.run(['mv', f'temp_output0_sca_w{i+1}.h00', f'sca_w{i+1}.h00'], cwd=temp_path)
-        subprocess.run(['sed', '-i', f's/temp_output0_sca_w{i+1}.a00/sca_w{i+1}.a00/g', f'sca_w{i+1}.h00'], cwd=temp_path)
-        # REMOVE THESE LATER >
-        subprocess.run(['mv', f'temp_output0_tot_w{i+1}.h00', f'tot_w{i+1}.h00'], cwd=temp_path)
-        subprocess.run(['sed', '-i', f's/temp_output0_tot_w{i+1}.a00/tot_w{i+1}.a00/g', f'tot_w{i+1}.h00'], cwd=temp_path)
-                                   
+        for kind in ('sca', 'tot'):
+            name = f'{kind}_w{i+1}'
+            with open(os.path.join(temp_path, f'temp_output0_{name}.h00'), encoding='latin-1') as f:
+                header = f.read()
+            with open(os.path.join(temp_path, f'{name}.h00'), 'w', encoding='latin-1') as f:
+                f.write(header.replace(f'temp_output0_{name}.a00', f'{name}.a00'))
+
 def run_scatter_simulation(
     source_map: torch.Tensor,
     attenuation_map_140keV: torch.Tensor,
@@ -305,24 +314,25 @@ def run_scatter_simulation(
     # Save attenuation map and source map to TEMP directory
     save_attenuation_map(attenuation_map_140keV, object_meta.dr[0], temp_dir.name)
     save_source_map(source_map, temp_dir.name, scaling=n_events/n_parallel/n_batches)
-    # Move simind.smc and energy_resolution.erf to TEMP directory
-    module_path = os.path.dirname(os.path.abspath(__file__))
-    smc_filepath = os.path.join(module_path, "../data/simind.smc")
-    p = subprocess.Popen(['cp', smc_filepath, f'{temp_dir.name}/simind.smc']) 
-    p.wait() # wait for copy to complete
+    # Copy simind.smc and the energy resolution files to TEMP directory
+    data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data')
+    shutil.copyfile(os.path.join(data_path, 'simind.smc'), os.path.join(temp_dir.name, 'simind.smc'))
     for energy_res_model in ENERGY_RESOLUTION_MODELS:
-        e_res_filepath = os.path.join(module_path, f"../data/{energy_res_model}.erf")
-        p = subprocess.Popen(['cp', e_res_filepath, f'{temp_dir.name}/{energy_res_model}.erf'])
+        shutil.copyfile(os.path.join(data_path, f'{energy_res_model}.erf'),
+                        os.path.join(temp_dir.name, f'{energy_res_model}.erf'))
     # Create simind commands and run simind in parallel
     simind_commands = [create_simind_command(simind_index_dict, i) for i in range(n_parallel*n_batches)]
     for batchIdx in range(n_batches):
         n0, n1 = batchIdx * n_parallel, (batchIdx + 1) * n_parallel
         procs = [subprocess.Popen([f'simind', 'simind', simind_command, 'radii_corfile.cor'], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, cwd=temp_dir.name) for simind_command in simind_commands[n0:n1]]
+        errors = []
         for p in procs:
-            p.wait()
+            error_output = p.communicate()[1].decode('utf-8', errors='replace')
             if p.returncode != 0:  # Check if the process exited with an error
-                error_output = p.stderr.read().decode('utf-8')
-                print(f"Error in process {p.args}:\n{error_output}")
+                errors.append(f'{" ".join(p.args)}\nexit code {p.returncode}:\n{error_output}')
+        if errors:
+            temp_dir.cleanup()
+            raise RuntimeError(f'{len(errors)} of {len(procs)} SIMIND processes failed; the first:\n{errors[0]}')
     # Add together projection data from all seperate processes
     add_together(n_parallel*n_batches, len(energy_window_params), temp_dir.name)
     from pytomography.io.SPECT import read_simind

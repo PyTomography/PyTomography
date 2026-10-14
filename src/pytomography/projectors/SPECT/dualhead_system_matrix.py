@@ -485,10 +485,10 @@ class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
     def _memory_parts(self, n_subsets: int, N_splits: int | None = None) -> list[MemoryPart]:
         """What a reconstruction with this system matrix holds at its peak: as :class:`SPECTSystemMatrix` (whose back
         projection it uses), and the 140 keV attenuation map; for a subset, the host copies of the maps written for
-        SIMIND and the scatter and total projections of every energy window that are read back and added up (four sets);
-        and the ``n_parallel`` SIMIND processes, each with its maps and the images of every window (three per window),
-        plus :data:`SIMIND_PROCESS_BYTES`. The SIMIND processes are processes of their own: they take the machine's
-        RAM, not this process's.
+        SIMIND and the scatter and total projections of every simulated window (:meth:`_simulated_windows`) that are read
+        back and added up (four sets); and the ``n_parallel`` SIMIND processes, each with its maps and the images of
+        every simulated window (three per window), plus :data:`SIMIND_PROCESS_BYTES`. The SIMIND processes are
+        processes of their own: they take the machine's RAM, not this process's.
 
         Args:
             n_subsets (int): Number of subsets.
@@ -502,13 +502,21 @@ class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
         views = -(-self.proj_meta.num_projections // n)
         view = 4 * math.prod(self.proj_meta.shape[1:])
         image = 4 * math.prod(self.object_meta.shape)
-        windows = len(self.energy_window_params)
+        windows = len(self._simulated_windows()[0])
         parts.append(MemoryPart('attenuation map at 140 keV', *nbytes(self.attenuation_map_140keV)))
-        parts.append(MemoryPart('SIMIND maps and the projections of every window read back (host)',
+        parts.append(MemoryPart('SIMIND maps and the projections of the simulated windows read back (host)',
                                 ram_bytes=2 * image + 4 * windows * views * view, scope='subset'))
         parts.append(MemoryPart(f'SIMIND processes ({self.n_parallel})',
                                 ram_bytes=self.n_parallel * (self.SIMIND_PROCESS_BYTES + 2 * image + 3 * windows * views * view), scope='chunk'))
         return parts
+
+    def _simulated_windows(self) -> tuple[list[str], int | slice]:
+        """The windows SIMIND simulates, and the index that picks the reconstructed projections from what it returns:
+        only the window(s) of ``primary_window_idx``, since the others would be thrown away (SIMIND V9.0 also fails,
+        in its scattwin routine, when it scores more than one window)."""
+        if isinstance(self.primary_window_idx, (int, np.integer)):
+            return [self.energy_window_params[self.primary_window_idx]], 0
+        return [self.energy_window_params[i] for i in self.primary_window_idx], slice(None)
 
     def _get_proj_meta_subset(self, subset_idx: int) -> SPECTProjMeta:
         """Creates a new SPECTProjMeta that corresponds to a subset of projections
@@ -540,6 +548,7 @@ class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
         else:
             proj_meta = self.proj_meta
         projections_total = 0
+        windows, pick = self._simulated_windows()
         for isotope_name, isotope_ratio in zip(self.isotope_names, self.isotope_ratios):
             index_dict = simind_mc.get_simind_params_from_metadata(self.object_meta, proj_meta)
             index_dict.update(simind_mc.get_simind_isotope_detector_params(
@@ -557,12 +566,12 @@ class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
                 self.attenuation_map_140keV,
                 self.object_meta,
                 proj_meta,
-                self.energy_window_params,
+                windows,
                 index_dict,
                 self.n_events,
                 self.n_parallel,
                 return_total=True,
-            )[self.primary_window_idx]
+            )[pick]
             projections_total += projections * object.sum() * isotope_ratio
         # still apply proj2proj transforms since these are only additive term and cutoff
         for transform in self.proj2proj_transforms:
