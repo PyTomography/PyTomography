@@ -5,7 +5,7 @@ import torch
 import numpy as np
 import pytomography
 from pytomography.utils import get_1d_gaussian_kernel
-from pytomography.utils.memory import block_size, prefer_lazy, tensor_nbytes
+from pytomography.utils.memory import BLOCK_CAP_BYTES, block_size, prefer_lazy, tensor_nbytes
 
 _GEOMETRY_CACHE: dict = {}
 
@@ -118,7 +118,9 @@ def sinogram_to_spatial(info: dict) -> Sequence[torch.Tensor]:
     Returns:
         Sequence[torch.Tensor]: Two tensors yielding spatial coordinates
     """
-    scanner_lut = get_scanner_LUT(info)
+    # a NumPy array (the same float32 values): copying rows of a tensor into the NumPy arrays below made NumPy 2 warn
+    # that Tensor.__array__ takes no copy argument, once per crystal pair
+    scanner_lut = get_scanner_LUT(info).numpy()
     nr_sectors_trans, nr_sectors_axial, nr_modules_axial, nr_modules_trans, nr_crystals_trans, nr_crystals_axial = info['rsectorTransNr'], info['rsectorAxialNr'], info['moduleAxialNr'], info['moduleTransNr'], info['crystalTransNr'], info['crystalAxialNr']
     nr_rings = nr_sectors_axial * nr_modules_axial * nr_crystals_axial
     nr_crystals_per_ring = nr_sectors_trans * nr_modules_trans * nr_crystals_trans
@@ -217,8 +219,10 @@ class LazySinogram:
         compute_on (Callable[[torch.Tensor, torch.device], torch.Tensor] | None, optional): Like ``compute``, but returns the angles as a new tensor on the device it is given, computed there. Defaults to None: :meth:`compute_at` computes on the CPU and copies.
         memory_bytes (float, optional): Host memory the sinogram keeps to compute itself (e.g. its events), in bytes, for memory estimates (:attr:`memory_bytes`). Defaults to 0.
     """
-    #: Largest group of angles computed at once when more than one group is asked for, in bytes.
-    chunk_bytes = 1e9
+    #: Largest group of angles computed at once when more than one group is asked for, in bytes: the cap of a block of
+    #: temporaries (:data:`pytomography.utils.memory.BLOCK_CAP_BYTES`, 0.5 GB). Looking the 107 million events of the
+    #: GATE mMR scan up in its lazy scatter estimate (21 TOF bins) in groups of 1 GB left 1.0 GB more committed on Windows.
+    chunk_bytes = BLOCK_CAP_BYTES
     dtype = torch.float32
     device = torch.device('cpu')
 
@@ -533,6 +537,8 @@ def listmode_to_sinogram(
     ) -> torch.Tensor | LazySinogram:
     """Converts PET listmode data to sinogram
 
+    The events are binned a chunk at a time into one sinogram on the CPU: as many events at once as fit in an eighth of the memory budget (:func:`pytomography.set_memory_budget`), at most about 3.8 million (0.5 GB of temporaries), or about 4.2 million without a budget. The sinogram is the one binning all the events at once gives, bit for bit.
+
     Args:
         detector_ids (torch.Tensor): Listmode detector ID data
         info (dict): PET geometry information dictionary
@@ -552,23 +558,85 @@ def listmode_to_sinogram(
         return _listmode_to_lazy_sinogram(detector_ids, info, tof_meta=tof_meta, weights=weights)
     if tof_meta is not None: # if tof_meta is provided
         return _listmodeTOF_to_sinogramTOF(detector_ids, info, tof_meta, weights=weights)
-    # The events are binned on the device they are on (a list mode system matrix keeps them on the GPU)
-    device = detector_ids.device
-    lor_coordinates, sinogram_index = (table.to(device) for table in sinogram_coordinates(info))
-    detector_ids = detector_ids[:,:2]
-    within_ring_id = (detector_ids % info['NrCrystalsPerRing']).to(torch.long)
-    ring_ids = (detector_ids // info['NrCrystalsPerRing']).to(torch.long)
+    return _listmode_to_dense_sinogram(detector_ids, info, weights=weights, normalization=normalization)
+
+#: Host memory that binning takes per list mode event, temporaries included (bytes), which sizes its chunks of events.
+BINNING_BYTES_PER_EVENT = 130
+
+def _events_per_binning_chunk() -> int:
+    """Number of list mode events :func:`listmode_to_sinogram` bins at once: as many as fit in an eighth of the memory budget (:func:`pytomography.set_memory_budget`), at most 0.5 GB of temporaries (:data:`pytomography.utils.memory.BLOCK_CAP_BYTES`), at :data:`BINNING_BYTES_PER_EVENT` bytes each; 2**22 (about 0.5 GB) without a budget."""
+    return block_size(BINNING_BYTES_PER_EVENT, default=2**22)
+
+def _add_events(sinograms: Sequence[torch.Tensor], ids: torch.Tensor, weights: torch.Tensor | None, tables: tuple, info: dict, shape: tuple, num_tof_bins: int | None = None) -> None:
+    """Adds one chunk of events into flat float32 sinograms on the CPU: the first sinogram with each event's two crystals in descending order of their within-ring IDs (as ``listmode_to_sinogram`` bins them), the second, if there is one, in the opposite order (a normalization sinogram bins both).
+
+    The bins are found on the device of ``ids`` (with ``tables``, the lookup tables of ``sinogram_coordinates`` on that device) and added on the CPU with ``index_add_``, which adds the events of each bin in their order in the chunk, as ``torch.bincount`` does: chunks added one after the other give, bit for bit, the sinogram of all the events binned at once, counts and weighted sums alike, on any device. Events outside the sinogram (or, with ``num_tof_bins``, outside its TOF bins) are dropped.
+
+    Args:
+        sinograms (Sequence[torch.Tensor]): One or two flat float32 sinograms on the CPU, added to in place.
+        ids (torch.Tensor): [N, 2] detector IDs of the events, or [N, 3] with the TOF bin as the third column.
+        weights (torch.Tensor | None): [N] weight of each event, on any device; None counts the events.
+        tables (tuple): ``sinogram_coordinates(info)`` on the device of ``ids``.
+        info (dict): PET geometry information dictionary.
+        shape (tuple): Sinogram shape (angles, radial bins, planes).
+        num_tof_bins (int | None, optional): Number of TOF bins; the flat sinograms then have the TOF bin as their last (fastest) index. Defaults to None (non-TOF).
+    """
+    lor_coordinates, sinogram_index = tables
+    within_ring_id = (ids[:,:2] % info['NrCrystalsPerRing']).to(torch.long)
+    ring_ids = (ids[:,:2] // info['NrCrystalsPerRing']).to(torch.long)
     # Need to bin by largest "within_ring_id" first (for use with the "ring_coordinates" function yielding spatial coordinates for each ID-pair at each sinogram coordinate)
     within_ring_id, idx = within_ring_id.sort(axis=1, descending=True, stable=True)   # stable: a pair with equal within-ring IDs keeps its order on any device
     ring_ids = ring_ids.gather(index=idx, dim=1)
-    # Bin sinogram
+    if num_tof_bins is not None:
+        # the TOF bin of an event whose crystals were swapped is mirrored
+        tof_bin = ids[:,2].to(torch.long)
+        tof_bin = torch.where(idx[:,0] == 1, num_tof_bins - 1 - tof_bin, tof_bin)
+    del idx
+    if weights is not None:
+        weights = weights.to(device='cpu', dtype=torch.float32)
+    for (a, b), sinogram in zip(((0, 1), (1, 0)), sinograms):
+        key, inside = _bin_keys(lor_coordinates[within_ring_id[:,a], within_ring_id[:,b]], sinogram_index[ring_ids[:,a], ring_ids[:,b]], shape)
+        if num_tof_bins is not None:
+            inside &= (tof_bin >= 0) & (tof_bin < num_tof_bins)
+            key = key * num_tof_bins + tof_bin
+        key = key[inside].cpu()
+        values = torch.ones(key.shape[0], dtype=torch.float32) if weights is None else weights[inside.cpu()]
+        sinogram.index_add_(0, key, values)   # adds the events of each bin in their order, like bincount
+        del key, inside, values
+
+def _listmode_to_dense_sinogram(detector_ids: torch.Tensor, info: dict, weights: torch.Tensor | None = None, normalization: bool = False, num_tof_bins: int | None = None, events_per_chunk: int | None = None) -> torch.Tensor:
+    """``listmode_to_sinogram`` as one sinogram tensor, binned a chunk of events at a time.
+
+    Each chunk is added into one float32 sinogram on the CPU (two for a normalization sinogram), in the order of the events (``_add_events``), so the sinogram is the one binning all the events at once gives: counts are exact, and weighted sums are the same bit for bit, whatever the chunks. Binning all 117 million events of the GATE mMR brain scan at once took 9.6 GB of temporaries on top of the 1.65 GB sinogram on the CPU (10.6 GB with 3 TOF bins), and on Windows the process kept part of it committed after it was freed (2.2 GB, 4.8 GB with 3 TOF bins, and 12 GB after an earlier binning in the same process); a chunk at a time with a 16 GB budget, 0.3 GB. The bins of each chunk are found on the device the events are on (a list mode system matrix keeps them on the GPU), so the device holds one chunk's temporaries, not the sinogram.
+
+    Args:
+        detector_ids (torch.Tensor): [N, 2] detector IDs of the events, or [N, 3] with the TOF bin as the third column.
+        info (dict): PET geometry information dictionary.
+        weights (torch.Tensor | None, optional): [N] weight of each event. Defaults to None (count the events).
+        normalization (bool, optional): Bin as a normalization sinogram (see ``listmode_to_sinogram``). Defaults to False.
+        num_tof_bins (int | None, optional): Number of TOF bins; the sinogram then has a last TOF dimension. Defaults to None (non-TOF).
+        events_per_chunk (int | None, optional): Events binned at once. Defaults to None: :func:`_events_per_binning_chunk` (from the memory budget).
+
+    Returns:
+        torch.Tensor: Sinogram on the CPU, [angles, radial bins, planes] or [angles, radial bins, planes, TOF bins].
+    """
+    tables = tuple(table.to(detector_ids.device) for table in sinogram_coordinates(info))
     shape = _sinogram_shape(info)
-    sinogram = _bin_events(*_bin_keys(lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]], sinogram_index[ring_ids[:,0], ring_ids[:,1]], shape), shape, weights)
+    if events_per_chunk is None:
+        events_per_chunk = _events_per_binning_chunk()
+    T = 1 if num_tof_bins is None else num_tof_bins
+    # one sinogram per order of the two crystals that is binned: the normalization sinogram bins each event both ways
+    sinograms = [torch.zeros(int(np.prod(shape)) * T, dtype=torch.float32) for _ in range(2 if normalization else 1)]
+    for start in range(0, detector_ids.shape[0], events_per_chunk):
+        ids = detector_ids[start:start + events_per_chunk]
+        _add_events(sinograms, ids, None if weights is None else weights[start:start + ids.shape[0]], tables, info, shape, num_tof_bins)
+        del ids
+    sinogram = sinograms[0]
     # Opposite binning for normalization sinogram, which always considers "ring_id"s in order (this only works because of +/- z symmetry of normalization factors)
     if normalization:
-        sinogram += _bin_events(*_bin_keys(lor_coordinates[within_ring_id[:,1], within_ring_id[:,0]], sinogram_index[ring_ids[:,1], ring_ids[:,0]], shape), shape, weights)
+        sinogram += sinograms[1]
         sinogram /= 2
-    return sinogram
+    return sinogram.reshape(shape if num_tof_bins is None else (*shape, num_tof_bins))
 
 def crystal_pair_blocks(n_crystals: int, pairs_per_block: int):
     """Every pair of crystals ``(i, j)``, ``i < j``, in the order of ``torch.combinations(torch.arange(n_crystals), 2)``, a block of about ``pairs_per_block`` pairs at a time (whole rows of ``i``), so that the 411 million pairs of a clinical scanner never have to be held at once (3.3 GB as int32, and several times that in the temporaries of using them).
@@ -627,19 +695,13 @@ def all_pairs_to_sinogram(weights: torch.Tensor, info: dict, normalization: bool
     if weights.shape[0] != n_crystals * (n_crystals - 1) // 2:
         raise ValueError(f"expected one weight per crystal pair ({n_crystals * (n_crystals - 1) // 2:,}), got {weights.shape[0]:,}")
     if pairs_per_chunk is None:
-        pairs_per_chunk = block_size(130, default=2**22)
-    lor_coordinates, sinogram_index = sinogram_coordinates(info)
+        pairs_per_chunk = block_size(BINNING_BYTES_PER_EVENT, default=2**22)
+    tables = sinogram_coordinates(info)
     shape = _sinogram_shape(info)
     # one sinogram per order of the two crystals that is binned: the normalization sinogram bins each pair both ways
     sinograms = [torch.zeros(int(np.prod(shape)), dtype=torch.float32) for _ in range(2 if normalization else 1)]
     for offset, ids in crystal_pair_blocks(n_crystals, pairs_per_chunk):
-        within_ring_id, ring_ids = ids % info['NrCrystalsPerRing'], ids // info['NrCrystalsPerRing']
-        within_ring_id, idx = within_ring_id.sort(axis=1, descending=True, stable=True)   # as in listmode_to_sinogram
-        ring_ids = ring_ids.gather(index=idx, dim=1)
-        block_weights = weights[offset:offset + ids.shape[0]].to(device='cpu', dtype=torch.float32)
-        for (a, b), sinogram in zip(((0, 1), (1, 0)), sinograms):
-            key, inside = _bin_keys(lor_coordinates[within_ring_id[:,a], within_ring_id[:,b]], sinogram_index[ring_ids[:,a], ring_ids[:,b]], shape)
-            sinogram.index_add_(0, key[inside], block_weights[inside])   # adds in order, like bincount
+        _add_events(sinograms, ids, weights[offset:offset + ids.shape[0]], tables, info, shape)   # as listmode_to_sinogram bins them
     sinogram = sinograms[0]
     if normalization:
         sinogram += sinograms[1]
@@ -651,28 +713,9 @@ def _sinogram_shape(info: dict) -> tuple:
     return (int(info['NrCrystalsPerRing']/2), int(info['NrCrystalsPerRing'])+1, int((info['moduleAxialNr']*info['crystalAxialNr'])**2))
 
 def _bin_keys(angular_radial: torch.Tensor, plane: torch.Tensor, shape: tuple) -> tuple:
-    """Flat sinogram index of each event, and which events lie inside the sinogram (``torch.histogramdd``, used before, dropped the others; ``_bin_events`` does too)."""
+    """Flat sinogram index of each event, and which events lie inside the sinogram (``torch.histogramdd``, used before, dropped the others; ``_add_events`` does too)."""
     inside = (angular_radial[:,0] >= 0) & (angular_radial[:,0] < shape[0]) & (angular_radial[:,1] >= 0) & (angular_radial[:,1] < shape[1]) & (plane >= 0) & (plane < shape[2])
     return (angular_radial[:,0] * shape[1] + angular_radial[:,1]) * shape[2] + plane, inside
-
-def _bin_events(key: torch.Tensor, inside: torch.Tensor, shape: tuple, weights: torch.Tensor | None = None) -> torch.Tensor:
-    """Sinogram of events with flat sinogram indices ``key``: the sum of their weights (or their number) in each bin, as a float32 tensor on the CPU.
-
-    The events are counted with ``torch.bincount`` on their own device, which builds one sinogram. ``torch.histogramdd``, used before, ran on the CPU and allocated one sinogram per thread (44 GB with 24 threads for the 1.65 GB sinogram of the mMR). Counts are exact; weighted sums agree to float32 rounding.
-
-    Args:
-        key (torch.Tensor): [N] flat sinogram index of each event (see ``_bin_keys``).
-        inside (torch.Tensor): [N] whether each event lies inside the sinogram; the others are dropped.
-        shape (tuple): sinogram shape (angles, radial bins, planes).
-        weights (torch.Tensor | None, optional): [N] weight of each event. Defaults to None (count the events).
-
-    Returns:
-        torch.Tensor: sinogram of the given shape.
-    """
-    device = key.device
-    weights = torch.ones(key.shape[0], dtype=torch.float32, device=device) if weights is None else weights.to(device=device, dtype=torch.float32)
-    counts = torch.bincount(key[inside], weights=weights[inside], minlength=int(np.prod(shape)))
-    return counts.reshape(shape).cpu()
 
 def _listmodeTOF_to_sinogramTOF(
     detector_ids: torch.Tensor,
@@ -680,7 +723,7 @@ def _listmodeTOF_to_sinogramTOF(
     tof_meta: PETTOFMeta,
     weights: torch.Tensor | None = None
     ) -> torch.Tensor:
-    """Helper function to ``listmode_to_sinogram`` for TOF data
+    """Helper function to ``listmode_to_sinogram`` for TOF data: the events are binned a chunk at a time, as without TOF (``_listmode_to_dense_sinogram``). Events outside the TOF bins are dropped.
 
     Args:
         detector_ids (torch.Tensor): Listmode detector ID data
@@ -691,30 +734,7 @@ def _listmodeTOF_to_sinogramTOF(
     Returns:
         torch.Tensor: PET TOF sinogram
     """
-    # The events are binned on the device they are on (a list mode system matrix keeps them on the GPU)
-    device = detector_ids.device
-    lor_coordinates, sinogram_index = (table.to(device) for table in sinogram_coordinates(info))
-    if weights is not None:
-        weights = weights.to(device=device, dtype=torch.float32)
-    # Sort by decreasing detector ids
-    # Only consider events within TOF range
-    TOF_bins = detector_ids[:,2].clone()
-    detector_ids = detector_ids[:,:2]
-    within_ring_id = (detector_ids % info['NrCrystalsPerRing']).to(torch.long)
-    ring_ids = (detector_ids // info['NrCrystalsPerRing']).to(torch.long)
-    # Sort by greatest value within ring (required for using various lookup tables)
-    within_ring_id, idx = within_ring_id.sort(axis=1, descending=True, stable=True)   # stable: a pair with equal within-ring IDs keeps its order on any device
-    # Opposite detector order
-    TOF_bins[idx[:,0]==1] = tof_meta.num_bins - 1 - TOF_bins[idx[:,0]==1]
-    ring_ids = ring_ids.gather(index=idx, dim=1)
-    # Bin sinogram, one TOF bin at a time (which bounds the counts held on the events' device to one sinogram)
-    shape = _sinogram_shape(info)
-    key, inside = _bin_keys(lor_coordinates[within_ring_id[:,0], within_ring_id[:,1]], sinogram_index[ring_ids[:,0], ring_ids[:,1]], shape)
-    sinogram = torch.empty((*shape, tof_meta.num_bins), dtype=torch.float32)
-    for bin in range(tof_meta.num_bins):
-        in_bin = TOF_bins == bin
-        sinogram[...,bin] = _bin_events(key[in_bin], inside[in_bin], shape, None if weights is None else weights[in_bin])
-    return sinogram
+    return _listmode_to_dense_sinogram(detector_ids, info, weights=weights, num_tof_bins=int(tof_meta.num_bins))
 
 def get_detector_ids_from_trans_axial_ids(
     ids_trans_crystal: torch.Tensor,
