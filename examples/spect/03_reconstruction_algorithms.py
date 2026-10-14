@@ -45,9 +45,10 @@ TYPE = 'DICOM' # DICOM or SIMIND
 if TYPE=='SIMIND':
     data_path = os.path.join(PATH, 'SIMIND-Jaszak', 'lu177_SYME_jaszak')
     IDX_AXIAL = 64 # for plotting
-    photopeak_path = os.path.join(data_path,'tot_w4.h00')
-    lower_path = os.path.join(data_path, 'tot_w5.h00')
-    upper_path = os.path.join(data_path, 'tot_w6.h00')
+    # the 208 keV photopeak (tot_w1) and its scatter windows: the energy of amap.hct and of the header's PSF
+    photopeak_path = os.path.join(data_path,'tot_w1.h00')
+    lower_path = os.path.join(data_path, 'tot_w2.h00')
+    upper_path = os.path.join(data_path, 'tot_w3.h00')
     path_amap = os.path.join(data_path,'amap.hct')
     object_meta, proj_meta = simind.get_metadata(photopeak_path)
     photopeak = simind.get_projections(photopeak_path)
