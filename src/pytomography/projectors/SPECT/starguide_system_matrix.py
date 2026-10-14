@@ -1,5 +1,6 @@
 """The system matrix of the GE StarGuide (:class:`StarGuideSystemMatrix`), whose every view has its own head offset."""
 from __future__ import annotations
+import inspect
 import math
 import torch
 import torch.nn.functional as F
@@ -39,9 +40,10 @@ class StarGuideSystemMatrix(SystemMatrix):
         obj2obj_transforms (list[Transform], optional): Object-to-object transforms: the angle-dependent ones (e.g.
             :class:`~pytomography.transforms.SPECT.SPECTAttenuationTransform`) and
             :class:`~pytomography.transforms.SPECT.SPECTPSFTransform`. Defaults to none.
-        proj2proj_transforms (list[Transform], optional): Projection-to-projection transforms. They are configured
-            with the metadata, but this system matrix's forward and back projections do not apply them. Defaults to
-            none.
+        proj2proj_transforms (list[Transform], optional): Projection-to-projection transforms, applied after forward
+            projection to the projections of a subset (counts, [views, 16, Lz], not padded: a transform that takes a
+            ``padded`` argument is given ``padded=False``); back projection applies their ``backward`` in reverse
+            order first. Defaults to none.
     """
     def __init__(
         self,
@@ -56,6 +58,13 @@ class StarGuideSystemMatrix(SystemMatrix):
         self._groups_cache = {}
 
     # ------------------------------------------------------------------ helpers
+    def _projection_transforms(self, proj: torch.Tensor, backward: bool = False) -> torch.Tensor:
+        """``proj`` through the projection to projection transforms: their ``forward`` in order, or (``backward``) their ``backward`` in reverse order. StarGuide's projections are not padded, so a transform that takes ``padded`` (``CutOffTransform``, ``AdditiveTermTransform``) is given ``padded=False``."""
+        for transform in (self.proj2proj_transforms[::-1] if backward else self.proj2proj_transforms):
+            method = transform.backward if backward else transform.forward
+            proj = method(proj, padded=False) if 'padded' in inspect.signature(method).parameters else method(proj)
+        return proj
+
     def _psf_transforms(self) -> list:
         return [t for t in self.obj2obj_transforms if type(t) == SPECTPSFTransform]
 
@@ -202,7 +211,7 @@ class StarGuideSystemMatrix(SystemMatrix):
             # translate: sample the detector columns from the slabs, then sum along the projection axis
             sampled = F.grid_sample(slabs.permute(0, 3, 1, 2).contiguous(), group['grid_fwd'], mode='bilinear', padding_mode='zeros', align_corners=True)   # [B, Lz, Lx, 16]
             projections[group['pos']] = sampled.sum(dim=2).permute(0, 2, 1)
-        return projections * self.frame_duration_s[idx]
+        return self._projection_transforms(projections * self.frame_duration_s[idx])
 
     @torch.no_grad()
     def backward(
@@ -224,7 +233,7 @@ class StarGuideSystemMatrix(SystemMatrix):
         Lx, Ly, Lz = self.object_meta.shape
         psf_transforms, shared_transforms = self._psf_transforms(), self._shared_transforms()
         object = torch.zeros((Lx, Ly, Lz), device=pytomography.device)
-        proj = proj * self.frame_duration_s[idx]
+        proj = self._projection_transforms(proj, backward=True) * self.frame_duration_s[idx]
         for group in groups:
             B, W = group['cols'].shape
             # every plane along the projection axis receives the view; transpose of the translation: sample the slab columns from the detector columns

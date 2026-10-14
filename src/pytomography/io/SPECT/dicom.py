@@ -399,11 +399,11 @@ def read_dicom_beds(files: Sequence[str]) -> list:
     zs = [int(round((bed[1].centre[2] - beds[0][1].centre[2]) / dz)) for bed in beds]
     Lz = projections[0].shape[-1]
     for i in range(len(beds)):
-        if i > 0:                                           # the lower part, from the bed below
+        if i > 0 and zs[i] - zs[i - 1] < Lz:                # the lower part, from the bed below (if they overlap)
             shift = zs[i] - zs[i - 1]
             middle = int((Lz - shift) / 2)
             combined[i][..., :middle] = projections[i - 1][..., shift:shift + middle]
-        if i < len(beds) - 1:                               # the upper part, from the bed above
+        if i < len(beds) - 1 and zs[i + 1] - zs[i] < Lz:    # the upper part, from the bed above (if they overlap)
             shift = zs[i + 1] - zs[i]
             middle = int((Lz - shift) / 2)
             combined[i][..., shift + middle:] = projections[i + 1][..., middle:Lz - shift]
@@ -414,9 +414,11 @@ def stitch_beds(recons, object_metas: Sequence[SPECTObjectMeta], return_stitchin
     """Stitches the reconstructions of several bed positions into one image on one grid.
 
     Each bed gives the stitched image its own slices, apart from its first and last slice; where two beds overlap,
-    each gives half of the overlap (the lower half from the lower bed), so the weights of the beds sum to 1 wherever a
-    bed covers the image (the first and last slices of the stitched image, a bed's first and last, are 0). Beds are
-    placed by their grids' centres along z, rounded to whole slices, in any order.
+    each gives half of the overlap (the lower half from the lower bed), so the weights of the beds sum to 1 there.
+    Neighbouring beds that do not overlap are not blended: each gives all its slices but the first and last, and the
+    stitched image is zero where neither bed reaches (a gap between them) and in the left-out slices where they abut.
+    The first and last slices of the stitched image (a bed's first and last) are 0. Beds are placed by their grids'
+    centres along z, rounded to whole slices, in any order.
 
     Args:
         recons (torch.Tensor | Sequence[torch.Tensor]): The reconstructions, [n_beds, Lx, Ly, Lz] (or a list of
@@ -450,7 +452,9 @@ def stitch_beds(recons, object_metas: Sequence[SPECTObjectMeta], return_stitchin
         weights.append(w)
     for i in range(len(recons) - 1):                        # each overlap: half from each bed
         overlap_lower = zs_sorted[i + 1] - zs_sorted[i] + blank_below
-        delta = blank_above - overlap_lower
+        delta = blank_above - overlap_lower                 # slices both beds give
+        if delta <= 0:
+            continue                                        # no overlap (the beds abut, or a gap is between them)
         half = round(delta / 2)
         weights[i][:, :, overlap_lower + half:overlap_lower + delta] = 0
         weights[i + 1][:, :, blank_below:blank_below + half] = 0
