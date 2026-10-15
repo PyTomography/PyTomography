@@ -101,7 +101,7 @@ RING_RADIUS = 57.2                             # mm
 def nema_sphere_centres(io, path: Path, files_CT: list) -> tuple[np.ndarray, str]:
     """The spheres' centres in LPS mm, found as t_algorithms_measured found them (see the docstring), and the fit."""
     projections, object_meta, proj_meta = io.SPECT.read_dicom(str(path / 'projection_data.dcm'))
-    mu = io.attenuation_map(files_CT, object_meta, energy_keV=proj_meta.energy_windows[0].photon_keV).cpu().numpy()
+    mu = io.attenuation_map(files_CT, object_meta, energy=proj_meta.energy_windows[0].photon_energy).cpu().numpy()
     image = (io.load_image(path / 'scanner_recon.dcm').on(object_meta) / proj_meta.num_projections).cpu().numpy()
     dx = object_meta.dr[0]                     # positions below are in mm on the voxel grid (index x dx)
     mu_water = float(np.median(mu[mu > 0.005]))
@@ -215,7 +215,7 @@ def jaszak(io, out: Path) -> Path:
     A = object_meta.affine @ S
     step = float(A[0, 0])
     mu = io.attenuation_map(path / 'lu177_SYME_jaszak' / 'amap.hct', object_meta,
-                            energy_keV=proj_meta.energy_windows[0].photon_keV, layout='mu').cpu().numpy()
+                            energy=proj_meta.energy_windows[0].photon_energy, layout='mu').cpu().numpy()
     water = np.repeat(np.repeat(np.repeat(mu > 0.5 * mu.max(), n, 0), n, 1), n, 2)
     # the distances on the box around the water only
     box = tuple(slice(max(l - 2, 0), h + 3) for l, h in zip(np.argwhere(water).min(0), np.argwhere(water).max(0)))
