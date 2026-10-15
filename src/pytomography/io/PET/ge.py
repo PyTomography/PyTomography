@@ -98,7 +98,7 @@ def read_ge_hdf5(listmode_file: str | os.PathLike, *, object_meta: ObjectMeta | 
         tuple[torch.Tensor, ObjectMeta, PETLMProjMeta]: The events (int32 ``[N, 3]``: two detector ids and the TOF
         bin), the object grid (modality ``'PT'``, units ``'counts'``, frame ``'scanner'``, centred on the rings) and
         the projection metadata (``info``, with the energy window from the file, ``tof_meta``, ``kept_events`` and
-        ``duration_s``, the acquisition time in s from the file's header, or None). GE's corrections (event weights,
+        ``duration``, the acquisition time in s from the file's header, or None). GE's corrections (event weights,
         the additive term, the valid pairs and their weights) are read by :func:`read_ge_corrections`.
 
     Raises:
@@ -112,8 +112,8 @@ def read_ge_hdf5(listmode_file: str | os.PathLike, *, object_meta: ObjectMeta | 
         high = _header_value(f, "HeaderData/AcqParameters/EDCATParameters/upper_energy_limit",
                              "HeaderData/AcqParameters/BackEndAcqFilters/maxEnergyKeV")
         info = scanner_info(scanner, min_rsector_difference=min_rsector_difference,
-                            energy_window_low_keV=None if low is None else float(low),
-                            energy_window_high_keV=None if high is None else float(high))
+                            energy_window_low=None if low is None else float(low),
+                            energy_window_high=None if high is None else float(high))
         _check_geometry(f, info, str(listmode_file))
         duration = _header_value(f, "HeaderData/AcqParameters/RxScanParameters/acqTime")
         tof_meta = _tof_meta(scanner)
@@ -141,7 +141,7 @@ def read_ge_hdf5(listmode_file: str | os.PathLike, *, object_meta: ObjectMeta | 
     object_meta = reader_object_meta(object_meta, default_grid(info), centre=(0.0, 0.0, 0.0), frame="scanner",
                                      modality="PT", units="counts")
     proj_meta = PETLMProjMeta(events, info, tof_meta=tof_meta)
-    proj_meta.duration_s = None if duration is None else float(duration)
+    proj_meta.duration = None if duration is None else float(duration)
     proj_meta.kept_events = kept if dropped else None
     return events, object_meta, proj_meta
 

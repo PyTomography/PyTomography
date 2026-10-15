@@ -97,7 +97,7 @@ def test_time_blocks_time_interval_and_early_stop(one_type, tmp_path):
     write(path, one_type, blocks)
     assert len(reader._detector_ids(path)) == 1 + 2 + 3 + 4 + 5
     assert len(reader._detector_ids(path, time_block_ids=[0, 4])) == 1 + 5
-    assert len(reader._detector_ids(path, time_interval=(100, 300))) == 2 + 3  # blocks starting at 100 and 200
+    assert len(reader._detector_ids(path, time_interval_ms=(100, 300))) == 2 + 3  # blocks starting at 100 and 200
     assert len(reader._detector_ids(path, max_events=4)) == 1 + 2 + 3  # stops reading after the third block
 
 
@@ -306,9 +306,9 @@ def test_TOF_bins_and_the_choice_of_time_blocks_match_petsird(tmp_path):
     t0, t1 = starts[1], starts[-1]
     inside = (expected[:, 5] >= t0) & (expected[:, 5] < t1)
     for window in [(t0, t1), (t0 - 0.5, t1 - 0.5), (float(t0), float(t1))]:
-        got = reader._detector_ids(path, read_tof=False, time_interval=window)
+        got = reader._detector_ids(path, read_tof=False, time_interval_ms=window)
         assert got.tolist() == expected[inside][:, :2].tolist()
-    assert len(reader._detector_ids(path, time_interval=(2**40, math.inf))) == 0
+    assert len(reader._detector_ids(path, time_interval_ms=(2**40, math.inf))) == 0
     chosen = [1, 3, 6]
     got = reader._detector_ids(path, read_tof=False, time_block_ids=chosen)
     assert got.tolist() == expected[np.isin(expected[:, 6], chosen)][:, :2].tolist()
@@ -387,13 +387,13 @@ def test_standard_form_describes_the_scanner():
                     moduleAxialNr=2, rsectorAxialNr=1, moduleTransNr=1, submoduleTransNr=1, submoduleAxialNr=1,
                     transaxial_direction=1, axial_direction=1, min_rsector_difference=0, patient_position="HFS")
     assert {k: info[k] for k in expected} == expected
-    for key, value in dict(radius=210, crystal_length=20, doi_mm=10, crystalTransSpacing=4, crystalAxialSpacing=5,
-                           moduleAxialSpacing=20, energy_window_low_keV=430, energy_window_high_keV=650,
+    for key, value in dict(radius=210, crystal_length=20, doi=10, crystalTransSpacing=4, crystalAxialSpacing=5,
+                           moduleAxialSpacing=20, energy_window_low=430, energy_window_high=650,
                            energy_resolution=0.1).items():
         assert math.isclose(info[key], value, abs_tol=1e-4), key
     # each module's crystals sit 2 mm (half a crystal) to one side of its centre, as the generator places boxes by a
     # corner: rsector 0 is turned by atan(2 / 210) from +x
-    angle = info["rsector0_angle_deg"]
+    angle = info["rsector0_angle"]
     assert math.isclose(min(angle, 360 - angle), math.degrees(math.atan(2 / 210)), abs_tol=1e-3)
     assert "firstCrystalAxis" not in info and "TOF" not in info
     assert all(isinstance(v, (int, float, str, type(None))) for v in info.values())  # the caches need hashable values
@@ -477,9 +477,9 @@ def test_read_petsird_returns_the_standard_form(tmp_path):
     assert delayeds.tolist() == reader._detector_ids(path, info=info, header=header, delayeds=True).tolist()
     starts = sorted(set(petsird_events(path)[:, 5].tolist()))
     window = (starts[1] / 1000, starts[-1] / 1000)
-    part, _, _ = read_petsird(path, header=header, time_interval_s=window)
+    part, _, _ = read_petsird(path, header=header, time_interval=window)
     assert part.tolist() == reader._detector_ids(path, info=info, header=header,
-                                                 time_interval=(starts[1], starts[-1])).tolist()
+                                                 time_interval_ms=(starts[1], starts[-1])).tolist()
     with pytest.raises(ValueError, match="prompts"):
         read_petsird(path, events="trues", header=header)
 
@@ -494,4 +494,4 @@ def test_read_petsird_grid_is_LPS_and_the_turn_is_in_the_scanner_lut():
     position = (gantry - np.array([0, 0, info["petsird_axial_centre"]])) @ patient.T
     ids = reader._detector_id_map(scanner, info).numpy()
     assert np.abs(scanner_lut(info).double().numpy()[ids] - position).max() < 0.1
-    assert info["rsector0_angle_deg"] != 0                               # the generator's corner turn
+    assert info["rsector0_angle"] != 0                               # the generator's corner turn

@@ -79,7 +79,9 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         # PyTomography 4 the axis was added instead of subtracted, which put U off by 2 COR sin(theta).)
         if self._FBP_postweight_component1 is None:
             xv, yv = torch.meshgrid(x - ax, y - ay, indexing='ij')
-            post_weight = (self.proj_meta.DSO / (self.proj_meta.DSO + yv.unsqueeze(0) * torch.sin(self.proj_meta.angles.to(pytomography.device)).reshape((-1,1,1)) + xv.unsqueeze(0) * torch.cos(self.proj_meta.angles.to(pytomography.device)).reshape((-1,1,1))))**2
+            theta = torch.deg2rad(self.proj_meta.angles.to(pytomography.device)).reshape((-1, 1, 1))
+            post_weight = (self.proj_meta.DSO / (self.proj_meta.DSO + yv.unsqueeze(0) * torch.sin(theta)
+                                                 + xv.unsqueeze(0) * torch.cos(theta)))**2
             self._FBP_postweight_component1 = post_weight.unsqueeze(-1)
         # Weight that removes length scaling Joseph projector to make projector "unmatched" (see Ander Biguri thesis chapter 4).
         # The length of l = (lx, ly, lz) and its product with d are summed over broadcast axes: three images at most,
@@ -245,7 +247,7 @@ class CTConeBeamFlatPanelSystemMatrix(SystemMatrix):
         """Raises unless the views are evenly spaced over a full turn (every gap between neighbouring angles within 10 %
         of 360 / N degrees: measured stage angles jitter, by up to 0.8 % of the step for the SophiaBeads scan) at one z."""
         n = self.proj_meta.N_angles
-        angles = np.sort(np.mod(self.proj_meta.angles.detach().cpu().double().numpy(), 2 * np.pi))
+        angles = np.sort(np.mod(np.radians(self.proj_meta.angles.detach().cpu().double().numpy()), 2 * np.pi))
         gaps = np.diff(np.append(angles, angles[0] + 2 * np.pi))
         step = 2 * np.pi / n
         if n < 2 or np.abs(gaps - step).max() > 0.1 * step:

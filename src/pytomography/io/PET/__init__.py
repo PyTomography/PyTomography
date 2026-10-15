@@ -22,7 +22,8 @@ The scanner:
 Sinograms, from any reader's events and ``info``:
 
 * :func:`listmode_to_sinogram`, :func:`sinogram_to_listmode` and :class:`LazySinogram`;
-* :func:`normalization_sinogram`, :func:`smooth_randoms_sinogram` and :func:`randoms_sinogram_to_sinogramTOF`;
+* :func:`normalization_sinogram`, :func:`smooth_randoms_sinogram` and :func:`randoms_sinogram_to_sinogramTOF`; the
+  steps of a sinogram's axes in mm and degrees, :func:`sinogram_spacing`;
 * :func:`remove_events_outside`: the events whose LOR crosses the reconstruction grid.
 
 GATE helpers: :func:`gate_normalization` (normalisation weights from a simulated calibration scan) and
@@ -30,6 +31,7 @@ GATE helpers: :func:`gate_normalization` (normalisation weights from a simulated
 """
 from .scanner import scanner_info, scanner_lut, crystal_pair_index
 from .shared import (listmode_to_sinogram, sinogram_to_listmode, smooth_randoms_sinogram, randoms_sinogram_to_sinogramTOF,
+                     sinogram_spacing,
                      normalization_sinogram, remove_events_outside, LazySinogram)
 from .gate import read_gate, gate_normalization, gate_image
 from .petsird import read_petsird

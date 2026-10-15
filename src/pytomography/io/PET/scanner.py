@@ -14,9 +14,9 @@ cylindrical PET system:
 * ``{crystal, submodule, module, rsector}{Trans, Axial}Spacing``: their centre-to-centre pitch, in mm (rsectors around
   the ring are placed by angle, so they have no transaxial spacing);
 * ``radius``: the distance from the axis to the LOR end points of rsector 0, in mm: the centre of the module's face
-  plus ``doi_mm``, the depth of interaction inside the crystal that the LORs end at;
-* ``doi_mm`` and ``crystal_length``: that depth, and the crystals' radial length, in mm (``radius`` already includes
-  ``doi_mm``);
+  plus ``doi``, the depth of interaction inside the crystal that the LORs end at;
+* ``doi`` and ``crystal_length``: that depth, and the crystals' radial length, in mm (``radius`` already includes
+  ``doi``);
 * ``NrCrystalsPerRing`` and ``NrRings``, computed from the counts.
 
 A detector id is ``ring * NrCrystalsPerRing + crystal``, where ``crystal`` counts the crystals of a ring (crystal,
@@ -25,18 +25,18 @@ axis).
 
 **The frame keys** say where that ring lies in the object frame:
 
-* ``rsector0_angle_deg``: the azimuth of the centre of rsector 0, from +x towards +y;
+* ``rsector0_angle``: the azimuth of the centre of rsector 0, from +x towards +y;
 * ``transaxial_direction``: +1 when crystal numbers run from +x towards +y (counter-clockwise seen from +z), -1 the
   other way;
 * ``axial_direction``: +1 when ring numbers run towards +z (superior), -1 towards -z.
 
 They replace ``firstCrystalAxis`` and the negation of z that :func:`scanner_lut` applied to every scanner before
-PyTomography 4 (``firstCrystalAxis=1`` is ``rsector0_angle_deg=0, transaxial_direction=1``; ``firstCrystalAxis=0`` is
-``rsector0_angle_deg=90, transaxial_direction=-1``; the old negation of z is ``axial_direction=-1``). Each reader sets
+PyTomography 4 (``firstCrystalAxis=1`` is ``rsector0_angle=0, transaxial_direction=1``; ``firstCrystalAxis=0`` is
+``rsector0_angle=90, transaxial_direction=-1``; the old negation of z is ``axial_direction=-1``). Each reader sets
 them from what it knows of its source: GATE from ``world_axes``, PETSIRD from the patient's position in the gantry, GE
 from its vendor rule.
 
-**The energy window**: ``energy_window_low_keV``, ``energy_window_high_keV`` and ``energy_resolution`` (the FWHM of the
+**The energy window**: ``energy_window_low``, ``energy_window_high`` and ``energy_resolution`` (the FWHM of the
 photopeak at 511 keV as a fraction of 511 keV), or None where the source does not give them. The scatter estimate
 reads them.
 
@@ -59,21 +59,19 @@ _COUNTS = (("crystalTransNr", None), ("crystalAxialNr", None), ("submoduleTransN
 #: the pitch of each part, in mm, required where there is more than one of the part
 _SPACINGS = ("crystalTransSpacing", "crystalAxialSpacing", "submoduleTransSpacing", "submoduleAxialSpacing",
              "moduleTransSpacing", "moduleAxialSpacing", "rsectorAxialSpacing")
-FRAME_KEYS = {"rsector0_angle_deg": 0.0, "transaxial_direction": 1, "axial_direction": 1}
+FRAME_KEYS = {"rsector0_angle": 0.0, "transaxial_direction": 1, "axial_direction": 1}
 """The frame keys of ``info`` and their defaults, which are GATE's world (rsector 0 on +x, crystal numbers running
 counter-clockwise seen from +z, ring numbers running towards +z)."""
-ENERGY_KEYS = ("energy_window_low_keV", "energy_window_high_keV", "energy_resolution")
+ENERGY_KEYS = ("energy_window_low", "energy_window_high", "energy_resolution")
 """The energy keys of ``info``, the energy window's limits in keV and the FWHM of the photopeak at 511 keV as a
 fraction of 511 keV, each None where the source does not give it."""
 #: keys of ``info`` before PyTomography 4, and what replaced them
 _RENAMED = {
-    "firstCrystalAxis": "the frame keys rsector0_angle_deg, transaxial_direction and axial_direction: "
-                        "firstCrystalAxis=1 is rsector0_angle_deg=0, transaxial_direction=1, and firstCrystalAxis=0 is "
-                        "rsector0_angle_deg=90, transaxial_direction=-1; the z that scanner LUTs used to negate is "
+    "firstCrystalAxis": "the frame keys rsector0_angle, transaxial_direction and axial_direction: "
+                        "firstCrystalAxis=1 is rsector0_angle=0, transaxial_direction=1, and firstCrystalAxis=0 is "
+                        "rsector0_angle=90, transaxial_direction=-1; the z that scanner LUTs used to negate is "
                         "axial_direction=-1",
-    "energy_window_low": "energy_window_low_keV",
-    "energy_window_high": "energy_window_high_keV",
-    "mean_interaction_depth": "doi_mm (radius includes it)",
+    "mean_interaction_depth": "doi (radius includes it)",
     "TOF": "the reader's tof_meta (proj_meta.tof_meta)",
 }
 
@@ -136,7 +134,7 @@ def scanner_info(scanner: str | Mapping | None = None, **keys) -> dict:
         **keys: Keys of ``info``, which replace those of ``scanner``. Between them, ``scanner`` and ``keys`` must give
             the counts of crystals, modules and rsectors around the ring and of crystals and modules along the axis,
             ``radius`` (mm), and the spacing (mm) of every part of which there is more than one. ``submodule*Nr``
-            and ``rsectorAxialNr`` default to 1, ``doi_mm``, ``crystal_length`` and ``min_rsector_difference`` to 0,
+            and ``rsectorAxialNr`` default to 1, ``doi``, ``crystal_length`` and ``min_rsector_difference`` to 0,
             the frame keys to :data:`FRAME_KEYS` and the energy keys to None. Any other key (a string or a number) is
             kept as it is.
 
@@ -152,7 +150,7 @@ def scanner_info(scanner: str | Mapping | None = None, **keys) -> dict:
     Example:
         >>> info = io.PET.scanner_info(crystalTransNr=8, crystalTransSpacing=4.0, crystalAxialNr=8,
         ...                            crystalAxialSpacing=4.0, moduleTransNr=1, moduleAxialNr=8,
-        ...                            moduleAxialSpacing=32.25, rsectorTransNr=56, radius=337.0, doi_mm=9.0)
+        ...                            moduleAxialSpacing=32.25, rsectorTransNr=56, radius=337.0, doi=9.0)
         >>> info = io.PET.scanner_info(info, min_rsector_difference=2)
         >>> info = io.PET.scanner_info("discovery_MI")
     """
@@ -189,7 +187,7 @@ def scanner_info(scanner: str | Mapping | None = None, **keys) -> dict:
     info["radius"] = _as_float("radius", given.get("radius"))
     if info["radius"] is None or info["radius"] <= 0:
         raise ValueError(f"info needs a positive 'radius' (mm), not {given.get('radius')!r}")
-    for key in ("doi_mm", "crystal_length"):
+    for key in ("doi", "crystal_length"):
         info[key] = _as_float(key, given.get(key, 0.0)) or 0.0
         if info[key] < 0:
             raise ValueError(f"info[{key!r}] cannot be negative ({info[key]})")
@@ -197,7 +195,7 @@ def scanner_info(scanner: str | Mapping | None = None, **keys) -> dict:
     if not 0 <= info["min_rsector_difference"] <= info["rsectorTransNr"] // 2:
         raise ValueError(f"info['min_rsector_difference'] must be between 0 and half the rsectors around the ring "
                          f"({info['rsectorTransNr'] // 2}), not {info['min_rsector_difference']}")
-    info["rsector0_angle_deg"] = _as_float("rsector0_angle_deg", given.get("rsector0_angle_deg", 0.0)) or 0.0
+    info["rsector0_angle"] = _as_float("rsector0_angle", given.get("rsector0_angle", 0.0)) or 0.0
     for key in ("transaxial_direction", "axial_direction"):
         info[key] = _as_int(key, given.get(key, FRAME_KEYS[key]))
         if info[key] not in (1, -1):
@@ -298,7 +296,7 @@ def scanner_lut(info: Mapping) -> torch.Tensor:
     The object frame has LPS axes, with the origin at the centre of the rings. Within rsector 0, crystals sit on the
     plane at ``radius`` from the axis, at their transaxial offset along the rsector's face (centred on the rsector) and
     their axial offset along the axis (centred on the rings). Rsector ``k`` is at the azimuth
-    ``rsector0_angle_deg + transaxial_direction * 360 k / rsectorTransNr`` degrees, from +x towards +y; transaxial
+    ``rsector0_angle + transaxial_direction * 360 k / rsectorTransNr`` degrees, from +x towards +y; transaxial
     offsets run in the direction of ``transaxial_direction`` around the ring, and axial offsets in the direction of
     ``axial_direction``.
 
@@ -323,7 +321,7 @@ def scanner_lut(info: Mapping) -> torch.Tensor:
              + _centred(ts, info["submoduleTransNr"], info["submoduleTransSpacing"])
              + _centred(tc, info["crystalTransNr"], info["crystalTransSpacing"]))
     direction = info["transaxial_direction"]
-    angle = math.radians(info["rsector0_angle_deg"]) + direction * 2 * math.pi * tr / info["rsectorTransNr"]
+    angle = math.radians(info["rsector0_angle"]) + direction * 2 * math.pi * tr / info["rsectorTransNr"]
     radius = float(info["radius"])
     x = radius * torch.cos(angle) - direction * trans * torch.sin(angle)
     y = radius * torch.sin(angle) + direction * trans * torch.cos(angle)
@@ -333,7 +331,7 @@ def scanner_lut(info: Mapping) -> torch.Tensor:
     return lut.to(torch.float32)
 
 
-def frame_keys_after(matrix, rsector0_angle_deg: float = 0.0, transaxial_direction: int = 1,
+def frame_keys_after(matrix, rsector0_angle: float = 0.0, transaxial_direction: int = 1,
                      axial_direction: int = 1) -> dict:
     """Returns the frame keys of a ring in a new frame, from its keys in the old frame and the matrix between them.
 
@@ -343,13 +341,13 @@ def frame_keys_after(matrix, rsector0_angle_deg: float = 0.0, transaxial_directi
     Args:
         matrix (array-like): 3 x 3 orthogonal matrix: positions in the new frame are ``matrix @`` positions in the old
             one. Its third row and third column must be (0, 0, 1) or (0, 0, -1).
-        rsector0_angle_deg (float, optional): The ring's ``rsector0_angle_deg`` in the old frame, in degrees.
+        rsector0_angle (float, optional): The ring's ``rsector0_angle`` in the old frame, in degrees.
             Defaults to 0.
         transaxial_direction (int, optional): Its ``transaxial_direction`` in the old frame (1 or -1). Defaults to 1.
         axial_direction (int, optional): Its ``axial_direction`` in the old frame (1 or -1). Defaults to 1.
 
     Returns:
-        dict: ``rsector0_angle_deg`` (degrees, in [0, 360)), ``transaxial_direction`` and ``axial_direction`` in the
+        dict: ``rsector0_angle`` (degrees, in [0, 360)), ``transaxial_direction`` and ``axial_direction`` in the
         new frame.
 
     Raises:
@@ -363,13 +361,13 @@ def frame_keys_after(matrix, rsector0_angle_deg: float = 0.0, transaxial_directi
     a = m[:2, :2]
     alpha = math.degrees(math.atan2(a[1, 0], a[0, 0]))
     if np.linalg.det(a) > 0:  # a turn by alpha
-        angle, direction = alpha + rsector0_angle_deg, transaxial_direction
+        angle, direction = alpha + rsector0_angle, transaxial_direction
     else:  # a turn by alpha after mirroring y: azimuths change sign, and the crystals run the other way
-        angle, direction = alpha - rsector0_angle_deg, -transaxial_direction
+        angle, direction = alpha - rsector0_angle, -transaxial_direction
     angle = angle % 360.0
     if math.isclose(angle, 360.0, abs_tol=1e-9) or math.isclose(angle, 0.0, abs_tol=1e-9):
         angle = 0.0
-    return {"rsector0_angle_deg": angle, "transaxial_direction": int(direction),
+    return {"rsector0_angle": angle, "transaxial_direction": int(direction),
             "axial_direction": int(round(m[2, 2])) * int(axial_direction)}
 
 

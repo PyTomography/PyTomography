@@ -129,12 +129,12 @@ def _spect_system_matrix(scale: float, psf: str = 'gaussian', cache_probabilitie
     elif psf == 'kernels':
         from pytomography.transforms.SPECT import SPECTKernelPSFTransform
 
-        def kernels(distances_mm, pixel_mm, shape):
+        def kernels(distances, pixel_size, shape):
             """A Gaussian widening with distance, as 2D kernels: sigma = 0.03235 d + 1.324 mm."""
-            sigma = torch.as_tensor(0.03235 * distances_mm + 1.324, dtype=torch.float32).reshape(-1, 1, 1)
+            sigma = torch.as_tensor(0.03235 * distances + 1.324, dtype=torch.float32).reshape(-1, 1, 1)
             r = torch.arange(shape[0]) - shape[0] // 2
             z = torch.arange(shape[1]) - shape[1] // 2
-            k = torch.exp(-((r[:, None] * pixel_mm[0]) ** 2 + (z[None, :] * pixel_mm[1]) ** 2) / (2 * sigma ** 2))
+            k = torch.exp(-((r[:, None] * pixel_size[0]) ** 2 + (z[None, :] * pixel_size[1]) ** 2) / (2 * sigma ** 2))
             return k / k.sum(dim=(1, 2), keepdim=True)
         transforms.append(SPECTKernelPSFTransform(kernels, kernel_shape=(31, 31)))
     return SPECTSystemMatrix(transforms, [], object_meta, proj_meta)
@@ -236,7 +236,7 @@ def case_motion(scale):
 def _pet_info(scale):
     """A scanner of 256 crystals per ring and 16 rings (32 at scale 4)."""
     rings = 16 if scale < 4 else 32
-    return scanner_info(min_rsector_difference=0, crystal_length=20.0, radius=300.0, rsector0_angle_deg=90.0, transaxial_direction=-1, axial_direction=-1,
+    return scanner_info(min_rsector_difference=0, crystal_length=20.0, radius=300.0, rsector0_angle=90.0, transaxial_direction=-1, axial_direction=-1,
                 rsectorTransNr=32, rsectorAxialNr=1, moduleTransNr=1, moduleAxialNr=rings // 8, moduleTransSpacing=0.0,
                 moduleAxialSpacing=33.0, submoduleTransNr=1, submoduleAxialNr=1, submoduleTransSpacing=0.0,
                 submoduleAxialSpacing=0.0, crystalTransNr=8, crystalAxialNr=8, crystalTransSpacing=4.0,
@@ -401,8 +401,8 @@ def case_simind(scale):
     sm = MonteCarloHybridSPECTSystemMatrix(object_meta, proj_meta, n_events=int(1e6), n_parallel=2, obj2obj_transforms=[],
                                            proj2proj_transforms=[], attenuation_map_140keV=0.15 * torch.rand(object_meta.shape),
                                            energy_window_params=['126,154,0'], primary_window_idx=0, isotope_names=['tc99m'],
-                                           isotope_ratios=[1.0], collimator_type='SY-LEHR', crystal_thickness_mm=9.5,
-                                           cover_thickness_mm=1.0, backscatter_thickness_mm=50.0, energy_resolution_140keV=9.0)
+                                           isotope_ratios=[1.0], collimator_type='SY-LEHR', crystal_thickness=9.5,
+                                           cover_thickness=1.0, backscatter_thickness=50.0, energy_resolution_140keV=9.0)
     from pytomography.algorithms import OSEM
     from pytomography.likelihoods import MonteCarloHybridSPECTPoissonLogLikelihood
     projections = torch.poisson(10 * torch.rand(proj_meta.shape)).to(pytomography.device)

@@ -189,8 +189,9 @@ def _central_column(values: torch.Tensor, n_columns: int, vendor: str, central_c
 
 
 def _table_feed(source_phis: torch.Tensor, source_zs: torch.Tensor) -> float:
-    """Advance of the focal spot (mm) per rotation, from a straight line fit of z against the unwrapped angle."""
-    beta = np.unwrap(source_phis.double().numpy())
+    """Advance of the focal spot (mm) per rotation, from a straight line fit of z against the unwrapped angle
+    (``source_phis`` in degrees)."""
+    beta = np.unwrap(np.radians(source_phis.double().numpy()))
     if len(beta) < 2 or abs(beta[-1] - beta[0]) < 1e-9:
         return 0.0
     slope = np.polyfit(beta - beta[0], source_zs.double().numpy(), 1)[0]
@@ -228,7 +229,8 @@ def default_grid(proj_meta: CTGen3ProjMeta) -> tuple:
         tuple: ``(dr, shape)``: the voxel size ``(dx, dx, dz)`` in mm and the grid shape ``(512, 512, Nz)``.
     """
     fan = proj_meta.phis_det[:, 0]
-    r_fov = float(proj_meta.source_rhos.min()) * float(torch.sin(torch.minimum(fan[0].abs(), fan[-1].abs())))
+    r_fov = float(proj_meta.source_rhos.min()) * float(torch.sin(torch.deg2rad(torch.minimum(fan[0].abs(),
+                                                                                            fan[-1].abs()))))
     dx = 2 * r_fov / 512
     dz = float(proj_meta.row_det_spacing) * float(proj_meta.source_rhos.double().mean()) / float(proj_meta.DSD)
     extent = float(proj_meta.source_zs.max() - proj_meta.source_zs.min())
@@ -326,11 +328,12 @@ def read_dicom_ct_pd(folder, *, object_meta: ObjectMeta | None = None, table_fee
             raise NotImplementedError(f"DetectorCentralElement changes from view to view ({name}); PyTomography models "
                                       "one central element")
     DSD = tag(header, 'dsd')[0]
-    # the transverse spacing is an arc length on the cylindrical detector, which subtends spacing / DSD radians
-    col_angle_spacing = tag(header, 'transverse_spacing')[0] / DSD
+    # the transverse spacing is an arc length on the cylindrical detector, which subtends spacing / DSD radians;
+    # DICOM-CT-PD's angles are in radians, PyTomography's in degrees
+    col_angle_spacing = float(np.degrees(tag(header, 'transverse_spacing')[0] / DSD))
     row_spacing = tag(header, 'axial_spacing')[0]
     pitch = header.get('SpiralPitchFactor')
-    phis, zs = d['phi'], d['z']
+    phis, zs = torch.rad2deg(d['phi']), d['z']
     if table_feed is not None:
         if table_feed == 'pitch':
             if pitch is None:
@@ -342,7 +345,8 @@ def read_dicom_ct_pd(folder, *, object_meta: ObjectMeta | None = None, table_fee
         if feed > 0:
             zs = (zs[-1].double() + (zs.double() - zs[-1].double()) * (target / feed)).to(zs.dtype)
     col = _central_column(d['col'], projections.shape[1], vendor, central_column) + central_column_offset
-    proj_meta = CTGen3ProjMeta(phis, d['rho'], zs, d['dphi'], d['drho'], d['dz'], col, d['row'], col_angle_spacing,
+    proj_meta = CTGen3ProjMeta(phis, d['rho'], zs, torch.rad2deg(d['dphi']), d['drho'], d['dz'], col, d['row'],
+                               col_angle_spacing,
                                row_spacing, DSD, shape=projections.shape[1:], patient_position=header.get('PatientPosition'))
     proj_meta.photon_counts = d['photons']
     proj_meta.water_attenuation = tag(header, 'water', None)

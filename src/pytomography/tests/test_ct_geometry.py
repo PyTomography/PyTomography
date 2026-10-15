@@ -22,11 +22,12 @@ def _inputs(n_views=48, n_cols=48, n_rows=8):
     """Two helical rotations whose focal spot path runs from z = 90 to 110 mm, as read from a DICOM-CT-PD scan."""
     zero = torch.zeros(n_views)
     DSD = 270.0
-    return dict(source_phis=torch.linspace(0, 4 * np.pi, n_views + 1)[:-1], source_rhos=torch.full((n_views,), 150.0),
+    return dict(source_phis=torch.linspace(0, 720, n_views + 1)[:-1], source_rhos=torch.full((n_views,), 150.0),
                 source_zs=torch.linspace(90, 110, n_views), source_phi_offsets=zero.clone(), source_rho_offsets=zero.clone(),
                 source_z_offsets=zero.clone(), detector_centers_col_idx=torch.full((n_views,), (n_cols + 1) / 2),
                 detector_centers_row_idx=torch.full((n_views,), (n_rows + 1) / 2),
-                col_angle_spacing=float(np.arcsin(5.0 / DSD)), row_det_spacing=2.0, DSD=DSD, shape=(n_cols, n_rows))
+                col_angle_spacing=float(np.degrees(np.arcsin(5.0 / DSD))), row_det_spacing=2.0, DSD=DSD,
+                shape=(n_cols, n_rows))
 
 
 def test_metadata_leaves_its_inputs_unchanged():

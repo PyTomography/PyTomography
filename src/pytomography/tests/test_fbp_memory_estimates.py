@@ -49,7 +49,8 @@ def test_the_helical_fbp_estimate_counts_the_chunk_it_holds():
     assert chunk <= 0.004e9 / 8 < whole['rebinned views of one chunk'].ram_bytes
     # the chunks the reconstruction went through are those of the estimate
     geo = _wfbp.group_geometry(meta, _wfbp.view_groups(meta)[0])
-    theta, t, _ = _wfbp.parallel_grid(geo, float(meta.source_rhos.double().mean()) * abs(float(meta.col_angle_spacing)))
+    theta, t, _ = _wfbp.parallel_grid(geo, float(meta.source_rhos.double().mean())
+                                      * abs(np.radians(float(meta.col_angle_spacing))))
     assert stats['groups'][0]['chunks'] == -(-len(theta) // (chunk // (len(t) * meta.shape[1] * 4)))
 
 

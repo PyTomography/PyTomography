@@ -31,7 +31,7 @@ class StarGuideSystemMatrix(SystemMatrix):
 
     The object is in counts per second (``object_meta.units`` from :func:`~pytomography.io.SPECT.read_starguide`) and
     the projections in counts: each view's projection is multiplied by its frame duration
-    (``proj_meta.frame_duration_s``). Projections are [views, r, z]; with subsets, the projection angles are split into
+    (``proj_meta.frame_duration``). Projections are [views, r, z]; with subsets, the projection angles are split into
     interleaved groups, each angle with all of its views.
 
     Args:
@@ -54,7 +54,7 @@ class StarGuideSystemMatrix(SystemMatrix):
     ):
         super().__init__(object_meta, proj_meta, obj2obj_transforms, proj2proj_transforms)
         # the projections are counts, the object counts per second: each view is the object's projection times its duration
-        self.frame_duration_s = torch.as_tensor(self.proj_meta.frame_duration_s, dtype=torch.float32, device=pytomography.device).reshape(-1,1,1)
+        self.frame_duration = torch.as_tensor(self.proj_meta.frame_duration, dtype=torch.float32, device=pytomography.device).reshape(-1,1,1)
         self._groups_cache = {}
 
     # ------------------------------------------------------------------ helpers
@@ -211,7 +211,7 @@ class StarGuideSystemMatrix(SystemMatrix):
             # translate: sample the detector columns from the slabs, then sum along the projection axis
             sampled = F.grid_sample(slabs.permute(0, 3, 1, 2).contiguous(), group['grid_fwd'], mode='bilinear', padding_mode='zeros', align_corners=True)   # [B, Lz, Lx, 16]
             projections[group['pos']] = sampled.sum(dim=2).permute(0, 2, 1)
-        return self._projection_transforms(projections * self.frame_duration_s[idx])
+        return self._projection_transforms(projections * self.frame_duration[idx])
 
     @torch.no_grad()
     def backward(
@@ -233,7 +233,7 @@ class StarGuideSystemMatrix(SystemMatrix):
         Lx, Ly, Lz = self.object_meta.shape
         psf_transforms, shared_transforms = self._psf_transforms(), self._shared_transforms()
         object = torch.zeros((Lx, Ly, Lz), device=pytomography.device)
-        proj = self._projection_transforms(proj, backward=True) * self.frame_duration_s[idx]
+        proj = self._projection_transforms(proj, backward=True) * self.frame_duration[idx]
         for group in groups:
             B, W = group['cols'].shape
             # every plane along the projection axis receives the view; transpose of the translation: sample the slab columns from the detector columns

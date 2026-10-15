@@ -13,9 +13,10 @@ class CTGen3ProjMeta(ProjMeta):
     ``spiral_pitch``, which are None otherwise.
 
     The geometry is put in PyTomography's object frame, the patient's LPS axes (k runs foot to head), in mm and
-    radians, centred in x and y on the isocentre and along z on the middle of the focal spot path:
+    degrees (DICOM-CT-PD's radians are converted by the reader), centred in x and y on the isocentre and along z on
+    the middle of the focal spot path:
 
-    * focal spot centre of a view: :math:`(\rho\cos\phi', \rho\sin\phi', z - z_c)`, with :math:`\phi' = \phi - \pi/2`
+    * focal spot centre of a view: :math:`(\rho\cos\phi', \rho\sin\phi', z - z_c)`, with :math:`\phi' = \phi - 90°`
       and :math:`z_c` (``z_center``) the mean focal spot position, which is the patient z of the grid's centre;
     * flying focal spot: the focal spot itself is at :math:`(\rho + \Delta\rho, \phi' + \Delta\phi, z - z_c + \Delta z)`
       in cylindrical coordinates; the detector stays where the focal spot centre puts it;
@@ -30,10 +31,10 @@ class CTGen3ProjMeta(ProjMeta):
 
     Args:
         source_phis (torch.Tensor): Angle :math:`\phi` of the focal spot centre of each view, as DICOM-CT-PD gives
-            it, in radians, [views].
+            it, in degrees, [views].
         source_rhos (torch.Tensor): Distance :math:`\rho` of the focal spot centre from the axis, in mm, [views].
         source_zs (torch.Tensor): Axial position :math:`z` of the focal spot centre, the patient's z, in mm, [views].
-        source_phi_offsets (torch.Tensor): :math:`\Delta\phi` of a flying focal spot, in radians, [views].
+        source_phi_offsets (torch.Tensor): :math:`\Delta\phi` of a flying focal spot, in degrees, [views].
         source_rho_offsets (torch.Tensor): :math:`\Delta\rho` of a flying focal spot, in mm, [views].
         source_z_offsets (torch.Tensor): :math:`\Delta z` of a flying focal spot, in mm, [views].
         detector_centers_col_idx (torch.Tensor): Column :math:`c_0` (counted from 1, fractional) that the ray from the
@@ -41,7 +42,7 @@ class CTGen3ProjMeta(ProjMeta):
         detector_centers_row_idx (torch.Tensor): Row :math:`r_0` (counted from 1, fractional) of that ray, [views];
             the first view's value is used for all.
         col_angle_spacing (float): Angle :math:`\delta_\gamma` between neighbouring columns, seen from the focal
-            spot, in radians: the transverse spacing at the detector over ``DSD``.
+            spot, in degrees: the transverse spacing at the detector over ``DSD``, as an angle.
         row_det_spacing (float): Spacing :math:`\delta_r` between rows at the detector, in mm.
         DSD (float): Distance from the focal spot to the detector, in mm.
         shape (tuple[int, int]): Shape of the projections of one view: (columns, rows).
@@ -51,12 +52,12 @@ class CTGen3ProjMeta(ProjMeta):
         N_angles (int): Number of views.
         z_center (float): Mean axial position :math:`z_c` of the focal spot centre, the patient z of the grid's
             centre, in mm.
-        source_phis (torch.Tensor): :math:`\phi'` of each view, the given angle minus :math:`\pi/2`, in radians.
+        source_phis (torch.Tensor): :math:`\phi'` of each view, the given angle minus 90, in degrees.
         source_zs (torch.Tensor): :math:`z - z_c` of each view, in mm.
         source_focal_centers (torch.Tensor): Focal spot centre of each view in the object frame, [views, 3], in mm.
         source_focal_spots (torch.Tensor): Focal spot of each view with the flying focal spot offsets, [views, 3], in
             mm.
-        phis_det (torch.Tensor): Fan angle :math:`\gamma_c` of every detector element, [columns, rows], in radians.
+        phis_det (torch.Tensor): Fan angle :math:`\gamma_c` of every detector element, [columns, rows], in degrees.
         zs_det (torch.Tensor): Axial offset :math:`-(r - r_0)\,\delta_r` of every detector element from the focal
             spot centre, [columns, rows], in mm.
         photon_counts (torch.Tensor | None): Incident photons per detector column of every view, [views, columns]
@@ -107,16 +108,17 @@ class CTGen3ProjMeta(ProjMeta):
         self.N_angles = len(self.source_phis)
         self.DSD = DSD
         self.shape = shape
-        # the object frame: x and y of DICOM-CT-PD's cylinder turned by -pi/2; z is the patient's
-        self.source_phis -= torch.pi/2
+        # the object frame: x and y of DICOM-CT-PD's cylinder turned by -90 degrees; z is the patient's
+        self.source_phis -= 90.0
+        phi, dphi = torch.deg2rad(self.source_phis), torch.deg2rad(self.source_phi_offsets)
         self.source_focal_centers = torch.stack([
-            self.source_rhos*torch.cos(self.source_phis),
-            self.source_rhos*torch.sin(self.source_phis),
+            self.source_rhos*torch.cos(phi),
+            self.source_rhos*torch.sin(phi),
             self.source_zs
         ], dim=-1)
         self.source_focal_spots = torch.stack([
-            (self.source_rhos+self.source_rho_offsets)*torch.cos((self.source_phis+self.source_phi_offsets)),
-            (self.source_rhos+self.source_rho_offsets)*torch.sin((self.source_phis+self.source_phi_offsets)),
+            (self.source_rhos+self.source_rho_offsets)*torch.cos(phi + dphi),
+            (self.source_rhos+self.source_rho_offsets)*torch.sin(phi + dphi),
             self.source_zs + self.source_z_offsets
         ], dim=-1)
         phis_det = (torch.arange(1,shape[0]+1) - detector_centers_col_idx[0]) * col_angle_spacing
@@ -138,8 +140,8 @@ class CTGen3ProjMeta(ProjMeta):
             on the device of ``idxs``.
         """
         device = idxs.device
-        source_phis = self.source_phis.to(device)[idxs][:,None,None]
-        phis_det, zs_det = self.phis_det.to(device), self.zs_det.to(device)
+        source_phis = torch.deg2rad(self.source_phis.to(device)[idxs][:,None,None])
+        phis_det, zs_det = torch.deg2rad(self.phis_det.to(device)), self.zs_det.to(device)
         return torch.stack([
             -self.DSD*torch.cos(source_phis + phis_det[None]),
             -self.DSD*torch.sin(source_phis + phis_det[None]),

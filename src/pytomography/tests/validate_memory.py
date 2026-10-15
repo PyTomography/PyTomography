@@ -178,7 +178,7 @@ def _pet_info(crystals: int, rings: int) -> dict:
     """A polygonal scanner of ``crystals`` per ring (blocks of 8 x 8 crystals of 4 mm) and ``rings`` rings."""
     sectors = crystals // 8
     apothem = 32.0 / (2 * math.tan(math.pi / sectors))
-    return dict(min_rsector_difference=0, crystal_length=20.0, radius=round(1.03 * apothem, 1), rsector0_angle_deg=90.0,
+    return dict(min_rsector_difference=0, crystal_length=20.0, radius=round(1.03 * apothem, 1), rsector0_angle=90.0,
                 transaxial_direction=-1, axial_direction=-1,
                 rsectorTransNr=sectors, rsectorAxialNr=1, moduleTransNr=1, moduleAxialNr=rings // 8, moduleTransSpacing=0.0,
                 moduleAxialSpacing=33.0, submoduleTransNr=1, submoduleAxialNr=1, submoduleTransSpacing=0.0,
@@ -515,13 +515,13 @@ def _spect_metas(p: dict, z_mm: float = 0.0):
     return object_meta, proj_meta
 
 
-def _gaussian_kernels(distances_mm, pixel_mm, shape):
+def _gaussian_kernels(distances, pixel_size, shape):
     """A Gaussian widening with distance as 2D kernels (sigma = 0.03235 d + 1.324 mm), for SPECTKernelPSFTransform."""
     import torch
-    sigma = torch.as_tensor(0.03235 * distances_mm + 1.324, dtype=torch.float32).reshape(-1, 1, 1)
+    sigma = torch.as_tensor(0.03235 * distances + 1.324, dtype=torch.float32).reshape(-1, 1, 1)
     r = torch.arange(shape[0]) - shape[0] // 2
     z = torch.arange(shape[1]) - shape[1] // 2
-    k = torch.exp(-((r[:, None] * pixel_mm[0]) ** 2 + (z[None, :] * pixel_mm[1]) ** 2) / (2 * sigma ** 2))
+    k = torch.exp(-((r[:, None] * pixel_size[0]) ** 2 + (z[None, :] * pixel_size[1]) ** 2) / (2 * sigma ** 2))
     return k / k.sum(dim=(1, 2), keepdim=True)
 
 

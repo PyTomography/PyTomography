@@ -17,7 +17,7 @@ numbers, ring by ring (``ring * info["NrCrystalsPerRing"] + crystal``), and the 
 ``torch.combinations`` of those ids, so the projectors, randoms and scatter estimates work as for any other source.
 PETSIRD 0.9 does not say which way its gantry axes point or how the patient lies, so :func:`read_petsird` takes them as
 arguments. The object frame is then the patient's LPS, exactly: the scanner lookup table holds any turn of the
-scanner's modules about the axis (``info["rsector0_angle_deg"]``).
+scanner's modules about the axis (``info["rsector0_angle"]``).
 
 PETSIRD's own numbers of the detecting elements, which the functions here use without ``info``, run over the elements
 of module type 0 first, then those of type 1, and so on; within a type, element ``e`` of module ``m`` is number
@@ -214,14 +214,14 @@ def _detector_info(
     up: str = "+x",
     towards_bed: str = "+z",
     patient_position: str = "HFS",
-    tolerance_mm: float = 0.25,
+    tolerance: float = 0.25,
 ) -> dict:
     """PyTomography's description of a PETSIRD scanner: the ``info`` dictionary of its standard PET form.
 
     The scanner must be a cylinder of rings around PETSIRD's z axis, made of one type of module with one layer of
     crystals: modules around the axis and along it, each with rows and columns of crystals. ``info`` holds what the
     GATE and GE readers give (rings, crystals per ring, the spacings of modules and crystals, the radius of the LORs'
-    end points, the centres of the crystals, with ``doi_mm`` half the crystals' depth), the frame keys, the energy
+    end points, the centres of the crystals, with ``doi`` half the crystals' depth), the frame keys, the energy
     window and resolution from the file, and how PETSIRD's coordinates map to the patient's (keys starting with
     ``petsird_``, and ``patient_position``).
 
@@ -237,11 +237,11 @@ def _detector_info(
             Defaults to "+z".
         patient_position (str, optional): "HFS", "FFS", "HFP" or "FFP" (head or feet first, supine or prone).
             Defaults to "HFS".
-        tolerance_mm (float, optional): the largest distance allowed between a detecting element and the crystal
+        tolerance (float, optional): the largest distance allowed between a detecting element and the crystal
             PyTomography's description puts there. Defaults to 0.25.
 
     Raises:
-        ValueError: if PyTomography's description cannot place a crystal within ``tolerance_mm`` of every element.
+        ValueError: if PyTomography's description cannot place a crystal within ``tolerance`` of every element.
 
     Returns:
         dict: the scanner's ``info``.
@@ -293,7 +293,7 @@ def _detector_info(
     corners = (m_mat[:, :3] @ (e_mat[:, :3] @ corners.T + e_mat[:, 3:]) + m_mat[:, 3:]).T
     crystal_length = float(np.ptp((corners @ patient.T)[:, :2] @ normal))
 
-    # PyTomography centres module k on the angle rsector0_angle_deg + 360 k / modules around: the angle that puts
+    # PyTomography centres module k on the angle rsector0_angle + 360 k / modules around: the angle that puts
     # each module on the modules' crystal centroids (not their faces: STIR2PETSIRD, for one, places each crystal by its
     # corner, half a crystal off the face's centre, a turn of -0.353 degrees for the mMR)
     centroids = np.stack([np.bincount(module, weights=position[:, k]) / n_elements for k in (0, 1)], axis=1)
@@ -305,7 +305,7 @@ def _detector_info(
         "min_rsector_difference": 0,
         "crystal_length": crystal_length,
         "radius": radius,
-        "doi_mm": crystal_length / 2,
+        "doi": crystal_length / 2,
         "crystalTransNr": crystals_per_module_row,
         "crystalTransSpacing": crystal_trans_spacing,
         "crystalAxialNr": rings_per_module,
@@ -322,29 +322,29 @@ def _detector_info(
         "rsectorAxialNr": 1,
         "NrCrystalsPerRing": n_trans_modules * crystals_per_module_row,
         "NrRings": len(rings),
-        "rsector0_angle_deg": math.degrees(alignment) % 360.0,
+        "rsector0_angle": math.degrees(alignment) % 360.0,
         "transaxial_direction": 1,
         "axial_direction": 1,
-        "energy_window_low_keV": float(energy_edges[0]),
-        "energy_window_high_keV": float(energy_edges[-1]),
+        "energy_window_low": float(energy_edges[0]),
+        "energy_window_high": float(energy_edges[-1]),
         "energy_resolution": float(scanner.energy_resolution_at_511[0]),
         "petsird_up": up,
         "petsird_towards_bed": towards_bed,
         "patient_position": patient_position,
         "petsird_axial_centre": axial_centre,
     })
-    _detector_id_map(scanner, info, tolerance_mm)  # checks that every element has its crystal
+    _detector_id_map(scanner, info, tolerance)  # checks that every element has its crystal
     return info
 
 
-def _detector_id_map(scanner, info: dict, tolerance_mm: float = 0.25) -> torch.Tensor:
+def _detector_id_map(scanner, info: dict, tolerance: float = 0.25) -> torch.Tensor:
     """PyTomography's detector id of every PETSIRD detecting element: the crystal of ``scanner_lut(info)`` at the
     element's place.
 
     Args:
         scanner: a PETSIRD ``ScannerInformation``, a header, or a PETSIRD file.
         info (dict): from :func:`_detector_info`.
-        tolerance_mm (float, optional): the largest distance allowed between an element and its crystal. Defaults to
+        tolerance (float, optional): the largest distance allowed between an element and its crystal. Defaults to
             0.25.
 
     Returns:
@@ -356,9 +356,9 @@ def _detector_id_map(scanner, info: dict, tolerance_mm: float = 0.25) -> torch.T
     if len(crystals) != len(position):
         raise ValueError(f"info describes {len(crystals)} crystals, and the scanner has {len(position)} elements")
     distance, ids = cKDTree(crystals).query(position)
-    if distance.max() > tolerance_mm or len(np.unique(ids)) != len(ids):
+    if distance.max() > tolerance or len(np.unique(ids)) != len(ids):
         raise ValueError(f"PyTomography's description of this scanner puts crystals up to {distance.max():.2f} mm "
-                         f"from PETSIRD's detecting elements (tolerance_mm={tolerance_mm}): PyTomography can only "
+                         f"from PETSIRD's detecting elements (tolerance={tolerance}): PyTomography can only "
                          "describe cylinders of rings of one type of module")
     return torch.from_numpy(ids.astype(np.int64))
 
@@ -385,7 +385,7 @@ def _detector_ids(
     time_block_ids: Sequence[int] | None = None,
     return_header: bool = False,
     delayeds: bool = False,
-    time_interval: tuple[float, float] | None = None,
+    time_interval_ms: tuple[float, float] | None = None,
     max_events: int | None = None,
     info: dict | None = None,
     header=None,
@@ -407,7 +407,7 @@ def _detector_ids(
         time_block_ids (Sequence[int] | None, optional): read only these event time blocks, counted from 0.
         return_header (bool, optional): also return the file's header. Defaults to False.
         delayeds (bool, optional): read the delayed coincidences instead of the prompts. Defaults to False.
-        time_interval (tuple[float, float] | None, optional): read only the time blocks that start in
+        time_interval_ms (tuple[float, float] | None, optional): read only the time blocks that start in
             [start, stop), in ms.
         max_events (int | None, optional): stop after the time block in which this many events have been read.
         info (dict | None, optional): from :func:`_detector_info`: give PyTomography's crystal ids (the standard
@@ -446,7 +446,7 @@ def _detector_ids(
             id_map = np.arange(offsets[-1], dtype=np.int64)
         else:
             id_map = _detector_id_map(scanner, info).numpy()
-        t0, t1 = _time_window(time_interval)
+        t0, t1 = _time_window(time_interval_ms)
         limit = -1 if max_events is None else int(max_events)
         data = np.memmap(petsird_file, dtype=np.uint8, mode="r")
         n, status = walk_time_blocks(data, start, t0, t1, wanted, limit, bool(delayeds), False, offsets, n_energy,
@@ -541,16 +541,16 @@ def read_petsird(
     up: str = "+x",
     towards_bed: str = "+z",
     patient_position: str = "HFS",
-    time_interval_s: tuple[float, float] | None = None,
+    time_interval: tuple[float, float] | None = None,
     header=None,
     min_rsector_difference: int = 0,
-    tolerance_mm: float = 0.25,
+    tolerance: float = 0.25,
 ) -> tuple[torch.Tensor, ObjectMeta, PETLMProjMeta]:
     """Reads the coincidences of a PETSIRD 0.9 file in PyTomography's standard form, with the scanner and its TOF bins.
 
     The scanner must be a cylinder of rings around PETSIRD's z axis, made of one type of module with one layer of
     crystals. Each detecting element is matched to the crystal of PyTomography's description of the scanner
-    (``proj_meta.info``) at its place, within ``tolerance_mm``. PETSIRD 0.9 does not say which way its gantry axes
+    (``proj_meta.info``) at its place, within ``tolerance``. PETSIRD 0.9 does not say which way its gantry axes
     point, nor how the patient lies, so ``up``, ``towards_bed`` and ``patient_position`` give them. The object frame is
     the patient's LPS, with the origin at the centre of the rings (``frame='scanner'``). Files written by ETSI's
     STIR2PETSIRD have ``up="+x"`` and ``towards_bed="+z"``: STIR's gantry axes are x to the right looking into the
@@ -569,13 +569,13 @@ def read_petsird(
             ``'-z'``. Defaults to ``'+z'``.
         patient_position (str, optional): ``'HFS'``, ``'FFS'``, ``'HFP'`` or ``'FFP'`` (head or feet first, supine or
             prone). Defaults to ``'HFS'``.
-        time_interval_s (tuple[float, float], optional): Read only the time blocks that start in [start, stop), in
+        time_interval (tuple[float, float], optional): Read only the time blocks that start in [start, stop), in
             s. Defaults to None: every time block.
         header (petsird.Header, optional): This file's header, from :func:`read_header`, so that it is not read again
             (a clinical scanner's normalisation tables take seconds to read, and gigabytes). Defaults to None.
         min_rsector_difference (int, optional): Keep only events whose crystals are at least this many modules apart
             around the ring. Defaults to 0.
-        tolerance_mm (float, optional): The largest distance allowed between a detecting element and the crystal
+        tolerance (float, optional): The largest distance allowed between a detecting element and the crystal
             PyTomography's description puts there, in mm. Defaults to 0.25.
 
     Returns:
@@ -587,7 +587,7 @@ def read_petsird(
 
     Raises:
         ValueError: If ``events``, ``up``, ``towards_bed`` or ``patient_position`` is not one of the values above,
-            the scanner is not one PyTomography can describe (within ``tolerance_mm``), its TOF bins are not of equal
+            the scanner is not one PyTomography can describe (within ``tolerance``), its TOF bins are not of equal
             width and symmetric about 0, the file stores no delayed coincidences (with ``'delayeds'``), or the file
             cannot be read (incomplete, or with events outside its scanner).
         ImportError: If ETSI's ``petsird`` package, version 0.9, is not installed.
@@ -598,12 +598,12 @@ def read_petsird(
         header = read_header(path)
     scanner = header.scanner
     info = _detector_info(scanner, up=up, towards_bed=towards_bed, patient_position=patient_position,
-                          tolerance_mm=tolerance_mm)
+                          tolerance=tolerance)
     if min_rsector_difference:
         info = scanner_info(info, min_rsector_difference=min_rsector_difference)
-    time_interval = None if time_interval_s is None else (1000 * time_interval_s[0], 1000 * time_interval_s[1])
+    window_ms = None if time_interval is None else (1000 * time_interval[0], 1000 * time_interval[1])  # PETSIRD's ms
     tof = scanner.tof_bin_edges[0][0].number_of_bins() > 1
-    detector_ids = _detector_ids(path, read_tof=tof, delayeds=events == "delayeds", time_interval=time_interval,
+    detector_ids = _detector_ids(path, read_tof=tof, delayeds=events == "delayeds", time_interval_ms=window_ms,
                                  info=info, header=header)
     detector_ids = keep_rsector_difference(detector_ids, info)
     tof_meta = _tof_meta(scanner) if tof else None

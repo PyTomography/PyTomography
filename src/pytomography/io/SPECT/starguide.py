@@ -138,7 +138,7 @@ def read_starguide(files: Sequence[str], energy_window: int | None = None, *, fi
     proj_meta = StarGuideProjMeta(
         tuple(projections.shape[1:]),
         torch.tensor(angles[first]).to(pytomography.dtype).to(device),
-        frame_duration_s=torch.tensor(times[first]).to(pytomography.dtype).to(device),
+        frame_duration=torch.tensor(times[first]).to(pytomography.dtype).to(device),
         offsets=torch.tensor(offsets[first]).to(pytomography.dtype).to(device),
         radii=radii[first],
         energy_windows=_energy_windows(ds, nuclide), acquisition_start=_acquisition_start(ds), nuclide=nuclide,

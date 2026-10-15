@@ -76,7 +76,7 @@ def load_image(source, *, layout: str | None = None, units: str | None = None, r
         .. code-block:: python
 
             ct = io.load_image('CT_folder')                   # a DICOM series
-            mu = io.attenuation_map(ct, object_meta, energy_keV=208)
+            mu = io.attenuation_map(ct, object_meta, energy=208)
             mask = io.load_mask('liver.seg.nrrd').on(object_meta, label='liver', threshold=0.5)
     """
     from ._formats import dicom, interfile, nifti, nrrd

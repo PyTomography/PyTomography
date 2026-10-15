@@ -22,37 +22,37 @@ class EnergyWindow:
 
     Args:
         name (str): Its name, as the source gives it.
-        ranges_keV (tuple): Every (lower, upper) range of the window in keV; most windows have one, some (Ga-67)
+        ranges (tuple): Every (lower, upper) range of the window in keV; most windows have one, some (Ga-67)
             several.
-        photon_keV (float): The photon energy the window stands for, in keV: the nuclide's strongest line inside it,
+        photon_energy (float): The photon energy the window stands for, in keV: the nuclide's strongest line inside it,
             else the window's centre. Attenuation maps and collimator PSFs for this window are made at this energy.
     """
     name: str
-    ranges_keV: tuple
-    photon_keV: float
+    ranges: tuple
+    photon_energy: float
 
     def __post_init__(self):
-        object.__setattr__(self, 'ranges_keV', tuple((float(lo), float(hi)) for lo, hi in self.ranges_keV))
-        object.__setattr__(self, 'photon_keV', float(self.photon_keV))
+        object.__setattr__(self, 'ranges', tuple((float(lo), float(hi)) for lo, hi in self.ranges))
+        object.__setattr__(self, 'photon_energy', float(self.photon_energy))
 
     @property
-    def width_keV(self) -> float:
+    def width(self) -> float:
         """The total width of the window's ranges, in keV, as the energy window scatter estimates use."""
-        return float(sum(hi - lo for lo, hi in self.ranges_keV))
+        return float(sum(hi - lo for lo, hi in self.ranges))
 
     @property
-    def lower_keV(self) -> float:
+    def lower(self) -> float:
         """The lowest bound of the window's ranges, in keV."""
-        return min(lo for lo, _ in self.ranges_keV)
+        return min(lo for lo, _ in self.ranges)
 
     @property
-    def upper_keV(self) -> float:
+    def upper(self) -> float:
         """The highest bound of the window's ranges, in keV."""
-        return max(hi for _, hi in self.ranges_keV)
+        return max(hi for _, hi in self.ranges)
 
     def __repr__(self):
-        ranges = ', '.join(f'{lo:g}-{hi:g}' for lo, hi in self.ranges_keV)
-        return f'EnergyWindow({self.name!r}, {ranges} keV, photon {self.photon_keV:g} keV)'
+        ranges = ', '.join(f'{lo:g}-{hi:g}' for lo, hi in self.ranges)
+        return f'EnergyWindow({self.name!r}, {ranges} keV, photon {self.photon_energy:g} keV)'
 
 
 class SPECTObjectMeta(ObjectMeta):
@@ -105,8 +105,8 @@ class SPECTProjMeta(ProjMeta):
         radii (Sequence[float], optional): The distance from the rotation axis to the detector face of every view, in
             mm (needed for PSF modelling). Defaults to None.
         energy_windows (Sequence[EnergyWindow], optional): Every energy window of the acquisition (all of them, not
-            only the one reconstructed). Defaults to None.
-        frame_duration_s (float | Sequence[float], optional): The acquisition time of each view, in s (one number is
+            only the one reconstructed), its energies in keV. Defaults to None.
+        frame_duration (float | Sequence[float], optional): The acquisition time of each view, in s (one number is
             used for every view). Defaults to None.
         acquisition_start (datetime.datetime, optional): When the acquisition started. Defaults to None.
         nuclide (str, optional): The radionuclide, as the source names it. Defaults to None.
@@ -119,7 +119,7 @@ class SPECTProjMeta(ProjMeta):
         shape (tuple): (θ, Lr, Lz), the shape of the projections of one window.
         num_projections (int): Number of views.
         energy_windows (list[EnergyWindow] | None): Every energy window of the acquisition.
-        frame_duration_s (np.ndarray | None): The acquisition time of every view, in s.
+        frame_duration (np.ndarray | None): The acquisition time of every view, in s.
         acquisition_start (datetime.datetime | None): When the acquisition started.
         nuclide (str | None): The radionuclide.
         units (str | None): The units of the projections' values.
@@ -134,7 +134,7 @@ class SPECTProjMeta(ProjMeta):
         radii=None,
         *,
         energy_windows: Sequence[EnergyWindow] | None = None,
-        frame_duration_s: float | Sequence[float] | None = None,
+        frame_duration: float | Sequence[float] | None = None,
         acquisition_start: datetime.datetime | None = None,
         nuclide: str | None = None,
         units: str | None = 'counts',
@@ -145,9 +145,9 @@ class SPECTProjMeta(ProjMeta):
         self.num_projections = len(angles)
         self.shape = (self.num_projections, int(projection_shape[0]), int(projection_shape[1]))
         self.energy_windows = list(energy_windows) if energy_windows is not None else None
-        if frame_duration_s is not None and np.ndim(frame_duration_s) == 0:
-            frame_duration_s = np.full(self.num_projections, float(frame_duration_s))
-        self.frame_duration_s = None if frame_duration_s is None else np.asarray(frame_duration_s, dtype=np.float64)
+        if frame_duration is not None and np.ndim(frame_duration) == 0:
+            frame_duration = np.full(self.num_projections, float(frame_duration))
+        self.frame_duration = None if frame_duration is None else np.asarray(frame_duration, dtype=np.float64)
         self.acquisition_start = acquisition_start
         self.nuclide = nuclide
         self.units = units
@@ -172,7 +172,7 @@ class SPECTProjMeta(ProjMeta):
 
         Args:
             factor (int, optional): Pixel reduction factor along r and z. Defaults to 1.
-            angle_factor (int, optional): Keep every ``angle_factor``-th view. Defaults to 1.
+            angle_factor (int, optional): Keep every ``angle_factor``-th view (a factor, no units). Defaults to 1.
             angle_start (int, optional): Index of the first view kept. Defaults to 0.
 
         Returns:
@@ -182,7 +182,7 @@ class SPECTProjMeta(ProjMeta):
         views = slice(angle_start, None, angle_factor)
         new.angles = self.angles[views]
         new.radii = None if self.radii is None else self.radii[views]
-        new.frame_duration_s = None if self.frame_duration_s is None else self.frame_duration_s[views]
+        new.frame_duration = None if self.frame_duration is None else self.frame_duration[views]
         new.num_projections = len(new.angles)
         new.dr = tuple(d * factor for d in self.dr)
         new.shape = (new.num_projections, self.shape[1] // factor, self.shape[2] // factor)
@@ -207,7 +207,8 @@ class SPECTPSFMeta():
             distances ``d`` (mm). Defaults to the linear model ``a * d + b``.
         kernel_dimensions (str, optional): ``'2D'``: blur along r and along z (two separable 1D convolutions).
             ``'1D'``: blur along r only, each plane of constant z on its own. Defaults to ``'2D'``.
-        min_sigmas (float, optional): Half-width of the convolution kernels, in widths at the largest distance in the
+        min_sigmas (float, optional): Half-width of the convolution kernels, in standard deviations (widths) at the
+            largest distance in the
             object: the Gaussian is infinite and must be cut off, and the kernel size is the same at every distance, so
             every distance gets at least ``min_sigmas`` widths. Ignored (set to 1, the whole triangle) for
             ``shape='square'``. Defaults to 3.

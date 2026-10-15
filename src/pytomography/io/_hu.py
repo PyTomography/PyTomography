@@ -5,14 +5,14 @@ One module for every modality (before PyTomography 4 there were two copies of th
 one line below 0 HU (air to water) and one above (water to bone). Its coefficients come from
 
 * ``'table'``: PyTomography's table of measured coefficients (``data/ct_table.csv``), for the CT's model and kVp and
-  the photon energy nearest ``energy_keV``. When the table has no entry within 5 % of ``energy_keV`` (it stops at
+  the photon energy nearest ``energy``. When the table has no entry within 5 % of ``energy`` (it stops at
   440 keV), the ``'nist'`` curve is used, with a warning.
 * ``'cortical_bone_fit'``: the CT's effective energy found from its cortical bone peak (1200 to 1600 HU), and the
-  curve through air, water and cortical bone at that energy (NIST), taken to ``energy_keV``. Without a peak, the
+  curve through air, water and cortical bone at that energy (NIST), taken to ``energy``. Without a peak, the
   effective energy is 75 % of the kVp, with a warning.
 * ``'nist'``: that curve with the effective energy 75 % of the kVp.
 
-A mu map read from a file is checked against water at ``energy_keV``: :func:`check_water` warns when the map's water
+A mu map read from a file is checked against water at ``energy``: :func:`check_water` warns when the map's water
 peak differs from NIST's water by more than 5 %, which catches a map made for another photon energy or in other
 units.
 """
@@ -75,17 +75,17 @@ def _nist_fit(material: str) -> np.ndarray:
         return curve_fit(dual_sqrt_exponential, energy, mu)[0]
 
 
-def nist_mu(material: str, energy_keV) -> np.ndarray | float:
+def nist_mu(material: str, energy) -> np.ndarray | float:
     """NIST's linear attenuation coefficient of a material (``'water'``, ``'air'``, ``'bonecortical'``...; a file of
     ``data/NIST_attenuation_data``) at photon energies between 50 and 550 keV, in 1/mm."""
     from pytomography.utils.nist_data import dual_sqrt_exponential
-    return dual_sqrt_exponential(np.asarray(energy_keV, dtype=np.float64), *_nist_fit(material)) / 10
+    return dual_sqrt_exponential(np.asarray(energy, dtype=np.float64), *_nist_fit(material)) / 10
 
 
-def nist_hu(material: str, energy_keV: float) -> float:
+def nist_hu(material: str, energy: float) -> float:
     """The Hounsfield units of a material at a (CT effective) energy, from NIST."""
-    water, air = nist_mu("water", energy_keV), nist_mu("air", energy_keV)
-    return float((nist_mu(material, energy_keV) - water) / (water - air) * 1000)
+    water, air = nist_mu("water", energy), nist_mu("air", energy)
+    return float((nist_mu(material, energy) - water) / (water - air) * 1000)
 
 
 def bilinear(hu: np.ndarray, a1: float, b1: float, a2: float, b2: float) -> np.ndarray:
@@ -99,10 +99,10 @@ def _normalised_model(name) -> str:
     return str(name or "").replace(" ", "").replace("-", "").lower()
 
 
-def table_coefficients(energy_keV: float, kvp: float | None, model: str | None) -> tuple | None:
+def table_coefficients(energy: float, kvp: float | None, model: str | None) -> tuple | None:
     """Bilinear coefficients (a1, b1, a2, b2), mu in 1/mm, from PyTomography's table: the scanner model's rows (all rows,
-    with a warning, when the model is not in the table), the photon energy nearest ``energy_keV`` and then the kVp
-    nearest ``kvp``. None when no photon energy of the table is within 5 % of ``energy_keV``."""
+    with a warning, when the model is not in the table), the photon energy nearest ``energy`` and then the kVp
+    nearest ``kvp``. None when no photon energy of the table is within 5 % of ``energy``."""
     import csv
     with open(os.path.join(_DATA, "ct_table.csv"), newline="") as f:
         rows = list(csv.DictReader(f))
@@ -112,8 +112,8 @@ def table_coefficients(energy_keV: float, kvp: float | None, model: str | None) 
                       "configuration of another model is used", stacklevel=3)
         candidates = rows
     kvp = float(kvp) if kvp is not None else 120.0
-    best = min(candidates, key=lambda r: (abs(float(r["Energy"]) - energy_keV), abs(float(r["CT Energy"]) - kvp)))
-    if abs(float(best["Energy"]) - energy_keV) > 0.05 * energy_keV:
+    best = min(candidates, key=lambda r: (abs(float(r["Energy"]) - energy), abs(float(r["CT Energy"]) - kvp)))
+    if abs(float(best["Energy"]) - energy) > 0.05 * energy:
         return None
     a1, b1, a2, b2 = (float(best[k]) / 10 for k in ("Lower Coeff", "Lower Constant", "Upper Coeff", "Upper Constant"))
     return a1, b1, a2, b2
@@ -140,23 +140,23 @@ def effective_ct_energy(bone_hu: float) -> float:
     return float(minimize(f, x0=(115,), method="SLSQP").x[0])
 
 
-def nist_coefficients(energy_keV: float, ct_energy_keV: float) -> tuple:
-    """Bilinear coefficients (a1, b1, a2, b2), mu in 1/mm at ``energy_keV``, through air, water and cortical bone,
+def nist_coefficients(energy: float, ct_energy: float) -> tuple:
+    """Bilinear coefficients (a1, b1, a2, b2), mu in 1/mm at ``energy``, through air, water and cortical bone,
     whose HU are NIST's at the CT's effective energy."""
-    hu = [nist_hu(m, ct_energy_keV) for m in ("air", "water", "bonecortical")]
-    mu = [float(nist_mu(m, energy_keV)) for m in ("air", "water", "bonecortical")]
+    hu = [nist_hu(m, ct_energy) for m in ("air", "water", "bonecortical")]
+    mu = [float(nist_mu(m, energy)) for m in ("air", "water", "bonecortical")]
     a1 = (mu[1] - mu[0]) / (hu[1] - hu[0])
     a2 = (mu[2] - mu[1]) / (hu[2] - hu[1])
     return a1, mu[1], a2, mu[1]
 
 
-def hu_to_mu(hu: np.ndarray, energy_keV: float, *, technique="table", kvp: float | None = None,
+def hu_to_mu(hu: np.ndarray, energy: float, *, technique="table", kvp: float | None = None,
              model: str | None = None) -> np.ndarray:
-    """Linear attenuation coefficients (1/mm, float32) at ``energy_keV`` of a CT in HU.
+    """Linear attenuation coefficients (1/mm, float32) at ``energy`` of a CT in HU.
 
     Args:
         hu (np.ndarray): the CT, in HU.
-        energy_keV (float): the photon energy.
+        energy (float): the photon energy.
         technique (str | Callable): ``'table'``, ``'cortical_bone_fit'`` or ``'nist'`` (see the module), or a function
             that takes the HU array and returns mu in 1/mm.
         kvp (float, optional): the CT's kVp (DICOM KVP).
@@ -169,12 +169,12 @@ def hu_to_mu(hu: np.ndarray, energy_keV: float, *, technique="table", kvp: float
         return np.asarray(technique(hu), dtype=np.float32)
     if technique not in TECHNIQUES:
         raise ValueError(f"technique must be one of {TECHNIQUES} or a function of the HU, not {technique!r}")
-    energy_keV = float(energy_keV)
+    energy = float(energy)
     if technique == "table":
-        coefficients = table_coefficients(energy_keV, kvp, model)
+        coefficients = table_coefficients(energy, kvp, model)
         if coefficients is not None:
             return bilinear(hu, *coefficients)
-        warnings.warn(f"PyTomography's table of HU to mu coefficients has no photon energy near {energy_keV} keV: the "
+        warnings.warn(f"PyTomography's table of HU to mu coefficients has no photon energy near {energy} keV: the "
                       "curve through air, water and cortical bone from NIST is used (technique='nist')", stacklevel=3)
         technique = "nist"
     if kvp is None:
@@ -187,14 +187,14 @@ def hu_to_mu(hu: np.ndarray, energy_keV: float, *, technique="table", kvp: float
                           stacklevel=3)
         else:
             ct_energy = effective_ct_energy(peak)
-    return bilinear(hu, *nist_coefficients(energy_keV, ct_energy))
+    return bilinear(hu, *nist_coefficients(energy, ct_energy))
 
 
-def water_peak(mu_mm: np.ndarray, energy_keV: float) -> float | None:
-    """The most common value of a mu map (1/mm) between a fifth and three times NIST's water at ``energy_keV``: its
+def water_peak(mu: np.ndarray, energy: float) -> float | None:
+    """The most common value of a mu map (1/mm) between a fifth and three times NIST's water at ``energy``: its
     water (or soft tissue); None when it has almost no voxels there."""
-    water = float(nist_mu("water", energy_keV))
-    x = np.asarray(mu_mm, dtype=np.float32).ravel()
+    water = float(nist_mu("water", energy))
+    x = np.asarray(mu, dtype=np.float32).ravel()
     x = x[(x > 0.2 * water) & (x < 3 * water)]
     if x.size < 100:
         return None
@@ -203,16 +203,16 @@ def water_peak(mu_mm: np.ndarray, energy_keV: float) -> float | None:
     return float(np.sqrt(edges[k] * edges[k + 1]))
 
 
-def check_water(mu_mm: np.ndarray, energy_keV: float, source: str = "") -> None:
-    """Warns when a mu map's water peak is more than 5 % from NIST's water at ``energy_keV``, or when the map has
+def check_water(mu: np.ndarray, energy: float, source: str = "") -> None:
+    """Warns when a mu map's water peak is more than 5 % from NIST's water at ``energy``, or when the map has
     almost no voxels near water's value (other units than stated?)."""
-    water = float(nist_mu("water", energy_keV))
-    peak = water_peak(mu_mm, energy_keV)
+    water = float(nist_mu("water", energy))
+    peak = water_peak(mu, energy)
     where = f" ({source})" if source else ""
     if peak is None:
-        warnings.warn(f"the mu map{where} has almost no voxels near water's {water:.5f}/mm at {energy_keV} keV: are its "
+        warnings.warn(f"the mu map{where} has almost no voxels near water's {water:.5f}/mm at {energy} keV: are its "
                       "units right (units=), and is it for this photon energy?", stacklevel=3)
     elif abs(peak / water - 1) > WATER_TOLERANCE:
         warnings.warn(f"the mu map{where} has water at {peak:.5f}/mm, {100 * (peak / water - 1):+.0f} % from NIST's "
-                      f"{water:.5f}/mm at {energy_keV} keV: is it made for another photon energy, or in other units?",
+                      f"{water:.5f}/mm at {energy} keV: is it made for another photon energy, or in other units?",
                       stacklevel=3)

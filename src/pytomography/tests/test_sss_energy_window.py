@@ -1,6 +1,6 @@
 """The single scatter simulation weights each scattered photon by the probability that the detector registers it: that
 its measured energy, Gaussian about its true energy, falls in the energy window. The window and the resolution come
-from the scanner's ``info`` (``energy_window_low_keV``, ``energy_window_high_keV`` in keV, ``energy_resolution`` as the FWHM
+from the scanner's ``info`` (``energy_window_low``, ``energy_window_high`` in keV, ``energy_resolution`` as the FWHM
 at 511 keV over 511 keV), as the PETSIRD reader gives them, and each falls back on its own to the values the
 simulation always used (430 keV, no upper limit, 0.15).
 
@@ -26,7 +26,7 @@ from pytomography.utils import sss  # noqa: E402
 from pytomography.io.PET.scanner import scanner_info  # noqa: E402
 
 DEV = pytomography.device
-INFO = scanner_info(min_rsector_difference=0, crystal_length=20.0, radius=120.0, rsector0_angle_deg=90.0, transaxial_direction=-1, axial_direction=-1,
+INFO = scanner_info(min_rsector_difference=0, crystal_length=20.0, radius=120.0, rsector0_angle=90.0, transaxial_direction=-1, axial_direction=-1,
             rsectorTransNr=16, rsectorAxialNr=1, moduleTransNr=1, moduleAxialNr=2, moduleTransSpacing=0.0,
             moduleAxialSpacing=17.0, submoduleTransNr=1, submoduleAxialNr=1, submoduleTransSpacing=0.0,
             submoduleAxialSpacing=0.0, crystalTransNr=4, crystalAxialNr=4, crystalTransSpacing=4.0,
@@ -98,7 +98,7 @@ def test_without_energy_keys_the_estimate_is_unchanged_bit_for_bit(tof, sampled_
     """GATE and GE data have no energy keys in their info: their estimate is the one from before, bit for bit; so is
     the estimate with the defaults written into info."""
     without_keys = _estimate(tof)
-    with_defaults = _estimate(tof, energy_window_low_keV=430, energy_window_high_keV=None, energy_resolution=0.15)
+    with_defaults = _estimate(tof, energy_window_low=430, energy_window_high=None, energy_resolution=0.15)
     monkeypatch.setattr(sss, "detector_efficiency", lambda energy, *args, **kwargs: _efficiency_before(energy))
     before = _estimate(tof)
     assert before.abs().sum() > 0
@@ -113,14 +113,14 @@ def test_a_narrower_window_lowers_the_estimate(tof, sampled_integrals):
     totals = []
     previous = None
     for low in (410, 430, 450, 480):
-        estimate = _estimate(tof, energy_window_low_keV=low)
+        estimate = _estimate(tof, energy_window_low=low)
         if previous is not None:
             assert (estimate <= previous).all()
         previous = estimate
         totals.append(estimate.sum().item())
     assert totals == sorted(totals, reverse=True) and len(set(totals)) == len(totals)
     without_upper = _estimate(tof)
-    with_upper = _estimate(tof, energy_window_high_keV=560)
+    with_upper = _estimate(tof, energy_window_high=560)
     assert (with_upper <= without_upper).all() and with_upper.sum() < without_upper.sum()
 
 
@@ -149,18 +149,18 @@ def test_energy_keys_fall_back_one_by_one(sampled_integrals):
     window = sss.detector_energy_window
     assert window({}) == (430.0, None, 0.15)
     assert window(dict(INFO)) == (430.0, None, 0.15)
-    assert window({"energy_window_low_keV": 450}) == (450.0, None, 0.15)
-    assert window({"energy_window_high_keV": 650}) == (430.0, 650.0, 0.15)
+    assert window({"energy_window_low": 450}) == (450.0, None, 0.15)
+    assert window({"energy_window_high": 650}) == (430.0, 650.0, 0.15)
     assert window({"energy_resolution": 0.12}) == (430.0, None, 0.12)
-    assert window({"energy_window_low_keV": None, "energy_window_high_keV": 600.0}) == (430.0, 600.0, 0.15)
-    assert window({"energy_window_low_keV": 425, "energy_window_high_keV": 650, "energy_resolution": np.float32(0.1)}) == \
+    assert window({"energy_window_low": None, "energy_window_high": 600.0}) == (430.0, 600.0, 0.15)
+    assert window({"energy_window_low": 425, "energy_window_high": 650, "energy_resolution": np.float32(0.1)}) == \
         (425.0, 650.0, float(np.float32(0.1)))
     # the estimate reads each key on its own
-    partial = _estimate(False, energy_window_low_keV=450)
-    assert torch.equal(partial, _estimate(False, energy_window_low_keV=450, energy_window_high_keV=None, energy_resolution=0.15))
+    partial = _estimate(False, energy_window_low=450)
+    assert torch.equal(partial, _estimate(False, energy_window_low=450, energy_window_high=None, energy_resolution=0.15))
     assert not torch.equal(partial, _estimate(False))
     # a resolution in percent, or a window upside down, is an error rather than a wrong estimate
-    for bad in ({"energy_resolution": 15}, {"energy_resolution": 0}, {"energy_window_low_keV": 500, "energy_window_high_keV": 450}):
+    for bad in ({"energy_resolution": 15}, {"energy_resolution": 0}, {"energy_window_low": 500, "energy_window_high": 450}):
         with pytest.raises(ValueError):
             window(bad)
 
