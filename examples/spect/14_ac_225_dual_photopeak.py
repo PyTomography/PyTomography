@@ -23,7 +23,7 @@ from pytomography.projectors import ExtendedSystemMatrix
 from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.algorithms import OSEM
 from pytomography.likelihoods import PoissonLogLikelihood
-from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
+from pytomography.transforms.SPECT import SPECTAttenuationTransform
 from pytomography.transforms.shared import GaussianFilter
 from spectarf import Collimator, DetectorStack, DetectorResponse, EnergyResolution
 from spectarf.nuclides import Nuclide
@@ -55,48 +55,33 @@ stack = DetectorStack(Collimator(**collimator), **detector)
 response = DetectorResponse(EnergyResolution.geb(**camera['energy_resolution']),
                             intrinsic_fwhm_mm_140=camera['intrinsic_fwhm_mm_140'])
 
-# %% 440 keV: PSFs from ARFs
-arfs440 = generate_arfs(stack, response, proj_meta, peak=3)
-attenuation_map440 = io.attenuation_map(files_CT, object_meta, energy_keV=windows[3].photon_keV)
-system_matrix440 = SPECTSystemMatrix(
-    obj2obj_transforms=[SPECTAttenuationTransform(attenuation_map=attenuation_map440),
-                        psf_transform(arfs440, normalize=True)],
-    proj2proj_transforms=[],
-    object_meta=object_meta,
-    proj_meta=proj_meta,
-)
-
-# %% 218 keV: the Gaussian PSF
-psf_meta218 = io.SPECT.collimator_psf(collimator['code'], windows[0].photon_keV,
-                                      intrinsic_fwhm_140keV_mm=camera['intrinsic_fwhm_mm_140'])
-attenuation_map218 = io.attenuation_map(files_CT, object_meta, energy_keV=windows[0].photon_keV)
-system_matrix218 = SPECTSystemMatrix(
-    obj2obj_transforms=[SPECTAttenuationTransform(attenuation_map=attenuation_map218),
-                        SPECTPSFTransform(psf_meta=psf_meta218)],
-    proj2proj_transforms=[],
-    object_meta=object_meta,
-    proj_meta=proj_meta,
-)
-
-# %% Each peak's sensitivity
+# %% PSFs in counts per decay
 ac225 = Nuclide.from_ddep('Ac-225', chain='secular')   # Ac-225 and its daughters, in equilibrium
 
 def photons_per_decay(photon_keV):
     return sum(line.yield_per_decay for line in ac225.lines if abs(line.energy_keV - photon_keV) < 0.5)
 
-def detected_per_photon(arfs):
-    return float(psf_at(arfs, 150.0, pixel_mm=float(object_meta.dx), size_mm=600.0).sum())
-
 arfs218 = generate_arfs(stack, response, proj_meta, peak=0)
-calib218 = 1e6 * photons_per_decay(windows[0].photon_keV) * detected_per_photon(arfs218)  # cps/MBq
-calib440 = 1e6 * photons_per_decay(windows[3].photon_keV) * detected_per_photon(arfs440)  # cps/MBq
-for name, keV, calib in [('218 keV', windows[0].photon_keV, calib218), ('440 keV', windows[3].photon_keV, calib440)]:
-    print(f'{name}: {photons_per_decay(keV):.4f} photons per decay, {calib:.2f} cps/MBq')
+arfs440 = generate_arfs(stack, response, proj_meta, peak=3)
+per_decay218 = [(arfs218['P'], photons_per_decay(windows[0].photon_keV))]   # (ARF, weight): counts per decay
+per_decay440 = [(arfs440['P'], photons_per_decay(windows[3].photon_keV))]
+for name, terms in [('218 keV', per_decay218), ('440 keV', per_decay440)]:
+    cps_per_MBq = 1e6 * psf_at(terms, 150.0, pixel_mm=float(object_meta.dx), size_mm=600.0).sum()
+    print(f'{name}: {terms[0][1]:.4f} photons per decay, {cps_per_MBq:.2f} cps/MBq')
 
-system_matrix218 = calib218 * system_matrix218
-system_matrix440 = calib440 * system_matrix440
+# %% The system matrices
+def system_matrix_for(peak, kernels_per_decay):
+    attenuation_map = io.attenuation_map(files_CT, object_meta, energy_keV=windows[peak].photon_keV)
+    return SPECTSystemMatrix(
+        obj2obj_transforms=[SPECTAttenuationTransform(attenuation_map=attenuation_map),
+                            psf_transform(kernels_per_decay)],
+        proj2proj_transforms=[],
+        object_meta=object_meta,
+        proj_meta=proj_meta,
+    )
 
-# %% The joint system matrix
+system_matrix218 = system_matrix_for(0, per_decay218)
+system_matrix440 = system_matrix_for(3, per_decay440)
 system_matrix = ExtendedSystemMatrix(system_matrices=[system_matrix218, system_matrix440])
 photopeak = torch.stack([photopeak218, photopeak440])
 scatter = torch.stack([scatter218, scatter440])
@@ -118,13 +103,13 @@ for name, likelihood in likelihoods.items():
 # %% Compare
 seconds = float(proj_meta.frame_duration_s[0])
 voxel_mL = float(object_meta.dx * object_meta.dy * object_meta.dz) / 1000
+Bq_per_mL = {name: recon / seconds / voxel_mL for name, recon in recons.items()}
 smooth = GaussianFilter(20)  # FWHM in mm
 smooth.configure(object_meta, proj_meta)
-kBq_per_mL = {name: smooth(recon) / seconds / voxel_mL * 1000 for name, recon in recons.items()}
 for name, recon in recons.items():
-    print(f'{name}: {recon.sum() / seconds:.2f} MBq in the field of view, hottest smoothed voxel {kBq_per_mL[name].max():.1f} kBq/mL')
+    print(f'{name}: {recon.sum() / seconds / 1e6:.2f} MBq in the field of view')
 
 # %% Save the images
-for (name, recon), folder in zip(recons.items(), ['osem_218keV', 'osem_440keV', 'osem_joint']):
-    io.save_dicom(recon, OUTPUT / 't_ac225_dualpeak' / folder, object_meta, reference=file_NM, units='MBq.s',
+for (name, image), folder in zip(Bq_per_mL.items(), ['osem_218keV', 'osem_440keV', 'osem_joint']):
+    io.save_dicom(image, OUTPUT / 't_ac225_dualpeak' / folder, object_meta, reference=file_NM, units='Bq/mL',
                   series_description=f'OSEM 100x3, {name}', overwrite=True)
