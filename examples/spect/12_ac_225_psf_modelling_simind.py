@@ -21,8 +21,8 @@ from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.transforms.SPECT  import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.algorithms import OSEM
 from pytomography.likelihoods import PoissonLogLikelihood
-from spectarf import Collimator, DetectorStack, DetectorResponse, EnergyResolution
-from spectarf.pytomography import generate_arfs, psf_transform
+from spectarf import DetectorResponse
+from spectarf.pytomography import camera_model, generate_arfs, psf_transform
 from spectarf.response import FWHM_TO_SIGMA
 
 # change to where you saved the data
@@ -46,16 +46,16 @@ projections *= dT
 idx_peak, idx_lower, idx_upper = 1, 0, 2
 photopeak = projections[idx_peak]
 # each window's width from its header (the first isotope's; the isotopes share the windows)
-ww_lower, ww_peak, ww_upper = [window.width_keV for window in proj_meta.energy_windows]
+ww_lower, ww_peak, ww_upper = [window.width for window in proj_meta.energy_windows]
 print(f'window widths: lower {ww_lower:.0f} keV, photopeak {ww_peak:.0f} keV, upper {ww_upper:.0f} keV')
 scatter_estimate_TEW = io.SPECT.energy_window_scatter(
     projections, proj_meta, peak=idx_peak, lower=idx_lower, upper=idx_upper,
-    sigma_r_mm=5,
-    sigma_z_mm=5,
+    fwhm_r=11.8,   # mm
+    fwhm_z=11.8,
 )
 
 path_amap = os.path.join(PATH, 'attenuation_maps', 'amap440.hct')
-amap = io.attenuation_map(path_amap, object_meta, energy_keV=proj_meta.energy_windows[idx_peak].photon_keV, layout='mu')
+amap = io.attenuation_map(path_amap, object_meta, energy=proj_meta.energy_windows[idx_peak].photon_energy, layout='mu')
 
 def perform_reconstruction(psf_transform):
     att_transform = SPECTAttenuationTransform(attenuation_map=amap)
@@ -74,13 +74,13 @@ collimator = io.SPECT.collimator('SY-HE')            # the Symbia high energy co
 detector = io.SPECT.detector('NaI-9.5mm')            # 3/8 inch NaI(Tl), its cover and backscatter
 camera = io.SPECT.camera('Siemens Symbia T')          # its energy resolution model
 # Or every value explicitly:
-# collimator = dict(hole_diameter_mm=4.0, septal_thickness_mm=2.0, hole_length_mm=59.7, hole_shape='hex', rotated=True, material='lead')
-# detector = dict(crystal_mm=9.525, crystal_material='nai', cover_mm=1.0, cover_material='aluminium',
-#                 backscatter_mm=100.0, backscatter_material='pmt')
-stack = DetectorStack(Collimator(**collimator), **detector)
-# SIMIND adds its own 3.6 mm Gaussian (FWHM at 140 keV) on top of its transport
-response = DetectorResponse(EnergyResolution.geb(**camera['energy_resolution']), intrinsic_fwhm_mm_140=3.6,
-                            residual_sigma_mm_140=3.6 * FWHM_TO_SIGMA)
+# collimator = dict(hole_diameter=4.0, septal_thickness=2.0, hole_length=59.7, hole_shape='hex', rotated=True,
+#                   material='lead')                    # mm
+# detector = dict(crystal_thickness=9.525, crystal_material='nai', cover_thickness=1.0, cover_material='aluminium',
+#                 backscatter_thickness=100.0, backscatter_material='pmt')   # mm
+stack, response = camera_model(collimator, detector, camera)   # spectarf's camera from these numbers
+# SIMIND adds its own 3.6 mm Gaussian (FWHM at 140 keV) on top of its transport; spectarf's own arguments
+response = DetectorResponse(response.energy, intrinsic_fwhm_mm_140=3.6, residual_sigma_mm_140=3.6 * FWHM_TO_SIGMA)
 
 # %% The ARFs
 arfs = generate_arfs(stack, response, proj_meta, peak=idx_peak)

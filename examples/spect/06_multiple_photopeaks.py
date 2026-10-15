@@ -35,25 +35,25 @@ file_NM = os.path.join(path, 'projection_data.dcm')
 projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)
 windows = proj_meta.energy_windows
 for i, window in enumerate(windows):
-    print(f'Index {i}:   Name: "{window.name}", Energies: {window.lower_keV:.1f}-{window.upper_keV:.1f} keV, photon {window.photon_keV:g} keV')
+    print(f'Index {i}:   Name: "{window.name}", Energies: {window.lower:.1f}-{window.upper:.1f} keV, photon {window.photon_energy:g} keV')
 
 photopeak208 = projections[0]
 photopeak113 = projections[3]
 scatter208 = io.SPECT.energy_window_scatter(projections, proj_meta, peak=0, lower=1, upper=2)
 scatter113 = io.SPECT.energy_window_scatter(projections, proj_meta, peak=3, lower=4, upper=5)
-amap208 = io.attenuation_map(files_CT, object_meta, energy_keV=windows[0].photon_keV)
-amap113 = io.attenuation_map(files_CT, object_meta, energy_keV=windows[3].photon_keV)
+amap208 = io.attenuation_map(files_CT, object_meta, energy=windows[0].photon_energy)
+amap113 = io.attenuation_map(files_CT, object_meta, energy=windows[3].photon_energy)
 collimator_name = 'SY-ME'
-intrinsic_fwhm_140keV_mm = 3.8 # mm at 140 keV
+intrinsic_fwhm_140keV = 3.8 # mm at 140 keV
 psf_meta208 = io.SPECT.collimator_psf(
     collimator_name,
-    windows[0].photon_keV,
-    intrinsic_fwhm_140keV_mm=intrinsic_fwhm_140keV_mm
+    windows[0].photon_energy,
+    intrinsic_fwhm_140keV=intrinsic_fwhm_140keV
 )
 psf_meta113 = io.SPECT.collimator_psf(
     collimator_name,
-    windows[3].photon_keV,
-    intrinsic_fwhm_140keV_mm=intrinsic_fwhm_140keV_mm
+    windows[3].photon_energy,
+    intrinsic_fwhm_140keV=intrinsic_fwhm_140keV
 )
 att_transform208 = SPECTAttenuationTransform(attenuation_map=amap208)
 att_transform113 = SPECTAttenuationTransform(attenuation_map=amap113)
@@ -94,7 +94,7 @@ recon_algo = OSEM(likelihood)
 print(recon_algo.estimate_memory(n_subsets=8))
 recon_OSEM = recon_algo(n_iters = 8, n_subsets=8)
 
-float(proj_meta.frame_duration_s[0])  # seconds
+float(proj_meta.frame_duration[0])  # seconds
 
 # %% Save the images
 saved = io.save_dicom(recon_OSEM, OUTPUT / 't_dualpeak' / 'osem', object_meta, reference=file_NM, units='MBq.s',

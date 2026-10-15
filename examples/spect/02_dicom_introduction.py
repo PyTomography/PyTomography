@@ -35,24 +35,24 @@ file_NM = os.path.join(PATH, 'projection_data.dcm')
 projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)
 
 for i, window in enumerate(proj_meta.energy_windows):
-    print(f'Index {i}:   Name: "{window.name}", Energies: {window.lower_keV:.1f}-{window.upper_keV:.1f} keV')
+    print(f'Index {i}:   Name: "{window.name}", Energies: {window.lower:.1f}-{window.upper:.1f} keV')
 
 photopeak = projections[0]
 
 scatter = io.SPECT.energy_window_scatter(projections, proj_meta, peak=0, lower=1, upper=2)
 
 # %% Attenuation Transform
-attenuation_map = io.attenuation_map(files_CT, object_meta, energy_keV=proj_meta.energy_windows[0].photon_keV)
+attenuation_map = io.attenuation_map(files_CT, object_meta, energy=proj_meta.energy_windows[0].photon_energy)
 att_transform = SPECTAttenuationTransform(attenuation_map)
 
 # %% PSF Modeling
 collimator_name = 'SY-ME'
-photon_keV = proj_meta.energy_windows[0].photon_keV  # 208 keV
-intrinsic_fwhm_mm = 3.8  # mm
+photon_energy = proj_meta.energy_windows[0].photon_energy  # 208 keV
+intrinsic_fwhm = 3.8  # mm
 psf_meta = io.SPECT.collimator_psf(
     collimator_name,
-    photon_keV,
-    intrinsic_fwhm_mm=intrinsic_fwhm_mm
+    photon_energy,
+    intrinsic_fwhm=intrinsic_fwhm
 )
 print(psf_meta)
 

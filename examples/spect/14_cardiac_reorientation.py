@@ -28,7 +28,7 @@ PATH = DATA / 'SPECT' / 'Tc99m-Cardiac'
 file_NM = os.path.join(PATH, 'anonymized_file.dcm')
 photopeak, object_meta, proj_meta = io.SPECT.read_dicom(file_NM, energy_window=0)
 
-psf_meta = io.SPECT.collimator_psf('SY-LEHR', proj_meta.energy_windows[0].photon_keV)  # 140.5 keV, Tc-99m
+psf_meta = io.SPECT.collimator_psf('SY-LEHR', proj_meta.energy_windows[0].photon_energy)  # 140.5 keV, Tc-99m
 psf_transform = SPECTPSFTransform(psf_meta)
 system_matrix = SPECTSystemMatrix(
     obj2obj_transforms = [psf_transform],

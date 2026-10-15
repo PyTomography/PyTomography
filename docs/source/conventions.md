@@ -31,7 +31,7 @@ PyTomography 3 used cm, and gave smoothing as a standard deviation. Names that k
 
 ## Frames and axes
 
-* **Every reader returns one standard form**, `(projections, object_meta, proj_meta)`, whatever the source. Sources are converted in the readers; algorithms never special-case a source. The Architecture page's [Data and conventions](architecture.html#io) tab gives each source's own conventions and what its reader does.
+* **Every reader returns one standard form**, `(projections, object_meta, proj_meta)`, whatever the source. Sources are converted in the readers; algorithms never special-case a source. The Architecture page's <a href="architecture.html#io">Data and conventions</a> tab gives each source's own conventions and what its reader does.
 * **Objects** are `[x, y, z]` arrays indexed `(i, j, k)`. `object_meta.affine` (4 x 4) maps a voxel index to its centre in LPS mm: i towards the patient's left, j posterior, k superior. k = 0 is the most inferior slice.
 * **SPECT projections** are `[W, θ, r, z]` (every energy window) or `[θ, r, z]`, with z rows from foot to head and the radius of each view in mm. A view's angle is β = (DICOM angle + 180) mod 360 degrees: β = 0 has the detector anterior, and β grows counter-clockwise seen from the feet. `proj_meta.energy_windows[i]` has `ranges`, `lower`, `upper`, `width` and `photon_energy`, in keV.
 * **PET events** are int32 `[N, 2]` or `[N, 3]`: the two crystals, and the TOF bin. A detector id is `ring * crystals_per_ring + crystal`. The scanner's `info` holds its lengths in mm, `rsector0_angle` in degrees, and `energy_window_low` and `energy_window_high` in keV.
@@ -39,4 +39,4 @@ PyTomography 3 used cm, and gave smoothing as a standard deviation. Names that k
 
 ## For AI agents
 
-The repository's `AGENTS.md` (which `CLAUDE.md` imports) states these conventions for an agent working on PyTomography, and [`llms.txt`](llms.txt) lists this page first. [For AI agents](ai.md) has the rest, such as checking that PyTomography uses the GPU.
+The repository's `AGENTS.md` (which `CLAUDE.md` imports) states these conventions for an agent working on PyTomography, and <a href="llms.txt"><code>llms.txt</code></a> lists this page first. [For AI agents](ai.md) has the rest, such as checking that PyTomography uses the GPU.

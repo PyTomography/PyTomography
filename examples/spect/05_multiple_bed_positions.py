@@ -36,7 +36,7 @@ files_CT = [os.path.join(path_CT, file) for file in os.listdir(path_CT)]
 
 _, _, proj_meta = io.SPECT.read_dicom(files_NM[0])
 for i, window in enumerate(proj_meta.energy_windows):
-    print(f'Index {i}:   Name: "{window.name}", Energies: {window.lower_keV:g}-{window.upper_keV:g} keV')
+    print(f'Index {i}:   Name: "{window.name}", Energies: {window.lower:g}-{window.upper:g} keV')
 
 beds = io.SPECT.read_dicom_beds(files_NM)  # the inferior bed first
 (projections_lower, object_meta_lower, proj_meta_lower), (projections_upper, object_meta_upper, proj_meta_upper) = beds
@@ -50,9 +50,9 @@ def reconstruct_singlebed(projections, object_meta, proj_meta):
     photopeak = projections[index_peak]
     scatter = io.SPECT.energy_window_scatter(projections, proj_meta, index_peak, index_lower, index_upper)
     # Build system matrix
-    photon_keV = proj_meta.energy_windows[index_peak].photon_keV
-    attenuation_map = io.attenuation_map(files_CT, object_meta, energy_keV=photon_keV)
-    psf_meta = io.SPECT.collimator_psf('GI-MEGP', photon_keV)
+    photon_energy = proj_meta.energy_windows[index_peak].photon_energy
+    attenuation_map = io.attenuation_map(files_CT, object_meta, energy=photon_energy)
+    psf_meta = io.SPECT.collimator_psf('GI-MEGP', photon_energy)
     att_transform = SPECTAttenuationTransform(attenuation_map)
     psf_transform = SPECTPSFTransform(psf_meta)
     # Create system matrix

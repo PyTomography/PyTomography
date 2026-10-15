@@ -36,9 +36,9 @@ files_CT = sorted(str(f) for f in (path / 'CT').glob('*'))
 projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)
 photopeak = projections[0]  # the 208 keV window
 scatter = io.SPECT.energy_window_scatter(projections, proj_meta, peak=0, lower=1, upper=2)
-photon_keV = proj_meta.energy_windows[0].photon_keV
-att_transform = SPECTAttenuationTransform(io.attenuation_map(files_CT, object_meta, energy_keV=photon_keV))
-psf_transform = SPECTPSFTransform(io.SPECT.collimator_psf('SY-ME', photon_keV, intrinsic_fwhm_mm=3.8))
+photon_energy = proj_meta.energy_windows[0].photon_energy
+att_transform = SPECTAttenuationTransform(io.attenuation_map(files_CT, object_meta, energy=photon_energy))
+psf_transform = SPECTPSFTransform(io.SPECT.collimator_psf('SY-ME', photon_energy, intrinsic_fwhm=3.8))
 system_matrix = SPECTSystemMatrix(obj2obj_transforms=[att_transform, psf_transform], proj2proj_transforms=[],
                                   object_meta=object_meta, proj_meta=proj_meta)
 print(f"{proj_meta.num_projections} views of {photopeak.shape[1]} x {photopeak.shape[2]} pixels of {object_meta.dr[0]:.2f} mm; "

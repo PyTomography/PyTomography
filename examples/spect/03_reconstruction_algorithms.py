@@ -54,7 +54,7 @@ if TYPE=='SIMIND':
     photopeak = projections[0]
     scatter = io.SPECT.energy_window_scatter(projections, proj_meta, peak=0, lower=1, upper=2)
     amap = io.attenuation_map(os.path.join(data_path, 'amap.hct'), object_meta,
-                              energy_keV=proj_meta.energy_windows[0].photon_keV, layout='mu')
+                              energy=proj_meta.energy_windows[0].photon_energy, layout='mu')
     psf_meta = io.SPECT.simind_psf(headers[0])
 elif TYPE=='DICOM':
     data_path = os.path.join(PATH, 'Lu177-NEMA-SymT2')
@@ -65,8 +65,8 @@ elif TYPE=='DICOM':
     projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)
     photopeak = projections[0]  # the 208 keV window
     scatter = io.SPECT.energy_window_scatter(projections, proj_meta, peak=0, lower=1, upper=2)
-    amap = io.attenuation_map(files_CT, object_meta, energy_keV=proj_meta.energy_windows[0].photon_keV)
-    psf_meta = io.SPECT.collimator_psf('SY-ME', proj_meta.energy_windows[0].photon_keV, intrinsic_fwhm_mm=3.8)
+    amap = io.attenuation_map(files_CT, object_meta, energy=proj_meta.energy_windows[0].photon_energy)
+    psf_meta = io.SPECT.collimator_psf('SY-ME', proj_meta.energy_windows[0].photon_energy, intrinsic_fwhm=3.8)
 att_transform = SPECTAttenuationTransform(amap)
 psf_transform = SPECTPSFTransform(psf_meta)
 
