@@ -25,8 +25,7 @@ from pytomography.algorithms import OSEM
 from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.transforms.SPECT import SPECTAttenuationTransform
 from pytomography.transforms.shared import GaussianFilter
-from spectarf import Collimator, DetectorStack, DetectorResponse, EnergyResolution
-from spectarf.pytomography import generate_arfs, psf_transform
+from spectarf.pytomography import camera_model, generate_arfs, psf_transform
 
 path = DATA / 'SPECT' / 'Ac225-NEMA-SymT2'
 files_CT = [os.path.join(path, 'CT', file) for file in os.listdir(path / 'CT')]
@@ -35,14 +34,14 @@ file_NM = os.path.join(path, 'projection_data.IMA')
 projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)
 windows = proj_meta.energy_windows
 for i, window in enumerate(windows):
-    print(f'Index {i}:   Name: "{window.name}", Energies: {window.lower_keV:.1f}-{window.upper_keV:.1f} keV, photon {window.photon_keV:g} keV')
+    print(f'Index {i}:   Name: "{window.name}", Energies: {window.lower:.1f}-{window.upper:.1f} keV, photon {window.photon_energy:g} keV')
 
 photopeak218 = projections[0]
 photopeak440 = projections[3]
 scatter218 = io.SPECT.energy_window_scatter(projections, proj_meta, peak=0, lower=1, upper=2,
-                                            sigma_theta=2, sigma_r_mm=4.8, sigma_z_mm=4.8)
+                                            fwhm_theta=4.7, fwhm_r=11.3, fwhm_z=11.3)
 scatter440 = io.SPECT.energy_window_scatter(projections, proj_meta, peak=3, lower=4, upper=5,
-                                            sigma_theta=2, sigma_r_mm=4.8, sigma_z_mm=4.8)
+                                            fwhm_theta=4.7, fwhm_r=11.3, fwhm_z=11.3)
 for name, peak, scatter in [('218 keV', photopeak218, scatter218), ('440 keV', photopeak440, scatter440)]:
     print(f'{name}: {peak.sum():,.0f} counts, of which the scatter estimate is {scatter.sum() / peak.sum():.0%}')
 
@@ -50,9 +49,7 @@ for name, peak, scatter in [('218 keV', photopeak218, scatter218), ('440 keV', p
 collimator = io.SPECT.collimator('SY-HE')            # the Symbia high energy collimator
 detector = io.SPECT.detector('NaI-9.5mm')            # 3/8 inch NaI(Tl), its cover and backscatter
 camera = io.SPECT.camera('Siemens Symbia T')          # energy resolution model and intrinsic resolution
-stack = DetectorStack(Collimator(**collimator), **detector)
-response = DetectorResponse(EnergyResolution.geb(**camera['energy_resolution']),
-                            intrinsic_fwhm_mm_140=camera['intrinsic_fwhm_mm_140'])
+stack, response = camera_model(collimator, detector, camera)   # spectarf's camera from these numbers
 
 # %% The system matrices
 # spectarf's kernels are per photon of the peak's energy (branching ratio 1.0): weight them by each gamma's
@@ -62,7 +59,7 @@ branching_ratio = {0: 0.1142, 3: 0.2610}   # by photopeak index
 def system_matrix_for(peak):
     arfs = generate_arfs(stack, response, proj_meta, peak=peak)
     psf = psf_transform([(arfs['P'], branching_ratio[peak])])   # absolute kernels, in counts per decay
-    attenuation_map = io.attenuation_map(files_CT, object_meta, energy_keV=windows[peak].photon_keV)
+    attenuation_map = io.attenuation_map(files_CT, object_meta, energy=windows[peak].photon_energy)
     return SPECTSystemMatrix(
         obj2obj_transforms=[SPECTAttenuationTransform(attenuation_map=attenuation_map), psf],
         proj2proj_transforms=[],
@@ -92,7 +89,7 @@ for name, likelihood in likelihoods.items():
     print(f'{name}: {time.perf_counter() - start:.0f} s')
 
 # %% Compare
-seconds = float(proj_meta.frame_duration_s[0])
+seconds = float(proj_meta.frame_duration[0])
 voxel_mL = float(object_meta.dx * object_meta.dy * object_meta.dz) / 1000
 Bq_per_mL = {name: recon / seconds / voxel_mL for name, recon in recons.items()}
 smooth = GaussianFilter(20)  # FWHM in mm
