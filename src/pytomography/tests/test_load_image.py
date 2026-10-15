@@ -369,7 +369,7 @@ def test_interfile_gate_stir_is_centred_and_warns(tmp_path):
     with pytest.warns(UnverifiedVendorRule):
         image = load_image(path, units='1/cm')
     _check_markers(image, _centred((2, 2, 3)))
-    assert image.units == '1/cm' and image.meta['first_pixel_offset_mm'] == [-12, -10, 0]
+    assert image.units == '1/cm' and image.meta['first_pixel_offset'] == [-12, -10, 0]
 
 
 def test_interfile_missing_key_raises(tmp_path):

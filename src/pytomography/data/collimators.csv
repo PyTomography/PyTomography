@@ -1,6 +1,6 @@
 # PyTomography's SPECT collimators: the dimensions SIMIND's collimator database (collim.col, M. Ljungberg, Lund University) lists, in mm.
-# SIMIND 9.0 (collim.col sha256 b5d314ed9d508bd9...), and the codes only SIMIND's earlier collim.col has. hole_diameter_mm is across the flats for hexagons; rotated: the hexagonal lattice turned 90 degrees.
-code,family,type,kind,hole_shape,rotated,hole_diameter_mm,septal_thickness_mm,hole_length_mm,focal_length_mm,source
+# SIMIND 9.0 (collim.col sha256 b5d314ed9d508bd9...), and the codes only SIMIND's earlier collim.col has. hole_diameter is across the flats for hexagons; rotated: the hexagonal lattice turned 90 degrees.
+code,family,type,kind,hole_shape,rotated,hole_diameter,septal_thickness,hole_length,focal_length,source
 HH-LEHR,CrystalCam (CZT),"low energy, high resolution",parallel,square,false,2.23,0.23,22.6,,SIMIND 9.0
 HH-LEHS,CrystalCam (CZT),"low energy, high sensitivity",parallel,square,false,2.04,0.42,11.2,,SIMIND 9.0
 HH-MEGP,CrystalCam (CZT),"medium energy, general purpose",parallel,circular,false,1.5,0.96,11.5,,SIMIND 9.0

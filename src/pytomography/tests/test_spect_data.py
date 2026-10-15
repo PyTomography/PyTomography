@@ -60,7 +60,7 @@ def test_siemens_lu177_matches_siemens_reconstruction(data_dir):
     files_CT = sorted(str(f) for f in (root / 'CT').iterdir())
     projections, object_meta, proj_meta = SPECT.read_dicom(str(root / 'projection_data.dcm'))
     window = proj_meta.energy_windows[0]
-    mu = io.attenuation_map(files_CT, object_meta, window.photon_keV)
+    mu = io.attenuation_map(files_CT, object_meta, window.photon_energy)
     scatter = SPECT.energy_window_scatter(projections, proj_meta, 0, 1, 2)
     recon = _osem(object_meta, proj_meta, projections[0], 2, 8, [SPECTAttenuationTransform(mu)], scatter)
     siemens = io.load_image(root / 'scanner_recon.dcm')
@@ -133,7 +133,7 @@ def test_starguide_matches_ge_reconstruction(data_dir):
                       if pydicom.dcmread(str(f), stop_before_pixels=True).SeriesDescription == 'NoFocus Cont')
     files_CT = sorted(str(f) for f in (root / 'CT_files').iterdir())
     projections, object_meta, proj_meta = SPECT.read_starguide(files_NM, files_CT=files_CT, nearest_theta=2.0)
-    mu = io.attenuation_map(files_CT, object_meta, proj_meta.energy_windows[0].photon_keV)
+    mu = io.attenuation_map(files_CT, object_meta, proj_meta.energy_windows[0].photon_energy)
     scatter = SPECT.energy_window_scatter(projections, proj_meta, 0, 1)
     H = StarGuideSystemMatrix(object_meta, proj_meta, obj2obj_transforms=[SPECTAttenuationTransform(mu, assume_padded=False)])
     recon = OSEM(PoissonLogLikelihood(H, projections[0], additive_term=scatter))(n_iters=1, n_subsets=10).cpu().numpy()

@@ -139,35 +139,41 @@ def get_simind_params_from_metadata(
     }
     return index_dict
 
-#: The detector thicknesses' keywords before PyTomography 4, in cm; they are now in mm, with ``_mm`` in their names.
-_THICKNESSES_IN_CM = ('crystal_thickness', 'cover_thickness', 'backscatter_thickness')
+#: The thinnest crystal, in mm, a gamma camera has (NaI crystals are 6 to 25 mm). A thinner one is a thickness in cm,
+#: the unit of PyTomography 3: the same keywords are in mm since PyTomography 4.
+THINNEST_CRYSTAL = 3.0
 
 
-def refuse_thicknesses_in_cm(kwargs: dict) -> None:
-    """Raises a TypeError for leftover keyword arguments, explaining the renaming of the detector thicknesses to mm.
+def check_thicknesses(crystal_thickness: float | None, unexpected: dict) -> None:
+    """Raises for a crystal thickness that is surely in cm, and for keywords a function did not take.
+
+    The detector thicknesses (``crystal_thickness``, ``cover_thickness`` and ``backscatter_thickness``) were in cm in
+    PyTomography 3 and are in mm since PyTomography 4, under the same names. A crystal thinner than
+    :data:`THINNEST_CRYSTAL` mm is one given in cm.
 
     Args:
-        kwargs (dict): The keyword arguments a function did not take (nothing happens when it is empty).
+        crystal_thickness (float | None): The crystal thickness given, in mm.
+        unexpected (dict): The keyword arguments a function did not take (nothing happens when it is empty).
 
     Raises:
-        TypeError: ``kwargs`` holds a detector thickness under its name before PyTomography 4, in cm
-            (``crystal_thickness``, ``cover_thickness`` or ``backscatter_thickness``; the message gives the value in
-            mm), or any other keyword.
+        ValueError: ``crystal_thickness`` is less than :data:`THINNEST_CRYSTAL` mm; the message gives it in mm.
+        TypeError: ``unexpected`` is not empty.
     """
-    for name in _THICKNESSES_IN_CM:
-        if name in kwargs:
-            raise TypeError(f'{name} (cm) is now {name}_mm, in mm like every length in PyTomography 4: '
-                            f'{name}={kwargs[name]} is {name}_mm={10 * kwargs[name]:g}')
-    if kwargs:
-        raise TypeError(f'unexpected keyword arguments {sorted(kwargs)}')
+    if unexpected:
+        raise TypeError(f'unexpected keyword arguments {sorted(unexpected)}')
+    if crystal_thickness is not None and 0 < crystal_thickness < THINNEST_CRYSTAL:
+        raise ValueError(f'crystal_thickness={crystal_thickness:g} mm is thinner than any gamma camera crystal: '
+                         f'the detector thicknesses are in mm since PyTomography 4 (they were in cm). In cm, it is '
+                         f'crystal_thickness={10 * crystal_thickness:g}, and the cover and backscatter thicknesses ten '
+                         f'times theirs too')
 
 
 def get_simind_isotope_detector_params(
     isotope_name: str,
     collimator_type: str,
-    cover_thickness_mm: float | None = None,
-    backscatter_thickness_mm: float | None = None,
-    crystal_thickness_mm: float | None = None,
+    cover_thickness: float | None = None,
+    backscatter_thickness: float | None = None,
+    crystal_thickness: float | None = None,
     energy_resolution_140keV: float = 0,
     advanced_energy_resolution_model: str | None = None,
     advanced_collimator_modeling: bool = False,
@@ -179,18 +185,18 @@ def get_simind_isotope_detector_params(
     They are the isotope (``fi``), the collimator (``cc``), the energy resolution at 140 keV (22), the collimator
     modelling (53, 59), the thicknesses of the cover (13), the backscatter layer (11) and the crystal (09), and the
     energy resolution model (``Fe``) if one is given. The thicknesses are in mm, like every length in PyTomography;
-    SIMIND's indices 09, 11 and 13 are in cm, so they are converted here. The thickness keywords before PyTomography 4
-    (``crystal_thickness`` and the others, in cm) raise a TypeError that gives the new value.
+    SIMIND's indices 09, 11 and 13 are in cm, so they are converted here. These keywords were in cm before
+    PyTomography 4; a crystal thinner than 3 mm raises a ValueError that says so (:func:`check_thicknesses`).
 
     Args:
         isotope_name (str): SIMIND's name of the isotope.
         collimator_type (str): SIMIND's code of the collimator (see
             :func:`~pytomography.utils.print_collimator_parameters`).
-        cover_thickness_mm (float): Thickness of the detector's cover, in mm; the cover is taken to be aluminium.
+        cover_thickness (float): Thickness of the detector's cover, in mm; the cover is taken to be aluminium.
             Required.
-        backscatter_thickness_mm (float): Equivalent thickness of the backscattering material behind the crystal, in
+        backscatter_thickness (float): Equivalent thickness of the backscattering material behind the crystal, in
             mm; it is taken to be pyrex. Required.
-        crystal_thickness_mm (float): Thickness of the crystal, in mm; it is taken to be NaI. Required.
+        crystal_thickness (float): Thickness of the crystal, in mm; it is taken to be NaI. Required.
         energy_resolution_140keV (float, optional): Energy resolution (FWHM) of the detector at 140 keV, in percent;
             the FWHM in keV is taken to grow as the square root of the energy. Defaults to 0.
         advanced_energy_resolution_model (str | None, optional): Energy resolution model to use instead of
@@ -204,12 +210,13 @@ def get_simind_isotope_detector_params(
         dict: SIMIND index (a string, e.g. ``'09'``) to value.
 
     Raises:
-        TypeError: A thickness is missing, or a keyword is not one of these (:func:`refuse_thicknesses_in_cm`).
-        ValueError: ``advanced_energy_resolution_model`` is not ``'siemens'``.
+        TypeError: A thickness is missing, or a keyword is not one of these.
+        ValueError: ``advanced_energy_resolution_model`` is not ``'siemens'``, or the crystal is thinner than 3 mm
+            (:func:`check_thicknesses`).
     """
-    refuse_thicknesses_in_cm(removed)
-    missing = [n for n, v in (('cover_thickness_mm', cover_thickness_mm), ('backscatter_thickness_mm', backscatter_thickness_mm),
-                              ('crystal_thickness_mm', crystal_thickness_mm)) if v is None]
+    check_thicknesses(crystal_thickness, removed)
+    missing = [n for n, v in (('cover_thickness', cover_thickness), ('backscatter_thickness', backscatter_thickness),
+                              ('crystal_thickness', crystal_thickness)) if v is None]
     if missing:
         raise TypeError(f'missing {", ".join(missing)}')
     per_cm = 10.0                               # mm per cm: SIMIND's unit for these indices is cm
@@ -224,9 +231,9 @@ def get_simind_isotope_detector_params(
         '22': energy_resolution_140keV, # TODO: add energy resolution arbitrary function as argument
         '53': int(advanced_collimator_modeling),
         '59': int(random_collimator_movement),
-        '13': cover_thickness_mm / per_cm, # TODO: add material as argument, default aluminum
-        '11': backscatter_thickness_mm / per_cm, # TODO: add material as argument, default pyrex
-        '09': crystal_thickness_mm / per_cm
+        '13': cover_thickness / per_cm, # TODO: add material as argument, default aluminum
+        '11': backscatter_thickness / per_cm, # TODO: add material as argument, default pyrex
+        '09': crystal_thickness / per_cm
     }
     if advanced_energy_resolution_model is not None:
         index_dict['Fe'] = advanced_energy_resolution_model
@@ -250,7 +257,7 @@ def get_energy_window_params_dicom(
     windows = read_metadata(file_NM)[1].energy_windows
     if idxs is None:
         idxs = range(len(windows))
-    return [f'{windows[idx].lower_keV},{windows[idx].upper_keV},0' for idx in idxs]
+    return [f'{windows[idx].lower},{windows[idx].upper},0' for idx in idxs]
         
 def get_energy_window_params_simind(headerfiles: Sequence[str]|str)-> Sequence[str]:
     """The energy windows of SIMIND header files, as the lines of SIMIND's window file (``scattwin.win``).
@@ -267,7 +274,7 @@ def get_energy_window_params_simind(headerfiles: Sequence[str]|str)-> Sequence[s
     lines = []
     for headerfile in headerfiles:
         window = _energy_window(_header(headerfile))
-        lines.append(f'{window.lower_keV},{window.upper_keV},0')
+        lines.append(f'{window.lower},{window.upper},0')
     return lines
         
 #: The scattwin images SIMIND writes for every energy window (switch ``/CA``): 2 gives the total, scatter, primary and

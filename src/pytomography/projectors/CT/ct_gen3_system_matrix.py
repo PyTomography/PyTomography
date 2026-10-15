@@ -110,7 +110,8 @@ class CTGen3SystemMatrix(SystemMatrix):
         # the scan field of view: the cylinder covered by the fan of every view (its outermost channels, from the focal
         # spot path's smallest radius)
         fan = proj_meta.phis_det[:, 0]
-        self.fov_radius = float(proj_meta.source_rhos.min()) * float(torch.sin(torch.minimum(fan[0].abs(), fan[-1].abs())))
+        self.fov_radius = float(proj_meta.source_rhos.min()) * float(torch.sin(torch.deg2rad(
+            torch.minimum(fan[0].abs(), fan[-1].abs()))))
         self._fov = None
         if fov_mask:
             (Nx, Ny, _), (dx, dy, _) = object_meta.shape, object_meta.dr

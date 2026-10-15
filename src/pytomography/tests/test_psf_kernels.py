@@ -38,8 +38,8 @@ def random_kernels(seed=0, dtype=torch.float64):
     """Random positive kernels with no symmetry at all."""
     gen = torch.Generator().manual_seed(seed)
 
-    def kernels(distances_mm, pixel_mm, shape):
-        k = torch.rand((len(distances_mm), *shape), generator=gen, dtype=dtype)
+    def kernels(distances, pixel_size, shape):
+        k = torch.rand((len(distances), *shape), generator=gen, dtype=dtype)
         k[:, 0, :] *= 3.0          # break every reflection and 180-degree symmetry
         k[:, :, -1] += 1.0
         return k
@@ -49,8 +49,8 @@ def random_kernels(seed=0, dtype=torch.float64):
 
 def shifted_delta(shift_rz):
     """A unit delta displaced by (dr, dz) pixels from the kernel's centre."""
-    def kernels(distances_mm, pixel_mm, shape):
-        k = torch.zeros((len(distances_mm), *shape))
+    def kernels(distances, pixel_size, shape):
+        k = torch.zeros((len(distances), *shape))
         k[:, shape[0] // 2 + shift_rz[0], shape[1] // 2 + shift_rz[1]] = 1.0
         return k
 
@@ -62,12 +62,12 @@ def linear_in_distance(seed=2):
     gen = torch.Generator().manual_seed(seed)
     state = {}
 
-    def kernels(distances_mm, pixel_mm, shape):
+    def kernels(distances, pixel_size, shape):
         if shape not in state:
             state[shape] = (torch.rand(shape, generator=gen, dtype=torch.float64),
                             torch.rand(shape, generator=gen, dtype=torch.float64) / 100.0)
         a, b = state[shape]
-        d = torch.as_tensor(np.asarray(distances_mm), dtype=torch.float64)[:, None, None]
+        d = torch.as_tensor(np.asarray(distances), dtype=torch.float64)[:, None, None]
         return a[None] + b[None] * d
 
     return kernels
@@ -116,28 +116,28 @@ def test_the_kernels_are_made_once_at_every_planes_distance_plus_the_front_cover
     obj, proj = metas(angles=(0.0, 90.0, 180.0), radii_mm=(200.0, 250.0, 200.0))
     calls = []
 
-    def kernels(distances_mm, pixel_mm, shape):
-        calls.append((np.array(distances_mm), pixel_mm, shape))
-        return torch.ones((len(distances_mm), *shape))
+    def kernels(distances, pixel_size, shape):
+        calls.append((np.array(distances), pixel_size, shape))
+        return torch.ones((len(distances), *shape))
 
-    kernels.front_cover_mm = 1.5
+    kernels.front_cover = 1.5
     t = configured(SPECTKernelPSFTransform(kernels, kernel_shape=(3, 3)), obj, proj)
-    assert len(calls) == 1 and t.front_cover_mm == 1.5     # one call, over every view's planes
+    assert len(calls) == 1 and t.front_cover == 1.5     # one call, over every view's planes
     n_x = obj.padded_shape[0]
     want = {r: get_distance(n_x, r, obj.dx) + 1.5 for r in (200.0, 250.0)}
     np.testing.assert_allclose(calls[0][0], np.unique(np.concatenate(list(want.values()))))
     assert calls[0][1] == pytest.approx((4.0, 4.0)) and calls[0][2] == (3, 3)
     for r, d in want.items():
-        np.testing.assert_allclose(t.distances_mm[t._planes[r].numpy()], d)
+        np.testing.assert_allclose(t.distances[t._planes[r].numpy()], d)
 
 
 def test_the_default_kernel_shape_couples_every_pair_of_voxels_in_a_plane():
     obj, proj = metas()
     shapes = []
 
-    def kernels(distances_mm, pixel_mm, shape):
+    def kernels(distances, pixel_size, shape):
         shapes.append(shape)
-        return torch.ones((len(distances_mm), *shape))
+        return torch.ones((len(distances), *shape))
 
     configured(SPECTKernelPSFTransform(kernels), obj, proj)
     _, n_y, n_z = obj.padded_shape
@@ -158,8 +158,8 @@ def test_wrong_kernels_are_refused():
 def test_negative_tails_are_clipped_and_their_share_recorded(clip):
     obj, proj = metas()
 
-    def kernels(distances_mm, pixel_mm, shape):
-        k = torch.full((len(distances_mm), *shape), -0.01)
+    def kernels(distances, pixel_size, shape):
+        k = torch.full((len(distances), *shape), -0.01)
         k[:, 2, 2] = 1.0
         return k
 
@@ -181,8 +181,8 @@ def test_normalize_scales_every_kernel_to_sum_to_one_and_the_default_keeps_its_s
 def test_a_distance_grid_interpolates_every_planes_kernel():
     obj, proj = metas(angles=(0.0, 90.0, 180.0), radii_mm=(200.0, 231.7, 254.3))
     exact = configured(SPECTKernelPSFTransform(linear_in_distance(), kernel_shape=(5, 3)), obj, proj)
-    grid = configured(SPECTKernelPSFTransform(linear_in_distance(), kernel_shape=(5, 3), distance_step_mm=7.0), obj, proj)
-    assert not exact._grid and grid._grid and np.allclose(np.diff(grid.distances_mm), 7.0)
+    grid = configured(SPECTKernelPSFTransform(linear_in_distance(), kernel_shape=(5, 3), distance_step=7.0), obj, proj)
+    assert not exact._grid and grid._grid and np.allclose(np.diff(grid.distances), 7.0)
     x = torch.rand(obj.padded_shape, generator=torch.Generator().manual_seed(4), dtype=torch.float64)
     for view in range(3):
         np.testing.assert_allclose(grid.forward(x, view).numpy(), exact.forward(x, view).numpy(), rtol=1e-9, atol=1e-12)
@@ -195,33 +195,33 @@ def test_many_orbit_radii_put_the_kernels_on_a_geometric_grid():
     obj, proj = metas(angles=tuple(30.0 * np.arange(12)), radii_mm=tuple(radii))
     t = configured(SPECTKernelPSFTransform(linear_in_distance(), kernel_shape=(3, 3)), obj, proj)
     assert t._grid
-    from_source = t.distances_mm + DEFAULT_CENTRING_MM          # the distances to the centring plane grow geometrically
+    from_source = t.distances + DEFAULT_CENTRING_MM          # the distances to the centring plane grow geometrically
     np.testing.assert_allclose(from_source[1:] / from_source[:-1], 1.0 + DEFAULT_DISTANCE_RATIO, rtol=1e-12)
     planes = np.concatenate([get_distance(obj.padded_shape[0], r, obj.dx) for r in radii])
-    assert t.distances_mm[0] <= planes.min() + 1e-9 and t.distances_mm[-1] >= planes.max() - 1e-9
+    assert t.distances[0] <= planes.min() + 1e-9 and t.distances[-1] >= planes.max() - 1e-9
 
 
 def test_the_grids_centring_depth_comes_from_the_kernel_function():
     radii = 200.0 + 3.1 * np.arange(12)
     obj, proj = metas(angles=tuple(30.0 * np.arange(12)), radii_mm=tuple(radii))
     kernels = linear_in_distance()
-    kernels.centring_mm = 30.0
+    kernels.centring = 30.0
     t = configured(SPECTKernelPSFTransform(kernels, kernel_shape=(3, 3)), obj, proj)
-    from_source = t.distances_mm + 30.0
+    from_source = t.distances + 30.0
     np.testing.assert_allclose(from_source[1:] / from_source[:-1], 1.0 + DEFAULT_DISTANCE_RATIO, rtol=1e-12)
 
 
 def gaussian_kernels(a, b, shape_from):
     """The kernels SPECTPSFTransform's Gaussian layers apply, as 2D kernels: the outer product of the same normalised
     1D Gaussians, of the sizes ``shape_from`` gives."""
-    def kernels(distances_mm, pixel_mm, shape):
-        sigma = a * np.asarray(distances_mm) + b
+    def kernels(distances, pixel_size, shape):
+        sigma = a * np.asarray(distances) + b
         out = []
         for s in sigma:
             g = []
             for axis, k in enumerate(shape):
                 x = torch.arange(-(k // 2), k // 2 + 1, dtype=torch.float64)
-                w = torch.exp(-x ** 2 / (2 * (s / pixel_mm[axis]) ** 2 + pytomography.delta))
+                w = torch.exp(-x ** 2 / (2 * (s / pixel_size[axis]) ** 2 + pytomography.delta))
                 g.append(w / w.sum())
             out.append(g[0][:, None] * g[1][None, :])
         return torch.stack(out).to(torch.float32)

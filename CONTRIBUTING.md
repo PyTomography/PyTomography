@@ -6,6 +6,9 @@ PyTomography is built by the people who use it. The full guide is in the documen
 done, each item with data to test on, a place in the code to start, and a definition of done. Questions about using
 PyTomography go to [GitHub Discussions](https://github.com/PyTomography/PyTomography/discussions/categories/q-a).
 
+PyTomography's units and frames are one convention (lengths in mm, angles in degrees, energies in keV, times in s,
+Gaussians by their FWHM, no unit suffixes in names): [AGENTS.md](AGENTS.md) lists them, for people and AI agents alike.
+
 ## Quick start
 
 ```bash

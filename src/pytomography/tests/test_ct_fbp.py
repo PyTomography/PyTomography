@@ -38,10 +38,12 @@ def _helix(ffs=False, views_per_rotation=240, rotations=6, n_cols=72, n_rows=12,
     zs = feed / (2 * np.pi) * phis
     odd = (torch.arange(n) % 2).double()
     dphi = torch.full((n,), 3e-4 if ffs else 0.0, dtype=torch.float64)
-    return CTGen3ProjMeta(phis.float(), torch.full((n,), 150.0), (zs - zs.mean()).float(), dphi.float(),
+    return CTGen3ProjMeta(torch.rad2deg(phis).float(), torch.full((n,), 150.0), (zs - zs.mean()).float(),
+                          torch.rad2deg(dphi).float(),
                           (2.0 * odd if ffs else 0 * odd).float(), (-0.5 * odd if ffs else 0 * odd).float(),
                           torch.full((n,), (n_cols + 1) / 2), torch.full((n,), (n_rows + 1) / 2),
-                          float(2 * np.arcsin(50.0 / 150.0) / (n_cols - 1)), 2.0, 270.0, shape=(n_cols, n_rows))
+                          float(np.degrees(2 * np.arcsin(50.0 / 150.0) / (n_cols - 1))), 2.0, 270.0,
+                          shape=(n_cols, n_rows))
 
 
 def _chords_sphere(a, u, L, centre, radius):
@@ -142,7 +144,7 @@ def test_helical_fbp_is_zero_outside_the_field_of_view_and_on_the_device():
 
 def _conebeam(n_views=120, n_cols=64):
     """A circular cone-beam scan: focal spot 200 mm from the axis, flat panel 100 mm beyond it (64 x 24, 2 mm)."""
-    angles = torch.linspace(0, 2 * np.pi, n_views + 1)[:-1]
+    angles = torch.linspace(0, 360, n_views + 1)[:-1]
     return CTConeBeamFlatPanelProjMeta(angles, torch.zeros(n_views), detector_radius=100.0, beam_radius=200.0,
                                        shape=(n_cols, 24), dr=(2.0, 2.0))
 
@@ -183,7 +185,7 @@ def test_conebeam_fdk_with_the_rotation_axis_off_the_central_ray():
     """With the rotation axis 8 mm from the central ray (the axis at (0, -8) mm), FDK's distance weight takes each
     voxel's distance from the source along the central ray from the axis, and the phantom comes back as without an
     offset. (The weight before PyTomography 4 was off by 2 COR sin(theta): 8 % here, a modulation in the image.)"""
-    angles = torch.linspace(0, 2 * np.pi, 121)[:-1]
+    angles = torch.linspace(0, 360, 121)[:-1]
     meta = CTConeBeamFlatPanelProjMeta(angles, torch.zeros(120), detector_radius=100.0, beam_radius=200.0,
                                        shape=(72, 24), dr=(2.0, 2.0), COR=8.0)
     sphere = ((8.0, 5.0, 0.0), 8.0, 0.004)
@@ -208,7 +210,8 @@ def test_conebeam_fdk_needs_a_full_turn_at_one_z():
     object_meta = ObjectMeta(dr=(2.0, 2.0, 2.0), shape=(16, 16, 4))
     def fdk(angles, z=None):
         n = len(angles)
-        meta = CTConeBeamFlatPanelProjMeta(angles.float(), torch.zeros(n) if z is None else z, detector_radius=100.0,
+        meta = CTConeBeamFlatPanelProjMeta(torch.rad2deg(angles).float(), torch.zeros(n) if z is None else z,
+                                           detector_radius=100.0,
                                            beam_radius=200.0, shape=(24, 8), dr=(2.0, 2.0))
         return FilteredBackProjection(torch.ones(n, 24, 8).to(pytomography.device), CTConeBeamFlatPanelSystemMatrix(object_meta, meta))()
     full = torch.linspace(0, 2 * np.pi, 61)[:-1].double()

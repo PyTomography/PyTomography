@@ -17,7 +17,7 @@ class CTConeBeamFlatPanelProjMeta(ProjMeta):
     :func:`~pytomography.io.CT.read_nikon` builds this metadata from a Nikon XTek scan.
 
     Args:
-        angles (torch.Tensor): Angle :math:`\theta` of each view, in radians, [views].
+        angles (torch.Tensor): Angle :math:`\theta` of each view, in degrees, [views].
         z_locations (torch.Tensor): Axial position :math:`z` of the source and detector centre at each view, in mm,
             [views].
         detector_radius (float): Distance from the rotation axis to the detector along the central ray, in mm.
@@ -52,15 +52,16 @@ class CTConeBeamFlatPanelProjMeta(ProjMeta):
         else:
             self.COR = torch.tensor([0.,-COR,0.]).to(pytomography.device).to(pytomography.dtype)
         self.angles = angles.to(pytomography.device).to(pytomography.dtype)
+        theta = torch.deg2rad(self.angles)
         self.z_locations = z_locations.to(pytomography.device).to(pytomography.dtype)
         self.detector_locations =  torch.stack([
-            detector_radius * torch.cos(self.angles),
-            detector_radius * torch.sin(self.angles),
+            detector_radius * torch.cos(theta),
+            detector_radius * torch.sin(theta),
             self.z_locations
         ], dim=-1)
         self.beam_locations =  torch.stack([
-            - beam_radius* torch.cos(self.angles),
-            - beam_radius*torch.sin(self.angles),
+            - beam_radius* torch.cos(theta),
+            - beam_radius*torch.sin(theta),
             self.z_locations
         ], dim=-1)
         # the panel faces the rotation axis, perpendicular to it at every z (the detector's position projected on the
@@ -84,8 +85,9 @@ class CTConeBeamFlatPanelProjMeta(ProjMeta):
         self.DSOs = torch.norm(self.beam_locations, dim=-1)
         
     def _get_CORs(self):
-        offsetx = - self.COR[0]*torch.cos(self.angles)+self.COR[1]*torch.sin(self.angles) + self.COR[0]
-        offsety = - self.COR[0]*torch.sin(self.angles)-self.COR[1]*torch.cos(self.angles) + self.COR[1]
+        theta = torch.deg2rad(self.angles)
+        offsetx = - self.COR[0]*torch.cos(theta)+self.COR[1]*torch.sin(theta) + self.COR[0]
+        offsety = - self.COR[0]*torch.sin(theta)-self.COR[1]*torch.cos(theta) + self.COR[1]
         return offsetx, offsety
         
     def _get_detector_pixel_s_v(self, device=None):

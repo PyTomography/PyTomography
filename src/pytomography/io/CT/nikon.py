@@ -3,11 +3,11 @@
 A scan folder holds the geometry (an ``.xtekct`` file), the stage angle of every projection (an ``.ang`` file) and
 one TIFF per projection. :func:`read_nikon` returns the scan in PyTomography's standard form::
 
-    projections, object_meta, proj_meta = io.CT.read_nikon(folder, binning=4, cor_mm=0.24)
+    projections, object_meta, proj_meta = io.CT.read_nikon(folder, binning=4, cor=0.24)
 
 The stage turns the sample between a fixed source and flat panel, so in the sample's frame the source and detector
 turn the other way: the angles of the ``.ang`` file are negated. The centre of rotation is not in the files; find it
-from the data (the sharpest reconstruction) and pass it as ``cor_mm``.
+from the data (the sharpest reconstruction) and pass it as ``cor``.
 """
 from __future__ import annotations
 
@@ -47,7 +47,7 @@ def _angles(path: Path) -> dict:
     return angles
 
 
-def read_nikon(folder, *, binning: int = 1, cor_mm: float = 0.0, object_meta: ObjectMeta | None = None
+def read_nikon(folder, *, binning: int = 1, cor: float = 0.0, object_meta: ObjectMeta | None = None
                ) -> tuple[torch.Tensor, ObjectMeta, CTConeBeamFlatPanelProjMeta]:
     r"""Read a Nikon XTek cone-beam scan into PyTomography's standard form.
 
@@ -59,14 +59,14 @@ def read_nikon(folder, *, binning: int = 1, cor_mm: float = 0.0, object_meta: Ob
       default to the file's stem and ``_``). Each is averaged over ``binning`` x ``binning`` blocks of pixels (a
       remainder at the edge is dropped), then turned into line integrals :math:`-\ln(I / I_0)`, with :math:`I` at
       least 1. u runs along the TIFF's columns and v along its rows (v = 0 is the top of the radiograph, +z).
-    * The angles: the ``.ang`` file's, negated (the stage turns the sample), in radians.
-    * The rotation axis lies ``cor_mm`` from the central ray, at (0, -cor_mm) in the object frame. The grid is centred
+    * The angles: the ``.ang`` file's, negated (the stage turns the sample), in degrees.
+    * The rotation axis lies ``cor`` from the central ray, at (0, -cor) in the object frame. The grid is centred
       on the central ray of the first view, at the origin of the scanner frame.
 
     Args:
         folder (str | os.PathLike): The scan's folder, with one ``.xtekct`` file, one ``.ang`` file and the TIFFs.
         binning (int, optional): Detector pixels averaged along each axis of the detector. Defaults to 1.
-        cor_mm (float, optional): Offset of the rotation axis from the central ray, in mm at the axis. Defaults to 0.
+        cor (float, optional): Offset of the rotation axis from the central ray, in mm at the axis. Defaults to 0.
         object_meta (ObjectMeta | None, optional): Grid to reconstruct on. Only its ``dr`` and ``shape`` are used.
             Defaults to None: voxels of the binned detector pixel size divided by the magnification
             (``SrcToDetector / SrcToObject``), with shape (u pixels, u pixels, v pixels), so that the grid spans the
@@ -114,12 +114,12 @@ def read_nikon(folder, *, binning: int = 1, cor_mm: float = 0.0, object_meta: Ob
             reading = F.avg_pool2d(reading[None, None], binning)[0, 0]
         views.append(-torch.log(reading.clamp(min=1) / white_level))
     projections = torch.stack(views).transpose(1, 2).contiguous()                      # (views, u, v)
-    thetas = -torch.tensor([angles[n] for n in numbers], dtype=torch.float64) * np.pi / 180
+    thetas = -torch.tensor([angles[n] for n in numbers], dtype=torch.float64)
     n_u, n_v = projections.shape[1:]
     du, dv = pixel[0] * binning, pixel[1] * binning
     proj_meta = CTConeBeamFlatPanelProjMeta(thetas.float(), torch.zeros(len(numbers)),
                                             detector_radius=source_to_detector - source_to_axis,
-                                            beam_radius=source_to_axis, shape=(n_u, n_v), dr=(du, dv), COR=cor_mm)
+                                            beam_radius=source_to_axis, shape=(n_u, n_v), dr=(du, dv), COR=cor)
     if object_meta is None:
         magnification = source_to_detector / source_to_axis
         voxel = du / magnification

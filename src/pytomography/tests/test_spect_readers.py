@@ -187,9 +187,9 @@ def test_nm_files_read_back_in_the_standard_form(tmp_path, case):
     assert np.allclose(proj_meta.angles.cpu().numpy(), betas, atol=1e-4) and np.allclose(proj_meta.radii, radii)
     assert proj_meta.dr == (DR, DZ) and object_meta.dr == (DR, DR, DZ) and object_meta.shape == (LR, LR, LZ)
     assert np.allclose(object_meta.centre, kwargs.get('centre', CENTRE)) and object_meta.frame == 'patient'
-    assert [w.ranges_keV for w in proj_meta.energy_windows] == [(r,) for _, r in WINDOWS]
-    assert proj_meta.energy_windows[0].photon_keV == pytest.approx(208.4)              # Lu-177's line in the window
-    assert np.allclose(proj_meta.frame_duration_s, 15.0) and proj_meta.nuclide == 'Lutetium^177^'
+    assert [w.ranges for w in proj_meta.energy_windows] == [(r,) for _, r in WINDOWS]
+    assert proj_meta.energy_windows[0].photon_energy == pytest.approx(208.4)              # Lu-177's line in the window
+    assert np.allclose(proj_meta.frame_duration, 15.0) and proj_meta.nuclide == 'Lutetium^177^'
     assert proj_meta.acquisition_start == datetime.datetime(2026, 1, 1, 10, 15, 0, 250000)
     one, _, _ = _read(tmp_path / 'nm.dcm', energy_window=1)                           # the shape depends on the arguments
     assert one.shape == (len(betas), LR, LZ) and torch.equal(one, read[1])
@@ -463,7 +463,7 @@ def test_simind_windows_and_organs(tmp_path):
     w1 = _simind(tmp_path, 'tot_w1')
     w4 = _simind(tmp_path, 'tot_w4', window=(101.7, 124.3))
     projections, _, proj_meta = SPECT.read_simind([w1, w4])
-    assert [w.photon_keV for w in proj_meta.energy_windows] == [208.4, 112.9]
+    assert [w.photon_energy for w in proj_meta.energy_windows] == [208.4, 112.9]
     assert projections.shape[0] == 2
     organs, _, _ = SPECT.read_simind([[w1, w4]], weights=[2.0, 3.0])
     assert torch.allclose(organs[0], 5 * projections[0])
@@ -502,14 +502,14 @@ def test_simind_cor_file_as_simind_writes_it(tmp_path, version):
 def test_simind_cor_file_with_distances_alone_follows_the_views(tmp_path):
     """One column, as utils.simind_mc writes the orbit it gives SIMIND (np.savetxt, cm): each view keeps its own
     distance when the views are sorted by angle."""
-    distances_mm = 150.0 + 10.0 * np.arange(12)                       # view n (acquisition order): 150 + 10 n mm
-    np.savetxt(tmp_path / 'radii_corfile.cor', distances_mm / 10)
+    distances = 150.0 + 10.0 * np.arange(12)                       # view n (acquisition order): 150 + 10 n mm
+    np.savetxt(tmp_path / 'radii_corfile.cor', distances / 10)
     header = _simind(tmp_path, 'cw', direction='CW', start=30.0)
     with pytest.warns(UnverifiedVendorRule, match='clockwise'):
         projections, _, proj_meta = SPECT.read_simind(header, energy_window=0, radii_file=tmp_path / 'radii_corfile.cor')
     for n in range(12):
         sorted_index = int(torch.nonzero(projections[:, n, 2]).item())       # where view n went
-        assert proj_meta.radii[sorted_index] == pytest.approx(distances_mm[n])
+        assert proj_meta.radii[sorted_index] == pytest.approx(distances[n])
 
 
 def test_simind_cor_file_is_checked(tmp_path):
@@ -575,11 +575,11 @@ def test_square_hole_psf_matches_the_collimator():
 
 
 def test_collimator_psf_is_in_mm():
-    gaussian = SPECT.collimator_psf('SY-ME', 208.4, intrinsic_fwhm_mm=3.8)
+    gaussian = SPECT.collimator_psf('SY-ME', 208.4, intrinsic_fwhm=3.8)
     slope, intercept, intrinsic = gaussian.sigma_fit_params
     assert intercept == pytest.approx(2.94 / (2 * np.sqrt(2 * np.log(2))))
     assert intrinsic == pytest.approx(3.8 / (2 * np.sqrt(2 * np.log(2))))
-    at_140 = SPECT.collimator_psf('SY-ME', 208.4, intrinsic_fwhm_140keV_mm=3.8).sigma_fit_params[2]
+    at_140 = SPECT.collimator_psf('SY-ME', 208.4, intrinsic_fwhm_140keV=3.8).sigma_fit_params[2]
     assert at_140 == pytest.approx(intrinsic * (208.4 / 140) ** -0.5)
     with pytest.raises(ValueError, match='no collimator'):
         SPECT.collimator_psf('XX-NONE', 140.5)
@@ -588,10 +588,10 @@ def test_collimator_psf_is_in_mm():
 
 
 def test_subsampled_projection_space():
-    proj_meta = SPECTProjMeta((8, 6), (4.0, 4.0), np.arange(12) * 30.0, np.arange(12) + 100.0, frame_duration_s=15.0)
+    proj_meta = SPECTProjMeta((8, 6), (4.0, 4.0), np.arange(12) * 30.0, np.arange(12) + 100.0, frame_duration=15.0)
     sub = proj_meta.subsample(2, angle_factor=3, angle_start=1)
     assert sub.shape == (4, 4, 3) and sub.dr == (8.0, 8.0) and np.allclose(sub.radii, [101, 104, 107, 110])
-    assert np.allclose(sub.angles.cpu().numpy(), [30, 120, 210, 300]) and len(sub.frame_duration_s) == 4
+    assert np.allclose(sub.angles.cpu().numpy(), [30, 120, 210, 300]) and len(sub.frame_duration) == 4
     assert proj_meta.shape == (12, 8, 6)
     from pytomography.io.SPECT.shared import subsample_projections
     assert subsample_projections(torch.ones(12, 8, 6), 2, 3, 1).shape == sub.shape

@@ -18,7 +18,7 @@ EXACT_PLANES_PER_PLANE_COUNT = 4
 #: collimator and Lu-177 208 keV on a low energy one, 0-600 mm), with a sixth of a 1 mm grid's kernels.
 DEFAULT_DISTANCE_RATIO = 0.02
 #: That centring plane's depth behind the collimator face, when the kernel function does not give its own
-#: (``centring_mm``): about a collimator's hole length.
+#: (``centring``): about a collimator's hole length.
 DEFAULT_CENTRING_MM = 50.0
 
 
@@ -35,6 +35,12 @@ def _fast_len(n: int) -> int:
         n += 1
 
 
+
+def _attribute(kernels, name: str, default: float) -> float:
+    """``kernels.<name>`` (mm), or ``kernels.<name>_mm`` as spectarf named it before PyTomography 4, or ``default``."""
+    return getattr(kernels, name, getattr(kernels, f"{name}_mm", default))
+
+
 class SPECTKernelPSFTransform(Transform):
     r"""Object-to-object transform that models the SPECT collimator-detector response with an arbitrary 2D kernel for
     each distance from the collimator.
@@ -49,7 +55,7 @@ class SPECTKernelPSFTransform(Transform):
     functions (``spectarf.pytomography``), a measured PSF, or any model. It is called once, in :meth:`configure`.
 
     * Distances: the distance of a plane from the collimator face (:func:`~pytomography.utils.get_distance` of the
-      view's radius) plus ``front_cover_mm``, in mm.
+      view's radius) plus ``front_cover``, in mm.
     * Axes: a kernel's first axis runs along r (the rotated object's second axis, the projection's transaxial axis) and
       its second along z; its centre, element ``(k_r // 2, k_z // 2)``, is the plane's own position.
     * Scale: the kernels as given (spectarf's are counts per emitted photon, so a reconstruction is in emitted photons);
@@ -59,14 +65,14 @@ class SPECTKernelPSFTransform(Transform):
     most :data:`EXACT_PLANES_PER_PLANE_COUNT` times the planes of one view (a few radii), each plane gets its exact
     kernel. Beyond that, kernels are made on a grid of distances and each plane's kernel is interpolated linearly
     between its two grid kernels (on their spectra, which the grid keeps). The grid is geometric: the distances from the
-    source to the kernels' centring plane (the plane distance plus ``centring_mm``) grow by ``distance_ratio`` from one
-    kernel to the next. ``distance_step_mm`` gives a uniform grid instead.
+    source to the kernels' centring plane (the plane distance plus ``centring``) grow by ``distance_ratio`` from one
+    kernel to the next. ``distance_step`` gives a uniform grid instead.
 
     Args:
-        kernels (Callable): The kernel function, ``kernels(distances_mm, pixel_mm, shape)``: the plane distances (a 1D
+        kernels (Callable): The kernel function, ``kernels(distances, pixel_size, shape)``: the plane distances (a 1D
             array, in mm), the pixel size ``(r, z)`` in mm and the kernel shape ``(k_r, k_z)``; it returns the kernels,
-            ``[n_distances, k_r, k_z]`` (a tensor or array). It may carry the attributes ``front_cover_mm`` and
-            ``centring_mm``, used when those arguments are not given.
+            ``[n_distances, k_r, k_z]`` (a tensor or array). It may carry the attributes ``front_cover`` and
+            ``centring``, used when those arguments are not given.
         kernel_shape (tuple[int, int] | None, optional): The kernels' shape ``(k_r, k_z)``, odd. Defaults to None:
             :math:`(2 L_y - 1, 2 L_z - 1)` of the padded object, which couples every pair of voxels in a plane.
         normalize (bool, optional): Scale each kernel to sum to one. Defaults to False: the kernels' own scale.
@@ -74,16 +80,17 @@ class SPECTKernelPSFTransform(Transform):
             the triple energy window estimate, can go negative in its tails). The clipped share of each kernel (the sum
             of its negative values over the sum of its absolute values) is kept in ``clipped_fraction``. Defaults to
             True.
-        front_cover_mm (float | None, optional): Added to every plane distance: the kernels' distances are measured
-            from a plane this far behind the collimator face. Defaults to None: ``kernels.front_cover_mm``, else 0.
-        centring_mm (float | None, optional): The geometric grid's offset (above). Defaults to None:
-            ``kernels.centring_mm``, else :data:`DEFAULT_CENTRING_MM`.
-        distance_step_mm (float | None, optional): Kernels on a uniform grid of distances this far apart (mm). Defaults
+        front_cover (float | None, optional): Added to every plane distance, in mm: the kernels' distances are
+            measured from a plane this far behind the collimator face. Defaults to None: ``kernels.front_cover``, else
+            0.
+        centring (float | None, optional): The geometric grid's offset (above), in mm. Defaults to None:
+            ``kernels.centring``, else :data:`DEFAULT_CENTRING_MM`.
+        distance_step (float | None, optional): Kernels on a uniform grid of distances this far apart (mm). Defaults
             to None: exact distances or the geometric grid, as above.
         distance_ratio (float, optional): The geometric grid's spacing. Defaults to :data:`DEFAULT_DISTANCE_RATIO`.
 
     Attributes:
-        distances_mm (np.ndarray): After :meth:`configure`, the sorted distances the kernels were made at: every plane's
+        distances (np.ndarray): After :meth:`configure`, the sorted distances the kernels were made at: every plane's
             of every view, or the grid's.
         kernels (torch.Tensor): The kernels, ``[n_distances, k_r, k_z]``, on the device.
         clipped_fraction (np.ndarray): The clipped share of each kernel.
@@ -101,34 +108,36 @@ class SPECTKernelPSFTransform(Transform):
         kernel_shape: tuple[int, int] | None = None,
         normalize: bool = False,
         clip_negative: bool = True,
-        front_cover_mm: float | None = None,
-        centring_mm: float | None = None,
-        distance_step_mm: float | None = None,
+        front_cover: float | None = None,
+        centring: float | None = None,
+        distance_step: float | None = None,
         distance_ratio: float = DEFAULT_DISTANCE_RATIO,
     ) -> None:
         super().__init__()
         if not callable(kernels):
-            raise TypeError('kernels must be a function of (distances_mm, pixel_mm, shape)')
+            raise TypeError('kernels must be a function of (distances, pixel_size, shape)')
         if distance_ratio <= 0:
             raise ValueError('distance_ratio must be positive')
         self.kernel_function = kernels
         self.kernel_shape = kernel_shape
         self.normalize = bool(normalize)
         self.clip_negative = bool(clip_negative)
-        self.front_cover_mm = float(front_cover_mm if front_cover_mm is not None else getattr(kernels, 'front_cover_mm', 0.0))
-        self.centring_mm = float(centring_mm if centring_mm is not None else getattr(kernels, 'centring_mm', DEFAULT_CENTRING_MM))
-        self.distance_step_mm = distance_step_mm
+        # the kernel function's own values; spectarf releases before PyTomography 4 name them with an _mm suffix
+        self.front_cover = float(front_cover if front_cover is not None else _attribute(kernels, 'front_cover', 0.0))
+        self.centring = float(centring if centring is not None
+                              else _attribute(kernels, 'centring', DEFAULT_CENTRING_MM))
+        self.distance_step = distance_step
         self.distance_ratio = float(distance_ratio)
 
     # -- configuration --------------------------------------------------------------------------------------------
-    def _make_kernels(self, distances_mm: np.ndarray, pixel_mm: tuple[float, float], shape: tuple[int, int]) -> None:
+    def _make_kernels(self, distances: np.ndarray, pixel_size: tuple[float, float], shape: tuple[int, int]) -> None:
         """Calls the kernel function, checks its shape, records the clipped share, clips and normalizes, in place. The
         kernels keep the function's floating point type (``pytomography.dtype`` for other types)."""
-        k = torch.as_tensor(self.kernel_function(distances_mm, pixel_mm, shape)).to(self.device)
+        k = torch.as_tensor(self.kernel_function(distances, pixel_size, shape)).to(self.device)
         if not k.is_floating_point():
             k = k.to(pytomography.dtype)
-        if tuple(k.shape) != (len(distances_mm), *shape):
-            raise ValueError(f'the kernel function returned shape {tuple(k.shape)}, expected {(len(distances_mm), *shape)}')
+        if tuple(k.shape) != (len(distances), *shape):
+            raise ValueError(f'the kernel function returned shape {tuple(k.shape)}, expected {(len(distances), *shape)}')
         self.clipped_fraction = np.empty(k.shape[0])
         for i0 in range(0, k.shape[0], 32):        # a block of kernels at a time: one copy of them
             b = k[i0:i0 + 32]
@@ -142,12 +151,12 @@ class SPECTKernelPSFTransform(Transform):
         self.kernels = k
 
     def _grid_distances(self, lo: float, hi: float) -> np.ndarray:
-        """The grid's distances, from below ``lo`` to above ``hi``: uniform with ``distance_step_mm``, else geometric."""
-        if self.distance_step_mm is not None:
-            step = float(self.distance_step_mm)
+        """The grid's distances, from below ``lo`` to above ``hi``: uniform with ``distance_step``, else geometric."""
+        if self.distance_step is not None:
+            step = float(self.distance_step)
             start = step * np.floor(lo / step)
             return start + step * np.arange(max(1, int(np.ceil((hi - start) / step))) + 1)
-        off = self.centring_mm
+        off = self.centring
         n = max(1, int(np.ceil(np.log((hi + off) / (lo + off)) / np.log1p(self.distance_ratio))))
         return (lo + off) * (1.0 + self.distance_ratio) ** np.arange(n + 1) - off
 
@@ -160,15 +169,15 @@ class SPECTKernelPSFTransform(Transform):
         """
         super().configure(object_meta, proj_meta)
         n_x, n_y, n_z = (int(v) for v in object_meta.padded_shape)
-        pixel_mm = (float(object_meta.dr[1]), float(object_meta.dr[2]))
+        pixel_size = (float(object_meta.dr[1]), float(object_meta.dr[2]))
         shape = tuple(int(s) for s in (self.kernel_shape or (2 * n_y - 1, 2 * n_z - 1)))
         if shape[0] % 2 == 0 or shape[1] % 2 == 0:
             raise ValueError(f'kernel_shape must be odd, got {shape}')
         radii = np.asarray(proj_meta.radii, dtype=np.float64).reshape(-1)
-        per_radius = {float(r): get_distance(n_x, float(r), float(object_meta.dx)) + self.front_cover_mm
+        per_radius = {float(r): get_distance(n_x, float(r), float(object_meta.dx)) + self.front_cover
                       for r in np.unique(radii)}
         distances = np.unique(np.round(np.concatenate(list(per_radius.values())), 6))
-        self._grid = self.distance_step_mm is not None or distances.size > EXACT_PLANES_PER_PLANE_COUNT * n_x
+        self._grid = self.distance_step is not None or distances.size > EXACT_PLANES_PER_PLANE_COUNT * n_x
         if self._grid:
             distances = self._grid_distances(float(distances.min()), float(distances.max()))
             self._planes = {}                        # each plane between grid kernels i and i + 1, a fraction t along
@@ -180,8 +189,8 @@ class SPECTKernelPSFTransform(Transform):
         else:
             self._planes = {r: torch.as_tensor(np.searchsorted(distances, np.round(d, 6)), device=self.device)
                             for r, d in per_radius.items()}
-        self.distances_mm = distances
-        self._make_kernels(distances, pixel_mm, shape)
+        self.distances = distances
+        self._make_kernels(distances, pixel_size, shape)
         self._radii = radii.tolist()
         self._spectra = {}
 
@@ -279,7 +288,7 @@ class SPECTKernelPSFTransform(Transform):
         k_r, k_z = self.kernels.shape[1:] if hasattr(self, 'kernels') else (self.kernel_shape or (2 * n_y - 1, 2 * n_z - 1))
         f_y, f_z = _fast_len(n_y + k_r - 1), _fast_len(n_z + k_z - 1)
         spectrum = 2 * real * f_y * (f_z // 2 + 1)                  # of one plane or kernel, complex
-        n_d = len(self.distances_mm) if hasattr(self, 'distances_mm') else n_x
+        n_d = len(self.distances) if hasattr(self, 'distances') else n_x
         kept = (torch.finfo(self.kernels.dtype).bits / 8 if hasattr(self, 'kernels') else real) * n_d * k_r * k_z
         call = n_x * (3 * spectrum + real * f_y * f_z)
         if getattr(self, '_grid', False):

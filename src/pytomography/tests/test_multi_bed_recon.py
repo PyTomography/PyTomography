@@ -22,8 +22,8 @@ PEAK, LOWER, UPPER = 1, 3, 2           # the 208 keV window and the windows besi
 def reconstruct_single_bed(projections, object_meta, proj_meta, files_CT):
     window = proj_meta.energy_windows[PEAK]
     scatter = SPECT.energy_window_scatter(projections, proj_meta, PEAK, LOWER, UPPER)
-    attenuation_map = io.attenuation_map(files_CT, object_meta, window.photon_keV)
-    psf_meta = SPECT.collimator_psf("GI-MEGP", window.photon_keV)
+    attenuation_map = io.attenuation_map(files_CT, object_meta, window.photon_energy)
+    psf_meta = SPECT.collimator_psf("GI-MEGP", window.photon_energy)
     system_matrix = SPECTSystemMatrix(
         obj2obj_transforms=[SPECTAttenuationTransform(attenuation_map), SPECTPSFTransform(psf_meta)],
         proj2proj_transforms=[],
@@ -43,7 +43,7 @@ def test_multi_bed_recon(data_dir, tmp_path):
         warnings.simplefilter("ignore", io._vendors.UnverifiedVendorRule)        # GE's NM rule is 'check'
         beds = SPECT.read_dicom_beds(files_NM)
     assert [round(b[1].centre[2], 1) for b in beds] == [-177.0, 177.0]           # the inferior bed first
-    assert beds[0][2].energy_windows[PEAK].photon_keV == pytest.approx(208.4)
+    assert beds[0][2].energy_windows[PEAK].photon_energy == pytest.approx(208.4)
     recons = [reconstruct_single_bed(*bed, files_CT) for bed in beds]
     recon_stitched, object_meta = SPECT.stitch_beds(recons, [bed[1] for bed in beds])
     assert torch.isfinite(recon_stitched).all() and recon_stitched.min() >= 0

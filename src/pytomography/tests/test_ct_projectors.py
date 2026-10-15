@@ -29,17 +29,17 @@ def _gen3_meta(n_views=48, n_cols=48, n_rows=8):
     zero = torch.zeros(n_views)
     DSD = 270.0
     return CTGen3ProjMeta(
-        source_phis=phis, source_rhos=torch.full((n_views,), 150.0), source_zs=torch.linspace(-10, 10, n_views),
-        source_phi_offsets=1e-3 * (-1.0) ** torch.arange(n_views), source_rho_offsets=zero.clone(),
+        source_phis=torch.rad2deg(phis), source_rhos=torch.full((n_views,), 150.0), source_zs=torch.linspace(-10, 10, n_views),
+        source_phi_offsets=float(np.degrees(1e-3)) * (-1.0) ** torch.arange(n_views), source_rho_offsets=zero.clone(),
         source_z_offsets=zero.clone(),
         detector_centers_col_idx=torch.full((n_views,), (n_cols + 1) / 2),
         detector_centers_row_idx=torch.full((n_views,), (n_rows + 1) / 2),
-        col_angle_spacing=float(np.arcsin(5.0 / DSD)), row_det_spacing=2.0, DSD=DSD, shape=(n_cols, n_rows))
+        col_angle_spacing=float(np.degrees(np.arcsin(5.0 / DSD))), row_det_spacing=2.0, DSD=DSD, shape=(n_cols, n_rows))
 
 
 def _conebeam_meta(n_views=24):
     """Circular cone beam scan onto a flat panel."""
-    angles = torch.linspace(0, 2 * np.pi, n_views + 1)[:-1]
+    angles = torch.linspace(0, 360, n_views + 1)[:-1]
     return CTConeBeamFlatPanelProjMeta(angles, torch.zeros(n_views), detector_radius=100.0, beam_radius=150.0,
                                        shape=(40, 16), dr=(2.5, 2.5))
 
@@ -156,7 +156,7 @@ def test_conebeam_scan_off_z0_sees_the_object_as_moved():
     faces the rotation axis at every z. Its orientation was the direction from the detector to the origin, which off
     z = 0 tilted the panel (and stretched its rows)."""
     n_views = 24
-    angles = torch.linspace(0, 2 * np.pi, n_views + 1)[:-1]
+    angles = torch.linspace(0, 360, n_views + 1)[:-1]
     def scan(z):
         meta = CTConeBeamFlatPanelProjMeta(angles, torch.full((n_views,), z), detector_radius=100.0, beam_radius=150.0,
                                            shape=(40, 16), dr=(2.5, 2.5))

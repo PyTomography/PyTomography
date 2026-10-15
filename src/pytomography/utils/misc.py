@@ -78,7 +78,7 @@ def print_collimator_parameters():
     print(f"{'code':10} {'family':34} {'kind':9} {'shape':9} {'hole (mm)':>9} {'septa (mm)':>10} {'length (mm)':>11}")
     for r in collimators():
         print(f"{r['code']:10} {r['family']:34} {r['kind']:9} {r['hole_shape'] + (' rot.' if r['rotated'] else ''):9} "
-              f"{r['hole_diameter_mm']:9.2f} {r['septal_thickness_mm']:10.2f} {r['hole_length_mm']:11.2f}")
+              f"{r['hole_diameter']:9.2f} {r['septal_thickness']:10.2f} {r['hole_length']:11.2f}")
 
 def check_if_class_contains_method(instance, method_name):
     """Checks that an object has a method called ``method_name``, and raises an exception if it does not.

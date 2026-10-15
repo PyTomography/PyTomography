@@ -31,7 +31,7 @@ class SPECTAttenuationTransform(Transform):
 
 	Args:
 		attenuation_map (torch.Tensor): Attenuation coefficients in 1/mm, [Lx, Ly, Lz] on the object's grid, at the
-			photon energy of the energy window reconstructed (``proj_meta.energy_windows[i].photon_keV``), e.g. from
+			photon energy of the energy window reconstructed (``proj_meta.energy_windows[i].photon_energy``), e.g. from
 			:func:`pytomography.io.attenuation_map`.
 		assume_padded (bool, optional): The objects given to :meth:`forward` and :meth:`backward` are padded for
 			rotation, as they are inside :class:`~pytomography.projectors.SPECT.SPECTSystemMatrix`. Defaults to True.

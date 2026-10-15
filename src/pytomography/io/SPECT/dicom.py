@@ -282,7 +282,7 @@ def _geometry(ds: Dataset, source: str = '') -> dict:
     return dict(frames=frames, slots=slots, beta=beta[order], radius=radius[order],
                 flip_r=np.array([flip_r[d] for d in head]), flip_z=bool(col[2] < 0), Lr=Lr, Lz=Lz, dr=dr, dz=dz,
                 centre=centre, energy_windows=_energy_windows(ds, nuclide), nuclide=nuclide,
-                frame_duration_s=None if duration is None else float(duration) / 1000,
+                frame_duration=None if duration is None else float(duration) / 1000,
                 acquisition_start=_acquisition_start(ds))
 
 
@@ -291,7 +291,7 @@ def _metadata(geometry: dict) -> tuple[SPECTObjectMeta, SPECTProjMeta]:
     object_meta = SPECTObjectMeta((g['dr'], g['dr'], g['dz']), (g['Lr'], g['Lr'], g['Lz']), centre=g['centre'],
                                   frame='patient', units='counts')
     proj_meta = SPECTProjMeta((g['Lr'], g['Lz']), (g['dr'], g['dz']), g['beta'], g['radius'],
-                              energy_windows=g['energy_windows'], frame_duration_s=g['frame_duration_s'],
+                              energy_windows=g['energy_windows'], frame_duration=g['frame_duration'],
                               acquisition_start=g['acquisition_start'], nuclide=g['nuclide'], units='counts')
     return object_meta, proj_meta
 
@@ -336,7 +336,8 @@ def read_dicom(file: str, energy_window: int | None = None, *, time_slot: int | 
     Args:
         file (str): The NM file.
         energy_window (int, optional): Index of the energy window to return. Defaults to None: all of them.
-        time_slot (int, optional): For gated files, the time slot to return (required for them). Defaults to None.
+        time_slot (int, optional): For gated files, the index of the time slot to return (required for them).
+            Defaults to None.
 
     Returns:
         tuple[torch.Tensor, SPECTObjectMeta, SPECTProjMeta]: The projections [W, θ, r, z] (or [θ, r, z] for one
@@ -491,7 +492,7 @@ def get_mean_stray_radiation_counts(file_blank: str, file_NM: str, index_peak: i
     mask = fov_mask(projections_blank)
     n_views = projections_blank.shape[-3]
     mean = (projections_blank * mask).sum(dim=(-3, -2, -1)) / (n_views * mask.sum())
-    mean = mean * float(meta_NM.frame_duration_s[0]) / float(meta_blank.frame_duration_s[0])
+    mean = mean * float(meta_NM.frame_duration[0]) / float(meta_blank.frame_duration[0])
     return mean if index_peak is None else mean[index_peak].item()
 
 
@@ -519,9 +520,9 @@ def get_mean_stray_radiation_counts_MEW_scatter(file_blank, file_NM, index_peak,
     mean_stray = get_mean_stray_radiation_counts(file_blank, file_NM)
     windows = read_metadata(file_NM)[1].energy_windows
     stray_upper = mean_stray[index_upper] if index_upper is not None else 0
-    width_upper = windows[index_upper].width_keV if index_upper is not None else None
-    return compute_EW_scatter(mean_stray[index_lower], stray_upper, windows[index_lower].width_keV, width_upper,
-                              windows[index_peak].width_keV, weighting_lower, weighting_upper).item()
+    width_upper = windows[index_upper].width if index_upper is not None else None
+    return compute_EW_scatter(mean_stray[index_lower], stray_upper, windows[index_lower].width, width_upper,
+                              windows[index_peak].width, weighting_lower, weighting_upper).item()
 
 
 def print_energy_window_info(file_NM: str):
@@ -531,5 +532,5 @@ def print_energy_window_info(file_NM: str):
         file_NM (str): The NM file.
     """
     for i, window in enumerate(read_metadata(file_NM)[1].energy_windows):
-        ranges = ', '.join(f'[{lo:g} keV, {hi:g} keV]' for lo, hi in window.ranges_keV)
-        print(f'Index {i}:   Name: "{window.name}", Energies: {ranges}, photon {window.photon_keV:g} keV')
+        ranges = ', '.join(f'[{lo:g} keV, {hi:g} keV]' for lo, hi in window.ranges)
+        print(f'Index {i}:   Name: "{window.name}", Energies: {ranges}, photon {window.photon_energy:g} keV')
