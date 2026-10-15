@@ -54,8 +54,8 @@ class SystemMatrix():
 
     Subclasses implement :meth:`forward` and :meth:`backward` (with an optional subset index ``subset_idx``), and, for
     reconstructions with subsets, ``set_n_subsets``, ``get_projection_subset``, ``get_weighting_subset`` and
-    ``compute_normalization_factor`` (:math:`H_m^T 1`). Multiplying a system matrix by a number (``2 * H``) scales
-    both its forward and back projections; it changes the system matrix itself and returns it.
+    ``compute_normalization_factor`` (:math:`H_m^T 1`). Multiplying a system matrix by a number (``2 * H``) gives a
+    new system matrix whose forward and back projections are scaled; ``H`` itself is unchanged.
 
     Args:
         object_meta (ObjectMeta): The object grid.
@@ -79,16 +79,25 @@ class SystemMatrix():
         self.initialize_transforms()
              
     def __mul__(self, scalar):
-        old_forward = copy(self.forward)
-        old_backward = copy(self.backward)
-        def new_forward(*args, **kwargs):
-            return old_forward(*args, **kwargs) * scalar
-        def new_backward(*args, **kwargs):
-            return old_backward(*args, **kwargs) * scalar
-        self.forward = new_forward
-        self.backward = new_backward
-        return self
-    
+        r"""The system matrix scaled by a number, :math:`cH`, as a new system matrix; this one is unchanged.
+
+        The scaled system matrix is a shallow copy: it shares this one's transforms, metadata and data, so it takes no
+        memory of its own, and it keeps its own subsets. Its forward and back projections are this class's, times
+        ``scalar``; scaling it again multiplies the factors.
+
+        Args:
+            scalar (float | torch.Tensor): The factor :math:`c`, e.g. a sensitivity in counts per second per MBq.
+
+        Returns:
+            SystemMatrix: The scaled system matrix.
+        """
+        scaled = copy(self)
+        scaled._scale = getattr(self, '_scale', 1) * scalar
+        forward, backward = type(self).forward, type(self).backward
+        scaled.forward = lambda *args, **kwargs: forward(scaled, *args, **kwargs) * scaled._scale
+        scaled.backward = lambda *args, **kwargs: backward(scaled, *args, **kwargs) * scaled._scale
+        return scaled
+
     def __rmul__(self, scalar):
         return self.__mul__(scalar)
 
