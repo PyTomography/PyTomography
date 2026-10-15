@@ -66,7 +66,7 @@ def test_private_tags_as_un_and_as_explicit_vr_read_the_same(tmp_path):
     for name in ('source_phis', 'source_zs', 'source_rhos', 'detector_centers_col_idx', 'zs_det', 'phis_det'):
         assert torch.equal(getattr(m1, name), getattr(m2, name)), name
     assert m1.water_attenuation == m2.water_attenuation == pytest.approx(0.0186)
-    assert m1.col_angle_spacing == pytest.approx(1.0 / 949.0)            # radians: the arc over the distance
+    assert m1.col_angle_spacing == pytest.approx(np.degrees(1.0 / 949.0))   # the arc over the distance, in degrees
     assert float(m1.detector_centers_col_idx[0]) == pytest.approx(N_COLS - 11.25)   # GE's central column rule
     assert o1.centre == o2.centre
 
@@ -142,7 +142,7 @@ def test_nikon_axes_angles_and_flat_field(tmp_path):
         projections, object_meta, proj_meta = io.CT.read_nikon(tmp_path / 'scan', cor=0.3)
     assert projections.shape == (4, 12, 8) and projections.dtype == torch.float32      # (views, u = column, v = row)
     assert np.allclose(projections.numpy(), truth.transpose(0, 2, 1), atol=1e-5)
-    assert np.allclose(proj_meta.angles.cpu().numpy(), -np.radians(angles), atol=1e-6)  # the stage turns the sample
+    assert np.allclose(proj_meta.angles.cpu().numpy(), -np.asarray(angles), atol=1e-4)  # degrees; the stage turns the sample
     assert proj_meta.DSO == pytest.approx(80.0) and proj_meta.DSD == pytest.approx(1000.0)
     assert float(proj_meta.COR[1]) == pytest.approx(-0.3)
     assert object_meta.dr == pytest.approx((0.2 / 12.5,) * 3) and object_meta.shape == (12, 12, 8)

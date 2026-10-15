@@ -26,11 +26,14 @@ Every argument, attribute and table value is in these units, and names never car
 * **Exceptions**, each stated in its docstring:
   * Qualifiers, not units: `intrinsic_fwhm_140keV` (the FWHM at 140 keV, in mm), `energy_resolution_140keV`,
     `attenuation_map_140keV`.
-  * CT acquisition geometry (`CTGen3ProjMeta`, `CTConeBeamFlatPanelProjMeta`): angles in radians, as DICOM-CT-PD stores
-    them.
-  * PET randoms smoothing (`io.PET.smooth_randoms_sinogram`): FWHMs in sinogram steps (radial bins, angles, rings).
   * Memory budgets (`ram_gb`, `gpu_gb`): GB.
-  * Other programs' units are converted where PyTomography calls them: SIMIND's cm, PETSIRD's ms.
+  * Other programs' units are converted where PyTomography reads or calls them: DICOM-CT-PD's radians, SIMIND's cm,
+    PETSIRD's ms.
+* **Angles are degrees everywhere**, CT geometry included (`CTGen3ProjMeta`, `CTConeBeamFlatPanelProjMeta`); code
+  converts to radians only for its own trigonometry.
+* **Smoothing follows the data's real spacing.** A FWHM is in mm or degrees even where the data are in steps: PET
+  randoms smoothing (`io.PET.smooth_randoms_sinogram`) turns it into radial bins, angles and rings with
+  `io.PET.sinogram_spacing(info)`.
 * **PyTomography 3 used cm.** Some names are the same in 4 with mm (e.g. the SIMIND detector thicknesses, SPECT voxel
   sizes). Where a value looks like cm, PyTomography warns (voxel sizes below 1 mm) or raises (a crystal thinner than
   3 mm) and says so.

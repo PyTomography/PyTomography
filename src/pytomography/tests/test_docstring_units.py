@@ -36,7 +36,9 @@ SKIP_MODULES = ("pytomography.tests", "pytomography.utils._", "pytomography.io._
 
 
 def _modules():
-    for info in pkgutil.walk_packages(pytomography.__path__, "pytomography."):
+    # a package that needs an optional dependency (parallelproj, petsird, ...) can raise any exception when it is
+    # missing, not only an ImportError, which is all walk_packages skips on its own
+    for info in pkgutil.walk_packages(pytomography.__path__, "pytomography.", onerror=lambda name: None):
         name = info.name
         if any(name.startswith(s) for s in SKIP_MODULES) or any(part.startswith("_") and part != "__init__"
                                                                for part in name.split(".")[1:]):

@@ -177,7 +177,7 @@ def column_scale(proj_meta, g0: float, g2: float, t_hold: float = 140.0) -> torc
         torch.Tensor: The factors, [columns], float64.
     """
     rho = float(proj_meta.source_rhos.double().mean())
-    t = torch.abs(rho * torch.sin(proj_meta.phis_det[:, 0].double()))
+    t = torch.abs(rho * torch.sin(torch.deg2rad(proj_meta.phis_det[:, 0].double())))
     return 1 + g0 + g2 * (torch.clamp(t, max=t_hold) / 100) ** 2
 
 

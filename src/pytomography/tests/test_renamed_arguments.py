@@ -61,21 +61,46 @@ def test_gaussian_filter_takes_fwhm_and_the_old_FWHM_with_a_warning():
     torch.testing.assert_close(old.forward(x), new.forward(x))
 
 
-def test_randoms_smoothing_takes_fwhm_and_the_old_sigmas_with_a_warning():
-    from pytomography.io.PET import shared
-    pytest.importorskip("parallelproj_core")
-    info = dict(crystalTransNr=4, crystalAxialNr=2, moduleTransNr=1, moduleAxialNr=1, rsectorTransNr=8,
-                crystalTransSpacing=4.0, crystalAxialSpacing=4.0, radius=100.0)
+def _ring():
     from pytomography.io.PET import scanner_info
-    info = scanner_info(info)
-    from pytomography.io.PET.shared import sinogram_coordinates
-    _, index = sinogram_coordinates(info)
-    randoms = torch.rand((16, 9, int(index.numel())), generator=torch.Generator().manual_seed(2), dtype=torch.float64)
-    new = shared.smooth_randoms_sinogram(randoms, info, fwhm_r=4 * FWHM_PER_SIGMA, fwhm_theta=4 * FWHM_PER_SIGMA,
-                                         fwhm_z=4 * FWHM_PER_SIGMA)
-    with pytest.warns(DeprecationWarning, match="'sigma_z' is now 'fwhm_z'.*FWHM in rings"):
-        old = shared.smooth_randoms_sinogram(randoms, info, sigma_r=4, sigma_theta=4, sigma_z=4)
+    # 32 crystals of 4 mm on a 100 mm ring, 4 rings 4 mm apart
+    return scanner_info(dict(crystalTransNr=4, crystalAxialNr=4, moduleTransNr=1, moduleAxialNr=1, rsectorTransNr=8,
+                             crystalTransSpacing=4.0, crystalAxialSpacing=4.0, radius=100.0))
+
+
+def test_sinogram_spacing_is_the_steps_in_mm_and_degrees():
+    from pytomography.io.PET import sinogram_spacing
+    info = _ring()
+    radial, angle, ring = sinogram_spacing(info)
+    assert angle == pytest.approx(360 / 32)                          # 16 angles over 180 degrees
+    assert ring == pytest.approx(4.0)                               # the crystals' axial pitch
+    assert radial == pytest.approx(4.0 / 2, rel=0.05)               # half a crystal pitch, at the centre
+
+
+def test_randoms_smoothing_takes_fwhm_in_mm_and_degrees_and_the_old_sigmas_in_steps_with_a_warning():
+    from pytomography.io.PET import shared, sinogram_spacing
+    info = _ring()
+    radial, angle, ring = sinogram_spacing(info)
+    randoms = torch.rand((16, 33, 16), generator=torch.Generator().manual_seed(2), dtype=torch.float64)
+    new = shared.smooth_randoms_sinogram(randoms, info, fwhm_r=2 * FWHM_PER_SIGMA * radial,
+                                         fwhm_theta=1.5 * FWHM_PER_SIGMA * angle, fwhm_z=FWHM_PER_SIGMA * ring)
+    with pytest.warns(DeprecationWarning, match="'sigma_z' .* is now 'fwhm_z', the FWHM in mm"):
+        old = shared.smooth_randoms_sinogram(randoms, info, sigma_r=2, sigma_theta=1.5, sigma_z=1)
     torch.testing.assert_close(old, new)
+    with pytest.raises(TypeError, match="sigma_w"):
+        shared.smooth_randoms_sinogram(randoms, info, sigma_w=1)
+
+
+def test_randoms_smoothing_fwhm_is_in_degrees_along_the_angles():
+    # One bright angle, smoothed along the angles only: half its height FWHM / 2 away
+    from pytomography.io.PET import shared, sinogram_spacing
+    info = _ring()
+    _, angle, _ = sinogram_spacing(info)
+    spike = torch.zeros((16, 33, 16), dtype=torch.float64)
+    spike[8] = 1.0
+    smoothed = shared.smooth_randoms_sinogram(spike, info, fwhm_r=1e-6, fwhm_theta=4 * angle, fwhm_z=1e-6)
+    profile = smoothed[:, 16, 0] / smoothed[:, 16, 0].max()
+    assert abs(profile[8 + 2].item() - 0.5) < 0.03 and abs(profile[8 - 2].item() - 0.5) < 0.03
 
 
 def test_cardiac_angles_take_the_old_names_with_a_warning():

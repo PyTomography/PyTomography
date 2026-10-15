@@ -13,16 +13,19 @@ and list mode values correspond bin for bin.
 * :func:`normalization_sinogram` and :func:`all_pairs_to_sinogram`: a weight for every crystal pair, binned;
 * :func:`smooth_randoms_sinogram` and :func:`randoms_sinogram_to_sinogramTOF`: randoms estimates;
 * :func:`remove_events_outside`: the events whose LOR crosses the reconstruction grid;
-* :func:`sinogram_coordinates` and :func:`sinogram_to_spatial`: the lookup tables behind the binning.
+* :func:`sinogram_coordinates` and :func:`sinogram_to_spatial`: the lookup tables behind the binning, and
+  :func:`sinogram_spacing`: the steps of the sinogram's axes in mm and degrees.
 """
 from __future__ import annotations
 from collections.abc import Sequence
 import functools
+import math
+import warnings
 import torch
 import numpy as np
 import pytomography
 from pytomography.utils import get_1d_gaussian_kernel
-from pytomography.utils._renamed import renamed_arguments, sigma_from_fwhm, sigma_renamed
+from pytomography.utils._renamed import FWHM_PER_SIGMA, sigma_from_fwhm
 from pytomography.utils.memory import BLOCK_CAP_BYTES, block_size, prefer_lazy, tensor_nbytes
 from .scanner import scanner_lut as scanner_lut_of
 
@@ -950,46 +953,105 @@ def _convolve_last_axis(x: torch.Tensor, kernel: torch.nn.Conv1d) -> torch.Tenso
     return out
 
 @torch.no_grad()
-@renamed_arguments(sigma_r=sigma_renamed('fwhm_r', 'radial bins'), sigma_theta=sigma_renamed('fwhm_theta', 'angles'),
-                   sigma_z=sigma_renamed('fwhm_z', 'rings'))
+@_memoize_by_info
+def sinogram_spacing(info: dict) -> tuple[float, float, float]:
+    """The steps of a sinogram's axes: a radial bin in mm, an angle in degrees and a ring in mm.
+
+    * The radial step is the distance between the LORs of neighbouring radial bins at the centre of the field of view,
+      from the crystals' positions (:func:`sinogram_to_spatial`); the bins get closer towards the edge of the ring.
+    * The angle step is 360 / N degrees: the N / 2 angles of a ring of N crystals span 180 degrees.
+    * The ring step is the mean axial pitch of the rings, which gaps between modules make uneven (1 mm for a single
+      ring).
+
+    Args:
+        info (dict): The scanner's ``info`` (:func:`~pytomography.io.PET.scanner_info`).
+
+    Returns:
+        tuple[float, float, float]: The radial step in mm, the angle step in degrees and the ring step in mm.
+    """
+    detectors, rings = sinogram_to_spatial(info)
+    p1, p2 = detectors[0, :, 0].double(), detectors[0, :, 1].double()   # angle 0: the two crystals of each radial bin
+    length = torch.linalg.norm(p2 - p1, dim=1)
+    filled = torch.nonzero(length > 0).ravel()
+    distance = (p1[filled, 0] * p2[filled, 1] - p1[filled, 1] * p2[filled, 0]) / length[filled]   # signed, from the axis
+    central = distance.abs() < 0.25 * float(info["radius"])
+    steps = torch.diff(distance[central]).abs() / torch.diff(filled[central]).double()
+    radial = float(torch.median(steps)) if steps.numel() else float(math.pi * info["radius"] / info["NrCrystalsPerRing"])
+    z = torch.unique(rings.double())
+    ring = float((z.max() - z.min()) / (z.numel() - 1)) if z.numel() > 1 else 1.0
+    return radial, 360.0 / info["NrCrystalsPerRing"], ring
+
+
+#: PyTomography 3's arguments of :func:`smooth_randoms_sinogram`, in the sinogram's steps.
+_RANDOMS_SIGMAS = {"sigma_r": ("fwhm_r", 0, "mm"), "sigma_theta": ("fwhm_theta", 1, "degrees"),
+                   "sigma_z": ("fwhm_z", 2, "mm")}
+_RANDOMS_KERNEL_SIZES = {"kernel_size_r": "r", "kernel_size_theta": "theta", "kernel_size_z": "z"}
+
+
 def smooth_randoms_sinogram(
     sinogram_random: torch.Tensor,
     info: dict,
-    fwhm_r: float = 9.4,
-    fwhm_theta: float = 9.4,
-    fwhm_z: float = 9.4,
-    kernel_size_r: int = 21,
-    kernel_size_theta: int = 21,
-    kernel_size_z: int = 21
+    fwhm_r: float = 20.0,
+    fwhm_theta: float = 7.0,
+    fwhm_z: float = 40.0,
+    n_sigmas: float = 3,
+    **removed,
     ) -> torch.Tensor:
     """Smooths a randoms sinogram with Gaussian filters along the angle, the radial bin and the two rings of each plane.
 
     The planes are first arranged as ``[R, R]`` (ring 1, ring 2) with :func:`sinogram_coordinates`; the sinogram is
     then convolved with a 1D Gaussian along the angle (wrapping around), the radial bin and each of the two rings (the
     edges extended), a block of rows at a time, and its planes are put back in order. Each Gaussian is given by its
-    FWHM in the sinogram's own steps (radial bins, angles, rings), not in mm or degrees.
+    FWHM in mm or degrees; :func:`sinogram_spacing` turns it into the sinogram's steps (radial bins, angles, rings).
 
     Args:
-        sinogram_random (torch.Tensor): Randoms sinogram (non-TOF), ``[angles, radial bins, planes]``, on any device
-            and in any floating point dtype (the result is on the same device, in the same dtype).
+        sinogram_random (torch.Tensor): Randoms sinogram (non-TOF), ``[angles, radial bins, planes]``, in counts, on
+            any device and in any floating point dtype (the result is on the same device, in the same dtype).
         info (dict): The scanner's ``info`` (:func:`~pytomography.io.PET.scanner_info`).
-        fwhm_r (float, optional): FWHM of the Gaussian along the radial bins, in radial bins. Defaults to 9.4 (a
-            standard deviation of 4 bins).
-        fwhm_theta (float, optional): FWHM of the Gaussian along the angles, in angles (sinogram angle steps). Defaults
-            to 9.4.
-        fwhm_z (float, optional): FWHM of the Gaussian along each ring of a plane, in rings. Defaults to 9.4.
-        kernel_size_r (int, optional): Length of the radial kernel, in bins. Defaults to 21.
-        kernel_size_theta (int, optional): Length of the angular kernel, in angles. Defaults to 21.
-        kernel_size_z (int, optional): Length of the kernel along each ring, in rings. Defaults to 21.
+        fwhm_r (float, optional): FWHM of the Gaussian across the LORs (along the radial bins), in mm at the centre of
+            the field of view. Defaults to 20.
+        fwhm_theta (float, optional): FWHM of the Gaussian along the angles, in degrees. Defaults to 7.
+        fwhm_z (float, optional): FWHM of the Gaussian along each ring of a plane, in mm along the axis. Defaults to 40.
+        n_sigmas (float, optional): Half-width of the kernels, in standard deviations (FWHM / 2.355). Defaults to 3.
+        **removed: PyTomography 3's ``sigma_r``, ``sigma_theta`` and ``sigma_z`` (standard deviations in radial bins,
+            angles and rings) and ``kernel_size_r``, ``kernel_size_theta`` and ``kernel_size_z`` (kernel lengths in
+            those steps) still work, with a DeprecationWarning, until PyTomography 5.0. The defaults of 20 mm, 7
+            degrees and 40 mm are about PyTomography 3's standard deviations of 4 steps on a Siemens Biograph mMR.
 
     Returns:
         torch.Tensor: The smoothed randoms sinogram, of the shape of ``sinogram_random``.
+
+    Raises:
+        TypeError: A keyword argument is not one of these, or is given under both its old and its new name.
     """
+    steps = sinogram_spacing(info)
+    fwhm = {"fwhm_r": fwhm_r, "fwhm_theta": fwhm_theta, "fwhm_z": fwhm_z}
+    sizes = {}
+    for old in list(removed):
+        if old in _RANDOMS_SIGMAS:
+            new, axis, units = _RANDOMS_SIGMAS[old]
+            value = removed.pop(old)
+            fwhm[new] = value * FWHM_PER_SIGMA * steps[axis]
+            warnings.warn(f"smooth_randoms_sinogram(): {old!r} (a standard deviation in the sinogram's steps) is now "
+                          f"{new!r}, the FWHM in {units}; {old}={value!r} was used as {new}={fwhm[new]:.3g} on this "
+                          f"scanner. The old name will be removed in PyTomography 5.0.", DeprecationWarning,
+                          stacklevel=2)
+        elif old in _RANDOMS_KERNEL_SIZES:
+            value = removed.pop(old)
+            sizes[_RANDOMS_KERNEL_SIZES[old]] = int(value)
+            warnings.warn(f"smooth_randoms_sinogram(): {old!r} is replaced by n_sigmas, the kernels' half-width in "
+                          f"standard deviations; {old}={value!r} was used as given, in the sinogram's steps. It will be "
+                          f"removed in PyTomography 5.0.", DeprecationWarning, stacklevel=2)
+    if removed:
+        raise TypeError(f"smooth_randoms_sinogram() got unexpected keyword arguments {sorted(removed)}")
+    sigma = {"r": sigma_from_fwhm(fwhm["fwhm_r"]) / steps[0], "theta": sigma_from_fwhm(fwhm["fwhm_theta"]) / steps[1],
+             "z": sigma_from_fwhm(fwhm["fwhm_z"]) / steps[2]}   # in steps
+    size = {axis: sizes.get(axis, 2 * int(math.ceil(n_sigmas * sigma[axis])) + 1) for axis in sigma}
     _, sinogram_index = sinogram_coordinates(info)
     sino = sinogram_random[:,:,sinogram_index]
-    ktheta = get_1d_gaussian_kernel(sigma_from_fwhm(fwhm_theta), kernel_size_theta, 'circular')
-    kr = get_1d_gaussian_kernel(sigma_from_fwhm(fwhm_r), kernel_size_r, 'replicate')
-    kz = get_1d_gaussian_kernel(sigma_from_fwhm(fwhm_z), kernel_size_z, 'replicate')
+    ktheta = get_1d_gaussian_kernel(sigma["theta"], size["theta"], 'circular')
+    kr = get_1d_gaussian_kernel(sigma["r"], size["r"], 'replicate')
+    kz = get_1d_gaussian_kernel(sigma["z"], size["z"], 'replicate')
     for i, k in enumerate([ktheta,kr,kz,kz]):
         sino = _convolve_last_axis(sino.swapaxes(i,3), k).swapaxes(i,3)
     ii = torch.argsort(sinogram_index.ravel())

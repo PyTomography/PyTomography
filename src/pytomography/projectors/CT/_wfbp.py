@@ -20,6 +20,7 @@ streamed in chunks, the back projection's 4D temporaries are cut into z chunks s
 is the only full-size array on the device.
 """
 from __future__ import annotations
+import math
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -36,7 +37,8 @@ _BYTES_PER_4D_ELEMENT_CPU = 60
 def view_groups(meta) -> list:
     """Indices of the views sharing a focal spot offset: one group without a flying focal spot, two for the
     alternating modes. Raises for patterns other than a regular alternation of a few positions."""
-    off = torch.stack([meta.source_phi_offsets, meta.source_rho_offsets, meta.source_z_offsets], 1).double().numpy()
+    off = torch.stack([torch.deg2rad(meta.source_phi_offsets), meta.source_rho_offsets, meta.source_z_offsets],
+                      1).double().numpy()
     keys = np.round(off / np.array([1e-5, 1e-3, 1e-3]))
     _, inverse = np.unique(keys, axis=0, return_inverse=True)
     inverse = inverse.ravel()
@@ -281,7 +283,7 @@ def fbp_helical(proj: torch.Tensor, meta, X: torch.Tensor, Y: torch.Tensor, Z: n
     Z = np.asarray(Z, dtype=np.float64)
     if np.any(np.diff(Z) <= 0):
         raise ValueError('Z must increase')
-    dt = float(meta.source_rhos.double().mean()) * abs(float(meta.col_angle_spacing))
+    dt = float(meta.source_rhos.double().mean()) * abs(math.radians(float(meta.col_angle_spacing)))
     groups = view_groups(meta)
     out = torch.zeros((X.shape[0], X.shape[1], len(Z)), dtype=torch.float32, device=device)
     cuda = device.type == 'cuda'
@@ -337,7 +339,7 @@ def memory_parts(proj: torch.Tensor, meta, X: torch.Tensor, Y: torch.Tensor, Z: 
     uniform = Nz < 2 or np.allclose(np.diff(Z), float(Z[1] - Z[0]), rtol=1e-6, atol=1e-6)
     use_cuda = backend == 'cuda' or (backend == 'auto' and uniform and _wfbp_cuda.available(device)
                                       and (k_range is None or k_range <= _wfbp_cuda.MAX_K_RANGE))
-    dt = float(meta.source_rhos.double().mean()) * abs(float(meta.col_angle_spacing))
+    dt = float(meta.source_rhos.double().mean()) * abs(math.radians(float(meta.col_angle_spacing)))
     r_fov = float(torch.sqrt(X.double() ** 2 + Y.double() ** 2).max())
     available = gpu_budget(budget, device)
     cuda = device.type == 'cuda'

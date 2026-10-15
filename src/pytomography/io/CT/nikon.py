@@ -59,7 +59,7 @@ def read_nikon(folder, *, binning: int = 1, cor: float = 0.0, object_meta: Objec
       default to the file's stem and ``_``). Each is averaged over ``binning`` x ``binning`` blocks of pixels (a
       remainder at the edge is dropped), then turned into line integrals :math:`-\ln(I / I_0)`, with :math:`I` at
       least 1. u runs along the TIFF's columns and v along its rows (v = 0 is the top of the radiograph, +z).
-    * The angles: the ``.ang`` file's, negated (the stage turns the sample), in radians.
+    * The angles: the ``.ang`` file's, negated (the stage turns the sample), in degrees.
     * The rotation axis lies ``cor`` from the central ray, at (0, -cor) in the object frame. The grid is centred
       on the central ray of the first view, at the origin of the scanner frame.
 
@@ -114,7 +114,7 @@ def read_nikon(folder, *, binning: int = 1, cor: float = 0.0, object_meta: Objec
             reading = F.avg_pool2d(reading[None, None], binning)[0, 0]
         views.append(-torch.log(reading.clamp(min=1) / white_level))
     projections = torch.stack(views).transpose(1, 2).contiguous()                      # (views, u, v)
-    thetas = -torch.tensor([angles[n] for n in numbers], dtype=torch.float64) * np.pi / 180
+    thetas = -torch.tensor([angles[n] for n in numbers], dtype=torch.float64)
     n_u, n_v = projections.shape[1:]
     du, dv = pixel[0] * binning, pixel[1] * binning
     proj_meta = CTConeBeamFlatPanelProjMeta(thetas.float(), torch.zeros(len(numbers)),
