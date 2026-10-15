@@ -22,6 +22,7 @@ import torch
 import numpy as np
 import pytomography
 from pytomography.utils import get_1d_gaussian_kernel
+from pytomography.utils._renamed import renamed_arguments, sigma_from_fwhm, sigma_renamed
 from pytomography.utils.memory import BLOCK_CAP_BYTES, block_size, prefer_lazy, tensor_nbytes
 from .scanner import scanner_lut as scanner_lut_of
 
@@ -949,12 +950,14 @@ def _convolve_last_axis(x: torch.Tensor, kernel: torch.nn.Conv1d) -> torch.Tenso
     return out
 
 @torch.no_grad()
+@renamed_arguments(sigma_r=sigma_renamed('fwhm_r', 'radial bins'), sigma_theta=sigma_renamed('fwhm_theta', 'angles'),
+                   sigma_z=sigma_renamed('fwhm_z', 'rings'))
 def smooth_randoms_sinogram(
     sinogram_random: torch.Tensor,
     info: dict,
-    sigma_r: float = 4,
-    sigma_theta: float = 4,
-    sigma_z: float = 4,
+    fwhm_r: float = 9.4,
+    fwhm_theta: float = 9.4,
+    fwhm_z: float = 9.4,
     kernel_size_r: int = 21,
     kernel_size_theta: int = 21,
     kernel_size_z: int = 21
@@ -963,16 +966,18 @@ def smooth_randoms_sinogram(
 
     The planes are first arranged as ``[R, R]`` (ring 1, ring 2) with :func:`sinogram_coordinates`; the sinogram is
     then convolved with a 1D Gaussian along the angle (wrapping around), the radial bin and each of the two rings (the
-    edges extended), a block of rows at a time, and its planes are put back in order.
+    edges extended), a block of rows at a time, and its planes are put back in order. Each Gaussian is given by its
+    FWHM in the sinogram's own steps (radial bins, angles, rings), not in mm or degrees.
 
     Args:
         sinogram_random (torch.Tensor): Randoms sinogram (non-TOF), ``[angles, radial bins, planes]``, on any device
             and in any floating point dtype (the result is on the same device, in the same dtype).
         info (dict): The scanner's ``info`` (:func:`~pytomography.io.PET.scanner_info`).
-        sigma_r (float, optional): Standard deviation of the Gaussian along the radial bins, in bins. Defaults to 4.
-        sigma_theta (float, optional): Standard deviation of the Gaussian along the angles, in angles. Defaults to 4.
-        sigma_z (float, optional): Standard deviation of the Gaussian along each ring of a plane, in rings. Defaults to
-            4.
+        fwhm_r (float, optional): FWHM of the Gaussian along the radial bins, in radial bins. Defaults to 9.4 (a
+            standard deviation of 4 bins).
+        fwhm_theta (float, optional): FWHM of the Gaussian along the angles, in angles (sinogram angle steps). Defaults
+            to 9.4.
+        fwhm_z (float, optional): FWHM of the Gaussian along each ring of a plane, in rings. Defaults to 9.4.
         kernel_size_r (int, optional): Length of the radial kernel, in bins. Defaults to 21.
         kernel_size_theta (int, optional): Length of the angular kernel, in angles. Defaults to 21.
         kernel_size_z (int, optional): Length of the kernel along each ring, in rings. Defaults to 21.
@@ -982,9 +987,9 @@ def smooth_randoms_sinogram(
     """
     _, sinogram_index = sinogram_coordinates(info)
     sino = sinogram_random[:,:,sinogram_index]
-    ktheta = get_1d_gaussian_kernel(sigma_theta, kernel_size_theta, 'circular')
-    kr = get_1d_gaussian_kernel(sigma_r, kernel_size_r, 'replicate')
-    kz = get_1d_gaussian_kernel(sigma_z, kernel_size_z, 'replicate')
+    ktheta = get_1d_gaussian_kernel(sigma_from_fwhm(fwhm_theta), kernel_size_theta, 'circular')
+    kr = get_1d_gaussian_kernel(sigma_from_fwhm(fwhm_r), kernel_size_r, 'replicate')
+    kz = get_1d_gaussian_kernel(sigma_from_fwhm(fwhm_z), kernel_size_z, 'replicate')
     for i, k in enumerate([ktheta,kr,kz,kz]):
         sino = _convolve_last_axis(sino.swapaxes(i,3), k).swapaxes(i,3)
     ii = torch.argsort(sinogram_index.ravel())

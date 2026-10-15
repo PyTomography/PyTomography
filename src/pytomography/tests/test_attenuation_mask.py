@@ -81,7 +81,7 @@ def test_attenuation_map_of_a_ct_series(tmp_path):
     assert ((edge > 1e-5) & (edge < water * 0.999)).any()                         # averaged over the cylinder's edge
     same = io.attenuation_map(io.load_image(files), grid, 208).cpu()
     assert torch.equal(mu, same)
-    with pytest.raises(ValueError, match="energy_keV"):
+    with pytest.raises(ValueError, match="energy"):
         io.attenuation_map(files, grid)
 
 

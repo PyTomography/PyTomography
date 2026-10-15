@@ -108,8 +108,8 @@ class SPECTSystemMatrix(SystemMatrix):
         .. code-block:: python
 
             projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM, energy_window=0)
-            mu = io.attenuation_map(files_CT, object_meta, proj_meta.energy_windows[0].photon_keV)
-            psf_meta = io.SPECT.collimator_psf('SY-ME', proj_meta.energy_windows[0].photon_keV)
+            mu = io.attenuation_map(files_CT, object_meta, proj_meta.energy_windows[0].photon_energy)
+            psf_meta = io.SPECT.collimator_psf('SY-ME', proj_meta.energy_windows[0].photon_energy)
             system_matrix = SPECTSystemMatrix(
                 obj2obj_transforms=[SPECTAttenuationTransform(mu), SPECTPSFTransform(psf_meta)],
                 proj2proj_transforms=[], object_meta=object_meta, proj_meta=proj_meta)
@@ -448,9 +448,9 @@ class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
         isotope_names (Sequence[str]): The isotopes to simulate (SIMIND's names).
         isotope_ratios (Sequence[float]): The proportion of each isotope.
         collimator_type (str): The collimator (SIMIND's name).
-        crystal_thickness_mm (float): Crystal thickness in mm (NaI).
-        cover_thickness_mm (float): Cover thickness in mm (aluminium).
-        backscatter_thickness_mm (float): Equivalent backscatter thickness in mm (pyrex).
+        crystal_thickness (float): Crystal thickness in mm (NaI).
+        cover_thickness (float): Cover thickness in mm (aluminium).
+        backscatter_thickness (float): Equivalent backscatter thickness in mm (pyrex).
         energy_resolution_140keV (float, optional): Energy resolution of the detector at 140 keV, in percent, scaled
             as the square root of the energy. Defaults to 0.
         advanced_energy_resolution_model (str | None, optional): An energy resolution model used instead of
@@ -476,17 +476,17 @@ class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
         isotope_names: Sequence[str],
         isotope_ratios: Sequence[float],
         collimator_type: str,
-        crystal_thickness_mm: float | None = None,
-        cover_thickness_mm: float | None = None,
-        backscatter_thickness_mm: float | None = None,
+        crystal_thickness: float | None = None,
+        cover_thickness: float | None = None,
+        backscatter_thickness: float | None = None,
         energy_resolution_140keV: float = 0,
         advanced_energy_resolution_model: str | None = None,
         advanced_collimator_modeling: bool = False,
         **removed,
     ):
-        simind_mc.refuse_thicknesses_in_cm(removed)
-        missing = [n for n, v in (('crystal_thickness_mm', crystal_thickness_mm), ('cover_thickness_mm', cover_thickness_mm),
-                                  ('backscatter_thickness_mm', backscatter_thickness_mm)) if v is None]
+        simind_mc.check_thicknesses(crystal_thickness, removed)
+        missing = [n for n, v in (('crystal_thickness', crystal_thickness), ('cover_thickness', cover_thickness),
+                                  ('backscatter_thickness', backscatter_thickness)) if v is None]
         if missing:
             raise TypeError(f'missing {", ".join(missing)}')
         # check if "simind" is PATH variable and if not raise error
@@ -506,9 +506,9 @@ class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
         self.isotope_names = isotope_names
         self.isotope_ratios = isotope_ratios
         self.collimator_type = collimator_type
-        self.cover_thickness_mm = cover_thickness_mm
-        self.crystal_thickness_mm = crystal_thickness_mm
-        self.backscatter_thickness_mm = backscatter_thickness_mm
+        self.cover_thickness = cover_thickness
+        self.crystal_thickness = crystal_thickness
+        self.backscatter_thickness = backscatter_thickness
         self.energy_resolution_140keV = energy_resolution_140keV
         self.advanced_energy_resolution_model = advanced_energy_resolution_model
         self.advanced_collimator_modeling = advanced_collimator_modeling
@@ -598,9 +598,9 @@ class MonteCarloHybridSPECTSystemMatrix(SPECTSystemMatrix):
             index_dict.update(simind_mc.get_simind_isotope_detector_params(
                 isotope_name = isotope_name,
                 collimator_type= self.collimator_type,
-                crystal_thickness_mm=self.crystal_thickness_mm,
-                cover_thickness_mm=self.cover_thickness_mm,
-                backscatter_thickness_mm=self.backscatter_thickness_mm,
+                crystal_thickness=self.crystal_thickness,
+                cover_thickness=self.cover_thickness,
+                backscatter_thickness=self.backscatter_thickness,
                 energy_resolution_140keV=self.energy_resolution_140keV,
                 advanced_energy_resolution_model=self.advanced_energy_resolution_model,
                 advanced_collimator_modeling=self.advanced_collimator_modeling

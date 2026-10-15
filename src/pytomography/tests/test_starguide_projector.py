@@ -58,7 +58,7 @@ def _reference_forward(sm, object, subset_idx=None):
         obj_translate_rot = sm._translate_object(obj_rotate, offsets_i / sm.object_meta.dx)
         center = int(obj_translate_rot.shape[2] / 2)
         projections[idx] = obj_translate_rot[:, :, center - 8:center + 8].sum(axis=1)
-    return projections * sm.frame_duration_s[angle_indices]
+    return projections * sm.frame_duration[angle_indices]
 
 
 def _reference_backward(sm, proj, subset_idx=None):
@@ -68,7 +68,7 @@ def _reference_backward(sm, proj, subset_idx=None):
     boundary_box_bp = torch.ones(*sm.object_meta.shape).to(DEV)
     proj_pad = int((sm.object_meta.shape[1] - sm.proj_meta.shape[1]) / 2)
     object = torch.zeros(*sm.object_meta.shape).to(DEV)
-    proj = proj * sm.frame_duration_s[angle_indices]
+    proj = proj * sm.frame_duration[angle_indices]
     for angle in torch.unique(sm.proj_meta.angles[angle_indices]):
         idx = sm.proj_meta.angles[angle_indices] == angle
         offsets_i = sm.proj_meta.offsets[angle_indices][idx]

@@ -46,7 +46,7 @@ def test_gate_lut_lands_on_gate_interaction_points(data_dir):
     names = [f"{k}{a}{j}" for k in ("globalPos", "sourcePos") for a in "XYZ" for j in (1, 2)]
     names += [f"{k}{j}" for k in ("comptonPhantom", "RayleighPhantom") for j in (1, 2)]
     b = _branches(root, names)
-    events, object_meta, proj_meta = PET.read_gate(root, macro, doi_mm=9)
+    events, object_meta, proj_meta = PET.read_gate(root, macro, doi=9)
     assert object_meta.frame == "patient" and proj_meta.info["axial_direction"] == -1
     m = PET.gate.world_matrix("LPI")
     centre = np.asarray(object_meta.centre)
@@ -73,7 +73,7 @@ def test_gate_hosted_placement_is_where_v3_saved_the_images(data_dir):
     nib = pytest.importorskip("nibabel")
     root, macro = _gate_run(data_dir)
     mr = nib.load(str(_file(data_dir, GATE, "fdg_pet_phantom_mri.nii.gz")))
-    grid = PET.read_gate(root, macro, doi_mm=9, object_meta=__import__("pytomography").metadata.ObjectMeta(
+    grid = PET.read_gate(root, macro, doi=9, object_meta=__import__("pytomography").metadata.ObjectMeta(
         dr=(2.0, 2.0, 2.0), shape=(128, 128, 96)))[1]
     n = np.asarray(mr.shape[:3], float)
     d = np.asarray(mr.header["pixdim"][1:4], float) * [-1, -1, 1]
@@ -91,7 +91,7 @@ def test_gate_tof_bins_rise_with_the_true_position(data_dir):
     from pytomography.metadata.PET import PETTOFMeta
     root, macro = _gate_run(data_dir)
     tof_meta = PETTOFMeta(21, 300.0, 82.5)
-    events, object_meta, proj_meta = PET.read_gate(root, macro, doi_mm=9, tof_meta=tof_meta)
+    events, object_meta, proj_meta = PET.read_gate(root, macro, doi=9, tof_meta=tof_meta)
     b = _branches(root, [f"sourcePos{x}{j}" for x in "XYZ" for j in (1, 2)] + ["time1", "time2"] +
                   [f"{k}{j}" for k in ("comptonPhantom", "RayleighPhantom") for j in (1, 2)])
     position = (b["time1"] - b["time2"]) * 1e12 * 0.15

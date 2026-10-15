@@ -138,7 +138,7 @@ def read_simind(headers, energy_window: int | None = None, *, weights: Sequence[
       orbit file (``radii_file``, or the file the header names as its non-uniform orbit file).
     * Every window's bounds and photon energy go into ``proj_meta.energy_windows`` (the window's nuclide line, not the
       simulation's main photon energy); the values are counts per second per MBq (``proj_meta.units``), and
-      ``proj_meta.frame_duration_s`` is the header's time per projection.
+      ``proj_meta.frame_duration`` is the header's time per projection.
     * The grid is the projections' (Lr x Lr x Lz), centred on the rotation axis (frame ``'scanner'``).
 
     Args:
@@ -187,20 +187,20 @@ def read_simind(headers, energy_window: int | None = None, *, weights: Sequence[
     object_meta = SPECTObjectMeta((g['dr'], g['dr'], g['dz']), (g['Lr'], g['Lr'], g['Lz']), frame='scanner', units=None)
     proj_meta = SPECTProjMeta((g['Lr'], g['Lz']), (g['dr'], g['dz']), g['angles'], g['radii'],
                               energy_windows=[_energy_window(organs[0]) for organs in windows],
-                              frame_duration_s=g['duration'], nuclide=g['nuclide'], units='counts/s/MBq')
+                              frame_duration=g['duration'], nuclide=g['nuclide'], units='counts/s/MBq')
     return (projections if energy_window is None else projections[energy_window]), object_meta, proj_meta
 
 
-def simind_psf(header: str, photon_keV: float | None = None, min_sigmas: float = 3) -> SPECTPSFMeta:
+def simind_psf(header: str, photon_energy: float | None = None, min_sigmas: float = 3) -> SPECTPSFMeta:
     """The Gaussian collimator PSF of a SIMIND simulation, from the collimator and camera keys of its header.
 
     The hole diameter, the collimator thickness and the camera's intrinsic FWHM (at 140 keV, scaled as
     :math:`E^{-1/2}`) come from the header; the PSF is that of a lead parallel-hole collimator, as for
-    :func:`~pytomography.io.SPECT.collimator_psf`, at the photon energy of the header's window (or ``photon_keV``).
+    :func:`~pytomography.io.SPECT.collimator_psf`, at the photon energy of the header's window (or ``photon_energy``).
 
     Args:
         header (str): A ``.h00`` file of the simulation (its window sets the photon energy).
-        photon_keV (float, optional): The photon energy in keV, instead of the window's. Defaults to None.
+        photon_energy (float, optional): The photon energy in keV, instead of the window's. Defaults to None.
         min_sigmas (float, optional): Kernel half-width in sigmas. Defaults to 3.
 
     Returns:
@@ -211,10 +211,10 @@ def simind_psf(header: str, photon_keV: float | None = None, min_sigmas: float =
     """
     h = _header(header)
     unit = _mm_per_unit(h)
-    if photon_keV is None:
-        photon_keV = _energy_window(h).photon_keV
+    if photon_energy is None:
+        photon_energy = _energy_window(h).photon_energy
     hole_diameter = h.comment('collimator hole diameter', float) * unit
     hole_length = h.comment('collimator thickness', float) * unit
     intrinsic_140 = h.comment('intrinsic fwhm for the camera', float, default=0.0) * unit
-    intrinsic = intrinsic_140 * (photon_keV / 140) ** -0.5
-    return _psf_meta(hole_diameter, hole_length, _mu_per_mm('lead', photon_keV), intrinsic, 'gaussian', min_sigmas)
+    intrinsic = intrinsic_140 * (photon_energy / 140) ** -0.5
+    return _psf_meta(hole_diameter, hole_length, _mu_per_mm('lead', photon_energy), intrinsic, 'gaussian', min_sigmas)

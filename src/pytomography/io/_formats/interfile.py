@@ -191,6 +191,6 @@ def read_image(path, layout: str | None = None) -> dict:
         _vendors.use('gate-stir-interfile-image', header.path.name)
         offsets = [header.get(f'first pixel offset (mm) [{n}]', float, default=None) for n in (1, 2, 3)]
         if any(o is not None for o in offsets):
-            meta['first_pixel_offset_mm'] = offsets
+            meta['first_pixel_offset'] = offsets
     return dict(data=np.ascontiguousarray(data), affine=_centred(dr, shape), units=units, modality=None, meta=meta,
                 frame='scanner')

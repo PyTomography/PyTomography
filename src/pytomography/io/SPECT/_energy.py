@@ -67,16 +67,16 @@ def nuclide_key(text: str | None) -> str | None:
     return None
 
 
-def photon_energy(ranges_keV: Sequence, nuclide: str | None = None, default: float | None = None) -> float:
+def photon_energy(ranges: Sequence, nuclide: str | None = None, default: float | None = None) -> float:
     """The photon energy an energy window stands for: the strongest line of ``nuclide`` inside one of its ranges;
     else ``default`` when it is inside; else the centre of the window."""
     lines = NUCLIDE_LINES.get(nuclide_key(nuclide) or '', {})
-    inside = {e: i for e, i in lines.items() if any(lo <= e <= hi for lo, hi in ranges_keV)}
+    inside = {e: i for e, i in lines.items() if any(lo <= e <= hi for lo, hi in ranges)}
     if inside:
         return max(inside, key=inside.get)
-    if default is not None and any(lo <= default <= hi for lo, hi in ranges_keV):
+    if default is not None and any(lo <= default <= hi for lo, hi in ranges):
         return float(default)
-    lo, hi = min(r[0] for r in ranges_keV), max(r[1] for r in ranges_keV)
+    lo, hi = min(r[0] for r in ranges), max(r[1] for r in ranges)
     return (lo + hi) / 2
 
 
@@ -89,9 +89,9 @@ def energy_window_scatter(
     *,
     weighting_lower: float = 0.5,
     weighting_upper: float = 0.5,
-    sigma_theta: float = 0,
-    sigma_r_mm: float = 0,
-    sigma_z_mm: float = 0,
+    fwhm_theta: float = 0,
+    fwhm_r: float = 0,
+    fwhm_z: float = 0,
     N_sigmas: int = 3,
     fov_mask: torch.Tensor | None = None,
     return_scatter_variance_estimate: bool = False,
@@ -101,21 +101,22 @@ def energy_window_scatter(
     The estimate is :math:`w_\text{peak} (\alpha_l P_l / w_l + \alpha_u P_u / w_u)`, with :math:`P` the projections
     of the lower and upper windows, :math:`w` the windows' widths in keV (from ``proj_meta.energy_windows``) and
     :math:`\alpha` the weightings; without ``upper`` (dual energy window) the upper term is left out. It can then be
-    smoothed with Gaussians along θ, r and z.
+    smoothed with Gaussians along θ, r and z, each given by its FWHM.
 
     Args:
-        projections (torch.Tensor): [W, θ, r, z], every energy window (as the readers give them).
+        projections (torch.Tensor): [W, θ, r, z], every energy window (as the readers give them), in counts.
         proj_meta (SPECTProjMeta): The projections' metadata, with ``energy_windows``.
         peak (int): Index of the photopeak window.
         lower (int): Index of the lower scatter window.
         upper (int, optional): Index of the upper scatter window. Defaults to None (dual energy window).
-        weighting_lower (float, optional): Weight of the lower window. Defaults to 0.5.
-        weighting_upper (float, optional): Weight of the upper window. Defaults to 0.5.
-        sigma_theta (float, optional): Gaussian sigma of the smoothing along the views, in degrees. Defaults to 0 (no
+        weighting_lower (float, optional): Weight of the lower window (no units). Defaults to 0.5.
+        weighting_upper (float, optional): Weight of the upper window (no units). Defaults to 0.5.
+        fwhm_theta (float, optional): FWHM of the Gaussian smoothing along the views, in degrees. Defaults to 0 (no
             smoothing).
-        sigma_r_mm (float, optional): Gaussian sigma of the smoothing along r, in mm. Defaults to 0.
-        sigma_z_mm (float, optional): Gaussian sigma of the smoothing along z, in mm. Defaults to 0.
-        N_sigmas (int, optional): Half-width of the smoothing kernels, in sigmas. Defaults to 3.
+        fwhm_r (float, optional): FWHM of the Gaussian smoothing along r, in mm. Defaults to 0.
+        fwhm_z (float, optional): FWHM of the Gaussian smoothing along z, in mm. Defaults to 0.
+        N_sigmas (int, optional): Half-width of the smoothing kernels, in standard deviations (FWHM / 2.355).
+            Defaults to 3.
         fov_mask (torch.Tensor, optional): [r, z] mask of the detector's field of view (see :func:`fov_mask`), so that
             smoothing does not blur across its edge; the smoothed estimate is zero outside it. Defaults to None.
         return_scatter_variance_estimate (bool, optional): Also return the estimate's variance as an operator, for
@@ -137,8 +138,8 @@ def energy_window_scatter(
                          f'shape {tuple(projections.shape)}')
     return compute_EW_scatter(
         projections[lower], projections[upper] if upper is not None else None,
-        windows[lower].width_keV, windows[upper].width_keV if upper is not None else None, windows[peak].width_keV,
-        weighting_lower, weighting_upper, proj_meta, sigma_theta, sigma_r_mm, sigma_z_mm, N_sigmas,
+        windows[lower].width, windows[upper].width if upper is not None else None, windows[peak].width,
+        weighting_lower, weighting_upper, proj_meta, fwhm_theta, fwhm_r, fwhm_z, N_sigmas,
         return_scatter_variance_estimate, fov_mask)
 
 
@@ -170,21 +171,21 @@ def fov_mask(projections: torch.Tensor, contraction: int = 1) -> torch.Tensor:
 _FWHM_TO_SIGMA = 1 / (2 * np.sqrt(2 * np.log(2)))
 
 
-def _mu_per_mm(material: str, photon_keV: float) -> float:
+def _mu_per_mm(material: str, photon_energy: float) -> float:
     from pytomography.utils import get_mu_from_spectrum_interp
     module_path = os.path.dirname(os.path.abspath(__file__))
     return float(get_mu_from_spectrum_interp(os.path.join(module_path, f'../../data/NIST_attenuation_data/{material}.csv'),
-                                             photon_keV)) / 10
+                                             photon_energy)) / 10
 
 
-def _psf_meta(hole_diameter_mm: float, hole_length_mm: float, mu_per_mm: float, intrinsic_fwhm_mm: float,
+def _psf_meta(hole_diameter: float, hole_length: float, mu: float, intrinsic_fwhm: float,
               shape: str, min_sigmas: float) -> SPECTPSFMeta:
     """The collimator's geometric resolution D (L_eff + d) / L_eff, with L_eff = L - 2 / mu, as a Gaussian sigma (with
     the intrinsic resolution in quadrature) or as the half-width of a triangle (square holes)."""
-    slope = hole_diameter_mm / (hole_length_mm - 2 / mu_per_mm)
-    intercept = hole_diameter_mm
+    slope = hole_diameter / (hole_length - 2 / mu)
+    intercept = hole_diameter
     if shape == 'gaussian':
-        params = [slope * _FWHM_TO_SIGMA, intercept * _FWHM_TO_SIGMA, intrinsic_fwhm_mm * _FWHM_TO_SIGMA]
+        params = [slope * _FWHM_TO_SIGMA, intercept * _FWHM_TO_SIGMA, intrinsic_fwhm * _FWHM_TO_SIGMA]
     elif shape == 'square':
         # a square hole's PSF along r (and z) is a triangle reaching zero at the geometric resolution, which is also
         # its FWHM; the intrinsic resolution is not modelled for it
@@ -195,24 +196,24 @@ def _psf_meta(hole_diameter_mm: float, hole_length_mm: float, mu_per_mm: float, 
                         min_sigmas=min_sigmas, shape=shape)
 
 
-def collimator_psf(collimator: str, photon_keV: float, intrinsic_fwhm_mm: float = 0.0, *,
-                   intrinsic_fwhm_140keV_mm: float | None = None, material: str = 'lead', shape: str = 'gaussian',
+def collimator_psf(collimator: str, photon_energy: float, intrinsic_fwhm: float = 0.0, *,
+                   intrinsic_fwhm_140keV: float | None = None, material: str = 'lead', shape: str = 'gaussian',
                    min_sigmas: float = 3) -> SPECTPSFMeta:
     r"""The PSF of a parallel-hole collimator, from its code in PyTomography's collimator table, at a photon energy.
 
     The collimator's geometric resolution (FWHM) at distance :math:`d` from it is :math:`D (L_\text{eff} + d) /
     L_\text{eff}`, with :math:`D` the hole diameter and :math:`L_\text{eff} = L - 2/\mu` the hole length shortened by
-    the septal penetration of the material at ``photon_keV``. With ``shape='gaussian'`` it becomes a Gaussian sigma,
+    the septal penetration of the material at ``photon_energy``. With ``shape='gaussian'`` it becomes a Gaussian sigma,
     added in quadrature to the intrinsic resolution; with ``shape='square'`` it is the half-width of a triangle (the
     intrinsic resolution is then not modelled). The table is :func:`collimators` (the docs' "SPECT parameters" page
     lists it).
 
     Args:
         collimator (str): The collimator's code, e.g. ``'SY-ME'`` or ``'G8-LEHR'`` (any case).
-        photon_keV (float): The photon energy, in keV (``proj_meta.energy_windows[i].photon_keV``).
-        intrinsic_fwhm_mm (float, optional): The detector's intrinsic resolution (FWHM, mm) at ``photon_keV``.
+        photon_energy (float): The photon energy, in keV (``proj_meta.energy_windows[i].photon_energy``).
+        intrinsic_fwhm (float, optional): The detector's intrinsic resolution (FWHM, mm) at ``photon_energy``.
             Defaults to 0.
-        intrinsic_fwhm_140keV_mm (float, optional): The intrinsic resolution at 140 keV instead (most data sheets give
+        intrinsic_fwhm_140keV (float, optional): The intrinsic resolution at 140 keV instead (most data sheets give
             that), scaled as :math:`E^{-1/2}`. Defaults to None.
         material (str, optional): The collimator's material (``'lead'``, ``'tungsten'``). Defaults to ``'lead'``.
         shape (str, optional): ``'gaussian'``, or ``'square'`` for square holes (CZT cameras such as the StarGuide),
@@ -232,8 +233,8 @@ def collimator_psf(collimator: str, photon_keV: float, intrinsic_fwhm_mm: float 
         dimensions = _collimator(collimator)
     except KeyError as error:
         raise ValueError(error.args[0]) from None
-    hole_diameter_mm, hole_length_mm = dimensions['hole_diameter_mm'], dimensions['hole_length_mm']
-    if intrinsic_fwhm_140keV_mm is not None:
-        intrinsic_fwhm_mm = intrinsic_fwhm_140keV_mm * (photon_keV / 140) ** -0.5
-    return _psf_meta(hole_diameter_mm, hole_length_mm, _mu_per_mm(material, photon_keV), intrinsic_fwhm_mm, shape,
+    hole_diameter, hole_length = dimensions['hole_diameter'], dimensions['hole_length']
+    if intrinsic_fwhm_140keV is not None:
+        intrinsic_fwhm = intrinsic_fwhm_140keV * (photon_energy / 140) ** -0.5
+    return _psf_meta(hole_diameter, hole_length, _mu_per_mm(material, photon_energy), intrinsic_fwhm, shape,
                      min_sigmas)

@@ -233,7 +233,7 @@ def test_available_memory_reads_this_machine():
 
 
 # ------------------------------------------------------------------ PET and CT system matrices
-INFO = scanner_info(min_rsector_difference=0, crystal_length=20.0, radius=120.0, rsector0_angle_deg=90.0, transaxial_direction=-1, axial_direction=-1,
+INFO = scanner_info(min_rsector_difference=0, crystal_length=20.0, radius=120.0, rsector0_angle=90.0, transaxial_direction=-1, axial_direction=-1,
             rsectorTransNr=16, rsectorAxialNr=1, moduleTransNr=1, moduleAxialNr=2, moduleTransSpacing=0.0, moduleAxialSpacing=17.0,
             submoduleTransNr=1, submoduleAxialNr=1, submoduleTransSpacing=0.0, submoduleAxialSpacing=0.0,
             crystalTransNr=4, crystalAxialNr=4, crystalTransSpacing=4.0, crystalAxialSpacing=4.0,
@@ -484,7 +484,7 @@ def test_monte_carlo_hybrid_adds_simind(monkeypatch):
                                            obj2obj_transforms=base.obj2obj_transforms, proj2proj_transforms=[],
                                            attenuation_map_140keV=torch.rand(base.object_meta.shape), energy_window_params=['a', 'b', 'c'],
                                            primary_window_idx=1, isotope_names=['lu177'], isotope_ratios=[1.0], collimator_type='SY-ME',
-                                           crystal_thickness_mm=9.5, cover_thickness_mm=1.0, backscatter_thickness_mm=50.0)
+                                           crystal_thickness=9.5, cover_thickness=1.0, backscatter_thickness=50.0)
     parts = _parts(sm.estimate_memory(4))
     simind = parts['SIMIND processes (6)']
     assert simind.ram_bytes >= 6 * sm.SIMIND_PROCESS_BYTES and simind.scope == 'chunk'

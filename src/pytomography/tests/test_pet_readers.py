@@ -114,12 +114,12 @@ def write_gate(folder, n=400, seed=0, tof_positions=None, kinds=None, delays=0):
 def test_scanner_info_checks_and_types():
     info = scanner_info(crystalTransNr=np.int64(4), crystalTransSpacing=np.float32(4.0), crystalAxialNr=3,
                         crystalAxialSpacing=5, moduleTransNr=1, moduleAxialNr=2, moduleAxialSpacing=16.0,
-                        rsectorTransNr=12, radius=98.0, doi_mm=3)
+                        rsectorTransNr=12, radius=98.0, doi=3)
     assert info["NrCrystalsPerRing"] == 48 and info["NrRings"] == 6
     assert all(type(v) in (int, float, str, type(None)) for v in info.values())
-    assert (info["rsector0_angle_deg"], info["transaxial_direction"], info["axial_direction"]) == (0.0, 1, 1)
-    assert info["energy_window_low_keV"] is None and info["doi_mm"] == 3.0
-    for old in ("firstCrystalAxis", "energy_window_low", "mean_interaction_depth"):
+    assert (info["rsector0_angle"], info["transaxial_direction"], info["axial_direction"]) == (0.0, 1, 1)
+    assert info["energy_window_low"] is None and info["doi"] == 3.0
+    for old in ("firstCrystalAxis", "mean_interaction_depth"):
         with pytest.raises(ValueError, match="replaced"):
             scanner_info(info, **{old: 1})
     with pytest.raises(ValueError, match="NrRings"):
@@ -129,7 +129,7 @@ def test_scanner_info_checks_and_types():
     with pytest.raises(ValueError, match="1 or -1"):
         scanner_info(info, axial_direction=0)
     with pytest.raises(ValueError, match="upper limit"):
-        scanner_info(info, energy_window_low_keV=500, energy_window_high_keV=400)
+        scanner_info(info, energy_window_low=500, energy_window_high=400)
     with pytest.raises(ValueError, match="frame keys"):
         scanner_lut({k: v for k, v in info.items() if k != "axial_direction"})
     assert scanner_info(info, min_rsector_difference=2)["min_rsector_difference"] == 2
@@ -142,7 +142,7 @@ def test_the_table_scanner_is_upright():
     assert (info["NrCrystalsPerRing"], info["NrRings"]) == (544, 36)
     lut = scanner_lut(info).double()
     assert lut[0, 1] < -370 and abs(lut[0, 0]) < 40
-    old = scanner_lut(scanner_info(info, rsector0_angle_deg=90))           # PyTomography 3's GE geometry
+    old = scanner_lut(scanner_info(info, rsector0_angle=90))           # PyTomography 3's GE geometry
     assert torch.allclose(lut, old * torch.tensor([-1.0, -1.0, 1.0], dtype=torch.float64), atol=1e-3)
 
 
@@ -150,7 +150,7 @@ def test_the_table_scanner_is_upright():
 def test_scanner_lut_follows_the_frame_keys(angle, transaxial, axial):
     info = scanner_info(crystalTransNr=4, crystalTransSpacing=4.0, crystalAxialNr=3, crystalAxialSpacing=5.0,
                         moduleTransNr=1, moduleAxialNr=2, moduleAxialSpacing=16.0, rsectorTransNr=12, radius=98.0,
-                        rsector0_angle_deg=angle, transaxial_direction=transaxial, axial_direction=axial)
+                        rsector0_angle=angle, transaxial_direction=transaxial, axial_direction=axial)
     lut = scanner_lut(info).double().numpy()
     centre0 = lut[: 4].mean(axis=0)                         # the crystals of rsector 0 around its centre, in ring 0
     assert math.isclose(math.degrees(math.atan2(centre0[1], centre0[0])) % 360, angle % 360, abs_tol=1e-3)
@@ -164,7 +164,7 @@ def test_scanner_lut_follows_the_frame_keys(angle, transaxial, axial):
 def test_frame_keys_after_a_rotation_or_reflection():
     info = scanner_info(crystalTransNr=4, crystalTransSpacing=4.0, crystalAxialNr=3, crystalAxialSpacing=5.0,
                         moduleTransNr=1, moduleAxialNr=2, moduleAxialSpacing=16.0, rsectorTransNr=12, radius=98.0,
-                        rsector0_angle_deg=20.0)
+                        rsector0_angle=20.0)
     lut = scanner_lut(info).double().numpy()
     for letters in ("LPS", "LPI", "RAS", "RAI", "PLS", "ALI", "PRS"):
         m = gate.world_matrix(letters)
@@ -191,7 +191,7 @@ def test_gate_lut_lands_on_the_interaction_points(tmp_path, world_axes):
     root, macro, columns = write_gate(tmp_path)
     origin = (12.5, -40.0, 7.0)
     events, object_meta, proj_meta = PET.read_gate(root, macro, world_axes=world_axes, world_origin=origin,
-                                                   doi_mm=DOI)
+                                                   doi=DOI)
     assert events.dtype == torch.int32 and events.shape == (400, 2)
     assert object_meta.frame == "patient" and object_meta.modality == "PT" and object_meta.units == "counts"
     m = gate.world_matrix(world_axes)
@@ -203,7 +203,7 @@ def test_gate_lut_lands_on_the_interaction_points(tmp_path, world_axes):
         found = lut[events[:, j].long().numpy()] + np.array(object_meta.centre)
         assert np.abs(found - patient).max() < 0.1
     info = proj_meta.info
-    assert info["radius"] == 98.0 and info["doi_mm"] == DOI and info["crystal_length"] == 10.0
+    assert info["radius"] == 98.0 and info["doi"] == DOI and info["crystal_length"] == 10.0
 
 
 def test_gate_without_an_origin_is_in_the_scanner_frame(tmp_path):
@@ -211,7 +211,7 @@ def test_gate_without_an_origin_is_in_the_scanner_frame(tmp_path):
     _, object_meta, proj_meta = PET.read_gate(root, macro)
     assert object_meta.frame == "scanner" and object_meta.centre == (0.0, 0.0, 0.0)
     info = proj_meta.info
-    assert (info["rsector0_angle_deg"], info["transaxial_direction"], info["axial_direction"]) == (0.0, 1, 1)
+    assert (info["rsector0_angle"], info["transaxial_direction"], info["axial_direction"]) == (0.0, 1, 1)
     # the default grid: half the crystal pitch, 80 % of the ring's diameter, every ring
     assert object_meta.dr == (2.0, 2.0, 2.5)
     assert object_meta.shape[0] == math.ceil(0.8 * 2 * 95 / 2.0)
@@ -292,7 +292,7 @@ def test_gate_normalization_from_a_calibration_scan(tmp_path):
     root, macro, _ = write_gate(tmp_path, n=2000)
     _, _, proj_meta = PET.read_gate(root, macro)
     with pytest.warns(UserWarning, match="NaN"):
-        weights = PET.gate_normalization(root, proj_meta.info, cylinder_radius_mm=60.0)
+        weights = PET.gate_normalization(root, proj_meta.info, cylinder_radius=60.0)
     n = proj_meta.scanner_lut.shape[0]
     assert weights.shape == (n * (n - 1) // 2,) and not torch.isnan(weights).any()
     pairs = torch.combinations(torch.arange(n), 2)
@@ -433,8 +433,8 @@ def test_ge_hdf5_events_tof_frame_and_energy_window(tmp_path):
                          14 - events[:29, 4] // 13], axis=1)
     assert got.tolist() == expected.tolist()
     info = proj_meta.info
-    assert (info["energy_window_low_keV"], info["energy_window_high_keV"]) == (425.0, 650.0)
-    assert proj_meta.tof_meta.num_bins == 29 and proj_meta.duration_s == 345.0
+    assert (info["energy_window_low"], info["energy_window_high"]) == (425.0, 650.0)
+    assert proj_meta.tof_meta.num_bins == 29 and proj_meta.duration == 345.0
     assert object_meta.frame == "scanner" and object_meta.modality == "PT"
     assert proj_meta.scanner_lut[0, 1] < -370                              # crystal 0 at the top: the bed posterior
 

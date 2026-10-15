@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from scipy.ndimage import center_of_mass, shift, affine_transform
 from matplotlib.patches import FancyArrowPatch
 from scipy.ndimage import rotate
+from ._renamed import renamed_arguments
 
 def shift_object(object: torch.Tensor, tx: float, ty: float, tz: float) -> torch.Tensor:
     """Shifts a 3D image by whole or fractional voxels, with linear interpolation.
@@ -102,7 +103,8 @@ def get_shift_values(slice: torch.Tensor) -> torch.Tensor:
     
     return shifted_image, shift_values[0], shift_values[1]
 
-def get_angle(slice: torch.Tensor, angle_range_degrees: torch.Tensor) -> float:
+@renamed_arguments(angle_range_degrees='angle_range')
+def get_angle(slice: torch.Tensor, angle_range: torch.Tensor) -> float:
     r"""Angle of the line through the centre of a 2D slice that lies closest to the slice's nonzero pixels.
 
     The second axis (columns) is taken as x and the first (rows) as y. For each candidate angle :math:`\theta`, the line
@@ -112,13 +114,13 @@ def get_angle(slice: torch.Tensor, angle_range_degrees: torch.Tensor) -> float:
 
     Args:
         slice (torch.Tensor): Slice [N0, N1], e.g. a shifted mask from :func:`get_shift_values`.
-        angle_range_degrees (torch.Tensor): Candidate angles [N], in degrees, on the device of ``slice``.
+        angle_range (torch.Tensor): Candidate angles [N], in degrees, on the device of ``slice``.
 
     Returns:
         float: The best of the candidate angles, in degrees.
     """
     
-    angle_range_radians = angle_range_degrees * (math.pi / 180)
+    angle_range_radians = angle_range * (math.pi / 180)
     center_x, center_y = slice.shape[1] // 2, slice.shape[0] // 2
     y_indices, x_indices = torch.nonzero(slice, as_tuple=True)
     
@@ -134,7 +136,8 @@ def get_angle(slice: torch.Tensor, angle_range_degrees: torch.Tensor) -> float:
     
     return best_angle_degree
 
-def plot_arrow(image, angle_degrees, fontsize=10):
+@renamed_arguments(angle_degrees='angle')
+def plot_arrow(image, angle, fontsize=10):
     """Shows a 2D slice with an arrow from its centre at a given angle, inside a dial of angles.
 
     The slice is drawn in grey with its first axis running down the screen and its second to the right. The arrow's
@@ -143,11 +146,11 @@ def plot_arrow(image, angle_degrees, fontsize=10):
 
     Args:
         image (torch.Tensor): Slice [N0, N1].
-        angle_degrees (float): Angle of the arrow, in degrees clockwise from up.
+        angle (float): Angle of the arrow, in degrees clockwise from up.
         fontsize (int, optional): Font size of the labels. Defaults to 10.
     """
     center_x, center_y = image.shape[1] // 2, image.shape[0] // 2
-    angle_radians = np.deg2rad(angle_degrees)
+    angle_radians = np.deg2rad(angle)
     length = min(image.shape) // 2  # Ensure the arrow length is within the image bounds
     
     end_x = center_x + length * np.sin(angle_radians)
@@ -171,7 +174,7 @@ def plot_arrow(image, angle_degrees, fontsize=10):
         y = center_y - (length + 10) * np.cos(angle_rad)
         ax.text(x, y, f'{angle}', fontsize=fontsize, color='red', ha='center', va='center')
 
-    ax.text(center_x, center_y, f'{angle_degrees:.2f}°', fontsize=fontsize, color='red', ha='center', va='center', bbox=dict(facecolor='white', alpha=0.5, edgecolor='red'))
+    ax.text(center_x, center_y, f'{angle:.2f}°', fontsize=fontsize, color='red', ha='center', va='center', bbox=dict(facecolor='white', alpha=0.5, edgecolor='red'))
     ax.axis('off')
     ax.set_xlim(0, image.shape[1])
     ax.set_ylim(image.shape[0], 0) 

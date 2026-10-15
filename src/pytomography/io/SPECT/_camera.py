@@ -1,15 +1,15 @@
 """SPECT camera parameters by name: collimators by code, detectors by label, cameras by name.
 
 PyTomography keeps the tables (``pytomography/data``: ``collimators.csv``, ``detectors.csv``, ``cameras.json``; the
-docs' "SPECT parameters" page lists them all) and returns plain numbers, named as spectarf's classes take them, so a
-camera for angular response functions reads::
+docs' "SPECT parameters" page lists them all) and returns plain numbers in PyTomography's units: lengths in mm and
+energies in keV, with no unit suffixes in the names (the docs' Conventions page). spectarf's PyTomography adapter
+turns them into its camera model, for angular response functions::
 
+    from spectarf.pytomography import camera_model
     collimator = io.SPECT.collimator('SY-HE')
     detector = io.SPECT.detector('NaI-9.5mm')
     camera = io.SPECT.camera('Siemens Symbia T')
-    stack = spectarf.DetectorStack(spectarf.Collimator(**collimator), **detector)
-    response = spectarf.DetectorResponse(spectarf.EnergyResolution.geb(**camera['energy_resolution']),
-                                         intrinsic_fwhm_mm_140=camera['intrinsic_fwhm_mm_140'])
+    stack, response = camera_model(collimator, detector, camera)
 """
 from __future__ import annotations
 import csv
@@ -36,8 +36,8 @@ def _number(value: str) -> float | None:
 def collimators() -> tuple[dict, ...]:
     """Every collimator of PyTomography's table, from SIMIND's collimator database: code, camera family, type,
     kind (``'parallel'``, ``'fan'``), hole shape (``'hex'``, ``'square'``, ``'circular'``), whether the hexagonal
-    lattice is rotated by 90 degrees, hole diameter (across the flats for hexagons), septal thickness and hole length
-    in mm, focal length in mm (fan beams), and source.
+    lattice is rotated by 90 degrees, ``hole_diameter`` (mm, across the flats for hexagons), ``septal_thickness``
+    (mm), ``hole_length`` (mm), ``focal_length`` (mm, fan beams), and source.
 
     Returns:
         tuple[dict, ...]: The rows, sorted by family and code.
@@ -45,25 +45,26 @@ def collimators() -> tuple[dict, ...]:
     out = []
     for r in _rows('collimators.csv'):
         out.append(dict(code=r['code'], family=r['family'], type=r['type'], kind=r['kind'], hole_shape=r['hole_shape'],
-                        rotated=r['rotated'] == 'true', hole_diameter_mm=_number(r['hole_diameter_mm']),
-                        septal_thickness_mm=_number(r['septal_thickness_mm']), hole_length_mm=_number(r['hole_length_mm']),
-                        focal_length_mm=_number(r['focal_length_mm']), source=r['source']))
+                        rotated=r['rotated'] == 'true', hole_diameter=_number(r['hole_diameter']),
+                        septal_thickness=_number(r['septal_thickness']), hole_length=_number(r['hole_length']),
+                        focal_length=_number(r['focal_length']), source=r['source']))
     return tuple(out)
 
 
 @functools.lru_cache(maxsize=None)
 def detectors() -> tuple[dict, ...]:
-    """Every detector label of PyTomography's table: the crystal, its thickness and material, the cover and the
-    backscatter behind the crystal (thicknesses in mm, materials as spectarf names them), and source.
+    """Every detector label of PyTomography's table: the crystal, ``crystal_thickness`` (mm) and its material, the
+    cover (``cover_thickness``, mm) and the backscatter behind the crystal (``backscatter_thickness``, mm), the
+    materials as spectarf names them, and source.
 
     Returns:
         tuple[dict, ...]: The rows.
     """
     out = []
     for r in _rows('detectors.csv'):
-        out.append(dict(label=r['label'], crystal=r['crystal'], crystal_mm=float(r['crystal_mm']),
-                        crystal_material=r['crystal_material'], cover_mm=float(r['cover_mm']),
-                        cover_material=r['cover_material'], backscatter_mm=float(r['backscatter_mm']),
+        out.append(dict(label=r['label'], crystal=r['crystal'], crystal_thickness=float(r['crystal_thickness']),
+                        crystal_material=r['crystal_material'], cover_thickness=float(r['cover_thickness']),
+                        cover_material=r['cover_material'], backscatter_thickness=float(r['backscatter_thickness']),
                         backscatter_material=r['backscatter_material'], source=r['source']))
     return tuple(out)
 
@@ -71,7 +72,8 @@ def detectors() -> tuple[dict, ...]:
 @functools.lru_cache(maxsize=None)
 def cameras() -> tuple[dict, ...]:
     """Every camera of PyTomography's table: its name and other names, its energy resolution model (``model``, the
-    model's parameters and the source) and its intrinsic spatial resolution (FWHM at 140 keV, mm) with source.
+    model's parameters and the source) and ``intrinsic_fwhm_140keV``, its intrinsic spatial resolution (the FWHM at
+    140 keV, in mm), with source.
 
     Returns:
         tuple[dict, ...]: The cameras.
@@ -97,12 +99,13 @@ def collimator(code: str, material: str = 'lead') -> dict:
 
     Args:
         code (str): The collimator's code (any case). Every code is listed on the docs' "SPECT parameters" page.
-        material (str, optional): The septa's material, as spectarf names it. Defaults to ``'lead'``.
+        material (str, optional): The septa's material, as spectarf names it (e.g. ``'lead'``, ``'tungsten'``).
+            Defaults to ``'lead'``.
 
     Returns:
-        dict: ``hole_diameter_mm`` (across the flats for hexagons), ``septal_thickness_mm``, ``hole_length_mm``,
+        dict: ``hole_diameter`` (mm, across the flats for hexagons), ``septal_thickness`` (mm), ``hole_length`` (mm),
         ``hole_shape`` (``'hex'``, ``'square'`` or ``'circular'``), ``rotated`` (the hexagonal lattice turned 90
-        degrees), ``material`` and ``code``: the arguments of ``spectarf.Collimator``.
+        degrees), ``material`` and ``code``.
 
     Raises:
         KeyError: The code is not in the table (the closest codes are suggested).
@@ -114,8 +117,8 @@ def collimator(code: str, material: str = 'lead') -> dict:
         raise _not_found('collimator', code, [r['code'] for r in collimators()])
     if row['kind'] != 'parallel':
         raise ValueError(f'{row["code"]} is a {row["kind"]} collimator; PyTomography models parallel-hole collimators only')
-    return dict(hole_diameter_mm=row['hole_diameter_mm'], septal_thickness_mm=row['septal_thickness_mm'],
-                hole_length_mm=row['hole_length_mm'], hole_shape=row['hole_shape'], rotated=row['rotated'],
+    return dict(hole_diameter=row['hole_diameter'], septal_thickness=row['septal_thickness'],
+                hole_length=row['hole_length'], hole_shape=row['hole_shape'], rotated=row['rotated'],
                 material=material, code=row['code'])
 
 
@@ -127,8 +130,8 @@ def detector(label: str) -> dict:
         label (str): The detector's label (any case).
 
     Returns:
-        dict: ``crystal_mm``, ``crystal_material``, ``cover_mm``, ``cover_material``, ``backscatter_mm`` and
-        ``backscatter_material``: the detector arguments of ``spectarf.DetectorStack``.
+        dict: ``crystal_thickness`` (mm), ``crystal_material``, ``cover_thickness`` (mm), ``cover_material``,
+        ``backscatter_thickness`` (mm) and ``backscatter_material``.
 
     Raises:
         KeyError: The label is not in the table.
@@ -137,23 +140,23 @@ def detector(label: str) -> dict:
     row = rows.get(_key(label))
     if row is None:
         raise _not_found('detector', label, [r['label'] for r in detectors()])
-    return {k: row[k] for k in ('crystal_mm', 'crystal_material', 'cover_mm', 'cover_material', 'backscatter_mm',
-                                'backscatter_material')}
+    return {k: row[k] for k in ('crystal_thickness', 'crystal_material', 'cover_thickness', 'cover_material',
+                                'backscatter_thickness', 'backscatter_material')}
 
 
 def camera(name: str) -> dict:
     """A camera's energy and intrinsic spatial resolution, from its name (e.g. ``'Siemens Symbia T'``).
 
     The energy resolution is the parameters of its model; the only model so far is Morphis et al.'s,
-    :math:`\\text{FWHM} = a + b\\sqrt{E + cE^2}` (keV), whose parameters ``a_keV``, ``b`` and ``c_per_keV`` are the
-    arguments of ``spectarf.EnergyResolution.geb``.
+    :math:`\\text{FWHM} = a + b\\sqrt{E + cE^2}` with :math:`E` and the FWHM in keV: its parameters
+    are ``a`` in keV, ``b`` in keV^(1/2) and ``c`` in 1/keV.
 
     Args:
         name (str): The camera's name or one of its other names (any case and spacing).
 
     Returns:
-        dict: ``name``, ``energy_resolution_model``, ``energy_resolution`` (the model's parameters) and
-        ``intrinsic_fwhm_mm_140`` (the intrinsic spatial resolution, FWHM at 140 keV, mm).
+        dict: ``name``, ``energy_resolution_model``, ``energy_resolution`` (the model's parameters ``a``, ``b`` and
+        ``c``, above) and ``intrinsic_fwhm_140keV`` (the intrinsic spatial resolution, the FWHM at 140 keV, in mm).
 
     Raises:
         KeyError: The camera is not in the table.
@@ -164,17 +167,18 @@ def camera(name: str) -> dict:
             kind = model.pop('model')
             model.pop('source', None)
             return dict(name=row['name'], energy_resolution_model=kind, energy_resolution=model,
-                        intrinsic_fwhm_mm_140=float(row['intrinsic_fwhm_mm_140']))
+                        intrinsic_fwhm_140keV=float(row['intrinsic_fwhm_140keV']))
     raise _not_found('camera', name, [n for r in cameras() for n in [r['name'], *r.get('aliases', [])]])
 
 
-def energy_resolution_fwhm_keV(model: str, energy_keV, **parameters):
-    """The FWHM (keV) of an energy resolution model at ``energy_keV``: ``'Morphis'``, :math:`a + b\\sqrt{E + cE^2}`.
+def energy_resolution_fwhm(model: str, energy, **parameters):
+    """The FWHM (keV) of an energy resolution model at ``energy``: ``'Morphis'``, :math:`a + b\\sqrt{E + cE^2}`.
 
     Args:
         model (str): The model's name (``camera(...)['energy_resolution_model']``).
-        energy_keV (float | np.ndarray): The energy (keV).
-        **parameters: The model's parameters (``camera(...)['energy_resolution']``).
+        energy (float | np.ndarray): The photon energy, in keV.
+        **parameters: The model's parameters (``camera(...)['energy_resolution']``: ``a`` in keV, ``b`` in
+            keV^(1/2), ``c`` in 1/keV).
 
     Returns:
         float | np.ndarray: The FWHM (keV).
@@ -182,5 +186,5 @@ def energy_resolution_fwhm_keV(model: str, energy_keV, **parameters):
     import numpy as np
     if model != 'Morphis':
         raise ValueError(f'unknown energy resolution model {model!r}')
-    e = np.asarray(energy_keV, dtype=np.float64)
-    return parameters['a_keV'] + parameters['b'] * np.sqrt(e + parameters['c_per_keV'] * e ** 2)
+    e = np.asarray(energy, dtype=np.float64)
+    return parameters['a'] + parameters['b'] * np.sqrt(e + parameters['c'] * e ** 2)

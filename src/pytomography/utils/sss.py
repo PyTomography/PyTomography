@@ -89,21 +89,21 @@ def diff_compton_cross_section(cos_theta: torch.Tensor, energy: torch.Tensor) ->
 #: :func:`detector_energy_window`): a lower threshold of 430 keV, no upper limit, and a resolution of 15% FWHM at
 #: 511 keV. These are the values the scatter simulation used before it read them from ``info``, so data whose ``info``
 #: gives none of them get the same estimate as before, bit for bit.
-DEFAULT_ENERGY_WINDOW = {'energy_window_low_keV': 430.0, 'energy_window_high_keV': None, 'energy_resolution': 0.15}
+DEFAULT_ENERGY_WINDOW = {'energy_window_low': 430.0, 'energy_window_high': None, 'energy_resolution': 0.15}
 
 def detector_energy_window(info: dict) -> tuple[float, float | None, float]:
     """The detector's energy window and energy resolution, as the scatter simulation reads them from the scanner's info.
 
     The keys of ``info`` are:
 
-    * ``info['energy_window_low_keV']``: the lower limit of the energy window, in keV;
-    * ``info['energy_window_high_keV']``: its upper limit, in keV;
+    * ``info['energy_window_low']``: the lower limit of the energy window, in keV;
+    * ``info['energy_window_high']``: its upper limit, in keV;
     * ``info['energy_resolution']``: the FWHM of the photopeak at 511 keV, as a fraction of 511 keV (PETSIRD's
       ``energy_resolution_at_511``).
 
     :func:`~pytomography.io.PET.read_petsird` gives all three from the file, :func:`~pytomography.io.PET.read_ge_hdf5`
     the window's limits from the file's header, and :func:`~pytomography.io.PET.read_gate` what its
-    ``energy_window_keV`` and ``energy_resolution`` arguments give; set them in ``info`` to use a scanner's own values.
+    ``energy_window`` and ``energy_resolution`` arguments give; set them in ``info`` to use a scanner's own values.
     Each key that is absent (or None) takes its default on its own (:data:`DEFAULT_ENERGY_WINDOW`): 430 keV, no upper
     limit, 0.15.
 
@@ -121,12 +121,12 @@ def detector_energy_window(info: dict) -> tuple[float, float | None, float]:
         v = info.get(key)
         v = DEFAULT_ENERGY_WINDOW[key] if v is None else v
         return None if v is None else float(v)
-    low, high, resolution = value('energy_window_low_keV'), value('energy_window_high_keV'), value('energy_resolution')
+    low, high, resolution = value('energy_window_low'), value('energy_window_high'), value('energy_resolution')
     if not 0 < resolution < 1:
         raise ValueError(f"info['energy_resolution'] is the FWHM at 511 keV as a fraction of 511 keV (0.15 for 15%), "
                          f"between 0 and 1; it is {resolution}. Set it to the scanner's value, or remove it to use 0.15")
     if high is not None and not high > low:
-        raise ValueError(f"the energy window's upper limit (info['energy_window_high_keV'] = {high} keV) must be above its "
+        raise ValueError(f"the energy window's upper limit (info['energy_window_high'] = {high} keV) must be above its "
                          f"lower limit ({low} keV)")
     return low, high, resolution
 
@@ -417,8 +417,8 @@ def compute_sss_sparse_sinogram(
     The scatter points are the voxels of :func:`get_sample_scatter_points`, each moved to a random position within its
     voxel (with PyTorch's random number generator, so repeated calls differ slightly unless its seed is set); the lines
     of response are those of :func:`get_sample_detector_ids`. The detector's energy window and resolution, which give
-    the probability that a scattered photon is detected, come from ``proj_meta.info`` (``energy_window_low_keV`` and
-    ``energy_window_high_keV``, and ``energy_resolution``, the FWHM at 511 keV as a fraction of 511 keV; see
+    the probability that a scattered photon is detected, come from ``proj_meta.info`` (``energy_window_low`` and
+    ``energy_window_high``, and ``energy_resolution``, the FWHM at 511 keV as a fraction of 511 keV; see
     :func:`detector_energy_window`). Each one that is absent takes its default: 430 keV, no upper limit, 0.15.
 
     Args:
@@ -863,8 +863,8 @@ def get_sss_scatter_estimate(
     sinogram for the scaling and a sinogram system matrix is made from it. :func:`plan_sss_memory` chooses ``lazy`` and
     ``N_splits`` for the memory there is.
 
-    The detector's energy window and resolution come from ``proj_meta.info``: ``energy_window_low_keV`` and
-    ``energy_window_high_keV``, and ``energy_resolution``, the FWHM at 511 keV as a fraction of 511 keV. The readers
+    The detector's energy window and resolution come from ``proj_meta.info``: ``energy_window_low`` and
+    ``energy_window_high``, and ``energy_resolution``, the FWHM at 511 keV as a fraction of 511 keV. The readers
     give them where their source does; each one that is None takes its default, 430 keV, no upper limit and 0.15 (see
     :func:`detector_energy_window`).
 

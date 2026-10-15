@@ -6,6 +6,7 @@ from torch.nn.functional import conv1d
 import pytomography
 from pytomography.metadata import ObjectMeta, ProjMeta
 from pytomography.transforms import Transform
+from pytomography.utils._renamed import renamed_arguments
 
 class GaussianFilter(Transform):
     """Object-to-object transform that smooths the object with a Gaussian of a given FWHM, in mm.
@@ -16,9 +17,10 @@ class GaussianFilter(Transform):
     usually means a FWHM in cm.
 
     Args:
-        FWHM (float | list): The full width at half maximum in mm (SPECT, PET and CT alike since PyTomography 4.0):
-            one number, or a list of three (x, y, z).
-        n_sigmas (float, optional): Half-width of the kernels, in sigmas. Defaults to 3.
+        fwhm (float | list): The full width at half maximum, in mm (SPECT, PET and CT alike since PyTomography 4.0):
+            one number, or a list of three (x, y, z). ``FWHM=`` (PyTomography 3) still works, with a
+            DeprecationWarning, until PyTomography 5.
+        n_sigmas (float, optional): Half-width of the kernels, in standard deviations (FWHM / 2.355). Defaults to 3.
 
     Example:
         .. code-block:: python
@@ -26,11 +28,12 @@ class GaussianFilter(Transform):
             psf_transform = GaussianFilter(4.5)            # 4.5 mm FWHM
             system_matrix = PETLMSystemMatrix(object_meta, proj_meta, obj2obj_transforms=[psf_transform])
     """
-    def __init__(self, FWHM: float | list, n_sigmas: float = 3):
-        if type(FWHM) == list:
-            self.sigma = [FWHM[i] / (2*np.sqrt(2*np.log(2))) for i in range(3)]
+    @renamed_arguments(FWHM='fwhm')
+    def __init__(self, fwhm: float | list, n_sigmas: float = 3):
+        if type(fwhm) == list:
+            self.sigma = [fwhm[i] / (2*np.sqrt(2*np.log(2))) for i in range(3)]
         else:
-            self.sigma = [FWHM / (2*np.sqrt(2*np.log(2))) for i in range(3)]
+            self.sigma = [fwhm / (2*np.sqrt(2*np.log(2))) for i in range(3)]
         self.n_sigmas = n_sigmas
         
     def configure(self, object_meta: ObjectMeta, proj_meta: ProjMeta) -> None:

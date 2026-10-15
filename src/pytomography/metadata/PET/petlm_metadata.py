@@ -41,7 +41,7 @@ class PETLMProjMeta():
         weights (torch.Tensor | None): The events' weights.
         detector_ids_sensitivity (torch.Tensor | None): The LORs of the sensitivity image.
         weights_sensitivity (torch.Tensor | None): The sensitivity weights.
-        duration_s (float | None): Seconds of acquisition the events were read from, where the reader knows it.
+        duration (float | None): Seconds of acquisition the events were read from, where the reader knows it.
     """
     def __init__(
         self,
@@ -69,4 +69,4 @@ class PETLMProjMeta():
         self.weights = weights
         self.weights_sensitivity = weights_sensitivity
         # seconds of acquisition the events were read from, where the reader knows it (None otherwise)
-        self.duration_s = None
+        self.duration = None

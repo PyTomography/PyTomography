@@ -139,7 +139,7 @@ def test_nikon_axes_angles_and_flat_field(tmp_path):
     truth, angles = _nikon(tmp_path / 'scan')
     with warnings.catch_warnings():
         warnings.simplefilter('error')
-        projections, object_meta, proj_meta = io.CT.read_nikon(tmp_path / 'scan', cor_mm=0.3)
+        projections, object_meta, proj_meta = io.CT.read_nikon(tmp_path / 'scan', cor=0.3)
     assert projections.shape == (4, 12, 8) and projections.dtype == torch.float32      # (views, u = column, v = row)
     assert np.allclose(projections.numpy(), truth.transpose(0, 2, 1), atol=1e-5)
     assert np.allclose(proj_meta.angles.cpu().numpy(), -np.radians(angles), atol=1e-6)  # the stage turns the sample
@@ -165,7 +165,7 @@ def test_sophiabeads_fdk_reprojects_to_the_measured_projections(data_dir):
     folder = data_dir / 'CT' / 'SophiaBeads-256' / 'SophiaBeads_256_averaged'
     if not folder.is_dir():
         pytest.skip('CT/SophiaBeads-256 is not in the data folder')
-    projections, object_meta, proj_meta = io.CT.read_nikon(folder, binning=8, cor_mm=0.24)
+    projections, object_meta, proj_meta = io.CT.read_nikon(folder, binning=8, cor=0.24)
     system_matrix = CTConeBeamFlatPanelSystemMatrix(object_meta, proj_meta)
     image = FilteredBackProjection(projections, system_matrix, filter='ram-lak')()
     system_matrix.set_n_subsets(51)
