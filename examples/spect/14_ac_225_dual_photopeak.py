@@ -26,8 +26,7 @@ from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.transforms.SPECT import SPECTAttenuationTransform
 from pytomography.transforms.shared import GaussianFilter
 from spectarf import Collimator, DetectorStack, DetectorResponse, EnergyResolution
-from spectarf.nuclides import Nuclide
-from spectarf.pytomography import generate_arfs, psf_at, psf_transform
+from spectarf.pytomography import generate_arfs, psf_transform
 
 path = DATA / 'SPECT' / 'Ac225-NEMA-SymT2'
 files_CT = [os.path.join(path, 'CT', file) for file in os.listdir(path / 'CT')]
@@ -55,33 +54,25 @@ stack = DetectorStack(Collimator(**collimator), **detector)
 response = DetectorResponse(EnergyResolution.geb(**camera['energy_resolution']),
                             intrinsic_fwhm_mm_140=camera['intrinsic_fwhm_mm_140'])
 
-# %% PSFs in counts per decay
-ac225 = Nuclide.from_ddep('Ac-225', chain='secular')   # Ac-225 and its daughters, in equilibrium
-
-def photons_per_decay(photon_keV):
-    return sum(line.yield_per_decay for line in ac225.lines if abs(line.energy_keV - photon_keV) < 0.5)
-
-arfs218 = generate_arfs(stack, response, proj_meta, peak=0)
-arfs440 = generate_arfs(stack, response, proj_meta, peak=3)
-per_decay218 = [(arfs218['P'], photons_per_decay(windows[0].photon_keV))]   # (ARF, weight): counts per decay
-per_decay440 = [(arfs440['P'], photons_per_decay(windows[3].photon_keV))]
-for name, terms in [('218 keV', per_decay218), ('440 keV', per_decay440)]:
-    cps_per_MBq = 1e6 * psf_at(terms, 150.0, pixel_mm=float(object_meta.dx), size_mm=600.0).sum()
-    print(f'{name}: {terms[0][1]:.4f} photons per decay, {cps_per_MBq:.2f} cps/MBq')
-
 # %% The system matrices
-def system_matrix_for(peak, kernels_per_decay):
+# spectarf's kernels are per photon of the peak's energy (branching ratio 1.0): weight them by each gamma's
+# photons per Ac-225 decay, its daughters in equilibrium (DDEP): Fr-221's 218 keV, Bi-213's 440 keV
+branching_ratio = {0: 0.1142, 3: 0.2610}   # by photopeak index
+
+def system_matrix_for(peak):
+    arfs = generate_arfs(stack, response, proj_meta, peak=peak)
+    psf = psf_transform([(arfs['P'], branching_ratio[peak])])   # absolute kernels, in counts per decay
     attenuation_map = io.attenuation_map(files_CT, object_meta, energy_keV=windows[peak].photon_keV)
     return SPECTSystemMatrix(
-        obj2obj_transforms=[SPECTAttenuationTransform(attenuation_map=attenuation_map),
-                            psf_transform(kernels_per_decay)],
+        obj2obj_transforms=[SPECTAttenuationTransform(attenuation_map=attenuation_map), psf],
         proj2proj_transforms=[],
         object_meta=object_meta,
         proj_meta=proj_meta,
     )
 
-system_matrix218 = system_matrix_for(0, per_decay218)
-system_matrix440 = system_matrix_for(3, per_decay440)
+system_matrix218 = system_matrix_for(0)
+system_matrix440 = system_matrix_for(3)
+
 system_matrix = ExtendedSystemMatrix(system_matrices=[system_matrix218, system_matrix440])
 photopeak = torch.stack([photopeak218, photopeak440])
 scatter = torch.stack([scatter218, scatter440])
