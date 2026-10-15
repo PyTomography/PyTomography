@@ -16,7 +16,7 @@ from pytomography.utils.scatter import compute_EW_scatter, get_smoothed_scatter
 def _projections():
     proj_meta = SPECTProjMeta((16, 12), (4.0, 4.0), np.linspace(0, 360, 24, endpoint=False), radii=np.full(24, 200.0))
     g = torch.Generator().manual_seed(0)
-    return torch.rand((24, 16, 12), generator=g), proj_meta
+    return torch.rand((24, 16, 12), generator=g).to(pytomography.device), proj_meta
 
 
 def test_scatter_smoothing_takes_fwhm_and_the_old_sigmas_with_a_warning():
