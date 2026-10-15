@@ -155,6 +155,16 @@ tutorials:
     - {name: Smoothed, label: Smoothed (20 mm FWHM), kind: spect, array: recon_smoothed, affine: object_meta.affine, units: counts}
     - {name: Unsmoothed, kind: spect, array: recon, affine: object_meta.affine, units: counts, scale_group: none}
 
+  t_ac225_dualpeak:
+    title: Ac-225 NEMA phantom, two photopeaks
+    description: One image from the 218 keV and 440 keV photopeaks, and each peak alone, smoothed with a 20 mm Gaussian
+    credit: Siemens Symbia T2 scan of a NEMA IQ phantom (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
+    layers:
+    - {name: CT, kind: ct, image: ct, window: phantom, units: HU}
+    - {name: Joint, label: 218 + 440 keV, kind: spect, array: "kBq_per_mL['218 + 440 keV']", affine: object_meta.affine, units: kBq/mL}
+    - {name: 218 keV, kind: spect, array: "kBq_per_mL['218 keV']", affine: object_meta.affine, units: kBq/mL}
+    - {name: 440 keV, kind: spect, array: "kBq_per_mL['440 keV']", affine: object_meta.affine, units: kBq/mL}
+
   t_CardiacReorientation:
     title: Tc-99m myocardial perfusion
     description: The reconstruction before it is turned to the short axis (no CT; no attenuation correction)
