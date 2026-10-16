@@ -33,7 +33,7 @@ upper_path = os.path.join(data_path, 'tot_w3.h00')
 
 projections, object_meta, proj_meta = io.SPECT.read_simind([photopeak_path, lower_path, upper_path])
 for name, window in zip(['photopeak', 'lower', 'upper'], proj_meta.energy_windows):
-    print(f'{name:9s} window: {window.lower_keV:.1f}-{window.upper_keV:.1f} keV')
+    print(f'{name:9s} window: {window.lower:.1f}-{window.upper:.1f} keV')
 
 photopeak = projections[0]
 
@@ -49,7 +49,7 @@ scatter_estimate_TEW = io.SPECT.energy_window_scatter(realizations, proj_meta, p
 
 # %% 2.1 Attenuation Modeling
 path_amap = os.path.join(data_path, 'amap.hct')
-amap = io.attenuation_map(path_amap, object_meta, energy_keV=proj_meta.energy_windows[0].photon_keV, layout='mu')
+amap = io.attenuation_map(path_amap, object_meta, energy=proj_meta.energy_windows[0].photon_energy, layout='mu')
 
 att_transform = SPECTAttenuationTransform(amap)
 

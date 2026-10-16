@@ -56,13 +56,15 @@ from pytomography import io
 
 projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)   # every read_<format>
 ct = io.load_image(files_CT).on(object_meta)                           # any image, on the grid
-photon_keV = proj_meta.energy_windows[0].photon_keV
-mu = io.attenuation_map(files_CT, object_meta, energy_keV=photon_keV)  # 1/mm
+photon_energy = proj_meta.energy_windows[0].photon_energy
+mu = io.attenuation_map(files_CT, object_meta, energy=photon_energy)  # 1/mm
 io.save_dicom(recon, folder, object_meta)                              # placed in the patient
 ```
 
-Lengths are mm, grids are LPS with k running foot to head, and `object_meta.affine` places every voxel. Before writing a
-reader call, look the source up on the Architecture page's <a href="architecture.html#io">Data and conventions</a>
+Every length is in mm, every angle in degrees, every energy in keV and every time in s; names carry no unit suffixes,
+and every Gaussian is given by its FWHM. Grids are LPS with k running foot to head, and `object_meta.affine` places
+every voxel. [Conventions](conventions.md) has the whole list, and every docstring states its arguments' units. Before
+writing a reader call, look the source up on the Architecture page's <a href="architecture.html#io">Data and conventions</a>
 tab: its conventions, what its reader does, the vendor rules it relies on and the tutorials that use it. The
 <a href="architecture.html#io-standard">standard form</a> is one table there, and the same data are JSON at
 <a href="_static/arch/io-conventions.json"><code>_static/arch/io-conventions.json</code></a>.
@@ -73,7 +75,7 @@ Before running a large reconstruction, have the agent read [Memory and speed](me
 
 ## Tips that avoid common mistakes
 
-- Tell the assistant which PyTomography version you have installed (`pytomography.__version__`). v4 changed every reader (lengths in mm), the PET requirements and the PSF interface.
+- Tell the assistant which PyTomography version you have installed (`pytomography.__version__`). v4 changed every reader (lengths in mm), the names (no unit suffixes, Gaussians by FWHM: see [Conventions](conventions.md)), the PET requirements and the PSF interface.
 - Ask it to check tensor shapes and devices against the docstrings. Projections, objects and attenuation maps each have a fixed axis order, and mixing CPU and GPU tensors is the most common error.
 - Ask for code that runs on a small subset of angles first, then scale up.
 - Ask it to print `estimate_memory()` before the heavy step and to call `pytomography.set_memory_budget(...)` for the machine, so that a reconstruction does not run out of memory halfway.

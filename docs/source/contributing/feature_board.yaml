@@ -14,7 +14,7 @@ items:
     level: intermediate
     why: A dedicated mMR reader is no longer needed. ETSI's STIR2PETSIRD converts mMR list mode to PETSIRD, which io.PET.read_petsird reads (t_PETSIRD does this). What the issue's author needed next was a long scan in time frames, for functional PET.
     data: PET/PETSIRD-mMR-NEMA, a 60-minute mMR scan of a NEMA phantom (its Zenodo record is being published).
-    start: io.PET.read_petsird(path, time_interval_s=(start, stop)) reads one frame's events.
+    start: io.PET.read_petsird(path, time_interval=(start, stop)) reads one frame's events.
     done: A tutorial reconstructs the scan in six 10-minute frames, corrects each for decay, and plots each sphere's activity against time.
 
   - title: Conjugate-gradient reconstruction

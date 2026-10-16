@@ -43,10 +43,10 @@ files_CT = sorted(str(f) for f in (path / 'CT').glob('*'))
 projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)
 photopeak = projections[0]  # the 208 keV window
 scatter = io.SPECT.energy_window_scatter(projections, proj_meta, peak=0, lower=1, upper=2)
-photon_keV = proj_meta.energy_windows[0].photon_keV
-attenuation_map = io.attenuation_map(files_CT, object_meta, energy_keV=photon_keV)  # 1/mm
+photon_energy = proj_meta.energy_windows[0].photon_energy
+attenuation_map = io.attenuation_map(files_CT, object_meta, energy=photon_energy)  # 1/mm
 att_transform = SPECTAttenuationTransform(attenuation_map)
-psf_transform = SPECTPSFTransform(io.SPECT.collimator_psf('SY-ME', photon_keV, intrinsic_fwhm_mm=3.8))
+psf_transform = SPECTPSFTransform(io.SPECT.collimator_psf('SY-ME', photon_energy, intrinsic_fwhm=3.8))
 system_matrix = SPECTSystemMatrix(obj2obj_transforms=[att_transform, psf_transform], proj2proj_transforms=[],
                                   object_meta=object_meta, proj_meta=proj_meta)
 likelihood = PoissonLogLikelihood(system_matrix, photopeak, scatter)

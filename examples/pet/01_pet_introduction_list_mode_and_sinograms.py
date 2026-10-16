@@ -35,9 +35,9 @@ macro = path / 'mMR_Geometry.mac'  # the scanner, as the simulation's GATE macro
 paths = [path / 'simple_phantom' / f'mMR_voxBrain_withSimplePhantom_{i}.root' for i in range(1, 55)]  # its 54 runs
 cache = OUTPUT / 'gate_trues_norm.pt'
 if not cache.exists():
-    # doi_mm: the lines of response end 9 mm inside the crystals, the mean depth of interaction. normalization: the
+    # doi: the lines of response end 9 mm inside the crystals, the mean depth of interaction. normalization: the
     # weights of section 2
-    torch.save(io.PET.read_gate(paths, macro, events='trues', doi_mm=9,
+    torch.save(io.PET.read_gate(paths, macro, events='trues', doi=9,
                                 normalization=path / 'normalization_weights.npy'), cache)
 detector_ids, object_meta, proj_meta = torch.load(cache, weights_only=False)
 info = proj_meta.info
@@ -47,7 +47,7 @@ print(f"{detector_ids.shape[0] / 1e6:.1f} million true coincidences")
 # %% 2. Normalisation
 # The weights come with the dataset. They were computed from the calibration scan (36 ROOT files, 46 GB, in
 # PET/GATE-mMR-Brain/normalization_scan), randoms left out (PyTomography PR #290):
-# normalization_weights = io.PET.gate_normalization(normalization_paths, info, cylinder_radius_mm=318)
+# normalization_weights = io.PET.gate_normalization(normalization_paths, info, cylinder_radius=318)
 normalization_weights = proj_meta.weights_sensitivity  # one per crystal pair, in torch.combinations order
 print(f"{normalization_weights.numel() / 1e6:.0f} million crystal pairs, "
       f"{int((normalization_weights == 0).sum()) / 1e6:.0f} million of them without calibration data")

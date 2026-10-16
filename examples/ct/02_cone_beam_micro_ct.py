@@ -40,7 +40,7 @@ t0 = time.time()
 proj, object_meta, proj_meta = io.CT.read_nikon(folder, binning=binning)
 proj = proj.to(pytomography.device)
 magnification = proj_meta.DSD / proj_meta.DSO
-step = np.degrees(float(torch.diff(proj_meta.angles).abs().mean()))
+step = float(torch.diff(proj_meta.angles).abs().mean())   # degrees
 print(f"{len(proj_meta.angles)} projections {step:.2f}° apart, binned to {proj.shape[1]} × {proj.shape[2]} pixels of "
       f"{proj_meta.dr[0]:.1f} mm, magnification {magnification:.2f}")
 print(f"projections {tuple(proj.shape)} read in {time.time() - t0:.0f} s")

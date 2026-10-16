@@ -48,14 +48,14 @@ window_s = (0, MINUTES * 60)  # the time blocks that start in the first MINUTES 
 # The image grid: the scanner's own voxel size, 200 x 200 x 127 voxels (mm), centred on the scanner (section 2)
 prompts, object_meta, proj_meta = io.PET.read_petsird(
     path, object_meta=ObjectMeta(dr=(2.08626, 2.08626, 2.03125), shape=(200, 200, 127)),
-    up='+x', towards_bed='+z', patient_position='HFS', time_interval_s=window_s, header=header)
+    up='+x', towards_bed='+z', patient_position='HFS', time_interval=window_s, header=header)
 delayeds, _, _ = io.PET.read_petsird(path, events='delayeds', up='+x', towards_bed='+z', patient_position='HFS',
-                                     time_interval_s=window_s, header=header)
+                                     time_interval=window_s, header=header)
 del header  # everything needed from it is now in the events and proj_meta
 info = proj_meta.info
 weights = proj_meta.weights_sensitivity  # one per crystal pair, in torch.combinations order
 print(f"{info['NrRings']} rings of {info['NrCrystalsPerRing']} crystals, radius {info['radius']:.1f} mm, energy window "
-      f"{info['energy_window_low_keV']:.0f} to {info['energy_window_high_keV']:.0f} keV")
+      f"{info['energy_window_low']:.0f} to {info['energy_window_high']:.0f} keV")
 print(f"first {MINUTES} min: {len(prompts):,} prompts and {len(delayeds):,} delayed coincidences; weights of "
       f"{len(weights):,} crystal pairs; read in {time.time() - t0:.0f} s")
 
@@ -80,7 +80,7 @@ print(f"system matrix and sensitivity image: {time.time() - t0:.0f} s")
 t0 = time.time()
 sinogram_delays = io.PET.listmode_to_sinogram(delayeds, info)
 del delayeds
-sinogram_delays = io.PET.smooth_randoms_sinogram(sinogram_delays, info, sigma_r=4, sigma_theta=4, sigma_z=4)
+sinogram_delays = io.PET.smooth_randoms_sinogram(sinogram_delays, info, fwhm_r=20, fwhm_theta=7, fwhm_z=40)
 lm_randoms = io.PET.sinogram_to_listmode(proj_meta.detector_ids, sinogram_delays, info)
 lm_sensitivity = system_matrix._compute_sensitivity_projection(all_ids=False)
 additive_term = lm_randoms.cpu() / lm_sensitivity.cpu()

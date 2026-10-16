@@ -43,9 +43,9 @@ def read_gate(events, tof_meta=None, normalization=None):
     name = f'gate_{events}' + ('' if tof_meta is None else f'_tof{tof_meta.num_bins}') + ('' if normalization is None else '_norm')
     cache = OUTPUT / f'{name}.pt'
     if LOAD_FROM_ROOT or not cache.exists():
-        # doi_mm: the lines of response end 9 mm inside the crystals, the mean depth of interaction
+        # doi: the lines of response end 9 mm inside the crystals, the mean depth of interaction
         torch.save(io.PET.read_gate(paths, macro, events=events, tof_meta=tof_meta, normalization=normalization,
-                                    doi_mm=9), cache)
+                                    doi=9), cache)
     return torch.load(cache, weights_only=False)
 
 speed_of_light = 0.3 #mm/ps
@@ -66,7 +66,7 @@ detector_ids, object_meta, proj_meta = read_gate('trues', tof_meta=tof_meta,
 info = proj_meta.info
 # The weights come with the dataset. They were computed from the calibration scan (36 ROOT files, 46 GB, in
 # PET/GATE-mMR-Brain/normalization_scan), randoms left out (PyTomography PR #290):
-# normalization_weights = io.PET.gate_normalization(normalization_paths, info, cylinder_radius_mm=318)
+# normalization_weights = io.PET.gate_normalization(normalization_paths, info, cylinder_radius=318)
 normalization_weights = proj_meta.weights_sensitivity  # read_gate's: one per crystal pair, in torch.combinations order
 
 # %% Primary-Only Reconstruction
@@ -112,9 +112,9 @@ del detector_ids_delays # binned: the events are not needed again
 sinogram_randoms_estimate = io.PET.smooth_randoms_sinogram(
     sinogram_randoms_estimate,
     info,
-    sigma_r=4,
-    sigma_theta=4,
-    sigma_z=4
+    fwhm_r=20,
+    fwhm_theta=7,
+    fwhm_z=40
 )
 sinogram_randoms_estimate = io.PET.randoms_sinogram_to_sinogramTOF(
     sinogram_randoms_estimate,

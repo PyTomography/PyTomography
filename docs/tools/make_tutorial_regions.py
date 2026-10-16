@@ -138,7 +138,7 @@ def gate(out: Path) -> None:
     # the tutorial's grid: read_gate places it in the patient (the registry's record of the phantom in GATE's world);
     # the events of one run are enough for that
     _, object_meta, _ = io.PET.read_gate(folder / 'simple_phantom' / 'mMR_voxBrain_withSimplePhantom_1.root',
-                                         folder / 'mMR_Geometry.mac', events='delayeds', doi_mm=9)
+                                         folder / 'mMR_Geometry.mac', events='delayeds', doi=9)
     object_meta = object_meta.with_grid(dr=(1.25, 1.25, 1.25), shape=(204, 204, 154))
     mr = io.load_image(folder / 'fdg_pet_phantom_mri.nii.gz').on(object_meta).cpu().numpy()
     cube = np.ones((3, 3, 3))

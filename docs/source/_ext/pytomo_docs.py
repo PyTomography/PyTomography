@@ -242,7 +242,9 @@ LLMS_SUMMARY = (
 LLMS_FIRST = (
     "**Agents, first:** before running PyTomography on a machine, check that it uses the GPU when the machine has "
     "one (\"Check that PyTomography uses the GPU\" in _md/ai.md). An NVIDIA GPU with PyTomography on the CPU means a "
-    "broken install: tell the user and fix it rather than carrying on at CPU speed."
+    "broken install: tell the user and fix it rather than carrying on at CPU speed. Then read the conventions "
+    "(_md/conventions.md): every length is in mm, every angle in degrees, every energy in keV and every time in s, "
+    "names carry no unit suffixes, and every Gaussian is given by its FWHM."
 )
 
 

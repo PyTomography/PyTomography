@@ -32,7 +32,7 @@ path = DATA / 'SPECT' / 'SIMIND-Jaszak' / 'lu177_SYME_jaszak'
 windows = {'photopeak': path / 'tot_w1.h00', 'lower': path / 'tot_w2.h00', 'upper': path / 'tot_w3.h00'}  # 208 keV
 expected, object_meta, proj_meta = io.SPECT.read_simind([str(p) for p in windows.values()])
 for w, window in zip(windows, proj_meta.energy_windows):
-    print(f"{w:9s} window: {window.lower_keV:.1f}-{window.upper_keV:.1f} keV")
+    print(f"{w:9s} window: {window.lower:.1f}-{window.upper:.1f} keV")
 activity = 1000        # MBq in the whole phantom
 acquisition_time = 15  # seconds per projection
 
@@ -54,7 +54,7 @@ rois = io.load_mask(path.parent / 'jaszak_rois.seg.nrrd')  # made once by docs/t
 masks = {f'sphere {k}': rois.on(object_meta, label=f'sphere_{k}') > 0.5 for k in range(1, 7)}
 masks['background'] = rois.on(object_meta, label='background') > 0.5
 
-attenuation_map = io.attenuation_map(path / 'amap.hct', object_meta, energy_keV=proj_meta.energy_windows[0].photon_keV,
+attenuation_map = io.attenuation_map(path / 'amap.hct', object_meta, energy=proj_meta.energy_windows[0].photon_energy,
                                      layout='mu')  # 1/mm; SIMIND's map layout, simind.ini index 22 = 3
 
 regions = list(masks)

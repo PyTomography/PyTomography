@@ -296,7 +296,7 @@
    "formats": [
     ".hct/.ict ('Units of data (ECT) := mu')"
    ],
-   "call": "mu = io.attenuation_map('map.hct', object_meta, energy_keV=w.photon_keV, layout='mu-castor')",
+   "call": "mu = io.attenuation_map('map.hct', object_meta, energy=w.photon_energy, layout='mu-castor')",
    "to": [
     "rd-img-load",
     "rd-img-mu"
@@ -313,7 +313,7 @@
    "brief": "first slice superior; y direction from simind.ini index 22 (not in the header); 1/cm",
    "steps": [
     "load_image(path, layout='mu' | 'mu-castor'): the layout is required.",
-    "attenuation_map converts to 1/mm, checks water against energy_keV (warns beyond 5 %) and puts the map on the grid."
+    "attenuation_map converts to 1/mm, checks water against energy (warns beyond 5 %) and puts the map on the grid."
    ],
    "checked": "XCAT: the lung sources sit on the lungs with layout 'mu-castor' (0.71 and 0.78 of their counts), not with 'mu' (0.51).",
    "v3": "layout required (v3 defaulted to 3 in one reader and 5 in another); 1/mm; the water check catches a map made for another energy.",
@@ -340,7 +340,7 @@
    "formats": [
     "DICOM multi-frame image"
    ],
-   "call": "mu = io.attenuation_map(file_mu, object_meta, energy_keV=w.photon_keV)",
+   "call": "mu = io.attenuation_map(file_mu, object_meta, energy=w.photon_energy)",
    "to": [
     "rd-img-mu"
    ],
@@ -415,7 +415,7 @@
     "ROOT (trees 'Coincidences' and 'delay')",
     "GATE macro (.mac)"
    ],
-   "call": "events, object_meta, proj_meta = io.PET.read_gate(root_files, 'mMR_Geometry.mac', doi_mm=9)",
+   "call": "events, object_meta, proj_meta = io.PET.read_gate(root_files, 'mMR_Geometry.mac', doi=9)",
    "to": [
     "rd-pet-gate"
    ],
@@ -430,7 +430,7 @@
    },
    "brief": "GATE world (hosted data: x L, y P, z I); copy numbers; mm, s, MeV",
    "steps": [
-    "info from the macro (io.PET.scanner_info): radius = the crystals' inner face + doi_mm.",
+    "info from the macro (io.PET.scanner_info): radius = the crystals' inner face + doi.",
     "Detector id = ring × crystals per ring + crystal, int32.",
     "GATE's world to LPS by world_axes and world_origin; hosted datasets get theirs from the registry ('LPI', the MR's centre).",
     "TOF bin from (t1 − t2) c/2; events outside the TOF range dropped.",
@@ -526,8 +526,8 @@
    "brief": "gantry frame with no stated axes (STIR2PETSIRD: x up, z to the bed); mm, ms, keV",
    "steps": [
     "up, towards_bed and patient_position give the patient's axes.",
-    "info fitted to the elements; the -0.353° turn goes into rsector0_angle_deg, so the grid is exactly LPS.",
-    "Elements matched to PyTomography's crystals within tolerance_mm; events int32, TOF as stored.",
+    "info fitted to the elements; the -0.353° turn goes into rsector0_angle, so the grid is exactly LPS.",
+    "Elements matched to PyTomography's crystals within tolerance; events int32, TOF as stored.",
     "Efficiencies as weights in combinations order; energy window and resolution into info; frame 'scanner'."
    ],
    "checked": "The events centre on the Siemens μ map (x centroid within 2 mm); every crystal on its element.",
@@ -646,7 +646,7 @@
    },
    "brief": "parametric ring per scanner name; mm",
    "steps": [
-    "scanner_info builds a checked info with the frame keys (rsector0_angle_deg, transaxial_direction, axial_direction)."
+    "scanner_info builds a checked info with the frame keys (rsector0_angle, transaxial_direction, axial_direction)."
    ],
    "checked": "Agrees with the Discovery MI file's SystemGeometry; the table's scanner is upright.",
    "v3": "frame keys replace firstCrystalAxis; Python numbers instead of numpy.",
@@ -857,7 +857,7 @@
    "formats": [
     ".xtekct, .ang, TIFF"
    ],
-   "call": "projections, object_meta, proj_meta = io.CT.read_nikon(folder, binning=4, cor_mm=0.24)",
+   "call": "projections, object_meta, proj_meta = io.CT.read_nikon(folder, binning=4, cor=0.24)",
    "to": [
     "rd-ct-nikon"
    ],
@@ -874,7 +874,7 @@
    "steps": [
     "−ln(I / WhiteLevel), averaged over binning × binning pixels.",
     "θ = −(.ang angle); (views, u, v).",
-    "The rotation axis at (0, −cor_mm); frame 'scanner', units '1/mm'."
+    "The rotation axis at (0, −cor); frame 'scanner', units '1/mm'."
    ],
    "checked": "The FDK image reprojects to the measured projections (r 0.999); COR 0.24 mm by sharpness.",
    "v3": "a library reader (cells 5, 7 and 10 of the v3 tutorial); FDK's COR sign fixed, so values change about 1 %.",
@@ -1223,7 +1223,7 @@
    ],
    "also": [
     "io.SPECT.energy_window_scatter(projections, proj_meta, peak, lower, upper=None)",
-    "io.SPECT.collimator_psf(collimator, photon_keV, intrinsic_fwhm_mm=0, *, shape='gaussian' | 'square')",
+    "io.SPECT.collimator_psf(collimator, photon_energy, intrinsic_fwhm=0, *, shape='gaussian' | 'square')",
     "io.SPECT.fov_mask(projections)",
     "io.SPECT.dicom.patient_position(ds): a check only"
    ],
@@ -1297,7 +1297,7 @@
     "Organ files summed with weights=; radii from a .cor file; frame 'scanner'."
    ],
    "also": [
-    "io.SPECT.simind_psf(header, photon_keV=None)"
+    "io.SPECT.simind_psf(header, photon_energy=None)"
    ],
    "replaces": [
     "simind.get_metadata",
@@ -1313,18 +1313,18 @@
    "id": "rd-pet-gate",
    "lane": "pet",
    "name": "io.PET.read_gate",
-   "call": "io.PET.read_gate(root_files, macro, *, object_meta=None, events='prompts', tof_meta=None, world_axes=None, world_origin=None, doi_mm=0, energy_window_keV=None, energy_resolution=None, normalization=None, min_rsector_difference=0, crystal_volume='crystal')",
+   "call": "io.PET.read_gate(root_files, macro, *, object_meta=None, events='prompts', tof_meta=None, world_axes=None, world_origin=None, doi=0, energy_window=None, energy_resolution=None, normalization=None, min_rsector_difference=0, crystal_volume='crystal')",
    "returns": "(events int32 [N, 2 | 3], ObjectMeta, PETLMProjMeta)",
    "brief": "macro → info; GATE world → LPS by world_axes, world_origin (registry for hosted data); TOF bins",
    "does": [
-    "info from the macro: rings of rsectors, modules and crystals; radius = inner face + doi_mm.",
+    "info from the macro: rings of rsectors, modules and crystals; radius = inner face + doi.",
     "Ids from GATE's copy numbers: ring × crystals per ring + crystal, int32.",
     "GATE's world → LPS by world_axes and world_origin, the registry's for a hosted dataset (frame 'patient'); without them 'LPS' and frame 'scanner'.",
     "TOF bins from (t1 − t2) c/2; out-of-range events dropped; events='prompts' | 'delayeds' | 'trues' | 'scatters' | 'randoms'.",
     "normalization= checked against the pairs, NaN → 0."
    ],
    "also": [
-    "io.PET.gate_normalization(root_files, info, cylinder_radius_mm)",
+    "io.PET.gate_normalization(root_files, info, cylinder_radius)",
     "io.PET.listmode_to_sinogram(events, info)"
    ],
    "replaces": [
@@ -1341,12 +1341,12 @@
    "id": "rd-pet-gate-image",
    "lane": "pet",
    "name": "io.PET.gate_image",
-   "call": "io.PET.gate_image(source, proj_meta, *, units=None, placement_mm=(0, 0, 0))",
+   "call": "io.PET.gate_image(source, proj_meta, *, units=None, placement=(0, 0, 0))",
    "returns": "Image, placed in read_gate's patient frame",
    "brief": "an image of GATE's world placed where read_gate put the patient",
    "does": [
     "load_image reads a GATE/STIR image centred, frame 'scanner'.",
-    "It is moved by read_gate's world_axes and world_origin (kept in proj_meta) to where the simulation put it; placement_mm is where its centre was in GATE's world."
+    "It is moved by read_gate's world_axes and world_origin (kept in proj_meta) to where the simulation put it; placement is where its centre was in GATE's world."
    ],
    "replaces": [
     "gate.get_aligned_attenuation_map"
@@ -1360,13 +1360,13 @@
    "id": "rd-pet-petsird",
    "lane": "pet",
    "name": "io.PET.read_petsird",
-   "call": "io.PET.read_petsird(path, *, object_meta=None, events='prompts', up='+x', towards_bed='+z', patient_position='HFS', time_interval_s=None, header=None, min_rsector_difference=0, tolerance_mm=0.25)",
+   "call": "io.PET.read_petsird(path, *, object_meta=None, events='prompts', up='+x', towards_bed='+z', patient_position='HFS', time_interval=None, header=None, min_rsector_difference=0, tolerance=0.25)",
    "returns": "(events int32 [N, 2 | 3], ObjectMeta, PETLMProjMeta with the efficiencies)",
    "brief": "your axes give LPS; the scanner's turn into the LUT; PyTomography's crystal ids",
    "does": [
     "Header by ETSI's petsird 0.9; events by PyTomography's compiled reader (about 8 s for 197 million prompts).",
-    "up, towards_bed and patient_position give LPS; the scanner's turn goes into rsector0_angle_deg.",
-    "Elements matched to PyTomography's crystals within tolerance_mm; ring-major ids; TOF as stored.",
+    "up, towards_bed and patient_position give LPS; the scanner's turn goes into rsector0_angle.",
+    "Elements matched to PyTomography's crystals within tolerance; ring-major ids; TOF as stored.",
     "Detection efficiencies as weights in combinations order; energy window into info; frame 'scanner'."
    ],
    "also": [
@@ -1483,13 +1483,13 @@
    "id": "rd-ct-nikon",
    "lane": "ct",
    "name": "io.CT.read_nikon",
-   "call": "io.CT.read_nikon(folder, *, binning=1, cor_mm=0.0, object_meta=None)",
+   "call": "io.CT.read_nikon(folder, *, binning=1, cor=0.0, object_meta=None)",
    "returns": "(projections [views, u, v], ObjectMeta, CTConeBeamFlatPanelProjMeta)",
    "brief": "−ln(I/I₀); θ = −.ang; COR as an argument",
    "does": [
     "−ln(I / WhiteLevel), binned.",
     "θ = −(.ang angle): the stage turns the sample.",
-    "(views, u, v); the rotation axis at (0, −cor_mm); frame 'scanner'."
+    "(views, u, v); the rotation axis at (0, −cor); frame 'scanner'."
    ],
    "replaces": [
     "the t_CT_microct tutorial's own reading code"
@@ -1530,14 +1530,14 @@
    "id": "rd-img-mu",
    "lane": "img",
    "name": "io.attenuation_map",
-   "call": "io.attenuation_map(source, object_meta, energy_keV=None, *, technique='table', layout=None, units=None)",
+   "call": "io.attenuation_map(source, object_meta, energy=None, *, technique='table', layout=None, units=None)",
    "returns": "μ in 1/mm, float32, object_meta.shape, on pytomography.device",
-   "brief": "CT (HU) or μ map → 1/mm at energy_keV on the grid; water checked",
+   "brief": "CT (HU) or μ map → 1/mm at energy on the grid; water checked",
    "does": [
-    "A CT (units HU): HU → μ at energy_keV by technique: 'table', 'cortical_bone_fit', 'nist' or a function.",
-    "A μ map: its units → 1/mm; water checked against NIST at energy_keV (warns beyond 5 %).",
+    "A CT (units HU): HU → μ at energy by technique: 'table', 'cortical_bone_fit', 'nist' or a function.",
+    "A μ map: its units → 1/mm; water checked against NIST at energy (warns beyond 5 %).",
     "Put on the grid by Image.on: averaged where the grid's voxels are larger.",
-    "energy_keV: 511 by default for a PET grid; required for SPECT (proj_meta.energy_windows[i].photon_keV)."
+    "energy: 511 by default for a PET grid; required for SPECT (proj_meta.energy_windows[i].photon_energy)."
    ],
    "replaces": [
     "dicom.get_attenuation_map_from_CT_slices",
@@ -1618,8 +1618,8 @@
     "projections float32 [W, θ, r, z] (every window) or [θ, r, z] (energy_window=i), never squeezed",
     "β = (DICOM angle + 180) mod 360; β = 0 detector anterior; counter-clockwise seen from the feet",
     "z rows foot → head; radii in mm per view; StarGuide offsets in mm",
-    "energy_windows[i]: ranges_keV, lower_keV, upper_keV, width_keV, photon_keV",
-    "frame_duration_s per view, acquisition_start, nuclide, units"
+    "energy_windows[i]: ranges, lower, upper, width, photon_energy",
+    "frame_duration per view, acquisition_start, nuclide, units"
    ],
    "to": [
     "use-spect"
@@ -1633,7 +1633,7 @@
    "lines": [
     "events int32 [N, 2] or [N, 3]: column 0 the first crystal, column 1 the second, column 2 the TOF bin",
     "detector id = ring × crystals per ring + crystal",
-    "info: a parametric ring of Python numbers; frame keys rsector0_angle_deg, transaxial_direction, axial_direction; energy_window_low_keV, energy_window_high_keV, energy_resolution",
+    "info: a parametric ring of Python numbers; frame keys rsector0_angle, transaxial_direction, axial_direction; energy_window_low, energy_window_high, energy_resolution",
     "scanner_lut(info): crystals in the object frame (LPS, mm)",
     "TOF bins from column 0 to column 1, centred on the LOR's midpoint; weights in torch.combinations order"
    ],
@@ -1648,7 +1648,7 @@
    "brief": "−ln(I/I₀); focal spots in the object frame",
    "lines": [
     "projections float32 [views, columns, rows] = −ln(I/I₀) (helical) or [views, u, v] (cone beam)",
-    "CTGen3ProjMeta: focal spots and detector elements in the object frame, mm and rad",
+    "CTGen3ProjMeta: focal spots and detector elements in the object frame, mm and degrees",
     "col_angle_spacing (rad); water_attenuation (1/mm); photon_counts; correction_flags",
     "cone beam: a circular orbit (CTConeBeamFlatPanelProjMeta); vectors in v4.1"
    ],
@@ -1781,11 +1781,11 @@
   {
    "topic": "Energy windows",
    "rule": "Every window with all its ranges, and the photon energy it stands for: the nuclide's strongest line inside it, else its centre. μ maps and PSFs for a window use that energy. Frame duration per view (s), acquisition start, nuclide.",
-   "code": "proj_meta.energy_windows[i].photon_keV, .ranges_keV, .width_keV; .frame_duration_s"
+   "code": "proj_meta.energy_windows[i].photon_energy, .ranges, .width; .frame_duration"
   },
   {
    "topic": "PET scanner",
-   "rule": "A parametric ring of Python numbers. radius: to the LOR end points of rsector 0 (module face + doi_mm). Frame keys rsector0_angle_deg, transaxial_direction, axial_direction; energy window and resolution. The LUT is in the object frame.",
+   "rule": "A parametric ring of Python numbers. radius: to the LOR end points of rsector 0 (module face + doi). Frame keys rsector0_angle, transaxial_direction, axial_direction; energy window and resolution. The LUT is in the object frame.",
    "code": "proj_meta.info, io.PET.scanner_lut(info)"
   },
   {
@@ -1805,13 +1805,13 @@
   },
   {
    "topic": "CT projections",
-   "rule": "float32 [views, columns, rows] = −ln(I/I₀) (helical) or [views, u, v] (cone beam). Focal spots and detector elements in the object frame, mm and rad.",
+   "rule": "float32 [views, columns, rows] = −ln(I/I₀) (helical) or [views, u, v] (cone beam). Focal spots and detector elements in the object frame, mm and degrees (DICOM-CT-PD's radians converted).",
    "code": "CTGen3ProjMeta.col_angle_spacing (rad), .water_attenuation (1/mm)"
   },
   {
    "topic": "Attenuation",
-   "rule": "μ in 1/mm on the grid at the photon energy: SPECT energy_keV = proj_meta.energy_windows[i].photon_keV; PET 511 by default. A CT's HU → μ by 'table', 'cortical_bone_fit', 'nist' or a function; a μ map's units → 1/mm, its water checked against NIST (warns beyond 5 %).",
-   "code": "io.attenuation_map(source, object_meta, energy_keV)"
+   "rule": "μ in 1/mm on the grid at the photon energy: SPECT energy = proj_meta.energy_windows[i].photon_energy; PET 511 by default. A CT's HU → μ by 'table', 'cortical_bone_fit', 'nist' or a function; a μ map's units → 1/mm, its water checked against NIST (warns beyond 5 %).",
+   "code": "io.attenuation_map(source, object_meta, energy)"
   },
   {
    "topic": "Images",

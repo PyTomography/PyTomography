@@ -177,7 +177,7 @@ def _pet_shape(p) -> list:
 def _pet_info(C: int, R: int, crystals_trans: int = 8, crystals_axial: int = 8) -> dict:
     """A scanner geometry dictionary of ``C`` crystals per ring and ``R`` rings, in blocks of ``crystals_trans`` by
     ``crystals_axial`` crystals (the mMR's layout for C=448, R=64)."""
-    return dict(min_rsector_difference=0, crystal_length=20.0, radius=328.0, rsector0_angle_deg=90.0,
+    return dict(min_rsector_difference=0, crystal_length=20.0, radius=328.0, rsector0_angle=90.0,
                 transaxial_direction=-1, axial_direction=-1,
                 rsectorTransNr=C // crystals_trans, rsectorAxialNr=1, moduleTransNr=1, moduleAxialNr=R // crystals_axial,
                 moduleTransSpacing=0.0, moduleAxialSpacing=32.25, submoduleTransNr=1, submoduleAxialNr=1,

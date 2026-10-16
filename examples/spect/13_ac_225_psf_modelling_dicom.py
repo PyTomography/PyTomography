@@ -22,8 +22,7 @@ from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.transforms.SPECT import SPECTAttenuationTransform
 from pytomography.transforms.shared import GaussianFilter
 import os
-from spectarf import Collimator, DetectorStack, DetectorResponse, EnergyResolution
-from spectarf.pytomography import generate_arfs, psf_transform
+from spectarf.pytomography import camera_model, generate_arfs, psf_transform
 
 path = DATA / 'SPECT'
 
@@ -36,22 +35,21 @@ collimator = io.SPECT.collimator('SY-HE')            # the Symbia high energy co
 detector = io.SPECT.detector('NaI-9.5mm')            # 3/8 inch NaI(Tl), its cover and backscatter
 camera = io.SPECT.camera('Siemens Symbia T')          # energy resolution model and intrinsic resolution
 # Or every value explicitly:
-# collimator = dict(hole_diameter_mm=4.0, septal_thickness_mm=2.0, hole_length_mm=59.7, hole_shape='hex', rotated=True, material='lead')
-# detector = dict(crystal_mm=9.525, crystal_material='nai', cover_mm=1.0, cover_material='aluminium',
-#                 backscatter_mm=100.0, backscatter_material='pmt')
-stack = DetectorStack(Collimator(**collimator), **detector)
-response = DetectorResponse(EnergyResolution.geb(**camera['energy_resolution']),
-                            intrinsic_fwhm_mm_140=camera['intrinsic_fwhm_mm_140'])
+# collimator = dict(hole_diameter=4.0, septal_thickness=2.0, hole_length=59.7, hole_shape='hex', rotated=True,
+#                   material='lead')                    # mm
+# detector = dict(crystal_thickness=9.525, crystal_material='nai', cover_thickness=1.0, cover_material='aluminium',
+#                 backscatter_thickness=100.0, backscatter_material='pmt')   # mm
+stack, response = camera_model(collimator, detector, camera)   # spectarf's camera from these numbers
 
 index_peak = 3
 index_lower = 4
 index_upper = 5
 projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)
-attenuation_map = io.attenuation_map(files_CT, object_meta, energy_keV=proj_meta.energy_windows[index_peak].photon_keV)
+attenuation_map = io.attenuation_map(files_CT, object_meta, energy=proj_meta.energy_windows[index_peak].photon_energy)
 
 photopeak = projections[index_peak]
 scatter = io.SPECT.energy_window_scatter(projections, proj_meta, peak=index_peak, lower=index_lower, upper=index_upper,
-                                         sigma_theta=2, sigma_r_mm=4.8, sigma_z_mm=4.8)
+                                         fwhm_theta=4.7, fwhm_r=11.3, fwhm_z=11.3)
 
 # %% The ARFs
 arfs = generate_arfs(stack, response, proj_meta, peak=index_peak)

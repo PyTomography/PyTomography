@@ -18,22 +18,20 @@ OUTPUT = datasets.output_dir("SPECT/Ac225-NEMA-SymT2")
 import os
 import time
 from pytomography import io
-from spectarf import Collimator, DetectorStack, DetectorResponse, EnergyResolution
-from spectarf.pytomography import generate_arfs, psf_at, psf_transform, save_arfs, load_arfs
+from spectarf.pytomography import camera_model, generate_arfs, psf_at, psf_transform, save_arfs, load_arfs
 
 # %% The camera
 collimator = io.SPECT.collimator('SY-HE')            # the Siemens Symbia high energy collimator
 detector = io.SPECT.detector('NaI-9.5mm')            # 3/8 inch NaI(Tl), its cover and backscatter
 camera = io.SPECT.camera('Siemens Symbia T')          # energy resolution model and intrinsic resolution
 # Or every value explicitly:
-# collimator = dict(hole_diameter_mm=4.0, septal_thickness_mm=2.0, hole_length_mm=59.7, hole_shape='hex', rotated=True, material='lead')
-# detector = dict(crystal_mm=9.525, crystal_material='nai', cover_mm=1.0, cover_material='aluminium',
-#                 backscatter_mm=100.0, backscatter_material='pmt')
+# collimator = dict(hole_diameter=4.0, septal_thickness=2.0, hole_length=59.7, hole_shape='hex', rotated=True,
+#                   material='lead')                    # mm
+# detector = dict(crystal_thickness=9.525, crystal_material='nai', cover_thickness=1.0, cover_material='aluminium',
+#                 backscatter_thickness=100.0, backscatter_material='pmt')   # mm
 print(collimator, detector, camera, sep='\n')
 
-stack = DetectorStack(Collimator(**collimator), **detector)
-response = DetectorResponse(EnergyResolution.geb(**camera['energy_resolution']),
-                            intrinsic_fwhm_mm_140=camera['intrinsic_fwhm_mm_140'])
+stack, response = camera_model(collimator, detector, camera)   # spectarf's camera from these numbers
 
 # %% The ARFs
 file_NM = os.path.join(DATA, 'SPECT', 'Ac225-NEMA-SymT2', 'projection_data.IMA')

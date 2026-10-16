@@ -34,9 +34,9 @@ photopeak = projections[1]
 scatter, scatter_variance_estimate = io.SPECT.energy_window_scatter(projections, proj_meta, peak=1, lower=3, upper=2,
                                                                     return_scatter_variance_estimate=True)
 # Build system matrix
-photon_keV = proj_meta.energy_windows[1].photon_keV  # the 208 keV window
-attenuation_map = io.attenuation_map(files_CT, object_meta, energy_keV=photon_keV)
-psf_meta = io.SPECT.collimator_psf('GI-MEGP', photon_keV)
+photon_energy = proj_meta.energy_windows[1].photon_energy  # the 208 keV window
+attenuation_map = io.attenuation_map(files_CT, object_meta, energy=photon_energy)
+psf_meta = io.SPECT.collimator_psf('GI-MEGP', photon_energy)
 att_transform = SPECTAttenuationTransform(attenuation_map)
 psf_transform = SPECTPSFTransform(psf_meta)
 system_matrix = SPECTSystemMatrix(
@@ -90,9 +90,9 @@ def initialize_reconstruction_algorithm_singlebed(projections, object_meta, proj
     photopeak = projections[index_peak]
     scatter = io.SPECT.energy_window_scatter(projections, proj_meta, index_peak, index_lower, index_upper)
     # Build system matrix
-    photon_keV = proj_meta.energy_windows[index_peak].photon_keV
-    attenuation_map = io.attenuation_map(files_CT, object_meta, energy_keV=photon_keV)
-    psf_meta = io.SPECT.collimator_psf('GI-MEGP', photon_keV)
+    photon_energy = proj_meta.energy_windows[index_peak].photon_energy
+    attenuation_map = io.attenuation_map(files_CT, object_meta, energy=photon_energy)
+    psf_meta = io.SPECT.collimator_psf('GI-MEGP', photon_energy)
     att_transform = SPECTAttenuationTransform(attenuation_map)
     psf_transform = SPECTPSFTransform(psf_meta)
     # Create system matrix

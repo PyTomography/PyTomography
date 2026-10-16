@@ -56,10 +56,10 @@ photopeak = projections[0]
 scatter = io.SPECT.energy_window_scatter(projections, proj_meta, peak=0, lower=1, upper=2)
 
 # 2. Physics, in mm
-photon_keV = proj_meta.energy_windows[0].photon_keV  # 208 keV
-mu = io.attenuation_map(files_CT, object_meta, energy_keV=photon_keV)  # 1/mm
+photon_energy = proj_meta.energy_windows[0].photon_energy  # 208 keV
+mu = io.attenuation_map(files_CT, object_meta, energy=photon_energy)  # 1/mm
 attenuation = SPECTAttenuationTransform(mu)
-psf_meta = io.SPECT.collimator_psf("SY-ME", photon_keV, intrinsic_fwhm_mm=3.8)
+psf_meta = io.SPECT.collimator_psf("SY-ME", photon_energy, intrinsic_fwhm=3.8)
 psf = SPECTPSFTransform(psf_meta)
 system_matrix = SPECTSystemMatrix(
     obj2obj_transforms=[attenuation, psf],
@@ -135,6 +135,7 @@ install
 tutorials/index
 gallery
 architecture
+conventions
 API <api/pytomography/index>
 Contribute <contributing/index>
 Migrate to v4 <migration>

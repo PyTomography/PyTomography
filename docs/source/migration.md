@@ -71,18 +71,18 @@ psf_meta = dicom.get_psfmeta_from_scanner_params('SY-ME', energy_keV=208, intrin
 
 # v4
 projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)   # [W, θ, r, z], mm
-w = proj_meta.energy_windows[0]                                       # .photon_keV, .ranges_keV
+w = proj_meta.energy_windows[0]                                       # .photon_energy, .ranges
 photopeak = projections[0]
 scatter = io.SPECT.energy_window_scatter(projections, proj_meta, peak=0, lower=1, upper=2)
-attenuation_map = io.attenuation_map(files_CT, object_meta, energy_keV=w.photon_keV)   # 1/mm
-psf_meta = io.SPECT.collimator_psf('SY-ME', w.photon_keV, intrinsic_fwhm_mm=3.8)
+attenuation_map = io.attenuation_map(files_CT, object_meta, energy=w.photon_energy)   # 1/mm
+psf_meta = io.SPECT.collimator_psf('SY-ME', w.photon_energy, intrinsic_fwhm=3.8)
 io.save_dicom(recon, folder, object_meta, reference=file_NM)          # placed; NM; counts
 ```
 
 **Four changes move arrays or numbers:**
 
 - **mm everywhere.** SPECT lengths were in cm; every length is now in mm and μ in 1/mm: `GaussianFilter(2)` (2 cm)
-  becomes `GaussianFilter(20)`, `intrinsic_resolution=0.38` becomes `intrinsic_fwhm_mm=3.8`, and KEM's
+  becomes `GaussianFilter(20)`, `intrinsic_resolution=0.38` becomes `intrinsic_fwhm=3.8`, and KEM's
   `distance_kernel_params=[0.4]` becomes `[4]` (the default σ is 10 mm). `SPECTObjectMeta` warns when `dr` looks like cm.
 - **k runs foot → head** for every reader: `k = 0` is the most inferior slice. CT-PD and StarGuide arrays are flipped
   along axis 2 compared with v3; their saved files land where they did. PETSIRD rings are numbered foot → head.
@@ -120,12 +120,12 @@ io.save_dicom(recon, folder, object_meta, reference=file_NM)          # placed; 
 | `load_multibed_projections` | `io.SPECT.read_dicom_beds(files)`: a list of triples, inferior bed first |
 | `stitch_multibed(recons, files_NM)` | `io.SPECT.stitch_beds(recons, object_metas)` → `(image, object_meta)` |
 | `PGAAMultiBedSPECT(files_NM, algorithms)` | `PGAAMultiBedSPECT(algorithms)`: each bed's grid from its system matrix; masks go on the stitched `object_meta` |
-| `get_starguide_metadata`, `get_starguide_projections`, `get_starguide_patient_affine` | `io.SPECT.read_starguide(files, energy_window=None, *, files_CT=None, object_meta=None, nearest_theta=0.1)`; `StarGuideProjMeta.times` (ms) → `frame_duration_s` (s) |
+| `get_starguide_metadata`, `get_starguide_projections`, `get_starguide_patient_affine` | `io.SPECT.read_starguide(files, energy_window=None, *, files_CT=None, object_meta=None, nearest_theta=0.1)`; `StarGuideProjMeta.times` (ms) → `frame_duration` (s) |
 | `simind.get_metadata` + `get_projections` + `combine_projection_data` | `io.SPECT.read_simind(headers, energy_window=None, *, weights=None, radii_file=None)` |
-| `get_psfmeta_from_scanner_params(name, energy_keV, intrinsic_resolution=cm)` | `io.SPECT.collimator_psf(name, photon_keV, intrinsic_fwhm_mm=0, *, intrinsic_fwhm_140keV_mm=None, material=, shape='gaussian' \| 'square')` |
-| `simind.get_psfmeta_from_header` | `io.SPECT.simind_psf(header, photon_keV=None)` |
+| `get_psfmeta_from_scanner_params(name, energy_keV, intrinsic_resolution=cm)` | `io.SPECT.collimator_psf(name, photon_energy, intrinsic_fwhm=0, *, intrinsic_fwhm_140keV=None, material=, shape='gaussian' \| 'square')` |
+| `simind.get_psfmeta_from_header` | `io.SPECT.simind_psf(header, photon_energy=None)` |
 | `get_energy_window_scatter_estimate(_projections)` | `io.SPECT.energy_window_scatter(projections, proj_meta, peak, lower, upper=None, *, sigma_r_mm=, sigma_z_mm=)`: the windows' widths from `proj_meta` |
-| `get_energy_window_bounds`, `get_window_width` | `proj_meta.energy_windows[i]`: `.ranges_keV`, `.lower_keV`, `.upper_keV`, `.width_keV`, `.photon_keV`; also `proj_meta.frame_duration_s`, `.acquisition_start`, `.nuclide`, `.units` |
+| `get_energy_window_bounds`, `get_window_width` | `proj_meta.energy_windows[i]`: `.ranges`, `.lower`, `.upper`, `.width`, `.photon_energy`; also `proj_meta.frame_duration`, `.acquisition_start`, `.nuclide`, `.units` |
 | `get_FOV_mask_from_projections` | `io.SPECT.fov_mask(projections)` |
 | `subsample_metadata`, `subsample_projections_and_modify_metadata` | `object_meta.subsample(f)`, `proj_meta.subsample(f, angle_factor, angle_start)`, `io.SPECT.shared.subsample_projections` |
 | `PatientPosition` assumed feet first supine | placement from the orientation tags; `io.SPECT.dicom.patient_position(ds)` is only a check, and positions other than FFS warn |
@@ -134,10 +134,10 @@ io.save_dicom(recon, folder, object_meta, reference=file_NM)          # placed; 
 
 | v3 | v4 |
 |---|---|
-| `dicom.get_attenuation_map_from_CT_slices`, `CT_to_mumap`, `get_attenuation_map_from_file`, `simind.get_attenuation_map`, `get_starguide_attenuation_map_from_CT_slices` | `io.attenuation_map(source, object_meta, energy_keV=None, *, technique='table', layout=None, units=None)` → μ in 1/mm on the grid. SPECT passes `energy_keV` (`proj_meta.energy_windows[i].photon_keV`); PET defaults to 511. Water is checked against NIST |
+| `dicom.get_attenuation_map_from_CT_slices`, `CT_to_mumap`, `get_attenuation_map_from_file`, `simind.get_attenuation_map`, `get_starguide_attenuation_map_from_CT_slices` | `io.attenuation_map(source, object_meta, energy=None, *, technique='table', layout=None, units=None)` → μ in 1/mm on the grid. SPECT passes `energy` (`proj_meta.energy_windows[i].photon_energy`); PET defaults to 511. Water is checked against NIST |
 | `technique='from_table'`, `'from_cortical_bone_fit'` | `'table'`, `'cortical_bone_fit'`, `'nist'`, or a function of the HU |
 | `smi_index_22=3`, `smi_index_22=5` | `layout='mu'`, `layout='mu-castor'`: required for SIMIND maps |
-| `SPECTAttenuationTransform(filepath=files_CT)` | `SPECTAttenuationTransform(attenuation_map=io.attenuation_map(files_CT, object_meta, energy_keV=...))` |
+| `SPECTAttenuationTransform(filepath=files_CT)` | `SPECTAttenuationTransform(attenuation_map=io.attenuation_map(files_CT, object_meta, energy=...))` |
 | `get_aligned_rtstruct(rt, nm, folder, name)` | `io.load_mask(rt, reference=folder, rois=[name]).on(object_meta, label=name, threshold=0.5)` |
 | `get_aligned_nifti_mask(nii, ..., idx)` | `io.load_mask(nii).on(object_meta, label=idx, threshold=0.5)` |
 
@@ -145,12 +145,12 @@ io.save_dicom(recon, folder, object_meta, reference=file_NM)          # placed; 
 
 | v3 | v4 |
 |---|---|
-| `gate.get_detector_info` + `get_detector_ids_from_root` | `io.PET.read_gate(root_files, macro, *, object_meta=None, events='prompts', tof_meta=None, world_axes=None, world_origin=None, doi_mm=0, ...)` → `(events, object_meta, proj_meta)`; `info` is `proj_meta.info`; hosted datasets take their placement from the registry; out-of-range TOF bins are dropped |
-| `mean_interaction_depth` | `doi_mm` |
+| `gate.get_detector_info` + `get_detector_ids_from_root` | `io.PET.read_gate(root_files, macro, *, object_meta=None, events='prompts', tof_meta=None, world_axes=None, world_origin=None, doi=0, ...)` → `(events, object_meta, proj_meta)`; `info` is `proj_meta.info`; hosted datasets take their placement from the registry; out-of-range TOF bins are dropped |
+| `mean_interaction_depth` | `doi` |
 | `gate.get_patient_affine_from_nifti` | nothing: `object_meta.affine` (save with `io.save_nifti(image, path, object_meta)`) |
 | `gate.get_attenuation_map_nifti(path, meta)` | `io.attenuation_map(path, object_meta, units='1/cm')` |
 | `gate.get_aligned_attenuation_map(hv, meta)` | `io.attenuation_map(io.PET.gate_image(hv, proj_meta, units='1/cm'), object_meta)` |
-| `gate.get_normalization_weights_cylinder_calibration` | `io.PET.gate_normalization(files, info, cylinder_radius_mm)` (NaN → 0) |
+| `gate.get_normalization_weights_cylinder_calibration` | `io.PET.gate_normalization(files, info, cylinder_radius)` (NaN → 0) |
 | `gate.get_norm_sinogram_from_listmode_data` | `io.PET.normalization_sinogram` |
 | `gate.get_sinogram_from_root_data` | `io.PET.listmode_to_sinogram(io.PET.read_gate(...)[0], info)` |
 | `gate.listmode_to_sinogram`, `sinogram_to_listmode`, `smooth_randoms_sinogram`, `randoms_sinogram_to_sinogramTOF` | `io.PET.<same name>` (the last returns a new tensor: use its return value) |
@@ -158,15 +158,15 @@ io.save_dicom(recon, folder, object_meta, reference=file_NM)          # placed; 
 | `gate.get_radius` | `gate.lor_radius` |
 | `shared.get_scanner_LUT`, `shared.crystal_pair_index` | `io.PET.scanner_lut`, `io.PET.crystal_pair_index` |
 | the trans and axial id helpers | `io.PET.scanner.detector_ids_from_parts`, `crystal_parts` |
-| `info['firstCrystalAxis']` | `rsector0_angle_deg`, `transaxial_direction`, `axial_direction` |
-| `info['energy_window_low']`, `['energy_window_high']`, `['TOF']` | `energy_window_low_keV`, `energy_window_high_keV`; `TOF` removed |
+| `info['firstCrystalAxis']` | `rsector0_angle`, `transaxial_direction`, `axial_direction` |
+| `info['TOF']` | removed: `proj_meta.tof_meta`. `energy_window_low` and `energy_window_high` keep their names (keV) |
 | `clinical.get_detector_info('discovery_MI')` | `io.PET.scanner_info('discovery_MI')` |
 | `clinical.get_tof_meta` | `proj_meta.tof_meta` |
 | `clinical.get_detector_ids_hdf5` | `io.PET.read_ge_hdf5(listmode_file)` |
 | `get_weights_hdf5`, `get_additive_term_hdf5`, `get_sensitivity_ids[_and_weights]_hdf5` | `io.PET.read_ge_corrections(file)` → `(event_weights, additive_counts, pair_ids, pair_weights)` |
-| `petsird.get_detector_info`, `get_detector_ids`, `get_sensitivity_weights`, `get_TOF_meta[_from_header]`, `get_frame_transform` | `io.PET.read_petsird(path, *, up=, towards_bed=, patient_position=, time_interval_s=, header=, events=)` (times in s) |
+| `petsird.get_detector_info`, `get_detector_ids`, `get_sensitivity_weights`, `get_TOF_meta[_from_header]`, `get_frame_transform` | `io.PET.read_petsird(path, *, up=, towards_bed=, patient_position=, time_interval=, header=, events=)` (times in s) |
 | `petsird.get_scanner_LUT[_from_header]` | `io.PET.petsird.element_positions` (PETSIRD's own numbering) |
-| `patient_orientation=`, `info['petsird_alignment_deg']` | `patient_position=`, `rsector0_angle_deg` |
+| `patient_orientation=`, `info['petsird_alignment_deg']` | `patient_position=`, `rsector0_angle` |
 
 ### CT
 
@@ -174,10 +174,10 @@ io.save_dicom(recon, folder, object_meta, reference=file_NM)          # placed; 
 |---|---|
 | `dicom_ct_pd.get_projections_and_metadata_gen3(paths, low_signal_filter=)` | `io.CT.read_dicom_ct_pd(folder, *, filter_low_signal=True, object_meta=None, ...)` → `(projections, object_meta, proj_meta)`; k foot → head |
 | `proj_meta.get_patient_affine(object_meta)` | `object_meta.affine` |
-| `col_det_spacing` | `col_angle_spacing` (radians) |
+| `col_det_spacing` | `col_angle_spacing` (degrees) |
 | `sorted_paths`, `get_geometry_info_from_datasets_gen3`, `get_photon_statistics`, `get_water_attenuation`, `get_correction_flags` | `proj_meta.photon_counts`, `.water_attenuation`, `.correction_flags` |
 | HU by hand | `io.CT.to_hu(mu, proj_meta)`, `io.CT.from_hu(hu, proj_meta)` |
-| the micro-CT tutorial's own reading code | `io.CT.read_nikon(folder, binning=4, cor_mm=0.24)` |
+| the micro-CT tutorial's own reading code | `io.CT.read_nikon(folder, binning=4, cor=0.24)` |
 
 ## Install parallelproj 2 (for PET and CT)
 
@@ -428,9 +428,9 @@ scatter = sss.compute_sss_sparse_sinogram(object_meta, proj_meta, pet_image, att
 ```
 
 The same holds for `compute_sss_sparse_sinogram_TOF`. The scatter simulation now takes the detector's energy window
-and resolution from `proj_meta.info`: `energy_window_low_keV` and `energy_window_high_keV`, and `energy_resolution` as
+and resolution from `proj_meta.info`: `energy_window_low` and `energy_window_high`, and `energy_resolution` as
 the FWHM at 511 keV over 511 keV. The PETSIRD and GE readers fill them in from the file, and `read_gate` from its
-`energy_window_keV=` and `energy_resolution=`. Without them, the v3 values are used (430 keV, no upper limit, 0.15).
+`energy_window=` and `energy_resolution=`. Without them, the v3 values are used (430 keV, no upper limit, 0.15).
 
 ## CT: new defaults change the images
 
@@ -517,6 +517,21 @@ Some bugs fixed in v4 changed results. Rerun anything you made with v3 that depe
   tutorial's FDK image changes by about 1 %.
 - **DICOM images whose slices overlap or have gaps** were stretched along z: the readers took SliceThickness as the
   distance between slices ([#272](https://github.com/PyTomography/PyTomography/issues/272)).
+
+## Units by convention: FWHM, degrees, no suffixes
+
+v4 gives every length in mm, every angle in degrees, every energy in keV and every time in s, and every Gaussian by its FWHM ([Conventions](conventions.md)). Names carry no unit suffixes. Code from v3 that smooths, or that builds CT geometry, changes:
+
+| v3 | v4 |
+|---|---|
+| `compute_EW_scatter(..., sigma_theta=, sigma_r=, sigma_z=)` (standard deviations) | `io.SPECT.energy_window_scatter(..., fwhm_theta=, fwhm_r=, fwhm_z=)` (FWHM in degrees and mm: 2.355 times the standard deviation) |
+| `smooth_randoms_sinogram(sino, info, sigma_r=4, sigma_theta=4, sigma_z=4, kernel_size_r=21, ...)` (in radial bins, angles, rings) | `io.PET.smooth_randoms_sinogram(sino, info, fwhm_r=20, fwhm_theta=7, fwhm_z=40)` (FWHM in mm, degrees, mm; `io.PET.sinogram_spacing(info)` gives the steps) |
+| `GaussianFilter(FWHM=...)` (cm) | `GaussianFilter(fwhm=...)` (mm) |
+| `cardiac_spect.get_angle(slice, angle_range_degrees)`, `plot_arrow(image, angle_degrees)` | `angle_range`, `angle` (degrees) |
+| CT metadata in radians (`CTGen3ProjMeta(source_phis, ..., col_angle_spacing)`, `CTConeBeamFlatPanelProjMeta(angles, ...)`) | in degrees; the readers convert DICOM-CT-PD's radians |
+| `crystal_thickness`, `cover_thickness`, `backscatter_thickness` of the SIMIND Monte Carlo (cm) | the same names in mm; a crystal thinner than 3 mm raises an error that gives the value in mm |
+
+The smoothing arguments of v3 still work until 5.0, with a `DeprecationWarning` that gives the converted value.
 
 ## Tutorial data
 

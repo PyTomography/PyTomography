@@ -70,8 +70,8 @@ else:
 # to the MC forward simulation. The amap at the isotope energy is used to build
 # an attenuation transform that is used in the analytical back projection
 path_maps = os.path.join(PATH, 'attenuation_maps')
-amap140keV = io.attenuation_map(os.path.join(path_maps, 'amap140.hct'), object_meta, energy_keV=140, layout='mu')
-amapIsotopeEnergy = io.attenuation_map(os.path.join(path_maps, f'amap{E}.hct'), object_meta, energy_keV=E, layout='mu')
+amap140keV = io.attenuation_map(os.path.join(path_maps, 'amap140.hct'), object_meta, energy=140, layout='mu')
+amapIsotopeEnergy = io.attenuation_map(os.path.join(path_maps, f'amap{E}.hct'), object_meta, energy=E, layout='mu')
 att_transform = SPECTAttenuationTransform(attenuation_map=amapIsotopeEnergy)
 
 psf_meta = io.SPECT.simind_psf(files_NM[1][0])
@@ -93,8 +93,8 @@ elif ISOTOPE == 'y90':
     isotope_ratios = [1]
     collimator_type = 'SY-HE'
 
-cover_thickness_mm = 1.0 # assumed to be aluminum
-backscatter_thickness_mm = 66.0 # assumed to be pyrex
+cover_thickness = 1.0 # assumed to be aluminum
+backscatter_thickness = 66.0 # assumed to be pyrex
 # the argument below is optional, only siemens currently implemented.
 # if not provided, then assumes energy resolution is proportional to
 # 1/sqrt(E)
@@ -103,7 +103,7 @@ advanced_energy_resolution_model='siemens'
 # the energy resolution needs to be provided at 140keV in
 # units of percent.
 energy_resolution_140keV = 10 # %
-crystal_thickness_mm = 9.525  # assumed to be NaI
+crystal_thickness = 9.525  # assumed to be NaI
 
 energy_window_params = simind_mc.get_energy_window_params_simind(files_NM[1])
 
@@ -123,9 +123,9 @@ system_matrix = MonteCarloHybridSPECTSystemMatrix(
         isotope_names=isotope_names,
         isotope_ratios=isotope_ratios,
         collimator_type=collimator_type,
-        crystal_thickness_mm=crystal_thickness_mm,
-        cover_thickness_mm=cover_thickness_mm,
-        backscatter_thickness_mm=backscatter_thickness_mm,
+        crystal_thickness=crystal_thickness,
+        cover_thickness=cover_thickness,
+        backscatter_thickness=backscatter_thickness,
         advanced_energy_resolution_model=advanced_energy_resolution_model,
         advanced_collimator_modeling=True, # include septal penetration/scatter
         n_events=n_events,

@@ -64,8 +64,8 @@ def collimators_markdown(data: Path, fmt: str) -> str:
     for r in rows:
         shape = r["hole_shape"] + (", rotated" if r["rotated"] == "true" else "")
         kind = "" if r["kind"] == "parallel" else f" ({r['kind']})"
-        table.append([f"`{r['code']}`", r["family"], (r["type"] or "") + kind, shape, _mm(r["hole_diameter_mm"]),
-                      _mm(r["septal_thickness_mm"]), _mm(r["hole_length_mm"]),
+        table.append([f"`{r['code']}`", r["family"], (r["type"] or "") + kind, shape, _mm(r["hole_diameter"]),
+                      _mm(r["septal_thickness"]), _mm(r["hole_length"]),
                       "9.0" if r["source"] == "SIMIND 9.0" else "earlier"])
     body.append(_table(["Code", "Camera", "Type", "Holes", "Hole (mm)", "Septa (mm)", "Length (mm)", "SIMIND"], table))
     return "\n".join(body)
@@ -76,8 +76,8 @@ def detectors_markdown(data: Path, fmt: str) -> str:
     lede = "The crystal, with SIMIND 9.0's template cover and backscatter, in mm."
     if fmt == "md":
         lede = lede.replace("``", "`")
-    table = [[f"`{r['label']}`", r["crystal"], _mm(r["crystal_mm"]), f"{_mm(r['cover_mm'])} {r['cover_material']}",
-              f"{_mm(r['backscatter_mm'])} {r['backscatter_material']}"] for r in rows]
+    table = [[f"`{r['label']}`", r["crystal"], _mm(r["crystal_thickness"]), f"{_mm(r['cover_thickness'])} {r['cover_material']}",
+              f"{_mm(r['backscatter_thickness'])} {r['backscatter_material']}"] for r in rows]
     return "\n".join([lede, "", _table(["Label", "Crystal", "Crystal (mm)", "Cover (mm)", "Backscatter (mm)"], table)])
 
 
@@ -90,11 +90,11 @@ def cameras_markdown(data: Path, fmt: str) -> str:
     table, sources = [], []
     for c in cams:
         er = c["energy_resolution"]
-        a, b, k = er["a_keV"], er["b"], er["c_per_keV"]
+        a, b, k = er["a"], er["b"], er["c"]
         at = {e: _morphis(a, b, k, e) for e in (140.0, 208.0, 440.0)}
         table.append([c["name"], ", ".join(c.get("aliases", [])) or "", er["model"], f"a = {a:g} keV, b = {b:g}, c = {k:g} /keV",
                       f"{100 * at[140.0] / 140:.1f} %", f"{at[208.0]:.1f} keV", f"{at[440.0]:.1f} keV",
-                      f"{c['intrinsic_fwhm_mm_140']:g} mm"])
+                      f"{c['intrinsic_fwhm_140keV']:g} mm"])
         sources += [f"* {c['name']}, energy resolution: {er['source']}", f"* {c['name']}, intrinsic resolution: {c['intrinsic_source']}"]
     out = [lede, "", _table(["Camera", "Also", "Energy resolution", "Parameters", "FWHM at 140 keV", "at 208 keV",
                              "at 440 keV", "Intrinsic FWHM (140 keV)"], table), "", "Sources:", "", *sources]

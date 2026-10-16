@@ -37,12 +37,12 @@ files_CT = [os.path.join(path_CT, file) for file in os.listdir(path_CT)]
 projections, object_meta, proj_meta = io.SPECT.read_starguide(files_NM, files_CT=files_CT, nearest_theta=0.1)
 print(projections.shape)
 
-attenuation_map = io.attenuation_map(files_CT, object_meta, energy_keV=proj_meta.energy_windows[0].photon_keV)
+attenuation_map = io.attenuation_map(files_CT, object_meta, energy=proj_meta.energy_windows[0].photon_energy)
 attenuation_transform = SPECTAttenuationTransform(attenuation_map, assume_padded = False)
 
 psf_meta = io.SPECT.collimator_psf(
     'G8-LEHR', # According the the header, these are the collimator parameters
-    proj_meta.energy_windows[0].photon_keV, # 140.5 keV: imaging of Tc-99m
+    proj_meta.energy_windows[0].photon_energy, # 140.5 keV: imaging of Tc-99m
     material='tungsten', # It is known that this is the material
     shape = 'square', # collimator hole shape
 )
