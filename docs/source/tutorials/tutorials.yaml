@@ -119,6 +119,14 @@ sections:
     summary: The same ARF PSFs on a measured Symbia T2 scan with a non-circular orbit.
     datasets:
     - SPECT/Ac225-NEMA-SymT2
+  - notebook: t_ac225_dualpeak
+    title: Ac-225 dual photopeak
+    modality: SPECT
+    data: DICOM
+    topic: Clinical workflow
+    summary: One image from the 218 and 440 keV photopeaks (ARF PSFs at 440 keV), against each peak alone.
+    datasets:
+    - SPECT/Ac225-NEMA-SymT2
   - notebook: t_CardiacReorientation
     title: Cardiac reorientation
     modality: SPECT
