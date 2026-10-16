@@ -111,3 +111,12 @@ def test_cardiac_angles_take_the_old_names_with_a_warning():
     with pytest.warns(DeprecationWarning, match="'angle_range_degrees' is now 'angle_range'"):
         old = cardiac_spect.get_angle(image, angle_range_degrees=angles)
     assert old == cardiac_spect.get_angle(image, angle_range=angles)
+
+
+def test_randoms_smoothing_keeps_no_autograd_graph():
+    # Its kernels are Conv1d layers, whose weights require gradients: without torch.no_grad every convolution kept its
+    # input, 20 GB for the Biograph mMR's randoms sinogram (#377 had lost the decorator)
+    from pytomography.io.PET import shared
+    randoms = torch.rand((16, 33, 16), generator=torch.Generator().manual_seed(3))
+    smoothed = shared.smooth_randoms_sinogram(randoms, _ring())
+    assert not smoothed.requires_grad and smoothed.grad_fn is None
