@@ -25,7 +25,7 @@
   }
   // gray: black to white; Greys (matplotlib's): white to black, high values dark
   const CMAP_ORDER = ['inferno', 'pet', 'magma', 'plasma', 'viridis', 'hot', 'gist_heat', 'nipy_spectral', 'gray', 'Greys'].filter(k => LUT[k]);
-  const CT_WINDOWS = [['phantom', 'Phantom', -20, 35], ['soft', 'Soft tissue', -160, 240], ['bone', 'Bone', -450, 1050],
+  const CT_WINDOWS = [['phantom', 'Phantom', -20, 40], ['soft', 'Soft tissue', -160, 240], ['bone', 'Bone', -450, 1050],
     ['lung', 'Lung', -1350, 150], ['full', 'Full range', -1000, 1000]];
   // SPECT and PET are drawn in colour over a grey anatomical image (CT, MR or attenuation map)
   const ROLE = {spect: 'overlay', pet: 'overlay', ct: 'base', mr: 'base', mu: 'base', image: 'base'};
