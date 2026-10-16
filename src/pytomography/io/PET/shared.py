@@ -988,6 +988,7 @@ _RANDOMS_SIGMAS = {"sigma_r": ("fwhm_r", 0, "mm"), "sigma_theta": ("fwhm_theta",
 _RANDOMS_KERNEL_SIZES = {"kernel_size_r": "r", "kernel_size_theta": "theta", "kernel_size_z": "z"}
 
 
+@torch.no_grad()   # the kernels are Conv1d layers: without it each convolution keeps its input for autograd
 def smooth_randoms_sinogram(
     sinogram_random: torch.Tensor,
     info: dict,
