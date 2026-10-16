@@ -1,0 +1,125 @@
+"""Accuracy against known truth
+
+Measure bias and noise in each sphere of a simulated phantom, with OSEM and BSREM.
+
+Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_accuracy_known_truth.html
+It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
+Generated from the notebook by docs/tools/export_scripts.py: edit the notebook, not this file.
+"""
+from pytomography import datasets
+
+# The tutorial data: downloaded the first time it runs (see Tutorial data in the docs)
+datasets.fetch("SPECT/SIMIND-Jaszak")
+DATA = datasets.data_dir()  # the PYTOMOGRAPHY_DATA folder, or ~/pytomography_data
+# Results go here, never into the data folder
+OUTPUT = datasets.output_dir("SPECT/SIMIND-Jaszak")
+
+import re
+import time
+import numpy as np
+import torch
+import pytomography
+from pytomography import io
+from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
+from pytomography.projectors.SPECT import SPECTSystemMatrix
+from pytomography.likelihoods import PoissonLogLikelihood
+from pytomography.algorithms import OSEM, BSREM
+from pytomography.priors import RelativeDifferencePrior
+from pytomography.callbacks import Callback
+
+# %% 1. A noisy acquisition
+path = DATA / 'SPECT' / 'SIMIND-Jaszak' / 'lu177_SYME_jaszak'
+windows = {'photopeak': path / 'tot_w1.h00', 'lower': path / 'tot_w2.h00', 'upper': path / 'tot_w3.h00'}  # 208 keV
+expected, object_meta, proj_meta = io.SPECT.read_simind([str(p) for p in windows.values()])
+for w, window in zip(windows, proj_meta.energy_windows):
+    print(f"{w:9s} window: {window.lower:.1f}-{window.upper:.1f} keV")
+activity = 1000        # MBq in the whole phantom
+acquisition_time = 15  # seconds per projection
+
+torch.manual_seed(0)
+projections = {w: torch.poisson(expected[i] * activity * acquisition_time) for i, w in enumerate(windows)}
+photopeak = projections['photopeak']
+scatter = io.SPECT.energy_window_scatter(torch.stack(list(projections.values())), proj_meta,
+                                         peak=0, lower=1, upper=2)
+print(f"{photopeak.sum().item():.3g} counts in the photopeak window")
+
+# %% 2. The truth: sphere masks and concentrations
+block = (path / 'results.res').read_text(errors='replace').split('MULTIPLE SOURCE CONFIGURATION')[1].split('-----')[0]
+volume_mL = {('background' if name == 'BKG' else f'sphere {name}'): float(v)
+             for name, v in re.findall(r'^\s+(\d+|BKG)\s+([\d.]+)', block, re.M)}
+sphere_MBq_per_mL = activity / (sum(v for r, v in volume_mL.items() if r != 'background') + 0.1 * volume_mL['background'])
+truth_MBq_per_mL = {r: sphere_MBq_per_mL * (0.1 if r == 'background' else 1) for r in volume_mL}
+
+rois = io.load_mask(path.parent / 'jaszak_rois.seg.nrrd')  # made once by docs/tools/make_roi_masks.py
+masks = {f'sphere {k}': rois.on(object_meta, label=f'sphere_{k}') > 0.5 for k in range(1, 7)}
+masks['background'] = rois.on(object_meta, label='background') > 0.5
+
+attenuation_map = io.attenuation_map(path / 'amap.hct', object_meta, energy=proj_meta.energy_windows[0].photon_energy,
+                                     layout='mu')  # 1/mm; SIMIND's map layout, simind.ini index 22 = 3
+
+regions = list(masks)
+for r in regions:
+    print(f"{r:10s} {volume_mL[r]:8.2f} mL  {int(masks[r].sum()):6d} voxels  truth {truth_MBq_per_mL[r]:.3f} MBq/mL")
+
+# %% 3. System matrix and likelihood
+psf_meta = io.SPECT.simind_psf(windows['photopeak'])
+system_matrix = SPECTSystemMatrix(
+    obj2obj_transforms=[SPECTAttenuationTransform(attenuation_map), SPECTPSFTransform(psf_meta)],
+    proj2proj_transforms=[],
+    object_meta=object_meta,
+    proj_meta=proj_meta)
+likelihood = PoissonLogLikelihood(system_matrix, photopeak, additive_term=scatter)
+
+# %% 4. Region statistics during reconstruction
+class RegionStatistics(Callback):
+    def __init__(self, masks, n_subsets):
+        self.masks = masks
+        self.n_subsets = n_subsets
+        self.mean = {region: [] for region in masks}
+        self.std = {region: [] for region in masks}
+
+    def run(self, object, n_iter, n_subset):
+        if n_subset == self.n_subsets - 1:  # last subset: the end of an iteration
+            for region, mask in self.masks.items():
+                values = object[mask]
+                self.mean[region].append(values.mean().item())
+                self.std[region].append(values.std().item())
+        return object
+
+# %% 5. Reconstruct with OSEM and BSREM
+n_iters, n_subsets = 40, 8
+
+osem = OSEM(likelihood)
+print(osem.estimate_memory(n_subsets=n_subsets))
+t0 = time.time()
+stats_osem = RegionStatistics(masks, n_subsets)
+recon_osem = osem(n_iters=n_iters, n_subsets=n_subsets, callback=stats_osem)
+print(f"OSEM:  {time.time() - t0:.1f} s")
+
+t0 = time.time()
+stats_bsrem = RegionStatistics(masks, n_subsets)
+bsrem = BSREM(likelihood, prior=RelativeDifferencePrior(beta=0.3, gamma=2), relaxation_sequence=lambda n: 1 / (n / 50 + 1))
+recon_bsrem = bsrem(n_iters=n_iters, n_subsets=n_subsets, callback=stats_bsrem)
+print(f"BSREM: {time.time() - t0:.1f} s")
+
+# %% 6. From counts to activity
+voxel_mL = float(np.prod(object_meta.dr)) / 1000  # voxel sizes are in mm: mm³ to mL
+
+def bias_and_noise(stats, recon, region):
+    """Bias and noise of a region at every iteration, in percent of its true concentration."""
+    to_MBq_per_mL = activity / recon.sum().item() / voxel_mL
+    mean = np.array(stats.mean[region]) * to_MBq_per_mL
+    std = np.array(stats.std[region]) * to_MBq_per_mL
+    truth = truth_MBq_per_mL[region]
+    return 100 * (mean / truth - 1), 100 * std / truth
+
+for region in regions:
+    b_osem, n_osem = bias_and_noise(stats_osem, recon_osem, region)
+    b_bsrem, n_bsrem = bias_and_noise(stats_bsrem, recon_bsrem, region)
+    print(f"{region:10s} after {n_iters} iterations: OSEM bias {b_osem[-1]:+6.1f}% noise {n_osem[-1]:5.1f}%   "
+          f"BSREM bias {b_bsrem[-1]:+6.1f}% noise {n_bsrem[-1]:5.1f}%")
+
+# %% Save the images
+for name, recon in [('OSEM', recon_osem), ('BSREM', recon_bsrem)]:
+    io.save_dicom(recon * activity / recon.sum() / voxel_mL, OUTPUT / 't_accuracy_known_truth' / name, object_meta,
+                  units='MBq/mL', series_description=f'{name} {n_iters}x{n_subsets}', overwrite=True)
