@@ -3,7 +3,7 @@
 # only needs an entry below.
 #
 #   notebook:  file name in docs/source/notebooks, without .ipynb
-#   modality:  SPECT | PET | CT | Any
+#   modality:  SPECT | PET | CT | Proton CT | Any
 #   data:      where the input data comes from (SIMIND, GATE, DICOM, Vendor, None)
 #   topic:     Basics | Corrections | Algorithms | Clinical workflow | Systems | Physics | Uncertainty | Development
 #   summary:   one sentence shown on the card
@@ -255,6 +255,17 @@ sections:
     thumbnail: 1
     datasets:
     - CT/ldct-c145
+- title: Proton CT
+  folder: pct
+  tutorials:
+  - notebook: t_pct_abdomen
+    title: Single-sided proton CT of the abdomen
+    modality: Proton CT
+    data: GATE
+    topic: Systems
+    summary: A simulated 330 MeV scan with a calorimeter behind the patient and nothing in front, reconstructed by two-pass filtered back projection and SART along curved paths, and scored on organs and range errors against the true stopping power.
+    datasets:
+    - PCT/GATE-Abdomen330-DTC
 - title: Building with PyTomography
   folder: development
   tutorials:

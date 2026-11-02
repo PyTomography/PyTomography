@@ -93,7 +93,7 @@ class TutorialGallery(Directive):
         thumbs = Path(env.srcdir) / THUMB_DIR
 
         filters = {
-            "modality": ["SPECT", "PET", "CT"],
+            "modality": ["SPECT", "PET", "CT", "Proton CT"],
             "data": sorted({t["data"] for s in sections for t in s["tutorials"]} - {"None"}),
             "topic": sorted({t["topic"] for s in sections for t in s["tutorials"]}),
         }

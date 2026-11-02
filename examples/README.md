@@ -54,6 +54,12 @@ docs lists every dataset.
 | [`ct/02_cone_beam_micro_ct.py`](ct/02_cone_beam_micro_ct.py) | FDK and OS-SART on a laboratory micro-CT scan of glass beads, with the centre of rotation found from the data. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_CT_microct.html) |
 | [`ct/03_filtered_back_projection_ct_windows_and_memory.py`](ct/03_filtered_back_projection_ct_windows_and_memory.py) | Helical filtered back projection of a clinical chest CT with six windows, their noise against resolution, and the memory settings that fit a given machine. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_fbp_ct.html) |
 
+## Proton CT
+
+| Script | What it does |
+|---|---|
+| [`pct/01_single_sided_proton_ct_of_the_abdomen.py`](pct/01_single_sided_proton_ct_of_the_abdomen.py) | A simulated 330 MeV scan with a calorimeter behind the patient and nothing in front, reconstructed by two-pass filtered back projection and SART along curved paths, and scored on organs and range errors against the true stopping power. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_pct_abdomen.html) |
+
 ## Building with PyTomography
 
 | Script | What it does |
