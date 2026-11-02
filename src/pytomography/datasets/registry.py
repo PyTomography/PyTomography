@@ -365,31 +365,31 @@ DATASETS = {
         ],
     },
     # A GATE simulation of single-sided proton CT (October 2026), converted to PyTomography's list mode file outside
-    # PyTomography; the simulation itself (every proton's truth, every DTC cluster, the phantom and the patient CT) is
-    # its own record
+    # PyTomography and published on Zenodo (record 23815070, 2 Nov 2026); the simulation itself (every proton's truth,
+    # every DTC cluster, the phantom and the patient CT) is its own record, 23814741
     "PCT/GATE-Abdomen330-DTC": {
         "title": "GATE simulation of a single-sided proton CT scan of an adult abdomen at 330 MeV on a digital tracking"
                  " calorimeter, in PyTomography's list mode format, with the true RSP and the organs",
         "source": "PyTomography proton CT tutorial data (Zenodo), from a patient CT of TCIA's PSMA-PET-CT-Lesions",
-        "url": "https://doi.org/10.7937/r7ep-3x37",
+        "url": "https://doi.org/10.5281/zenodo.23815070",
         "licence": "CC BY 4.0 and the TCIA data usage policy",
-        "cite": "Jeblick K, Schachtner B, Mittermeier A, et al. A whole-body PSMA-PET/CT dataset with manually annotated"
-                " tumor lesions (Version 2). The Cancer Imaging Archive (2026). doi:10.7937/r7ep-3x37",
+        "cite": "Polson L. Single-sided proton CT of an adult abdomen at 330 MeV, in PyTomography's list mode format"
+                " (Version 1.0) [dataset]. Zenodo (2026). doi:10.5281/zenodo.23815070; and Jeblick K, Schachtner B,"
+                " Mittermeier A, et al. A whole-body PSMA-PET/CT dataset with manually annotated tumor lesions"
+                " (Version 2). The Cancer Imaging Archive (2026). doi:10.7937/r7ep-3x37",
         "tutorials": ["t_pct_abdomen"],
-        "status": "pending",
-        "note": "The scan (a quarter of its 188.6 million protons, 1.9 GB, made with io.PCT.load_listmode(...,"
-                " fraction=0.25, seed=0) of the full file, which is in the same record), its true RSP and its organs"
-                " are being published on Zenodo, with the GATE simulation as a record of its own; they can be"
-                " downloaded once those records are out.",
-        "parts": [],
-        "files": {
-            "abdomen330_spot_likely_quarter.h5":
-                [1886075952, "3840ff5d3ac43645981174009293d278025b567172c55e75fb8231dfee897493"],
+        "parts": [
+            # The scan: a quarter of its 188.6 million protons, made with io.PCT.load_listmode(..., fraction=0.25,
+            # seed=0) of the full file (abdomen330_spot_likely.h5, 7.5 GB), which is in the same record
+            {"kind": "file", "url": "https://zenodo.org/records/23815070/files/abdomen330_spot_likely_quarter.h5",
+             "size": 1886075952, "sha256": "3840ff5d3ac43645981174009293d278025b567172c55e75fb8231dfee897493"},
             # The true relative stopping power, and 1 liver, 2 left kidney, 3 right kidney, 4 spleen, on one grid:
             # 370 x 314 x 57 voxels of 0.976562 x 0.976562 x 2.5 mm about the rotation axis (the tutorial's grid)
-            "truth_rsp.nii.gz": [3148323, "f38a6d5c6db9d1c3f5f3a45bc8fd8434fa4dcbd736ac472ce354d07f99aadb91"],
-            "organs.nii.gz": [181365, "627acc644f65c95323ecc677a96345169096c90102aa78af6e71268ec6d9f2a8"],
-        },
+            {"kind": "file", "url": "https://zenodo.org/records/23815070/files/truth_rsp.nii.gz",
+             "size": 3148323, "sha256": "f38a6d5c6db9d1c3f5f3a45bc8fd8434fa4dcbd736ac472ce354d07f99aadb91"},
+            {"kind": "file", "url": "https://zenodo.org/records/23815070/files/organs.nii.gz",
+             "size": 181365, "sha256": "627acc644f65c95323ecc677a96345169096c90102aa78af6e71268ec6d9f2a8"},
+        ],
     },
 }
 """Every dataset, ``{name: entry}``, where the name is the dataset's folder under the data folder and the entry holds
