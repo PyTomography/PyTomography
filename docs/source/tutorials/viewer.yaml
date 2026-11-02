@@ -209,6 +209,8 @@ tutorials:
     title: Zubal phantom, Lu-177 SPECT with a Ga-68 PET prior
     description: MLEM, KEM with a kernel from the PET intensities, and KEM with a deep-learned kernel, 50 iterations each
     credit: Simulated data contributed by H. Wei with PyTomography's kernel methods (doi:10.1109/TRPMS.2026.3737413)
+    # open on the organs: the hottest voxel is the bladder, at the bottom of the field of view
+    start_voxel: [89, 60, 65]
     layers:
     - {name: Attenuation, kind: mu, array: attenuation_map, affine: object_meta.affine, units: 1/mm}
     - {name: PET, label: Ga-68 PET prior, kind: pet, array: pet_prior, affine: object_meta.affine, units: a.u., scale_group: pet}

@@ -38,9 +38,9 @@ pytomography.set_memory_budget(RAM_GB)
 
 # %% 1. The data
 path = DATA / 'SPECT' / 'Lu177-DOTATATE-Zubal'
-pet_prior = np.load(path / 'simulated_Ga_pet_image.npy')
-attenuation_map = torch.as_tensor(np.load(path / 'spect_attenuation_3d.npy') / 10, device=pytomography.device)  # 1/mm
-projections = torch.as_tensor(np.load(path / 'spect_projections_3d_20m.npy'), device=pytomography.device)
+pet_prior = np.load(path / 'pet_prior.npy')
+attenuation_map = torch.as_tensor(np.load(path / 'attenuation_map.npy'), device=pytomography.device)
+projections = torch.as_tensor(np.load(path / 'projections.npy'), device=pytomography.device)
 
 object_meta = SPECTObjectMeta(dr=(4.0, 4.0, 4.0), shape=(128, 128, 128))
 proj_meta = SPECTProjMeta(projection_shape=(128, 128), dr=(4.0, 4.0),
