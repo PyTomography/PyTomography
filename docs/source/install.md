@@ -12,7 +12,7 @@ conda activate pytomography
 pip install pytomography
 ```
 
-`pip install pytomography` also installs [spectarf](#spect-psfs-from-monte-carlo-spectarf).
+`pip install pytomography` also installs [spectarf](#spect-psfs-from-monte-carlo-spectarf), which runs on the CPU as it is; its fast NVIDIA engine takes one more command, chosen by your PyTorch's CUDA version (see [spectarf](#spect-psfs-from-monte-carlo-spectarf)).
 
 ## GPUs
 
@@ -60,23 +60,42 @@ SPECT reconstruction does not need parallelproj. Importing PyTomography never re
 
 ## SPECT PSFs from Monte Carlo: spectarf
 
-[spectarf](https://pypi.org/project/spectarf/), Stephen Graves' package, makes a SPECT camera's point spread functions (PSFs) from Monte Carlo angular response functions (ARFs), given a description of the camera: its collimator, crystal and energy windows. PyTomography's ARF tutorials use it, and `pip install pytomography` installs it. Its Monte Carlo runs on the CPU, or on any GPU through PyTorch; on an NVIDIA GPU its own CUDA engine is much faster (about 1.5 minutes per camera on an RTX 5090, against half an hour on a CPU). That engine is an extra:
+[spectarf](https://pypi.org/project/spectarf/), Stephen Graves' package, makes a SPECT camera's point spread functions (PSFs) from Monte Carlo angular response functions (ARFs), given a description of the camera: its collimator, crystal and energy windows. PyTomography's ARF tutorials use it. It simulates each camera and photon energy once and keeps the ARFs in a cache, so later runs read them in seconds.
+
+### On the CPU: nothing more to install
+
+`pip install pytomography` installs spectarf, and it runs on the CPU as it is: about half an hour per camera and energy. On an AMD or Apple GPU it runs through PyTorch, also with nothing more to install.
+
+### On an NVIDIA GPU: one more command
+
+spectarf's CUDA engine simulates a camera in about 1.5 minutes on an RTX 5090. It is an extra, `spectarf[cuda]`, and the right command depends on the CUDA version of your PyTorch.
+
+**1. Find your PyTorch's CUDA version:**
 
 ```bash
-pip install "spectarf[cuda]"
+python -c "import torch; print(torch.__version__, torch.version.cuda, torch.cuda.is_available())"
 ```
 
-**Windows with PyTorch for CUDA 12** (`cu126` or `cu128`): that PyTorch brings its own CUDA linker, of its CUDA version, and the extra's CUDA compiler must not be newer. Install the matching compiler with it:
+It prints, for example, `2.9.1+cu128 12.8 True`: CUDA 12.8. If it prints `None` or `False`, your PyTorch is the CPU-only build: install the build for your GPU first (see [GPUs](#gpus)), then come back here.
 
-```bash
-pip install "spectarf[cuda]" "nvidia-cuda-nvcc-cu12==12.8.*"   # 12.6.* for cu126
-```
+**2. Run the command for that version:**
 
-PyTorch for CUDA 13 (`cu130`) needs nothing more, nor does Linux, where pip installs the compiler and the linker together. To check, this prints `fused-cuda` when the fast engine works (a mismatched compiler fails here with an nvJitLink error):
+| PyTorch's CUDA version | PyTorch build | Command |
+|---|---|---|
+| 13.0 | `cu130` | `pip install "spectarf[cuda]"` |
+| 12.8 | `cu128` | `pip install "spectarf[cuda]" "nvidia-cuda-nvcc-cu12==12.8.*"` |
+| 12.6 | `cu126` | `pip install "spectarf[cuda]" "nvidia-cuda-nvcc-cu12==12.6.*"` |
+| any other 12.x | `cu12x` | `pip install "spectarf[cuda]" "nvidia-cuda-nvcc-cu12==12.x.*"`, with your version for `x` |
+
+The commands are the same on Windows and Linux. With PyTorch for CUDA 12, the second package keeps the extra's CUDA compiler at PyTorch's own CUDA version: a newer compiler makes code that the CUDA linker PyTorch brings on Windows cannot read.
+
+**3. Check:**
 
 ```bash
 python -c "from spectarf import Collimator, DetectorStack; from spectarf.engines import transport; print(transport(DetectorStack(Collimator(4.0, 2.0, 59.7), crystal_mm=9.525), 208.0, 0.0, 0.0, 10000, engine='fused-cuda').engine)"
 ```
+
+It prints `fused-cuda`. An error that mentions nvJitLink means the compiler does not match PyTorch's CUDA: run the command of step 2 for your version.
 
 ## Check the installation
 
