@@ -1,6 +1,6 @@
 """CGLS on a patient
 
-Conjugate gradients for least squares on a two-bed Lu-177 PSMA patient, beside OSEM: the exact transpose it needs, when to stop, a diagonal preconditioner, and its negative values.
+Conjugate gradients for least squares on a two-bed Lu-177 PSMA patient, beside OSEM: the exact transpose it needs, when to stop, a diagonal preconditioner, weighted least squares, and its negative values.
 
 Script version of the tutorial at https://pytomography.readthedocs.io/en/latest/notebooks/t_cgls.html
 It computes and saves the results; the plots, what only they need, and the explanations are in the notebook.
