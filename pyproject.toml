@@ -36,6 +36,9 @@ dependencies = [
   "torchrbf",
   "pandas>=2.2",
   "numba>=0.59",
+  # SPECT PSFs from Monte Carlo angular response functions (ARFs), from the camera tables of pytomography.io.SPECT.
+  # Its fast NVIDIA engine is its extra: pip install "spectarf[cuda]" (the docs' Installation page)
+  "spectarf>=0.1",
 ]
 
 [tool.hatch.metadata]

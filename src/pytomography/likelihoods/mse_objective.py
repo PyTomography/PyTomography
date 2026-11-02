@@ -52,7 +52,9 @@ class SARTWeightedNegativeMSELikelihood(Likelihood):
     r"""The squared error weighted by the line lengths :math:`H 1`, whose gradient is SART's update direction.
 
     :class:`~pytomography.algorithms.SART` uses it: its gradient is
-    :math:`H_m^T \left((g_m - (H_m f + s_m)) / H_m 1\right)`.
+    :math:`H_m^T \left((g_m - (H_m f + s_m)) / H_m 1\right)`. A system matrix with a ``_sart_terms`` method (proton CT)
+    gives that gradient and :math:`H_m^T 1` together, in fewer walks of its paths than three projections, and no
+    :math:`H_m^T 1` is stored per subset.
 
     Args:
         system_matrix (SystemMatrix): The system matrix :math:`H`.
@@ -67,7 +69,21 @@ class SARTWeightedNegativeMSELikelihood(Likelihood):
         additive_term: torch.Tensor = None,
         ) -> None:
         super().__init__(system_matrix, projections, additive_term)
-        
+        self._fused = getattr(system_matrix, '_sart_terms', None) is not None
+        if self._fused and additive_term is not None:
+            raise ValueError(f'{type(system_matrix).__name__} takes no additive term')
+
+    def _set_n_subsets(self, n_subsets: int) -> None:
+        if not self._fused:
+            return super()._set_n_subsets(n_subsets)
+        self.n_subsets = n_subsets
+        if n_subsets > 1:
+            self.system_matrix.set_n_subsets(n_subsets)
+        self.n_subsets_previous = n_subsets
+
+    def _get_normBP(self, subset_idx: int, return_sum: bool = False):
+        return self._norm_BP if self._fused else super()._get_normBP(subset_idx, return_sum)
+
     def compute_gradient(
         self,
         object: torch.Tensor,
@@ -86,6 +102,9 @@ class SARTWeightedNegativeMSELikelihood(Likelihood):
             torch.Tensor: The gradient, [Lx, Ly, Lz].
         """
         proj_subset = self._get_projection_subset(self.projections, subset_idx)
+        if self._fused:
+            gradient, self._norm_BP = self.system_matrix._sart_terms(object, proj_subset, subset_idx)
+            return gradient
         self._forward_with_additive_term(object, subset_idx)
         norm_FP = self.system_matrix.forward(object*0+1, subset_idx) # TODO: Slow implementation
         norm_BP = self._get_normBP(subset_idx)
