@@ -263,6 +263,7 @@ sections:
     modality: Proton CT
     data: GATE
     topic: Systems
+    thumbnail: 1  # the two FBP passes; the comparison figure is too wide for a card
     summary: A simulated 330 MeV scan with a calorimeter behind the patient and nothing in front, reconstructed by two-pass filtered back projection and SART along curved paths, and scored on organs and range errors against the true stopping power.
     datasets:
     - PCT/GATE-Abdomen330-DTC
