@@ -56,10 +56,11 @@ def load_listmode(
     fraction: float = 1.0,
     seed: int = 0,
 ) -> tuple[torch.Tensor, ObjectMeta, PCTProjMeta]:
-    """Read a PyTomography proton CT list mode file (:func:`save_listmode`) into the standard form ``(projections,
-    object_meta, proj_meta)``: each proton's WEPL, an object grid centred on the rotation axis and on the file's
-    ``z_center``, and the protons. With ``views`` or ``fraction`` the file is read a view at a time, so that only the
-    protons kept are held in memory (40 bytes each with their WEPLs and spreads).
+    """Read a PyTomography proton CT list mode file (:func:`save_listmode`) into the standard form.
+
+    The standard form is ``(projections, object_meta, proj_meta)``: each proton's WEPL, an object grid centred on the
+    rotation axis and on the file's ``z_center``, and the protons. With ``views`` or ``fraction`` the file is read a
+    view at a time, so that only the protons kept are held in memory (40 bytes each with their WEPLs and spreads).
 
     Args:
         path (str | pathlib.Path): The file.

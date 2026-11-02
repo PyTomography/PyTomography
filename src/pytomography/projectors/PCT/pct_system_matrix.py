@@ -351,8 +351,9 @@ class PCTSystemMatrix(SystemMatrix):
                 hit0 & hit1)
 
     def set_n_subsets(self, n_subsets: int) -> None:
-        """Partition the protons into ``n_subsets`` subsets by view: subset :math:`m` holds views :math:`m, m + n,
-        \\dots`.
+        """Partition the protons into ``n_subsets`` subsets by view.
+
+        Subset :math:`m` holds views :math:`m, m + n, \\dots`.
 
         Args:
             n_subsets (int): Number of subsets, from 1 to the number of views.
