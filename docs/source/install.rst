@@ -6,7 +6,7 @@ We recommend creating a python environment that is isolated from your system pyt
 
 .. code-block:: bash
 
-    conda create -n pytomography_env python=3.9
+    conda create -n pytomography_env python=3.12
     conda activate pytomography_env
 
 Once the environment is activated, you can install PyTomography via pip:

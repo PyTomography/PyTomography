@@ -23,9 +23,10 @@ pytest.importorskip("parallelproj_core", reason="the scatter simulation requires
 from pytomography.metadata import ObjectMeta  # noqa: E402
 from pytomography.metadata.PET import PETLMProjMeta, PETTOFMeta  # noqa: E402
 from pytomography.utils import sss  # noqa: E402
+from pytomography.io.PET.scanner import scanner_info  # noqa: E402
 
 DEV = pytomography.device
-INFO = dict(min_rsector_difference=0, crystal_length=20.0, radius=120.0, firstCrystalAxis=0,
+INFO = scanner_info(min_rsector_difference=0, crystal_length=20.0, radius=120.0, rsector0_angle=90.0, transaxial_direction=-1, axial_direction=-1,
             rsectorTransNr=16, rsectorAxialNr=1, moduleTransNr=1, moduleAxialNr=2, moduleTransSpacing=0.0,
             moduleAxialSpacing=17.0, submoduleTransNr=1, submoduleAxialNr=1, submoduleTransSpacing=0.0,
             submoduleAxialSpacing=0.0, crystalTransNr=4, crystalAxialNr=4, crystalTransSpacing=4.0,
@@ -173,6 +174,6 @@ def test_the_petsird_standard_form_gives_the_window_the_scatter_simulation_reads
         radius=200, crystal_length=(20, 4, 5), num_crystals_per_module=(1, 4, 3), num_modules_along_ring=12,
         num_modules_along_axis=2, arc=2 * math.pi, start_angle=0, module_spacing_along_axis=20., number_of_tof_bins=5,
         tof_resolution=60., LLD=425, ULD=650, number_of_event_energy_bins=1, energy_resolution=0.12, material_id=1)
-    info = reader.get_detector_info(generator.get_scanner_info([module]))
+    info = reader._detector_info(generator.get_scanner_info([module]))
     low, high, resolution = sss.detector_energy_window(info)
     assert (low, high) == (425.0, 650.0) and math.isclose(resolution, 0.12, rel_tol=1e-6)

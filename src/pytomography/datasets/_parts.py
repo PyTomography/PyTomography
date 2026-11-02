@@ -43,7 +43,14 @@ def checksum(part: dict) -> str:
     return next(f"{a}:{part[a]}" for a in ("sha256", "md5") if a in part)
 
 
+def pending(part: dict) -> bool:
+    """A part of a record that is not published yet: pinned, but with no address (see the registry)."""
+    return part.get("status") == "pending"
+
+
 def host(part: dict) -> str:
+    if pending(part):
+        return f"{part['record']} (not published yet)"
     if part["kind"] == "package":
         return "the PyTomography package"
     if part["kind"] == "idc":
@@ -56,7 +63,7 @@ def download_size(part: dict) -> int:
     """Bytes fetched from a server: for a zip_range part, its ranges and the zip's central directory."""
     if part["kind"] == "zip_range":
         return part["size"] - part["index"][0] + sum(hi - lo for lo, hi, _ in part["ranges"])
-    return 0 if part["kind"] == "package" else part["size"]
+    return 0 if part["kind"] == "package" or pending(part) else part["size"]
 
 
 def disk_size(part: dict) -> int:
@@ -65,6 +72,8 @@ def disk_size(part: dict) -> int:
 
 
 def describe(part: dict) -> str:
+    if pending(part):
+        return f"{target(part)} ({part['record']}, not published yet)"
     kind, where = part["kind"], urls(part)[0] if "url" in part or "urls" in part else ""
     if kind == "zip":
         return f"{file_name(where)}, unpacked ({where})"

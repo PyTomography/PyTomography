@@ -18,6 +18,11 @@ the file, so a truncated or damaged file gives an error status instead of readin
 import numba
 import numpy as np
 
+from .scanner import pair_index
+
+#: the index of a crystal pair in torch.combinations order (scanner.pair_index), compiled
+_pair_index = numba.njit(cache=True, inline="always")(pair_index)
+
 OK = 0
 BAD_TAG = 1  # a time block of a type PETSIRD 0.9 does not have
 TRUNCATED = 2  # the file ends inside the time blocks
@@ -257,7 +262,6 @@ def add_module_pairs(total, orders, modules_a, modules_b, tables, efficiencies_a
                         if use_tables:
                             product = product * tables[k, i, e, j, f]
                         value += product
-                low, high = min(id_a, id_b), max(id_a, id_b)
-                index = low * (2 * n - low - 1) // 2 + (high - low - 1)
+                index = _pair_index(min(id_a, id_b), max(id_a, id_b), n)
                 total[index] += calibration * value
                 orders[index] += 1

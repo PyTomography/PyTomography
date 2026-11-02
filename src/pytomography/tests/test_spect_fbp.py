@@ -14,8 +14,8 @@ from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.projectors.SPECT.dualhead_system_matrix import _view_weights
 from pytomography.transforms import Transform
 
-N, NZ, DX = 64, 4, 0.4                                          # voxels across, slices, voxel size (cm)
-RODS = [((3.0, 0.0), 1.5, 3.0), ((-3.0, 2.5), 1.5, -1.0)]        # centre (cm), radius (cm), activity added
+N, NZ, DX = 64, 4, 4.0                                          # voxels across, slices, voxel size (mm)
+RODS = [((30.0, 0.0), 15.0, 3.0), ((-30.0, 25.0), 15.0, -1.0)]   # centre (mm), radius (mm), activity added
 
 
 def _grid():
@@ -24,9 +24,9 @@ def _grid():
 
 
 def _phantom():
-    """A cylinder of radius 8 cm with activity 1 per voxel, a hot rod (4) and a cold rod (0)."""
+    """A cylinder of radius 80 mm with activity 1 per voxel, a hot rod (4) and a cold rod (0)."""
     X, Y = _grid()
-    f = 1.0 * (np.hypot(X, Y) < 8.0)
+    f = 1.0 * (np.hypot(X, Y) < 80.0)
     for (cx, cy), radius, df in RODS:
         f = f + df * (np.hypot(X - cx, Y - cy) < radius)
     return torch.tensor(np.repeat(f[:, :, None], NZ, axis=2), dtype=torch.float32).to(pytomography.device)
@@ -54,13 +54,13 @@ def test_spect_fbp_reconstructs_the_phantom(arc):
     assert image.shape == (N, N, NZ) and image.device.type == torch.device(pytomography.device).type
     image = image.cpu().numpy()
     X, Y = _grid()
-    background = np.hypot(X, Y) < 6.5
+    background = np.hypot(X, Y) < 65
     for (cx, cy), radius, df in RODS:
-        background &= np.hypot(X - cx, Y - cy) > radius + 1.2
+        background &= np.hypot(X - cx, Y - cy) > radius + 12
     err = image[background] - 1
     assert abs(err.mean()) < 0.005 and np.abs(err).max() < 0.05
     for (cx, cy), radius, df in RODS:                    # each rod's activity, in its core
-        core = np.hypot(X - cx, Y - cy) < radius - 0.6
+        core = np.hypot(X - cx, Y - cy) < radius - 6
         assert image[core].mean() == pytest.approx(1 + df, abs=0.08)
 
 

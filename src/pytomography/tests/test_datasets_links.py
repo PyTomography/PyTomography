@@ -17,7 +17,7 @@ def ids(parts):
     return [f"{name}:{_parts.describe(part).split(' (')[0]}" for name, part in parts]
 
 
-DOWNLOADS = [(n, p) for n, p in PARTS if p["kind"] in ("zip", "zip_range", "file")]
+DOWNLOADS = [(n, p) for n, p in PARTS if p["kind"] in ("zip", "zip_range", "file") and not _parts.pending(p)]
 RANGES = [(n, p) for n, p in PARTS if p["kind"] == "zip_range"]
 ZIPS = [(n, p) for n, p in PARTS if p["kind"] == "zip"]
 SERIES = [(n, p) for n, p in PARTS if p["kind"] == "idc"]

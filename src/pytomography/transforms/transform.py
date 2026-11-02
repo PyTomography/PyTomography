@@ -1,3 +1,4 @@
+"""The base class of the transforms that system matrices are built from."""
 from __future__ import annotations
 import abc
 import torch
@@ -6,33 +7,53 @@ import pytomography
 from pytomography.metadata import ObjectMeta, ProjMeta
 
 class Transform(metaclass=abc.ABCMeta):
-    """The parent class for all transforms used in reconstruction (obj2obj, im2im, obj2im). Subclasses must implement the ``__call__`` method.
+    """The base class of every transform: an operation within object space or within projection space.
 
-    Args:
-        device (str): Pytorch device used for computation
+    A system matrix applies its object-to-object transforms (``obj2obj_transforms``) to the object before projecting
+    and its projection-to-projection transforms (``proj2proj_transforms``) to the projections after, and their
+    :meth:`backward` (the transpose) in back projection. The system matrix calls :meth:`configure` with its metadata
+    when it is made. Subclasses implement :meth:`forward` and :meth:`backward`; the SPECT system matrix passes the
+    view's index as a second argument to object-to-object transforms.
+
+    Attributes:
+        device (torch.device | str): ``pytomography.device`` when the transform was made.
+        object_meta (ObjectMeta): The system matrix's object grid, once configured.
+        proj_meta (ProjMeta): The system matrix's projection space, once configured.
     """
     def __init__(self) -> None:
-        """Used to initialize the correction network.
-        """
         self.device = pytomography.device
 
     def configure(self, object_meta: ObjectMeta, proj_meta: ProjMeta) -> None:
-        """Configures the transform to the object/proj metadata. This is done after creating the network so that it can be adjusted to the system matrix.
+        """Gives the transform the metadata of the system matrix it belongs to; the system matrix calls it.
+
+        Subclasses that need the metadata to set themselves up (kernels, padding) do so here.
 
         Args:
-            object_meta (ObjectMeta): Object metadata.
-            proj_meta (ProjMeta): Projections metadata.
+            object_meta (ObjectMeta): The object grid.
+            proj_meta (ProjMeta): The projection space.
         """
         self.object_meta = object_meta
         self.proj_meta = proj_meta
 
     @abc.abstractmethod
     def forward(self, x: torch.tensor):
-        """Abstract method; must be implemented in subclasses to apply a correction to an object/proj and return it
+        """Applies the transform to an object or to projections; implemented by each subclass.
+
+        Args:
+            x (torch.Tensor): The object or projections.
+
+        Returns:
+            torch.Tensor: The transformed object or projections.
         """
         ...
     @abc.abstractmethod
     def backward(self, x: torch.tensor):
-        """Abstract method; must be implemented in subclasses to apply a correction to an object/proj and return it
+        """Applies the transpose of the transform, for back projection; implemented by each subclass.
+
+        Args:
+            x (torch.Tensor): The object or projections.
+
+        Returns:
+            torch.Tensor: The result of the transpose.
         """
         ...
