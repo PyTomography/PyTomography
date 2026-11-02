@@ -22,7 +22,7 @@ import pytomography
 from pytomography import io
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.projectors.SPECT import SPECTSystemMatrix
-from pytomography.likelihoods import NegativeMSELikelihood, PoissonLogLikelihood
+from pytomography.likelihoods import NegativeMSELikelihood, PoissonLogLikelihood, poisson_weights
 from pytomography.algorithms import CGLS, OSEM
 
 # Memory: each bed is 128 x 128 x 128 voxels and 60 views, so a reconstruction needs about 0.5 GB of GPU memory and the
@@ -96,6 +96,20 @@ for n in (5, 10, 20, 40, 60):
     pcgls[n] = image
     print(f"Preconditioned CGLS, {n:2d} iterations: {seconds:4.1f} s for both beds")
 
+# %% Weighted least squares
+def weighted(bed):
+    H, g = bed['system_matrix'], bed['photopeak']
+    w = poisson_weights(g, smoothing=2, min_counts=0.5)  # 1 / the counts smoothed within each view
+    ones = torch.ones(H.object_meta.shape, device=pytomography.device)
+    D = 1 / H.backward(w * H.forward(ones)).clamp(min=1e-6)
+    return CGLS(NegativeMSELikelihood(H, g, additive_term=bed['scatter'], weights=w), preconditioner=D)
+
+wcgls = {}
+for n in (5, 10, 20, 30, 40, 60):
+    image, _, _, seconds = reconstruct(weighted, n_iters=n, rtol=0)
+    wcgls[n] = image
+    print(f"Weighted CGLS (preconditioned), {n:2d} iterations: {seconds:4.1f} s for both beds")
+
 # %% 5. When to stop: the kidneys
 rois = ['liver', 'kidney_left', 'kidney_right', 'spleen']
 masks = {roi: io.load_mask(file_RT, reference=str(path / 'CT'), rois=[roi]).on(object_meta_stitched, label=roi,
@@ -113,18 +127,21 @@ def stop(runs):
     final = scores(runs[max(runs)])[0]
     return min(n for n in runs if scores(runs[n])[0] >= 0.98 * final)
 
-stops = {'OSEM': stop(osem), 'CGLS': stop(cgls), 'Preconditioned CGLS': stop(pcgls)}
-for name, runs in [('OSEM', osem), ('CGLS', cgls), ('Preconditioned CGLS', pcgls)]:
+methods = {'OSEM': osem, 'CGLS': cgls, 'Preconditioned CGLS': pcgls, 'Weighted CGLS': wcgls}
+stops = {name: stop(runs) for name, runs in methods.items()}
+for name, runs in methods.items():
     kidney, noise = scores(runs[stops[name]])
     print(f"{name:20s} stops at {stops[name]:3d} iterations: kidney mean {kidney:.2f}, liver noise {noise:.0f}%")
 
-chosen = pcgls[stops['Preconditioned CGLS']]
+chosen = wcgls[stops['Weighted CGLS']]
+unweighted = pcgls[stops['Preconditioned CGLS']]
 osem_stopped = osem[stops['OSEM']]
 
 # %% 6. Negative values
 body = io.attenuation_map(files_CT, object_meta_stitched, energy=208.0).to(pytomography.device) > 0.005
 for name, image in [(f'OSEM {stops["OSEM"]} x 8', osem_stopped), (f'CGLS {stops["CGLS"]}', cgls[stops['CGLS']]),
-                    (f'Preconditioned CGLS {stops["Preconditioned CGLS"]}', chosen)]:
+                    (f'Preconditioned CGLS {stops["Preconditioned CGLS"]}', unweighted),
+                    (f'Weighted CGLS {stops["Weighted CGLS"]}', chosen)]:
     print(f"{name:26s} negative voxels in the body: {100 * float((image[body] < 0).float().mean()):4.1f}%   "
           f"total: {float(image.sum()):9.0f} counts")
 
@@ -132,12 +149,13 @@ for name, image in [(f'OSEM {stops["OSEM"]} x 8', osem_stopped), (f'CGLS {stops[
 print(f"{'':28s}" + ''.join(f'{roi:>14s}' for roi in rois) + f"{'liver noise':>14s}")
 for name, image in [('OSEM 4 x 8', osem[4]), (f'OSEM {stops["OSEM"]} x 8', osem_stopped),
                     (f'CGLS {stops["CGLS"]}', cgls[stops['CGLS']]),
-                    (f'Preconditioned CGLS {stops["Preconditioned CGLS"]}', chosen)]:
+                    (f'Preconditioned CGLS {stops["Preconditioned CGLS"]}', unweighted),
+                    (f'Weighted CGLS {stops["Weighted CGLS"]}', chosen)]:
     means = ''.join(f'{float(image[masks[roi]].mean()):14.2f}' for roi in rois)
     print(f"{name:28s}{means}{scores(image)[1]:13.0f}%")
 
 # %% Save the images
-saved = io.save_dicom(chosen.clamp(min=0), OUTPUT / 't_cgls' / 'pcgls', object_meta_stitched,
+saved = io.save_dicom(chosen.clamp(min=0), OUTPUT / 't_cgls' / 'weighted_cgls', object_meta_stitched,
                       reference=files_NM[1],
-                      series_description=f'Preconditioned CGLS {stops["Preconditioned CGLS"]}, two beds stitched',
+                      series_description=f'Weighted CGLS {stops["Weighted CGLS"]}, two beds stitched',
                       overwrite=True)

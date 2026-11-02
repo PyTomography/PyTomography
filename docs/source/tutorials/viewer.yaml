@@ -167,11 +167,12 @@ tutorials:
 
   t_cgls:
     title: Lu-177-PSMA patient, OSEM and CGLS
-    description: Both beds stitched; preconditioned CGLS and OSEM, each stopped where the kidneys' mean levels off (negative CGLS voxels shown as zero)
+    description: Both beds stitched; weighted and unweighted CGLS beside OSEM, each stopped where the kidneys' mean levels off (negative CGLS voxels shown as zero)
     credit: GE Discovery patient scan (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
     layers:
     - {name: CT, kind: ct, image: ct, window: soft, units: HU}
-    - {name: CGLS, label: "Preconditioned CGLS, stopped by the kidneys", kind: spect, array: chosen.clamp(min=0), affine: object_meta_stitched.affine, units: counts, scale_group: recon}
+    - {name: CGLS, label: "Weighted CGLS, stopped by the kidneys", kind: spect, array: chosen.clamp(min=0), affine: object_meta_stitched.affine, units: counts, scale_group: recon}
+    - {name: CGLS unweighted, label: "Preconditioned CGLS, unweighted, stopped by the kidneys", kind: spect, array: unweighted.clamp(min=0), affine: object_meta_stitched.affine, units: counts, scale_group: recon}
     - {name: OSEM, label: "OSEM, stopped by the kidneys", kind: spect, array: osem_stopped, affine: object_meta_stitched.affine, units: counts, scale_group: recon}
 
   t_CardiacReorientation:
