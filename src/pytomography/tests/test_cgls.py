@@ -6,7 +6,7 @@ import pytest
 import pytomography
 import torch
 from pytomography.algorithms import CGLS
-from pytomography.likelihoods import NegativeMSELikelihood
+from pytomography.likelihoods import NegativeMSELikelihood, poisson_weights
 from pytomography.metadata import ObjectMeta, ProjMeta
 from pytomography.projectors import SystemMatrix
 from scipy.sparse.linalg import cg
@@ -184,6 +184,42 @@ def test_weights_must_be_finite_non_negative_and_shaped_like_the_projections(bad
         weights[1] = bad
     with pytest.raises(ValueError, match="weights"):
         problem(np.eye(3), np.ones(3), weights=weights)
+
+
+def smoothed(counts, sigma):
+    """The reference: a Gaussian to 3 sigma along each axis, normalised, with the edge bins repeated."""
+    for axis, sig in enumerate(sigma):
+        if sig > 0:
+            r = int(np.ceil(3 * sig))
+            k = np.exp(-np.arange(-r, r + 1) ** 2 / (2 * sig ** 2))
+            pad = [(0, 0)] * counts.ndim
+            pad[axis] = (r, r)
+            padded = np.pad(counts, pad, mode="edge")
+            counts = np.apply_along_axis(lambda line: np.convolve(line, k / k.sum(), mode="valid"), axis, padded)
+    return counts
+
+
+def test_poisson_weights_smooth_within_each_view_and_keep_a_floor():
+    rng = np.random.default_rng(11)
+    counts = rng.poisson(rng.uniform(0, 6, size=(5, 16, 12))).astype(float)
+    counts[:, :3] = 0   # bins with no counts
+    g = torch.tensor(counts, device=pytomography.device)
+    weights = poisson_weights(g, smoothing=1.5, min_counts=0.8)
+    expected = 1 / np.maximum(smoothed(counts, (0, 1.5, 1.5)), 0.8)
+    assert weights.shape == g.shape and weights.device == g.device and weights.dtype == g.dtype
+    np.testing.assert_allclose(weights.cpu().numpy(), expected, rtol=1e-10)
+    assert float(weights.max()) <= 1 / 0.8 + 1e-12
+    # a sequence gives one sigma per axis; 0 everywhere uses the counts as they are
+    np.testing.assert_allclose(poisson_weights(g, smoothing=(1, 0, 2)).cpu().numpy(),
+                               1 / np.maximum(smoothed(counts, (1, 0, 2)), 0.5), rtol=1e-10)
+    np.testing.assert_allclose(poisson_weights(g, smoothing=0, min_counts=1).cpu().numpy(),
+                               1 / np.maximum(counts, 1), rtol=1e-12)
+
+
+@pytest.mark.parametrize("kwargs", [{"min_counts": 0}, {"smoothing": -1}, {"smoothing": (1, 2)}])
+def test_poisson_weights_reject_bad_settings(kwargs):
+    with pytest.raises(ValueError):
+        poisson_weights(torch.ones(2, 3, 4, dtype=torch.float64), **kwargs)
 
 
 @pytest.mark.parametrize("bad", [0, -1, float("inf"), float("nan")])

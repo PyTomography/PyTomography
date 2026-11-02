@@ -12,7 +12,8 @@ class CGLS:
 
     This is conjugate gradients on the normal equations, implemented using forward and back projections without
     forming :math:`H^T H`. :math:`W` is the diagonal of the likelihood's ``weights`` (the identity without them):
-    weights of one over each bin's variance give weighted least squares, closer to the Poisson likelihood for counts.
+    weights of one over each bin's variance give weighted least squares, closer to the Poisson likelihood for counts
+    (:func:`~pytomography.likelihoods.poisson_weights` makes them from the data).
     An optional fixed positive diagonal inverse preconditioner applies preconditioned CG to
     the same equations. It changes the iterations, not the full-rank least-squares solution.
 
