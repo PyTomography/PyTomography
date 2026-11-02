@@ -30,6 +30,17 @@ conda install -c conda-forge "libparallelproj=*=cuda130*" parallelproj
 
 SPECT reconstruction does not need parallelproj. Importing PyTomography never requires it; only `pytomography.projectors.PET` does, and it tells you how to install it if it is missing.
 
+## Proton CT: install CuPy
+
+Proton CT's system matrix follows each proton's path with CUDA kernels, which [CuPy](https://docs.cupy.dev/en/stable/install.html) compiles for your NVIDIA GPU. Install the CuPy for your PyTorch's CUDA version:
+
+```bash
+pip install cupy-cuda12x   # PyTorch for CUDA 12 (cu126, cu128)
+pip install cupy-cuda13x   # PyTorch for CUDA 13 (cu130)
+```
+
+Without CuPy, PyTorch follows the same paths, hundreds of times more slowly: fine for the tests, too slow for a scan.
+
 ## SPECT hybrid Monte Carlo: SIMIND
 
 `MonteCarloHybridSPECTSystemMatrix` runs the SIMIND Monte Carlo program for its forward projections. Download **SIMIND 8.0** from its [downloads page](https://www.msf.lu.se/en/research/simind-monte-carlo-program/downloads) and install it as its instructions say: put the SIMIND folder first on `PATH` and set `SMC_DIR` to its `smc_dir` folder, ending in a path separator. PyTomography is tested with SIMIND 8.0; SIMIND 9.0 is not supported yet, because its first build gives wrong projections for voxel phantoms. Nothing else is needed: PyTomography drives SIMIND itself.
