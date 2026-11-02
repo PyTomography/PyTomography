@@ -13,6 +13,7 @@ Statistical algorithms take a likelihood (:mod:`pytomography.likelihoods`), and 
 * :class:`DIPRecon`: the deep image prior.
 
 :class:`FilteredBackProjection` is the analytic reconstruction of SPECT and CT projections.
+:class:`CGLS` solves unweighted least squares with a matched forward/adjoint pair, allowing negative image values.
 
 Example:
     .. code-block:: python
@@ -23,3 +24,4 @@ Example:
 from .preconditioned_gradient_ascent import PreconditionedGradientAscentAlgorithm, OSEM, OSMAPOSL, BSREM, KEM, RBIEM, RBIMAP, SART, PGAAMultiBedSPECT, MLEM
 from .fbp import FilteredBackProjection
 from .dip_recon import DIPRecon
+from .cgls import CGLS
