@@ -205,6 +205,17 @@ tutorials:
     - {name: FBP, label: "FBP, no attenuation correction", kind: spect, array: recon_fbp, affine: object_meta.affine, units: counts}
     - {name: OSEM, label: OSEM 4 × 8, kind: spect, array: recon_osem, affine: object_meta.affine, units: counts}
 
+  t_kernel_deep_kernel_spect_recon:
+    title: Zubal phantom, Lu-177 SPECT with a Ga-68 PET prior
+    description: MLEM, KEM with a kernel from the PET intensities, and KEM with a deep-learned kernel, 50 iterations each
+    credit: Simulated data contributed by H. Wei with PyTomography's kernel methods (doi:10.1109/TRPMS.2026.3737413)
+    layers:
+    - {name: Attenuation, kind: mu, array: attenuation_map, affine: object_meta.affine, units: 1/mm}
+    - {name: PET, label: Ga-68 PET prior, kind: pet, array: pet_prior, affine: object_meta.affine, units: a.u., scale_group: pet}
+    - {name: MLEM, label: MLEM 50, kind: spect, array: recon_mlem, affine: object_meta.affine, units: counts, scale_group: recon}
+    - {name: KEM, label: "KEM 50, kernel from the PET intensities", kind: spect, array: recon_kem, affine: object_meta.affine, units: counts, scale_group: recon}
+    - {name: DeepKEM, label: "KEM 50, deep-learned kernel", kind: spect, array: recon_deep_kem, affine: object_meta.affine, units: counts, scale_group: recon}
+
   # ---------- PET ----------
   # The GATE tutorials show the phantom's MR on their own grid: read_gate placed the grid on it (the dataset registry),
   # and .on() averages the 0.4 mm MR over each 2 mm voxel, so the viewer gets 6 MB instead of 540 MB.
