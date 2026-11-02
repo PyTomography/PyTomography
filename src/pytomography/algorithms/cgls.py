@@ -1,4 +1,4 @@
-"""Conjugate gradients for unweighted least-squares reconstruction."""
+"""Conjugate gradients for least-squares reconstruction, weighted or not."""
 from __future__ import annotations
 
 import torch
@@ -8,30 +8,34 @@ from pytomography.likelihoods import NegativeMSELikelihood
 
 
 class CGLS:
-    r"""Minimise :math:`\frac12\|Hf+s-g\|_2^2` without constraining the sign of the image.
+    r"""Minimise :math:`\frac12\|W^{1/2}(Hf+s-g)\|_2^2` without constraining the sign of the image.
 
     This is conjugate gradients on the normal equations, implemented using forward and back projections without
-    forming :math:`H^T H`. An optional fixed positive diagonal inverse preconditioner applies preconditioned CG to
+    forming :math:`H^T H`. :math:`W` is the diagonal of the likelihood's ``weights`` (the identity without them):
+    weights of one over each bin's variance give weighted least squares, closer to the Poisson likelihood for counts.
+    An optional fixed positive diagonal inverse preconditioner applies preconditioned CG to
     the same equations. It changes the iterations, not the full-rank least-squares solution.
 
     ``system_matrix.backward`` must be the adjoint of ``forward``. An approximate backprojector, such as the
     opposite-angle interpolating rotation in the current SPECT projector, does not provide the CGLS convergence
     guarantee. Check the adjoint relation before using a new projector. There are no ordered subsets or positivity
-    clipping. Least squares is not a Poisson likelihood; early stopping can regularise an ill-conditioned problem.
+    clipping. Least squares, even weighted, is not a Poisson likelihood; early stopping can regularise an
+    ill-conditioned problem.
 
     With the default zero initial image and no preconditioner, a rank-deficient problem approaches the minimum-norm
     least-squares solution. A nonzero initial image retains its null-space component; a preconditioner can change
     which solution is selected when the solution is not unique.
 
     Args:
-        likelihood (NegativeMSELikelihood): Unweighted least-squares data, system matrix and additive background.
+        likelihood (NegativeMSELikelihood): Least-squares data, system matrix, additive background and weights.
             Its positive ``scaling_constant`` does not change the minimiser and is omitted from the recurrence.
             Projections must be a dense tensor.
         object_initial (torch.Tensor | None, optional): Initial image, [Lx, Ly, Lz], in the reconstructed image's
             units. Copied to ``pytomography.device`` and ``pytomography.dtype``. Defaults to a zero image.
         preconditioner (torch.Tensor | None, optional): Fixed positive diagonal inverse preconditioner, with the
             image's shape, on any device. For Jacobi preconditioning use the reciprocal diagonal of :math:`H^T H`.
-            Defaults to the identity.
+            Defaults to the identity. With weights, for Jacobi preconditioning use the reciprocal diagonal of
+            :math:`H^T W H`, e.g. ``1 / H.backward(weights * H.forward(ones))`` for a non-negative :math:`H`.
     """
 
     def __init__(
@@ -67,7 +71,7 @@ class CGLS:
     def __call__(self, n_iters: int, rtol: float = 1e-6, atol: float = 0.0) -> torch.Tensor:
         r"""Reconstruct, restarting conjugate directions from the current image on each call.
 
-        Stops when :math:`\|H^T(g-s-Hf)\|_2 \leq \max(\mathrm{rtol}\|H^T(g-s)\|_2,\mathrm{atol})` or after
+        Stops when :math:`\|H^TW(g-s-Hf)\|_2 \leq \max(\mathrm{rtol}\|H^TW(g-s)\|_2,\mathrm{atol})` or after
         ``n_iters`` updates. ``normal_residual_norms`` contains the initial norm and the norms after each update.
         ``iterations`` and ``converged`` describe this call. The final residual is recomputed from the image before
         declaring convergence, since recursively updated residuals can drift in finite precision.
@@ -87,9 +91,11 @@ class CGLS:
         data = self.likelihood.projections.to(predicted)
         if self.likelihood.additive_term is not None:
             data = data - self.likelihood.additive_term.to(predicted)
+        weights = self.likelihood.weights
+        weigh = (lambda y: y) if weights is None else (lambda y, w=weights.to(predicted): w * y)
         residual = data - predicted
-        gradient = backward(residual)
-        tolerance = max(atol, rtol * float(torch.linalg.vector_norm(backward(data))))
+        gradient = backward(weigh(residual))
+        tolerance = max(atol, rtol * float(torch.linalg.vector_norm(backward(weigh(data)))))
         norm = float(torch.linalg.vector_norm(gradient))
         self.normal_residual_norms = [norm]
         self.iterations = 0
@@ -102,18 +108,18 @@ class CGLS:
             if self.converged:
                 break
             projected = forward(direction)
-            denominator = torch.sum(projected.square())
+            denominator = torch.sum(weigh(projected) * projected)
             if not torch.isfinite(denominator) or denominator <= 0:
                 raise RuntimeError("CGLS direction has no finite positive projection norm; check the adjoint pair")
             alpha = gamma / denominator.to(gamma.device)
             self.object_prediction.add_(direction * alpha)
             residual.sub_(projected * alpha.to(projected.device))
-            gradient = backward(residual)
+            gradient = backward(weigh(residual))
             norm = float(torch.linalg.vector_norm(gradient))
             self.iterations += 1
             if norm <= tolerance:
                 residual = data - forward(self.object_prediction)
-                gradient = backward(residual)
+                gradient = backward(weigh(residual))
                 norm = float(torch.linalg.vector_norm(gradient))
                 self.converged = norm <= tolerance
                 # A residual replacement requires a restart to retain conjugacy assumptions.

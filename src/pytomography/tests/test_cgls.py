@@ -127,6 +127,65 @@ def test_precision_and_absolute_stopping(dtype, tolerance):
     assert image.dtype == dtype
 
 
+@pytest.mark.parametrize("preconditioned", [False, True])
+def test_weighted_problem_matches_lstsq_on_the_whitened_system(preconditioned):
+    rng = np.random.default_rng(7)
+    matrix = rng.uniform(0, 1, size=(61, 19)) * (rng.uniform(size=(61, 19)) < 0.4) + 0.01
+    mean = matrix @ rng.uniform(1, 20, 19) + 2.0
+    data = rng.poisson(mean).astype(float)
+    background = np.full(61, 2.0)
+    weights = 1 / np.maximum(data, 1)
+    system, likelihood = problem(matrix, data, additive_term=torch.tensor(background), weights=torch.tensor(weights))
+    diagonal = torch.tensor(1 / (matrix.T @ (weights * (matrix @ np.ones(19))))).reshape(system.object_meta.shape)
+    algorithm = CGLS(likelihood, preconditioner=diagonal if preconditioned else None)
+    actual = algorithm(200, rtol=1e-11).cpu().numpy().reshape(-1)
+    root = np.sqrt(weights)
+    expected = np.linalg.lstsq(root[:, None] * matrix, root * (data - background), rcond=None)[0]
+    assert algorithm.converged
+    np.testing.assert_allclose(actual, expected, rtol=1e-8, atol=1e-9)
+    unweighted = np.linalg.lstsq(matrix, data - background, rcond=None)[0]
+    assert np.abs(actual - unweighted).max() > 1e-3   # the weights change the solution
+    normal = np.linalg.norm(matrix.T @ (weights * (data - background - matrix @ actual)))
+    assert algorithm.normal_residual_norms[-1] == pytest.approx(normal, abs=1e-10)
+
+
+def test_unit_weights_give_the_unweighted_iterates():
+    rng = np.random.default_rng(3)
+    matrix, data = rng.normal(size=(30, 12)), rng.normal(size=30)
+    _, plain = problem(matrix, data)
+    _, ones = problem(matrix, data, weights=torch.ones(30, dtype=torch.float64))
+    for n in (1, 4, 9):
+        torch.testing.assert_close(CGLS(ones)(n, rtol=0), CGLS(plain)(n, rtol=0), rtol=1e-12, atol=1e-12)
+
+
+def test_zero_weight_ignores_a_bin():
+    matrix = np.array([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0], [1.0, -1.0]])
+    data = np.array([1.0, 2.0, 3.0, 50.0])   # the last bin is an outlier
+    _, likelihood = problem(matrix, data, weights=torch.tensor([1.0, 1.0, 1.0, 0.0]))
+    image = CGLS(likelihood)(20, rtol=1e-12)
+    torch.testing.assert_close(image.cpu().reshape(-1), torch.tensor([1.0, 2.0], dtype=torch.float64))
+
+
+def test_weighted_gradient_of_the_likelihood():
+    rng = np.random.default_rng(5)
+    matrix, data, weights = rng.normal(size=(9, 4)), rng.normal(size=9), rng.uniform(0.1, 2, 9)
+    on_device = lambda x: torch.tensor(x, dtype=pytomography.dtype, device=pytomography.device)
+    likelihood = NegativeMSELikelihood(MatrixSystem(matrix), on_device(data), weights=on_device(weights),
+                                       scaling_constant=0.5)
+    image = torch.tensor(rng.normal(size=4), device=pytomography.device).reshape(4, 1, 1)
+    expected = 0.5 * matrix.T @ (weights * (data - matrix @ image.cpu().numpy().reshape(-1)))
+    np.testing.assert_allclose(likelihood.compute_gradient(image).cpu().numpy().reshape(-1), expected, rtol=1e-12)
+
+
+@pytest.mark.parametrize("bad", [-1.0, float("inf"), float("nan"), "shape"])
+def test_weights_must_be_finite_non_negative_and_shaped_like_the_projections(bad):
+    weights = torch.ones(4 if bad == "shape" else 3, dtype=torch.float64)
+    if bad != "shape":
+        weights[1] = bad
+    with pytest.raises(ValueError, match="weights"):
+        problem(np.eye(3), np.ones(3), weights=weights)
+
+
 @pytest.mark.parametrize("bad", [0, -1, float("inf"), float("nan")])
 def test_preconditioner_must_be_positive_and_finite(bad):
     _, likelihood = problem(np.eye(3), np.ones(3))
