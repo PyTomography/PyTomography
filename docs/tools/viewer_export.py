@@ -20,7 +20,7 @@ The expressions run in the tutorial's namespace, with `io` (pytomography.io) and
 
 The cache: each image is also kept as the tutorial computed it (full precision, with its affine) in
 <run>/viewer_cache/<name>/, keyed by its expressions in viewer.yaml. Editing anything else in viewer.yaml (ranges,
-colormaps, crop, voxel_mm, slices, labels, scale groups, the size budget...) then needs no new run of the tutorial:
+colormaps, crop, slices, labels, scale groups...) then needs no new run of the tutorial:
 
     python docs/tools/viewer_export.py rebuild RUN_DIR                 # every tutorial cached in RUN_DIR
     python docs/tools/viewer_export.py rebuild RUN_DIR t_dicomdata     # some of them
@@ -52,7 +52,6 @@ except ImportError:
 MARKER = "__PYTOMOGRAPHY_VIEWER__"
 FORMAT = "pytomography-viewer/1"
 ROLE = {"spect": "overlay", "pet": "overlay", "ct": "base", "mr": "base", "mu": "base", "image": "base"}
-DEFAULT_MAX_MB = 15.0
 
 
 # ---------- the export ----------
@@ -61,13 +60,6 @@ def _to_numpy(x) -> np.ndarray:
     if hasattr(x, "detach"):
         x = x.detach().cpu().numpy()
     return np.asarray(x)
-
-
-def _block_matrix(f) -> np.ndarray:
-    """Voxel i of an image averaged in blocks of f covers voxels i*f ... i*f+f-1; its centre is i*f + (f-1)/2."""
-    B = np.diag([*map(float, f), 1.0])
-    B[:3, 3] = [(fk - 1) / 2 for fk in f]
-    return B
 
 
 def _canonical(arr: np.ndarray, A: np.ndarray):
@@ -99,16 +91,6 @@ def _crop(arr, A, lo, hi):
     T = np.eye(4)
     T[:3, 3] = lo
     return arr[lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2]], A @ T
-
-
-def _downsample(arr, A, f):
-    f = [max(1, int(x)) for x in f]
-    if f == [1, 1, 1]:
-        return arr, A
-    m = [n // k for n, k in zip(arr.shape, f)]
-    a = np.ascontiguousarray(arr[: m[0] * f[0], : m[1] * f[1], : m[2] * f[2]], dtype=np.float32)
-    a = a.reshape(m[0], f[0], m[1], f[1], m[2], f[2]).mean(axis=(1, 3, 5), dtype=np.float32)
-    return a, A @ _block_matrix(f)
 
 
 def _parse_slices(spec):
@@ -182,7 +164,9 @@ def _density(arr, kind):
 
 
 def _thumbnail(layers, path: Path, height_px: int = 320) -> None:
-    """Anterior view: the overlay's maximum along y over the base's line integral along y; patient's right on the left."""
+    """Anterior view, as the viewer's 3D view draws it at 0 degrees: the overlay's maximum along y over a patient CT's
+    maximum along y (grey from -300 to 2000 HU, as the home page's image) or any other base's line integral along y;
+    patient's right on the left."""
     from matplotlib import colormaps
     from matplotlib.backends.backend_agg import FigureCanvasAgg
     from matplotlib.figure import Figure
@@ -201,18 +185,25 @@ def _thumbnail(layers, path: Path, height_px: int = 320) -> None:
     ax = fig.add_axes([0, 0, 1, 1])
     ax.set_facecolor("black")
     ax.set_axis_off()
-    if base is not None:
+    hu_mip = base is not None and base["kind"] == "ct" and base["spec"].get("window", "soft") != "phantom"
+    if hu_mip:
+        grey = np.clip((base["arr"].max(axis=1) + 300) / 2300, 0, 1) * 0.68
+        ax.imshow(grey.T, origin="lower", extent=ext(base), cmap="gray", vmin=0, vmax=1, interpolation="bilinear")
+    elif base is not None:
         drr = _density(base["arr"], base["kind"]).sum(axis=1)
         drr = (drr / max(float(drr.max()), 1e-12)) ** 0.7
         ax.imshow(drr.T * (0.55 if over is not None else 1.0), origin="lower", extent=ext(base), cmap="gray", vmin=0, vmax=1,
                   interpolation="bilinear")
     if over is not None:
-        # as the viewer's 3D view draws it: colour opacity rises with intensity, so cold background stays clear
+        # colour opacity rises with intensity, so cold background stays clear: over a patient CT raised to the power
+        # 0.7 and fading in from 16% to 50% of the way up, as the home page's image; else opacity sqrt of the place
         mip = over["arr"].max(axis=1).astype(np.float32).T
         lo, hi = over["range"]
         t = np.clip((mip - lo) / max(hi - lo, 1e-12), 0, 1)
-        rgba = colormaps[over["colormap"]](t)
-        rgba[..., 3] = np.where(mip > lo, (0.9 if base is not None else 1.0) * np.sqrt(t), 0)
+        sc = t ** 0.7 if hu_mip else t
+        rgba = colormaps[over["colormap"]](sc)
+        alpha = np.clip((sc - 0.16) / 0.34, 0, 1) if hu_mip else (0.9 if base is not None else 1.0) * np.sqrt(t)
+        rgba[..., 3] = np.where(mip > lo, alpha, 0)
         ax.imshow(rgba, origin="lower", extent=ext(over), interpolation="bilinear")
     ax.set_xlim(e[0], e[1])
     ax.set_ylim(e[2], e[3])
@@ -401,34 +392,17 @@ def _write_files(name: str, out: Path, spec: dict, raw: list, t0: float) -> dict
             bmm = base["A"] @ corners
             vox = np.linalg.inv(A) @ bmm
             arr, A = _crop(arr, A, np.floor(vox[:3].min(1)).astype(int) - 2, np.ceil(vox[:3].max(1)).astype(int) + 3)
-        if ls.get("voxel_mm"):                          # one size, or one per axis
-            vm = ls["voxel_mm"] if isinstance(ls["voxel_mm"], list) else [ls["voxel_mm"]] * 3
-            arr, A = _downsample(arr, A, [max(1, round(float(vm[j]) / abs(A[j, j]))) for j in range(3)])
-        elif ls.get("downsample"):
-            arr, A = _downsample(arr, A, [int(ls["downsample"])] * 3)
+        # every image at its own resolution, never averaged down (Luke, 2 Nov 2026)
+        if ls.get("voxel_mm") or ls.get("downsample"):
+            raise ValueError(f"{ls['name']}: voxel_mm and downsample are gone; the viewer shows every image at its own voxels")
         arr = np.nan_to_num(np.asarray(arr, np.float32), nan=0.0, posinf=0.0, neginf=0.0)
         L["arr"], L["A"] = (np.round(arr) if L["kind"] == "ct" else arr), A   # whole HU: exact in 16 bits
 
-    max_bytes = float(spec.get("max_mb", DEFAULT_MAX_MB)) * 1e6
-    for attempt in range(4):
-        for L in layers:
-            q, slope, inter = _quantize(L["arr"])
-            L["file"] = L["spec"].get("file") or f"{L['spec']['name'].lower().replace(' ', '-')}.nii.gz"
-            L["blob"] = _nifti_bytes(q, L["A"], slope, inter, f"PyTomography docs viewer: {name} {L['spec']['name']}")
-            L["slope"], L["dtype"] = slope, str(q.dtype)
-        total = sum(len(L["blob"]) for L in layers)
-        if total <= max_bytes:
-            break
-        # over budget: average the largest anatomical image down by 2 and try again; through the slices first while they
-        # are no thicker than 1.5 pixels, which keeps axial views sharp, then in plane
-        shrinkable = [L for L in layers if L["role"] == "base" and min(np.abs(np.diag(L["A"])[:3])) < 3.0] or layers
-        big = max(shrinkable, key=lambda L: len(L["blob"]))
-        if attempt == 3:
-            raise ValueError(f"the images take {total / 1e6:.1f} MB, more than the {max_bytes / 1e6:.0f} MB budget")
-        d = np.abs(np.diag(big["A"])[:3])
-        big["arr"], big["A"] = _downsample(big["arr"], big["A"], [1, 1, 2] if d[2] <= 1.5 * min(d[0], d[1]) else [2, 2, 1])
-        if big["kind"] == "ct":
-            big["arr"] = np.round(big["arr"])
+    for L in layers:
+        q, slope, inter = _quantize(L["arr"])
+        L["file"] = L["spec"].get("file") or f"{L['spec']['name'].lower().replace(' ', '-')}.nii.gz"
+        L["blob"] = _nifti_bytes(q, L["A"], slope, inter, f"PyTomography docs viewer: {name} {L['spec']['name']}")
+        L["slope"], L["dtype"] = slope, str(q.dtype)
 
     base = next((L for L in layers if L["role"] == "base"), None)
     for L in layers:
