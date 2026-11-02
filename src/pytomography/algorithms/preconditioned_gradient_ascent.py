@@ -42,6 +42,9 @@ class PreconditionedGradientAscentAlgorithm:
             for it).
         addition_after_iteration (float, optional): A floor for the object: after every update, voxels at or below
             this value are set to it, so that voxels cannot get "locked" at 0. Defaults to 0.
+        support (torch.Tensor | None, optional): Where the object can be non-zero, [Lx, Ly, Lz] (True or 1 inside):
+            voxels outside it are set to 0 at the start and after every update (for proton CT, air outside the body's
+            outline). Defaults to None: everywhere.
         **kwargs: Accepted and not used.
     """
     #: Whether the algorithm adds up the :math:`H_m^T 1` of every subset at each update (BSREM, RBI-EM, RBI-MAP), which
@@ -56,6 +59,7 @@ class PreconditionedGradientAscentAlgorithm:
         prior: Prior = None,
         object_initial: torch.Tensor | None = None,
         addition_after_iteration: float = 0,
+        support: torch.Tensor | None = None,
         **kwargs,
     ) -> None:
         self.likelihood = likelihood
@@ -71,7 +75,10 @@ class PreconditionedGradientAscentAlgorithm:
         self.objects_stored = []
         self.projections_predicted_stored = []
         self.addition_after_iteration = addition_after_iteration
-                
+        self.support = None if support is None else torch.as_tensor(support).to(pytomography.device, pytomography.dtype)
+        if self.support is not None:
+            self.object_prediction = self.object_prediction * self.support
+
     def _set_n_subsets(self, n_subsets: int):
         """Sets the number of subsets used in the reconstruction algorithm.
 
@@ -249,6 +256,8 @@ class PreconditionedGradientAscentAlgorithm:
                 preconditioner = self._compute_preconditioner(self.object_prediction, j, subset_idx)
                 self.object_prediction += preconditioner * (likelihood_gradient - self.prior_gradient)
                 self.object_prediction[self.object_prediction<=self.addition_after_iteration] = self.addition_after_iteration
+                if self.support is not None:
+                    self.object_prediction *= self.support
                 if self.callback is not None:
                     self._compute_callback(n_iter=j, n_subset=k)
         # Remove the addition after the last iteration
@@ -749,6 +758,8 @@ class SART(PreconditionedGradientAscentAlgorithm):
             matrix's initial object.
         relaxation_sequence (Callable, optional): The relaxation :math:`\alpha(n)`, a function of the iteration number
             (counted from 0). Defaults to 1 for every iteration.
+        support (torch.Tensor | None, optional): Where the object can be non-zero, [Lx, Ly, Lz]: voxels outside it
+            are held at 0 (for proton CT, air outside the body's outline grown by a few voxels). Defaults to None.
     """
     def __init__(
         self,
@@ -757,11 +768,13 @@ class SART(PreconditionedGradientAscentAlgorithm):
         additive_term: torch.Tensor | None = None,
         object_initial: torch.tensor | None = None,
         relaxation_sequence: Callable = lambda _: 1,
+        support: torch.Tensor | None = None,
         ):
         likelihood = SARTWeightedNegativeMSELikelihood(system_matrix, projections, additive_term=additive_term)
         super().__init__(
             likelihood = likelihood,
             object_initial = object_initial,
+            support = support,
             )
         self.relaxation_sequence = relaxation_sequence
         

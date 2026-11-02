@@ -364,6 +364,33 @@ DATASETS = {
              "size": 1918034418, "md5": "e1a9d42f29922e168da614178f969d0a", "unpacked": 2049216618},
         ],
     },
+    # A GATE simulation of single-sided proton CT (October 2026), converted to PyTomography's list mode file outside
+    # PyTomography; the simulation itself (every proton's truth, every DTC cluster, the phantom and the patient CT) is
+    # its own record
+    "PCT/GATE-Abdomen330-DTC": {
+        "title": "GATE simulation of a single-sided proton CT scan of an adult abdomen at 330 MeV on a digital tracking"
+                 " calorimeter, in PyTomography's list mode format, with the true RSP and the organs",
+        "source": "PyTomography proton CT tutorial data (Zenodo), from a patient CT of TCIA's PSMA-PET-CT-Lesions",
+        "url": "https://doi.org/10.7937/r7ep-3x37",
+        "licence": "CC BY 4.0 and the TCIA data usage policy",
+        "cite": "Jeblick K, Schachtner B, Mittermeier A, et al. A whole-body PSMA-PET/CT dataset with manually annotated"
+                " tumor lesions (Version 2). The Cancer Imaging Archive (2026). doi:10.7937/r7ep-3x37",
+        "tutorials": ["t_pct_abdomen"],
+        "status": "pending",
+        "note": "The scan (a quarter of its 188.6 million protons, 1.9 GB, made with io.PCT.load_listmode(...,"
+                " fraction=0.25, seed=0) of the full file, which is in the same record), its true RSP and its organs"
+                " are being published on Zenodo, with the GATE simulation as a record of its own; they can be"
+                " downloaded once those records are out.",
+        "parts": [],
+        "files": {
+            "abdomen330_spot_likely_quarter.h5":
+                [1886075952, "3840ff5d3ac43645981174009293d278025b567172c55e75fb8231dfee897493"],
+            # The true relative stopping power, and 1 liver, 2 left kidney, 3 right kidney, 4 spleen, on one grid:
+            # 370 x 314 x 57 voxels of 0.976562 x 0.976562 x 2.5 mm about the rotation axis (the tutorial's grid)
+            "truth_rsp.nii.gz": [3148323, "f38a6d5c6db9d1c3f5f3a45bc8fd8434fa4dcbd736ac472ce354d07f99aadb91"],
+            "organs.nii.gz": [181365, "627acc644f65c95323ecc677a96345169096c90102aa78af6e71268ec6d9f2a8"],
+        },
+    },
 }
 """Every dataset, ``{name: entry}``, where the name is the dataset's folder under the data folder and the entry holds
 the fields described at the top of this module."""

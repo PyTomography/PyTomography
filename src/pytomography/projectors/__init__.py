@@ -10,6 +10,7 @@ reader returns:
   :class:`~pytomography.projectors.PET.PETSinogramSystemMatrix`;
 * :mod:`pytomography.projectors.CT`: :class:`~pytomography.projectors.CT.CTGen3SystemMatrix` (helical) and
   :class:`~pytomography.projectors.CT.CTConeBeamFlatPanelSystemMatrix`;
+* :mod:`pytomography.projectors.PCT`: :class:`~pytomography.projectors.PCT.PCTSystemMatrix` (proton CT list mode);
 * :mod:`pytomography.projectors.shared`: :class:`~pytomography.projectors.shared.KEMSystemMatrix` (kernel method)
   and :class:`~pytomography.projectors.shared.MotionSystemMatrix` (motion correction).
 

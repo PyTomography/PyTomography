@@ -8,6 +8,7 @@ Every reconstruction has two:
   scanner of a PET list mode acquisition, the geometry of a CT scan.
 
 The readers in :mod:`pytomography.io` make both. The modality-specific classes are in
-:mod:`pytomography.metadata.SPECT`, :mod:`pytomography.metadata.PET` and :mod:`pytomography.metadata.CT`.
+:mod:`pytomography.metadata.SPECT`, :mod:`pytomography.metadata.PET`, :mod:`pytomography.metadata.CT` and
+:mod:`pytomography.metadata.PCT` (proton CT).
 """
 from .metadata import ObjectMeta, ProjMeta
