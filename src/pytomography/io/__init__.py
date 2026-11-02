@@ -6,7 +6,8 @@ says where each voxel is. The readers of each modality return ``(projections, ob
 
 * :mod:`pytomography.io.SPECT`: DICOM, StarGuide and SIMIND projections;
 * :mod:`pytomography.io.PET`: GATE, PETSIRD and GE list mode, and sinograms;
-* :mod:`pytomography.io.CT`: DICOM-CT-PD and Nikon cone-beam projections.
+* :mod:`pytomography.io.CT`: DICOM-CT-PD and Nikon cone-beam projections;
+* :mod:`pytomography.io.PCT`: proton CT list mode files, one WEPL per proton.
 
 Images and regions of interest, any modality:
 
@@ -23,4 +24,4 @@ from ._load import load_image
 from .shared.output import save_nifti, save_dicom
 from ._attenuation import attenuation_map
 from ._mask import load_mask
-from . import CT, PET, SPECT
+from . import CT, PET, PCT, SPECT

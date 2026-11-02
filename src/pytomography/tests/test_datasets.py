@@ -607,7 +607,7 @@ KINDS = {"zip": {"url", "size", "unpacked"}, "zip_range": {"url", "size", "index
 @pytest.mark.parametrize("name", list(registry.DATASETS))
 def test_registry_entry(name):
     e = registry.DATASETS[name]
-    assert name.count("/") == 1 and name.split("/")[0] in ("SPECT", "PET", "CT")
+    assert name.count("/") == 1 and name.split("/")[0] in ("SPECT", "PET", "CT", "PCT")
     for key in ("title", "source", "url", "licence", "tutorials", "parts"):
         assert key in e, key
     assert e["url"].startswith("https://")

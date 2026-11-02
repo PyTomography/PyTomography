@@ -66,7 +66,7 @@ def test_set_n_subsets_sets_the_partition_and_returns_none():
     import inspect
     import torch
     classes, have_ct = set(), True
-    for name in ('system_matrix', 'SPECT', 'PET', 'CT', 'shared'):
+    for name in ('system_matrix', 'SPECT', 'PET', 'CT', 'PCT', 'shared'):
         try:
             module = importlib.import_module(f'pytomography.projectors.{name}')
         except Exception:                         # projectors.CT raises without parallelproj 2
