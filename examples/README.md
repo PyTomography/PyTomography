@@ -31,6 +31,7 @@ docs lists every dataset.
 | [`spect/15_cardiac_reorientation.py`](spect/15_cardiac_reorientation.py) | Reconstruct myocardial perfusion data and reorient it to the short axis. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_CardiacReorientation.html) |
 | [`spect/16_reconstruction_algorithms_on_measured_data.py`](spect/16_reconstruction_algorithms_on_measured_data.py) | OSEM, OSMAPOSL, BSREM and KEM on a measured NEMA phantom, compared by sphere contrast, background noise and data fit at every iteration. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_algorithms_measured.html) |
 | [`spect/17_filtered_back_projection_spect.py`](spect/17_filtered_back_projection_spect.py) | Filtered back projection of a Lu-177 NEMA phantom scan, with Chang's attenuation correction, next to OSEM. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_fbp_spect.html) |
+| [`spect/18_cgls_on_a_patient.py`](spect/18_cgls_on_a_patient.py) | Conjugate gradients for least squares on a two-bed Lu-177 PSMA patient, beside OSEM: the exact transpose it needs, when to stop, a diagonal preconditioner, and its negative values. [Tutorial](https://pytomography.readthedocs.io/en/latest/notebooks/t_cgls.html) |
 
 ## PET
 

@@ -152,6 +152,14 @@ sections:
     thumbnail: 0
     datasets:
     - SPECT/Lu177-NEMA-SymT2
+  - notebook: t_cgls
+    title: CGLS on a patient
+    modality: SPECT
+    data: DICOM
+    topic: Algorithms
+    summary: 'Conjugate gradients for least squares on a two-bed Lu-177 PSMA patient, beside OSEM: the exact transpose it needs, when to stop, a diagonal preconditioner, and its negative values.'
+    datasets:
+    - SPECT/Lu177-PSMA-GEDisc
 - title: PET
   tutorials:
   - notebook: t_pet_introduction

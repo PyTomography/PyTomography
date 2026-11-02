@@ -165,6 +165,15 @@ tutorials:
     - {name: 218 keV, kind: spect, array: "kBq_per_mL['218 keV']", affine: object_meta.affine, units: kBq/mL}
     - {name: 440 keV, kind: spect, array: "kBq_per_mL['440 keV']", affine: object_meta.affine, units: kBq/mL}
 
+  t_cgls:
+    title: Lu-177-PSMA patient, OSEM and CGLS
+    description: Both beds stitched; preconditioned CGLS after 10 iterations beside OSEM 4 x 8 (negative CGLS voxels shown as zero)
+    credit: GE Discovery patient scan (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
+    layers:
+    - {name: CT, kind: ct, image: ct, window: soft, units: HU, voxel_mm: 2}
+    - {name: CGLS, label: "Preconditioned CGLS, 10 iterations", kind: spect, array: chosen.clamp(min=0), affine: object_meta_stitched.affine, units: counts, scale_group: recon}
+    - {name: OSEM, label: "OSEM, 4 iterations of 8 subsets", kind: spect, array: osem, affine: object_meta_stitched.affine, units: counts, scale_group: recon}
+
   t_CardiacReorientation:
     title: Tc-99m myocardial perfusion
     description: The reconstruction before it is turned to the short axis (no CT; no attenuation correction)
