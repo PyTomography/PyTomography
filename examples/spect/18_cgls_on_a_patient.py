@@ -22,8 +22,8 @@ import pytomography
 from pytomography import io
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.projectors.SPECT import SPECTSystemMatrix
-from pytomography.likelihoods import PoissonLogLikelihood
-from pytomography.algorithms import OSEM
+from pytomography.likelihoods import NegativeMSELikelihood, PoissonLogLikelihood
+from pytomography.algorithms import CGLS, OSEM
 
 # Memory: each bed is 128 x 128 x 128 voxels and 60 views, so a reconstruction needs about 0.5 GB of GPU memory and the
 # tutorial peaks at about 6 GB of RAM (measured on Windows); nothing here grows with RAM_GB. CGLS holds four images and
@@ -35,6 +35,7 @@ pytomography.set_memory_budget(RAM_GB)
 path = DATA / 'SPECT' / 'Lu177-PSMA-GEDisc'
 files_NM = [str(path / 'bed1_projections.dcm'), str(path / 'bed2_projections.dcm')]
 files_CT = [str(path / 'CT' / f) for f in os.listdir(path / 'CT')]
+file_RT = str(path / 'segmentations.dcm')  # organs drawn on the CT (RTSTRUCT)
 
 beds = []
 for projections, object_meta, proj_meta in io.SPECT.read_dicom_beds(files_NM):  # the inferior bed first
@@ -55,11 +56,11 @@ mismatch = float((H.forward(x) * y).sum() / (x * H.backward(y)).sum() - 1)
 print(f"<Hx, y> / <x, H^T y> - 1 = {mismatch:.1e}")
 
 # %% 3. OSEM, for comparison
-def reconstruct(make, run):
-    """Reconstruct both beds with make(bed) and run(algorithm), and stitch them; also return the algorithms."""
+def reconstruct(make, **settings):
+    """Reconstruct both beds with make(bed)(**settings), and stitch them; also return the algorithms."""
     algorithms = [make(bed) for bed in beds]
     t0 = time.time()
-    recons = [run(algorithm) for algorithm in algorithms]
+    recons = [algorithm(**settings) for algorithm in algorithms]
     seconds = time.time() - t0
     stitched, object_meta = io.SPECT.stitch_beds(recons=torch.stack(recons[::-1]),
                                                  object_metas=[bed['object_meta'] for bed in beds[::-1]])
@@ -67,17 +68,43 @@ def reconstruct(make, run):
 
 osem, object_meta_stitched, _, seconds = reconstruct(
     lambda bed: OSEM(PoissonLogLikelihood(bed['system_matrix'], bed['photopeak'], additive_term=bed['scatter'])),
-    lambda algorithm: algorithm(n_iters=4, n_subsets=8))
+    n_iters=4, n_subsets=8)
 print(f"OSEM, 4 iterations of 8 subsets: {seconds:.1f} s for both beds")
 
 # %% 4. CGLS, and when to stop
 cgls, residuals = {}, {}
+for n in (5, 10, 20, 40, 80):
+    image, _, algorithms, seconds = reconstruct(
+        lambda bed: CGLS(NegativeMSELikelihood(bed['system_matrix'], bed['photopeak'], additive_term=bed['scatter'])),
+        n_iters=n, rtol=0)
+    cgls[n] = image
+    residuals['CGLS'] = algorithms[1].normal_residual_norms  # the upper bed
+    print(f"CGLS, {n:2d} iterations: {seconds:4.1f} s for both beds")
 
 # %% A diagonal preconditioner
+def preconditioned(bed):
+    H = bed['system_matrix']
+    ones = torch.ones(H.object_meta.shape, device=pytomography.device)
+    D = 1 / H.backward(H.forward(ones)).clamp(min=1e-6)
+    return CGLS(NegativeMSELikelihood(H, bed['photopeak'], additive_term=bed['scatter']), preconditioner=D)
+
 pcgls = {}
+for n in (5, 10, 20):
+    image, _, algorithms, seconds = reconstruct(preconditioned, n_iters=n, rtol=0)
+    pcgls[n] = image
+    residuals['Preconditioned CGLS'] = algorithms[1].normal_residual_norms
+    print(f"Preconditioned CGLS, {n:2d} iterations: {seconds:4.1f} s for both beds")
 
 # %% 5. Bias and noise
 rois = ['liver', 'kidney_left', 'kidney_right', 'spleen']
+masks = {roi: io.load_mask(file_RT, reference=str(path / 'CT'), rois=[roi]).on(object_meta_stitched, label=roi,
+                                                                                 threshold=0.5).to(pytomography.device)
+         for roi in rois}
+kidneys = masks['kidney_left'] | masks['kidney_right']
+
+def scores(image):
+    liver = image[masks['liver']]
+    return float(image[kidneys].mean()), float(100 * liver.std() / liver.mean())
 
 # %% 6. Negative values
 body = io.attenuation_map(files_CT, object_meta_stitched, energy=208.0).to(pytomography.device) > 0.005
@@ -88,6 +115,10 @@ for name, image in [('OSEM 4 x 8', osem), ('CGLS 40', cgls[40]), ('Preconditione
 
 # %% 7. OSEM and CGLS side by side
 print(f"{'':26s}" + ''.join(f'{roi:>14s}' for roi in rois) + f"{'liver noise':>14s}")
+for name, image in [('OSEM 4 x 8', osem), ('CGLS 20', cgls[20]), ('CGLS 40', cgls[40]),
+                    ('Preconditioned CGLS 10', chosen)]:
+    means = ''.join(f'{float(image[masks[roi]].mean()):14.2f}' for roi in rois)
+    print(f"{name:26s}{means}{scores(image)[1]:13.0f}%")
 
 # %% Save the images
 saved = io.save_dicom(chosen.clamp(min=0), OUTPUT / 't_cgls' / 'pcgls_10', object_meta_stitched,
