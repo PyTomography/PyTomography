@@ -178,13 +178,13 @@
         for(let i=0;i<n;i++)buf[r+i]=a[b0+i*st];const e0=buf[r],e1=buf[r+n-1];for(let i=0;i<r;i++){buf[i]=e0;buf[r+n+i]=e1;}
         for(let i=0;i<n;i++){let acc=0;for(let t=0;t<K;t++)acc+=k[t]*buf[i+t];a[b0+i*st]=acc;}}}
     self.postMessage({tag,data:a},[a.buffer]);};`;
-  // An image on the 3D view's coarse grid G (trilinear; NaN outside the image). The worker does it for small images;
+  // An image on the 3D view's grid G (trilinear; NaN outside the image): steps of G.h in x and y, G.hz in z. The worker does it for small images;
   // for a large one (a full-resolution CT) the page does, so the worker gets a few MB, not a copy of the whole image.
   function mipResample(G, img, sc, dims, aff) {
     const [nx, ny, nz] = dims, out = new Float32Array(G.gx * G.gy * G.gz), I = (a, b, c) => img[a + nx * (b + ny * c)];
     let n = 0;
     for (let k = 0; k < G.gz; k++) {
-      const fk = (G.z0 + k * G.h - aff[2][3]) / aff[2][2];
+      const fk = (G.z0 + k * (G.hz || G.h) - aff[2][3]) / aff[2][2];
       for (let j = 0; j < G.gy; j++) {
         const fj = (G.y0 + j * G.h - aff[1][3]) / aff[1][1];
         for (let i = 0; i < G.gx; i++, n++) {
@@ -200,36 +200,169 @@
     }
     return out;
   }
-  // 3D view: the overlay's maximum intensity over a line integral of the base image (a DRR), on a coarse grid,
-  // turned about the scanner's z axis. With no overlay it is the DRR alone; at 0 degrees it is an anterior view.
-  // Under a colour image the DRR is drawn at about half brightness, and the colour's opacity rises with intensity
-  // (opacity x sqrt of its place between the limits), so hot spots stand out and cold background stays clear.
-  const MIP_SRC = `let G=null,ov=null,mu=null,dmax=1;${mipResample.toString()}
+  // 3D view: the overlay's maximum intensity over the base image, on a coarse grid, turned about the scanner's z axis;
+  // at 0 degrees it is an anterior view. A patient CT is shown as its own maximum intensity projection, as the home
+  // page's image is (docs/tools/render_home_mip.py): black at -300 HU to 68% white at 2000 HU, so the skeleton shows,
+  // and the colour image over it is raised to the power 0.7 of its place between the limits and fades in from 16% to
+  // 50% of the way up, so low uptake stays clear. Any other base image (a phantom's CT, whose MIP is flat; an
+  // attenuation map) is a line integral (a DRR), drawn at about half brightness under a colour image whose opacity
+  // rises with intensity (opacity x sqrt of its place between the limits).
+  const MIP_SRC = `let G=null,ov=null,mu=null,hu=null,dmax=1;${mipResample.toString()}
   const onGrid=d=>d.vals||mipResample(G,d.img,d.sc,d.dims,d.aff);
   function density(kind,scale){return kind==='ct'?(v=>Number.isNaN(v)?0:Math.max(0,(v+1000)/1000)):(v=>Number.isNaN(v)?0:Math.max(0,v/scale));}
-  function setMu(d){const f=density(d.kind,d.scale||1);mu=onGrid(d);for(let i=0;i<mu.length;i++)mu[i]=f(mu[i]);let m=0;
+  function setMu(d){if(d.mip){hu=onGrid(d);for(let i=0;i<hu.length;i++)if(Number.isNaN(hu[i]))hu[i]=-1000;mu=null;return;}
+    hu=null;const f=density(d.kind,d.scale||1);mu=onGrid(d);for(let i=0;i<mu.length;i++)mu[i]=f(mu[i]);let m=0;
     for(let k=0;k<G.gz;k++)for(let j=0;j<G.gy;j++){let s=0;for(let i=0;i<G.gx;i++)s+=mu[i+G.gx*(j+G.gy*k)];if(s>m)m=s;}
     for(let k=0;k<G.gz;k++)for(let i=0;i<G.gx;i++){let s=0;for(let j=0;j<G.gy;j++)s+=mu[i+G.gx*(j+G.gy*k)];if(s>m)m=s;}dmax=Math.max(1e-6,m);}
   function render(p){const{gx,gy,gz}=G,cx=(gx-1)/2,cy=(gy-1)/2,W=Math.ceil(Math.hypot(gx,gy))+2,H=gz,c=Math.cos(p.th),s=Math.sin(p.th),hw=(W-1)/2,slab=gx*gy;
-    const out=new Uint8ClampedArray(W*H*4),lut=p.lut,span=Math.max(1e-12,p.hi-p.lo),useMu=!!mu&&p.ctw>0,useOv=!!ov;
-    for(let r=0;r<H;r++){const off=(gz-1-r)*slab;for(let u=0;u<W;u++){const uu=hw-u;let m=-Infinity,d=0;
+    const out=new Uint8ClampedArray(W*H*4),lut=p.lut,span=Math.max(1e-12,p.hi-p.lo),useMu=!!mu&&p.ctw>0,useHu=!!hu&&p.ctw>0,useOv=!!ov;
+    for(let r=0;r<H;r++){const off=(gz-1-r)*slab;for(let u=0;u<W;u++){const uu=hw-u;let m=-Infinity,d=0,hm=-1000;
       for(let t=0;t<W;t++){const ss=t-hw,x=cx+uu*c-ss*s,y=cy+uu*s+ss*c;if(x<0||y<0||x>gx-1||y>gy-1)continue;
         if(p.smooth){const x0=x|0,y0=y|0,x1=Math.min(x0+1,gx-1),y1=Math.min(y0+1,gy-1),fx=x-x0,fy=y-y0,a=off+x0+gx*y0,b=off+x1+gx*y0,e=off+x0+gx*y1,f=off+x1+gx*y1;
           if(useOv){const v=(ov[a]*(1-fx)+ov[b]*fx)*(1-fy)+(ov[e]*(1-fx)+ov[f]*fx)*fy;if(v>m)m=v;}
-          if(useMu)d+=(mu[a]*(1-fx)+mu[b]*fx)*(1-fy)+(mu[e]*(1-fx)+mu[f]*fx)*fy;}
-        else{const q=off+Math.round(x)+gx*Math.round(y);if(useOv&&ov[q]>m)m=ov[q];if(useMu)d+=mu[q];}}
-      const g=useMu?Math.pow(Math.min(1,d/dmax),0.7)*255*p.ctw*(useOv?0.55:1):0,o=(r*W+u)*4;let R=g,Gc=g,B=g;
-      if(useOv&&m>p.lo){const tt=Math.min(1,(m-p.lo)/span),li=Math.round(tt*255)*3,a=p.op*Math.sqrt(tt);R=(1-a)*R+a*lut[li];Gc=(1-a)*Gc+a*lut[li+1];B=(1-a)*B+a*lut[li+2];}
+          if(useMu)d+=(mu[a]*(1-fx)+mu[b]*fx)*(1-fy)+(mu[e]*(1-fx)+mu[f]*fx)*fy;
+          if(useHu){const h=(hu[a]*(1-fx)+hu[b]*fx)*(1-fy)+(hu[e]*(1-fx)+hu[f]*fx)*fy;if(h>hm)hm=h;}}
+        else{const q=off+Math.round(x)+gx*Math.round(y);if(useOv&&ov[q]>m)m=ov[q];if(useMu)d+=mu[q];if(useHu&&hu[q]>hm)hm=hu[q];}}
+      const g=useHu?Math.min(1,Math.max(0,(hm+300)/2300))*0.68*255*p.ctw
+        :useMu?Math.pow(Math.min(1,d/dmax),0.7)*255*p.ctw*(useOv?0.55:1):0,o=(r*W+u)*4;let R=g,Gc=g,B=g;
+      if(useOv&&m>p.lo){const tt=Math.min(1,(m-p.lo)/span),sc=useHu?Math.pow(tt,0.7):tt,li=Math.round(sc*255)*3,
+          a=useHu?p.op*Math.min(1,Math.max(0,(sc-0.16)/0.34)):p.op*Math.sqrt(tt);
+        R=(1-a)*R+a*lut[li];Gc=(1-a)*Gc+a*lut[li+1];B=(1-a)*B+a*lut[li+2];}
       out[o]=R;out[o+1]=Gc;out[o+2]=B;out[o+3]=255;}}
     return {W,H,rgba:out};}
   self.onmessage=e=>{const d=e.data;
-    if(d.cmd==='grid'){G=d.grid;ov=null;mu=null;}
+    if(d.cmd==='grid'){G=d.grid;ov=null;mu=null;hu=null;}
     else if(d.cmd==='base'){if(G)setMu(d);}
-    else if(d.cmd==='nobase'){mu=null;}
+    else if(d.cmd==='nobase'){mu=null;hu=null;}
     else if(d.cmd==='ov'){if(G){ov=onGrid(d);for(let i=0;i<ov.length;i++)if(Number.isNaN(ov[i]))ov[i]=0;}}
     else if(d.cmd==='noov'){ov=null;}
-    else if(d.cmd==='render'&&G&&(ov||mu)){const f=render(d.p);self.postMessage({cmd:'frame',W:f.W,H:f.H,rgba:f.rgba,mm:G.h},[f.rgba.buffer]);}
+    else if(d.cmd==='render'&&G&&(ov||mu||hu)){const f=render(d.p);self.postMessage({cmd:'frame',W:f.W,H:f.H,rgba:f.rgba,mm:G.h},[f.rgba.buffer]);}
     else if(d.cmd==='render')self.postMessage({cmd:'frame',W:0,H:0});};`;
+
+  // ---------- the 3D view on the GPU (WebGL 2) ----------
+  // The same picture as MIP_SRC, on the same grid (its columns h apart, its rows hz apart), but each image is a 3D
+  // texture at its own voxels, sampled along every ray (trilinear, or nearest with Smooth off): the CT at its native
+  // resolution, in a few milliseconds a frame. A patient CT is stored as its grey level (8 bits, -300 to 2000 HU), any
+  // other base image as its density for the line integral, a colour image as a fraction of its largest value (16-bit
+  // floats). MIP_SRC draws the view on the CPU where WebGL 2 is missing or an image is larger than the GPU allows.
+  const GL_VS = `#version 300 es
+in vec2 p;void main(){gl_Position=vec4(p,0.,1.);}`;
+  const GL_FS = `#version 300 es
+precision highp float;precision highp sampler3D;
+uniform sampler3D bT,oT;uniform sampler2D lT;uniform int bM,uO,N;
+uniform vec3 bA,bB,oA,oB;uniform vec2 C;uniform float th,hw,h,hz,z0,lo,sp,op,cw,dm;
+out vec4 o;
+bool inside(vec3 t){return all(greaterThanEqual(t,vec3(0.)))&&all(lessThanEqual(t,vec3(1.)));}
+void main(){
+  float uu=(hw-(gl_FragCoord.x-0.5))*h,z=z0+(gl_FragCoord.y-0.5)*hz,c=cos(th),s=sin(th),m=-1e30,d=0.,hm=0.;
+  for(int t=0;t<8192;t++){if(t>=N)break;float ss=(float(t)-hw)*h;vec3 w=vec3(C.x+uu*c-ss*s,C.y+uu*s+ss*c,z);
+    if(bM>0){vec3 q=w*bA+bB;if(inside(q)){float v=texture(bT,q).r;if(bM==1)hm=max(hm,v);else d+=v;}}
+    if(uO>0){vec3 q=w*oA+oB;if(inside(q))m=max(m,texture(oT,q).r);}}
+  float g=bM==1?hm*0.68*cw:bM==2?pow(min(1.,d*h/dm),0.7)*cw*(uO>0?0.55:1.):0.;vec3 rgb=vec3(g);
+  if(uO>0&&m>lo){float tt=min(1.,(m-lo)/sp),sc=bM==1?pow(tt,0.7):tt;
+    vec3 lc=texture(lT,vec2((floor(sc*255.+0.5)+0.5)/256.,0.5)).rgb;
+    float a=bM==1?op*clamp((sc-0.16)/0.34,0.,1.):op*sqrt(tt);rgb=mix(rgb,lc,a);}
+  o=vec4(rgb,1.);}`;
+  function makeGLMip(onLost) {
+    let cv = null, gl = null;
+    try { cv = document.createElement('canvas'); gl = cv.getContext('webgl2', {antialias: false, depth: false, preserveDrawingBuffer: true}); } catch (_) { gl = null; }
+    if (!gl) return null;
+    const shader = (type, src) => {
+      const x = gl.createShader(type); gl.shaderSource(x, src); gl.compileShader(x);
+      if (!gl.getShaderParameter(x, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(x));
+      return x;
+    };
+    const prog = gl.createProgram();
+    try {
+      gl.attachShader(prog, shader(gl.VERTEX_SHADER, GL_VS)); gl.attachShader(prog, shader(gl.FRAGMENT_SHADER, GL_FS)); gl.linkProgram(prog);
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+    } catch (e) { console.warn('PTViewer: the 3D view is drawn on the CPU:', e); return null; }
+    gl.useProgram(prog);
+    const U = {};
+    for (const n of ['bT', 'oT', 'lT', 'bM', 'uO', 'N', 'bA', 'bB', 'oA', 'oB', 'C', 'th', 'hw', 'h', 'hz', 'z0', 'lo', 'sp', 'op', 'cw', 'dm'])
+      U[n] = gl.getUniformLocation(prog, n);
+    gl.uniform1i(U.bT, 0); gl.uniform1i(U.oT, 1); gl.uniform1i(U.lT, 2);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    const MAX = gl.getParameter(gl.MAX_3D_TEXTURE_SIZE);
+    const empty = gl.createTexture();   // bound where there is no image, so every sampler has a texture
+    gl.bindTexture(gl.TEXTURE_3D, empty); gl.texImage3D(gl.TEXTURE_3D, 0, gl.R8, 1, 1, 1, 0, gl.RED, gl.UNSIGNED_BYTE, new Uint8Array(1));
+    const lutTex = gl.createTexture();
+    let lutOf = null, lost = false;
+    const T = {b: null, o: null};
+    cv.addEventListener('webglcontextlost', e => { e.preventDefault(); lost = true; onLost(); });
+    function clear(slot) { if (T[slot]) gl.deleteTexture(T[slot].tex); T[slot] = null; }
+    // an image into its texture, a slice at a time (no full-size copy); false when it is larger than the GPU allows
+    function upload(slot, L, kind) {
+      const [nx, ny, nz] = L.dims, n = nx * ny, src = L.base, [s0, s1] = scOf(L);
+      clear(slot);
+      if (lost || Math.max(nx, ny, nz) > MAX) return false;
+      const tex = gl.createTexture(), u8 = kind === 'hu';
+      gl.activeTexture(slot === 'b' ? gl.TEXTURE0 : gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_3D, tex);
+      gl.texStorage3D(gl.TEXTURE_3D, 1, u8 ? gl.R8 : gl.R16F, nx, ny, nz);
+      for (const w of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T, gl.TEXTURE_WRAP_R]) gl.texParameteri(gl.TEXTURE_3D, w, gl.CLAMP_TO_EDGE);
+      const sl = u8 ? new Uint8Array(n) : new Float32Array(n), isCT = L.m.kind === 'ct';
+      const scale = kind === 'ov' ? Math.max(1e-12, Math.abs(L.min), Math.abs(L.max)) : isCT ? 1 : Math.max(1e-12, L.max);
+      const colY = kind === 'mu' ? new Float64Array(nx) : null;
+      let dm = 0;
+      for (let k = 0; k < nz; k++) {
+        const off = k * n;
+        if (colY) colY.fill(0);
+        for (let j = 0; j < ny; j++) {
+          let row = 0;
+          for (let i = 0, q = off + nx * j; i < nx; i++, q++) {
+            const v = src[q] * s0 + s1;
+            if (u8) sl[i + nx * j] = Math.min(255, Math.max(0, Math.round((v + 300) / 2300 * 255)));
+            else if (!colY) sl[i + nx * j] = v / scale;
+            else { const f = Number.isNaN(v) ? 0 : Math.max(0, isCT ? (v + 1000) / 1000 : v / scale); sl[i + nx * j] = f; row += f; colY[i] += f; }
+          }
+          if (colY) dm = Math.max(dm, row * L.pd[0]);
+        }
+        if (colY) for (let i = 0; i < nx; i++) dm = Math.max(dm, colY[i] * L.pd[1]);
+        gl.texSubImage3D(gl.TEXTURE_3D, 0, 0, 0, k, nx, ny, 1, gl.RED, u8 ? gl.UNSIGNED_BYTE : gl.FLOAT, sl);
+      }
+      // texture coordinate = world mm * A + B: voxel i's centre at aff[a][3] + i aff[a][a], at (i + 0.5) / n
+      const A = [0, 1, 2].map(a => 1 / (L.aff[a][a] * L.dims[a])), B = [0, 1, 2].map(a => (0.5 - L.aff[a][3] / L.aff[a][a]) / L.dims[a]);
+      T[slot] = {tex, A, B, kind, scale, dm: Math.max(1e-6, dm)};
+      return true;
+    }
+    function draw(G, p) {
+      const W = Math.ceil(Math.hypot(G.gx, G.gy)) + 2, H = G.gz, hz = G.hz || G.h;
+      if (cv.width !== W) cv.width = W;
+      if (cv.height !== H) cv.height = H;
+      gl.viewport(0, 0, W, H);
+      const filt = p.smooth ? gl.LINEAR : gl.NEAREST, b = p.ctw > 0 ? T.b : null, o = T.o;
+      [[b, gl.TEXTURE0], [o, gl.TEXTURE1]].forEach(([t, unit]) => {
+        gl.activeTexture(unit); gl.bindTexture(gl.TEXTURE_3D, t ? t.tex : empty);
+        if (t) { gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, filt); gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, filt); }
+      });
+      gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, lutTex);
+      if (lutOf !== p.lut) {
+        lutOf = p.lut;
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB8, 256, 1, 0, gl.RGB, gl.UNSIGNED_BYTE, Uint8Array.from(p.lut));
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      }
+      gl.uniform1i(U.bM, b ? (b.kind === 'hu' ? 1 : 2) : 0); gl.uniform1i(U.uO, o ? 1 : 0); gl.uniform1i(U.N, W);
+      gl.uniform3fv(U.bA, b ? b.A : [0, 0, 0]); gl.uniform3fv(U.bB, b ? b.B : [0, 0, 0]);
+      gl.uniform3fv(U.oA, o ? o.A : [0, 0, 0]); gl.uniform3fv(U.oB, o ? o.B : [0, 0, 0]);
+      gl.uniform2f(U.C, G.x0 + (G.gx - 1) / 2 * G.h, G.y0 + (G.gy - 1) / 2 * G.h);
+      gl.uniform1f(U.th, p.th); gl.uniform1f(U.hw, (W - 1) / 2); gl.uniform1f(U.h, G.h); gl.uniform1f(U.hz, hz); gl.uniform1f(U.z0, G.z0);
+      const sc = o ? o.scale : 1;
+      gl.uniform1f(U.lo, p.lo / sc); gl.uniform1f(U.sp, Math.max(1e-12, p.hi - p.lo) / sc);
+      gl.uniform1f(U.op, p.op); gl.uniform1f(U.cw, p.ctw); gl.uniform1f(U.dm, b ? b.dm : 1);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      return cv;
+    }
+    function dispose() {
+      clear('b'); clear('o');
+      const x = gl.getExtension('WEBGL_lose_context');
+      if (x && !lost) x.loseContext();
+    }
+    return {upload, clear, draw, dispose};
+  }
 
   let NEXT = 0;
 
@@ -731,18 +864,32 @@
     const mWorker = mkWorker(MIP_SRC), mipCv = $('mip'), mipOff = document.createElement('canvas');
     let mipTheta = 0, mipRot = !reduceMotion, mipDrag = false, mipBusy = false, mipAgain = false, mipFrame = false, mipZoom = 1, mipSeen = true;
     const mipShown = () => !!mipCv.offsetParent && mipSeen;
-    function mipGrid() {
+    // on the GPU when it can; if its context is lost, on the CPU from then on
+    let GLV = makeGLMip(() => { GLV = null; mipAll(); });
+    cleanups.push(() => { if (GLV) GLV.dispose(); });
+    function mipGrid(cpu) {
       const ext3 = FRAME.map(([a, b]) => b - a), shown = [sel.base, sel.overlay].filter(i => i >= 0).map(i => LAY[i]);
-      // the finest voxel shown, but at most 128 steps across: no 2 mm floor, so a micro-CT's 3D view is as sharp as a
-      // patient's (its 32 mm field of view was 16 steps across)
-      const h = Math.max(...shown.map(L => Math.min(...L.pd)).concat([Math.max(...ext3) / 128]));
-      return {h, x0: FRAME[0][0] + h / 2, y0: FRAME[1][0] + h / 2, z0: FRAME[2][0] + h / 2,
-        gx: Math.max(1, Math.floor(ext3[0] / h)), gy: Math.max(1, Math.floor(ext3[1] / h)), gz: Math.max(1, Math.floor(ext3[2] / h))};
+      // the finest voxel shown (the CT's, under a SPECT or PET): in x and y the finest in-plane spacing, along z the
+      // finest slice spacing, so the CT is shown at its own resolution, not averaged down to the overlay's voxels
+      let h = Math.min(...shown.map(L => Math.min(L.pd[0], L.pd[1]))), hz = Math.min(...shown.map(L => L.pd[2]));
+      // on the CPU, at most 256 steps across, or it turns too slowly
+      if (cpu) { h = Math.max(h, Math.max(ext3[0], ext3[1]) / 256); hz = Math.max(hz, ext3[2] / 256); }
+      return {h, hz, x0: FRAME[0][0] + h / 2, y0: FRAME[1][0] + h / 2, z0: FRAME[2][0] + hz / 2,
+        gx: Math.max(1, Math.floor(ext3[0] / h)), gy: Math.max(1, Math.floor(ext3[1] / h)), gz: Math.max(1, Math.floor(ext3[2] / hz))};
     }
     let mipG = null;
+    // an image into the GPU's texture: a patient CT as its MIP, a phantom's CT or another base image as a line integral
+    const glLoad = li => GLV.upload(LAY[li].role === 'overlay' ? 'o' : 'b', LAY[li],
+      LAY[li].role === 'overlay' ? 'ov' : LAY[li].m.kind === 'ct' && LAY[li].m.window !== 'phantom' ? 'hu' : 'mu');
     function mipAll() {
+      if (GLV) {
+        mipG = mipGrid();
+        GLV.clear('b'); GLV.clear('o');
+        if ((sel.base < 0 || glLoad(sel.base)) && (sel.overlay < 0 || glLoad(sel.overlay))) { requestMip(); return; }
+        GLV.dispose(); GLV = null;   // an image larger than the GPU's 3D textures: on the CPU
+      }
       if (!mWorker) return;
-      mipG = mipGrid();
+      mipG = mipGrid(true);
       mWorker.postMessage({cmd: 'grid', grid: mipG});
       // both images first, then one frame, so the first frame already has its colour image
       if (sel.base >= 0) mipData(sel.base, true); else mWorker.postMessage({cmd: 'nobase'});
@@ -750,20 +897,39 @@
       requestMip();
     }
     function mipData(li, quiet) {
-      if (!mWorker || !mipG || (li !== sel.base && li !== sel.overlay)) return;
+      if (!mipG || (li !== sel.base && li !== sel.overlay)) return;
+      if (GLV) {
+        if (!glLoad(li)) { GLV.dispose(); GLV = null; mipAll(); return; }
+        if (!quiet) requestMip();
+        return;
+      }
+      if (!mWorker) return;
       const L = LAY[li], big = L.base.byteLength > 32e6;
       const d = big ? {vals: mipResample(mipG, L.base, scOf(L), L.dims, L.aff)} : {img: L.base, sc: scOf(L), dims: L.dims, aff: L.aff};
-      const cmd = L.role === 'overlay' ? {cmd: 'ov'} : {cmd: 'base', kind: L.m.kind, scale: L.m.kind === 'ct' ? 1 : Math.max(1e-12, L.max)};
+      // a patient CT's 3D view is its MIP (the skeleton); a phantom's CT, flat in a MIP, stays a line integral
+      const cmd = L.role === 'overlay' ? {cmd: 'ov'} : {cmd: 'base', kind: L.m.kind, scale: L.m.kind === 'ct' ? 1 : Math.max(1e-12, L.max),
+        mip: L.m.kind === 'ct' && L.m.window !== 'phantom'};
       mWorker.postMessage(Object.assign(cmd, d), big ? [d.vals.buffer] : []);
       if (!quiet) requestMip();
     }
+    function mipParams() {
+      const O = sel.overlay >= 0 ? LAY[sel.overlay].set : null, B = sel.base >= 0 ? LAY[sel.base].set : null;
+      return {th: mipTheta * Math.PI / 180, lut: LUT[O ? O.cmap : 'gray'] || LUT.gray, lo: O ? O.lo : 0, hi: O ? O.hi : 1,
+        op: O ? (B ? Math.min(1, 0.4 + O.op) : 1) : 0, ctw: B ? B.op : 0, smooth: S.smooth};
+    }
     function requestMip() {
-      if (!mWorker || !mipShown() || !alive) return;
+      if (!mipShown() || !alive) return;
+      if (GLV && mipG) {   // drawn now, on the GPU
+        const c = GLV.draw(mipG, mipParams());
+        mipOff.width = c.width; mipOff.height = c.height; mipOff.getContext('2d').drawImage(c, 0, 0);
+        mipFrame = true; drawMip();
+        if (mipFirst) { mipFirst(); mipFirst = null; }
+        return;
+      }
+      if (!mWorker) return;
       if (mipBusy) { mipAgain = true; return; }
       mipBusy = true;
-      const O = sel.overlay >= 0 ? LAY[sel.overlay].set : null, B = sel.base >= 0 ? LAY[sel.base].set : null;
-      mWorker.postMessage({cmd: 'render', p: {th: mipTheta * Math.PI / 180, lut: LUT[O ? O.cmap : 'gray'] || LUT.gray, lo: O ? O.lo : 0, hi: O ? O.hi : 1,
-        op: O ? (B ? Math.min(1, 0.4 + O.op) : 1) : 0, ctw: B ? B.op : 0, smooth: S.smooth}});
+      mWorker.postMessage({cmd: 'render', p: mipParams()});
     }
     let mipFirst = null;
     const mipReady = new Promise(ok => { mipFirst = ok; });
@@ -779,7 +945,8 @@
       if (!mipFrame || !mipCv.offsetParent) return;
       const g = mipCv.getContext('2d'), W = mipCv.width, H = mipCv.height;
       g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
-      const s = Math.min(W / mipOff.width, H / mipOff.height) * 0.92 * mipZoom, w = mipOff.width * s, h = mipOff.height * s;
+      const ar = mipG && mipG.hz ? mipG.hz / mipG.h : 1;   // the rows are slices hz apart, the columns h apart
+      const s = Math.min(W / mipOff.width, H / (mipOff.height * ar)) * 0.92 * mipZoom, w = mipOff.width * s, h = mipOff.height * ar * s;
       g.imageSmoothingEnabled = S.smooth; g.imageSmoothingQuality = 'high';
       g.drawImage(mipOff, (W - w) / 2, (H - h) / 2, w, h);
       $('miplab').textContent = `${sel.overlay >= 0 ? 'MIP' : 'Projection'} · ${Math.round(((mipTheta % 360) + 360) % 360)}°`;
@@ -956,7 +1123,7 @@
     // the loading screen goes once the views are drawn: the slices (two frames from now) and the 3D view's first
     // picture, when it is on screen (at most 15 s later)
     await new Promise(ok => requestAnimationFrame(() => requestAnimationFrame(ok)));
-    if (alive && mWorker && mipShown()) await Promise.race([mipReady, new Promise(ok => setTimeout(ok, 15000))]);
+    if (alive && (GLV || mWorker) && mipShown()) await Promise.race([mipReady, new Promise(ok => setTimeout(ok, 15000))]);
     if (!alive) return api;
     $('loading').hidden = true;
     $('ctl').disabled = false;

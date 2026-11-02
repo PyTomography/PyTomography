@@ -64,12 +64,14 @@ def centre_of(affine: np.ndarray, shape) -> np.ndarray:
     return affine[:3, :3] @ ((np.asarray(shape) - 1) / 2) + affine[:3, 3]
 
 
-def body_mask(hu: np.ndarray, voxel_mm: float) -> np.ndarray:
-    """The patient without the bed: tissue above -400 HU, opened by about 6 mm so that the bed's thin shell and its
-    pad come away from the patient, the largest connected part, grown back out to the skin, holes filled."""
+def body_mask(hu: np.ndarray, pixel_mm: float) -> np.ndarray:
+    """The patient without the bed: tissue above -400 HU, opened in each slice by about 6 mm so that the bed's thin
+    shell and its pad come away from the patient, the largest connected part, grown back out to the skin, holes
+    filled. In each slice, since the slices can be thicker than the pixels."""
     tissue = hu > -400
-    cross = ndimage.generate_binary_structure(3, 1)
-    r = max(1, int(round(6 / voxel_mm)))
+    cross = np.zeros((3, 3, 3), bool)
+    cross[:, :, 1] = ndimage.generate_binary_structure(2, 1)
+    r = max(1, int(round(6 / pixel_mm)))
     labels, _ = ndimage.label(ndimage.binary_opening(tissue, structure=cross, iterations=r))
     body = labels == np.argmax(np.bincount(labels.ravel())[1:]) + 1
     body = ndimage.binary_dilation(body, structure=cross, iterations=r + 1) & tissue
@@ -92,19 +94,21 @@ def rotated_mips(volume: torch.Tensor, angles: np.ndarray, background: float) ->
     return np.stack(out)
 
 
-def projections(recon: Path, ct_folder: Path, n_frames: int, voxel_mm: float, spect_fwhm_mm: float):
-    """The CT's and the SPECT's MIPs, (angle, z, x) each, on a grid of voxel_mm round the patient."""
+def projections(recon: Path, ct_folder: Path, n_frames: int, voxel_mm: float | None, spect_fwhm_mm: float):
+    """The CT's and the SPECT's MIPs, (angle, z, x) each, on the CT's own voxels round the patient (or a grid of
+    voxel_mm), and the height of their pixels over their width."""
     t0 = time.time()
     spect = io.load_image(recon)
     ct = io.load_image(sorted(str(f) for f in ct_folder.iterdir() if f.is_file()))
     print(f"SPECT {spect.data.shape} ({spect.units}), CT {ct.data.shape} ({ct.units}), read in {time.time() - t0:.0f} s")
 
-    # 1. The CT on a grid of voxel_mm over the CT's own extent, and the patient in it
-    d = voxel_mm
-    extent = np.abs(np.diag(ct.affine)[:3]) * np.asarray(ct.data.shape)
+    # 1. The CT on its own voxels (its pixels in x and y, its slices in z) over its own extent, and the patient in it
+    own = np.abs(np.diag(ct.affine)[:3])
+    d = np.array([own[0], own[0], own[2]]) if voxel_mm is None else np.full(3, float(voxel_mm))
+    extent = own * np.asarray(ct.data.shape)
     shape = np.ceil(extent / d).astype(int)
-    grid = ObjectMeta(dr=(d, d, d), shape=tuple(shape), centre=tuple(centre_of(ct.affine, ct.data.shape)), frame="patient")
-    body = body_mask(ct.on(grid, fill=-1000.0).numpy(), d)
+    grid = ObjectMeta(dr=tuple(d), shape=tuple(shape), centre=tuple(centre_of(ct.affine, ct.data.shape)), frame="patient")
+    body = body_mask(ct.on(grid, fill=-1000.0).numpy(), d[0])
 
     # 2. A box round the patient: square in x and y and centred on the patient's axis, so that every angle fits; along
     #    z, where both the CT and the SPECT have the patient
@@ -117,33 +121,34 @@ def projections(recon: Path, ct_folder: Path, n_frames: int, voxel_mm: float, sp
     ks = np.nonzero(body.any(axis=(0, 1)) & (z_mm > spect_z[0]) & (z_mm < spect_z[1]))[0]
     n = int(np.ceil(2 * radius))
     centre = grid.affine @ np.array([ci, cj, (ks.min() + ks.max()) / 2, 1.0])
-    box = ObjectMeta(dr=(d, d, d), shape=(n, n, int(ks.max() - ks.min() + 1)), centre=tuple(centre[:3]), frame="patient")
+    box = ObjectMeta(dr=tuple(d), shape=(n, n, int(ks.max() - ks.min() + 1)), centre=tuple(centre[:3]), frame="patient")
     hu = ct.on(box, fill=-3024.0)
     # the CT's field of view, less 10 mm: the arms reach its edge, where the CT's values are not to be trusted
     in_plane = np.zeros((3, 3, 3), bool)
     in_plane[:, :, 1] = ndimage.generate_binary_structure(2, 1)
-    fov = ndimage.binary_erosion(hu.numpy() > -1500, structure=in_plane, iterations=int(round(10 / d)),
+    fov = ndimage.binary_erosion(hu.numpy() > -1500, structure=in_plane, iterations=int(round(10 / d[0])),
                                  border_value=1)
-    body = torch.from_numpy(body_mask(hu.numpy(), d) & fov)
+    body = torch.from_numpy(body_mask(hu.numpy(), d[0]) & fov)
     hu = torch.where(body, hu, torch.tensor(-1000.0))
     activity = spect.on(box).numpy().clip(min=0)
-    activity = torch.from_numpy(ndimage.gaussian_filter(activity, spect_fwhm_mm / 2.355 / d)) * body
-    print(f"grid {tuple(box.shape)} of {d} mm, {time.time() - t0:.0f} s")
+    activity = torch.from_numpy(ndimage.gaussian_filter(activity, tuple(spect_fwhm_mm / 2.355 / d))) * body
+    print(f"grid {tuple(box.shape)} of {' x '.join(f'{x:.3g}' for x in d)} mm, {time.time() - t0:.0f} s")
 
     # 3. The MIPs at every angle
     angles = 2 * np.pi * np.arange(n_frames) / n_frames
-    return rotated_mips(hu, angles, -1000.0), rotated_mips(activity, angles, 0.0)
+    return rotated_mips(hu, angles, -1000.0), rotated_mips(activity, angles, 0.0), d[2] / d[0]
 
 
 def render(ct_mips, spect_mips, *, spect_max=0.75, gamma=0.7, opacity=(0.16, 0.5), ct_hu=(-300, 2000), ct_white=0.68,
-           fade=0.06, width=600) -> list[PILImage.Image]:
+           fade=0.06, width=600, aspect=1.0) -> list[PILImage.Image]:
     """The frames: the CT in grey, and over it the SPECT in the 'pet' colour scale.
 
     The SPECT's scale runs from 0 to spect_max times its brightest MIP pixel over every frame, raised to gamma (below
     1 it lifts the low end, so that the salivary glands show without the kidneys saturating). It is clear below
     opacity[0] of its scale and opaque above opacity[1]. The CT's MIP runs from black at ct_hu[0] to ct_white at
     ct_hu[1]. Both ends of the patient fade out over a fraction fade of the length, since the CT stops part way
-    through the head and the thighs."""
+    through the head and the thighs. aspect is the height of the MIPs' pixels over their width (their slice spacing
+    over their pixel size)."""
     lo, hi = ct_hu
     grey = np.clip((ct_mips - lo) / (hi - lo), 0, 1) * ct_white
     s = np.clip(spect_mips / (spect_max * spect_mips.max()), 0, 1) ** gamma
@@ -154,7 +159,7 @@ def render(ct_mips, spect_mips, *, spect_max=0.75, gamma=0.7, opacity=(0.16, 0.5
     # upright: the head at the top, and the patient's left on the right, as seen from the front
     rgb = rgb[:, ::-1, :, :]
     h, w = rgb.shape[1:3]
-    size = (width, int(round(width * h / w)))
+    size = (width, int(round(width * h * aspect / w)))
     return [PILImage.fromarray((255 * np.clip(f, 0, 1)).astype(np.uint8)).resize(size, PILImage.LANCZOS) for f in rgb]
 
 
@@ -206,15 +211,16 @@ def main():
     p.add_argument("--fps", type=float, default=60, help="frames per second (default 60: one turn in 6 s)")
     p.add_argument("--width", type=int, default=600, help="width of the image in pixels")
     p.add_argument("--quality", type=int, default=80, help="WebP quality, 0 to 100")
-    p.add_argument("--voxel-mm", type=float, default=2.0, help="the grid the projections are made on")
+    p.add_argument("--voxel-mm", type=float, help="a grid of cubes this size to make the projections on (default: the "
+                   "CT's own voxels)")
     p.add_argument("--spect-fwhm-mm", type=float, default=8.0, help="Gaussian filter on the SPECT before projecting")
     p.add_argument("--frames-dir", type=Path, help="also save every 30th frame here as PNG, to look at")
     args = p.parse_args()
     t0 = time.time()
     torch.set_num_threads(max(1, min(8, (os.cpu_count() or 4) - 4)))  # leave cores for other work
 
-    ct_mips, spect_mips = projections(args.recon, args.ct, args.frames, args.voxel_mm, args.spect_fwhm_mm)
-    frames = render(ct_mips, spect_mips, width=args.width)
+    ct_mips, spect_mips, aspect = projections(args.recon, args.ct, args.frames, args.voxel_mm, args.spect_fwhm_mm)
+    frames = render(ct_mips, spect_mips, width=args.width, aspect=aspect)
     write(frames, args.out, 1000 / args.fps, args.quality)
     if args.frames_dir:
         args.frames_dir.mkdir(parents=True, exist_ok=True)

@@ -5,8 +5,6 @@
 #   title, description:  shown above the viewer
 #   credit:              the data's source and licence, shown with the images
 #   setup:               optional Python run first, for imports the expressions need
-#   max_mb:              optional size budget (default 15 MB); larger CTs are averaged down to fit. The CT
-#                        tutorials raise it to show their reconstructions at full resolution (Luke, 11 Oct 2026)
 #   start_voxel:         optional [i, j, k] of the first SPECT or PET layer, as the tutorial indexes its array, where
 #                        the viewer opens (default: the hottest spot inside the anatomy)
 #   layers:              the images, drawn bottom to top. List every reconstruction the tutorial makes: the viewer's
@@ -32,7 +30,6 @@
 #                 holds (e.g. while two versions of a tutorial are in flight)
 #     scale_group: images in the same units share one colour scale and keep it when the reader switches between
 #                 them; give a different name to keep an image apart (e.g. a scanner's image in other units), or none
-#     voxel_mm:   average down to about this voxel size, or [x, y, z] (downsample: an integer factor instead);
 #     slices:     per-axis "a:b", to keep part of the array
 #
 # The expressions run in the tutorial's namespace, with io (pytomography.io) and np in it:
@@ -86,7 +83,7 @@ tutorials:
     description: Both beds reconstructed and stitched into one volume
     credit: GE Discovery patient scan (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
     layers:
-    - {name: CT, kind: ct, image: io.load_image(files_CT), window: soft, units: HU, voxel_mm: 2}
+    - {name: CT, kind: ct, image: io.load_image(files_CT), window: soft, units: HU}
     - {name: SPECT, label: Stitched OSEM, kind: spect, array: recon_stitched, affine: object_meta_stitched.affine, units: counts}
     - {name: Bed 1, label: Upper bed alone, kind: spect, array: recon_upper, affine: object_meta_upper.affine, units: counts, scale_group: beds}
     - {name: Bed 2, label: Lower bed alone, kind: spect, array: recon_lower, affine: object_meta_lower.affine, units: counts, scale_group: beds}
@@ -104,7 +101,7 @@ tutorials:
     description: The two-bed reconstruction whose uncertainty the tutorial estimates
     credit: GE Discovery patient scan (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
     layers:
-    - {name: CT, kind: ct, image: io.load_image(files_CT), window: soft, units: HU, voxel_mm: 2}
+    - {name: CT, kind: ct, image: io.load_image(files_CT), window: soft, units: HU}
     - {name: SPECT, label: Stitched OSEM, kind: spect, array: reconstructed_image_multibed, affine: object_meta_stitched.affine, units: counts}
     - {name: Bed 2, label: Lower bed alone (the one the uncertainty is for), kind: spect, array: recon_OSEM, affine: object_meta.affine, units: counts}
 
@@ -296,13 +293,13 @@ tutorials:
     description: The network's image next to TOF list-mode OSEM, over the MR it was conditioned on
     credit: GATE simulation of the BigBrain FDG phantom (Belzunce and Reader 2020, Zenodo 8045458, CC BY 4.0)
     layers:
-    # DIP's grid is 1.25 mm (204 x 204 x 154): four PET images on it take about 27 MB, over the 15 MB budget, so they
-    # are averaged 2 x 2 x 2 to 2.5 mm, the same grid for all four (about 1 MB each). The MR keeps 1.25 mm.
+    # Every image on DIP's 1.25 mm grid (204 x 204 x 154), as the tutorial reconstructs it: about 27 MB for the four PET
+    # images
     - {name: MR, kind: mr, array: mri_aligned, affine: object_meta.affine, crop: body, units: a.u.}
-    - {name: DIP, label: Deep Image Prior, kind: pet, array: recon_DIP, affine: object_meta.affine, voxel_mm: 2.5, units: a.u.}
-    - {name: OSEM, label: TOF list-mode OSEM, kind: pet, array: recon_lm_tof, affine: object_meta.affine, voxel_mm: 2.5, units: a.u.}
-    - {name: OSEM filtered, label: "TOF list-mode OSEM, filtered", kind: pet, array: recon_lm_tof_filtered, affine: object_meta.affine, voxel_mm: 2.5, units: a.u.}
-    - {name: Uncorrected, label: No scatter correction, kind: pet, array: recon_without_scatter_estimation, affine: object_meta.affine, voxel_mm: 2.5, units: a.u.}
+    - {name: DIP, label: Deep Image Prior, kind: pet, array: recon_DIP, affine: object_meta.affine, units: a.u.}
+    - {name: OSEM, label: TOF list-mode OSEM, kind: pet, array: recon_lm_tof, affine: object_meta.affine, units: a.u.}
+    - {name: OSEM filtered, label: "TOF list-mode OSEM, filtered", kind: pet, array: recon_lm_tof_filtered, affine: object_meta.affine, units: a.u.}
+    - {name: Uncorrected, label: No scatter correction, kind: pet, array: recon_without_scatter_estimation, affine: object_meta.affine, units: a.u.}
 
   # ---------- CT ----------
   t_CT_GEN3:
@@ -311,8 +308,7 @@ tutorials:
     credit: TCIA LDCT-and-Projection-data, case C145 (CC BY 4.0; see TCIA's data usage policy)
     credit_url: https://www.cancerimagingarchive.net/collection/ldct-and-projection-data/
     # Full resolution (Luke, 11 Oct 2026): every image on the grid it was reconstructed on, 0.66 x 0.66 x 1 mm, about
-    # 280 MB for the three (each about 150 MB in the reader's memory), so this tutorial's budget is raised
-    max_mb: 300
+    # 280 MB for the three (each about 150 MB in the reader's memory)
     layers:
     # Our grid in the patient's frame comes from the projections (object_meta, from the reader with the scanner's table
     # feed; the first FBP's grid lies 0.36 mm from it along the table). The scanner's own images keep their grid, as
@@ -326,8 +322,7 @@ tutorials:
     description: OS-SART started from FDK, as attenuation per mm
     credit: SophiaBeads Dataset Project (Coban and McDonald 2015, Zenodo 16474, CC BY-SA 4.0); these images are CC BY-SA 4.0 too
     # Full resolution (Luke, 11 Oct 2026): 500 x 500 x 500 voxels of 0.064 mm, about 420 MB for the two (each 250 MB in
-    # the reader's memory), so this tutorial's budget is raised
-    max_mb: 450
+    # the reader's memory)
     layers:
     - {name: SART, label: OS-SART, kind: mu, array: recon_sart, affine: system_matrix.object_meta.affine, units: 1/mm}
     - {name: FDK, kind: mu, array: recon_fdk, affine: system_matrix.object_meta.affine, units: 1/mm}
@@ -339,7 +334,6 @@ tutorials:
     credit_url: https://www.cancerimagingarchive.net/collection/ldct-and-projection-data/
     # Full resolution, like t_CT_GEN3: every image on the grid it was reconstructed on, 0.66 x 0.66 x 1 mm. The
     # scanner's images keep their own grid, as io.load_image places them.
-    max_mb: 350
     layers:
     - {name: Hann, label: "FBP, Hann", kind: ct, array: hu, affine: object_meta.affine, window: soft, units: HU}
     - {name: RamLak, label: "FBP, Ram-Lak", kind: ct, array: hu_ramlak, affine: object_meta.affine, window: soft, units: HU}
@@ -374,5 +368,5 @@ tutorials:
     description: The stitched two-bed reconstruction that the plotting examples draw
     credit: GE Discovery patient scan (PyTomography tutorial data, Zenodo 15314460, CC BY 4.0)
     layers:
-    - {name: CT, kind: ct, image: ct, window: soft, units: HU, voxel_mm: 2}
+    - {name: CT, kind: ct, image: ct, window: soft, units: HU}
     - {name: SPECT, kind: spect, image: spect, units: counts}
