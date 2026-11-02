@@ -170,7 +170,7 @@ DATASETS = {
         "title": "Lu-177-PSMA patient scan over two bed positions on a GE Discovery 670 Pro, with CT and organ"
                  " segmentations",
         **_SPECT_2025_DATASET,
-        "tutorials": ["t_dicommultibed", "t_uncertainty_spect", "t_plotting"],
+        "tutorials": ["t_dicommultibed", "t_uncertainty_spect", "t_plotting", "t_cgls"],
         "parts": [
             {"kind": "zip_range", **_SPECT_2025, "prefix": "SPECT/Lu177-PSMA-GEDisc/",
              "ranges": [[721637143, 806790948, "6935817f70578bd408e53ad87198604ec4ea221e62b98277546571d34e03c79f"]],
