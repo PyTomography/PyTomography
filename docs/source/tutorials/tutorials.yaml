@@ -160,6 +160,14 @@ sections:
     summary: 'Conjugate gradients for least squares on a two-bed Lu-177 PSMA patient, beside OSEM: the exact transpose it needs, when to stop, a diagonal preconditioner, weighted least squares, and its negative values.'
     datasets:
     - SPECT/Lu177-PSMA-GEDisc
+  - notebook: t_kernel_deep_kernel_spect_recon
+    title: Kernel EM with a PET prior
+    modality: SPECT
+    data: NumPy
+    topic: Algorithms
+    summary: 'Lu-177 SPECT of the Zubal phantom reconstructed with kernels from a Ga-68 PET image: one from its intensities, one learned by a 3D U-Net, beside MLEM.'
+    datasets:
+    - SPECT/Lu177-DOTATATE-Zubal
 - title: PET
   tutorials:
   - notebook: t_pet_introduction
