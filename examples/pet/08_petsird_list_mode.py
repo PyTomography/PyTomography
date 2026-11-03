@@ -32,13 +32,14 @@ from pytomography.utils import sss
 # pairs take 2.1 GB. RAM_GB caps what the steps that go through every crystal pair (the sensitivity image, the scatter
 # estimate) use at once: with less, they work in smaller blocks, which is slower and gives the same images. Each
 # reconstruction prints its own estimate before it runs (estimate_memory), with what more subsets would need, and so
-# does the scatter estimate. MINUTES is how much of the 60-minute scan is reconstructed: the first 10 minutes (38
-# million prompts) peak at about 19 GB of RAM and 2.6 GB of GPU memory (measured on Windows), and still about 19 GB
-# with RAM_GB = 12, so lowering RAM_GB saves little; all 60 minutes (197 million prompts) take more. To use less,
-# lower MINUTES.
+# does the scatter estimate (its estimate is on the safe side). MINUTES is how much of the 60-minute scan is
+# reconstructed: all of it, 197 million prompts, peaks at 23.4 GB of RAM and 6 GB of GPU memory (measured on Windows),
+# in the scatter estimate. Lowering RAM_GB saves little, since most of that is the scanner's normalisation and the
+# scatter estimate's sinograms, whatever the scan's length; to use less, lower MINUTES: the first 10 minutes (38
+# million prompts) peak at about 19 GB of RAM and 2.6 GB of GPU memory.
 RAM_GB = 25
 pytomography.set_memory_budget(RAM_GB)
-MINUTES = 10
+MINUTES = 60
 
 # %% 1. The scan in PyTomography's standard form
 path = DATA / 'PET' / 'PETSIRD-mMR-NEMA' / 'mMR_NEMA_norm.petsird'
@@ -81,14 +82,16 @@ t0 = time.time()
 sinogram_delays = io.PET.listmode_to_sinogram(delayeds, info)
 del delayeds
 sinogram_delays = io.PET.smooth_randoms_sinogram(sinogram_delays, info, fwhm_r=20, fwhm_theta=7, fwhm_z=40)
-lm_randoms = io.PET.sinogram_to_listmode(proj_meta.detector_ids, sinogram_delays, info)
-lm_sensitivity = system_matrix._compute_sensitivity_projection(all_ids=False)
-additive_term = lm_randoms.cpu() / lm_sensitivity.cpu()
-additive_term[additive_term.isnan()] = 0
+# Per event, on the GPU and with no copies: its sensitivity (normalisation weight times attenuation), and its randoms
+# divided by it
+lm_sensitivity = system_matrix._compute_sensitivity_projection(all_ids=False).to(pytomography.device)
+randoms_term = io.PET.sinogram_to_listmode(proj_meta.detector_ids, sinogram_delays, info).to(pytomography.device)
+randoms_term /= lm_sensitivity
+randoms_term[randoms_term.isnan()] = 0
 print(f"randoms: {time.time() - t0:.0f} s")
 
 # %% 4. Reconstruction without scatter correction
-likelihood = PoissonLogLikelihood(system_matrix, additive_term=additive_term.to(pytomography.device))
+likelihood = PoissonLogLikelihood(system_matrix, additive_term=randoms_term)
 print(system_matrix.estimate_memory(n_subsets=21, held={'additive term': likelihood.additive_term}))
 t0 = time.time()
 recon_without_scatter = OSEM(likelihood)(n_iters=3, n_subsets=21)
@@ -115,9 +118,13 @@ lm_scatter = io.PET.sinogram_to_listmode(proj_meta.detector_ids, sinogram_scatte
 seconds_sss = time.time() - t0
 print(f"scatter estimate: {seconds_sss:.0f} s")
 
-additive_term = (lm_scatter.cpu() + lm_randoms.cpu()) / lm_sensitivity.cpu()
-additive_term[additive_term.isnan()] = 0
-likelihood = PoissonLogLikelihood(system_matrix, additive_term=additive_term.to(pytomography.device))
+# The additive term: the randoms and the scatter, each divided by the event's sensitivity
+scatter_term = lm_scatter.to(pytomography.device)
+del lm_scatter
+scatter_term /= lm_sensitivity
+scatter_term[scatter_term.isnan()] = 0
+likelihood = PoissonLogLikelihood(system_matrix, additive_term=randoms_term + scatter_term)
+del scatter_term, randoms_term, lm_sensitivity
 t0 = time.time()
 recon_with_scatter = OSEM(likelihood)(n_iters=3, n_subsets=21)
 seconds_with = time.time() - t0
