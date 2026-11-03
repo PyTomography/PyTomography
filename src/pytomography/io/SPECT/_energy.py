@@ -228,7 +228,7 @@ def collimator_psf(collimator: str, photon_energy: float, intrinsic_fwhm: float 
         ValueError: If the table has no such parallel-hole collimator, or ``shape`` is not ``'gaussian'`` or
             ``'square'``.
     """
-    from pytomography.io.SPECT._camera import collimator as _collimator
+    from pytomography.io.SPECT._camera import _parallel_collimator as _collimator
     try:
         dimensions = _collimator(collimator)
     except KeyError as error:
