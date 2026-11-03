@@ -329,29 +329,37 @@ DATASETS = {
              "sha256": "792162c695aa42568ce5f0c3eeb366a156895e621f28f89daa3d9681b39f8873"},
         ],
     },
-    # The 60-minute NEMA scan of Zenodo 1304454 converted to PETSIRD 0.9.1 with ETSI's STIR2PETSIRD (October 2026). It
-    # replaces PET/PETSIRD-mIEC, a 2024 example in an early PETSIRD format that was never published.
+    # The 60-minute NEMA scan of Zenodo 1304454 converted to PETSIRD 0.9.1 with ETSI's STIR2PETSIRD (October 2026) and
+    # published on Zenodo (record 23898949, November 2026), which asks to be cited by its source record. It replaces
+    # PET/PETSIRD-mIEC, a 2024 example in an early PETSIRD format that was never published.
     "PET/PETSIRD-mMR-NEMA": {
         "title": "NEMA IQ phantom on a Siemens Biograph mMR, in the PETSIRD 0.9 format, with its attenuation map",
-        "source": "Thomas and Sanderson, University College London (Zenodo), converted to PETSIRD by PyTomography",
-        "url": "https://doi.org/10.5281/zenodo.1304454",
+        "source": "Thomas and Sanderson, University College London (Zenodo), converted to PETSIRD by PyTomography"
+                  " (Zenodo)",
+        "url": "https://doi.org/10.5281/zenodo.23898949",
         "licence": "CC BY-SA 4.0",
         "cite": "Thomas BA, Sanderson T. NEMA image quality phantom acquisition on the Siemens mMR scanner. Zenodo"
                 " (2018). doi:10.5281/zenodo.1304454",
         "tutorials": ["t_PETSIRD"],
-        "status": "pending",
-        "note": "The scan in PETSIRD 0.9.1 (4.2 GB: 196.6 million prompts and 20.7 million delayed coincidences over"
-                " 60 minutes, with the scanner's normalisation) is being published on Zenodo; it can be downloaded once"
-                " that record is out, with the regions of the phantom that the tutorial measures. Its attenuation"
-                " map, 20170809_NEMA_MUMAP_UCL.v with its .hdr, is in the source record's NEMA_IQ.zip (Zenodo"
-                " 1304454).",
-        "parts": [],
-        "files": {
+        "parts": [
+            # The scan: 196.6 million prompts and 20.7 million delayed coincidences over 60 minutes, with the scanner's
+            # normalisation
+            {"kind": "file", "url": "https://zenodo.org/records/23898949/files/mMR_NEMA_norm.petsird",
+             "size": 4248097032, "sha256": "8ab1cbb8c0f355e86527ba6a4fe1cedb44f02f24ef356ef24aa51405ead0e515"},
             # The phantom, its six spheres and its background (also in 10 mm rings round its axis), found from its
             # attenuation map and the tutorial's reconstruction (docs/tools/make_tutorial_regions.py, 13 Oct 2026)
-            "petsird_mmr_nema_rois.seg.nrrd":
-                [110965, "cd85b63d55651b6ecb6142c211e8fd31616224da85ef88bd566033e672860612"],
-        },
+            {"kind": "file", "url": "https://zenodo.org/records/23898949/files/petsird_mmr_nema_rois.seg.nrrd",
+             "size": 110965, "sha256": "cd85b63d55651b6ecb6142c211e8fd31616224da85ef88bd566033e672860612"},
+            # The attenuation map, 20170809_NEMA_MUMAP_UCL.v with its .hdr (60 MB), from the source record's NEMA_IQ.zip:
+            # its two blocks of the zip (5.4 MB), not the zip's 885 MB list-mode file
+            {"kind": "zip_range", "url": "https://zenodo.org/records/1304454/files/NEMA_IQ.zip", "size": 866130133,
+             "index": [866128607, "c97a7e6238d9ce5a7c151a43fe37f79235b4619fcc7906ca05d4244187c819af"],
+             "prefix": "NEMA_IQ/",
+             "exclude": ["*.l", "*.l.hdr", "*.n", "*.n.hdr", "md5/*", "README.md", "NOTICE.txt", "LICENSE.txt"],
+             "unpacked": 60116948,
+             "ranges": [[54, 1120, "f3055f768bb49710a3fc8cf21c8f925a2e264fbb15b504534ad3238e61a28b93"],
+                        [860606591, 866004371, "a6a9642ef096aa133dcb72d6e0f01b4cc5a13d86f5249d4f20702c9c313e8c74"]]},
+        ],
     },
     "CT/ldct-c145": {
         "title": "Chest CT (case C145) from a GE LightSpeed VCT, with the full-dose projections in DICOM-CT-PD format"
