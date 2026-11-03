@@ -17,6 +17,7 @@ import difflib
 import functools
 import json
 import os
+import warnings
 
 _DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'data')
 #: The docs page that lists every collimator, detector and camera.
@@ -93,6 +94,26 @@ def _not_found(what: str, name: str, names) -> KeyError:
     return KeyError(f'no {what} {name!r} in PyTomography\'s table{hint} Every {what} is listed at {PARAMETERS_PAGE}')
 
 
+@functools.lru_cache(maxsize=None)
+def _spectarf_cannot_model(hole_shape: str) -> bool:
+    """Whether the installed spectarf cannot model holes of this shape (spectarf 0.1 implements hexagonal holes only).
+    False when it can, and when spectarf is not installed or is laid out in a way this check does not know: spectarf
+    then says so itself."""
+    try:
+        from spectarf.geometry.layers import layer_stack
+        from spectarf.pytomography import camera_model
+    except ImportError:
+        return False
+    name = {'square': 'rect', 'circular': 'circ'}.get(hole_shape, hole_shape)  # spectarf's names for them
+    try:
+        stack, _ = camera_model(dict(_parallel_collimator('SY-HE'), hole_shape=name), detector('NaI-9.5mm'),
+                                camera('Siemens Symbia T'))
+        layer_stack(stack)
+    except (ValueError, NotImplementedError):
+        return True
+    return False
+
+
 def collimator(code: str, material: str = 'lead') -> dict:
     """A parallel-hole collimator's dimensions, from its code (SIMIND's; e.g. ``'SY-HE'``, the Siemens Symbia high
     energy collimator).
@@ -110,7 +131,22 @@ def collimator(code: str, material: str = 'lead') -> dict:
     Raises:
         KeyError: The code is not in the table (the closest codes are suggested).
         ValueError: The collimator is not a parallel-hole collimator (e.g. a fan beam).
+
+    Warns:
+        UserWarning: The collimator's holes are square or circular, which the installed spectarf cannot model (spectarf
+            0.1 implements hexagonal holes only), so it cannot make the collimator's angular response functions.
     """
+    dimensions = _parallel_collimator(code, material)
+    if dimensions['hole_shape'] != 'hex' and _spectarf_cannot_model(dimensions['hole_shape']):
+        warnings.warn(f'{dimensions["code"]} has {dimensions["hole_shape"]} holes, which spectarf does not support: it '
+                      'models hexagonal holes only, so it cannot make angular response functions (ARFs) for this '
+                      'collimator. Use its Gaussian PSF instead: transforms.SPECT.SPECTPSFTransform(io.SPECT.'
+                      f'collimator_psf({dimensions["code"]!r}, photon_energy))', stacklevel=2)
+    return dimensions
+
+
+def _parallel_collimator(code: str, material: str = 'lead') -> dict:
+    """:func:`collimator`'s table lookup, without its note about spectarf (for the Gaussian PSF, which needs none)."""
     rows = {r['code'].upper(): r for r in collimators()}
     row = rows.get(code.strip().upper())
     if row is None:
