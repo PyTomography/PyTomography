@@ -41,8 +41,8 @@ measure (``*_rois.seg.nrrd``) are such parts, or files of a pending dataset, unt
 """
 
 # The 2025 PyTomography SPECT tutorial record holds one SPECT.zip. Each SPECT dataset is a contiguous block of it, so
-# fetch() downloads only that block and the zip's central directory (169 kB) until the SPECT v2 record has one zip
-# per dataset. The blocks leave out the old pickled PSF operators and the StarGuide list-mode files.
+# fetch() downloads only that block and the zip's central directory (169 kB); version 2.0 of the record keeps SPECT.zip
+# as it is. The blocks leave out the old pickled PSF operators and the StarGuide list-mode files.
 _SPECT_2025 = {
     "url": "https://zenodo.org/records/15314460/files/SPECT.zip",
     "size": 1430341130,
@@ -54,9 +54,12 @@ _SPECT_2025_DATASET = {
     "licence": "CC BY 4.0",
     "cite": "Polson L. PyTomography SPECT Tutorial data. Zenodo (2025). doi:10.5281/zenodo.15314460",
 }
-# Records that are not published yet, which pending parts name: the new version of the 2025 SPECT record, with one
-# zip per dataset, and PyTomography's copy of the TCIA case C145 (IDC stays its fallback)
-_SPECT_V2 = "PyTomography SPECT tutorial data, version 2 (Zenodo; the new version of record 15314460)"
+# Version 2.0 of the SPECT tutorial record (Zenodo 23898882, 2026): SPECT.zip as in 2025, and the regions the tutorials
+# measure
+_SPECT_V2_FILES = "https://zenodo.org/records/23898882/files/"
+# Records that are not published yet, which pending parts name: the next version of the SPECT tutorial record, and
+# PyTomography's copy of the TCIA case C145 (IDC stays its fallback)
+_SPECT_NEXT = "PyTomography SPECT tutorial data, the version after 2.0 (Zenodo; a new version of record 23898882)"
 _CT_C145 = "PyTomography's copy of LDCT-and-Projection-data case C145 (Zenodo)"
 # The fitted Ac-225 PSF model that replaced the pickled operator in the 2025 record
 _AC225_PSF_MODEL = {"kind": "package", "file": "ac225_psf_model.json", "size": 10092,
@@ -136,7 +139,7 @@ DATASETS = {
              "sha256": "2c0b2891d92f570e436e1c14ba602bd8029201c5b9a048254513717267c2edc0"},
             # The regions that the accuracy tutorial measures (the six spheres and the background), made by
             # docs/tools/make_roi_masks.py
-            {"kind": "file", "status": "pending", "record": _SPECT_V2, "to": "jaszak_rois.seg.nrrd", "size": 51595,
+            {"kind": "file", "url": _SPECT_V2_FILES + "jaszak_rois.seg.nrrd", "size": 51595,
              "sha256": "909f1e31ab1bd99af9809ac2e067a008cd821ffbab37762c2c80928df18f0df9"},
         ],
     },
@@ -151,7 +154,7 @@ DATASETS = {
              "unpacked": 71623548},
             # The regions that the tutorials measure (the six spheres, the lung insert and the background), made by
             # docs/tools/make_roi_masks.py
-            {"kind": "file", "status": "pending", "record": _SPECT_V2, "to": "lu177_nema_symt2_rois.seg.nrrd",
+            {"kind": "file", "url": _SPECT_V2_FILES + "lu177_nema_symt2_rois.seg.nrrd",
              "size": 246468, "sha256": "be3d1878f5693999cc054d69a508df7f8feeb986d985f20c036173a13bbb4b46"},
         ],
     },
@@ -205,22 +208,22 @@ DATASETS = {
     # PyTomography's conventions once, so the tutorial reads them as they are: a 128^3 grid of 4 mm voxels with its axes
     # to the patient's left, back and head (the author's ran the other way), the attenuation map in 1/mm, and the
     # projections (views, r, z) turned to match: 120 views over 360 degrees at a radius of 300 mm, with a Gaussian PSF
-    # of width sigma = 0.02 d + 1.0 mm at distance d. They go into the SPECT v2 record with the rest of the SPECT data.
+    # of width sigma = 0.02 d + 1.0 mm at distance d. They go into the SPECT tutorial record's next version.
     "SPECT/Lu177-DOTATATE-Zubal": {
         "title": "Simulated Lu-177-DOTATATE SPECT of the Zubal phantom, with a simulated Ga-68-DOTATATE PET image as"
                  " a prior",
         "source": "H. Wei (GitHub williamuic), contributed with PyTomography's kernel EM methods",
         "url": "https://doi.org/10.1109/TRPMS.2026.3737413",
-        "licence": "the SPECT v2 record's (CC BY 4.0), once the authors agree",
+        "licence": "the SPECT tutorial record's (CC BY 4.0), once the authors agree",
         "cite": "Wei H, Livieratos L, Reader AJ. PET-informed deep-learned kernel method for theranostic SPECT"
                 " reconstruction. IEEE Trans Radiat Plasma Med Sci (2026). doi:10.1109/TRPMS.2026.3737413",
         "tutorials": ["t_kernel_deep_kernel_spect_recon"],
         "parts": [
-            {"kind": "file", "status": "pending", "record": _SPECT_V2, "to": "pet_prior.npy",
+            {"kind": "file", "status": "pending", "record": _SPECT_NEXT, "to": "pet_prior.npy",
              "size": 8388736, "sha256": "9ed82758b611ecfde3bbf6ce4b141789a618977b769ad8b76d9935e7743a2938"},
-            {"kind": "file", "status": "pending", "record": _SPECT_V2, "to": "attenuation_map.npy",
+            {"kind": "file", "status": "pending", "record": _SPECT_NEXT, "to": "attenuation_map.npy",
              "size": 8388736, "sha256": "57425c8e21a7f351d6dcc32a63de84533c963fd2e8384c5c118b59d8f91d30dc"},
-            {"kind": "file", "status": "pending", "record": _SPECT_V2, "to": "projections.npy",
+            {"kind": "file", "status": "pending", "record": _SPECT_NEXT, "to": "projections.npy",
              "size": 7864448, "sha256": "f7ff4a20b496471fecdc29be0dc2a2e72361b5d3a82f18eb39d5eef402936ec2"},
         ],
     },
