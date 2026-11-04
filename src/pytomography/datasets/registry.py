@@ -41,8 +41,8 @@ measure (``*_rois.seg.nrrd``) are such parts, or files of a pending dataset, unt
 """
 
 # The 2025 PyTomography SPECT tutorial record holds one SPECT.zip. Each SPECT dataset is a contiguous block of it, so
-# fetch() downloads only that block and the zip's central directory (169 kB) until the SPECT v2 record has one zip
-# per dataset. The blocks leave out the old pickled PSF operators and the StarGuide list-mode files.
+# fetch() downloads only that block and the zip's central directory (169 kB); version 2.0 of the record keeps SPECT.zip
+# as it is. The blocks leave out the old pickled PSF operators and the StarGuide list-mode files.
 _SPECT_2025 = {
     "url": "https://zenodo.org/records/15314460/files/SPECT.zip",
     "size": 1430341130,
@@ -54,16 +54,20 @@ _SPECT_2025_DATASET = {
     "licence": "CC BY 4.0",
     "cite": "Polson L. PyTomography SPECT Tutorial data. Zenodo (2025). doi:10.5281/zenodo.15314460",
 }
-# Records that are not published yet, which pending parts name: the new version of the 2025 SPECT record, with one
-# zip per dataset, and PyTomography's copy of the TCIA case C145 (IDC stays its fallback)
-_SPECT_V2 = "PyTomography SPECT tutorial data, version 2 (Zenodo; the new version of record 15314460)"
+# Version 2.0 of the SPECT tutorial record (Zenodo 23898882, 2026): SPECT.zip as in 2025, and the regions the tutorials
+# measure
+_SPECT_V2_FILES = "https://zenodo.org/records/23898882/files/"
+# Records that are not published yet, which pending parts name: the next version of the SPECT tutorial record, and
+# PyTomography's copy of the TCIA case C145 (IDC stays its fallback)
+_SPECT_NEXT = "PyTomography SPECT tutorial data, the version after 2.0 (Zenodo; a new version of record 23898882)"
 _CT_C145 = "PyTomography's copy of LDCT-and-Projection-data case C145 (Zenodo)"
 # The fitted Ac-225 PSF model that replaced the pickled operator in the 2025 record
 _AC225_PSF_MODEL = {"kind": "package", "file": "ac225_psf_model.json", "size": 10092,
                     "sha256": "edb5e15edf5b648d948c7d87ed876fdcfef4bea976649eaa000f337db015a168"}
 
 # The 54 runs of PET/GATE-mMR-BrainInWater, simple_phantom/mMR_voxBrain_withSimplePhantom_{i}.root for i = 1 to 54:
-# [size, sha256] of each, as staged for its Zenodo record (10 Oct 2026)
+# [size, sha256] of each, as published in its Zenodo record (23905822), whose file names have no folder
+_GATE_BRAININWATER = "https://zenodo.org/records/23905822/files/"
 _GATE_BRAININWATER_RUNS = [
     [241443822, "7ba1cea6ba46ab3ae8ff3e91459e3f48b66a8a8e74be1cb8fb6aaa0a61de7360"],  # 1
     [241846022, "cdd4448585746565d6bbd1cf3666eb731c90968655a256389eaf6d7584746fb6"],  # 2
@@ -136,7 +140,7 @@ DATASETS = {
              "sha256": "2c0b2891d92f570e436e1c14ba602bd8029201c5b9a048254513717267c2edc0"},
             # The regions that the accuracy tutorial measures (the six spheres and the background), made by
             # docs/tools/make_roi_masks.py
-            {"kind": "file", "status": "pending", "record": _SPECT_V2, "to": "jaszak_rois.seg.nrrd", "size": 51595,
+            {"kind": "file", "url": _SPECT_V2_FILES + "jaszak_rois.seg.nrrd", "size": 51595,
              "sha256": "909f1e31ab1bd99af9809ac2e067a008cd821ffbab37762c2c80928df18f0df9"},
         ],
     },
@@ -151,7 +155,7 @@ DATASETS = {
              "unpacked": 71623548},
             # The regions that the tutorials measure (the six spheres, the lung insert and the background), made by
             # docs/tools/make_roi_masks.py
-            {"kind": "file", "status": "pending", "record": _SPECT_V2, "to": "lu177_nema_symt2_rois.seg.nrrd",
+            {"kind": "file", "url": _SPECT_V2_FILES + "lu177_nema_symt2_rois.seg.nrrd",
              "size": 246468, "sha256": "be3d1878f5693999cc054d69a508df7f8feeb986d985f20c036173a13bbb4b46"},
         ],
     },
@@ -205,22 +209,22 @@ DATASETS = {
     # PyTomography's conventions once, so the tutorial reads them as they are: a 128^3 grid of 4 mm voxels with its axes
     # to the patient's left, back and head (the author's ran the other way), the attenuation map in 1/mm, and the
     # projections (views, r, z) turned to match: 120 views over 360 degrees at a radius of 300 mm, with a Gaussian PSF
-    # of width sigma = 0.02 d + 1.0 mm at distance d. They go into the SPECT v2 record with the rest of the SPECT data.
+    # of width sigma = 0.02 d + 1.0 mm at distance d. They go into the SPECT tutorial record's next version.
     "SPECT/Lu177-DOTATATE-Zubal": {
         "title": "Simulated Lu-177-DOTATATE SPECT of the Zubal phantom, with a simulated Ga-68-DOTATATE PET image as"
                  " a prior",
         "source": "H. Wei (GitHub williamuic), contributed with PyTomography's kernel EM methods",
         "url": "https://doi.org/10.1109/TRPMS.2026.3737413",
-        "licence": "the SPECT v2 record's (CC BY 4.0), once the authors agree",
+        "licence": "the SPECT tutorial record's (CC BY 4.0), once the authors agree",
         "cite": "Wei H, Livieratos L, Reader AJ. PET-informed deep-learned kernel method for theranostic SPECT"
                 " reconstruction. IEEE Trans Radiat Plasma Med Sci (2026). doi:10.1109/TRPMS.2026.3737413",
         "tutorials": ["t_kernel_deep_kernel_spect_recon"],
         "parts": [
-            {"kind": "file", "status": "pending", "record": _SPECT_V2, "to": "pet_prior.npy",
+            {"kind": "file", "status": "pending", "record": _SPECT_NEXT, "to": "pet_prior.npy",
              "size": 8388736, "sha256": "9ed82758b611ecfde3bbf6ce4b141789a618977b769ad8b76d9935e7743a2938"},
-            {"kind": "file", "status": "pending", "record": _SPECT_V2, "to": "attenuation_map.npy",
+            {"kind": "file", "status": "pending", "record": _SPECT_NEXT, "to": "attenuation_map.npy",
              "size": 8388736, "sha256": "57425c8e21a7f351d6dcc32a63de84533c963fd2e8384c5c118b59d8f91d30dc"},
-            {"kind": "file", "status": "pending", "record": _SPECT_V2, "to": "projections.npy",
+            {"kind": "file", "status": "pending", "record": _SPECT_NEXT, "to": "projections.npy",
              "size": 7864448, "sha256": "f7ff4a20b496471fecdc29be0dc2a2e72361b5d3a82f18eb39d5eef402936ec2"},
         ],
     },
@@ -250,17 +254,21 @@ DATASETS = {
              "size": 261908527, "md5": "a531de147927d3c58b038e08a7820ac8"},
         ],
     },
-    # The October 2024 re-simulation, which the GATE tutorials read. The April 2024 simulation above has a GATE artefact
-    # (stripes) from its voxelized attenuating phantom. The normalisation weights come with it, so that no one needs the
-    # 46 GB normalisation scan they were computed from (in PET/GATE-mMR-Brain).
+    # The October 2024 re-simulation, which the GATE tutorials read, published on Zenodo (record 23905822, November
+    # 2026). The April 2024 simulation above has a GATE artefact (stripes) from its voxelized attenuating phantom. The
+    # normalisation weights come with it, so that no one needs the 46 GB normalisation scan they were computed from (in
+    # PET/GATE-mMR-Brain).
     "PET/GATE-mMR-BrainInWater": {
         "title": "GATE simulation of an FDG brain source in a 23 cm water cube on a Siemens Biograph mMR, with"
                  " normalisation weights",
-        "source": "PyTomography PET tutorial data, with the brain activity from Belzunce's phantom (Zenodo)",
-        "url": "https://doi.org/10.5281/zenodo.8045458",
-        "licence": "to be confirmed (the brain phantom: CC BY 4.0)",
-        "cite": "Belzunce MA. High-Resolution Heterogeneous Digital PET [18F]FDG Brain Phantom based on the BigBrain"
-                " Atlas. Zenodo (2018). doi:10.5281/zenodo.8045458",
+        "source": "Nicolas Karakatsanis, Weill Cornell Medicine (Zenodo), with the brain activity from Belzunce's"
+                  " phantom (Zenodo)",
+        "url": "https://doi.org/10.5281/zenodo.23905822",
+        "licence": "CC BY 4.0",
+        "cite": "Karakatsanis N. GATE simulation of an FDG brain source in a 23 cm water cube on a Siemens Biograph"
+                " mMR, with normalisation weights. Zenodo (2026). doi:10.5281/zenodo.23905822; and Belzunce MA."
+                " High-Resolution Heterogeneous Digital PET [18F]FDG Brain Phantom based on the BigBrain Atlas."
+                " Zenodo (2018). doi:10.5281/zenodo.8045458",
         # GATE's world is the phantom's NIfTI flipped head to foot (GATE's x, y, z are the patient's L, P, I), with
         # GATE's origin at the centre of the phantom's MR (fdg_pet_phantom_mri.nii.gz: its sform puts the centre of its
         # middle voxel at RAS (0.35, -17.65, 22.35) mm): the audit of 11 Oct 2026 (pet_verify_gate*) placed the
@@ -268,38 +276,34 @@ DATASETS = {
         "geometry": {"gate": {"world_axes": "LPI", "world_origin": [-0.35, 17.65, 22.35]}},
         "tutorials": ["t_pet_introduction", "t_PETGATE_scat_sino", "t_PETGATE_scat_sinoTOF", "t_PETGATE_scat_lm",
                       "t_PETGATE_scat_lmTOF", "t_PETGATE_DIP"],
-        "status": "pending",
-        "note": "The GATE simulation (54 runs of 10 s: 116.9 million coincidences and 14.4 million delays), its"
-                " water-cube attenuation map and the scanner's normalisation weights are being published on Zenodo;"
-                " they can be downloaded once that record is out, with the grey and white matter that the Deep Image"
-                " Prior tutorial measures. The MRI that tutorial uses comes from Belzunce's record.",
-        "parts": [],
-        "files": {
+        "parts": [
             # Grey and white matter of the brain phantom, from its MR's intensity classes on the Deep Image Prior
             # tutorial's grid (docs/tools/make_tutorial_regions.py, 13 Oct 2026)
-            "gate_braininwater_rois.seg.nrrd":
-                [12844, "c702e33efaad4160f08f7bf30ff291394f15a04b9f2f416ecf9a876864fa08ab"],
-            **{f"simple_phantom/mMR_voxBrain_withSimplePhantom_{i}.root": run
-               for i, run in enumerate(_GATE_BRAININWATER_RUNS, start=1)},
+            {"kind": "file", "url": _GATE_BRAININWATER + "gate_braininwater_rois.seg.nrrd", "size": 12844,
+             "sha256": "c702e33efaad4160f08f7bf30ff291394f15a04b9f2f416ecf9a876864fa08ab"},
+            *({"kind": "file", "url": _GATE_BRAININWATER + f"mMR_voxBrain_withSimplePhantom_{i}.root",
+               "to": f"simple_phantom/mMR_voxBrain_withSimplePhantom_{i}.root", "size": size, "sha256": digest}
+              for i, (size, digest) in enumerate(_GATE_BRAININWATER_RUNS, start=1)),
             # The water-cube attenuation map: 344 x 344 x 127 float32 voxels of 1.67475 x 1.67475 x 2.0315 mm in the .v
             # file, with two Interfile headers, .hv (which io.load_image and io.attenuation_map read) and .ahv
-            "umap_mMR_brainSimplePhantom.hv":
-                [762, "53054ffa66434b06f83c2f787f317a6c0462d3288479d73ee8775e41c24a62ab"],
-            "umap_mMR_brainSimplePhantom.ahv":
-                [568, "11a44826ffbf0f124b56080dd4737a43f92e1e13a9625031b9188cccfb2f197a"],
-            "umap_mMR_brainSimplePhantom.v":
-                [60114688, "00110b7f50ea297c59f89b0ba43309b74089d8c03723f74f7f1a755fa2156107"],
+            {"kind": "file", "url": _GATE_BRAININWATER + "umap_mMR_brainSimplePhantom.hv", "size": 762,
+             "sha256": "53054ffa66434b06f83c2f787f317a6c0462d3288479d73ee8775e41c24a62ab"},
+            {"kind": "file", "url": _GATE_BRAININWATER + "umap_mMR_brainSimplePhantom.ahv", "size": 568,
+             "sha256": "11a44826ffbf0f124b56080dd4737a43f92e1e13a9625031b9188cccfb2f197a"},
+            {"kind": "file", "url": _GATE_BRAININWATER + "umap_mMR_brainSimplePhantom.v", "size": 60114688,
+             "sha256": "00110b7f50ea297c59f89b0ba43309b74089d8c03723f74f7f1a755fa2156107"},
             # The scanner, as the simulation's GATE macro describes it
-            "mMR_Geometry.mac":
-                [2813, "6623f0e2f73c9e7e8a86e1ca2d7ca9eb2e3b231c2148bfd462816ef7d7fdbddb"],
+            {"kind": "file", "url": _GATE_BRAININWATER + "mMR_Geometry.mac", "size": 2813,
+             "sha256": "6623f0e2f73c9e7e8a86e1ca2d7ca9eb2e3b231c2148bfd462816ef7d7fdbddb"},
             # The normalisation weight of each of the 411,027,456 crystal pairs (float32, torch.combinations order),
             # from the normalisation scan with gate.get_normalization_weights_cylinder_calibration(...,
             # cylinder_radius=318, include_randoms=False) (io.PET.gate_normalization since PyTomography 4), randoms
             # left out since PyTomography #290. 88,983,552 are NaN: the pairs whose line passes outside the 318 mm
             # calibration shell (io.PET.read_gate sets them to 0).
-            "normalization_weights.npy":
-                [1644109952, "5f86af901a6c56abad7508f122a621f78497508ba989984b0f8f14a67309e12c"],
-        },
+            {"kind": "file", "url": _GATE_BRAININWATER + "normalization_weights.npy", "size": 1644109952,
+             "sha256": "5f86af901a6c56abad7508f122a621f78497508ba989984b0f8f14a67309e12c"},
+        ],
+        # The Deep Image Prior tutorial's MRI stays in Belzunce's record
         "extras": {
             "mri": {"title": "MRI of the brain phantom, the prior of the Deep Image Prior tutorial", "parts": [
                 {"kind": "file", "url": "https://zenodo.org/records/8045458/files/fdg_pet_phantom_mri.nii.gz",
@@ -326,29 +330,37 @@ DATASETS = {
              "sha256": "792162c695aa42568ce5f0c3eeb366a156895e621f28f89daa3d9681b39f8873"},
         ],
     },
-    # The 60-minute NEMA scan of Zenodo 1304454 converted to PETSIRD 0.9.1 with ETSI's STIR2PETSIRD (October 2026). It
-    # replaces PET/PETSIRD-mIEC, a 2024 example in an early PETSIRD format that was never published.
+    # The 60-minute NEMA scan of Zenodo 1304454 converted to PETSIRD 0.9.1 with ETSI's STIR2PETSIRD (October 2026) and
+    # published on Zenodo (record 23898949, November 2026), which asks to be cited by its source record. It replaces
+    # PET/PETSIRD-mIEC, a 2024 example in an early PETSIRD format that was never published.
     "PET/PETSIRD-mMR-NEMA": {
         "title": "NEMA IQ phantom on a Siemens Biograph mMR, in the PETSIRD 0.9 format, with its attenuation map",
-        "source": "Thomas and Sanderson, University College London (Zenodo), converted to PETSIRD by PyTomography",
-        "url": "https://doi.org/10.5281/zenodo.1304454",
+        "source": "Thomas and Sanderson, University College London (Zenodo), converted to PETSIRD by PyTomography"
+                  " (Zenodo)",
+        "url": "https://doi.org/10.5281/zenodo.23898949",
         "licence": "CC BY-SA 4.0",
         "cite": "Thomas BA, Sanderson T. NEMA image quality phantom acquisition on the Siemens mMR scanner. Zenodo"
                 " (2018). doi:10.5281/zenodo.1304454",
         "tutorials": ["t_PETSIRD"],
-        "status": "pending",
-        "note": "The scan in PETSIRD 0.9.1 (4.2 GB: 196.6 million prompts and 20.7 million delayed coincidences over"
-                " 60 minutes, with the scanner's normalisation) is being published on Zenodo; it can be downloaded once"
-                " that record is out, with the regions of the phantom that the tutorial measures. Its attenuation"
-                " map, 20170809_NEMA_MUMAP_UCL.v with its .hdr, is in the source record's NEMA_IQ.zip (Zenodo"
-                " 1304454).",
-        "parts": [],
-        "files": {
+        "parts": [
+            # The scan: 196.6 million prompts and 20.7 million delayed coincidences over 60 minutes, with the scanner's
+            # normalisation
+            {"kind": "file", "url": "https://zenodo.org/records/23898949/files/mMR_NEMA_norm.petsird",
+             "size": 4248097032, "sha256": "8ab1cbb8c0f355e86527ba6a4fe1cedb44f02f24ef356ef24aa51405ead0e515"},
             # The phantom, its six spheres and its background (also in 10 mm rings round its axis), found from its
             # attenuation map and the tutorial's reconstruction (docs/tools/make_tutorial_regions.py, 13 Oct 2026)
-            "petsird_mmr_nema_rois.seg.nrrd":
-                [110965, "cd85b63d55651b6ecb6142c211e8fd31616224da85ef88bd566033e672860612"],
-        },
+            {"kind": "file", "url": "https://zenodo.org/records/23898949/files/petsird_mmr_nema_rois.seg.nrrd",
+             "size": 110965, "sha256": "cd85b63d55651b6ecb6142c211e8fd31616224da85ef88bd566033e672860612"},
+            # The attenuation map, 20170809_NEMA_MUMAP_UCL.v with its .hdr (60 MB), from the source record's NEMA_IQ.zip:
+            # its two blocks of the zip (5.4 MB), not the zip's 885 MB list-mode file
+            {"kind": "zip_range", "url": "https://zenodo.org/records/1304454/files/NEMA_IQ.zip", "size": 866130133,
+             "index": [866128607, "c97a7e6238d9ce5a7c151a43fe37f79235b4619fcc7906ca05d4244187c819af"],
+             "prefix": "NEMA_IQ/",
+             "exclude": ["*.l", "*.l.hdr", "*.n", "*.n.hdr", "md5/*", "README.md", "NOTICE.txt", "LICENSE.txt"],
+             "unpacked": 60116948,
+             "ranges": [[54, 1120, "f3055f768bb49710a3fc8cf21c8f925a2e264fbb15b504534ad3238e61a28b93"],
+                        [860606591, 866004371, "a6a9642ef096aa133dcb72d6e0f01b4cc5a13d86f5249d4f20702c9c313e8c74"]]},
+        ],
     },
     "CT/ldct-c145": {
         "title": "Chest CT (case C145) from a GE LightSpeed VCT, with the full-dose projections in DICOM-CT-PD format"
