@@ -66,7 +66,8 @@ _AC225_PSF_MODEL = {"kind": "package", "file": "ac225_psf_model.json", "size": 1
                     "sha256": "edb5e15edf5b648d948c7d87ed876fdcfef4bea976649eaa000f337db015a168"}
 
 # The 54 runs of PET/GATE-mMR-BrainInWater, simple_phantom/mMR_voxBrain_withSimplePhantom_{i}.root for i = 1 to 54:
-# [size, sha256] of each, as staged for its Zenodo record (10 Oct 2026)
+# [size, sha256] of each, as published in its Zenodo record (23905822), whose file names have no folder
+_GATE_BRAININWATER = "https://zenodo.org/records/23905822/files/"
 _GATE_BRAININWATER_RUNS = [
     [241443822, "7ba1cea6ba46ab3ae8ff3e91459e3f48b66a8a8e74be1cb8fb6aaa0a61de7360"],  # 1
     [241846022, "cdd4448585746565d6bbd1cf3666eb731c90968655a256389eaf6d7584746fb6"],  # 2
@@ -253,17 +254,21 @@ DATASETS = {
              "size": 261908527, "md5": "a531de147927d3c58b038e08a7820ac8"},
         ],
     },
-    # The October 2024 re-simulation, which the GATE tutorials read. The April 2024 simulation above has a GATE artefact
-    # (stripes) from its voxelized attenuating phantom. The normalisation weights come with it, so that no one needs the
-    # 46 GB normalisation scan they were computed from (in PET/GATE-mMR-Brain).
+    # The October 2024 re-simulation, which the GATE tutorials read, published on Zenodo (record 23905822, November
+    # 2026). The April 2024 simulation above has a GATE artefact (stripes) from its voxelized attenuating phantom. The
+    # normalisation weights come with it, so that no one needs the 46 GB normalisation scan they were computed from (in
+    # PET/GATE-mMR-Brain).
     "PET/GATE-mMR-BrainInWater": {
         "title": "GATE simulation of an FDG brain source in a 23 cm water cube on a Siemens Biograph mMR, with"
                  " normalisation weights",
-        "source": "PyTomography PET tutorial data, with the brain activity from Belzunce's phantom (Zenodo)",
-        "url": "https://doi.org/10.5281/zenodo.8045458",
-        "licence": "to be confirmed (the brain phantom: CC BY 4.0)",
-        "cite": "Belzunce MA. High-Resolution Heterogeneous Digital PET [18F]FDG Brain Phantom based on the BigBrain"
-                " Atlas. Zenodo (2018). doi:10.5281/zenodo.8045458",
+        "source": "Nicolas Karakatsanis, Weill Cornell Medicine (Zenodo), with the brain activity from Belzunce's"
+                  " phantom (Zenodo)",
+        "url": "https://doi.org/10.5281/zenodo.23905822",
+        "licence": "CC BY 4.0",
+        "cite": "Karakatsanis N. GATE simulation of an FDG brain source in a 23 cm water cube on a Siemens Biograph"
+                " mMR, with normalisation weights. Zenodo (2026). doi:10.5281/zenodo.23905822; and Belzunce MA."
+                " High-Resolution Heterogeneous Digital PET [18F]FDG Brain Phantom based on the BigBrain Atlas."
+                " Zenodo (2018). doi:10.5281/zenodo.8045458",
         # GATE's world is the phantom's NIfTI flipped head to foot (GATE's x, y, z are the patient's L, P, I), with
         # GATE's origin at the centre of the phantom's MR (fdg_pet_phantom_mri.nii.gz: its sform puts the centre of its
         # middle voxel at RAS (0.35, -17.65, 22.35) mm): the audit of 11 Oct 2026 (pet_verify_gate*) placed the
@@ -271,38 +276,34 @@ DATASETS = {
         "geometry": {"gate": {"world_axes": "LPI", "world_origin": [-0.35, 17.65, 22.35]}},
         "tutorials": ["t_pet_introduction", "t_PETGATE_scat_sino", "t_PETGATE_scat_sinoTOF", "t_PETGATE_scat_lm",
                       "t_PETGATE_scat_lmTOF", "t_PETGATE_DIP"],
-        "status": "pending",
-        "note": "The GATE simulation (54 runs of 10 s: 116.9 million coincidences and 14.4 million delays), its"
-                " water-cube attenuation map and the scanner's normalisation weights are being published on Zenodo;"
-                " they can be downloaded once that record is out, with the grey and white matter that the Deep Image"
-                " Prior tutorial measures. The MRI that tutorial uses comes from Belzunce's record.",
-        "parts": [],
-        "files": {
+        "parts": [
             # Grey and white matter of the brain phantom, from its MR's intensity classes on the Deep Image Prior
             # tutorial's grid (docs/tools/make_tutorial_regions.py, 13 Oct 2026)
-            "gate_braininwater_rois.seg.nrrd":
-                [12844, "c702e33efaad4160f08f7bf30ff291394f15a04b9f2f416ecf9a876864fa08ab"],
-            **{f"simple_phantom/mMR_voxBrain_withSimplePhantom_{i}.root": run
-               for i, run in enumerate(_GATE_BRAININWATER_RUNS, start=1)},
+            {"kind": "file", "url": _GATE_BRAININWATER + "gate_braininwater_rois.seg.nrrd", "size": 12844,
+             "sha256": "c702e33efaad4160f08f7bf30ff291394f15a04b9f2f416ecf9a876864fa08ab"},
+            *({"kind": "file", "url": _GATE_BRAININWATER + f"mMR_voxBrain_withSimplePhantom_{i}.root",
+               "to": f"simple_phantom/mMR_voxBrain_withSimplePhantom_{i}.root", "size": size, "sha256": digest}
+              for i, (size, digest) in enumerate(_GATE_BRAININWATER_RUNS, start=1)),
             # The water-cube attenuation map: 344 x 344 x 127 float32 voxels of 1.67475 x 1.67475 x 2.0315 mm in the .v
             # file, with two Interfile headers, .hv (which io.load_image and io.attenuation_map read) and .ahv
-            "umap_mMR_brainSimplePhantom.hv":
-                [762, "53054ffa66434b06f83c2f787f317a6c0462d3288479d73ee8775e41c24a62ab"],
-            "umap_mMR_brainSimplePhantom.ahv":
-                [568, "11a44826ffbf0f124b56080dd4737a43f92e1e13a9625031b9188cccfb2f197a"],
-            "umap_mMR_brainSimplePhantom.v":
-                [60114688, "00110b7f50ea297c59f89b0ba43309b74089d8c03723f74f7f1a755fa2156107"],
+            {"kind": "file", "url": _GATE_BRAININWATER + "umap_mMR_brainSimplePhantom.hv", "size": 762,
+             "sha256": "53054ffa66434b06f83c2f787f317a6c0462d3288479d73ee8775e41c24a62ab"},
+            {"kind": "file", "url": _GATE_BRAININWATER + "umap_mMR_brainSimplePhantom.ahv", "size": 568,
+             "sha256": "11a44826ffbf0f124b56080dd4737a43f92e1e13a9625031b9188cccfb2f197a"},
+            {"kind": "file", "url": _GATE_BRAININWATER + "umap_mMR_brainSimplePhantom.v", "size": 60114688,
+             "sha256": "00110b7f50ea297c59f89b0ba43309b74089d8c03723f74f7f1a755fa2156107"},
             # The scanner, as the simulation's GATE macro describes it
-            "mMR_Geometry.mac":
-                [2813, "6623f0e2f73c9e7e8a86e1ca2d7ca9eb2e3b231c2148bfd462816ef7d7fdbddb"],
+            {"kind": "file", "url": _GATE_BRAININWATER + "mMR_Geometry.mac", "size": 2813,
+             "sha256": "6623f0e2f73c9e7e8a86e1ca2d7ca9eb2e3b231c2148bfd462816ef7d7fdbddb"},
             # The normalisation weight of each of the 411,027,456 crystal pairs (float32, torch.combinations order),
             # from the normalisation scan with gate.get_normalization_weights_cylinder_calibration(...,
             # cylinder_radius=318, include_randoms=False) (io.PET.gate_normalization since PyTomography 4), randoms
             # left out since PyTomography #290. 88,983,552 are NaN: the pairs whose line passes outside the 318 mm
             # calibration shell (io.PET.read_gate sets them to 0).
-            "normalization_weights.npy":
-                [1644109952, "5f86af901a6c56abad7508f122a621f78497508ba989984b0f8f14a67309e12c"],
-        },
+            {"kind": "file", "url": _GATE_BRAININWATER + "normalization_weights.npy", "size": 1644109952,
+             "sha256": "5f86af901a6c56abad7508f122a621f78497508ba989984b0f8f14a67309e12c"},
+        ],
+        # The Deep Image Prior tutorial's MRI stays in Belzunce's record
         "extras": {
             "mri": {"title": "MRI of the brain phantom, the prior of the Deep Image Prior tutorial", "parts": [
                 {"kind": "file", "url": "https://zenodo.org/records/8045458/files/fdg_pet_phantom_mri.nii.gz",
