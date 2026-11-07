@@ -40,6 +40,7 @@ def to_hu(mu, proj_meta_or_water):
     Example:
         >>> projections, object_meta, proj_meta = io.CT.read_dicom_ct_pd(folder)
         >>> hu = io.CT.to_hu(recon, proj_meta)
+        >>> io.save_dicom(hu, 'recon_hu', object_meta, units='HU')   # object_meta's own units are 1/mm
     """
     water = _water(proj_meta_or_water)
     return 1000 * (mu / water - 1)
