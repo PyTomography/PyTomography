@@ -57,8 +57,9 @@ _SPECT_2025_DATASET = {
 # Version 2.0 of the SPECT tutorial record (Zenodo 23898882, 2026): SPECT.zip as in 2025, and the regions the tutorials
 # measure
 _SPECT_V2_FILES = "https://zenodo.org/records/23898882/files/"
-# A record that is not published yet, which pending parts name: the next version of the SPECT tutorial record
-_SPECT_NEXT = "PyTomography SPECT tutorial data, the version after 2.0 (Zenodo; a new version of record 23898882)"
+# Version 2.1 of the SPECT tutorial record (Zenodo 24040979, 2026): every file of 2.0, and the kernel EM tutorial's
+# data, published with the prefix zubal_ (the record holds several datasets)
+_SPECT_V2_1_FILES = "https://zenodo.org/records/24040979/files/"
 # PyTomography's copy of TCIA's LDCT-and-Projection-data case C145 (Zenodo 23950095, 2026): the two series as the NCI
 # Imaging Data Commons serves them (release v24), unchanged, each zipped under its own folder, and the regions the CT
 # tutorials measure. IDC still serves the same series; the record's README says how to download them from there
@@ -211,22 +212,24 @@ DATASETS = {
     # PyTomography's conventions once, so the tutorial reads them as they are: a 128^3 grid of 4 mm voxels with its axes
     # to the patient's left, back and head (the author's ran the other way), the attenuation map in 1/mm, and the
     # projections (views, r, z) turned to match: 120 views over 360 degrees at a radius of 300 mm, with a Gaussian PSF
-    # of width sigma = 0.02 d + 1.0 mm at distance d. They go into the SPECT tutorial record's next version.
+    # of width sigma = 0.02 d + 1.0 mm at distance d. They are in version 2.1 of the SPECT tutorial record.
     "SPECT/Lu177-DOTATATE-Zubal": {
         "title": "Simulated Lu-177-DOTATATE SPECT of the Zubal phantom, with a simulated Ga-68-DOTATATE PET image as"
                  " a prior",
-        "source": "H. Wei (GitHub williamuic), contributed with PyTomography's kernel EM methods",
-        "url": "https://doi.org/10.1109/TRPMS.2026.3737413",
-        "licence": "the SPECT tutorial record's (CC BY 4.0), once the authors agree",
+        "source": "H. Wei, King's College London, contributed with PyTomography's kernel EM methods; in the SPECT"
+                  " tutorial record, version 2.1 (Zenodo)",
+        "url": "https://doi.org/10.5281/zenodo.24040979",
+        "licence": "CC BY 4.0",
         "cite": "Wei H, Livieratos L, Reader AJ. PET-informed deep-learned kernel method for theranostic SPECT"
-                " reconstruction. IEEE Trans Radiat Plasma Med Sci (2026). doi:10.1109/TRPMS.2026.3737413",
+                " reconstruction. IEEE Trans Radiat Plasma Med Sci (2026). doi:10.1109/TRPMS.2026.3737413; the data:"
+                " Polson L. PyTomography SPECT Tutorial data (Version 2.1). Zenodo (2026). doi:10.5281/zenodo.24040979",
         "tutorials": ["t_kernel_deep_kernel_spect_recon"],
         "parts": [
-            {"kind": "file", "status": "pending", "record": _SPECT_NEXT, "to": "pet_prior.npy",
+            {"kind": "file", "url": _SPECT_V2_1_FILES + "zubal_pet_prior.npy", "to": "pet_prior.npy",
              "size": 8388736, "sha256": "9ed82758b611ecfde3bbf6ce4b141789a618977b769ad8b76d9935e7743a2938"},
-            {"kind": "file", "status": "pending", "record": _SPECT_NEXT, "to": "attenuation_map.npy",
+            {"kind": "file", "url": _SPECT_V2_1_FILES + "zubal_attenuation_map.npy", "to": "attenuation_map.npy",
              "size": 8388736, "sha256": "57425c8e21a7f351d6dcc32a63de84533c963fd2e8384c5c118b59d8f91d30dc"},
-            {"kind": "file", "status": "pending", "record": _SPECT_NEXT, "to": "projections.npy",
+            {"kind": "file", "url": _SPECT_V2_1_FILES + "zubal_projections.npy", "to": "projections.npy",
              "size": 7864448, "sha256": "f7ff4a20b496471fecdc29be0dc2a2e72361b5d3a82f18eb39d5eef402936ec2"},
         ],
     },
