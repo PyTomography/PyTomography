@@ -57,10 +57,12 @@ _SPECT_2025_DATASET = {
 # Version 2.0 of the SPECT tutorial record (Zenodo 23898882, 2026): SPECT.zip as in 2025, and the regions the tutorials
 # measure
 _SPECT_V2_FILES = "https://zenodo.org/records/23898882/files/"
-# Records that are not published yet, which pending parts name: the next version of the SPECT tutorial record, and
-# PyTomography's copy of the TCIA case C145 (IDC stays its fallback)
+# A record that is not published yet, which pending parts name: the next version of the SPECT tutorial record
 _SPECT_NEXT = "PyTomography SPECT tutorial data, the version after 2.0 (Zenodo; a new version of record 23898882)"
-_CT_C145 = "PyTomography's copy of LDCT-and-Projection-data case C145 (Zenodo)"
+# PyTomography's copy of TCIA's LDCT-and-Projection-data case C145 (Zenodo 23950095, 2026): the two series as the NCI
+# Imaging Data Commons serves them (release v24), unchanged, each zipped under its own folder, and the regions the CT
+# tutorials measure. IDC still serves the same series; the record's README says how to download them from there
+_CT_C145 = "https://zenodo.org/records/23950095/files/"
 # The fitted Ac-225 PSF model that replaced the pickled operator in the 2025 record
 _AC225_PSF_MODEL = {"kind": "package", "file": "ac225_psf_model.json", "size": 10092,
                     "sha256": "edb5e15edf5b648d948c7d87ed876fdcfef4bea976649eaa000f337db015a168"}
@@ -365,25 +367,27 @@ DATASETS = {
     "CT/ldct-c145": {
         "title": "Chest CT (case C145) from a GE LightSpeed VCT, with the full-dose projections in DICOM-CT-PD format"
                  " and the scanner's reconstruction",
-        "source": "The Cancer Imaging Archive, LDCT-and-Projection-data, served by the NCI Imaging Data Commons",
-        "url": "https://doi.org/10.7937/9npb-2637",
+        "source": "The Cancer Imaging Archive, LDCT-and-Projection-data: case C145, copied to Zenodo for PyTomography's"
+                  " tutorials",
+        "url": "https://doi.org/10.5281/zenodo.23950095",
         "licence": "CC BY 4.0 and the TCIA data usage policy",
         "cite": "McCollough C, Chen B, Holmes D III, Duan X, Yu Z, Yu L, Leng S, Fletcher J. Low Dose CT Image and"
                 " Projection Data (LDCT-and-Projection-data), version 7. The Cancer Imaging Archive (2020)."
-                " doi:10.7937/9npb-2637. Supported by NIBIB grants EB017095 and EB017185.",
+                " doi:10.7937/9npb-2637. Supported by NIBIB grants EB017095 and EB017185. Case C145 as copied to"
+                " Zenodo for PyTomography's tutorials: doi:10.5281/zenodo.23950095",
         "tutorials": ["t_CT_GEN3", "t_fbp_ct"],
         "parts": [
-            {"kind": "idc", "series": "1.2.840.113713.4.100.1.2.234724616712334404725906500152169",
-             "crdc": "0b94e451-0b29-48d8-8abd-c2c78ee5111d", "release": "v24", "to": "full_dose_projections",
-             "files": 9014, "size": 1073404126,
-             "sha256": "ffaacb3857e978ed9bcf7565136be62587261fe9a14571ddf1c02b3c99865c1c"},
-            {"kind": "idc", "series": "1.2.840.113713.4.100.1.2.332029262210606042701376029452792",
-             "crdc": "02122def-1663-4507-a99e-e21cd8b784e8", "release": "v24", "to": "full_dose_images",
-             "files": 316, "size": 166418304,
-             "sha256": "be874455af32354452d41db9eb421ab530fb5b6f1cd910446e1ba757602245c4"},
+            # full_dose_projections/: 9,014 DICOM-CT-PD files, IDC series
+            # 1.2.840.113713.4.100.1.2.234724616712334404725906500152169
+            {"kind": "zip", "url": _CT_C145 + "full_dose_projections.zip", "size": 888458202,
+             "sha256": "2bb1c69d48e8a74f868d2c8a1c018df97a7a0b6291dd9007efe1cc19ae0502e5", "unpacked": 1073404126},
+            # full_dose_images/: the scanner's 316 slices, IDC series
+            # 1.2.840.113713.4.100.1.2.332029262210606042701376029452792
+            {"kind": "zip", "url": _CT_C145 + "full_dose_images.zip", "size": 87991090,
+             "sha256": "af731ba129ef72c74cef70a410db725811a9e946762389e406daba5f14fd5979", "unpacked": 166418304},
             # The body, soft tissue and a block of liver, found from the scanner's images on the CT tutorials' grid
             # (docs/tools/make_tutorial_regions.py, 13 Oct 2026)
-            {"kind": "file", "status": "pending", "record": _CT_C145, "to": "ldct_c145_rois.seg.nrrd", "size": 1385511,
+            {"kind": "file", "url": _CT_C145 + "ldct_c145_rois.seg.nrrd", "size": 1385511,
              "sha256": "fc0553f07b976a5bba4b24d05518422c0aa743e3b2d4197a16353aaf8e68e60d"},
         ],
     },
