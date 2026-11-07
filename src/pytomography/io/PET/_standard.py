@@ -37,9 +37,31 @@ def reader_object_meta(object_meta: ObjectMeta | None, default: tuple, *, centre
 
 
 def normalization_weights(source, info: dict, *, in_place: bool = False) -> torch.Tensor:
-    """Normalisation weights of every crystal pair, in ``torch.combinations`` order, from a ``.npy`` file, an array or
-    a tensor: their number is checked against the scanner's pairs, and NaN weights (pairs without calibration data)
-    become 0, with a warning that says how many (in ``source`` itself if ``in_place``)."""
+    """Loads the normalisation weights of every crystal pair, checked against the scanner.
+
+    Their number must be the scanner's number of crystal pairs, in ``torch.combinations`` order (the order of every
+    reader's ``weights_sensitivity``). NaN weights, for pairs without calibration data (such as LORs outside a
+    calibration cylinder), become 0, with a warning that says how many: those pairs add nothing to the sensitivity.
+
+    Args:
+        source (str | os.PathLike | np.ndarray | torch.Tensor): A ``.npy`` file (read once, its NaNs replaced in the
+            copy in memory), an array or a tensor of the weights, ``[N_crystals * (N_crystals - 1) / 2]``.
+        info (dict): The scanner's ``info`` (``proj_meta.info``, or :func:`~pytomography.io.PET.scanner_info`).
+        in_place (bool, optional): Replace the NaNs of an array or tensor ``source`` itself, instead of a copy (no
+            extra memory: 1.6 GB of weights for the mMR). Defaults to False, which leaves the caller's weights as
+            they are.
+
+    Returns:
+        torch.Tensor: The weights, float32 on the CPU, without NaN.
+
+    Raises:
+        ValueError: If there is not one weight per crystal pair of the scanner.
+
+    Example:
+        >>> _, _, proj_meta = io.PET.read_gate(root_files, macro)
+        >>> weights = io.PET.normalization_weights('normalization_weights.npy', proj_meta.info)
+        >>> norm = io.PET.normalization_sinogram(weights, proj_meta.info)
+    """
     from_file = isinstance(source, (str, os.PathLike))
     own = in_place or from_file
     if from_file:   # 1.6 GB for the mMR: read once, and its NaNs replaced in place
