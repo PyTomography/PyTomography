@@ -340,6 +340,26 @@ def test_ct_in_other_units_keeps_fractions(tmp_path):
     assert pydicom.dcmread(str(files[0])).RescaleType == "US"
 
 
+def test_hu_under_a_ct_object_meta_needs_units_hu(tmp_path):
+    """A CT's object_meta says 1/mm; an image converted to HU (io.CT.to_hu) is refused under those units, by both
+    writers, and saved as HU once units='HU' is given. A real attenuation map, slightly negative from noise, is not."""
+    from pytomography.io.CT import to_hu
+    meta = ObjectMeta(dr=(1.0, 1.0, 2.0), shape=(12, 10, 7), centre=(0, 0, -50), frame="patient", units="1/mm",
+                      modality="CT")
+    mu = _image() / 2500                                                        # about 0 to 0.16 per mm
+    mu[0] = 0.0                                                                 # air: -1000 HU
+    hu = to_hu(torch.as_tensor(mu), 0.02)
+    with pytest.raises(ValueError, match="units='HU'"):
+        save_dicom(hu, tmp_path / "wrong", meta)
+    with pytest.raises(ValueError, match="units='HU'"):
+        save_nifti(hu, tmp_path / "wrong.nii.gz", meta)
+    files = save_dicom(hu, tmp_path / "hu", meta, units="HU")
+    assert pydicom.dcmread(str(files[0])).RescaleType == "HU"
+    noisy = mu - 0.01                                                           # FBP undershoot outside the body
+    assert pydicom.dcmread(str(save_dicom(noisy, tmp_path / "mu", meta)[0])).RescaleType == "US"
+    save_nifti(noisy, tmp_path / "mu.nii.gz", meta)
+
+
 def test_ct_keeps_whole_hu_and_clips_wild_voxels(tmp_path):
     """CT in HU stays in 1 HU steps even when a few voxels are far outside the 16-bit range; those are clipped."""
     x = np.round(_image(signed=True) * 10)

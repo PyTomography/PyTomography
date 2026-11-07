@@ -77,6 +77,19 @@ def _source(image, object_meta) -> tuple:
     return arr, object_meta.affine, object_meta.units, object_meta.modality, object_meta.frame
 
 
+def _check_units(arr: np.ndarray, units: str | None) -> None:
+    """An image whose units say linear attenuation (e.g. a CT's object_meta, in 1/mm) cannot reach -0.5/mm: values
+    that low are HU (air is -1000), from :func:`~pytomography.io.CT.to_hu`, and would be saved under the wrong units."""
+    from .._hu import MU_UNITS
+    factor = MU_UNITS.get(units.strip().lower()) if units else None
+    if factor is None:
+        return
+    lo = float(np.nanmin(arr)) if arr.size else 0.0
+    if lo * factor < -0.5:
+        raise ValueError(f"the image's values go down to {lo:.4g}, which is no attenuation in {units}: they look like "
+                         "HU (io.CT.to_hu). Pass units='HU' to save them as HU")
+
+
 def _numpy(x) -> np.ndarray:
     if hasattr(x, "detach"):
         x = x.detach().cpu().numpy()
@@ -116,13 +129,16 @@ def save_nifti(image, path, object_meta=None, *, units: str | None = None, descr
         Path: The file written.
 
     Raises:
-        ValueError: If a tensor or array comes without ``object_meta``, or its shape is not ``object_meta.shape``.
+        ValueError: If a tensor or array comes without ``object_meta``, or its shape is not ``object_meta.shape``, or
+            the units are linear attenuation (e.g. a CT's ``object_meta``, in 1/mm) but the values are HU: pass
+            ``units='HU'`` for an image from :func:`~pytomography.io.CT.to_hu`.
         TypeError: If an Image comes with ``object_meta``.
     """
     import nibabel as nib
     arr, A_lps, own_units, _, frame = _source(image, object_meta)
     units = units if units is not None else own_units
     arr = np.asarray(arr, dtype=np.float32)
+    _check_units(arr, units)
     A = LPS_TO_RAS @ A_lps
     path = Path(path)
     if not (path.name.endswith(".nii") or path.name.endswith(".nii.gz")):
@@ -297,7 +313,9 @@ def save_dicom(image, folder, object_meta=None, *, reference=None, units: str | 
 
     Raises:
         ValueError: If the modality is unknown or not ``'NM'``, ``'PT'`` or ``'CT'``, a tensor or array comes without
-            ``object_meta`` (or with another shape), or the affine is sheared.
+            ``object_meta`` (or with another shape), the affine is sheared, or the units are linear attenuation (e.g. a
+            CT's ``object_meta``, in 1/mm) but the values are HU: pass ``units='HU'`` for an image from
+            :func:`~pytomography.io.CT.to_hu`.
         TypeError: If an Image comes with ``object_meta``.
         FileExistsError: If ``folder`` already holds DICOM files and ``overwrite`` is False.
     """
@@ -309,6 +327,7 @@ def save_dicom(image, folder, object_meta=None, *, reference=None, units: str | 
     modality = str(modality).upper()
     if modality not in SOP_CLASS:
         raise ValueError(f"modality must be one of {sorted(SOP_CLASS)}, not {modality!r}")
+    _check_units(arr, units)
     geo = _geometry(A, arr.shape)
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
