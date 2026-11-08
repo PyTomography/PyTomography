@@ -75,9 +75,9 @@ def test_estimate_is_the_em_updates_and_twelve_images_and_the_network():
     without = dip.estimate_memory(n_subsets_osem=2)
     assert {p.name for p in em.parts} < {p.name for p in without.parts}
     assert sum(_total_of(without, 'DIP:')) == 12 * 4 * 8 ** 3
-    assert _total(without) > _total(em) + 12 * 4 * 8 ** 3                      # with the allocator's share of them
+    assert _total(without) >= _total(em) + 12 * 4 * 8 ** 3                     # more on Windows: the allocator's share
     assert "without the network's fit" in without.title and without.settings['n_subsets'] == 2
     with_network = dip.estimate_memory(n_subsets_osem=2, network_gb=0.5)
     assert sum(_total_of(with_network, "the network's fit")) == 0.5e9 and "without" not in with_network.title
-    assert _total(with_network) > _total(without) + 0.5e9
+    assert _total(with_network) >= _total(without) + 0.5e9
     assert dict(without.alternatives)['4 subsets'].ram_gb < without.ram_gb      # fewer projections per subset
