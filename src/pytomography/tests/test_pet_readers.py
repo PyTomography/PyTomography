@@ -287,6 +287,29 @@ def test_gate_normalization_weights_are_checked_and_nan_is_zero(tmp_path):
         PET.read_gate(root, macro, normalization=weights[:-1])
 
 
+def test_normalization_weights_load_on_their_own(tmp_path):
+    """io.PET.normalization_weights loads a weights file (or array) as read_gate(normalization=) does: checked against
+    the scanner, NaN set to 0 with a warning, the caller's array untouched unless in_place."""
+    root, macro, _ = write_gate(tmp_path, n=10)
+    info = PET.read_gate(root, macro)[2].info
+    n = 48 * 6
+    weights = np.full(n * (n - 1) // 2, 2.0, dtype=np.float32)
+    weights[[5, 9]] = np.nan
+    np.save(tmp_path / "weights.npy", weights)
+    with pytest.warns(UserWarning, match="2 of"):
+        loaded = PET.normalization_weights(tmp_path / "weights.npy", info)
+    assert loaded.dtype == torch.float32 and int((loaded == 0).sum()) == 2 and float(loaded.max()) == 2.0
+    with pytest.warns(UserWarning, match="NaN"):
+        PET.normalization_weights(weights, info)
+    assert np.isnan(weights).sum() == 2                                     # a copy was changed, not the array
+    tensor = torch.from_numpy(weights.copy())
+    with pytest.warns(UserWarning, match="NaN"):
+        same = PET.normalization_weights(tensor, info, in_place=True)
+    assert not torch.isnan(tensor).any() and same.data_ptr() == tensor.data_ptr()
+    with pytest.raises(ValueError, match="one weight per crystal pair"):
+        PET.normalization_weights(weights[:-1], info)
+
+
 def test_gate_normalization_from_a_calibration_scan(tmp_path):
     """gate_normalization gives one weight per pair, without NaN: pairs outside the calibration cylinder get 0."""
     root, macro, _ = write_gate(tmp_path, n=2000)
