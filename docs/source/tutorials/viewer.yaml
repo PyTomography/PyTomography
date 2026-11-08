@@ -373,9 +373,6 @@ tutorials:
     - {name: 1 subset, label: "List-mode OSEM, 1 subset", kind: image, array: recon_1subset, affine: object_meta.affine, units: a.u.}
     - {name: 2 subsets, label: "List-mode OSEM, 2 subsets", kind: image, array: recon_2subsets, affine: object_meta.affine, units: a.u.}
 
-  # t_dicom_algorithms has no entry: it is an unfinished draft that reconstructs nothing (its fourth cell does not
-  # parse), it is not in tutorials.yaml, and conf.py leaves it out of the docs, so the runner never runs it.
-
   t_plotting:
     title: Lu-177-PSMA patient
     description: The stitched two-bed reconstruction that the plotting examples draw

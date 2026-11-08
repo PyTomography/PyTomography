@@ -1,11 +1,3 @@
-% DRAFT for the v4 docs site. It replaces docs/source/migration.md on the docs/v4-site branch (same path, so the
-% index's "Migrate to v4 <migration>" entry and every link to it keep working). Written from the diff of v3.4.0 and
-% development at 0af8495 (10 October 2026). Before publishing:
-%   - pyproject.toml still says requires-python >=3.9 and torch>=1.10.2; this page says 3.10 and 2.4, as install.md does.
-%   - #294 (memory estimates and plans) is not merged; its section is marked "(coming in 4.0)". Drop it if it misses rc1.
-%   - The ARF PSF section of the previous page is left out: spectarf and arf_to_psf are not in development yet.
-%   - "Reading and saving data" follows the I/O branch feature/io-pet-ct e9393da (12 October).
-
 # Moving from v3 to v4
 
 PyTomography 4 is a major release. Reading and saving data changed for every modality: one call per scan, lengths in
@@ -31,7 +23,6 @@ environment if you use:
 |---|---|---|
 | SPECT projector, 128³, 96 angles, attenuation and PSF, one forward projection | 538 ms | 46 ms (29 ms with `cache_probabilities=True`) |
 | GE StarGuide NEMA IQ phantom, OSEM 10×10 | 38.0 s | 6.2 s |
-| Ac-225 SIMIND phantom with a Monte Carlo PSF operator, OSEM 50×4 | 299 s | 18.5 s |
 | GATE list mode TOF PET, 50.8 M events, OSEM 2×14 | 3.6 s | 1.3 s |
 | Helical CT (TCIA LDCT case C145), OS-SART 3×40 | 55 s | 32 s |
 | RAM for the GATE TOF PET tutorials | 80-105 GB | under 25 GB |
@@ -407,10 +398,8 @@ system_matrix = PETLMSystemMatrix(object_meta, proj_meta, lor_device="cpu")
 system_matrix.print_memory_usage()   # what stays on the device, and the expected peak of one subset
 ```
 
-```{note}
-Coming in 4.0 ([#294](https://github.com/PyTomography/PyTomography/pull/294)): `system_matrix.estimate_memory()` and
-`plan_memory()` give a reconstruction's peak RAM and GPU memory before you run it, and the settings that fit a budget.
-```
+`system_matrix.estimate_memory()` and `plan_memory()` give a reconstruction's peak RAM and GPU memory before you run
+it, and the settings that fit a budget ([#294](https://github.com/PyTomography/PyTomography/pull/294)).
 
 ## Single scatter simulation
 
@@ -458,16 +447,13 @@ system_matrix = CTGen3SystemMatrix(object_meta, proj_meta, fov_mask=False)
 
 ## SPECT: much faster
 
-Apart from [reading and saving](#reading-and-saving-data) and lengths in mm, SPECT code runs as before. Two transforms have an opt-in cache that trades memory for more speed:
+Apart from [reading and saving](#reading-and-saving-data) and lengths in mm, SPECT code runs as before. The attenuation transform has an opt-in cache that trades memory for more speed:
 
 ```python
 attenuation = SPECTAttenuationTransform(attenuation_map=attenuation_map, cache_probabilities=True)
-psf = SPECTPSFTransform(psf_meta, cache_kernel=True)
 ```
 
-`cache_probabilities` keeps the rotated attenuation map of every angle (about 1.6 GB at 128³). `cache_kernel` keeps
-the Fourier transform of each PSF kernel (about 57 MB per distinct radius), so leave it off for body-contour orbits,
-which have many radii.
+`cache_probabilities` keeps the rotated attenuation map of every angle (about 1.6 GB at 128³).
 
 **Your own transforms:** the projection loops now pass the angle index to `obj2obj` transforms as a Python `int`, not a
 0-d tensor. Remove any `.item()` call on it.

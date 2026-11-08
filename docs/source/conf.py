@@ -38,8 +38,6 @@ source_suffix = {".rst": "restructuredtext", ".md": "myst-nb", ".ipynb": "myst-n
 exclude_patterns = [
     "_build", "_generated", "**.ipynb_checkpoints",
     "index2.md",
-    # Notebooks not yet listed in tutorials/tutorials.yaml
-    "notebooks/t_dicom_algorithms.ipynb",
 ]
 
 # Notebooks are rendered with their stored outputs; CI executes them separately.
