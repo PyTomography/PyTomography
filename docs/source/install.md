@@ -43,14 +43,16 @@ spectarf's GPU kernels compile and link for every one of these architectures; th
 PET and CT reconstruction use [parallelproj](https://parallelproj.readthedocs.io/) for their projectors. PyTomography 4 needs **parallelproj 2**. It is distributed through conda-forge, not PyPI, so install it with conda in the same environment:
 
 ```bash
-conda install -c conda-forge parallelproj
+conda install -c conda-forge parallelproj-core
 ```
 
 To use the GPU, pick the `libparallelproj` build that matches your CUDA version, for example:
 
 ```bash
-conda install -c conda-forge "libparallelproj=*=cuda130*" parallelproj
+conda install -c conda-forge "libparallelproj=*=cuda130*" parallelproj-core
 ```
+
+PyTomography uses only parallelproj's projectors, `parallelproj-core`. The full `parallelproj` package works too, but it makes conda install its own NumPy and SciPy over pip's; with MKL they load an OpenMP runtime that clashes with the one in PyTorch's wheels, and the first SciPy call that uses threads stops Python with `OMP: Error #15`. If you see that error, run `conda install -c conda-forge "libblas=*=*openblas"` in the environment.
 
 SPECT reconstruction does not need parallelproj. Importing PyTomography never requires it; only `pytomography.projectors.PET` does, and it tells you how to install it if it is missing.
 
