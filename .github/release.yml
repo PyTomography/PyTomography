@@ -1,0 +1,25 @@
+# Sections of the release notes GitHub drafts for a tag, from the labels on the merged pull requests.
+# A pull request goes in the first section whose label it has; "skip release notes" leaves it out.
+changelog:
+  exclude:
+    labels:
+      - skip release notes
+  categories:
+    - title: Breaking changes
+      labels:
+        - breaking change
+    - title: New features
+      labels:
+        - enhancement
+    - title: Bug fixes
+      labels:
+        - bug
+    - title: Documentation and tutorials
+      labels:
+        - documentation
+    - title: Dependencies
+      labels:
+        - dependencies
+    - title: Other changes
+      labels:
+        - "*"

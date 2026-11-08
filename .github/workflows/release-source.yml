@@ -1,0 +1,32 @@
+name: Release source
+
+# main only takes released code: a pull request into main must come from development (a release) or from a hotfix/
+# branch in this repository. Anything else is opened against development instead. See CONTRIBUTING.md.
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, edited]
+
+jobs:
+  release-source:
+    name: Pull request into main comes from development or hotfix/
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the source branch
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          THIS_REPO: ${{ github.repository }}
+        run: |
+          if [ "$HEAD_REPO" != "$THIS_REPO" ]; then
+            echo "::error::Pull requests into main come from branches in $THIS_REPO. Open this one against development."
+            exit 1
+          fi
+          case "$HEAD_REF" in
+            development|hotfix/*)
+              echo "Source branch $HEAD_REF may go into main." ;;
+            *)
+              echo "::error::main only takes pull requests from development (a release) or a hotfix/ branch, not from $HEAD_REF. Change the base branch to development."
+              exit 1 ;;
+          esac

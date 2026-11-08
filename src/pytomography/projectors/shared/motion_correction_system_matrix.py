@@ -1,3 +1,4 @@
+"""The system matrix of motion-corrected reconstruction from gated data (:class:`MotionSystemMatrix`)."""
 from __future__ import annotations
 from collections.abc import Sequence
 from pytomography.projectors import SystemMatrix
@@ -5,17 +6,25 @@ from pytomography.transforms import Transform
 from ..system_matrix import ExtendedSystemMatrix
 
 class MotionSystemMatrix(ExtendedSystemMatrix):
+    r"""System matrix of gated data with motion correction: projections of every gate, [N_gates, ...].
+
+    The forward projection of gate :math:`n` is :math:`H_n M_n f`, and the back projection
+    :math:`\sum_n M_n^T H_n^T g_n`, with :math:`H_n` the system matrix and :math:`M_n` the motion transform of gate
+    :math:`n` (e.g. :class:`~pytomography.transforms.shared.DVFMotionTransform`). Motion transforms usually map a
+    reference gate :math:`r` to gate :math:`n`: :math:`M_n = M_{r \to n}`, and :math:`M_n^T = M_{n \to r}`, so the
+    object reconstructed is the reference gate's. It is an :class:`~pytomography.projectors.ExtendedSystemMatrix`
+    with the motion transforms as its object-to-object transforms.
+
+    Args:
+        system_matrices (Sequence[SystemMatrix]): The system matrix of each gate :math:`n` (they may differ, e.g. a
+            SPECT attenuation map per gate).
+        motion_transforms (Sequence[Transform]): The motion transform :math:`M_n` of each gate.
+    """
     def __init__(
         self,
         system_matrices: Sequence[SystemMatrix],
         motion_transforms: Sequence[Transform]
         ) -> None:
-        r"""System matrix that supports motion correction. Maps to an extended image space :math:`\mathcal{V}^{*}` where projections have shape ``[N_gates,...]`` where ``...`` is the regular projeciton size. As such, this transform only supports objects with a batch size of 1. The forward transform is given by :math:`H_n M_n` and back projection is given by :math:`\sum_n M_n^{T} H_n^{T}` where :math:`n` corresponds to the nth motion transform, :math:`H_n` corresponds to the nth system matrix, and :math:`M_n` corresponds to the nth motion transform. Typical motion transforms map to a reference gate, e.g. :math:`M_n = M_{r \to n}` and :math:`M_n^{T} = M_{n \to r}` where :math:`r` is the reference gate. 
-
-        Args:
-            system_matrices (Sequence[SystemMatrix]): List of system matrices corresponding to each gate :math:`n`. Different system matrices may be required in SPECT imaging for example, if different attenuation maps are used for each phase. 
-            motion_transforms (Sequence[Transform]): Motion transform corresponding to phase :math:`n`.
-        """
         super(MotionSystemMatrix, self).__init__(
             system_matrices=system_matrices,
             obj2obj_transforms = motion_transforms

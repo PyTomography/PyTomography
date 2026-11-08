@@ -1,49 +1,127 @@
+"""Least squares objectives, for CT and other data without Poisson statistics."""
 from __future__ import annotations
+from collections.abc import Sequence
+
+import numpy as np
 import pytomography
 import torch
 from .likelihood import Likelihood
 from pytomography.projectors import SystemMatrix
+from pytomography.utils.misc import get_1d_gaussian_kernel
 
-class NegativeMSELikelihood(Likelihood):
-    r"""Negative mean squared error likelihood function :math:`L(g|f) = -\frac{1}{2} \alpha \sum_i \left(g_i-(Hf)_i\right)^2` where :math:`g` is the acquired data, :math:`H` is the system matrix, :math:`f` is the object being reconstructed, and :math:`\alpha` is the scaling constant. The negative is taken so that the it works in gradient ascent (as opposed to descent) algorithms
+
+def poisson_weights(
+    projections: torch.Tensor,
+    smoothing: float | Sequence[float] = 2.0,
+    min_counts: float = 0.5,
+    ) -> torch.Tensor:
+    r"""Weights for weighted least squares on measured counts: one over each bin's variance, estimated from the data.
+
+    A bin of counts has a variance equal to its mean, which the measured counts estimate. They are smoothed first
+    (a Gaussian, cut off at 3 standard deviations, with the edge bins repeated beyond the edges), since a bin's own
+    noise would otherwise set its weight: bins that happen to count low would weigh more, and the image would be
+    biased low. The smoothed counts are kept above ``min_counts``, so that bins with no
+    counts (outside the patient, at the edge of the field of view) get a finite weight, at most ``1 / min_counts``.
+    The weights are :math:`w_i = 1 / \max(G_\sigma * g, c_{\min})_i`.
 
     Args:
-        system_matrix (SystemMatrix): The system matrix modeling the particular system whereby the projections were obtained
-        projections (torch.Tensor): Acquired data
-        additive_term (torch.Tensor, optional): Additional term added after forward projection by the system matrix. This term might include things like scatter and randoms. Defaults to None.
-        additive_term_variance_estimate (torch.tensor, optional): Variance estimate of the additive term. If none, then uncertainty estimation does not include contribution from the additive term. Defaults to None.
+        projections (torch.Tensor): The measured counts :math:`g`, e.g. SPECT projections [views, r, z].
+        smoothing (float | Sequence[float], optional): The Gaussian's standard deviation :math:`\sigma`, in bins. A
+            number applies along every axis but the first (for SPECT projections, within each view, not between
+            views); a sequence gives one per axis. 0 uses the counts as they are. Defaults to 2.
+        min_counts (float, optional): The least variance a bin is given, :math:`c_{\min} > 0`, in counts. Defaults
+            to 0.5.
+
+    Returns:
+        torch.Tensor: The weights, with the projections' shape, device and dtype.
+    """
+    if min_counts <= 0:
+        raise ValueError("min_counts must be positive")
+    sigma = [0.0] + [float(smoothing)] * (projections.dim() - 1) if np.isscalar(smoothing) else [float(x) for x in smoothing]
+    if len(sigma) != projections.dim() or min(sigma) < 0:
+        raise ValueError(f"smoothing needs one non-negative value per axis of the projections ({projections.dim()})")
+    counts = projections.detach().to(pytomography.dtype)
+    with torch.no_grad():
+        for axis, sig in enumerate(sigma):
+            if sig > 0:
+                blur = get_1d_gaussian_kernel(sig, int(2 * np.ceil(3 * sig) + 1), padding_mode='replicate').to(counts)
+                lines = counts.movedim(axis, -1)
+                counts = blur(lines.reshape(-1, 1, lines.shape[-1])).reshape(lines.shape).movedim(-1, axis)
+    return (1 / counts.clamp(min=min_counts)).to(projections.dtype)
+
+
+class NegativeMSELikelihood(Likelihood):
+    r"""The negative squared error :math:`L(g|f) = -\frac{1}{2} \alpha \sum_i w_i \left(g_i-(Hf+s)_i\right)^2`.
+
+    :math:`g` is the measured data, :math:`H` the system matrix, :math:`s` the additive term, :math:`f` the object,
+    :math:`\alpha` the scaling constant and :math:`w` the weights (one for every bin unless given). It is negative so
+    that gradient ascent algorithms maximise it. Weights of one over each bin's variance make it weighted least squares:
+    for counts, :func:`poisson_weights` estimates them from the data.
+
+    Args:
+        system_matrix (SystemMatrix): The system matrix :math:`H`.
+        projections (torch.Tensor | None, optional): The measured data :math:`g`. Defaults to None.
+        additive_term (torch.Tensor, optional): The additive term :math:`s`, added after forward projection. Defaults
+            to None.
+        scaling_constant (float, optional): The constant :math:`\alpha`. Defaults to 1.
+        weights (torch.Tensor | None, optional): The weight :math:`w_i \geq 0` of every bin, with the projections'
+            shape. Defaults to None: every bin weighs one.
     """
     def __init__(
         self,
         system_matrix: SystemMatrix,
         projections: torch.Tensor | None = None,
         additive_term: torch.Tensor = None,
-        scaling_constant: float = 1.0
+        scaling_constant: float = 1.0,
+        weights: torch.Tensor | None = None
         ) -> None:
         super().__init__(system_matrix, projections, additive_term)
         self.scaling_constant = scaling_constant
+        self.weights = None
+        if weights is not None:
+            if tuple(weights.shape) != tuple(self.projections.shape):
+                raise ValueError(f"weights have shape {tuple(weights.shape)}, the projections {tuple(self.projections.shape)}")
+            if not torch.all(torch.isfinite(weights) & (weights >= 0)):
+                raise ValueError("weights must be finite and non-negative")
+            self.weights = weights.to(self.projections.device).to(pytomography.dtype)
     def compute_gradient(
         self,
         object: torch.Tensor,
         subset_idx: int | None = None,
         norm_BP_subset_method: str = 'subset_specific'
         ) -> torch.Tensor:
-        r"""Computes the gradient for the mean squared error objective function given by :math:`\nabla_f L(g|f) =  H^T \left(g-Hf\right)`. 
+        r"""The gradient :math:`\nabla_f L(g|f) = \alpha H_m^T w_m \left(g_m - (H_m f + s_m)\right)` over subset :math:`m`.
 
         Args:
-            object (torch.Tensor): Object :math:`f` on which the likelihood is computed
-            subset_idx (int | None, optional): Specifies the subset for forward/back projection. If none, then forward/back projection is done over all subsets, and the entire projections :math:`g` are used. Defaults to None.
-            norm_BP_subset_method (str, optional): Specifies how :math:`H^T 1` is calculated when subsets are used. If 'subset_specific', then uses :math:`H_m^T 1`. If `average_of_subsets`, then uses the average of all :math:`H_m^T 1`s for any given subset (scaled to the relative size of the subset if subsets are not equal size). Defaults to 'subset_specific'.
+            object (torch.Tensor): The object :math:`f`, [Lx, Ly, Lz].
+            subset_idx (int | None, optional): Subset index :math:`m`. Defaults to None: all the projections.
+            norm_BP_subset_method (str, optional): Not used here; accepted for the interface of the likelihoods.
+                Defaults to ``'subset_specific'``.
 
         Returns:
-            torch.Tensor: The gradient of the Poisson likelihood.
+            torch.Tensor: The gradient, [Lx, Ly, Lz].
         """
         proj_subset = self._get_projection_subset(self.projections, subset_idx)
-        additive_term_subset = self._get_projection_subset(self.additive_term, subset_idx)
-        self.projections_predicted = self.system_matrix.forward(object, subset_idx) + additive_term_subset
-        return self.system_matrix.backward(proj_subset - self.projections_predicted , subset_idx) * self.scaling_constant
+        self._forward_with_additive_term(object, subset_idx)
+        residual = proj_subset - self.projections_predicted
+        if self.weights is not None:
+            residual = residual * self._get_projection_subset(self.weights, subset_idx)
+        return self.system_matrix.backward(residual, subset_idx) * self.scaling_constant
     
 class SARTWeightedNegativeMSELikelihood(Likelihood):
+    r"""The squared error weighted by the line lengths :math:`H 1`, whose gradient is SART's update direction.
+
+    :class:`~pytomography.algorithms.SART` uses it: its gradient is
+    :math:`H_m^T \left((g_m - (H_m f + s_m)) / H_m 1\right)`. A system matrix with a ``_sart_terms`` method (proton CT)
+    gives that gradient and :math:`H_m^T 1` together, in fewer walks of its paths than three projections, and no
+    :math:`H_m^T 1` is stored per subset.
+
+    Args:
+        system_matrix (SystemMatrix): The system matrix :math:`H`.
+        projections (torch.Tensor): The measured data :math:`g`.
+        additive_term (torch.Tensor, optional): The additive term :math:`s`, added after forward projection. Defaults
+            to None.
+    """
     def __init__(
         self,
         system_matrix: SystemMatrix,
@@ -51,26 +129,43 @@ class SARTWeightedNegativeMSELikelihood(Likelihood):
         additive_term: torch.Tensor = None,
         ) -> None:
         super().__init__(system_matrix, projections, additive_term)
-        
+        self._fused = getattr(system_matrix, '_sart_terms', None) is not None
+        if self._fused and additive_term is not None:
+            raise ValueError(f'{type(system_matrix).__name__} takes no additive term')
+
+    def _set_n_subsets(self, n_subsets: int) -> None:
+        if not self._fused:
+            return super()._set_n_subsets(n_subsets)
+        self.n_subsets = n_subsets
+        if n_subsets > 1:
+            self.system_matrix.set_n_subsets(n_subsets)
+        self.n_subsets_previous = n_subsets
+
+    def _get_normBP(self, subset_idx: int, return_sum: bool = False):
+        return self._norm_BP if self._fused else super()._get_normBP(subset_idx, return_sum)
+
     def compute_gradient(
         self,
         object: torch.Tensor,
         subset_idx: int | None = None,
         norm_BP_subset_method: str = 'subset_specific'
         ) -> torch.Tensor:
-        r"""Computes the gradient for the mean squared error objective function given by :math:`\nabla_f L(g|f) =  H^T \left(g-Hf\right)`. 
+        r"""The weighted gradient :math:`H_m^T \left((g_m - (H_m f + s_m)) / H_m 1\right)` over subset :math:`m`.
 
         Args:
-            object (torch.Tensor): Object :math:`f` on which the likelihood is computed
-            subset_idx (int | None, optional): Specifies the subset for forward/back projection. If none, then forward/back projection is done over all subsets, and the entire projections :math:`g` are used. Defaults to None.
-            norm_BP_subset_method (str, optional): Specifies how :math:`H^T 1` is calculated when subsets are used. If 'subset_specific', then uses :math:`H_m^T 1`. If `average_of_subsets`, then uses the average of all :math:`H_m^T 1`s for any given subset (scaled to the relative size of the subset if subsets are not equal size). Defaults to 'subset_specific'.
+            object (torch.Tensor): The object :math:`f`, [Lx, Ly, Lz].
+            subset_idx (int | None, optional): Subset index :math:`m`. Defaults to None: all the projections.
+            norm_BP_subset_method (str, optional): Not used here; accepted for the interface of the likelihoods.
+                Defaults to ``'subset_specific'``.
 
         Returns:
-            torch.Tensor: The gradient of the Poisson likelihood.
+            torch.Tensor: The gradient, [Lx, Ly, Lz].
         """
         proj_subset = self._get_projection_subset(self.projections, subset_idx)
-        additive_term_subset = self._get_projection_subset(self.additive_term, subset_idx)
-        self.projections_predicted = self.system_matrix.forward(object, subset_idx) + additive_term_subset
+        if self._fused:
+            gradient, self._norm_BP = self.system_matrix._sart_terms(object, proj_subset, subset_idx)
+            return gradient
+        self._forward_with_additive_term(object, subset_idx)
         norm_FP = self.system_matrix.forward(object*0+1, subset_idx) # TODO: Slow implementation
         norm_BP = self._get_normBP(subset_idx)
         return self.system_matrix.backward((proj_subset - self.projections_predicted)/(norm_FP+pytomography.delta) , subset_idx)

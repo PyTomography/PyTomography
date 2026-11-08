@@ -2,13 +2,15 @@
 
 # <img src="https://pytomography.readthedocs.io/en/latest/_static/PT1.png" alt= “” width="5%">  PyTomography    <img src="https://www.bccrc.ca/dept/io-programs/qurit/sites/qurit/files/FINAL_QURIT_PNG_60.png" alt= “” width="10%">
 
+[![Tests on development](https://github.com/PyTomography/PyTomography/actions/workflows/tests.yml/badge.svg?branch=development&event=push)](https://github.com/PyTomography/PyTomography/actions/workflows/tests.yml?query=branch%3Adevelopment+event%3Apush)
+[![Tests on docs/v4-site](https://github.com/PyTomography/PyTomography/actions/workflows/tests.yml/badge.svg?branch=docs/v4-site&event=push)](https://github.com/PyTomography/PyTomography/actions/workflows/tests.yml?query=branch%3Adocs%2Fv4-site+event%3Apush)
 ![Contributors](https://img.shields.io/github/contributors/qurit/PyTomography?style=plastic)
 ![Forks](https://img.shields.io/github/forks/qurit/PyTomography)
 ![Stars](https://img.shields.io/github/stars/qurit/PyTomography)
 ![Issues](https://img.shields.io/github/issues/qurit/PyTomography)
 
 # Getting Started
-We have prepared a very detailed documentation guide available at [readthedocs](https://pytomography.readthedocs.io/en/latest/). If you have any additional questions, please ask them on the [discourse website](https://pytomography.discourse.group/).
+We have prepared a very detailed documentation guide available at [readthedocs](https://pytomography.readthedocs.io/en/latest/). If you have any additional questions, please ask them in [GitHub Discussions](https://github.com/PyTomography/PyTomography/discussions/categories/q-a). To contribute, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 # Research Paper
 If you use PyTomography in your own research, please cite the corresponding research paper:

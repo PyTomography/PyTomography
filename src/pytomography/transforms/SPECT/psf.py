@@ -1,24 +1,23 @@
+"""The SPECT collimator-detector response: a blur of each plane parallel to the detector that grows with distance."""
 from __future__ import annotations
-from collections.abc import Callable
 from typing import Sequence
 import torch
 import torch.nn as nn
 import numpy as np
-from fft_conv_pytorch import FFTConv2d
-from torch.nn import Conv2d, Conv1d
-from torch.nn.functional import pad
-import copy
+from torch.nn import Conv1d
 import pytomography
 from pytomography.utils import get_distance, compute_pad_size
 from pytomography.transforms import Transform
 from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
-    
+
 class Seperable1DBlurNet(nn.Module):
-    """Network used to apply Gaussian blurring to each plane parallel to the detector head. The typical network used for low/medium energy SPECT PSF modeling.
+    """Blurs each plane parallel to the detector (each x) with its own 1D kernels along r and along z.
+
+    :class:`SPECTPSFTransform` builds one per detector radius from a :class:`~pytomography.metadata.SPECT.SPECTPSFMeta`.
 
     Args:
-        layer_r (nn.Conv1d): Kernel used for blurring in radial direction
-        layer_z (nn.Conv1d | None): Kernel used for blurring in sup/inf direction.
+        layer_r (nn.Conv1d): The kernels along r (y in the rotated object), one per x.
+        layer_z (nn.Conv1d | None, optional): The kernels along z, one per x. Defaults to None: no blur along z.
     """
     def __init__(self, layer_r: Conv1d, layer_z: Conv1d | None = None):
         super(Seperable1DBlurNet, self).__init__()
@@ -26,13 +25,13 @@ class Seperable1DBlurNet(nn.Module):
         self.layer_z = layer_z
 
     def forward(self, input):
-        """Applies PSF blurring to `input`. Each X-plane gets a different blurring kernel applied, depending on detector distance.
+        """Blurs every plane of constant x with its own kernels (which depend on its distance from the detector).
 
         Args:
-            input (torch.tensor): Object to apply Gaussian blurring to
+            input (torch.Tensor): The rotated object, [Lx, Ly, Lz].
 
         Returns:
-            torch.tensor: Blurred object, adjusted such that subsequent summation along the x-axis models the CDR
+            torch.Tensor: The blurred object, [Lx, Ly, Lz]; its sum along x models the collimator-detector response.
         """
         output = self.layer_r(torch.permute(input,(2,0,1)))
         # If 2D blurring
@@ -41,113 +40,20 @@ class Seperable1DBlurNet(nn.Module):
             output = torch.permute(output,(2,1,0))
         return torch.permute(output,(1,2,0))
     
-class PSF2D:
-    r"""Applies a 2D PSF operator (e.g. from the SPECTPSFToolbox) to each plane of an object.
-
-    The operator provides the 2D kernel of every plane; this class convolves the object with it. When the operator exposes its kernel (a ``_get_kernel`` method), the convolution is performed here as a depthwise FFT convolution: each plane is blurred by its own kernel, so in Fourier space this is an elementwise product of the object and kernel spectra. Operators otherwise convolve through ``fft_conv_pytorch``, whose grouped ``complex_matmul`` expresses that product as a batched matrix multiplication of one-by-one matrices, one per plane and frequency, which costs far more than the transforms themselves. The kernel is obtained from the operator either way, so the modeled PSF is unchanged; the fast path is used only after its output has been checked against the operator's own output on the first call.
-
-    Args:
-        psf_operator (Callable): Operator that models the collimator detector response.
-        distances (Sequence): Source-detector distance of each plane of the object.
-        kernel_size (int): Size of the (square) kernel of each plane.
-        dr (Sequence[float]): Voxel spacing.
-        cache_kernel (bool, optional): If True, the Fourier transform of the kernel is computed once and kept on the device, instead of being recomputed at every projection angle. The kernel is the same for every angle at a given radius, so this saves time (a further ~1.5x on top of the depthwise convolution) at the cost of memory: one complex spectrum per distinct radius in ``proj_meta.radii``, e.g. 57 MB for a 128x128x128 object with a 127x127 kernel. Defaults to False.
-    """
-    def __init__(
-        self,
-        psf_operator,
-        distances,
-        kernel_size,
-        dr,
-        cache_kernel: bool = False,
-        ) -> None:
-        self.psf_operator = psf_operator
-        self.kernel_size = kernel_size
-        self.distances = torch.tensor(distances).to(pytomography.dtype).to(pytomography.device)
-        x = torch.arange(-(self.kernel_size-1)/2, (self.kernel_size+1)/2, 1).to(pytomography.device) * dr[0]
-        y = torch.arange(-(self.kernel_size-1)/2, (self.kernel_size+1)/2, 1).to(pytomography.device) * dr[1]
-        self.xv, self.yv = torch.meshgrid(x, y, indexing='xy')
-        self.cache_kernel = cache_kernel
-        self._use_fast_conv = None      # None until checked against the operator on the first call
-        self._conv_geometry = None
-        self._kernel_spectrum = None
-
-    def _geometry(self, kernel_shape: Sequence[int], input_shape: Sequence[int]) -> tuple:
-        """Padded sizes and crop used to convolve an object of shape ``input_shape`` with kernels of shape ``kernel_shape``, matching the ``padding='same'`` convention of ``fft_conv_pytorch``."""
-        kernel_height, kernel_width = kernel_shape[-2], kernel_shape[-1]
-        pad_height, pad_width = (kernel_height-1)/2, (kernel_width-1)/2
-        pad_top, pad_bottom = int(np.floor(pad_height)), int(np.ceil(pad_height))
-        pad_left, pad_right = int(np.floor(pad_width)), int(np.ceil(pad_width))
-        height = input_shape[1] + pad_top + pad_bottom
-        width = input_shape[2] + pad_left + pad_right
-        # the one sided FFT requires an even final dimension
-        width_fft = width + width % 2
-        return (tuple(input_shape), height, width, width_fft, kernel_height, kernel_width, pad_top, pad_bottom, pad_left, pad_right)
-
-    def _get_kernel_spectrum(self, geometry: tuple) -> torch.Tensor:
-        """Conjugated Fourier transform of the zero padded kernel of every plane, computed once per ``geometry`` when ``cache_kernel`` is set."""
-        if self._kernel_spectrum is not None:
-            return self._kernel_spectrum
-        _, height, _, width_fft, kernel_height, kernel_width = geometry[:6]
-        kernel = self.psf_operator._get_kernel(self.xv, self.yv, self.distances)
-        kernel = pad(kernel.unsqueeze(1), [0, width_fft-kernel_width, 0, height-kernel_height])
-        spectrum = torch.fft.rfftn(kernel.to(torch.float32), dim=(2,3)).conj().squeeze(1).unsqueeze(0)
-        if self.cache_kernel:
-            self._kernel_spectrum = spectrum
-        return spectrum
-
-    def _fast_convolution(self, input: torch.Tensor, geometry: tuple) -> torch.Tensor:
-        """Convolves each plane of ``input`` with the kernel of that plane, as an elementwise product of spectra."""
-        _, height, width, _, kernel_height, kernel_width, pad_top, pad_bottom, pad_left, pad_right = geometry
-        signal = pad(input.unsqueeze(0), [pad_left, pad_right, pad_top, pad_bottom])
-        if signal.shape[-1] % 2:
-            signal = pad(signal, [0,1])
-        signal = torch.fft.rfftn(signal.to(torch.float32), dim=(2,3))
-        output = torch.fft.irfftn(signal * self._get_kernel_spectrum(geometry), dim=(2,3))
-        return output[:,:,0:(height-kernel_height+1),0:(width-kernel_width+1)].squeeze()
-
-    def _configure_fast_conv(self, input: torch.Tensor) -> None:
-        """Enables the fast convolution only if the operator exposes its kernel and the result agrees with the operator's own output."""
-        self._use_fast_conv = False
-        self._kernel_spectrum = None
-        if not hasattr(self.psf_operator, '_get_kernel'):
-            return
-        try:
-            kernel = self.psf_operator._get_kernel(self.xv, self.yv, self.distances)
-            geometry = self._geometry(kernel.shape, input.shape)
-            output = self._fast_convolution(input, geometry)
-            reference = self.psf_operator(input, self.xv, self.yv, self.distances, normalize=True)
-            scale = reference.abs().max()
-            agrees = bool(scale == 0) or bool((output-reference).abs().max() <= 1e-4*scale)
-        except Exception:
-            agrees = False
-        if agrees:
-            self._use_fast_conv = True
-            self._conv_geometry = geometry
-        else:
-            self._conv_geometry = None
-
-    @torch.no_grad()
-    def __call__(self, input):
-        if self._use_fast_conv is None or (self._use_fast_conv and self._conv_geometry[0] != tuple(input.shape)):
-            self._kernel_spectrum = None
-            self._configure_fast_conv(input)
-        if self._use_fast_conv:
-            return self._fast_convolution(input, self._conv_geometry)
-        return self.psf_operator(input,self.xv,self.yv,self.distances,normalize=True)
-
 def get_1D_PSF_layer_gaussian(
     sigmas: np.array,
     kernel_size: int,
     ) -> torch.nn.Conv1d:
-    """Creates a 1D convolutional layer that is used for PSF modeling.
+    """A 1D convolution layer with a normalised Gaussian kernel per plane, for PSF modelling.
 
     Args:
-        sigmas (array): Array of length Lx corresponding to blurring (sigma of Gaussian) as a function of distance from scanner
-        kernel_size (int): Size of the kernel used in each layer. Needs to be large enough to cover most of Gaussian
-        
+        sigmas (np.ndarray): The Gaussian sigma of each of the Lx planes, in voxels (it depends on the plane's distance
+            from the detector).
+        kernel_size (int): Size of the kernels, in voxels; large enough to cover most of the widest Gaussian.
+
     Returns:
-        torch.nn.Conv2d: Convolutional neural network layer used to apply blurring to objects of shape [Lx, L1, L2] where Lx is treated as a batch size, L1 as the channel (or group index) and L2 is the axis being blurred over 
+        torch.nn.Conv1d: A grouped convolution (one group per plane) that blurs the last axis of objects of shape
+        [L, Lx, L2], each plane with its own kernel, on ``pytomography.device``.
     """
     N = len(sigmas)
     layer = nn.Conv1d(N, N, kernel_size, groups=N, padding='same',
@@ -163,7 +69,16 @@ def get_1D_PSF_layer_square(
     sigmas: np.array,
     kernel_size: int,
     ) -> torch.nn.Conv1d:
-    
+    """A 1D convolution layer with a normalised triangular kernel per plane, for square-hole collimators.
+
+    Args:
+        sigmas (np.ndarray): Where each of the Lx planes' triangle reaches zero (its full width at half maximum), in
+            voxels.
+        kernel_size (int): Size of the kernels, in voxels.
+
+    Returns:
+        torch.nn.Conv1d: A grouped convolution, as :func:`get_1D_PSF_layer_gaussian` gives.
+    """
     N = len(sigmas)
     layer = nn.Conv1d(N, N, kernel_size, groups=N, padding='same',
                     padding_mode='zeros', bias=0, device=pytomography.device)
@@ -176,33 +91,42 @@ def get_1D_PSF_layer_square(
     return layer
 
 class SPECTPSFTransform(Transform):
-    r"""obj2obj transform used to model the effects of PSF blurring in SPECT. The smoothing kernel used to apply PSF modeling uses a Gaussian kernel with width :math:`\sigma` dependent on the distance of the point to the detector; that information is specified in the ``SPECTPSFMeta`` parameter. There are a few potential arguments to initialize this transform (i) `psf_meta`, which contains relevant collimator information to obtain a Gaussian PSF model that works for low/medium energy SPECT (ii) `kernel_f`, an callable function that gives the kernel at any source-detector distance :math:`d`, or (iii) `psf_operator`, a network configured to automatically apply full PSF modeling to a given object :math:`f` at all source-detector distances. Only one of the arguments should be given.
+    r"""Object-to-object transform that models the SPECT collimator-detector response (the distance-dependent PSF).
+
+    For each view, every plane of the rotated object parallel to the detector is blurred by the PSF at its distance
+    from the detector, so that the sum along x is the blurred projection. The PSF is given by ``psf_meta``, a
+    :class:`~pytomography.metadata.SPECT.SPECTPSFMeta`, e.g. from :func:`pytomography.io.SPECT.collimator_psf`:
+    separable 1D Gaussian (or triangular, for square holes) blurs along r and z whose width grows with distance. The
+    usual choice for low and medium energy SPECT. For any other PSF, such as the kernels spectarf makes from angular
+    response functions (septal penetration at high energy), use
+    :class:`~pytomography.transforms.SPECT.SPECTKernelPSFTransform`.
+
+    The blur is symmetric, so :meth:`backward` is :meth:`forward`. The kernels are made in :meth:`configure`, one set
+    per distinct radius in ``proj_meta.radii``.
 
     Args:
-        psf_meta (SPECTPSFMeta): Metadata corresponding to the parameters of PSF blurring. In most cases (low/medium energy SPECT), this should be the only given argument.
-        kernel_f (Callable): Function :math:`PSF(x,y,d)` that gives PSF at every source-detector distance :math:`d`. It should be able to take in 1D numpy arrays as its first two arguments, and a single argument for the final argument :math:`d`. The function should return a corresponding 2D PSF kernel.
-        psf_operator (Callable): Network that takes in an object :math:`f` and applies all necessary PSF correction to return a new object :math:`\tilde{f}` that is PSF corrected, such that subsequent summation along the x-axis accurately models the collimator detector response.
-        cache_kernel (bool): Only used with ``psf_operator``. If True, the Fourier transform of the operator's kernel is computed once per distinct radius and kept on the device, rather than being recomputed at every projection angle. See :class:`PSF2D` for the memory this uses. Defaults to False.
+        psf_meta (SPECTPSFMeta): The PSF's width as a function of the distance.
+        assume_padded (bool, optional): The objects given to :meth:`forward` and :meth:`backward` are padded for
+            rotation, as they are inside :class:`~pytomography.projectors.SPECT.SPECTSystemMatrix`. Defaults to True.
+
+    Raises:
+        TypeError: If ``psf_meta`` is not a :class:`~pytomography.metadata.SPECT.SPECTPSFMeta` (v3's ``psf_operator``,
+            SPECTPSFToolbox's operators, was removed in v4: use :class:`SPECTKernelPSFTransform`).
     """
     def __init__(
         self,
-        psf_meta: SPECTPSFMeta | None = None,
-        psf_operator: Callable | None = None,
+        psf_meta: SPECTPSFMeta,
         assume_padded: bool = True,
-        cache_kernel: bool = False,
     ) -> None:
-        """Initializer that sets corresponding psf parameters"""
         super(SPECTPSFTransform, self).__init__()
-        if sum(arg is not None for arg in [psf_meta, psf_operator]) != 1:
-            Exception(f'Exactly one of the arguments for initialization should be given.')
+        if not isinstance(psf_meta, SPECTPSFMeta):
+            raise TypeError('SPECTPSFTransform takes a SPECTPSFMeta (e.g. from io.SPECT.collimator_psf); for other PSFs '
+                            "(v3's psf_operator, or spectarf's kernels) use SPECTKernelPSFTransform")
         self.psf_meta = psf_meta
-        self.psf_operator = psf_operator
         self.assume_padded = assume_padded
-        self.cache_kernel = cache_kernel
-        
+
     def _configure_simple_model(self):
-        """Internal function to configure Gaussian modeling. This is called when `psf_meta` is given in initialization
-        """
+        """Builds the separable 1D layers of every distinct radius from ``psf_meta``."""
         self.layers = {}
         for radius in np.unique(self.proj_meta.radii):
             kernel_size_r = self._compute_kernel_size(radius, axis=0)
@@ -221,31 +145,19 @@ class SPECTPSFTransform(Transform):
             else: # 1D blurring
                 self.layers[radius] = Seperable1DBlurNet(layer_r)
             
-    def _configure_manual_net(self):
-        """Internal function to configure the PSF net. This is called when `psf_operator` is given in initialization
-        """
-        self.layers = {}
-        for radius in np.unique(self.proj_meta.radii):
-            dim = self.object_meta.shape[0] + 2*compute_pad_size(self.object_meta.shape[0])
-            distances = get_distance(dim, radius, self.object_meta.dx)
-            self.layers[radius] = PSF2D(self.psf_operator, distances, self.object_meta.shape[0]-1, self.object_meta.dr, cache_kernel=self.cache_kernel)
-        
     def configure(
         self,
         object_meta: SPECTObjectMeta,
         proj_meta: SPECTProjMeta
     ) -> None:
-        r"""Function used to initalize the transform using corresponding object and projection metadata
+        r"""Builds the blurring kernels for the system matrix's grid and detector radii; the system matrix calls it.
 
         Args:
-            object_meta (SPECTObjectMeta): Object metadata.
-            proj_meta (SPECTProjMeta): Projections metadata.
+            object_meta (SPECTObjectMeta): The object grid.
+            proj_meta (SPECTProjMeta): The projection space, with the radius of every view.
         """
         super(SPECTPSFTransform, self).configure(object_meta, proj_meta)
-        if self.psf_operator is not None:
-            self._configure_manual_net()
-        else:
-            self._configure_simple_model()
+        self._configure_simple_model()
         
     def _compute_kernel_size(self, radius, axis) -> int:
         r"""Function used to compute the kernel size used for PSF blurring. In particular, uses the ``min_sigmas`` attribute of ``SPECTPSFMeta`` to determine what the kernel size should be such that the kernel encompasses at least ``min_sigmas`` at all points in the object. 
@@ -282,14 +194,14 @@ class SPECTPSFTransform(Transform):
 		object: torch.Tensor,
 		ang_idx: Sequence[int], 
 	) -> torch.tensor:
-        r"""Applies the PSF transform :math:`A:\mathbb{U} \to \mathbb{U}` for the situation where an object is being detector by a detector at the :math:`+x` axis.
+        r"""Applies the PSF :math:`A:\mathbb{U} \to \mathbb{U}` to the object of one view (detector at +x).
 
         Args:
-            object_i (torch.tensor): Tensor of size [Lx, Ly, Lz] being projected along its first axis
-            ang_idx (int): The projection indices: used to find the corresponding angle in projection space corresponding to each projection angle in ``object_i``.
+            object (torch.Tensor): The object rotated for the view, [Lx, Ly, Lz] (padded), projected along x.
+            ang_idx (int): Index of the view in ``proj_meta``: its radius chooses the kernels.
 
         Returns:
-            torch.tensor: Tensor of size [Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.
+            torch.Tensor: The blurred object, [Lx, Ly, Lz]; its sum along x is the blurred projection.
         """
         return self.layers[self.proj_meta.radii[ang_idx]](object) 
         
@@ -299,13 +211,13 @@ class SPECTPSFTransform(Transform):
 		object: torch.Tensor,
 		ang_idx: Sequence[int],
 	) -> torch.tensor:
-        r"""Applies the transpose of the PSF transform :math:`A^T:\mathbb{U} \to \mathbb{U}` for the situation where an object is being detector by a detector at the :math:`+x` axis. Since the PSF transform is a symmetric matrix, its implemtation is the same as the ``forward`` method.
+        r"""Applies the transpose :math:`A^T:\mathbb{U} \to \mathbb{U}`, which is :meth:`forward` (the blur is symmetric).
 
         Args:
-            object_i (torch.tensor): Tensor of size [Lx, Ly, Lz] being projected along its first axis
-            ang_idx (int): The projection index
+            object (torch.Tensor): A back projected view, [Lx, Ly, Lz] (padded), in the view's rotated frame.
+            ang_idx (int): Index of the view in ``proj_meta``.
 
         Returns:
-            torch.tensor: Tensor of size [Lx, Ly, Lz] such that projection of this tensor along the first axis corresponds to n PSF corrected projection.
+            torch.Tensor: The blurred object, [Lx, Ly, Lz].
         """
         return self.layers[self.proj_meta.radii[ang_idx]](object) 

@@ -33,14 +33,14 @@ class _RecordingTransform(Transform):
 
 
 def _setup(cache, angles_offset=0.0, extra=()):
-    dx = 0.4
+    dx = 4.0
     object_meta = SPECTObjectMeta([dx] * 3, (N, N, N))
     angles = list(np.linspace(0, 360, NA, endpoint=False) + 0.37 + angles_offset)
-    proj_meta = SPECTProjMeta((N, N), [dx, dx], angles, radii=[15.0 + (i % 3) for i in range(NA)])
+    proj_meta = SPECTProjMeta((N, N), [dx, dx], angles, radii=[150.0 + 10 * (i % 3) for i in range(NA)])
     gen = torch.Generator().manual_seed(1)
-    mu = (0.15 * torch.rand(N, N, N, generator=gen)).to(DEV)
+    mu = (0.015 * torch.rand(N, N, N, generator=gen)).to(DEV)
     att = SPECTAttenuationTransform(attenuation_map=mu, cache_probabilities=cache)
-    psf = SPECTPSFTransform(psf_meta=SPECTPSFMeta((0.03, 0.1)))
+    psf = SPECTPSFTransform(psf_meta=SPECTPSFMeta((0.03, 1.0)))
     sm = SPECTSystemMatrix(obj2obj_transforms=[att, psf, *extra], proj2proj_transforms=[], object_meta=object_meta, proj_meta=proj_meta)
     f = torch.rand(N, N, N, generator=gen).to(DEV)
     g = torch.rand(NA, N, N, generator=gen).to(DEV)

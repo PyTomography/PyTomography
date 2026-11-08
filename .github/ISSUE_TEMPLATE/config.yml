@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a question
+    url: https://github.com/PyTomography/PyTomography/discussions/categories/q-a
+    about: Questions about using PyTomography are answered in GitHub Discussions.
+  - name: Report a security vulnerability
+    url: https://github.com/PyTomography/PyTomography/security/advisories/new
+    about: Report it privately, not in a public issue (see SECURITY.md).
+  - name: Feature board
+    url: https://pytomography.readthedocs.io/en/latest/contributing/feature-board.html
+    about: Work we would like contributors to take on, each item with data and a starting point.
