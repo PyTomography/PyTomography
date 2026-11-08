@@ -305,8 +305,11 @@ def read_gate(
             with a Compton or Rayleigh interaction in the phantom) and ``'randoms'`` (two photons from different
             annihilations) of the prompts. Defaults to ``'prompts'``.
         tof_meta (PETTOFMeta, optional): TOF bins to sort the events into, by their position (t1 - t2) c / 2 along
-            the LOR (so TOF bins increase towards column 1's crystal); events outside the bins are dropped. Defaults
-            to None: no TOF.
+            the LOR (so TOF bins increase towards column 1's crystal); events outside the bins are dropped. GATE puts
+            the earlier single first, so t1 - t2 is never positive and only the bins up to the middle one hold
+            events: none are lost, and each sits on the right side of its LOR. A TOF sinogram
+            (:func:`~pytomography.io.PET.listmode_to_sinogram`) mirrors the TOF bin of a pair whose crystals it
+            swaps, so it fills every bin. Defaults to None: no TOF.
         world_axes (str, optional): The patient directions GATE's +x, +y and +z point to, e.g. ``'LPS'`` (GATE's world
             is the patient's frame) or ``'LPI'`` (GATE's z runs towards the feet). Defaults to None: when
             ``world_origin`` is None too, the placement the dataset registry records for a dataset PyTomography hosts;

@@ -49,7 +49,6 @@ rounding.
 | numba | not used | required (pip installs it) |
 | petsird (PETSIRD files) | a bundled 2023 prototype | ETSI's `petsird` 0.9: `pip install "pytomography[petsird]"` |
 | CuPy | required by parallelproj 1.x on the GPU | optional: fast helical CT filtered back projection and TOF scatter |
-| idc-index | not used | optional: only to fetch the TCIA CT case `CT/ldct-c145` |
 
 ## Reading and saving data
 

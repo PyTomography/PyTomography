@@ -1,8 +1,12 @@
 """Deep image prior reconstruction (:class:`DIPRecon`): EM updates alternated with fitting a neural network."""
 from __future__ import annotations
+import math
 import torch
 import torch.nn as nn
+import pytomography
 from pytomography.likelihoods import Likelihood
+from pytomography.projectors.system_matrix import held_parts, on_device
+from pytomography.utils.memory import MemoryEstimate, MemoryPart
 from .preconditioned_gradient_ascent import OSEM
 
 def _positive_root(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
@@ -47,6 +51,53 @@ class DIPRecon:
         self.prior_network = prior_network
         self.rho = rho
         
+    def estimate_memory(self, n_subsets_osem: int = 1, N_splits: int | None = None,
+                        network_gb: float | None = None) -> MemoryEstimate:
+        r"""The predicted peak RAM and GPU memory of this reconstruction, without running it.
+
+        It is the estimate of its EM updates (:meth:`OSEM.estimate_memory
+        <pytomography.algorithms.OSEM.estimate_memory>`: the system matrix, with the likelihood's projections and
+        additive term) and DIP's own images: four for the whole run (the image :math:`x`, the network's prediction, the
+        dual variable :math:`\mu` and the sensitivity image) and eight in each update (the EM image and the
+        temporaries of the update). What the network takes while it is fitted (its parameters, their gradients, the
+        optimiser's state and the activations) depends on the network and its input, so it is counted only when
+        ``network_gb`` gives it: measure one ``prior_network.fit`` with :class:`~pytomography.utils.memory.PeakMemory`.
+        The fit and the EM updates take turns, so adding them overestimates a little. ``print`` it, or ``to_dict()``
+        for JSON.
+
+        Args:
+            n_subsets_osem (int, optional): Number of subsets of the EM updates (the call's ``n_subsets_osem``).
+                Defaults to 1.
+            N_splits (int | None, optional): Projector splits, for system matrices that take them. Defaults to None:
+                the system matrix's own.
+            network_gb (float | None, optional): Memory the network takes while it is fitted, in GB, on PyTomography's
+                device. Defaults to None: not counted, and the estimate's title says so.
+
+        Returns:
+            MemoryEstimate: The estimate.
+
+        Example:
+            >>> print(DIPRecon(likelihood, prior_network, rho=240).estimate_memory(network_gb=7))
+        """
+        system_matrix = self.likelihood.system_matrix
+        settings = {name: present for name, (present, _) in system_matrix._memory_settings().items()}
+        settings['n_subsets'] = n_subsets_osem
+        if N_splits is not None and 'N_splits' in settings:
+            settings['N_splits'] = N_splits
+        image = 4 * math.prod(system_matrix.object_meta.shape)
+        device = pytomography.device
+        dip = [MemoryPart("DIP: the image, the network's prediction, the dual variable and the sensitivity image",
+                          **on_device(device, 4 * image)),
+               MemoryPart('DIP: the EM image and the temporaries of an update', **on_device(device, 8 * image),
+                          scope='subset')]
+        if network_gb is not None:
+            dip.append(MemoryPart("the network's fit", **on_device(device, network_gb * 1e9), scope='subset'))
+        title = f"DIPRecon ({type(system_matrix).__name__})" + ("" if network_gb is not None else
+                                                                 ", without the network's fit")
+        return system_matrix._memory_estimate(settings, held_parts(self.EM_algorithm._memory_held()),
+                                              extra=lambda n: self.EM_algorithm._memory_extra(n) + dip, title=title,
+                                              title_settings={'N_splits': N_splits})
+
     def _compute_callback(self, n_iter: int, n_subset: int):
         """Method for computing callbacks after each reconstruction iteration
 

@@ -2,12 +2,16 @@
 and its kernels make a SPECT system matrix (a small ARF made on the CPU, in seconds)."""
 from __future__ import annotations
 
+import sys
+import warnings
+
 import numpy as np
 import pytest
 import torch
 
 import pytomography
 from pytomography.io import SPECT
+from pytomography.io.SPECT import _camera
 from pytomography.metadata.SPECT import EnergyWindow, SPECTObjectMeta, SPECTProjMeta
 from pytomography.projectors.SPECT import SPECTSystemMatrix
 
@@ -40,6 +44,33 @@ def test_every_parallel_collimator_and_detector_of_the_tables_makes_a_camera(sha
         assert stack.collimator.hole_length_mm == pytest.approx(row['hole_length'])
         assert stack.crystal_mm == pytest.approx(SPECT.detector(label)['crystal_thickness'])
         assert response.intrinsic_fwhm_mm_140 == pytest.approx(camera['intrinsic_fwhm_140keV'])
+
+
+@pytest.mark.parametrize('code', ['HH-LEHR', 'GE-HEGP'])  # square and circular holes
+def test_a_collimator_whose_holes_spectarf_cannot_model_says_so(code):
+    shape = next(r['hole_shape'] for r in SPECT.collimators() if r['code'] == code)
+    if _camera._spectarf_cannot_model(shape):  # spectarf 0.1: hexagonal holes only
+        with pytest.warns(UserWarning, match=f'{code} has {shape} holes, which spectarf does not support'):
+            SPECT.collimator(code)
+    else:  # a spectarf that models them: nothing to say
+        with warnings.catch_warnings():
+            warnings.simplefilter('error')
+            SPECT.collimator(code)
+
+
+def test_hexagonal_holes_the_gaussian_psf_or_no_spectarf_give_no_warning(monkeypatch):
+    from pytomography.transforms.SPECT import SPECTPSFTransform
+    with warnings.catch_warnings():
+        warnings.simplefilter('error')
+        SPECT.collimator('SY-HE')
+        # the warning's advice for square and circular holes, which needs no spectarf
+        SPECTPSFTransform(SPECT.collimator_psf('HH-LEHR', 140.5))
+        monkeypatch.setitem(sys.modules, 'spectarf.geometry.layers', None)  # spectarf's layers cannot be imported
+        _camera._spectarf_cannot_model.cache_clear()
+        try:
+            SPECT.collimator('HH-LEHR')
+        finally:
+            _camera._spectarf_cannot_model.cache_clear()
 
 
 def test_kernels_from_a_small_arf_make_a_system_matrix_in_counts_per_photon():

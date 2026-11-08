@@ -26,9 +26,13 @@ Sinograms, from any reader's events and ``info``:
   steps of a sinogram's axes in mm and degrees, :func:`sinogram_spacing`;
 * :func:`remove_events_outside`: the events whose LOR crosses the reconstruction grid.
 
+Normalisation: :func:`normalization_weights` loads the weights of every crystal pair (a ``.npy`` file, an array or a
+tensor), checked against the scanner, with NaN weights set to 0.
+
 GATE helpers: :func:`gate_normalization` (normalisation weights from a simulated calibration scan) and
 :func:`gate_image` (an image in GATE's world, placed in the patient).
 """
+from ._standard import normalization_weights
 from .scanner import scanner_info, scanner_lut, crystal_pair_index
 from .shared import (listmode_to_sinogram, sinogram_to_listmode, smooth_randoms_sinogram, randoms_sinogram_to_sinogramTOF,
                      sinogram_spacing,

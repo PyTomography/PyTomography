@@ -1096,8 +1096,8 @@ def normalization_sinogram(weights: torch.Tensor, info: dict) -> torch.Tensor:
 
     Args:
         weights (torch.Tensor): Weight of each crystal pair, ``[N_crystals * (N_crystals - 1) / 2]``, in
-            ``torch.combinations`` order: the ``weights_sensitivity`` a reader returns, or
-            :func:`~pytomography.io.PET.gate_normalization`.
+            ``torch.combinations`` order: the ``weights_sensitivity`` a reader returns,
+            :func:`~pytomography.io.PET.normalization_weights` or :func:`~pytomography.io.PET.gate_normalization`.
         info (dict): The scanner's ``info`` (:func:`~pytomography.io.PET.scanner_info`).
 
     Returns:
