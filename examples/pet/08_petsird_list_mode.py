@@ -33,10 +33,11 @@ from pytomography.utils import sss
 # estimate) use at once: with less, they work in smaller blocks, which is slower and gives the same images. Each
 # reconstruction prints its own estimate before it runs (estimate_memory), with what more subsets would need, and so
 # does the scatter estimate (its estimate is on the safe side). MINUTES is how much of the 60-minute scan is
-# reconstructed: all of it, 197 million prompts, peaks at 23.4 GB of RAM and 6 GB of GPU memory (measured on Windows),
-# in the scatter estimate. Lowering RAM_GB saves little, since most of that is the scanner's normalisation and the
-# scatter estimate's sinograms, whatever the scan's length; to use less, lower MINUTES: the first 10 minutes (38
-# million prompts) peak at about 19 GB of RAM and 2.6 GB of GPU memory.
+# reconstructed: all of it, 197 million prompts, peaks at 25.2 GB of RAM and 6 GB of GPU memory, in the scatter
+# estimate (measured on Windows with PyTorch 2.14; it was 23.4 GB with PyTorch 2.9: PyTorch 2.14 sets aside about
+# 3 GB more as soon as it is imported, most of which it never fills). Lowering RAM_GB saves little, since most of
+# the peak is the scanner's normalisation and the scatter estimate's sinograms, whatever the scan's length; to use
+# less, lower MINUTES: the first 10 minutes (38 million prompts) take about 4 GB less RAM and 2.6 GB of GPU memory.
 RAM_GB = 25
 pytomography.set_memory_budget(RAM_GB)
 MINUTES = 60
