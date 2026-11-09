@@ -95,20 +95,20 @@ It prints, for example, `2.9.1+cu128 12.8 True`: CUDA 12.8. If it prints `None` 
 
 | PyTorch's CUDA version | PyTorch build | Command |
 |---|---|---|
-| 13.0 | `cu130` | `pip install "spectarf[cuda]"` |
+| 13.0 | `cu130` | `pip install "spectarf[cuda]" "nvidia-cuda-nvcc-cu12==12.8.*"` |
 | 12.8 | `cu128` | `pip install "spectarf[cuda]" "nvidia-cuda-nvcc-cu12==12.8.*"` |
 | 12.6 | `cu126` | `pip install "spectarf[cuda]" "nvidia-cuda-nvcc-cu12==12.6.*"` |
-| any other 12.x | `cu12x` | `pip install "spectarf[cuda]" "nvidia-cuda-nvcc-cu12==12.x.*"`, with your version for `x` |
+| any other 12.x | `cu12x` | `pip install "spectarf[cuda]" "nvidia-cuda-nvcc-cu12==12.x.*"`, with your version for `x` (`12.8.*` for 12.9) |
 
-The commands are the same on Windows and Linux. With PyTorch for CUDA 12, the second package keeps the extra's CUDA compiler at PyTorch's own CUDA version: a newer compiler makes code that the CUDA linker PyTorch brings on Windows cannot read.
+The commands are the same on Windows and Linux. The second package keeps the extra's CUDA compiler at CUDA 12.8 or older: the CUDA 12.9 compiler that `spectarf[cuda]` installs on its own rejects one of spectarf's kernels (`nvvmError: ERROR_INVALID_IR`). With PyTorch for CUDA 12 it also matches PyTorch's own CUDA version: a newer compiler makes code that the CUDA linker PyTorch brings on Windows cannot read.
 
 **3. Check:**
 
 ```bash
-python -c "from spectarf import Collimator, DetectorStack; from spectarf.engines import transport; print(transport(DetectorStack(Collimator(4.0, 2.0, 59.7), crystal_mm=9.525), 208.0, 0.0, 0.0, 10000, engine='fused-cuda').engine)"
+python -c "import numpy as np; from spectarf import Collimator, DetectorStack, DetectorResponse, EnergyResolution, Line; from spectarf.grid import ArfGrid; from spectarf.generate import generate_arf; e = np.linspace(-8.0, 8.0, 17); arf = generate_arf(DetectorStack(Collimator(4.0, 2.0, 59.7), crystal_mm=9.525), DetectorResponse(EnergyResolution(fwhm_pct_140=9.5), 3.8, residual_sigma_mm_140=1.0), Line(208.0, 1.0), {'P': (187.0, 229.0)}, ArfGrid(np.array([0.0]), np.array([0.0]), e, e), engine='fused-cuda', photons_per_node=100000, cache=False); print(arf['P'][0][0].header['engine'])"
 ```
 
-It prints `fused-cuda`. An error that mentions nvJitLink means the compiler does not match PyTorch's CUDA: run the command of step 2 for your version.
+It makes a small ARF on the GPU and prints `fused-cuda`. An error that mentions `ERROR_INVALID_IR` or nvJitLink means the compiler does not suit your PyTorch: run the command of step 2 for your version.
 
 ## Check the installation
 
