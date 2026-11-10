@@ -121,6 +121,12 @@ def machine() -> dict:
             packages[name] = metadata.version(name)
         except metadata.PackageNotFoundError:
             pass
+    try:  # conda-forge's parallelproj-core installs the module alone, without package metadata
+        import parallelproj_core
+        packages['parallelproj_core'] = (f"{getattr(parallelproj_core, '__version__', '?')} "
+                                         f"({'CUDA' if getattr(parallelproj_core, 'cuda_enabled', False) else 'CPU'} build)")
+    except Exception:
+        pass
     info['packages'] = packages
     return info
 

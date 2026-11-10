@@ -10,8 +10,9 @@ and records how long each step takes and its peak memory (see benchmarks/cases/_
 process, so the memory one case leaves behind (PyTorch's and CuPy's caches, fragmentation) never reaches the next,
 and a case that fails or runs out of memory loses only itself. Each case also runs under .github/run_capped.py: it is
 stopped if it uses more than --max-gb of RAM (on Windows GPU memory counts too) or if the machine's free memory falls
-below --min-free-gb. A case is skipped if the GPU has less free memory than the case needs (from the tutorial's
-measured peak, CASES below) plus a margin.
+below --min-free-gb. A case is skipped if the machine has less free RAM than the case needs (CASES below) plus
+--min-free-gb, or the GPU less free memory than it needs plus --gpu-margin-gb. The PET cases need up to 18 GB: on a
+32 GB machine, which has about 21 GB free, run with --min-free-gb 2 (as the tutorial runner there).
 
 Results go to --out (default benchmarks/results/<date>-<GPU>): one JSON file per case, the output of each, and
 summary.json and summary.md. The data comes from pytomography.datasets.fetch(), as in the tutorials: set
@@ -34,22 +35,24 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 
-# (case, recon, GPU GB, RAM GB): the peaks the tutorials measured (RTX 5090 and RTX 5060 Laptop, Windows), to decide
-# whether a case can start; the order is the run order, the heaviest PET cases last.
+# (case, recon, GPU GB, RAM GB): what each case needs, to decide whether it can start. Measured on the RTX 5060 Laptop
+# GPU (Windows, 10 Nov 2026, benchmarks/results/2026-11-10-rtx-5060-laptop-gpu): GPU = the case's peak plus 0.5 GB
+# for the CUDA context; RAM = its peak committed memory (GPU memory counts on Windows), rounded up, plus about 1 GB.
+# The order is the run order, the heaviest PET cases last.
 CASES = [
-    ('spect_lu177', 'osem', 1.0, 7),
-    ('spect_lu177', 'bsrem', 1.6, 9),
-    ('spect_ac225_arf', 'osem', 3.1, 14),
-    ('ct_helical_fbp', 'fbp', 1.3, 15),
-    ('ct_microct', 'fdk', 6.7, 15),
-    ('ct_microct', 'sart', 6.7, 15),
-    ('pct_abdomen', 'fbp', 0.9, 9),
-    ('pct_abdomen', 'sart', 0.9, 9),
-    ('pet_gate_listmode', 'osem', 3.3, 22),
-    ('pet_gate_listmode', 'osem_tof', 3.9, 23),
-    ('pet_gate_sinogram', 'osem', 1.6, 20),
-    ('pet_gate_sinogram', 'sss', 1.6, 20),
-    ('pet_gate_sinogram', 'osem_tof', 5.7, 21),
+    ('spect_lu177', 'osem', 1.0, 6),
+    ('spect_lu177', 'bsrem', 1.1, 7),
+    ('spect_ac225_arf', 'osem', 5.7, 11),
+    ('ct_helical_fbp', 'fbp', 2.6, 11),
+    ('ct_microct', 'fdk', 3.3, 8),
+    ('ct_microct', 'sart', 6.6, 11),
+    ('pct_abdomen', 'fbp', 1.7, 8),
+    ('pct_abdomen', 'sart', 1.7, 8),
+    ('pet_gate_listmode', 'osem', 3.4, 12),
+    ('pet_gate_listmode', 'osem_tof', 3.6, 13),
+    ('pet_gate_sinogram', 'osem', 2.1, 15),
+    ('pet_gate_sinogram', 'sss', 2.8, 15),
+    ('pet_gate_sinogram', 'osem_tof', 6.1, 18),
 ]
 
 
@@ -106,7 +109,8 @@ def main() -> int:
     ap.add_argument('--ram-gb', type=float, default=25, help="PyTomography's memory budget, the tutorials' RAM_GB (25)")
     ap.add_argument('--max-gb', type=float, default=25, help='stop a case that uses more RAM than this (default 25)')
     ap.add_argument('--min-free-gb', type=float, default=10, help='stop a case if less RAM is free (default 10)')
-    ap.add_argument('--gpu-margin-gb', type=float, default=1.0, help='GPU memory to keep free beside a case (default 1)')
+    ap.add_argument('--gpu-margin-gb', type=float, default=0.5,
+                    help='GPU memory to keep free beside a case (default 0.5)')
     ap.add_argument('--timeout', type=float, default=3600, help='stop a case after this many seconds (default 3600)')
     ap.add_argument('--list', action='store_true', help='list the cases and stop')
     args = ap.parse_args()

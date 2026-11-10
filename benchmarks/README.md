@@ -37,8 +37,9 @@ tutorials do; the first PET case then takes a few minutes longer). The organizer
   one after another, so the memory a case leaves behind (PyTorch's and CuPy's caches, fragmentation) goes back to the
   system before the next one starts, each case's peaks are its own, and a case that fails or runs out of memory loses
   only itself. Each case runs under `.github/run_capped.py` (stopped above `--max-gb`, default 25 GB, or below
-  `--min-free-gb` free, default 10 GB), at below-normal priority, and is skipped if the GPU has too little free
-  memory for it.
+  `--min-free-gb` free, default 10 GB), at below-normal priority, and is skipped if the machine has too little free
+  RAM or GPU memory for it. The PET cases need up to 18 GB of RAM and the micro-CT OS-SART 6.6 GB of GPU memory
+  (`--list`): on a 32 GB machine, run with `--min-free-gb 2`.
 - **Steps.** Inside a case, each step (loading, building the system matrix, generating ARFs, reconstructing) is timed
   on its own, with the GPU synchronised at both ends. Before each step the caches are emptied (outside the clock).
 - **First run and repeats.** A reconstruction runs once, then again up to `--repeats` times (default 3, at most
