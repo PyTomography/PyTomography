@@ -10,7 +10,7 @@ full-resolution images a few hundred MB) load when a reader opens it, behind a l
 
 ``tutorials/viewer_images.json`` is written by ``docs/tools/viewer_upload.py`` when a release's images are uploaded::
 
-    {"host": "https://huggingface.co/datasets/PyTomography/tutorial-images/resolve/{revision}/{path}",
+    {"host": "https://huggingface.co/datasets/PyTomography/Tutorial-Images/resolve/{revision}/{path}",
      "revision": "<the host's commit>", "prefix": "v4.0.0",
      "tutorials": {"t_dicomdata": {"title": ..., "layers": [...], "bytes": ..., "manifest_sha256": ...}}}
 

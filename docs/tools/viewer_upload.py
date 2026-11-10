@@ -9,8 +9,9 @@ tutorial appears in several, the last folder wins. Every file is checked against
 each tutorial against its size budget (its max_mb in docs/source/tutorials/viewer.yaml, else --max-mb) before anything
 is uploaded.
 
---upload puts the files on the Hugging Face dataset (--repo, default PyTomography/tutorial-images) under PREFIX/, in
-one commit, with the token in HF_TOKEN; it needs `pip install huggingface_hub`. Pinning then writes
+--upload puts the files on the Hugging Face dataset (--repo, default PyTomography/Tutorial-Images) under PREFIX/, in
+one commit, with the token in HF_TOKEN, else the one `hf auth login` saved; it needs `pip install huggingface_hub`.
+Pinning then writes
 docs/source/tutorials/viewer_images.json: the host's URL template, that commit, the prefix, and a summary of each
 tutorial. The docs read only that file, so each docs version keeps showing the images of its own commit. To host the
 images elsewhere (GitHub Pages, say), upload them there and pin with --host and --revision.
@@ -26,7 +27,9 @@ from pathlib import Path
 
 HF_HOST = "https://huggingface.co/datasets/{repo}/resolve/{{revision}}/{{path}}"
 INDEX = Path(__file__).resolve().parents[1] / "source" / "tutorials" / "viewer_images.json"
-MAX_MB = 15.0
+# Images are exported at their native voxel size, so a CT tutorial takes a few hundred MB (the micro-CT 422 MB). The
+# budget only stops a runaway export.
+MAX_MB = 500.0
 
 
 def collect(folders: list[Path]) -> dict[str, Path]:
@@ -62,10 +65,10 @@ def files_of(folder: Path, man: dict) -> list[Path]:
 
 
 def upload(found: dict, mans: dict, repo: str, prefix: str) -> str:
-    from huggingface_hub import CommitOperationAdd, HfApi  # noqa: PLC0415
-    token = os.environ.get("HF_TOKEN")
+    from huggingface_hub import CommitOperationAdd, HfApi, get_token  # noqa: PLC0415
+    token = os.environ.get("HF_TOKEN") or get_token()
     if not token:
-        sys.exit("Set HF_TOKEN to an upload token for the dataset first.")
+        sys.exit("Set HF_TOKEN to an upload token for the dataset, or run `hf auth login`, first.")
     ops = [CommitOperationAdd(path_in_repo=f"{prefix}/{name}/{f.name}", path_or_fileobj=str(f))
            for name, folder in found.items() for f in files_of(folder, mans[name])]
     info = HfApi(token=token).create_commit(repo_id=repo, repo_type="dataset", operations=ops,
@@ -90,7 +93,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("folders", nargs="+", type=Path, help="viewer folders of tutorial runs (RUN_DIR/viewer)")
     ap.add_argument("--prefix", required=True, help="folder on the host for this release, e.g. v4.0.0")
-    ap.add_argument("--repo", default="PyTomography/tutorial-images", help="Hugging Face dataset")
+    ap.add_argument("--repo", default="PyTomography/Tutorial-Images", help="Hugging Face dataset")
     ap.add_argument("--host", help="URL template with {revision} and {path} (default: the Hugging Face dataset)")
     ap.add_argument("--upload", action="store_true", help="upload to the Hugging Face dataset, then pin")
     ap.add_argument("--pin-only", action="store_true", help="pin images already on the host, at --revision")
