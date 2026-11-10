@@ -15,6 +15,7 @@ from pytomography.transforms import Transform
 from pytomography.transforms.shared import RotationTransform
 from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta
 from pytomography.utils import pad_object, unpad_object, pad_proj, unpad_proj, rotate_detector_z
+from pytomography.utils.spatial import rotation_transpose_bytes
 from pytomography.utils.fourier_filters import get_fbp_filter, ramp_filter
 from pytomography.utils.memory import MemoryPart, nbytes, tensor_bytes
 import numpy as np
@@ -141,7 +142,7 @@ class SPECTSystemMatrix(SystemMatrix):
                 img_cutoff = torch.ones(self.object_meta.shape).to(device)
                 img_cutoff[:cutoff_idx, :, :] = 0
                 img_cutoff = pad_object(img_cutoff)
-                img_cutoff = self.rotation_transform.backward(img_cutoff, 270-self.proj_meta.angles[i])
+                img_cutoff = self.rotation_transform.forward(img_cutoff, self.proj_meta.angles[i] - 270)
                 img_cutoff = unpad_object(img_cutoff)
                 object_initial *= img_cutoff
         return object_initial
@@ -223,8 +224,9 @@ class SPECTSystemMatrix(SystemMatrix):
         r"""What a reconstruction with this system matrix holds at its peak (see
         :meth:`~pytomography.projectors.SystemMatrix.estimate_memory`), all on ``pytomography.device``. Held for the
         whole run: the image, one :math:`H_m^T 1` image per subset (so that more subsets can take more memory), the
-        images of an update, the rotation grids of every view (cached by the rotation: two per view, one more per
-        attenuation transform and for an initial object from the camera path), and what the transforms keep (see
+        images of an update, the rotation grid of every view and the transpose back projection builds from it (cached
+        by the rotation; one more grid per attenuation transform and for an initial object from the camera path), and
+        what the transforms keep (see
         :func:`_transform_memory`). For a subset: its projections (measured, expected, additive term, of ones, and the
         padded copy back projection makes; at the start, the projections of ones of every view for :math:`H_m^T 1`),
         one more padded copy per projection transform, and the padded object, support and sum of a projection. For a
@@ -250,11 +252,12 @@ class SPECTSystemMatrix(SystemMatrix):
         view_padded = 4 * math.prod(self.proj_meta.padded_shape[1:])
         view = 4 * math.prod(self.proj_meta.shape[1:])
         attenuations = sum(isinstance(t, SPECTAttenuationTransform) for t in self.obj2obj_transforms)
-        grids_per_view = 2 + attenuations + (1 if self.object_initial_based_on_camera_path else 0)
+        grids_per_view = 1 + attenuations + (1 if self.object_initial_based_on_camera_path else 0)
         parts = [MemoryPart('image', **on_device(device, image)),
                  MemoryPart(f'H_m^T 1 of {n} subset{"s" if n > 1 else ""}', **on_device(device, n * image)),
                  MemoryPart('images of an update', **on_device(device, 3 * image)),
-                 MemoryPart('rotation grids of every view (cached)', **on_device(device, grids_per_view * n_views * padded_shape[0] * padded_shape[1] * 2 * 4))]
+                 MemoryPart('rotation grids of every view (cached)', **on_device(device, grids_per_view * n_views * padded_shape[0] * padded_shape[1] * 2 * 4)),
+                 MemoryPart('transposed rotations of every view, for back projection (cached)', **on_device(device, n_views * rotation_transpose_bytes(padded_shape[0], padded_shape[1])))]
         ram = gpu = temporaries = 0.0
         for transform in self.obj2obj_transforms:
             r, g, t = _transform_memory(transform, padded_shape, n_views)
@@ -321,8 +324,8 @@ class SPECTSystemMatrix(SystemMatrix):
         object_padded = pad_object(object)
         # Loop through all angles
         for i, angle_idx in enumerate(angle_indices):
-            # beta = 270 - phi, and backward transform called because projection should be at +beta (requires inverse rotation of object)
-            object_i = self.rotation_transform.backward(object_padded, phis[angle_idx])
+            # the object rotated by -phi = beta - 270, which puts the detector of view beta at +x
+            object_i = self.rotation_transform.forward(object_padded, -phis[angle_idx])
             # Apply object 2 object transforms
             for transform in self.obj2obj_transforms:
                 object_i = transform.forward(object_i, angle_idx)
@@ -364,8 +367,8 @@ class SPECTSystemMatrix(SystemMatrix):
             # Apply object mappings
             for transform in self.obj2obj_transforms[::-1]:
                 object_i  = transform.backward(object_i, angle_idx)
-            # Rotate all objects by by their respective angle
-            object_i = self.rotation_transform.forward(object_i, phis[angle_idx])
+            # the exact transpose of forward's rotation (not the rotation back by +phi, whose bilinear weights differ)
+            object_i = self.rotation_transform.backward(object_i, -phis[angle_idx])
             # Add to total
             object += object_i
         # Unpad
@@ -375,10 +378,12 @@ class SPECTSystemMatrix(SystemMatrix):
     def _fbp(self, projections: torch.Tensor, filter=None) -> torch.Tensor:
         r"""Filtered back projection of parallel-hole projections onto the object grid of this system matrix, called by
         :class:`pytomography.algorithms.FilteredBackProjection`. Each projection is ramp filtered along :math:`r` (times
-        the window ``filter``, which is given the frequency in cycles per mm) and back projected as in :meth:`backward`,
-        weighted by the angle it stands for: :math:`\pi/N` for :math:`N` equally spaced views over 360 or over 180
-        degrees. Only the geometry is used, not the transforms of the system matrix, so the object is not corrected for
-        attenuation, collimator blurring or scatter.
+        the window ``filter``, which is given the frequency in cycles per mm), spread along :math:`x` and rotated back to
+        the object's frame (by :math:`+\phi`, the inverse of the projector's rotation: each voxel interpolates the
+        filtered projection at its own position, as an analytic inverse needs, rather than :meth:`backward`'s exact
+        transpose, whose weights add up to 0.83 to 1.34 per voxel at 45 degrees), weighted by the angle it stands for:
+        :math:`\pi/N` for :math:`N` equally spaced views over 360 or over 180 degrees. Only the geometry is used, not the
+        transforms of the system matrix, so the object is not corrected for attenuation, collimator blurring or scatter.
 
         Args:
             projections (torch.Tensor[N, Lr, Lz]): Projections.
@@ -402,6 +407,7 @@ class SPECTSystemMatrix(SystemMatrix):
             # filtered over the padded width, so that voxels off the axis get the tails of the filter
             proj_filtered = ramp_filter(pad_proj(projections[angle_idx].to(pytomography.device)), dy, window, dim=0)
             object_i = proj_filtered.unsqueeze(0) * boundary_box_bp
+            # rotated back by +phi: the inverse rotation, not the transpose (see above)
             object += self.rotation_transform.forward(object_i, phis[angle_idx]) * (weights[angle_idx] * dx)
         return unpad_object(object)
 

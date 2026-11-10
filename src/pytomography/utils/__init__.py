@@ -17,8 +17,9 @@ The main public objects:
   :class:`~pytomography.projectors.SPECT.MonteCarloHybridSPECTSystemMatrix`.
 * :mod:`pytomography.utils.plot_utils`: the PET colour map ``'pet'`` (registered with matplotlib when this package is
   imported) and :func:`~pytomography.utils.plot_utils.dual_imshow`, which overlays two images placed by their affines.
-* :func:`~pytomography.utils.rotate_detector_z`, :func:`~pytomography.utils.pad_object` and the other rotation and
-  padding functions of :mod:`pytomography.utils.spatial`.
+* :func:`~pytomography.utils.rotate_detector_z`, its exact transpose
+  :func:`~pytomography.utils.rotate_detector_z_transpose` (back projection), :func:`~pytomography.utils.pad_object` and
+  the other rotation and padding functions of :mod:`pytomography.utils.spatial`.
 * Smaller helpers: :func:`~pytomography.utils.rev_cumsum`, :func:`~pytomography.utils.get_distance`,
   :func:`~pytomography.utils.get_object_nearest_neighbour`, :func:`~pytomography.utils.get_1d_gaussian_kernel`,
   :func:`~pytomography.utils.print_collimator_parameters` and NIST's attenuation data
@@ -29,7 +30,7 @@ The main public objects:
 import them by name, e.g. ``from pytomography.utils import sss``.
 """
 from .misc import rev_cumsum, get_distance, get_object_nearest_neighbour, print_collimator_parameters, check_if_class_contains_method, get_1d_gaussian_kernel
-from .spatial import rotate_detector_z, compute_pad_size, pad_proj, pad_object, unpad_proj, unpad_object, pad_object_z, unpad_object_z
+from .spatial import rotate_detector_z, rotate_detector_z_transpose, compute_pad_size, pad_proj, pad_object, unpad_proj, unpad_object, pad_object_z, unpad_object_z
 from .nist_data import dual_sqrt_exponential, get_E_mu_data_from_datasheet, get_mu_from_spectrum_interp
 from .scatter import compute_EW_scatter
 from .fourier_filters import FBPFilter, RamLakFilter, SheppLoganFilter, HannFilter, GeneralizedHammingFilter, CosineFilter, TabulatedFilter, get_fbp_filter, ramp_filter
