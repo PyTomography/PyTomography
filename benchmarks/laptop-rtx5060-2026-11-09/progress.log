@@ -1,0 +1,91 @@
+GROUP spect1 start 2026-11-09T14:29:23
+START t_siminddata 2026-11-09T14:29:23
+RESULT t_siminddata passed 67.7s ram=4.5 gpu=0.39
+START t_dicomdata 2026-11-09T14:30:34
+RESULT t_dicomdata passed 23.8s ram=4.5 gpu=0.39
+START t_algorithms 2026-11-09T14:30:58
+RESULT t_algorithms passed 130.5s ram=6.7 gpu=1.58
+START t_accuracy_known_truth 2026-11-09T14:33:09
+RESULT t_accuracy_known_truth passed 56.2s ram=4.7 gpu=0.42
+START t_dicommultibed 2026-11-09T14:34:06
+RESULT t_dicommultibed passed 19.3s ram=5.2 gpu=0.44
+START t_dualpeak 2026-11-09T14:34:25
+RESULT t_dualpeak passed 16.6s ram=4.6 gpu=0.47
+START t_uncertainty_spect 2026-11-09T14:34:43
+RESULT t_uncertainty_spect passed 31.8s ram=7.4 gpu=0.71
+START t_starguide 2026-11-09T14:35:15
+RESULT t_starguide passed 40.4s ram=5.6 gpu=1.1
+START t_ac225_simind_recon 2026-11-09T14:35:56
+RESULT t_ac225_simind_recon passed 340.0s ram=9.6 gpu=2.11
+START t_CardiacReorientation 2026-11-09T14:41:36
+RESULT t_CardiacReorientation passed 8.0s ram=3.9 gpu=0.06
+START t_algorithms_measured 2026-11-09T14:41:45
+RESULT t_algorithms_measured passed 310.9s ram=7.1 gpu=1.69
+START t_fbp_spect 2026-11-09T14:46:56
+RESULT t_fbp_spect passed 12.1s ram=4.7 gpu=0.43
+GROUP spect1 done 2026-11-09T14:47:09
+GROUP spect2 start 2026-11-09T14:47:09
+START t_arf_psf 2026-11-09T14:47:09
+RESULT t_arf_psf passed 606.4s ram=9.6 gpu=2.8
+START t_ac225_dicom_recon 2026-11-09T14:57:16
+RESULT t_ac225_dicom_recon passed 453.8s ram=8.8 gpu=1.84
+START t_ac225_dualpeak 2026-11-09T15:04:50
+RESULT t_ac225_dualpeak passed 1256.3s ram=7.5 gpu=1.68
+START t_cgls 2026-11-09T15:25:47
+RESULT t_cgls passed 467.6s ram=6.4 gpu=0.75
+START t_kernel_deep_kernel_spect_recon 2026-11-09T15:33:35
+RESULT t_kernel_deep_kernel_spect_recon passed 576.7s ram=9.1 gpu=1.44
+GROUP spect2 done 2026-11-09T15:43:12
+GROUP any start 2026-11-09T15:43:12
+START t_examplesystemmatrix 2026-11-09T15:43:12
+RESULT t_examplesystemmatrix passed 6.7s ram=2.7 gpu=0.0
+START t_plotting 2026-11-09T15:43:20
+RESULT t_plotting passed 7.1s ram=3.0 gpu=0.0
+GROUP any done 2026-11-09T15:43:27
+GROUP ct start 2026-11-09T15:43:27
+START t_CT_GEN3 2026-11-09T15:43:27
+RESULT t_CT_GEN3 passed 503.0s ram=14.5 gpu=1.63
+START t_CT_microct 2026-11-09T15:51:51
+RESULT t_CT_microct passed 59.6s ram=12.1 gpu=6.66
+START t_fbp_ct 2026-11-09T15:52:51
+RESULT t_fbp_ct passed 457.7s ram=11.9 gpu=1.3
+START t_pct_abdomen 2026-11-09T16:00:29
+RESULT t_pct_abdomen passed 112.1s ram=6.7 gpu=0.82
+GROUP ct done 2026-11-09T16:02:22
+GROUP pet1 start 2026-11-09T16:02:22
+START t_pet_introduction 2026-11-09T16:02:22
+RESULT t_pet_introduction passed 437.8s ram=16.4 gpu=2.91
+START t_GE_HDF5 2026-11-09T16:09:40
+RESULT t_GE_HDF5 passed 166.2s ram=9.2 gpu=1.8
+START t_uncertainty_pet 2026-11-09T16:12:27
+RESULT t_uncertainty_pet passed 120.0s ram=10.8 gpu=2.07
+START t_PETSIRD 2026-11-09T16:14:27
+RESULT t_PETSIRD passed 266.4s ram=21.8 gpu=5.98
+GROUP pet1 done 2026-11-09T16:18:54
+GROUP pet2 start 2026-11-09T16:18:54
+START t_PETGATE_scat_sino 2026-11-09T16:18:54
+RESULT t_PETGATE_scat_sino passed 943.8s ram=17.9 gpu=1.53
+START t_PETGATE_scat_sinoTOF 2026-11-09T16:34:38
+RESULT t_PETGATE_scat_sinoTOF passed 808.0s ram=18.3 gpu=5.61
+START t_PETGATE_scat_lm 2026-11-09T16:48:07
+RESULT t_PETGATE_scat_lm passed 162.4s ram=19.2 gpu=2.88
+START t_PETGATE_scat_lmTOF 2026-11-09T16:50:50
+RESULT t_PETGATE_scat_lmTOF passed 157.7s ram=19.4 gpu=3.44
+START t_PETGATE_DIP 2026-11-09T16:53:28
+RESULT t_PETGATE_DIP failed 739.8s ram=19.0 gpu=
+GROUP pet2 done 2026-11-09T17:05:48
+ALL DONE 2026-11-09T17:05:48
+GROUP mc start 2026-11-09T17:16:56
+START t_spect_mc 2026-11-09T17:16:56
+RESULT t_spect_mc timeout 3608.9s ram=4.6 gpu=
+START t_spect_mc2 2026-11-09T18:17:05
+RESULT t_spect_mc2 NO-REPORT (see C:\v4runs\laptop\runs\t_spect_mc2.log / C:\v4runs\laptop\runs\t_spect_mc2.err)
+GROUP mc done 2026-11-09T18:18:06
+ALL DONE 2026-11-09T18:18:06
+GROUP mc start 2026-11-09T18:18:31
+START t_spect_mc 2026-11-09T18:18:31
+RESULT t_spect_mc passed 3737.9s ram=4.6 gpu=0.46
+START t_spect_mc2 2026-11-09T19:20:50
+RESULT t_spect_mc2 passed 3301.1s ram=4.8 gpu=0.46
+GROUP mc done 2026-11-09T20:15:51
+ALL DONE 2026-11-09T20:15:51

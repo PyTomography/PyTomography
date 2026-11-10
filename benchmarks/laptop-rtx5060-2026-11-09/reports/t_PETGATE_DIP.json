@@ -1,0 +1,11 @@
+[
+ {
+  "notebook": "t_PETGATE_DIP",
+  "status": "failed",
+  "cell": 22,
+  "error": "OutOfMemoryError: CUDA out of memory. Tried to allocate 226.00 MiB. GPU 0 has a total capacity of 7.93 GiB of which 0 bytes is free. Including non-PyTorch memory, this process has 17179869184.00 GiB memory in use. Of the allocated memory 6.70 GiB is allocated by PyTorch, and 261.03 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLO",
+  "date": "2026-11-09",
+  "wall_time_s": 739.8,
+  "peak_kernel_gb": 19.0
+ }
+]

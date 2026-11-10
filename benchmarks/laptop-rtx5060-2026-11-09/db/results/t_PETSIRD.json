@@ -1,0 +1,12 @@
+{
+  "cell": null,
+  "date": "2026-11-09",
+  "error": null,
+  "group": "pet1",
+  "note": "Fit on the 32 GB laptop: peaked at 21.8 GB here against 25.2 GB on the desktop",
+  "peak_gpu_gb": 5.98,
+  "peak_ram_gb": 21.8,
+  "round": 1,
+  "status": "passed",
+  "wall_time_s": 266.4
+}

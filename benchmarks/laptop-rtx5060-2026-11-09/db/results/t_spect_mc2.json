@@ -1,0 +1,12 @@
+{
+  "cell": null,
+  "date": "2026-11-09",
+  "error": null,
+  "group": "mc",
+  "note": "Run with the runner's per-cell limit at 3 h (--timeout 10800), as for t_spect_mc. Tutorial unchanged.",
+  "peak_gpu_gb": 0.46,
+  "peak_ram_gb": 4.8,
+  "round": 2,
+  "status": "passed",
+  "wall_time_s": 3301.1
+}

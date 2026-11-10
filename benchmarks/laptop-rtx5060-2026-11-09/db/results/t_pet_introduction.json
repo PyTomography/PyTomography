@@ -1,0 +1,12 @@
+{
+  "cell": null,
+  "date": "2026-11-09",
+  "error": null,
+  "group": "pet1",
+  "note": null,
+  "peak_gpu_gb": 2.91,
+  "peak_ram_gb": 16.4,
+  "round": 1,
+  "status": "passed",
+  "wall_time_s": 437.8
+}

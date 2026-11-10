@@ -1,0 +1,35 @@
+{
+  "at": "2026-11-10T05:35:00Z",
+  "biggest_slowdowns": "t_siminddata 13.5x (first tutorial: 68 s vs 5 s, one-off kernel compiles), t_fbp_ct 4.2x, t_ac225_dualpeak 4.1x, t_arf_psf 4.0x, t_ac225_dicom_recon 3.6x, t_ac225_simind_recon 3.5x",
+  "by_modality": {
+    "Any": "2 passed, 0.2 vs 0.2 min (0.99x)",
+    "CT": "3 passed, 17.0 vs 7.5 min (2.27x)",
+    "Monte Carlo SPECT": "t_spect_mc 62.3 vs 41.0 min (1.52x), t_spect_mc2 55.0 vs 36.6 min (1.50x), SIMIND 8.0 on 20 processes",
+    "PET": "8 passed, 51.0 vs 36.8 min (1.39x)",
+    "Proton CT": "1 passed, 1.9 vs 0.8 min (2.29x)",
+    "SPECT": "19 passed, 191.0 vs 98.3 min (1.94x); without the two Monte Carlo tutorials 73.6 vs 20.7 min (3.56x)"
+  },
+  "desktop_total_same_set_min": 158,
+  "failed": {
+    "t_PETGATE_DIP": "CUDA out of memory at cell 22 after 12.3 min (needs 8.0 GB; 6.9 GB usable), as expected"
+  },
+  "files": "C:\\v4runs\\laptop\\laptop_vs_desktop.csv and .md; per-tutorial reports in C:\\v4runs\\laptop\\runs\\<tutorial>\\report.json and executed notebooks beside them",
+  "followups": {
+    "dip_pr": "https://github.com/PyTomography/PyTomography/pull/442 (Closes #439): START_CHANNELS / LBFGS_HISTORY / NETWORK_GB in the memory cell, with measured GPU memory per width. 8 channels: passed in 1936 s, 6.58 GB GPU, contrast 4.08 and noise 0.51 (12: 4.24 and 0.48). The desktop should confirm the 12-channel default's images are unchanged.",
+    "install_docs": "Install page: cu130 needs NVIDIA driver 580+; the CUDA 12 libparallelproj build is named cuda129; the cu128 example now gives torch 2.11.",
+    "mc_timeout": "On this laptop the Monte Carlo SPECT cell takes just over the runner's default 1 h per-cell limit; the tutorials' comment says 45 min on 24 cores.",
+    "simind": "The public Windows Ver 8.0 link serves the macOS file; the laptop used Luke's own copy (smc_win_intel_64_current.zip, sha256 fdd7246c5aa86a0bfdc357f7abe93ed0904c58215deef43b68e61d76c6b138aa). Mirroring it needs Michael Ljungberg's permission."
+  },
+  "install_findings": "Acer's driver 577.13 (CUDA 12.9) could not run the cu130 stack until updated to 621.14; SIMIND's Windows 8.0 link serves the macOS file; RAM rule of 24 GB free not met (21.9 GB) after removing McAfee.",
+  "laptop_total_min": 273.4,
+  "memory": "Every tutorial fit the 25 GB RAM cap; t_PETSIRD peaked at 21.8 GB (25.2 on the desktop) and t_CT_microct at 6.66 GB GPU without binning. Laptop RAM peaks ran lower than the desktop's throughout.",
+  "not_run": [],
+  "observation": "PET slows least (1.4x) probably because the desktop read its data from a USB hard disk and the laptop from its internal SSD; GPU-heavy SPECT slows most (3.6x).",
+  "passed": 33,
+  "passed_only": "laptop 261.1 min vs desktop 143.6 min = 1.82x",
+  "ran": 34,
+  "runner_settings": "The page's flags (--ram-cap-gb 25 --max-kernel-gb 28 --min-free-gb 2 --no-viewer), one runner call per tutorial, default --timeout 3600 except the two Monte Carlo tutorials at 10800",
+  "smallest": "t_plotting 0.71x, t_uncertainty_pet 1.02x, t_dicommultibed 1.07x, t_CT_microct 1.15x, t_GE_HDF5 1.15x",
+  "vs_estimates": "All passed tutorials came in at or under the page's estimate except t_siminddata (compile warm-up) and t_fbp_ct (7.6 min vs 3.6-6.2).",
+  "wall_clock": "SPECT to PET 2 h 36 min (9 Nov 14:29 to 17:05 local); Monte Carlo SPECT 1 h 57 min (18:18 to 20:16), after a first t_spect_mc stopped at the runner's 1 h per-cell limit"
+}

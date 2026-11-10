@@ -1,0 +1,12 @@
+{
+  "cell": 22,
+  "date": "2026-11-09",
+  "error": "OutOfMemoryError: CUDA out of memory. Tried to allocate 226.00 MiB. GPU 0 has a total capacity of 7.93 GiB of which 0 bytes is free. (6.70 GiB allocated by PyTorch, 261 MiB reserved but unallocated)",
+  "group": "pet2",
+  "note": "As expected: needs 8.0 GB of GPU memory. Failed cleanly after 12.3 min, since sysmem fallback is off. Tutorial unchanged.",
+  "peak_gpu_gb": null,
+  "peak_ram_gb": 19,
+  "round": 2,
+  "status": "failed",
+  "wall_time_s": 739.8
+}

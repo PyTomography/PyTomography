@@ -1,0 +1,20 @@
+[
+ {
+  "notebook": "t_PETGATE_scat_lmTOF",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-09",
+  "wall_time_s": 157.7,
+  "peak_kernel_gb": 19.4,
+  "info": {
+   "pytomography": "4.0.0rc1",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc1\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 3.44,
+   "peak_ram_gb": 19.7
+  }
+ }
+]

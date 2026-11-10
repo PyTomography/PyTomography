@@ -1,0 +1,11 @@
+[
+ {
+  "notebook": "t_spect_mc",
+  "status": "timeout",
+  "cell": 26,
+  "error": "A cell timed out while it was being executed, after 3600 seconds.",
+  "date": "2026-11-09",
+  "wall_time_s": 3608.9,
+  "peak_kernel_gb": 4.6
+ }
+]

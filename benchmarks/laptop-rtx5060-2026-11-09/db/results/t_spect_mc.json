@@ -1,0 +1,12 @@
+{
+  "cell": null,
+  "date": "2026-11-09",
+  "error": null,
+  "group": "mc",
+  "note": "Passed with the runner's per-cell limit raised to 3 h (--timeout 10800): its SIMIND cell (200 million events, 20 processes) runs just over an hour here, so the default 1 h limit stopped the first try. Tutorial unchanged.",
+  "peak_gpu_gb": 0.46,
+  "peak_ram_gb": 4.6,
+  "round": 2,
+  "status": "passed",
+  "wall_time_s": 3737.9
+}

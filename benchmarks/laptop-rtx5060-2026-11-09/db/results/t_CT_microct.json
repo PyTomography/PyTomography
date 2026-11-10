@@ -1,0 +1,12 @@
+{
+  "cell": null,
+  "date": "2026-11-09",
+  "error": null,
+  "group": "ct",
+  "note": "Fit in 8 GB without binning: 6.66 GB peak, about 6.9 GB free to CUDA",
+  "peak_gpu_gb": 6.66,
+  "peak_ram_gb": 12.1,
+  "round": 1,
+  "status": "passed",
+  "wall_time_s": 59.6
+}

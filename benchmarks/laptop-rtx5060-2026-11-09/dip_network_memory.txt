@@ -1,0 +1,6 @@
+{"start_channels": 12, "input_shape": [1, 160, 192, 160], "n_params": 3003445, "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU", "baseline_gb": 0.063, "pretrain_s": 10.2, "pretrain_peak_gb": 5.129, "pretrain_reserved_gb": 6.837, "refit_s": 5.1, "refit_peak_gb": 5.522, "refit_reserved_gb": 6.845}
+{"start_channels": 10, "input_shape": [1, 160, 192, 160], "n_params": 2086371, "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU", "baseline_gb": 0.06, "pretrain_s": 9.5, "pretrain_peak_gb": 4.349, "pretrain_reserved_gb": 5.748, "refit_s": 4.8, "refit_peak_gb": 4.657, "refit_reserved_gb": 5.755}
+{"start_channels": 8, "input_shape": [1, 160, 192, 160], "n_params": 1335897, "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU", "baseline_gb": 0.057, "pretrain_s": 7.2, "pretrain_peak_gb": 3.47, "pretrain_reserved_gb": 4.496, "refit_s": 3.5, "refit_peak_gb": 3.68, "refit_reserved_gb": 4.5}
+{"start_channels": 6, "input_shape": [1, 160, 192, 160], "n_params": 752023, "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU", "baseline_gb": 0.054, "pretrain_s": 6.6, "pretrain_peak_gb": 2.698, "pretrain_reserved_gb": 3.351, "refit_s": 3.1, "refit_peak_gb": 2.876, "refit_reserved_gb": 3.355}
+
+[exited with code 0]

@@ -1,0 +1,3002 @@
+{
+ "t_ac225_dicom_recon": [
+  {
+   "cell": 2,
+   "s": 1.9,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 3,
+   "s": 1.1,
+   "code": "import matplotlib.pyplot as plt"
+  },
+  {
+   "cell": 5,
+   "s": 0.0,
+   "code": "path = DATA / 'SPECT'"
+  },
+  {
+   "cell": 7,
+   "s": 0.0,
+   "code": "pathCT = os.path.join(path, 'Ac225-NEMA-SymT2', 'CT')"
+  },
+  {
+   "cell": 9,
+   "s": 0.0,
+   "code": "collimator = io.SPECT.collimator('SY-HE')            # the Symbia high energy collimator"
+  },
+  {
+   "cell": 11,
+   "s": 2.2,
+   "code": "index_peak = 3"
+  },
+  {
+   "cell": 13,
+   "s": 0.2,
+   "code": "photopeak = projections[index_peak]"
+  },
+  {
+   "cell": 15,
+   "s": 150.1,
+   "code": "arfs = generate_arfs(stack, response, proj_meta, peak=index_peak)"
+  },
+  {
+   "cell": 17,
+   "s": 15.3,
+   "code": "att_transform = SPECTAttenuationTransform(attenuation_map=attenuation_map)"
+  },
+  {
+   "cell": 19,
+   "s": 0.0,
+   "code": "likelihood = PoissonLogLikelihood(system_matrix, photopeak, scatter)"
+  },
+  {
+   "cell": 21,
+   "s": 280.2,
+   "code": "recon = algorithm(n_iters=100, n_subsets=3)"
+  },
+  {
+   "cell": 23,
+   "s": 0.0,
+   "code": "filter = GaussianFilter(20) # FWHM in mm"
+  },
+  {
+   "cell": 25,
+   "s": 0.7,
+   "code": "ct = io.load_image(files_CT)"
+  },
+  {
+   "cell": 28,
+   "s": 0.1,
+   "code": "for name, image in [('osem', recon), ('osem_smoothed', recon_smoothed)]:"
+  },
+  {
+   "cell": 29,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_ac225_dualpeak": [
+  {
+   "cell": 2,
+   "s": 1.9,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 3,
+   "s": 1.0,
+   "code": "import os"
+  },
+  {
+   "cell": 4,
+   "s": 0.0,
+   "code": "path = DATA / 'SPECT' / 'Ac225-NEMA-SymT2'"
+  },
+  {
+   "cell": 6,
+   "s": 0.8,
+   "code": "projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)"
+  },
+  {
+   "cell": 8,
+   "s": 0.3,
+   "code": "photopeak218 = projections[0]"
+  },
+  {
+   "cell": 10,
+   "s": 0.0,
+   "code": "collimator = io.SPECT.collimator('SY-HE')            # the Symbia high energy collimator"
+  },
+  {
+   "cell": 12,
+   "s": 128.5,
+   "code": "# spectarf's kernels are per photon of the peak's energy (branching ratio 1.0): weight them by each "
+  },
+  {
+   "cell": 14,
+   "s": 0.0,
+   "code": "system_matrix = ExtendedSystemMatrix(system_matrices=[system_matrix218, system_matrix440])"
+  },
+  {
+   "cell": 16,
+   "s": 0.0,
+   "code": "likelihoods = {"
+  },
+  {
+   "cell": 17,
+   "s": 1120.6,
+   "code": "recons = {}"
+  },
+  {
+   "cell": 19,
+   "s": 0.0,
+   "code": "seconds = float(proj_meta.frame_duration[0])"
+  },
+  {
+   "cell": 21,
+   "s": 0.9,
+   "code": "ct = io.load_image(files_CT)"
+  },
+  {
+   "cell": 22,
+   "s": 0.1,
+   "code": "x = affine[0, 0] * np.arange(object_meta.shape[0]) + affine[0, 3]   # mm"
+  },
+  {
+   "cell": 25,
+   "s": 0.2,
+   "code": "for (name, image), folder in zip(Bq_per_mL.items(), ['osem_218keV', 'osem_440keV', 'osem_joint']):"
+  },
+  {
+   "cell": 26,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_ac225_simind_recon": [
+  {
+   "cell": 2,
+   "s": 1.9,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 3,
+   "s": 1.0,
+   "code": "import os"
+  },
+  {
+   "cell": 4,
+   "s": 0.0,
+   "code": "# change to where you saved the data"
+  },
+  {
+   "cell": 6,
+   "s": 1.2,
+   "code": "dT = 2.5 * 60 # seconds per projection"
+  },
+  {
+   "cell": 8,
+   "s": 0.0,
+   "code": "path_amap = os.path.join(PATH, 'attenuation_maps', 'amap440.hct')"
+  },
+  {
+   "cell": 10,
+   "s": 0.0,
+   "code": "def perform_reconstruction(psf_transform):"
+  },
+  {
+   "cell": 12,
+   "s": 0.0,
+   "code": "collimator = io.SPECT.collimator('SY-HE')            # the Symbia high energy collimator"
+  },
+  {
+   "cell": 14,
+   "s": 152.6,
+   "code": "arfs = generate_arfs(stack, response, proj_meta, peak=idx_peak)"
+  },
+  {
+   "cell": 16,
+   "s": 150.4,
+   "code": "psf_transform_arf = psf_transform(arfs, normalize=True)"
+  },
+  {
+   "cell": 18,
+   "s": 29.4,
+   "code": "path_bi213_prim = files_NM[1][1]"
+  },
+  {
+   "cell": 20,
+   "s": 0.0,
+   "code": "recons = [reconbad, recon_arf]"
+  },
+  {
+   "cell": 21,
+   "s": 0.1,
+   "code": "fig, ax = plt.subplots(1,2,figsize=(6,4), gridspec_kw={'wspace':0.0})"
+  },
+  {
+   "cell": 23,
+   "s": 0.1,
+   "code": "for name, image in [('arf_psf', recon_arf), ('gaussian_psf', reconbad)]:"
+  },
+  {
+   "cell": 24,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_accuracy_known_truth": [
+  {
+   "cell": 1,
+   "s": 1.9,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 2,
+   "s": 0.9,
+   "code": "import re"
+  },
+  {
+   "cell": 4,
+   "s": 1.1,
+   "code": "path = DATA / 'SPECT' / 'SIMIND-Jaszak' / 'lu177_SYME_jaszak'"
+  },
+  {
+   "cell": 6,
+   "s": 0.3,
+   "code": "block = (path / 'results.res').read_text(errors='replace').split('MULTIPLE SOURCE CONFIGURATION')[1]"
+  },
+  {
+   "cell": 8,
+   "s": 0.3,
+   "code": "psf_meta = io.SPECT.simind_psf(windows['photopeak'])"
+  },
+  {
+   "cell": 10,
+   "s": 0.0,
+   "code": "class RegionStatistics(Callback):"
+  },
+  {
+   "cell": 12,
+   "s": 49.4,
+   "code": "n_iters, n_subsets = 40, 8"
+  },
+  {
+   "cell": 14,
+   "s": 0.0,
+   "code": "voxel_mL = float(np.prod(object_meta.dr)) / 1000  # voxel sizes are in mm: mm\u00b3 to mL"
+  },
+  {
+   "cell": 16,
+   "s": 0.4,
+   "code": "fig, axes = plt.subplots(2, 4, figsize=(13, 6), constrained_layout=True)"
+  },
+  {
+   "cell": 17,
+   "s": 0.3,
+   "code": "spheres = torch.stack([masks[f'sphere {k}'] for k in range(1, 7)]).any(0)"
+  },
+  {
+   "cell": 20,
+   "s": 0.1,
+   "code": "for name, recon in [('OSEM', recon_osem), ('BSREM', recon_bsrem)]:"
+  },
+  {
+   "cell": 22,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_algorithms": [
+  {
+   "cell": 1,
+   "s": 1.9,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 2,
+   "s": 1.0,
+   "code": "import os"
+  },
+  {
+   "cell": 3,
+   "s": 0.0,
+   "code": "# Paths are set in the data cell at the top of this tutorial"
+  },
+  {
+   "cell": 4,
+   "s": 0.0,
+   "code": "# Memory: this tutorial peaks at about 7 GB of RAM, during KEM, whose kernel (1 GB) is built on the "
+  },
+  {
+   "cell": 6,
+   "s": 0.0,
+   "code": "TYPE = 'DICOM' # DICOM or SIMIND"
+  },
+  {
+   "cell": 7,
+   "s": 2.0,
+   "code": "if TYPE=='SIMIND':"
+  },
+  {
+   "cell": 11,
+   "s": 8.6,
+   "code": "recon_algorithm = OSEM(likelihood)"
+  },
+  {
+   "cell": 14,
+   "s": 33.4,
+   "code": "weight_top8anatomy = TopNAnatomyNeighbourWeight(amap, N_neighbours=8)"
+  },
+  {
+   "cell": 18,
+   "s": 34.0,
+   "code": "weight_top8anatomy = TopNAnatomyNeighbourWeight(amap, N_neighbours=8)"
+  },
+  {
+   "cell": 21,
+   "s": 0.0,
+   "code": "kem_transform = KEMTransform("
+  },
+  {
+   "cell": 23,
+   "s": 1.4,
+   "code": "system_matrix_kem = KEMSystemMatrix(system_matrix, kem_transform)"
+  },
+  {
+   "cell": 25,
+   "s": 0.0,
+   "code": "likelihood_kem = PoissonLogLikelihood(system_matrix_kem, photopeak, additive_term=scatter)"
+  },
+  {
+   "cell": 27,
+   "s": 46.4,
+   "code": "recon_algorithm_kem = KEM(likelihood_kem)"
+  },
+  {
+   "cell": 29,
+   "s": 0.0,
+   "code": "recons = [recon_OSEM, recon_osmaposl, recon_bsrem, recon_kem]"
+  },
+  {
+   "cell": 30,
+   "s": 0.1,
+   "code": "fig, ax = plt.subplots(1,4,figsize=(10,3), gridspec_kw={'wspace':0.0})"
+  },
+  {
+   "cell": 32,
+   "s": 0.3,
+   "code": "for name, recon in zip(recon_names, recons):"
+  },
+  {
+   "cell": 33,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_algorithms_measured": [
+  {
+   "cell": 1,
+   "s": 2.1,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 2,
+   "s": 1.0,
+   "code": "import time"
+  },
+  {
+   "cell": 3,
+   "s": 0.0,
+   "code": "# Memory: this tutorial peaks at about 7.5 GB of RAM, during KEM, whose kernel (1 GB) is built on th"
+  },
+  {
+   "cell": 5,
+   "s": 2.2,
+   "code": "path = DATA / 'SPECT' / 'Lu177-NEMA-SymT2'"
+  },
+  {
+   "cell": 7,
+   "s": 0.8,
+   "code": "rois = io.load_mask(path / 'lu177_nema_symt2_rois.seg.nrrd')  # made once by docs/tools/make_roi_mas"
+  },
+  {
+   "cell": 8,
+   "s": 1.0,
+   "code": "image = recon_scanner.cpu().numpy()"
+  },
+  {
+   "cell": 10,
+   "s": 0.0,
+   "code": "def contrast_and_noise(image):"
+  },
+  {
+   "cell": 12,
+   "s": 29.3,
+   "code": "n_iters, n_subsets = 40, 8"
+  },
+  {
+   "cell": 13,
+   "s": 271.7,
+   "code": "t0 = time.time()"
+  },
+  {
+   "cell": 15,
+   "s": 0.3,
+   "code": "scanner_contrast, scanner_noise = contrast_and_noise(recon_scanner)"
+  },
+  {
+   "cell": 18,
+   "s": 0.4,
+   "code": "def curve(ax, noise, contrast, i, **style):"
+  },
+  {
+   "cell": 19,
+   "s": 0.0,
+   "code": "final = {name: (r.contrast[-1], r.noise[-1]) for name, r in results.items()}"
+  },
+  {
+   "cell": 21,
+   "s": 0.0,
+   "code": "def at_noise(noise, contrast, level):"
+  },
+  {
+   "cell": 24,
+   "s": 0.2,
+   "code": "beta_shown = 0.1"
+  },
+  {
+   "cell": 27,
+   "s": 0.3,
+   "code": "for name, image in [('OSEM', recon_osem), ('OSEM_filtered', recon_osem_filtered), ('OSMAPOSL', recon"
+  },
+  {
+   "cell": 29,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_arf_psf": [
+  {
+   "cell": 2,
+   "s": 2.0,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 3,
+   "s": 1.0,
+   "code": "import os"
+  },
+  {
+   "cell": 5,
+   "s": 0.0,
+   "code": "collimator = io.SPECT.collimator('SY-HE')            # the Siemens Symbia high energy collimator"
+  },
+  {
+   "cell": 7,
+   "s": 360.4,
+   "code": "file_NM = os.path.join(DATA, 'SPECT', 'Ac225-NEMA-SymT2', 'projection_data.IMA')"
+  },
+  {
+   "cell": 9,
+   "s": 0.8,
+   "code": "fig, ax = plt.subplots(1, 2, figsize=(11, 3.8), sharey=True, gridspec_kw={'wspace': 0.05})"
+  },
+  {
+   "cell": 11,
+   "s": 2.8,
+   "code": "distances = [50.0, 150.0, 300.0]"
+  },
+  {
+   "cell": 13,
+   "s": 4.1,
+   "code": "photopeak = psf_at(arfs, 150.0, pixel_mm=1.0, size_mm=160.0)"
+  },
+  {
+   "cell": 15,
+   "s": 233.3,
+   "code": "thin_septa, _ = camera_model({**collimator, 'septal_thickness': 1.5}, detector, camera)   # a custom"
+  },
+  {
+   "cell": 17,
+   "s": 0.0,
+   "code": "psf = psf_transform(arfs)"
+  },
+  {
+   "cell": 18,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_CardiacReorientation": [
+  {
+   "cell": 3,
+   "s": 1.9,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 4,
+   "s": 1.0,
+   "code": "import os"
+  },
+  {
+   "cell": 5,
+   "s": 0.0,
+   "code": "# Paths are set in the data cell at the top of this tutorial"
+  },
+  {
+   "cell": 7,
+   "s": 0.7,
+   "code": "file_NM = os.path.join(PATH, 'anonymized_file.dcm')"
+  },
+  {
+   "cell": 9,
+   "s": 1.4,
+   "code": "psf_meta = io.SPECT.collimator_psf('SY-LEHR', proj_meta.energy_windows[0].photon_energy)  # 140.5 ke"
+  },
+  {
+   "cell": 11,
+   "s": 0.3,
+   "code": "# Create a figure and a set of subplots"
+  },
+  {
+   "cell": 14,
+   "s": 0.8,
+   "code": "from pytomography.utils.cardiac_spect import get_mask, get_shift_values, get_angle, shift_object, ro"
+  },
+  {
+   "cell": 16,
+   "s": 0.1,
+   "code": "plot_arrow(ShiftedAxial, 235)"
+  },
+  {
+   "cell": 18,
+   "s": 0.3,
+   "code": "def plot_views(tensor: torch.Tensor):"
+  },
+  {
+   "cell": 20,
+   "s": 0.0,
+   "code": "saved = io.save_dicom(recon, OUTPUT / 't_CardiacReorientation' / 'osem', object_meta, reference=file"
+  },
+  {
+   "cell": 21,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_cgls": [
+  {
+   "cell": 1,
+   "s": 1.9,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 2,
+   "s": 1.1,
+   "code": "import os"
+  },
+  {
+   "cell": 3,
+   "s": 0.0,
+   "code": "# Memory: each bed is 128 x 128 x 128 voxels and 60 views, so a reconstruction needs about 0.5 GB of"
+  },
+  {
+   "cell": 5,
+   "s": 5.1,
+   "code": "path = DATA / 'SPECT' / 'Lu177-PSMA-GEDisc'"
+  },
+  {
+   "cell": 7,
+   "s": 0.9,
+   "code": "H = beds[0]['system_matrix']"
+  },
+  {
+   "cell": 9,
+   "s": 31.4,
+   "code": "def reconstruct(make, **settings):"
+  },
+  {
+   "cell": 11,
+   "s": 234.5,
+   "code": "cgls = {}"
+  },
+  {
+   "cell": 13,
+   "s": 77.7,
+   "code": "def preconditioned(bed):"
+  },
+  {
+   "cell": 15,
+   "s": 94.8,
+   "code": "def weighted(bed):"
+  },
+  {
+   "cell": 17,
+   "s": 11.2,
+   "code": "rois = ['liver', 'kidney_left', 'kidney_right', 'spleen']"
+  },
+  {
+   "cell": 18,
+   "s": 0.3,
+   "code": "fig, axes = plt.subplots(1, 2, figsize=(12, 4.3), constrained_layout=True)"
+  },
+  {
+   "cell": 20,
+   "s": 2.9,
+   "code": "j = int(kidneys.nonzero()[:, 1].float().mean())  # the coronal slice through the kidneys"
+  },
+  {
+   "cell": 22,
+   "s": 2.3,
+   "code": "body = io.attenuation_map(files_CT, object_meta_stitched, energy=208.0).to(pytomography.device) > 0."
+  },
+  {
+   "cell": 24,
+   "s": 1.6,
+   "code": "ct = io.load_image(files_CT)"
+  },
+  {
+   "cell": 25,
+   "s": 0.0,
+   "code": "print(f\"{'':28s}\" + ''.join(f'{roi:>14s}' for roi in rois) + f\"{'liver noise':>14s}\")"
+  },
+  {
+   "cell": 27,
+   "s": 0.1,
+   "code": "saved = io.save_dicom(chosen.clamp(min=0), OUTPUT / 't_cgls' / 'weighted_cgls', object_meta_stitched"
+  },
+  {
+   "cell": 29,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_CT_GEN3": [
+  {
+   "cell": 1,
+   "s": 2.6,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 2,
+   "s": 2.4,
+   "code": "import time"
+  },
+  {
+   "cell": 3,
+   "s": 0.0,
+   "code": "# Memory: this tutorial needs about 16 GB of RAM (15.7 GB measured on Windows). RAM_GB caps what PyT"
+  },
+  {
+   "cell": 5,
+   "s": 53.8,
+   "code": "folder = DATA / 'CT' / 'ldct-c145'"
+  },
+  {
+   "cell": 7,
+   "s": 0.2,
+   "code": "fig, axes = plt.subplots(5, 1, figsize=(6, 5), constrained_layout=True)"
+  },
+  {
+   "cell": 9,
+   "s": 0.0,
+   "code": "system_matrix = CTGen3SystemMatrix(object_meta, proj_meta)"
+  },
+  {
+   "cell": 11,
+   "s": 123.0,
+   "code": "reconstruction = FilteredBackProjection(proj, system_matrix, filter='hann', slice_thickness=1.25)  #"
+  },
+  {
+   "cell": 13,
+   "s": 3.5,
+   "code": "scanner_files = sorted((folder / 'full_dose_images').glob('*.dcm'))"
+  },
+  {
+   "cell": 14,
+   "s": 8.1,
+   "code": "k, j = 157, 256  # an axial slice through the chest, a coronal slice through the middle (k runs from"
+  },
+  {
+   "cell": 16,
+   "s": 11.3,
+   "code": "del proj  # 2 GB: free it before reading the projections again"
+  },
+  {
+   "cell": 18,
+   "s": 117.6,
+   "code": "t0 = time.time()"
+  },
+  {
+   "cell": 20,
+   "s": 114.9,
+   "code": "t0 = time.time()"
+  },
+  {
+   "cell": 22,
+   "s": 60.2,
+   "code": "matched = FilteredBackProjection(proj, system_matrix, filter=window, slice_thickness=1.25)()"
+  },
+  {
+   "cell": 23,
+   "s": 1.5,
+   "code": "fig, ax = plt.subplots(figsize=(7, 4), constrained_layout=True)"
+  },
+  {
+   "cell": 26,
+   "s": 2.1,
+   "code": "saved = io.save_dicom(hu_matched, OUTPUT / 't_CT_GEN3' / 'fbp_matched', object_meta, units='HU', sli"
+  },
+  {
+   "cell": 28,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_CT_microct": [
+  {
+   "cell": 1,
+   "s": 1.9,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 2,
+   "s": 1.0,
+   "code": "import time"
+  },
+  {
+   "cell": 3,
+   "s": 0.0,
+   "code": "# Memory: the FDK and OS-SART reconstructions below print their estimates before they run (estimate_"
+  },
+  {
+   "cell": 5,
+   "s": 6.3,
+   "code": "folder = DATA / 'CT' / 'SophiaBeads-256' / 'SophiaBeads_256_averaged'"
+  },
+  {
+   "cell": 7,
+   "s": 0.1,
+   "code": "fig, ax = plt.subplots(figsize=(4, 4))"
+  },
+  {
+   "cell": 9,
+   "s": 0.0,
+   "code": "n = object_meta.shape[0]  # 500 voxels across"
+  },
+  {
+   "cell": 11,
+   "s": 18.1,
+   "code": "def sharpness(image):"
+  },
+  {
+   "cell": 12,
+   "s": 0.2,
+   "code": "fig, axes = plt.subplots(1, 3, figsize=(13, 4), constrained_layout=True)"
+  },
+  {
+   "cell": 14,
+   "s": 10.8,
+   "code": "system_matrix = system_matrix_for(best_cor, n)"
+  },
+  {
+   "cell": 16,
+   "s": 15.4,
+   "code": "# OS-SART keeps one H_m^T 1 image per subset (on the GPU), so here fewer subsets take less memory"
+  },
+  {
+   "cell": 18,
+   "s": 0.7,
+   "code": "crop = slice(40, n - 40)  # slices away from the top and bottom of the cone"
+  },
+  {
+   "cell": 19,
+   "s": 0.0,
+   "code": "air = (slice(0, 40), slice(0, 40), slice(n // 2 - 20, n // 2 + 20))  # a corner of the grid outside "
+  },
+  {
+   "cell": 21,
+   "s": 3.6,
+   "code": "saved = io.save_dicom(recon_sart, OUTPUT / 't_CT_microct' / 'os_sart', system_matrix.object_meta,"
+  },
+  {
+   "cell": 23,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_dicomdata": [
+  {
+   "cell": 1,
+   "s": 2.0,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 2,
+   "s": 1.0,
+   "code": "import os"
+  },
+  {
+   "cell": 3,
+   "s": 0.0,
+   "code": "# Paths are set in the data cell at the top of this tutorial"
+  },
+  {
+   "cell": 6,
+   "s": 0.0,
+   "code": "# initialize the `path`` variable below to specify the location of the required data"
+  },
+  {
+   "cell": 8,
+   "s": 0.8,
+   "code": "projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)"
+  },
+  {
+   "cell": 10,
+   "s": 0.0,
+   "code": "for i, window in enumerate(proj_meta.energy_windows):"
+  },
+  {
+   "cell": 12,
+   "s": 0.0,
+   "code": "photopeak = projections[0]"
+  },
+  {
+   "cell": 14,
+   "s": 0.1,
+   "code": "plt.figure(figsize=(7,6))"
+  },
+  {
+   "cell": 16,
+   "s": 0.1,
+   "code": "scatter = io.SPECT.energy_window_scatter(projections, proj_meta, peak=0, lower=1, upper=2)"
+  },
+  {
+   "cell": 20,
+   "s": 0.9,
+   "code": "attenuation_map = io.attenuation_map(files_CT, object_meta, energy=proj_meta.energy_windows[0].photo"
+  },
+  {
+   "cell": 23,
+   "s": 0.0,
+   "code": "sample_slice = attenuation_map.cpu()[:,70].T"
+  },
+  {
+   "cell": 24,
+   "s": 0.1,
+   "code": "plt.subplots(1,2,figsize=(7,3))"
+  },
+  {
+   "cell": 27,
+   "s": 0.0,
+   "code": "#print_collimator_parameters()"
+  },
+  {
+   "cell": 29,
+   "s": 0.0,
+   "code": "collimator_name = 'SY-ME'"
+  },
+  {
+   "cell": 31,
+   "s": 0.0,
+   "code": "psf_transform = SPECTPSFTransform(psf_meta)"
+  },
+  {
+   "cell": 34,
+   "s": 6.2,
+   "code": "system_matrix = SPECTSystemMatrix("
+  },
+  {
+   "cell": 37,
+   "s": 0.0,
+   "code": "likelihood = PoissonLogLikelihood(system_matrix, photopeak, scatter)"
+  },
+  {
+   "cell": 40,
+   "s": 0.0,
+   "code": "reconstruction_algorithm = OSEM(likelihood)"
+  },
+  {
+   "cell": 42,
+   "s": 10.4,
+   "code": "reconstructed_object = reconstruction_algorithm(n_iters=4, n_subsets=8)"
+  },
+  {
+   "cell": 44,
+   "s": 0.3,
+   "code": "recon_vendor = io.load_image(os.path.join(PATH, 'scanner_recon.dcm')).on(object_meta) / proj_meta.nu"
+  },
+  {
+   "cell": 46,
+   "s": 0.0,
+   "code": "idx_z = 61"
+  },
+  {
+   "cell": 47,
+   "s": 0.0,
+   "code": "plt.subplots(1,2,figsize=(7,3), gridspec_kw={'wspace':0.0})"
+  },
+  {
+   "cell": 49,
+   "s": 0.1,
+   "code": "saved = io.save_dicom(reconstructed_object, OUTPUT / 't_dicomdata' / 'osem', object_meta, reference="
+  },
+  {
+   "cell": 50,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_dicommultibed": [
+  {
+   "cell": 2,
+   "s": 1.9,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 3,
+   "s": 0.9,
+   "code": "import os"
+  },
+  {
+   "cell": 4,
+   "s": 0.0,
+   "code": "# Paths are set in the data cell at the top of this tutorial"
+  },
+  {
+   "cell": 6,
+   "s": 0.0,
+   "code": "files_NM = ["
+  },
+  {
+   "cell": 8,
+   "s": 0.8,
+   "code": "_, _, proj_meta = io.SPECT.read_dicom(files_NM[0])"
+  },
+  {
+   "cell": 11,
+   "s": 0.1,
+   "code": "projections_upper_fov, _, _ = io.SPECT.read_dicom(files_NM[0])"
+  },
+  {
+   "cell": 13,
+   "s": 0.1,
+   "code": "# Plot [1,0] for index 1 (photopeak) and index 0 (angle 0)"
+  },
+  {
+   "cell": 15,
+   "s": 0.2,
+   "code": "beds = io.SPECT.read_dicom_beds(files_NM)  # the inferior bed first"
+  },
+  {
+   "cell": 17,
+   "s": 5.7,
+   "code": "attenuation_map_upper = io.attenuation_map(files_CT, object_meta_upper, energy=proj_meta_upper.energ"
+  },
+  {
+   "cell": 20,
+   "s": 0.0,
+   "code": "def reconstruct_singlebed(projections, object_meta, proj_meta):"
+  },
+  {
+   "cell": 22,
+   "s": 8.0,
+   "code": "recon_upper = reconstruct_singlebed(projections_upper, object_meta_upper, proj_meta_upper)"
+  },
+  {
+   "cell": 24,
+   "s": 0.1,
+   "code": "plt.figure(figsize=(6,3))"
+  },
+  {
+   "cell": 26,
+   "s": 0.0,
+   "code": "recon_stitched, object_meta_stitched = io.SPECT.stitch_beds("
+  },
+  {
+   "cell": 28,
+   "s": 0.0,
+   "code": "maximum_intensity_projection = recon_stitched.max(axis=1)[0].cpu()"
+  },
+  {
+   "cell": 30,
+   "s": 0.1,
+   "code": "saved = io.save_dicom(recon_stitched, OUTPUT / 't_dicommultibed' / 'osem_stitched', object_meta_stit"
+  },
+  {
+   "cell": 31,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_dualpeak": [
+  {
+   "cell": 1,
+   "s": 1.9,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 2,
+   "s": 0.9,
+   "code": "import os"
+  },
+  {
+   "cell": 4,
+   "s": 0.0,
+   "code": "PATH = DATA / 'SPECT'"
+  },
+  {
+   "cell": 5,
+   "s": 0.0,
+   "code": "path = os.path.join(PATH, 'Lu177-NEMA-SymT2')"
+  },
+  {
+   "cell": 7,
+   "s": 0.8,
+   "code": "projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)"
+  },
+  {
+   "cell": 8,
+   "s": 1.8,
+   "code": "photopeak208 = projections[0]"
+  },
+  {
+   "cell": 10,
+   "s": 0.0,
+   "code": "# These calibration factors are approximate and come from SIMIND"
+  },
+  {
+   "cell": 12,
+   "s": 0.0,
+   "code": "test_object = torch.zeros(object_meta.shape).to(pytomography.device)"
+  },
+  {
+   "cell": 13,
+   "s": 0.9,
+   "code": "test_projections = system_matrix.forward(test_object)"
+  },
+  {
+   "cell": 14,
+   "s": 0.1,
+   "code": "IDX_113 = 0"
+  },
+  {
+   "cell": 16,
+   "s": 0.0,
+   "code": "photopeak = torch.stack([photopeak113, photopeak208], dim=0)"
+  },
+  {
+   "cell": 18,
+   "s": 8.4,
+   "code": "recon_algo = OSEM(likelihood)"
+  },
+  {
+   "cell": 19,
+   "s": 0.1,
+   "code": "plt.imshow(recon_OSEM[:,:,61].cpu().T, cmap='magma', interpolation='gaussian')"
+  },
+  {
+   "cell": 21,
+   "s": 0.0,
+   "code": "float(proj_meta.frame_duration[0])  # seconds"
+  },
+  {
+   "cell": 23,
+   "s": 0.1,
+   "code": "saved = io.save_dicom(recon_OSEM, OUTPUT / 't_dualpeak' / 'osem', object_meta, reference=file_NM, un"
+  },
+  {
+   "cell": 24,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_examplesystemmatrix": [
+  {
+   "cell": 1,
+   "s": 3.0,
+   "code": "import pytomography"
+  },
+  {
+   "cell": 3,
+   "s": 0.0,
+   "code": "pytomography.device = 'cpu'"
+  },
+  {
+   "cell": 5,
+   "s": 0.0,
+   "code": "M = 3"
+  },
+  {
+   "cell": 10,
+   "s": 0.0,
+   "code": "class EXSProjMeta(ProjMeta):"
+  },
+  {
+   "cell": 11,
+   "s": 0.0,
+   "code": "M = object_meta.shape[0]"
+  },
+  {
+   "cell": 14,
+   "s": 0.0,
+   "code": "sample_object = torch.rand(object_meta.shape) "
+  },
+  {
+   "cell": 16,
+   "s": 0.1,
+   "code": "plt.figure(figsize=(4,1.5))"
+  },
+  {
+   "cell": 18,
+   "s": 0.0,
+   "code": "# First adjust projections by sensitivity factor"
+  },
+  {
+   "cell": 19,
+   "s": 0.0,
+   "code": "plt.figure(figsize=(2,2))"
+  },
+  {
+   "cell": 22,
+   "s": 0.0,
+   "code": "class EXSSystemMatrix(SystemMatrix):"
+  },
+  {
+   "cell": 24,
+   "s": 0.0,
+   "code": "system_matrix = EXSSystemMatrix(object_meta=object_meta, proj_meta=proj_meta)"
+  },
+  {
+   "cell": 26,
+   "s": 0.0,
+   "code": "class EXSSystemMatrix(SystemMatrix):"
+  },
+  {
+   "cell": 28,
+   "s": 0.0,
+   "code": "system_matrix = EXSSystemMatrix(object_meta=object_meta, proj_meta=proj_meta)"
+  },
+  {
+   "cell": 29,
+   "s": 0.0,
+   "code": "plt.figure(figsize=(2,2))"
+  },
+  {
+   "cell": 31,
+   "s": 0.0,
+   "code": "sample_object = torch.rand(object_meta.shape) # object has batch dimension"
+  },
+  {
+   "cell": 32,
+   "s": 0.0,
+   "code": "# Define system matrix"
+  },
+  {
+   "cell": 33,
+   "s": 0.0,
+   "code": "recon = reconstruction_algorithm(n_iters=40)"
+  },
+  {
+   "cell": 35,
+   "s": 0.1,
+   "code": "plt.figure(figsize=(4,2))"
+  },
+  {
+   "cell": 38,
+   "s": 0.0,
+   "code": "class EXSSystemMatrix(SystemMatrix):"
+  },
+  {
+   "cell": 39,
+   "s": 0.0,
+   "code": "system_matrix = EXSSystemMatrix(object_meta=object_meta, proj_meta=proj_meta)"
+  },
+  {
+   "cell": 40,
+   "s": 0.0,
+   "code": "plt.figure(figsize=(4,2))"
+  },
+  {
+   "cell": 42,
+   "s": 0.0,
+   "code": "class EXSSystemMatrix(SystemMatrix):"
+  },
+  {
+   "cell": 43,
+   "s": 0.0,
+   "code": "system_matrix = EXSSystemMatrix(object_meta=object_meta, proj_meta=proj_meta)"
+  },
+  {
+   "cell": 45,
+   "s": 0.0,
+   "code": "sample_object = torch.rand(object_meta.shape) # object has batch dimension"
+  },
+  {
+   "cell": 46,
+   "s": 0.0,
+   "code": "system_matrix = EXSSystemMatrix(object_meta=object_meta, proj_meta=proj_meta)"
+  },
+  {
+   "cell": 47,
+   "s": 0.0,
+   "code": "recon = reconstruction_algorithm(n_iters=40, n_subsets=2)"
+  },
+  {
+   "cell": 48,
+   "s": 0.1,
+   "code": "plt.figure(figsize=(4,2))"
+  },
+  {
+   "cell": 51,
+   "s": 0.0,
+   "code": "detector_ids = torch.randint(low=0, high=2*M**2, size=(400,))"
+  },
+  {
+   "cell": 54,
+   "s": 0.0,
+   "code": "scanner_LUT = torch.cartesian_prod("
+  },
+  {
+   "cell": 56,
+   "s": 0.0,
+   "code": "scanner_LUT[5]"
+  },
+  {
+   "cell": 58,
+   "s": 0.0,
+   "code": "scanner_LUT[detector_ids[0:5]]"
+  },
+  {
+   "cell": 60,
+   "s": 0.0,
+   "code": "sensitivity_factor[*scanner_LUT[detector_ids][:,:2].T]"
+  },
+  {
+   "cell": 62,
+   "s": 0.0,
+   "code": "class EXSListmodeProjMeta(ProjMeta):"
+  },
+  {
+   "cell": 64,
+   "s": 0.0,
+   "code": "class EXSListmodeSystemMatrix(SystemMatrix):"
+  },
+  {
+   "cell": 65,
+   "s": 0.0,
+   "code": "system_matrix = EXSListmodeSystemMatrix(object_meta=object_meta, proj_meta=proj_meta_listmode)"
+  },
+  {
+   "cell": 67,
+   "s": 0.0,
+   "code": "class EXSListmodeSystemMatrix(SystemMatrix):"
+  },
+  {
+   "cell": 68,
+   "s": 0.0,
+   "code": "system_matrix = EXSListmodeSystemMatrix(object_meta=object_meta, proj_meta=proj_meta_listmode)"
+  },
+  {
+   "cell": 70,
+   "s": 0.0,
+   "code": "class EXSListmodeSystemMatrix(SystemMatrix):"
+  },
+  {
+   "cell": 71,
+   "s": 0.0,
+   "code": "sensitivity_factor"
+  },
+  {
+   "cell": 72,
+   "s": 0.0,
+   "code": "system_matrix = EXSListmodeSystemMatrix(object_meta=object_meta, proj_meta=proj_meta_listmode)"
+  },
+  {
+   "cell": 73,
+   "s": 0.0,
+   "code": "plt.figure(figsize=(2,2))"
+  },
+  {
+   "cell": 75,
+   "s": 0.0,
+   "code": "system_matrix = EXSListmodeSystemMatrix(object_meta=object_meta, proj_meta=proj_meta_listmode)"
+  },
+  {
+   "cell": 76,
+   "s": 0.4,
+   "code": "recon = reconstruction_algorithm(n_iters=40)"
+  },
+  {
+   "cell": 77,
+   "s": 0.0,
+   "code": "plt.figure(figsize=(2,2))"
+  },
+  {
+   "cell": 80,
+   "s": 0.0,
+   "code": "class EXSListmodeSystemMatrix(SystemMatrix):"
+  },
+  {
+   "cell": 81,
+   "s": 0.0,
+   "code": "system_matrix = EXSListmodeSystemMatrix(object_meta=object_meta, proj_meta=proj_meta_listmode)"
+  },
+  {
+   "cell": 82,
+   "s": 0.7,
+   "code": "recon_2subsets = reconstruction_algorithm(n_iters=20, n_subsets=2)"
+  },
+  {
+   "cell": 84,
+   "s": 0.1,
+   "code": "max_value = max([recon_1subset[:,:,1].max().item(), recon_1subset[:,:,1].max().item()])"
+  },
+  {
+   "cell": 86,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_fbp_ct": [
+  {
+   "cell": 1,
+   "s": 2.2,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 2,
+   "s": 1.0,
+   "code": "import time"
+  },
+  {
+   "cell": 3,
+   "s": 0.0,
+   "code": "# Memory: this tutorial needs about 13 GB of RAM: 2 GB of projections, the images it keeps, the reco"
+  },
+  {
+   "cell": 5,
+   "s": 14.8,
+   "code": "folder = DATA / 'CT' / 'ldct-c145'"
+  },
+  {
+   "cell": 7,
+   "s": 0.2,
+   "code": "# mm between parallel rays at the axis (col_angle_spacing is in degrees)"
+  },
+  {
+   "cell": 9,
+   "s": 0.2,
+   "code": "fbp = FilteredBackProjection(proj, system_matrix, filter='hann', slice_thickness=1.25)"
+  },
+  {
+   "cell": 11,
+   "s": 0.1,
+   "code": "plan = fbp.plan_memory(ram_gb=10, gpu_gb=2)"
+  },
+  {
+   "cell": 13,
+   "s": 117.3,
+   "code": "t0 = time.time()"
+  },
+  {
+   "cell": 16,
+   "s": 3.7,
+   "code": "scanner_files = sorted((folder / 'full_dose_images').glob('*.dcm'))"
+  },
+  {
+   "cell": 18,
+   "s": 306.9,
+   "code": "liver = regions.on(object_meta, label='liver', threshold=0.5).cpu().numpy()  # 26 x 26 x 16 mm of li"
+  },
+  {
+   "cell": 19,
+   "s": 0.4,
+   "code": "k, j = 157, 256  # an axial slice through the chest, a coronal slice through the middle (k runs from"
+  },
+  {
+   "cell": 20,
+   "s": 0.1,
+   "code": "fig, ax = plt.subplots(figsize=(7.5, 4.2), constrained_layout=True)"
+  },
+  {
+   "cell": 21,
+   "s": 6.9,
+   "code": "valid = scanner_hu > -1500  # inside the scanner's field of view"
+  },
+  {
+   "cell": 24,
+   "s": 2.2,
+   "code": "saved = io.save_dicom(hu, OUTPUT / 't_fbp_ct' / 'fbp_hann', object_meta, units='HU', slice_thickness"
+  },
+  {
+   "cell": 26,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_fbp_spect": [
+  {
+   "cell": 1,
+   "s": 2.0,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 2,
+   "s": 1.1,
+   "code": "import time"
+  },
+  {
+   "cell": 3,
+   "s": 0.0,
+   "code": "# Memory: this tutorial needs about 5 GB of RAM, most of it PyTorch and CUDA themselves. Each recons"
+  },
+  {
+   "cell": 6,
+   "s": 3.2,
+   "code": "path = DATA / 'SPECT' / 'Lu177-NEMA-SymT2'"
+  },
+  {
+   "cell": 8,
+   "s": 0.6,
+   "code": "butterworth = lambda f: 1 / torch.sqrt(1 + (f / 0.05) ** 10)  # cut-off 0.05 cycles/mm, order 5"
+  },
+  {
+   "cell": 10,
+   "s": 0.3,
+   "code": "attenuation_only = SPECTSystemMatrix(obj2obj_transforms=[att_transform], proj2proj_transforms=[],"
+  },
+  {
+   "cell": 12,
+   "s": 2.7,
+   "code": "likelihood = PoissonLogLikelihood(system_matrix, photopeak, scatter)"
+  },
+  {
+   "cell": 13,
+   "s": 0.6,
+   "code": "# the phantom's regions, which come with the data (see the algorithms tutorial on measured data)"
+  },
+  {
+   "cell": 16,
+   "s": 0.2,
+   "code": "for name, image, description in [('fbp', recon_fbp, 'FBP, Butterworth'), ('fbp_chang', recon_fbp_cha"
+  },
+  {
+   "cell": 18,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_GE_HDF5": [
+  {
+   "cell": 2,
+   "s": 2.1,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 3,
+   "s": 1.1,
+   "code": "import pytomography"
+  },
+  {
+   "cell": 5,
+   "s": 0.0,
+   "code": "RAM_GB = 25 # memory (RAM) this tutorial may use, in GB; it needs about 9 GB however low this is"
+  },
+  {
+   "cell": 7,
+   "s": 0.9,
+   "code": "folder = GE_DATA / 'dmi_nema_lm'"
+  },
+  {
+   "cell": 9,
+   "s": 100.7,
+   "code": "weights, additive_counts, detector_ids_sensitivity, weights_sensitivity = io.PET.read_ge_corrections"
+  },
+  {
+   "cell": 11,
+   "s": 0.0,
+   "code": "# The projection metadata: the events, their TOF bins, and every valid crystal pair with its weight"
+  },
+  {
+   "cell": 13,
+   "s": 5.4,
+   "code": "psf_transform = GaussianFilter(4.5) # 4.5mm gaussian psf"
+  },
+  {
+   "cell": 15,
+   "s": 0.0,
+   "code": "likelihood = PoissonLogLikelihood("
+  },
+  {
+   "cell": 17,
+   "s": 3.6,
+   "code": "recon_algorithm = OSEM(likelihood)"
+  },
+  {
+   "cell": 18,
+   "s": 50.3,
+   "code": "# This is probably very similar to \"Q.Clear\" is ;)"
+  },
+  {
+   "cell": 20,
+   "s": 0.1,
+   "code": "fig, ax = plt.subplots(1,2,figsize=(5.5,3), gridspec_kw={'wspace': 0.0})   "
+  },
+  {
+   "cell": 22,
+   "s": 0.4,
+   "code": "for name, image in [('osem', recon_OSEM), ('bsrem', recon_BSREM)]:"
+  },
+  {
+   "cell": 23,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_kernel_deep_kernel_spect_recon": [
+  {
+   "cell": 1,
+   "s": 2.0,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 2,
+   "s": 1.1,
+   "code": "import time"
+  },
+  {
+   "cell": 3,
+   "s": 0.0,
+   "code": "# Memory: a kernel holds k = 50 neighbours for each of the 128^3 voxels (float32 weights and int64 i"
+  },
+  {
+   "cell": 5,
+   "s": 1.2,
+   "code": "path = DATA / 'SPECT' / 'Lu177-DOTATATE-Zubal'"
+  },
+  {
+   "cell": 7,
+   "s": 27.3,
+   "code": "t0 = time.time()"
+  },
+  {
+   "cell": 9,
+   "s": 5.3,
+   "code": "t0 = time.time()"
+  },
+  {
+   "cell": 11,
+   "s": 37.0,
+   "code": "t0 = time.time()"
+  },
+  {
+   "cell": 13,
+   "s": 455.8,
+   "code": "deep_params = dict(k=50, local_window=9, include_self=False)"
+  },
+  {
+   "cell": 14,
+   "s": 0.1,
+   "code": "plt.figure(figsize=(4, 2.5))"
+  },
+  {
+   "cell": 16,
+   "s": 44.5,
+   "code": "t0 = time.time()"
+  },
+  {
+   "cell": 18,
+   "s": 0.2,
+   "code": "images = [(pet_prior, 'Ga-68 PET prior'), (recon_mlem.cpu().numpy(), 'MLEM'), (recon_kem.cpu().numpy"
+  },
+  {
+   "cell": 19,
+   "s": 0.6,
+   "code": "np.savez_compressed(OUTPUT / 'kem_reconstructions.npz', mlem=recon_mlem.cpu().numpy(), kem=recon_kem"
+  },
+  {
+   "cell": 20,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_pct_abdomen": [
+  {
+   "cell": 1,
+   "s": 2.0,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 2,
+   "s": 1.0,
+   "code": "import time"
+  },
+  {
+   "cell": 3,
+   "s": 0.0,
+   "code": "# Memory: the scan (a quarter of the simulation's protons, 47 million) takes 1.9 GB of RAM, and the "
+  },
+  {
+   "cell": 6,
+   "s": 1.8,
+   "code": "folder = DATA / 'PCT' / 'GATE-Abdomen330-DTC'"
+  },
+  {
+   "cell": 8,
+   "s": 0.7,
+   "code": "def wepl_radiograph(view, pixel=2.0):"
+  },
+  {
+   "cell": 10,
+   "s": 16.6,
+   "code": "system_matrix = PCTSystemMatrix(object_meta, proj_meta, path='straight', band=5)"
+  },
+  {
+   "cell": 11,
+   "s": 0.2,
+   "code": "k = object_meta.shape[2] // 2  # the axial slice through the kidneys"
+  },
+  {
+   "cell": 13,
+   "s": 86.3,
+   "code": "support = hull_from_image(first_pass, object_meta, grow=2)  # the outline grown by 2 voxels in each "
+  },
+  {
+   "cell": 15,
+   "s": 0.3,
+   "code": "true_rsp = truth.on(object_meta).to(pytomography.device)"
+  },
+  {
+   "cell": 16,
+   "s": 0.3,
+   "code": "j = object_meta.shape[1] // 2  # the coronal slice through the middle of the body"
+  },
+  {
+   "cell": 19,
+   "s": 0.9,
+   "code": "system_matrix = PCTSystemMatrix(object_meta, proj_meta, band=1, hull=hull)"
+  },
+  {
+   "cell": 21,
+   "s": 0.4,
+   "code": "saved = io.save_nifti(sart, OUTPUT / 't_pct_abdomen' / 'sart_rsp.nii.gz', object_meta, units='RSP')"
+  },
+  {
+   "cell": 23,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_pet_introduction": [
+  {
+   "cell": 1,
+   "s": 2.0,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 2,
+   "s": 1.0,
+   "code": "import time"
+  },
+  {
+   "cell": 4,
+   "s": 0.0,
+   "code": "RAM_GB = 25 # memory (RAM) this tutorial may use, in GB (at least 10); it needs about 16.5 GB howeve"
+  },
+  {
+   "cell": 6,
+   "s": 268.2,
+   "code": "path = DATA / 'PET' / 'GATE-mMR-BrainInWater'"
+  },
+  {
+   "cell": 8,
+   "s": 1.1,
+   "code": "# The weights come with the dataset. They were computed from the calibration scan (36 ROOT files, 46"
+  },
+  {
+   "cell": 10,
+   "s": 2.7,
+   "code": "object_meta = object_meta.with_grid(dr=(2, 2, 2), shape=(128, 128, 96))  # mm, voxels"
+  },
+  {
+   "cell": 12,
+   "s": 12.5,
+   "code": "system_matrix_lm = PETLMSystemMatrix(object_meta, proj_meta, obj2obj_transforms=[psf_transform],"
+  },
+  {
+   "cell": 14,
+   "s": 35.2,
+   "code": "sinogram = io.PET.listmode_to_sinogram(detector_ids, info)"
+  },
+  {
+   "cell": 16,
+   "s": 0.2,
+   "code": "vmax = float(recon_lm.cpu().quantile(0.999))  # same colour scale for both"
+  },
+  {
+   "cell": 17,
+   "s": 0.0,
+   "code": "def difference(a, b):"
+  },
+  {
+   "cell": 19,
+   "s": 112.7,
+   "code": "t0 = time.time()"
+  },
+  {
+   "cell": 21,
+   "s": 0.4,
+   "code": "for name, image in [('list_mode', recon_lm), ('sinogram', recon_sino)]:"
+  },
+  {
+   "cell": 23,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_PETGATE_DIP": [
+  {
+   "cell": 2,
+   "s": 2.0,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 3,
+   "s": 47.3,
+   "code": "import torch"
+  },
+  {
+   "cell": 5,
+   "s": 0.0,
+   "code": "RAM_GB = 25 # memory (RAM) this tutorial may use, in GB; it needs about 22 GB however low this is"
+  },
+  {
+   "cell": 7,
+   "s": 675.0,
+   "code": "LOAD_FROM_ROOT = False # True: read the ROOT files again instead of the results cached in OUTPUT"
+  },
+  {
+   "cell": 8,
+   "s": 0.0,
+   "code": "filter = GaussianFilter(3)"
+  },
+  {
+   "cell": 10,
+   "s": 0.0,
+   "code": "def get_downward_block(in_channels, out_channels):"
+  },
+  {
+   "cell": 12,
+   "s": 0.2,
+   "code": "test_input = torch.ones((1,1,128,128,128))"
+  },
+  {
+   "cell": 14,
+   "s": 0.0,
+   "code": "class DIPPrior():"
+  },
+  {
+   "cell": 15,
+   "s": 3.1,
+   "code": "# The phantom's MR (NIfTI, 0.4 mm voxels) on the PET grid: load_image reads it with its own place in"
+  },
+  {
+   "cell": 17,
+   "s": 0.1,
+   "code": "mri_crop_above = 250"
+  },
+  {
+   "cell": 19,
+   "s": 0.0,
+   "code": "start_channels = 12"
+  },
+  {
+   "cell": 20,
+   "s": 0.0,
+   "code": "dip_prior = DIPPrior("
+  },
+  {
+   "cell": 22,
+   "s": 9.5,
+   "code": "dip_prior.fit(recon_lm_tof)"
+  }
+ ],
+ "t_PETGATE_DIP_c8": [
+  {
+   "cell": 2,
+   "s": 2.0,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 3,
+   "s": 2.4,
+   "code": "import torch"
+  },
+  {
+   "cell": 5,
+   "s": 0.0,
+   "code": "RAM_GB = 25 # memory (RAM) this tutorial may use, in GB; it needs about 22 GB however low this is"
+  },
+  {
+   "cell": 7,
+   "s": 522.6,
+   "code": "LOAD_FROM_ROOT = False # True: read the ROOT files again instead of the results cached in OUTPUT"
+  },
+  {
+   "cell": 8,
+   "s": 0.0,
+   "code": "filter = GaussianFilter(3)"
+  },
+  {
+   "cell": 10,
+   "s": 0.0,
+   "code": "def get_downward_block(in_channels, out_channels):"
+  },
+  {
+   "cell": 12,
+   "s": 0.2,
+   "code": "test_input = torch.ones((1,1,128,128,128))"
+  },
+  {
+   "cell": 14,
+   "s": 0.0,
+   "code": "class DIPPrior():"
+  },
+  {
+   "cell": 15,
+   "s": 3.2,
+   "code": "# The phantom's MR (NIfTI, 0.4 mm voxels) on the PET grid: load_image reads it with its own place in"
+  },
+  {
+   "cell": 17,
+   "s": 0.1,
+   "code": "mri_crop_above = 250"
+  },
+  {
+   "cell": 19,
+   "s": 0.0,
+   "code": "torch.manual_seed(0) # the network's starting weights: the same network, and the same images, on eve"
+  },
+  {
+   "cell": 20,
+   "s": 0.0,
+   "code": "dip_prior = DIPPrior("
+  },
+  {
+   "cell": 22,
+   "s": 528.0,
+   "code": "dip_prior.fit(recon_lm_tof)"
+  },
+  {
+   "cell": 23,
+   "s": 0.3,
+   "code": "vmax = 0.45"
+  },
+  {
+   "cell": 25,
+   "s": 0.0,
+   "code": "dip_prior.n_epochs = 1"
+  },
+  {
+   "cell": 27,
+   "s": 0.1,
+   "code": "from pytomography.callbacks import Callback"
+  },
+  {
+   "cell": 28,
+   "s": 873.6,
+   "code": "curve_DIP = ContrastNoise()"
+  },
+  {
+   "cell": 30,
+   "s": 0.3,
+   "code": "vmax = 0.45"
+  },
+  {
+   "cell": 32,
+   "s": 0.0,
+   "code": "for name, image in (('OSEM', recon_lm_tof), ('OSEM, 3 mm filter', recon_lm_tof_filtered), ('Deep Ima"
+  },
+  {
+   "cell": 35,
+   "s": 0.0,
+   "code": "# post-filtered OSEM"
+  },
+  {
+   "cell": 36,
+   "s": 0.2,
+   "code": "fig, ax = plt.subplots(figsize=(7, 4.5))"
+  },
+  {
+   "cell": 39,
+   "s": 0.8,
+   "code": "for name, image in [('deep_image_prior', recon_DIP), ('osem', recon_lm_tof)]:"
+  },
+  {
+   "cell": 40,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_PETGATE_scat_lm": [
+  {
+   "cell": 1,
+   "s": 2.2,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 2,
+   "s": 1.2,
+   "code": "from __future__ import annotations"
+  },
+  {
+   "cell": 4,
+   "s": 0.0,
+   "code": "RAM_GB = 25 # memory (RAM) this tutorial may use, in GB; it needs about 20 GB however low this is"
+  },
+  {
+   "cell": 6,
+   "s": 0.0,
+   "code": "# The first run reads the ROOT files and caches each result in OUTPUT; later runs load the cache."
+  },
+  {
+   "cell": 8,
+   "s": 1.0,
+   "code": "path = DATA / 'PET' / 'GATE-mMR-BrainInWater'"
+  },
+  {
+   "cell": 10,
+   "s": 0.0,
+   "code": "info"
+  },
+  {
+   "cell": 13,
+   "s": 0.0,
+   "code": "# The weights come with the dataset. They were computed from the calibration scan (36 ROOT files, 46"
+  },
+  {
+   "cell": 16,
+   "s": 14.0,
+   "code": "# The reconstruction grid: 128 x 128 x 96 voxels of 2 mm, centred where read_gate placed the scanner"
+  },
+  {
+   "cell": 18,
+   "s": 0.1,
+   "code": "vmax = 0.5"
+  },
+  {
+   "cell": 21,
+   "s": 0.6,
+   "code": "# The primary-only reconstruction is done: free its events and system matrix (and PyTorch's GPU cach"
+  },
+  {
+   "cell": 24,
+   "s": 0.0,
+   "code": "detector_ids_delays, _, _ = read_gate('delayeds')"
+  },
+  {
+   "cell": 25,
+   "s": 8.6,
+   "code": "sinogram_delays  = io.PET.listmode_to_sinogram(detector_ids_delays , info)"
+  },
+  {
+   "cell": 28,
+   "s": 7.3,
+   "code": "# The same attenuation map as above, and all the events with the normalization weights"
+  },
+  {
+   "cell": 30,
+   "s": 11.0,
+   "code": "# Get additive term (without scatter term):"
+  },
+  {
+   "cell": 32,
+   "s": 105.9,
+   "code": "# its peak RAM and GPU memory, before it runs"
+  },
+  {
+   "cell": 34,
+   "s": 8.0,
+   "code": "additive_term = (lm_scatter + lm_delays) / lm_sensitivity"
+  },
+  {
+   "cell": 35,
+   "s": 0.2,
+   "code": "vmax = 0.45"
+  },
+  {
+   "cell": 37,
+   "s": 0.2,
+   "code": "saved = io.save_dicom(recon_lm_nontof, OUTPUT / 't_PETGATE_scat_lm' / 'osem', object_meta,"
+  },
+  {
+   "cell": 38,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_PETGATE_scat_lmTOF": [
+  {
+   "cell": 1,
+   "s": 1.9,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 2,
+   "s": 1.0,
+   "code": "from __future__ import annotations"
+  },
+  {
+   "cell": 4,
+   "s": 0.0,
+   "code": "# The first run reads the ROOT files and caches each result in OUTPUT; later runs load the cache."
+  },
+  {
+   "cell": 6,
+   "s": 0.0,
+   "code": "path = DATA / 'PET' / 'GATE-mMR-BrainInWater'"
+  },
+  {
+   "cell": 9,
+   "s": 0.0,
+   "code": "speed_of_light = 0.3 #mm/ps"
+  },
+  {
+   "cell": 11,
+   "s": 0.0,
+   "code": "RAM_GB = 25 # memory (RAM) this tutorial may use, in GB; it needs about 21 GB however low this is"
+  },
+  {
+   "cell": 14,
+   "s": 1.1,
+   "code": "# The true coincidences in their TOF bins (used from \"Primary-Only Reconstruction\" on), with the nor"
+  },
+  {
+   "cell": 17,
+   "s": 15.7,
+   "code": "# The reconstruction grid: 128 x 128 x 96 voxels of 2 mm, centred where read_gate placed the scanner"
+  },
+  {
+   "cell": 18,
+   "s": 0.1,
+   "code": "vmax = 0.45"
+  },
+  {
+   "cell": 21,
+   "s": 0.5,
+   "code": "# The primary-only reconstruction is done: free its events and system matrix (and PyTorch's GPU cach"
+  },
+  {
+   "cell": 24,
+   "s": 0.0,
+   "code": "detector_ids_delays, _, _ = read_gate('delayeds')"
+  },
+  {
+   "cell": 26,
+   "s": 7.7,
+   "code": "sinogram_randoms_estimate = io.PET.listmode_to_sinogram("
+  },
+  {
+   "cell": 29,
+   "s": 20.2,
+   "code": "# The same attenuation map as above, and all the events in their TOF bins with the normalization wei"
+  },
+  {
+   "cell": 31,
+   "s": 97.1,
+   "code": "# its peak RAM and GPU memory, before it runs"
+  },
+  {
+   "cell": 33,
+   "s": 10.0,
+   "code": "additive_term = (lm_scatter_estimate + lm_randoms_estimate) / lm_norm"
+  },
+  {
+   "cell": 34,
+   "s": 0.2,
+   "code": "vmax = 0.45"
+  },
+  {
+   "cell": 36,
+   "s": 0.2,
+   "code": "saved = io.save_dicom(recon_lm_tof, OUTPUT / 't_PETGATE_scat_lmTOF' / 'osem', object_meta,"
+  },
+  {
+   "cell": 37,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_PETGATE_scat_sino": [
+  {
+   "cell": 1,
+   "s": 2.0,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 2,
+   "s": 1.0,
+   "code": "from __future__ import annotations"
+  },
+  {
+   "cell": 4,
+   "s": 0.0,
+   "code": "RAM_GB = 25 # memory (RAM) this tutorial may use, in GB; it needs about 18 GB however low this is"
+  },
+  {
+   "cell": 6,
+   "s": 0.0,
+   "code": "# The first run reads the ROOT files and caches each result in OUTPUT; later runs load the cache."
+  },
+  {
+   "cell": 8,
+   "s": 266.6,
+   "code": "path = DATA / 'PET' / 'GATE-mMR-BrainInWater'"
+  },
+  {
+   "cell": 10,
+   "s": 0.0,
+   "code": "info"
+  },
+  {
+   "cell": 13,
+   "s": 25.1,
+   "code": "if LOAD_FROM_ROOT or not (OUTPUT / 'normalization_sinogram.pt').exists():"
+  },
+  {
+   "cell": 17,
+   "s": 410.6,
+   "code": "detector_ids_randoms_true, _, _ = read_gate('randoms')"
+  },
+  {
+   "cell": 19,
+   "s": 1.9,
+   "code": "sinogram = io.PET.listmode_to_sinogram(detector_ids, info)"
+  },
+  {
+   "cell": 21,
+   "s": 9.1,
+   "code": "# The reconstruction grid: 128 x 128 x 96 voxels of 2 mm, centred where read_gate placed the scanner"
+  },
+  {
+   "cell": 23,
+   "s": 0.1,
+   "code": "vmax = 0.45"
+  },
+  {
+   "cell": 27,
+   "s": 100.1,
+   "code": "# The primary-only reconstruction is done: free its sinogram, likelihood and algorithm before binnin"
+  },
+  {
+   "cell": 29,
+   "s": 3.8,
+   "code": "sinogram = io.PET.listmode_to_sinogram(detector_ids, info)"
+  },
+  {
+   "cell": 32,
+   "s": 17.4,
+   "code": "detector_ids_delays, _, _ = read_gate('delayeds')"
+  },
+  {
+   "cell": 33,
+   "s": 0.9,
+   "code": "sinogram_delays = io.PET.listmode_to_sinogram(detector_ids_delays, info)"
+  },
+  {
+   "cell": 35,
+   "s": 0.1,
+   "code": "plt.figure(figsize=(10,1.5))"
+  },
+  {
+   "cell": 37,
+   "s": 5.9,
+   "code": "sinogram_randoms_estimate = io.PET.smooth_randoms_sinogram(sinogram_delays, info, fwhm_r=20, fwhm_th"
+  },
+  {
+   "cell": 39,
+   "s": 0.6,
+   "code": "sinogram_randoms_true = io.PET.listmode_to_sinogram(detector_ids_randoms_true, info)"
+  },
+  {
+   "cell": 43,
+   "s": 0.0,
+   "code": "# The same attenuation map and normalization sinogram as above"
+  },
+  {
+   "cell": 45,
+   "s": 1.4,
+   "code": "additive_term = sinogram_randoms_estimate / system_matrix._compute_sensitivity_sinogram().cpu()"
+  },
+  {
+   "cell": 47,
+   "s": 6.4,
+   "code": "recon_algorithm = OSEM(likelihood)"
+  },
+  {
+   "cell": 49,
+   "s": 78.3,
+   "code": "# its peak RAM and GPU memory, before it runs"
+  },
+  {
+   "cell": 51,
+   "s": 1.5,
+   "code": "sinogram_scatters_true = io.PET.listmode_to_sinogram(detector_ids_scatters_true, info)"
+  },
+  {
+   "cell": 53,
+   "s": 0.2,
+   "code": "plt.figure(figsize=(6,3))"
+  },
+  {
+   "cell": 55,
+   "s": 8.1,
+   "code": "additive_term = (sinogram_randoms_estimate + sinogram_scatter) / system_matrix._compute_sensitivity_"
+  },
+  {
+   "cell": 56,
+   "s": 0.3,
+   "code": "vmax = 0.45"
+  },
+  {
+   "cell": 58,
+   "s": 0.2,
+   "code": "saved = io.save_dicom(recon_sinogram_noTOF, OUTPUT / 't_PETGATE_scat_sino' / 'osem', object_meta,"
+  },
+  {
+   "cell": 59,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_PETGATE_scat_sinoTOF": [
+  {
+   "cell": 1,
+   "s": 2.3,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 2,
+   "s": 1.3,
+   "code": "from __future__ import annotations"
+  },
+  {
+   "cell": 4,
+   "s": 0.0,
+   "code": "# The first run reads the ROOT files and caches each result in OUTPUT; later runs load the cache."
+  },
+  {
+   "cell": 6,
+   "s": 0.0,
+   "code": "path = DATA / 'PET' / 'GATE-mMR-BrainInWater'"
+  },
+  {
+   "cell": 8,
+   "s": 0.0,
+   "code": "speed_of_light = 0.3 #mm/ps"
+  },
+  {
+   "cell": 10,
+   "s": 0.0,
+   "code": "RAM_GB = 25 # memory (RAM) this tutorial may use, in GB (at least about 21)"
+  },
+  {
+   "cell": 13,
+   "s": 251.5,
+   "code": "# The true coincidences in their TOF bins (used from \"Primary-Only Reconstruction\" on), with the nor"
+  },
+  {
+   "cell": 16,
+   "s": 234.1,
+   "code": "detector_ids_scatters_true, _, _ = read_gate('scatters', tof_meta=tof_meta)"
+  },
+  {
+   "cell": 18,
+   "s": 6.0,
+   "code": "sinogram = io.PET.listmode_to_sinogram(detector_ids, info, tof_meta=tof_meta)"
+  },
+  {
+   "cell": 20,
+   "s": 29.9,
+   "code": "# The reconstruction grid: 128 x 128 x 96 voxels of 2 mm, centred where read_gate placed the scanner"
+  },
+  {
+   "cell": 22,
+   "s": 0.1,
+   "code": "vmax = 0.45"
+  },
+  {
+   "cell": 26,
+   "s": 130.6,
+   "code": "detector_ids, _, _ = read_gate('prompts', tof_meta=tof_meta)"
+  },
+  {
+   "cell": 28,
+   "s": 10.0,
+   "code": "sinogram = io.PET.listmode_to_sinogram(detector_ids, info, tof_meta=tof_meta)"
+  },
+  {
+   "cell": 31,
+   "s": 0.1,
+   "code": "detector_ids_delays, _, _ = read_gate('delayeds')"
+  },
+  {
+   "cell": 33,
+   "s": 6.8,
+   "code": "# Load random events accross all TOF bins"
+  },
+  {
+   "cell": 36,
+   "s": 33.6,
+   "code": "# The same attenuation map and normalization sinogram as above"
+  },
+  {
+   "cell": 38,
+   "s": 44.2,
+   "code": "# its peak RAM and GPU memory, before it runs"
+  },
+  {
+   "cell": 40,
+   "s": 19.1,
+   "code": "sinogram_scatters_true = io.PET.listmode_to_sinogram(detector_ids_scatters_true, info, tof_meta=tof_"
+  },
+  {
+   "cell": 42,
+   "s": 35.8,
+   "code": "additive_term = (sinogram_randoms_estimate.unsqueeze(-1) + sinogram_scatter_estimate) / system_matri"
+  },
+  {
+   "cell": 43,
+   "s": 0.2,
+   "code": "vmax = 0.45"
+  },
+  {
+   "cell": 45,
+   "s": 0.2,
+   "code": "saved = io.save_dicom(recon_sinogram_TOF, OUTPUT / 't_PETGATE_scat_sinoTOF' / 'osem', object_meta,"
+  },
+  {
+   "cell": 46,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_PETSIRD": [
+  {
+   "cell": 1,
+   "s": 2.0,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 2,
+   "s": 1.0,
+   "code": "import time"
+  },
+  {
+   "cell": 3,
+   "s": 0.0,
+   "code": "# Memory: the scan's header holds 2.9 GB of normalisation tables, and the weights of the scanner's 5"
+  },
+  {
+   "cell": 5,
+   "s": 26.9,
+   "code": "path = DATA / 'PET' / 'PETSIRD-mMR-NEMA' / 'mMR_NEMA_norm.petsird'"
+  },
+  {
+   "cell": 7,
+   "s": 7.7,
+   "code": "# Keep the events whose line of response crosses the image"
+  },
+  {
+   "cell": 9,
+   "s": 32.6,
+   "code": "t0 = time.time()"
+  },
+  {
+   "cell": 11,
+   "s": 15.9,
+   "code": "likelihood = PoissonLogLikelihood(system_matrix, additive_term=randoms_term)"
+  },
+  {
+   "cell": 13,
+   "s": 0.3,
+   "code": "# The phantom and its largest sphere, through whose centre the figures look"
+  },
+  {
+   "cell": 14,
+   "s": 0.2,
+   "code": "image = recon_without_scatter.cpu().numpy()"
+  },
+  {
+   "cell": 16,
+   "s": 176.0,
+   "code": "# The estimate's peak RAM and GPU memory, before it runs"
+  },
+  {
+   "cell": 18,
+   "s": 0.4,
+   "code": "# The background: the phantom at least 30 mm from the plane of the spheres, 4 voxels in from its wal"
+  },
+  {
+   "cell": 19,
+   "s": 0.2,
+   "code": "aspect = (y1 - y0) * dy / ((x1 - x0) * dx)  # of the transverse views"
+  },
+  {
+   "cell": 22,
+   "s": 1.0,
+   "code": "for name, image in [('osem_with_scatter_correction', recon_with_scatter),"
+  },
+  {
+   "cell": 24,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_plotting": [
+  {
+   "cell": 1,
+   "s": 2.0,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 2,
+   "s": 1.0,
+   "code": "import os"
+  },
+  {
+   "cell": 4,
+   "s": 0.0,
+   "code": "save_path = DATA / 'SPECT'"
+  },
+  {
+   "cell": 6,
+   "s": 0.0,
+   "code": "path_CT = os.path.join(save_path, 'Lu177-PSMA-GEDisc', 'CT')"
+  },
+  {
+   "cell": 8,
+   "s": 1.2,
+   "code": "spect = io.load_image(file_SPECT)"
+  },
+  {
+   "cell": 10,
+   "s": 0.0,
+   "code": "SPECT_imshow_kwargs = {"
+  },
+  {
+   "cell": 12,
+   "s": 0.4,
+   "code": "fig, ax = plt.subplots(1,3,figsize=(9,4.5), gridspec_kw={'wspace':0.0}, facecolor='k')"
+  },
+  {
+   "cell": 14,
+   "s": 0.0,
+   "code": "def cmap_f(x,a):"
+  },
+  {
+   "cell": 15,
+   "s": 0.0,
+   "code": "SPECT_imshow_kwargs = {"
+  },
+  {
+   "cell": 16,
+   "s": 0.3,
+   "code": "fig, ax = plt.subplots(1,3,figsize=(9,4.5), gridspec_kw={'wspace':0.0}, facecolor='k')"
+  },
+  {
+   "cell": 18,
+   "s": 0.1,
+   "code": "saved = io.save_dicom(spect, OUTPUT / 't_plotting' / 'spect', reference=file_SPECT,"
+  },
+  {
+   "cell": 19,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_siminddata": [
+  {
+   "cell": 1,
+   "s": 2.2,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 2,
+   "s": 39.2,
+   "code": "import matplotlib.pyplot as plt"
+  },
+  {
+   "cell": 3,
+   "s": 0.0,
+   "code": "# Paths are set in the data cell at the top of this tutorial"
+  },
+  {
+   "cell": 6,
+   "s": 0.0,
+   "code": "photopeak_path = os.path.join(data_path,'tot_w1.h00')  # the 208 keV photopeak"
+  },
+  {
+   "cell": 8,
+   "s": 2.6,
+   "code": "projections, object_meta, proj_meta = io.SPECT.read_simind([photopeak_path, lower_path, upper_path])"
+  },
+  {
+   "cell": 9,
+   "s": 0.0,
+   "code": "object_meta"
+  },
+  {
+   "cell": 10,
+   "s": 7.9,
+   "code": "proj_meta"
+  },
+  {
+   "cell": 12,
+   "s": 0.0,
+   "code": "photopeak = projections[0]"
+  },
+  {
+   "cell": 14,
+   "s": 0.3,
+   "code": "fig, ax = plt.subplots(1,4,figsize=(8,2.4), gridspec_kw={'wspace':0.0})"
+  },
+  {
+   "cell": 16,
+   "s": 4.4,
+   "code": "activity = 1000 # MBq "
+  },
+  {
+   "cell": 18,
+   "s": 0.1,
+   "code": "fig, ax = plt.subplots(1,4,figsize=(8,2.4), gridspec_kw={'wspace':0.0})"
+  },
+  {
+   "cell": 20,
+   "s": 0.0,
+   "code": "lower_realization = torch.poisson(projections[1] * activity * time_per_proj)"
+  },
+  {
+   "cell": 22,
+   "s": 0.3,
+   "code": "realizations = torch.stack([photopeak_realization, lower_realization, upper_realization])"
+  },
+  {
+   "cell": 23,
+   "s": 0.0,
+   "code": "fig, ax = plt.subplots(1,4,figsize=(8,2.4), gridspec_kw={'wspace':0.0})"
+  },
+  {
+   "cell": 28,
+   "s": 0.1,
+   "code": "path_amap = os.path.join(data_path, 'amap.hct')"
+  },
+  {
+   "cell": 30,
+   "s": 0.1,
+   "code": "plt.figure(figsize=(3,3))"
+  },
+  {
+   "cell": 32,
+   "s": 0.0,
+   "code": "att_transform = SPECTAttenuationTransform(amap)"
+  },
+  {
+   "cell": 35,
+   "s": 0.0,
+   "code": "psf_meta = io.SPECT.simind_psf(photopeak_path)"
+  },
+  {
+   "cell": 37,
+   "s": 0.0,
+   "code": "psf_transform = SPECTPSFTransform(psf_meta)"
+  },
+  {
+   "cell": 40,
+   "s": 3.1,
+   "code": "system_matrix = SPECTSystemMatrix("
+  },
+  {
+   "cell": 43,
+   "s": 0.0,
+   "code": "likelihood = PoissonLogLikelihood("
+  },
+  {
+   "cell": 45,
+   "s": 0.0,
+   "code": "recon_algorithm = OSEM(likelihood)"
+  },
+  {
+   "cell": 47,
+   "s": 4.1,
+   "code": "reconstructed_image = recon_algorithm("
+  },
+  {
+   "cell": 49,
+   "s": 0.0,
+   "code": "plt.figure(figsize=(3,3))"
+  },
+  {
+   "cell": 51,
+   "s": 0.1,
+   "code": "saved = io.save_dicom(reconstructed_image, OUTPUT / 't_siminddata' / 'osem', object_meta, units='cou"
+  },
+  {
+   "cell": 52,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_spect_mc": [
+  {
+   "cell": 2,
+   "s": 3.9,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 3,
+   "s": 1.1,
+   "code": "import os"
+  },
+  {
+   "cell": 4,
+   "s": 0.0,
+   "code": "# Paths are set in the data cell at the top of this tutorial"
+  },
+  {
+   "cell": 7,
+   "s": 0.0,
+   "code": "ISOTOPE='lu177'"
+  },
+  {
+   "cell": 9,
+   "s": 0.4,
+   "code": "files_NM = [[os.path.join(PATH, f'{isotope}', f'tot_w{i}.h00') for isotope in isotopes_decay] for i "
+  },
+  {
+   "cell": 11,
+   "s": 0.1,
+   "code": "fig, ax = plt.subplots(1,3,figsize=(6,2))"
+  },
+  {
+   "cell": 13,
+   "s": 0.1,
+   "code": "# We need two attenuation maps for MC monte carlo. The 140keV map is used as input"
+  },
+  {
+   "cell": 16,
+   "s": 0.0,
+   "code": "# note: the collimator name is the one I used to generate the"
+  },
+  {
+   "cell": 18,
+   "s": 0.0,
+   "code": "cover_thickness = 1.0 # assumed to be aluminum"
+  },
+  {
+   "cell": 20,
+   "s": 0.0,
+   "code": "energy_window_params = simind_mc.get_energy_window_params_simind(files_NM[1])"
+  },
+  {
+   "cell": 22,
+   "s": 0.0,
+   "code": "# 200 million events take about 20 minutes on 90 CPU cores, and 45 minutes on 24. Fewer events run f"
+  },
+  {
+   "cell": 24,
+   "s": 0.4,
+   "code": "system_matrix = MonteCarloHybridSPECTSystemMatrix("
+  },
+  {
+   "cell": 26,
+   "s": 3728.8,
+   "code": "likelihood = MonteCarloHybridSPECTPoissonLogLikelihood(system_matrix, photopeak)"
+  },
+  {
+   "cell": 28,
+   "s": 1.3,
+   "code": "system_matrix = SPECTSystemMatrix("
+  },
+  {
+   "cell": 29,
+   "s": 0.1,
+   "code": "fig, ax = plt.subplots(1,2,figsize=(6,3), gridspec_kw={'wspace':0.0})"
+  },
+  {
+   "cell": 31,
+   "s": 0.1,
+   "code": "for name, image, units in [('monte_carlo', recon_MC, 'MBq.s'), ('analytical', recon_analytical, 'cou"
+  },
+  {
+   "cell": 32,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_spect_mc2": [
+  {
+   "cell": 2,
+   "s": 2.0,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 3,
+   "s": 1.0,
+   "code": "import os"
+  },
+  {
+   "cell": 4,
+   "s": 0.0,
+   "code": "path = DATA / 'SPECT'"
+  },
+  {
+   "cell": 6,
+   "s": 2.0,
+   "code": "file_NM = os.path.join(path, 'Lu177-NEMA-SymT2', 'projection_data.dcm')"
+  },
+  {
+   "cell": 8,
+   "s": 0.0,
+   "code": "energy_window_params = simind_mc.get_energy_window_params_dicom(file_NM) "
+  },
+  {
+   "cell": 10,
+   "s": 0.0,
+   "code": "isotope_names = ['lu177'] # isotope we want to simulate"
+  },
+  {
+   "cell": 12,
+   "s": 0.0,
+   "code": "# 200 million events take about 20 minutes on 90 CPU cores, and 45 minutes on 24. Fewer events run f"
+  },
+  {
+   "cell": 14,
+   "s": 3294.4,
+   "code": "system_matrix = MonteCarloHybridSPECTSystemMatrix("
+  },
+  {
+   "cell": 16,
+   "s": 0.1,
+   "code": "plt.imshow(recon_MC[:,:,60].cpu().T, cmap='magma',interpolation='gaussian')"
+  },
+  {
+   "cell": 19,
+   "s": 0.1,
+   "code": "saved = io.save_dicom(recon_MC, OUTPUT / 't_spect_mc2' / 'osem_monte_carlo', object_meta, reference="
+  },
+  {
+   "cell": 20,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_starguide": [
+  {
+   "cell": 1,
+   "s": 2.1,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 2,
+   "s": 1.1,
+   "code": "import pydicom"
+  },
+  {
+   "cell": 3,
+   "s": 0.0,
+   "code": "PATH = DATA / 'SPECT'"
+  },
+  {
+   "cell": 5,
+   "s": 0.1,
+   "code": "path_NM = os.path.join(PATH, 'Tc99m-NEMA-Starguide', 'NM_files')"
+  },
+  {
+   "cell": 7,
+   "s": 1.4,
+   "code": "path_CT = os.path.join(PATH, 'Tc99m-NEMA-Starguide', 'CT_files')"
+  },
+  {
+   "cell": 9,
+   "s": 0.8,
+   "code": "attenuation_map = io.attenuation_map(files_CT, object_meta, energy=proj_meta.energy_windows[0].photo"
+  },
+  {
+   "cell": 11,
+   "s": 0.0,
+   "code": "psf_meta = io.SPECT.collimator_psf("
+  },
+  {
+   "cell": 13,
+   "s": 2.2,
+   "code": "system_matrix = StarGuideSystemMatrix("
+  },
+  {
+   "cell": 15,
+   "s": 0.0,
+   "code": "photopeak = projections[0]"
+  },
+  {
+   "cell": 17,
+   "s": 30.8,
+   "code": "likelihood = PoissonLogLikelihood(system_matrix, photopeak, additive_term=scatter)"
+  },
+  {
+   "cell": 19,
+   "s": 0.1,
+   "code": "recon_vendor = io.load_image(os.path.join(PATH, 'Tc99m-NEMA-Starguide', 'vendor_recon', 'i196884.NMD"
+  },
+  {
+   "cell": 21,
+   "s": 0.1,
+   "code": "slc = 39  # an axial slice; z runs from the feet to the head"
+  },
+  {
+   "cell": 24,
+   "s": 0.1,
+   "code": "saved = io.save_dicom(recon_pytomography, OUTPUT / 't_starguide' / 'osem', object_meta,"
+  },
+  {
+   "cell": 25,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_uncertainty_pet": [
+  {
+   "cell": 2,
+   "s": 2.1,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 3,
+   "s": 1.1,
+   "code": "import pytomography"
+  },
+  {
+   "cell": 5,
+   "s": 0.0,
+   "code": "RAM_GB = 25 # memory (RAM) this tutorial may use, in GB; it needs about 11 GB however low this is"
+  },
+  {
+   "cell": 7,
+   "s": 106.8,
+   "code": "folder = GE_DATA / 'dmi_nema_lm'"
+  },
+  {
+   "cell": 9,
+   "s": 3.7,
+   "code": "recon_algorithm = OSEM(likelihood)"
+  },
+  {
+   "cell": 11,
+   "s": 0.0,
+   "code": "fig, ax = plt.subplots(1,1,figsize=(3,3))   "
+  },
+  {
+   "cell": 13,
+   "s": 0.1,
+   "code": "spheres = io.load_mask(GE_DATA / 'fdg_spheres.seg.nrrd')"
+  },
+  {
+   "cell": 15,
+   "s": 4.1,
+   "code": "uncertainty_abs, uncertainty_pct = recon_algorithm.compute_uncertainty("
+  },
+  {
+   "cell": 16,
+   "s": 0.0,
+   "code": "print(f'Estimated uncertainty in large sphere: {uncertainty_pct:.2f}%')"
+  },
+  {
+   "cell": 18,
+   "s": 0.2,
+   "code": "saved = io.save_dicom(recon_OSEM, OUTPUT / 't_uncertainty_pet' / 'osem', object_meta, series_descrip"
+  },
+  {
+   "cell": 19,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ],
+ "t_uncertainty_spect": [
+  {
+   "cell": 2,
+   "s": 2.0,
+   "code": "from pytomography import datasets"
+  },
+  {
+   "cell": 3,
+   "s": 3.3,
+   "code": "import os"
+  },
+  {
+   "cell": 4,
+   "s": 0.0,
+   "code": "save_path = DATA / 'SPECT'"
+  },
+  {
+   "cell": 6,
+   "s": 3.1,
+   "code": "file_NM = os.path.join(save_path, 'Lu177-PSMA-GEDisc', 'bed2_projections.dcm')"
+  },
+  {
+   "cell": 8,
+   "s": 0.0,
+   "code": "data_storage_callback = DataStorageCallback(likelihood, torch.clone(recon_algorithm.object_predictio"
+  },
+  {
+   "cell": 10,
+   "s": 2.6,
+   "code": "print(recon_algorithm.estimate_memory(n_subsets=8))"
+  },
+  {
+   "cell": 12,
+   "s": 0.1,
+   "code": "maximum_intensity_projection = recon_OSEM.max(axis=1)[0].cpu()"
+  },
+  {
+   "cell": 13,
+   "s": 0.0,
+   "code": "plt.figure(figsize=(4,4))"
+  },
+  {
+   "cell": 15,
+   "s": 0.6,
+   "code": "file_RT = os.path.join(save_path, 'Lu177-PSMA-GEDisc', 'segmentations.dcm')"
+  },
+  {
+   "cell": 17,
+   "s": 2.5,
+   "code": "mask_name = 'kidney_left'"
+  },
+  {
+   "cell": 19,
+   "s": 2.3,
+   "code": "uncertainty_abs, uncertainty_pct = recon_algorithm.compute_uncertainty("
+  },
+  {
+   "cell": 23,
+   "s": 0.1,
+   "code": "files_NM = ["
+  },
+  {
+   "cell": 25,
+   "s": 6.9,
+   "code": "recon_algo = PGAAMultiBedSPECT([initialize_reconstruction_algorithm_singlebed(*bed) for bed in beds]"
+  },
+  {
+   "cell": 27,
+   "s": 0.0,
+   "code": "maximum_intensity_projection = reconstructed_image_multibed.max(axis=1)[0].cpu()"
+  },
+  {
+   "cell": 29,
+   "s": 2.8,
+   "code": "mask_name = 'liver'"
+  },
+  {
+   "cell": 31,
+   "s": 3.7,
+   "code": "uncertainty_abs, uncertainty_pct = recon_algo.compute_uncertainty(liver_mask, callbacks, return_pct="
+  },
+  {
+   "cell": 32,
+   "s": 0.0,
+   "code": "print(f'Estimated uncertainty in {mask_name}: {uncertainty_pct:.2f}%')"
+  },
+  {
+   "cell": 34,
+   "s": 0.1,
+   "code": "for name, image, meta in [('osem_bed2', recon_OSEM, object_meta), ('osem_stitched', reconstructed_im"
+  },
+  {
+   "cell": 35,
+   "s": 0.0,
+   "code": "import json, platform, torch, pytomography"
+  }
+ ]
+}
