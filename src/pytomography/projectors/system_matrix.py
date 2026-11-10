@@ -628,7 +628,8 @@ class ExtendedSystemMatrix(SystemMatrix):
                 parts.append(MemoryPart(f"{part.name}, for each of {N}, kept and stacked", 2 * N * part.ram_bytes, 2 * N * part.gpu_bytes, 'subset'))
             else:
                 parts.append(part)
-        shared = ('image', 'H_m^T 1', 'rotation grids', 'normalisation images', 'sensitivity and normalisation images')
+        shared = ('image', 'H_m^T 1', 'rotation grids', 'transposed rotations', 'normalisation images',
+                  'sensitivity and normalisation images')
         seen = {id(first)}
         for i, system_matrix in enumerate(self.system_matrices[1:], start=2):
             if id(system_matrix) in seen:

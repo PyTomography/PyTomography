@@ -297,7 +297,8 @@ What the object transforms keep ($K$) and the most one call holds ($t$):
 | image | held | $I$ | device |
 | $H_m^T 1$ of $n$ subsets | held | $nI$ | device |
 | images of an update | held | $3I$ | device |
-| rotation grids of every view (cached) | held | $8 V X Y (2 + [\text{attenuation}] + [\text{camera path}])$ | device |
+| rotation grids of every view (cached) | held | $8 V X Y (1 + [\text{attenuation}] + [\text{camera path}])$ | device |
+| transposed rotations of every view, for back projection (cached) | held | $V (36 X Y + 4)$ | device |
 | what the object transforms keep | held | $K$ | device |
 | projections of a subset: measured, expected, additive term, of ones, padded copy | subset | $\max(5 v q_p,\ V q + 2 v q_p)$ | device |
 | padded object, support and sum of a projection | subset | $3O$ | device |
@@ -328,7 +329,8 @@ A slab of an angle is $\Sigma = 4 B L_x W L_z$ bytes.
 |---|---|---|---|
 | image, $H_m^T 1$ of $n$ subsets, images of an update | held | $I$, $nI$, $3I$ | device |
 | geometry and PSF kernels of every view (cached) | held | $V(12W + 128 L_x + 8 L_x W + 8 + 8 L_x k)$ | device |
-| rotation grids of every angle (cached) | held | $8 A L_x L_y (2 + [\text{attenuation}])$ | device |
+| rotation grids of every angle (cached) | held | $8 A L_x L_y (1 + [\text{attenuation}])$ | device |
+| transposed rotations of every angle, for back projection (cached) | held | $A (36 L_x L_y + 4)$ | device |
 | what the transforms keep | held | $I (1 + [\text{cached}] A)$ + $8 L_x \bar k\, n_r$ | device |
 | projections of a subset: measured, expected, additive term, scaled, of ones | subset | $\max(5vq,\ Vq + 2vq)$ | device |
 | images of a projection: the result and an angle | subset | $2I$ | device |
