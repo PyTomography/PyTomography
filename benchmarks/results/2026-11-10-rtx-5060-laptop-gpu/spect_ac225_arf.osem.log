@@ -1,0 +1,5 @@
+SPECT/Ac225-NEMA-SymT2: already downloaded
+[spect_ac225_arf/osem] load: 1.31 s; peaks: RAM 3.7 GB, GPU 0.09 GB (PyTorch), +0.13 GB on the device
+[spect_ac225_arf/osem] ARFs (generated): 148.99 s; peaks: RAM 5.3 GB, GPU 1.06 GB (PyTorch), +1.38 GB on the device
+[spect_ac225_arf/osem] system matrix: 14.97 s; peaks: RAM 10.1 GB, GPU 2.60 GB (PyTorch), +5.18 GB on the device
+[spect_ac225_arf/osem] OSEM 100 x 3: first 280.14 s, repeats 278.39 s (median of 1); peaks: RAM 6.1 GB, GPU 1.05 GB (PyTorch), +1.30 GB on the device

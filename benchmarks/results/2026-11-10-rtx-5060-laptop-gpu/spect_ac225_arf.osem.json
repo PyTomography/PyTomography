@@ -1,0 +1,82 @@
+{
+ "case": "spect_ac225_arf",
+ "recon": "osem",
+ "description": "SPECT Ac-225, ARFs generated for the SY-HE collimator, then OSEM 100 x 3 with attenuation + ARF PSF (Symbia T2 NEMA phantom, t_ac225_dicom_recon)",
+ "quick": false,
+ "started": "2026-11-10T20:07:02Z",
+ "stages": [
+  {
+   "stage": "load",
+   "s": 1.308,
+   "ram_gb": 3.73,
+   "gpu_torch_gb": 0.09,
+   "gpu_device_gb": 0.13
+  },
+  {
+   "stage": "ARFs (generated)",
+   "s": 148.985,
+   "ram_gb": 5.32,
+   "gpu_torch_gb": 1.06,
+   "gpu_device_gb": 1.38
+  },
+  {
+   "stage": "system matrix",
+   "s": 14.971,
+   "ram_gb": 10.1,
+   "gpu_torch_gb": 2.6,
+   "gpu_device_gb": 5.18
+  },
+  {
+   "stage": "OSEM 100 x 3",
+   "first_s": 280.14,
+   "repeats_s": [
+    278.391
+   ],
+   "ram_gb": 6.12,
+   "gpu_torch_gb": 1.05,
+   "gpu_device_gb": 1.3,
+   "repeat_median_s": 278.391
+  }
+ ],
+ "settings": {
+  "memory_budget_gb": 25.0,
+  "grid": [
+   128,
+   128,
+   128
+  ],
+  "voxel_mm": [
+   4.795,
+   4.795,
+   4.795
+  ],
+  "views": 96,
+  "algorithm": "OSEM",
+  "n_iters": 100,
+  "n_subsets": 3,
+  "psf": "spectarf ARF"
+ },
+ "machine": {
+  "os": "Windows 11 (10.0.26200)",
+  "python": "3.12.16",
+  "cpu": "Intel(R) Core(TM) Ultra 9 275HX",
+  "cores": 24,
+  "ram_gb": 33.8,
+  "device": "cuda",
+  "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+  "gpu_memory_gb": 8.5,
+  "cuda": "13.0",
+  "driver": "621.14",
+  "packages": {
+   "pytomography": "4.0.0rc1",
+   "torch": "2.14.1+cu130",
+   "numpy": "2.5.4",
+   "spectarf": "0.1.0",
+   "cupy-cuda13x": "14.2.0",
+   "numba": "0.68.1",
+   "numba-cuda": "0.30.4"
+  }
+ },
+ "total_s": 724.8,
+ "process_ram_peak_gb": 10.1
+}

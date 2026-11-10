@@ -1,0 +1,79 @@
+{
+ "case": "pct_abdomen",
+ "recon": "sart",
+ "description": "Proton CT (330 MeV, single-sided, 47 M protons), SART along curved paths, 4 passes (t_pct_abdomen)",
+ "quick": false,
+ "started": "2026-11-10T20:26:09Z",
+ "stages": [
+  {
+   "stage": "load",
+   "s": 0.866,
+   "ram_gb": 4.74,
+   "gpu_torch_gb": 0.0,
+   "gpu_device_gb": 0.0
+  },
+  {
+   "stage": "FBP, two passes (the starting image)",
+   "s": 15.641,
+   "ram_gb": 6.82,
+   "gpu_torch_gb": 0.82,
+   "gpu_device_gb": 1.16
+  },
+  {
+   "stage": "SART, 4 passes",
+   "first_s": 84.478,
+   "repeats_s": [
+    83.206,
+    84.777
+   ],
+   "ram_gb": 6.62,
+   "gpu_torch_gb": 0.61,
+   "gpu_device_gb": 0.69,
+   "repeat_median_s": 83.991
+  }
+ ],
+ "settings": {
+  "memory_budget_gb": 25.0,
+  "grid": [
+   370,
+   314,
+   57
+  ],
+  "voxel_mm": [
+   0.977,
+   0.977,
+   2.5
+  ],
+  "protons": 47151406,
+  "algorithm": "SART, curved paths",
+  "passes": [
+   "band 3, 180 subsets",
+   "band 3, 180 subsets",
+   "band 3, 60 subsets",
+   "band 5, 20 subsets"
+  ]
+ },
+ "machine": {
+  "os": "Windows 11 (10.0.26200)",
+  "python": "3.12.16",
+  "cpu": "Intel(R) Core(TM) Ultra 9 275HX",
+  "cores": 24,
+  "ram_gb": 33.8,
+  "device": "cuda",
+  "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+  "gpu_memory_gb": 8.5,
+  "cuda": "13.0",
+  "driver": "621.14",
+  "packages": {
+   "pytomography": "4.0.0rc1",
+   "torch": "2.14.1+cu130",
+   "numpy": "2.5.4",
+   "spectarf": "0.1.0",
+   "cupy-cuda13x": "14.2.0",
+   "numba": "0.68.1",
+   "numba-cuda": "0.30.4"
+  }
+ },
+ "total_s": 269.5,
+ "process_ram_peak_gb": 6.82
+}

@@ -1,0 +1,4 @@
+PET/GATE-mMR-BrainInWater: already downloaded
+[pet_gate_listmode/osem_tof] load (events, attenuation, normalization, randoms): 9.60 s; peaks: RAM 11.4 GB, GPU 0.01 GB (PyTorch), +0.02 GB on the device
+[pet_gate_listmode/osem_tof] system matrix and additive term: 10.28 s; peaks: RAM 10.7 GB, GPU 2.42 GB (PyTorch), +2.93 GB on the device
+[pet_gate_listmode/osem_tof] OSEM 4 x 14: first 11.32 s, repeats 9.81 s (median of 3); peaks: RAM 11.6 GB, GPU 3.03 GB (PyTorch), +1.56 GB on the device

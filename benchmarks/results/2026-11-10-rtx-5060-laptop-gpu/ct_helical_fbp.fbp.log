@@ -1,0 +1,4 @@
+CT/ldct-c145: already downloaded
+[ct_helical_fbp/fbp] load: 11.69 s; peaks: RAM 7.2 GB, GPU 1.38 GB (PyTorch), +1.79 GB on the device
+[ct_helical_fbp/fbp] system matrix: 0.00 s; peaks: RAM 5.6 GB, GPU 0.00 GB (PyTorch), +0.00 GB on the device
+[ct_helical_fbp/fbp] FBP (Hann): first 54.11 s, repeats 53.97 s (median of 2); peaks: RAM 9.6 GB, GPU 1.30 GB (PyTorch), +2.10 GB on the device

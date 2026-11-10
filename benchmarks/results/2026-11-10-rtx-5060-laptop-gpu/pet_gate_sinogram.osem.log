@@ -1,0 +1,5 @@
+PET/GATE-mMR-BrainInWater: already downloaded
+[pet_gate_sinogram/osem] load (events, attenuation, normalization, randoms): 7.55 s; peaks: RAM 11.1 GB, GPU 0.01 GB (PyTorch), +0.02 GB on the device
+[pet_gate_sinogram/osem] bin the prompts into a sinogram: 3.77 s; peaks: RAM 9.2 GB, GPU 0.01 GB (PyTorch), +0.00 GB on the device
+[pet_gate_sinogram/osem] system matrix and additive term: 2.35 s; peaks: RAM 14.2 GB, GPU 1.48 GB (PyTorch), +1.51 GB on the device
+[pet_gate_sinogram/osem] OSEM 2 x 24: first 6.83 s, repeats 3.97 s (median of 3); peaks: RAM 12.0 GB, GPU 0.37 GB (PyTorch), +0.44 GB on the device

@@ -1,0 +1,89 @@
+{
+ "case": "pet_gate_sinogram",
+ "recon": "osem_tof",
+ "description": "PET TOF sinogram (mMR, 21 TOF bins), OSEM 2 x 28 equivalent, normalization + attenuation + 3 mm PSF, randoms, 128 x 128 x 96 of 2 mm (t_PETGATE_scat_sinoTOF)",
+ "quick": false,
+ "started": "2026-11-10T20:37:39Z",
+ "stages": [
+  {
+   "stage": "load (events, attenuation, normalization, randoms)",
+   "s": 7.841,
+   "ram_gb": 11.43,
+   "gpu_torch_gb": 0.01,
+   "gpu_device_gb": 0.02
+  },
+  {
+   "stage": "bin the prompts into a sinogram",
+   "s": 10.957,
+   "ram_gb": 8.94,
+   "gpu_torch_gb": 0.01,
+   "gpu_device_gb": 0.0
+  },
+  {
+   "stage": "system matrix and additive term",
+   "s": 2.512,
+   "ram_gb": 15.92,
+   "gpu_torch_gb": 3.69,
+   "gpu_device_gb": 3.71
+  },
+  {
+   "stage": "OSEM 2 x 28",
+   "first_s": 29.657,
+   "repeats_s": [
+    27.568,
+    27.645,
+    27.59
+   ],
+   "ram_gb": 16.86,
+   "gpu_torch_gb": 5.56,
+   "gpu_device_gb": 4.49,
+   "repeat_median_s": 27.59
+  }
+ ],
+ "settings": {
+  "memory_budget_gb": 25.0,
+  "caches_present": {
+   "gate_prompts_tof21.pt": true,
+   "gate_delayeds.pt": true,
+   "normalization_sinogram.pt": true
+  },
+  "grid": [
+   128,
+   128,
+   96
+  ],
+  "voxel_mm": [
+   2.0,
+   2.0,
+   2.0
+  ],
+  "events": 106894828,
+  "tof_bins": 21,
+  "algorithm": "OSEM",
+  "n_iters": 2,
+  "n_subsets": 28
+ },
+ "machine": {
+  "os": "Windows 11 (10.0.26200)",
+  "python": "3.12.16",
+  "cpu": "Intel(R) Core(TM) Ultra 9 275HX",
+  "cores": 24,
+  "ram_gb": 33.8,
+  "device": "cuda",
+  "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+  "gpu_memory_gb": 8.5,
+  "cuda": "13.0",
+  "driver": "621.14",
+  "packages": {
+   "pytomography": "4.0.0rc1",
+   "torch": "2.14.1+cu130",
+   "numpy": "2.5.4",
+   "spectarf": "0.1.0",
+   "cupy-cuda13x": "14.2.0",
+   "numba": "0.68.1",
+   "numba-cuda": "0.30.4"
+  }
+ },
+ "total_s": 134.4,
+ "process_ram_peak_gb": 16.86
+}
