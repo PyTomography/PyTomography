@@ -1,0 +1,86 @@
+{
+ "case": "spect_lu177",
+ "recon": "bsrem",
+ "description": "SPECT Lu-177, BSREM 40 x 8 with an RDP prior (CT-based weights), attenuation + PSF, 128^3 (t_algorithms)",
+ "quick": false,
+ "started": "2026-11-11T17:02:56Z",
+ "stages": [
+  {
+   "stage": "load",
+   "s": 0.635,
+   "ram_gb": 6.11,
+   "gpu_torch_gb": 0.06,
+   "gpu_device_gb": 0.18
+  },
+  {
+   "stage": "system matrix",
+   "s": 0.146,
+   "ram_gb": 5.95,
+   "gpu_torch_gb": 0.06,
+   "gpu_device_gb": 0.0
+  },
+  {
+   "stage": "prior weights",
+   "s": 0.408,
+   "ram_gb": 7.18,
+   "gpu_torch_gb": 0.06,
+   "gpu_device_gb": 0.0
+  },
+  {
+   "stage": "BSREM 40 x 8",
+   "first_s": 12.176,
+   "repeats_s": [
+    11.17,
+    11.173,
+    11.184
+   ],
+   "ram_gb": 8.71,
+   "gpu_torch_gb": 0.49,
+   "gpu_device_gb": 0.63,
+   "repeat_median_s": 11.173
+  }
+ ],
+ "settings": {
+  "memory_budget_gb": 25.0,
+  "grid": [
+   128,
+   128,
+   128
+  ],
+  "voxel_mm": [
+   4.795,
+   4.795,
+   4.795
+  ],
+  "views": 96,
+  "algorithm": "BSREM",
+  "n_iters": 40,
+  "n_subsets": 8,
+  "prior": "RDP beta 0.3 gamma 2, top-8 CT neighbours"
+ },
+ "machine": {
+  "os": "Windows 11 (10.0.26200)",
+  "python": "3.12.16",
+  "cpu": "Intel(R) Core(TM) Ultra 9 285K",
+  "cores": 24,
+  "ram_gb": 68.1,
+  "device": "cuda",
+  "gpu": "NVIDIA GeForce RTX 5090",
+  "gpu_memory_gb": 34.2,
+  "cuda": "13.0",
+  "driver": "610.60",
+  "packages": {
+   "pytomography": "4.0.0rc2",
+   "torch": "2.14.1+cu130",
+   "numpy": "2.5.4",
+   "parallelproj": "2.0.2",
+   "spectarf": "0.1.0",
+   "cupy-cuda13x": "14.2.0",
+   "numba": "0.68.1",
+   "numba-cuda": "0.30.4",
+   "parallelproj_core": "2.0.7 (CUDA build)"
+  }
+ },
+ "total_s": 47.3,
+ "process_ram_peak_gb": 8.71
+}

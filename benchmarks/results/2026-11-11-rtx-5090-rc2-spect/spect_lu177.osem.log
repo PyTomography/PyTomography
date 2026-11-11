@@ -1,0 +1,4 @@
+SPECT/Lu177-NEMA-SymT2: already downloaded
+[spect_lu177/osem] load: 0.64 s; peaks: RAM 5.9 GB, GPU 0.06 GB (PyTorch), +0.18 GB on the device
+[spect_lu177/osem] system matrix: 0.15 s; peaks: RAM 5.7 GB, GPU 0.06 GB (PyTorch), +0.00 GB on the device
+[spect_lu177/osem] OSEM 4 x 8: first 1.44 s, repeats 0.41 s (median of 3); peaks: RAM 7.2 GB, GPU 0.47 GB (PyTorch), +0.55 GB on the device

@@ -1,0 +1,269 @@
+[
+ {
+  "case": "spect_lu177",
+  "recon": "osem",
+  "wall_s": 6.7,
+  "status": "passed",
+  "result": {
+   "case": "spect_lu177",
+   "recon": "osem",
+   "description": "SPECT Lu-177, OSEM 4 x 8, attenuation + PSF, 128^3 (Symbia T2 NEMA phantom, t_dicomdata)",
+   "quick": false,
+   "started": "2026-11-11T17:02:49Z",
+   "stages": [
+    {
+     "stage": "load",
+     "s": 0.637,
+     "ram_gb": 5.89,
+     "gpu_torch_gb": 0.06,
+     "gpu_device_gb": 0.18
+    },
+    {
+     "stage": "system matrix",
+     "s": 0.152,
+     "ram_gb": 5.73,
+     "gpu_torch_gb": 0.06,
+     "gpu_device_gb": 0.0
+    },
+    {
+     "stage": "OSEM 4 x 8",
+     "first_s": 1.443,
+     "repeats_s": [
+      0.406,
+      0.41,
+      0.416
+     ],
+     "ram_gb": 7.21,
+     "gpu_torch_gb": 0.47,
+     "gpu_device_gb": 0.55,
+     "repeat_median_s": 0.41
+    }
+   ],
+   "settings": {
+    "memory_budget_gb": 25.0,
+    "grid": [
+     128,
+     128,
+     128
+    ],
+    "voxel_mm": [
+     4.795,
+     4.795,
+     4.795
+    ],
+    "views": 96,
+    "algorithm": "OSEM",
+    "n_iters": 4,
+    "n_subsets": 8
+   },
+   "machine": {
+    "os": "Windows 11 (10.0.26200)",
+    "python": "3.12.16",
+    "cpu": "Intel(R) Core(TM) Ultra 9 285K",
+    "cores": 24,
+    "ram_gb": 68.1,
+    "device": "cuda",
+    "gpu": "NVIDIA GeForce RTX 5090",
+    "gpu_memory_gb": 34.2,
+    "cuda": "13.0",
+    "driver": "610.60",
+    "packages": {
+     "pytomography": "4.0.0rc2",
+     "torch": "2.14.1+cu130",
+     "numpy": "2.5.4",
+     "parallelproj": "2.0.2",
+     "spectarf": "0.1.0",
+     "cupy-cuda13x": "14.2.0",
+     "numba": "0.68.1",
+     "numba-cuda": "0.30.4",
+     "parallelproj_core": "2.0.7 (CUDA build)"
+    }
+   },
+   "total_s": 3.8,
+   "process_ram_peak_gb": 7.21
+  }
+ },
+ {
+  "case": "spect_lu177",
+  "recon": "bsrem",
+  "wall_s": 50.1,
+  "status": "passed",
+  "result": {
+   "case": "spect_lu177",
+   "recon": "bsrem",
+   "description": "SPECT Lu-177, BSREM 40 x 8 with an RDP prior (CT-based weights), attenuation + PSF, 128^3 (t_algorithms)",
+   "quick": false,
+   "started": "2026-11-11T17:02:56Z",
+   "stages": [
+    {
+     "stage": "load",
+     "s": 0.635,
+     "ram_gb": 6.11,
+     "gpu_torch_gb": 0.06,
+     "gpu_device_gb": 0.18
+    },
+    {
+     "stage": "system matrix",
+     "s": 0.146,
+     "ram_gb": 5.95,
+     "gpu_torch_gb": 0.06,
+     "gpu_device_gb": 0.0
+    },
+    {
+     "stage": "prior weights",
+     "s": 0.408,
+     "ram_gb": 7.18,
+     "gpu_torch_gb": 0.06,
+     "gpu_device_gb": 0.0
+    },
+    {
+     "stage": "BSREM 40 x 8",
+     "first_s": 12.176,
+     "repeats_s": [
+      11.17,
+      11.173,
+      11.184
+     ],
+     "ram_gb": 8.71,
+     "gpu_torch_gb": 0.49,
+     "gpu_device_gb": 0.63,
+     "repeat_median_s": 11.173
+    }
+   ],
+   "settings": {
+    "memory_budget_gb": 25.0,
+    "grid": [
+     128,
+     128,
+     128
+    ],
+    "voxel_mm": [
+     4.795,
+     4.795,
+     4.795
+    ],
+    "views": 96,
+    "algorithm": "BSREM",
+    "n_iters": 40,
+    "n_subsets": 8,
+    "prior": "RDP beta 0.3 gamma 2, top-8 CT neighbours"
+   },
+   "machine": {
+    "os": "Windows 11 (10.0.26200)",
+    "python": "3.12.16",
+    "cpu": "Intel(R) Core(TM) Ultra 9 285K",
+    "cores": 24,
+    "ram_gb": 68.1,
+    "device": "cuda",
+    "gpu": "NVIDIA GeForce RTX 5090",
+    "gpu_memory_gb": 34.2,
+    "cuda": "13.0",
+    "driver": "610.60",
+    "packages": {
+     "pytomography": "4.0.0rc2",
+     "torch": "2.14.1+cu130",
+     "numpy": "2.5.4",
+     "parallelproj": "2.0.2",
+     "spectarf": "0.1.0",
+     "cupy-cuda13x": "14.2.0",
+     "numba": "0.68.1",
+     "numba-cuda": "0.30.4",
+     "parallelproj_core": "2.0.7 (CUDA build)"
+    }
+   },
+   "total_s": 47.3,
+   "process_ram_peak_gb": 8.71
+  }
+ },
+ {
+  "case": "spect_ac225_arf",
+  "recon": "osem",
+  "wall_s": 229.6,
+  "status": "passed",
+  "result": {
+   "case": "spect_ac225_arf",
+   "recon": "osem",
+   "description": "SPECT Ac-225, ARFs generated for the SY-HE collimator, then OSEM 100 x 3 with attenuation + ARF PSF (Symbia T2 NEMA phantom, t_ac225_dicom_recon)",
+   "quick": false,
+   "started": "2026-11-11T17:03:46Z",
+   "stages": [
+    {
+     "stage": "load",
+     "s": 0.963,
+     "ram_gb": 5.71,
+     "gpu_torch_gb": 0.09,
+     "gpu_device_gb": 0.22
+    },
+    {
+     "stage": "ARFs (generated)",
+     "s": 37.433,
+     "ram_gb": 7.72,
+     "gpu_torch_gb": 1.06,
+     "gpu_device_gb": 1.45
+    },
+    {
+     "stage": "system matrix",
+     "s": 4.934,
+     "ram_gb": 15.26,
+     "gpu_torch_gb": 2.98,
+     "gpu_device_gb": 8.17
+    },
+    {
+     "stage": "OSEM 100 x 3",
+     "first_s": 61.385,
+     "repeats_s": [
+      60.298,
+      60.299
+     ],
+     "ram_gb": 8.59,
+     "gpu_torch_gb": 1.13,
+     "gpu_device_gb": 1.39,
+     "repeat_median_s": 60.298
+    }
+   ],
+   "settings": {
+    "memory_budget_gb": 25.0,
+    "grid": [
+     128,
+     128,
+     128
+    ],
+    "voxel_mm": [
+     4.795,
+     4.795,
+     4.795
+    ],
+    "views": 96,
+    "algorithm": "OSEM",
+    "n_iters": 100,
+    "n_subsets": 3,
+    "psf": "spectarf ARF"
+   },
+   "machine": {
+    "os": "Windows 11 (10.0.26200)",
+    "python": "3.12.16",
+    "cpu": "Intel(R) Core(TM) Ultra 9 285K",
+    "cores": 24,
+    "ram_gb": 68.1,
+    "device": "cuda",
+    "gpu": "NVIDIA GeForce RTX 5090",
+    "gpu_memory_gb": 34.2,
+    "cuda": "13.0",
+    "driver": "610.60",
+    "packages": {
+     "pytomography": "4.0.0rc2",
+     "torch": "2.14.1+cu130",
+     "numpy": "2.5.4",
+     "parallelproj": "2.0.2",
+     "spectarf": "0.1.0",
+     "cupy-cuda13x": "14.2.0",
+     "numba": "0.68.1",
+     "numba-cuda": "0.30.4",
+     "parallelproj_core": "2.0.7 (CUDA build)"
+    }
+   },
+   "total_s": 226.1,
+   "process_ram_peak_gb": 15.26
+  }
+ }
+]
