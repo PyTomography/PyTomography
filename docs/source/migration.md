@@ -505,7 +505,8 @@ Some bugs fixed in v4 changed results. Rerun anything you made with v3 that depe
   subsets) changed by 18% RMS in the body at 10 iterations and 28% at 20 (the noise texture), and their totals by
   0.1%; they now match MIRT's to 0.007%. `RotationTransform.backward` is now
   the transpose of `forward`, as for every transform, not the rotation by the opposite angle: to rotate back, call
-  `forward` with the opposite angle. Filtered back projection still rotates each view back.
+  `forward` with the opposite angle. Filtered back projection still rotates each view back
+  ([#443](https://github.com/PyTomography/PyTomography/issues/443)).
 - **Cone-beam FDK with a centre-of-rotation offset** weighted the views with the offset's sign reversed. The micro-CT
   tutorial's FDK image changes by about 1 %.
 - **DICOM images whose slices overlap or have gaps** were stretched along z: the readers took SliceThickness as the
