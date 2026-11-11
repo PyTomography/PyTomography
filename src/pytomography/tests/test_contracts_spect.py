@@ -33,16 +33,16 @@ def tiny_spect_system(attenuation=True, psf=True):
 
 
 class TestSPECTSystemMatrix(SystemMatrixContract):
-    # Back projection rotates by the opposite angle with bilinear interpolation, which is the transpose of the
-    # forward rotation only to interpolation accuracy: the mismatch measured on this system is 1.5e-4 to 2.5e-4
-    adjoint_rtol = 1e-3
+    # Back projection applies the exact transpose of the forward rotation (rotate_cached_transpose), so the two agree to
+    # float32 rounding (the rotation back by the opposite angle, used before, left a mismatch of 1.5e-4 to 2.5e-4 here)
+    adjoint_rtol = 1e-6
 
     def make(self):
         return tiny_spect_system()
 
 
 class TestSPECTSystemMatrixNoTransforms(SystemMatrixContract):
-    adjoint_rtol = 1e-3
+    adjoint_rtol = 1e-6
 
     def make(self):
         return tiny_spect_system(attenuation=False, psf=False)

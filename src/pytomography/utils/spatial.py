@@ -1,6 +1,8 @@
 """Rotation and padding of objects and projections, as the rotate-and-sum SPECT projectors use them, in plain PyTorch.
 
 * :func:`rotate_detector_z` and :func:`rotate_cached`: rotations about z, with sampling grids cached per angle;
+* :func:`rotate_detector_z_transpose` and :func:`rotate_cached_transpose`: their exact transposes, which back
+  projection applies (the rotation by the opposite angle is only an approximate inverse, not the transpose);
 * :func:`pad_object`, :func:`pad_proj`, :func:`pad_object_z` and their inverses: the padding that keeps a rotated
   object inside its grid (:func:`compute_pad_size`).
 
@@ -8,6 +10,7 @@ The rotations are bit-identical to those of kornia, which PyTomography used befo
 """
 from __future__ import annotations
 import math
+import warnings
 import torch
 import torch.nn.functional as F
 from torch.nn.functional import pad
@@ -15,6 +18,7 @@ from scipy.ndimage import affine_transform
 import numpy as np
 
 _ROTATION_GRIDS: dict = {}
+_ROTATION_TRANSPOSES: dict = {}
 
 def _pixel_to_grid(H: int, W: int, like: torch.Tensor) -> torch.Tensor:
     """[1, 3, 3]: pixel coordinates (x along W, y along H) to the [-1, 1] coordinates of ``grid_sample`` with ``align_corners=True``. Built in float32 and then cast to ``like``'s dtype and device, as kornia (which PyTomography used before 4.0) built it, so that the grids are bit-identical to kornia's."""
@@ -101,6 +105,83 @@ def rotate_cached(x: torch.Tensor, angle, mode: str = 'bilinear') -> torch.Tenso
     grid = _rotation_grid(float(angle), H, W, x.device, x.dtype)
     return F.grid_sample(x, grid.expand(B, -1, -1, -1), mode=mode, padding_mode='zeros', align_corners=True)
 
+def rotation_transpose_bytes(H: int, W: int, dtype: torch.dtype = torch.float32) -> int:
+    """The most memory one cached transpose of :func:`rotate_cached_transpose` takes, in bytes, for [H, W] images: at
+    most four weights per pixel (one in nearest mode), each with an int32 column index, and the int32 row pointers."""
+    return 4 * H * W * (torch.empty((), dtype=dtype).element_size() + 4) + 4 * (H * W + 1)
+
+def _rotation_transpose(angle: float, H: int, W: int, device, dtype, mode: str = 'bilinear') -> torch.Tensor:
+    """The transpose :math:`M^T` of the rotation :math:`M` that :func:`rotate_cached` applies to [H, W] images, as a sparse CSR matrix [H*W, H*W] (pixel ``h * W + w``, int32 indices), built once and cached, like the grid, per angle, size, device, type and mode.
+
+    :math:`M` gives output pixel ``p`` the input pixels around the point the cached grid maps it to, with the weights ``grid_sample`` gives them (``align_corners=True``, zeros outside): it is built from the same grid with ``grid_sample``'s own arithmetic (on the CPU, as its CPU kernel computes them), so that its weights equal those ``grid_sample`` uses, to float rounding (measured at most 1.2e-7 apart on a GPU), and the corners outside the image are dropped. It is stored transposed (sorted by input pixel), ready for the back projection's sparse-dense product, and its rows are sorted, so the product is deterministic."""
+    key = (round(float(angle), 6), H, W, str(device), dtype, mode)
+    transpose = _ROTATION_TRANSPOSES.get(key)
+    if transpose is not None:
+        return transpose
+    grid = _rotation_grid(float(angle), H, W, device, dtype)[0]
+    # pixel coordinates, as grid_sample unnormalises them (align_corners=True): its CPU kernel scales by (size - 1) / 2
+    if torch.device(device).type == 'cpu':
+        ix, iy = (grid[..., 0] + 1) * ((W - 1) / 2), (grid[..., 1] + 1) * ((H - 1) / 2)
+    else:
+        ix, iy = ((grid[..., 0] + 1) / 2) * (W - 1), ((grid[..., 1] + 1) / 2) * (H - 1)
+    if mode == 'nearest':
+        corners = [(torch.round(ix), torch.round(iy), torch.ones_like(ix))]     # round half to even, as nearbyint
+    elif mode == 'bilinear':
+        x0, y0 = torch.floor(ix), torch.floor(iy)
+        if torch.device(device).type == 'cpu':
+            wx, wy = ix - x0, iy - y0
+            ex, ey = 1 - wx, 1 - wy
+        else:
+            wx, wy, ex, ey = ix - x0, iy - y0, (x0 + 1) - ix, (y0 + 1) - iy
+        corners = [(x0, y0, ex * ey), (x0 + 1, y0, wx * ey), (x0, y0 + 1, ex * wy), (x0 + 1, y0 + 1, wx * wy)]
+    else:
+        raise ValueError(f"mode must be 'bilinear' or 'nearest', not {mode!r}")
+    output = torch.arange(H * W, device=device)
+    rows, cols, values = [], [], []                  # rows of M^T: the input pixels; columns: the output pixels
+    for cx, cy, weight in corners:
+        cx, cy, weight = cx.flatten(), cy.flatten(), weight.flatten()
+        inside = (cx >= 0) & (cx <= W - 1) & (cy >= 0) & (cy <= H - 1) & (weight != 0)
+        rows.append((cy[inside] * W + cx[inside]).long())
+        cols.append(output[inside])
+        values.append(weight[inside])
+    rows, cols, values = torch.cat(rows), torch.cat(cols), torch.cat(values)
+    order = torch.argsort(rows * (H * W) + cols)
+    rows, cols, values = rows[order], cols[order], values[order]
+    crow = torch.zeros(H * W + 1, dtype=torch.int64, device=device)
+    crow[1:] = torch.cumsum(torch.bincount(rows, minlength=H * W), 0)
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', message='Sparse CSR tensor support is in beta state')
+        transpose = torch.sparse_csr_tensor(crow.to(torch.int32), cols.to(torch.int32), values, (H * W, H * W),
+                                            check_invariants=False)
+    _ROTATION_TRANSPOSES[key] = transpose
+    return transpose
+
+def rotate_cached_transpose(x: torch.Tensor, angle, mode: str = 'bilinear') -> torch.Tensor:
+    r"""The exact transpose of :func:`rotate_cached` (``x``, ``angle``, ``mode``): what back projection applies.
+
+    :func:`rotate_cached` is linear, :math:`y = M x`, with :math:`M` the interpolation weights from the rotation's
+    grid. This returns :math:`M^T x`, so that :math:`\langle M a, b \rangle = \langle a, M^T b \rangle` to float
+    rounding. The rotation by ``-angle`` is close to it but not equal: the bilinear weights between two pixels are a
+    tent that is square and aligned with the grid, :math:`\Lambda(R p_i - p_j)` one way and
+    :math:`\Lambda(R^{-1} p_j - p_i)` the other, which agree only at multiples of 90 degrees. Each angle's
+    :math:`M^T` is built once from the cached grid and cached (at most :func:`rotation_transpose_bytes`); it is applied
+    as one sparse-dense product to all the images and channels at once.
+
+    Args:
+        x (torch.Tensor): The images, [B, C, H, W] (for an object [H, W, C] permuted to [1, C, H, W], as
+            :func:`rotate_detector_z` permutes it, no copy is made).
+        angle (float | torch.Tensor): The angle of the :func:`rotate_cached` call to transpose, in degrees.
+        mode (str, optional): Interpolation of that call, ``'bilinear'`` or ``'nearest'``. Defaults to
+            ``'bilinear'``.
+
+    Returns:
+        torch.Tensor: :math:`M^T x`, [B, C, H, W].
+    """
+    B, C, H, W = x.shape
+    transpose = _rotation_transpose(float(angle), H, W, x.device, x.dtype, mode)
+    y = transpose @ x.permute(2, 3, 0, 1).reshape(H * W, B * C)
+    return y.reshape(H, W, B, C).permute(2, 3, 0, 1)
+
 def rotate_detector_z(
     x: torch.Tensor,
     angles: torch.tensor,
@@ -110,7 +191,9 @@ def rotate_detector_z(
 
     The rotation is by :math:`-\phi` with :math:`\phi = 270° - \beta` (:func:`rotate_cached` on each plane of
     constant z), as :class:`~pytomography.projectors.SPECT.SPECTSystemMatrix` rotates an object before summing it along
-    x; ``negative=True`` rotates by :math:`+\phi`, back from that frame.
+    x; ``negative=True`` rotates by :math:`+\phi`, back from that frame: the inverse rotation of an image (as filtered
+    back projection and an attenuation map's average detection probability need), not the transpose that back
+    projection needs, which is :func:`rotate_detector_z_transpose`.
 
     Args:
         x (torch.Tensor): The object, [Lx, Ly, Lz] (padded with :func:`pad_object`, so that nothing is cut off).
@@ -128,6 +211,26 @@ def rotate_detector_z(
     else:
         x = rotate_cached(x.permute(2,0,1).unsqueeze(0), phi, mode=mode).squeeze().permute(1,2,0)
     return x
+
+def rotate_detector_z_transpose(
+    x: torch.Tensor,
+    angles: torch.tensor,
+    mode: str = 'bilinear') -> torch.Tensor:
+    r"""The exact transpose of :func:`rotate_detector_z` (``x``, ``angles``, ``mode``): what back projection applies
+    to bring a view back from the frame of the SPECT detector at angle :math:`\beta` (see
+    :func:`rotate_cached_transpose`; the rotation by :math:`+\phi` is only an approximate inverse, not the transpose).
+
+    Args:
+        x (torch.Tensor): An object in the detector's frame, [Lx, Ly, Lz].
+        angles (float | torch.Tensor): The detector's angle :math:`\beta`, in degrees (a number or a 0-d tensor).
+        mode (str, optional): Interpolation of the forward rotation, ``'bilinear'`` or ``'nearest'``. Defaults to
+            ``'bilinear'``.
+
+    Returns:
+        torch.Tensor: The object in the object's frame, [Lx, Ly, Lz].
+    """
+    phi = 270 - angles
+    return rotate_cached_transpose(x.permute(2,0,1).unsqueeze(0), -phi, mode=mode)[0].permute(1,2,0)
 
 def compute_pad_size(width: int):
     """The padding on each side of an axis that keeps an object inside its grid whatever it is rotated by.

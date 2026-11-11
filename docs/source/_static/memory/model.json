@@ -129,7 +129,8 @@
     },
     "spect": {
       "views_s": "ceil(views / n_subsets)",
-      "grids": "(2 + (attenuation ? 1 : 0) + (camera_path ? 1 : 0)) * views * PLx * PLy * 2 * 4",
+      "grids": "(1 + (attenuation ? 1 : 0) + (camera_path ? 1 : 0)) * views * PLx * PLy * 2 * 4",
+      "transposes": "views * (32 * PLx * PLy + 4 * (PLx * PLy + 1))",
       "att_kept": "attenuation ? image + (cache_probabilities ? views * padded : 0) : 0",
       "att_temp": "attenuation ? (cache_probabilities ? padded : 6 * padded) : 0",
       "op_k": "Lx - 1",
@@ -159,6 +160,7 @@
       {"name": "H_m^T 1 of {n_subsets} subset{n_subsets > 1 ? 's' : ''}", "bytes": "n_subsets * image", "on": "cuda"},
       {"name": "images of an update", "bytes": "3 * image", "on": "cuda"},
       {"name": "rotation grids of every view (cached)", "bytes": "grids", "on": "cuda"},
+      {"name": "transposed rotations of every view, for back projection (cached)", "bytes": "transposes", "on": "cuda"},
       {"name": "what the object transforms keep", "when": "has_transforms", "bytes": "kept", "on": "cuda"}
     ],
     "spect_subset_parts": [
@@ -585,7 +587,8 @@
         "W": "16 + 2 + 2 * margin",
         "sg_kernels": "has_psf ? 4 * Lx * 2 * psf_kernel : 0",
         "geometry": "V * (12 * W + 8 * Lx * 16 + 8 * Lx * W + 8 + sg_kernels)",
-        "sg_grids": "(2 + (attenuation ? 1 : 0)) * sg_angles * Lx * Ly * 8",
+        "sg_grids": "(1 + (attenuation ? 1 : 0)) * sg_angles * Lx * Ly * 8",
+        "sg_transposes": "sg_angles * (32 * Lx * Ly + 4 * (Lx * Ly + 1))",
         "sg_att_kept": "attenuation ? image + (cache_probabilities ? sg_angles * image : 0) : 0",
         "sg_att_temp": "attenuation ? (cache_probabilities ? image : 6 * image) : 0",
         "sg_psf_kept": "has_psf ? n_radii * Lx * 2 * (psf_kernel_mean == null ? psf_kernel : psf_kernel_mean) * 4 : 0",
@@ -600,6 +603,7 @@
         {"name": "images of an update", "bytes": "3 * image", "on": "cuda"},
         {"name": "geometry and PSF kernels of every view (cached)", "bytes": "geometry", "on": "cuda"},
         {"name": "rotation grids of every angle (cached)", "bytes": "sg_grids", "on": "cuda"},
+        {"name": "transposed rotations of every angle, for back projection (cached)", "bytes": "sg_transposes", "on": "cuda"},
         {"name": "what the transforms keep", "when": "attenuation || has_psf", "bytes": "sg_att_kept + sg_psf_kept", "on": "cuda"},
         {"name": "projections of a subset: measured, expected, additive term, scaled, of ones", "scope": "subset", "bytes": "sg_projections", "on": "cuda"},
         {"name": "images of a projection: the result and an angle", "scope": "subset", "bytes": "2 * image", "on": "cuda"},
@@ -654,7 +658,7 @@
       "use": ["algorithm", "spect_grid", "spect"],
       "derived": {
         "anatomy_weights": "prior && prior_weight == 'top_n_anatomy'",
-        "bed_held_device": "(4 + n_subsets) * image + grids + (has_transforms ? kept : 0) + data_bytes + (spect_additive ? data_bytes : 0) + (prior ? 3 * image : 0) + (anatomy_weights ? image : 0)",
+        "bed_held_device": "(4 + n_subsets) * image + grids + transposes + (has_transforms ? kept : 0) + data_bytes + (spect_additive ? data_bytes : 0) + (prior ? 3 * image : 0) + (anatomy_weights ? image : 0)",
         "bed_held_ram": "anatomy_weights ? 27 * Lx * Ly * Lz : 0"
       },
       "parts": [

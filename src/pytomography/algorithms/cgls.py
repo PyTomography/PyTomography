@@ -17,9 +17,9 @@ class CGLS:
     An optional fixed positive diagonal inverse preconditioner applies preconditioned CG to
     the same equations. It changes the iterations, not the full-rank least-squares solution.
 
-    ``system_matrix.backward`` must be the adjoint of ``forward``. An approximate backprojector, such as the
-    opposite-angle interpolating rotation in the current SPECT projector, does not provide the CGLS convergence
-    guarantee. Check the adjoint relation before using a new projector. There are no ordered subsets or positivity
+    ``system_matrix.backward`` must be the adjoint of ``forward`` (PyTomography's SPECT projectors are, to float
+    rounding). An approximate back projector does not provide the CGLS convergence guarantee. Check the adjoint
+    relation before using a new projector. There are no ordered subsets or positivity
     clipping. Least squares, even weighted, is not a Poisson likelihood; early stopping can regularise an
     ill-conditioned problem.
 

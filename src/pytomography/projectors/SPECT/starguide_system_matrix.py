@@ -7,7 +7,7 @@ import torch.nn.functional as F
 import pytomography
 from pytomography.utils import rotate_detector_z
 from pytomography.utils.memory import MemoryPart, PLAN_MAX_SUBSETS
-from pytomography.utils.spatial import affine_grid_pixels
+from pytomography.utils.spatial import affine_grid_pixels, rotate_detector_z_transpose, rotation_transpose_bytes
 from pytomography.projectors.system_matrix import SystemMatrix, on_device
 from pytomography.transforms.SPECT import SPECTPSFTransform
 from pytomography.metadata import ObjectMeta
@@ -245,7 +245,8 @@ class StarGuideSystemMatrix(SystemMatrix):
             group_object.index_add_(1, group['cols'].flatten(), slabs.permute(1, 0, 2, 3).reshape(Lx, B * W, Lz))
             for transform in shared_transforms[::-1]:
                 group_object = transform.forward(group_object, ang_idx=group['gidx'][0])
-            object += rotate_detector_z(group_object, angles=group['angle'], negative=True)
+            # the exact transpose of forward's rotation (not the rotation back, whose bilinear weights differ)
+            object += rotate_detector_z_transpose(group_object, angles=group['angle'])
         return object
 
     def compute_normalization_factor(self, subset_idx : int | None = None):
@@ -277,7 +278,8 @@ class StarGuideSystemMatrix(SystemMatrix):
         :meth:`~pytomography.projectors.SystemMatrix.estimate_memory`), all on ``pytomography.device``. Held for the
         whole run: the image, one :math:`H_m^T 1` image per subset, the images of an update, the geometry
         ``_view_groups`` caches for every view (slab columns, sampling grids, and the PSF kernels of each view), the
-        rotation grids of every angle (two, and one more per attenuation transform), and what the transforms keep. For a
+        rotation grid of every angle and the transpose back projection builds from it (and one more grid per attenuation
+        transform), and what the transforms keep. For a
         subset: its projections (measured, expected, additive term, scaled by the times, of ones; at the start, the
         projections of ones of every view) and two images. For an angle (the most views at one angle, :math:`B`): the
         rotated object and two more images, three slabs of :math:`B` views (gathered, masked, resampled), five more per
@@ -318,7 +320,8 @@ class StarGuideSystemMatrix(SystemMatrix):
                  MemoryPart(f'H_m^T 1 of {n} subset{"s" if n > 1 else ""}', **on_device(device, n * image)),
                  MemoryPart('images of an update', **on_device(device, 3 * image)),
                  MemoryPart('geometry and PSF kernels of every view (cached)', **on_device(device, geometry)),
-                 MemoryPart('rotation grids of every angle (cached)', **on_device(device, (2 + attenuations) * n_angles * Lx * Ly * 8))]
+                 MemoryPart('rotation grids of every angle (cached)', **on_device(device, (1 + attenuations) * n_angles * Lx * Ly * 8)),
+                 MemoryPart('transposed rotations of every angle, for back projection (cached)', **on_device(device, n_angles * rotation_transpose_bytes(Lx, Ly)))]
         ram = gpu = shared_temporaries = psf_temporaries = 0.0
         slab = 4.0 * B * Lx * W * Lz
         for transform in shared_transforms:                           # one after another: the largest counts

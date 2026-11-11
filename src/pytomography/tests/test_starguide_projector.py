@@ -1,7 +1,8 @@
 """StarGuideSystemMatrix evaluates the translation and the PSF of each view on a slab of the object (the 16 detector
 columns plus the PSF reach) with all views of an angle batched, instead of on the whole object one view at a time.
-These tests compare it with the previous whole-object implementation (kept here as the reference), check that the
-forward and back projections are adjoint, that subsets are consistent, and that the slab adapts to the PSF width."""
+These tests compare it with the previous whole-object implementation (kept here as the reference, with the exact
+transpose of the rotation in back projection), check that the forward and back projections are adjoint, that subsets
+are consistent, and that the slab adapts to the PSF width."""
 from __future__ import annotations
 
 import numpy as np
@@ -13,7 +14,7 @@ import pytomography
 from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTPSFMeta, StarGuideProjMeta
 from pytomography.projectors.SPECT import StarGuideSystemMatrix
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
-from pytomography.utils import rotate_detector_z
+from pytomography.utils import rotate_detector_z, rotate_detector_z_transpose
 
 DEV = pytomography.device
 LX, LY, LZ = 40, 40, 12
@@ -80,7 +81,7 @@ def _reference_backward(sm, proj, subset_idx=None):
                     object_i[i] = transform.forward(object_i[i], ang_idx=j)
             else:
                 object_i = transform.forward(object_i, ang_idx=angle_indices[idx][0])
-        object += torch.stack([rotate_detector_z(o, angles=angle, negative=True) for o in object_i]).sum(axis=0)
+        object += torch.stack([rotate_detector_z_transpose(o, angles=angle) for o in object_i]).sum(axis=0)
     return object
 
 
@@ -104,8 +105,9 @@ def test_forward_and_backward_are_adjoint(psf_params):
         gs = g if subset_idx is None else sm.get_projection_subset(g, subset_idx)
         lhs = (sm.forward(f, subset_idx).double() * gs.double()).sum()
         rhs = (f.double() * sm.backward(gs, subset_idx).double()).sum()
-        # the residual (~3e-5) is the bilinear rotation, whose transpose is not exactly the rotation by the opposite angle; the previous implementation has the same residual
-        assert abs(lhs - rhs) < 2e-4 * abs(lhs)
+        # back projection applies the exact transpose of the rotation (the rotation by the opposite angle, used before,
+        # left ~3e-5): float32 rounding remains, measured below 1e-8 of |Hf| |g| on random signed objects
+        assert abs(lhs - rhs) < 1e-6 * abs(lhs)
 
 
 def test_subsets_are_consistent_with_full_projection():

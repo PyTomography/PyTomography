@@ -498,6 +498,15 @@ Some bugs fixed in v4 changed results. Rerun anything you made with v3 that depe
   It now does what it says ([#289](https://github.com/PyTomography/PyTomography/issues/289)). Normalization weights you
   computed with `include_randoms=False` in v3 included the randoms.
 - **Attenuation maps from a CT** are averaged over each SPECT voxel; v3 took the CT's value at the voxel's centre.
+- **SPECT back projection** rotated each view back by the opposite angle, which is only close to the transpose of the
+  forward projection's rotation (bilinear weights are not symmetric under rotation). It is now the exact transpose, in
+  `SPECTSystemMatrix` and `StarGuideSystemMatrix`, so every algorithm back projects with the system matrix's true
+  transpose, as toolkits with an exact adjoint (MIRT) do. Unsmoothed OSEM images of the Ac-225 NEMA phantom (8
+  subsets) changed by 18% RMS in the body at 10 iterations and 28% at 20 (the noise texture), and their totals by
+  0.1%; they now match MIRT's to 0.007%. `RotationTransform.backward` is now
+  the transpose of `forward`, as for every transform, not the rotation by the opposite angle: to rotate back, call
+  `forward` with the opposite angle. Filtered back projection still rotates each view back
+  ([#443](https://github.com/PyTomography/PyTomography/issues/443)).
 - **Cone-beam FDK with a centre-of-rotation offset** weighted the views with the offset's sign reversed. The micro-CT
   tutorial's FDK image changes by about 1 %.
 - **DICOM images whose slices overlap or have gaps** were stretched along z: the readers took SliceThickness as the
