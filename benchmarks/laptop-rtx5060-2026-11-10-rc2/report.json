@@ -1,0 +1,623 @@
+[
+ {
+  "notebook": "t_siminddata",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-10",
+  "wall_time_s": 19.7,
+  "peak_kernel_gb": 4.6,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 0.48,
+   "peak_ram_gb": 4.7
+  }
+ },
+ {
+  "notebook": "t_dicomdata",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-10",
+  "wall_time_s": 11.5,
+  "peak_kernel_gb": 4.7,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 0.47,
+   "peak_ram_gb": 5.0
+  }
+ },
+ {
+  "notebook": "t_algorithms",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-10",
+  "wall_time_s": 123.4,
+  "peak_kernel_gb": 6.9,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 1.66,
+   "peak_ram_gb": 7.5
+  }
+ },
+ {
+  "notebook": "t_accuracy_known_truth",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-10",
+  "wall_time_s": 56.5,
+  "peak_kernel_gb": 4.9,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 0.51,
+   "peak_ram_gb": 4.9
+  }
+ },
+ {
+  "notebook": "t_dicommultibed",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-10",
+  "wall_time_s": 20.4,
+  "peak_kernel_gb": 5.2,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 0.49,
+   "peak_ram_gb": 6.1
+  }
+ },
+ {
+  "notebook": "t_dualpeak",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-10",
+  "wall_time_s": 17.0,
+  "peak_kernel_gb": 4.9,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 0.55,
+   "peak_ram_gb": 4.9
+  }
+ },
+ {
+  "notebook": "t_uncertainty_spect",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-10",
+  "wall_time_s": 31.4,
+  "peak_kernel_gb": 8.0,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 0.76,
+   "peak_ram_gb": 8.2
+  }
+ },
+ {
+  "notebook": "t_starguide",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-10",
+  "wall_time_s": 40.2,
+  "peak_kernel_gb": 6.1,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 1.49,
+   "peak_ram_gb": 6.1
+  }
+ },
+ {
+  "notebook": "t_ac225_simind_recon",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-10",
+  "wall_time_s": 449.5,
+  "peak_kernel_gb": 9.7,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 2.11,
+   "peak_ram_gb": 9.7
+  }
+ },
+ {
+  "notebook": "t_CardiacReorientation",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-10",
+  "wall_time_s": 7.8,
+  "peak_kernel_gb": 4.0,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 0.07,
+   "peak_ram_gb": 4.0
+  }
+ },
+ {
+  "notebook": "t_algorithms_measured",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-10",
+  "wall_time_s": 303.1,
+  "peak_kernel_gb": 7.3,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 1.77,
+   "peak_ram_gb": 7.6
+  }
+ },
+ {
+  "notebook": "t_fbp_spect",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-10",
+  "wall_time_s": 11.3,
+  "peak_kernel_gb": 4.9,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 0.53,
+   "peak_ram_gb": 5.1
+  }
+ },
+ {
+  "notebook": "t_arf_psf",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-10",
+  "wall_time_s": 605.9,
+  "peak_kernel_gb": 10.2,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 2.8,
+   "peak_ram_gb": 10.2
+  }
+ },
+ {
+  "notebook": "t_ac225_dicom_recon",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-10",
+  "wall_time_s": 453.9,
+  "peak_kernel_gb": 8.9,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 1.84,
+   "peak_ram_gb": 8.9
+  }
+ },
+ {
+  "notebook": "t_ac225_dualpeak",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-10",
+  "wall_time_s": 1256.6,
+  "peak_kernel_gb": 7.6,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 1.68,
+   "peak_ram_gb": 8.0
+  }
+ },
+ {
+  "notebook": "t_cgls",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-11",
+  "wall_time_s": 474.5,
+  "peak_kernel_gb": 7.1,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 0.8,
+   "peak_ram_gb": 7.1
+  }
+ },
+ {
+  "notebook": "t_kernel_deep_kernel_spect_recon",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-11",
+  "wall_time_s": 560.5,
+  "peak_kernel_gb": 9.3,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 1.55,
+   "peak_ram_gb": 9.3
+  }
+ },
+ {
+  "notebook": "t_examplesystemmatrix",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-11",
+  "wall_time_s": 6.5,
+  "peak_kernel_gb": 2.7,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 0.0,
+   "peak_ram_gb": 2.7
+  }
+ },
+ {
+  "notebook": "t_plotting",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-11",
+  "wall_time_s": 6.9,
+  "peak_kernel_gb": 3.4,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 0.0,
+   "peak_ram_gb": 3.4
+  }
+ },
+ {
+  "notebook": "t_CT_GEN3",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-11",
+  "wall_time_s": 459.8,
+  "peak_kernel_gb": 14.5,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 1.63,
+   "peak_ram_gb": 14.5
+  }
+ },
+ {
+  "notebook": "t_CT_microct",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-11",
+  "wall_time_s": 56.0,
+  "peak_kernel_gb": 13.1,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 6.66,
+   "peak_ram_gb": 13.1
+  }
+ },
+ {
+  "notebook": "t_fbp_ct",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-11",
+  "wall_time_s": 441.4,
+  "peak_kernel_gb": 11.9,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 1.3,
+   "peak_ram_gb": 11.9
+  }
+ },
+ {
+  "notebook": "t_pct_abdomen",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-11",
+  "wall_time_s": 107.1,
+  "peak_kernel_gb": 6.7,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 0.82,
+   "peak_ram_gb": 7.0
+  }
+ },
+ {
+  "notebook": "t_pet_introduction",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-11",
+  "wall_time_s": 418.5,
+  "peak_kernel_gb": 16.4,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 2.91,
+   "peak_ram_gb": 16.4
+  }
+ },
+ {
+  "notebook": "t_GE_HDF5",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-11",
+  "wall_time_s": 165.9,
+  "peak_kernel_gb": 9.2,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 1.8,
+   "peak_ram_gb": 9.3
+  }
+ },
+ {
+  "notebook": "t_uncertainty_pet",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-11",
+  "wall_time_s": 120.7,
+  "peak_kernel_gb": 10.8,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 2.07,
+   "peak_ram_gb": 10.8
+  }
+ },
+ {
+  "notebook": "t_PETSIRD",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-11",
+  "wall_time_s": 260.9,
+  "peak_kernel_gb": 21.8,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 5.98,
+   "peak_ram_gb": 21.9
+  }
+ },
+ {
+  "notebook": "t_PETGATE_scat_sino",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-11",
+  "wall_time_s": 881.5,
+  "peak_kernel_gb": 16.2,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 1.53,
+   "peak_ram_gb": 17.8
+  }
+ },
+ {
+  "notebook": "t_PETGATE_scat_sinoTOF",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-11",
+  "wall_time_s": 775.2,
+  "peak_kernel_gb": 18.3,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 5.61,
+   "peak_ram_gb": 18.4
+  }
+ },
+ {
+  "notebook": "t_PETGATE_scat_lm",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-11",
+  "wall_time_s": 160.7,
+  "peak_kernel_gb": 19.2,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 2.88,
+   "peak_ram_gb": 19.2
+  }
+ },
+ {
+  "notebook": "t_PETGATE_scat_lmTOF",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-11",
+  "wall_time_s": 156.9,
+  "peak_kernel_gb": 19.4,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 3.44,
+   "peak_ram_gb": 19.5
+  }
+ },
+ {
+  "notebook": "t_PETGATE_DIP",
+  "status": "failed",
+  "cell": 22,
+  "error": "OutOfMemoryError: CUDA out of memory. Tried to allocate 226.00 MiB. GPU 0 has a total capacity of 7.93 GiB of which 0 bytes is free. Including non-PyTorch memory, this process has 17179869184.00 GiB memory in use. Of the allocated memory 6.70 GiB is allocated by PyTorch, and 261.03 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLO",
+  "date": "2026-11-11",
+  "wall_time_s": 703.2,
+  "peak_kernel_gb": 19.0
+ },
+ {
+  "notebook": "t_spect_mc",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-11",
+  "wall_time_s": 3318.3,
+  "peak_kernel_gb": 4.9,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 0.58,
+   "peak_ram_gb": 4.9
+  }
+ },
+ {
+  "notebook": "t_spect_mc2",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-11",
+  "wall_time_s": 2963.9,
+  "peak_kernel_gb": 5.0,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 0.53,
+   "peak_ram_gb": 4.9
+  }
+ },
+ {
+  "notebook": "t_PETGATE_DIP_c8",
+  "status": "passed",
+  "cell": null,
+  "error": null,
+  "date": "2026-11-11",
+  "wall_time_s": 1912.1,
+  "peak_kernel_gb": 18.9,
+  "info": {
+   "pytomography": "4.0.0rc2",
+   "source": "C:\\Users\\lukep\\miniforge3\\envs\\pytomo-rc2\\Lib\\site-packages\\pytomography\\__init__.py",
+   "torch": "2.14.1+cu130",
+   "python": "3.12.16",
+   "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+   "peak_gpu_gb": 6.37,
+   "peak_ram_gb": 19.1
+  }
+ }
+]

@@ -1,0 +1,90 @@
+GROUP spect1 start 2026-11-10T23:17:33
+START t_siminddata 2026-11-10T23:17:33
+RESULT t_siminddata passed 19.7s ram=4.6 gpu=0.48
+START t_dicomdata 2026-11-10T23:17:54
+RESULT t_dicomdata passed 11.5s ram=4.7 gpu=0.47
+START t_algorithms 2026-11-10T23:18:06
+RESULT t_algorithms passed 123.4s ram=6.9 gpu=1.66
+START t_accuracy_known_truth 2026-11-10T23:20:10
+RESULT t_accuracy_known_truth passed 56.5s ram=4.9 gpu=0.51
+START t_dicommultibed 2026-11-10T23:21:07
+RESULT t_dicommultibed passed 20.4s ram=5.2 gpu=0.49
+START t_dualpeak 2026-11-10T23:21:28
+RESULT t_dualpeak passed 17.0s ram=4.9 gpu=0.55
+START t_uncertainty_spect 2026-11-10T23:21:45
+RESULT t_uncertainty_spect passed 31.4s ram=8.0 gpu=0.76
+START t_starguide 2026-11-10T23:22:17
+RESULT t_starguide passed 40.2s ram=6.1 gpu=1.49
+START t_ac225_simind_recon 2026-11-10T23:22:58
+RESULT t_ac225_simind_recon passed 449.5s ram=9.7 gpu=2.11
+START t_CardiacReorientation 2026-11-10T23:30:28
+RESULT t_CardiacReorientation passed 7.8s ram=4.0 gpu=0.07
+START t_algorithms_measured 2026-11-10T23:30:36
+RESULT t_algorithms_measured passed 303.1s ram=7.3 gpu=1.77
+START t_fbp_spect 2026-11-10T23:35:40
+RESULT t_fbp_spect passed 11.3s ram=4.9 gpu=0.53
+GROUP spect1 done 2026-11-10T23:35:52
+GROUP spect2 start 2026-11-10T23:35:52
+START t_arf_psf 2026-11-10T23:35:52
+RESULT t_arf_psf passed 605.9s ram=10.2 gpu=2.8
+START t_ac225_dicom_recon 2026-11-10T23:45:58
+RESULT t_ac225_dicom_recon passed 453.9s ram=8.9 gpu=1.84
+START t_ac225_dualpeak 2026-11-10T23:53:33
+RESULT t_ac225_dualpeak passed 1256.6s ram=7.6 gpu=1.68
+START t_cgls 2026-11-11T00:14:30
+RESULT t_cgls passed 474.5s ram=7.1 gpu=0.8
+START t_kernel_deep_kernel_spect_recon 2026-11-11T00:22:25
+RESULT t_kernel_deep_kernel_spect_recon passed 560.5s ram=9.3 gpu=1.55
+GROUP spect2 done 2026-11-11T00:31:46
+GROUP any start 2026-11-11T00:31:46
+START t_examplesystemmatrix 2026-11-11T00:31:46
+RESULT t_examplesystemmatrix passed 6.5s ram=2.7 gpu=0.0
+START t_plotting 2026-11-11T00:31:52
+RESULT t_plotting passed 6.9s ram=3.4 gpu=0.0
+GROUP any done 2026-11-11T00:32:00
+GROUP ct start 2026-11-11T00:32:00
+START t_CT_GEN3 2026-11-11T00:32:00
+RESULT t_CT_GEN3 passed 459.8s ram=14.5 gpu=1.63
+START t_CT_microct 2026-11-11T00:39:40
+RESULT t_CT_microct passed 56.0s ram=13.1 gpu=6.66
+START t_fbp_ct 2026-11-11T00:40:37
+RESULT t_fbp_ct passed 441.4s ram=11.9 gpu=1.3
+START t_pct_abdomen 2026-11-11T00:47:59
+RESULT t_pct_abdomen passed 107.1s ram=6.7 gpu=0.82
+GROUP ct done 2026-11-11T00:49:46
+GROUP pet1 start 2026-11-11T00:49:46
+START t_pet_introduction 2026-11-11T00:49:46
+RESULT t_pet_introduction passed 418.5s ram=16.4 gpu=2.91
+START t_GE_HDF5 2026-11-11T00:56:45
+RESULT t_GE_HDF5 passed 165.9s ram=9.2 gpu=1.8
+START t_uncertainty_pet 2026-11-11T00:59:31
+RESULT t_uncertainty_pet passed 120.7s ram=10.8 gpu=2.07
+START t_PETSIRD 2026-11-11T01:01:33
+RESULT t_PETSIRD passed 260.9s ram=21.8 gpu=5.98
+GROUP pet1 done 2026-11-11T01:05:54
+GROUP pet2 start 2026-11-11T01:05:54
+START t_PETGATE_scat_sino 2026-11-11T01:05:54
+RESULT t_PETGATE_scat_sino passed 881.5s ram=16.2 gpu=1.53
+START t_PETGATE_scat_sinoTOF 2026-11-11T01:20:36
+RESULT t_PETGATE_scat_sinoTOF passed 775.2s ram=18.3 gpu=5.61
+START t_PETGATE_scat_lm 2026-11-11T01:33:32
+RESULT t_PETGATE_scat_lm passed 160.7s ram=19.2 gpu=2.88
+START t_PETGATE_scat_lmTOF 2026-11-11T01:36:13
+RESULT t_PETGATE_scat_lmTOF passed 156.9s ram=19.4 gpu=3.44
+START t_PETGATE_DIP 2026-11-11T01:38:50
+RESULT t_PETGATE_DIP failed 703.2s ram=19.0 gpu=
+GROUP pet2 done 2026-11-11T01:50:34
+GROUP mc start 2026-11-11T01:50:34
+START t_spect_mc 2026-11-11T01:50:34
+RESULT t_spect_mc passed 3318.3s ram=4.9 gpu=0.58
+START t_spect_mc2 2026-11-11T02:45:53
+RESULT t_spect_mc2 passed 2963.9s ram=5.0 gpu=0.53
+GROUP mc done 2026-11-11T03:35:17
+wrote C:\Users\lukep\dev\pt-rc2\docs\source\notebooks\t_PETGATE_DIP_c8.ipynb
+GROUP dip8 start 2026-11-11T03:35:17
+START t_PETGATE_DIP_c8 2026-11-11T03:35:17
+RESULT t_PETGATE_DIP_c8 passed 1912.1s ram=18.9 gpu=6.37
+GROUP dip8 done 2026-11-11T04:07:10
+BENCH start 2026-11-11T04:07:10 -> benchmarks\results\2026-11-11-rtx-5060-laptop-gpu-rc2
+BENCH done 2026-11-11T04:42:57 exit 
+ALL DONE 2026-11-11T04:42:57
