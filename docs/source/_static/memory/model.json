@@ -658,7 +658,7 @@
       "use": ["algorithm", "spect_grid", "spect"],
       "derived": {
         "anatomy_weights": "prior && prior_weight == 'top_n_anatomy'",
-        "bed_held_device": "(4 + n_subsets) * image + grids + (has_transforms ? kept : 0) + data_bytes + (spect_additive ? data_bytes : 0) + (prior ? 3 * image : 0) + (anatomy_weights ? image : 0)",
+        "bed_held_device": "(4 + n_subsets) * image + grids + transposes + (has_transforms ? kept : 0) + data_bytes + (spect_additive ? data_bytes : 0) + (prior ? 3 * image : 0) + (anatomy_weights ? image : 0)",
         "bed_held_ram": "anatomy_weights ? 27 * Lx * Ly * Lz : 0"
       },
       "parts": [
