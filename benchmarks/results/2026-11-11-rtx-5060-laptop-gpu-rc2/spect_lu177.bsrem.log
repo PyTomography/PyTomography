@@ -1,0 +1,5 @@
+SPECT/Lu177-NEMA-SymT2: already downloaded
+[spect_lu177/bsrem] load: 0.76 s; peaks: RAM 3.8 GB, GPU 0.06 GB (PyTorch), +0.08 GB on the device
+[spect_lu177/bsrem] system matrix: 0.42 s; peaks: RAM 3.6 GB, GPU 0.06 GB (PyTorch), +0.00 GB on the device
+[spect_lu177/bsrem] prior weights: 0.45 s; peaks: RAM 5.1 GB, GPU 0.06 GB (PyTorch), +0.00 GB on the device
+[spect_lu177/bsrem] BSREM 40 x 8: first 34.88 s, repeats 33.29 s (median of 3); peaks: RAM 6.4 GB, GPU 0.49 GB (PyTorch), +0.63 GB on the device

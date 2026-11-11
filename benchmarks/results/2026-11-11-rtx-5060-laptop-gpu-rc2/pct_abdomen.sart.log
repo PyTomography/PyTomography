@@ -1,0 +1,4 @@
+PCT/GATE-Abdomen330-DTC: already downloaded
+[pct_abdomen/sart] load: 0.57 s; peaks: RAM 4.7 GB, GPU 0.00 GB (PyTorch), +0.00 GB on the device
+[pct_abdomen/sart] FBP, two passes (the starting image): 13.90 s; peaks: RAM 6.8 GB, GPU 0.82 GB (PyTorch), +1.16 GB on the device
+[pct_abdomen/sart] SART, 4 passes: first 83.09 s, repeats 83.19 s (median of 2); peaks: RAM 6.6 GB, GPU 0.61 GB (PyTorch), +0.69 GB on the device

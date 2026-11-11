@@ -1,0 +1,80 @@
+{
+ "case": "ct_helical_fbp",
+ "recon": "fbp",
+ "description": "CT helical FBP, Hann window, 1.25 mm slices, 512 x 512 x 316 (LDCT chest C145, t_fbp_ct)",
+ "quick": false,
+ "started": "2026-11-11T12:22:03Z",
+ "stages": [
+  {
+   "stage": "load",
+   "s": 42.722,
+   "ram_gb": 7.19,
+   "gpu_torch_gb": 1.38,
+   "gpu_device_gb": 1.79
+  },
+  {
+   "stage": "system matrix",
+   "s": 0.003,
+   "ram_gb": 5.56,
+   "gpu_torch_gb": 0.0,
+   "gpu_device_gb": 0.0
+  },
+  {
+   "stage": "FBP (Hann)",
+   "first_s": 54.157,
+   "repeats_s": [
+    53.919,
+    53.943
+   ],
+   "ram_gb": 9.58,
+   "gpu_torch_gb": 1.3,
+   "gpu_device_gb": 2.1,
+   "repeat_median_s": 53.931
+  }
+ ],
+ "settings": {
+  "memory_budget_gb": 25.0,
+  "grid": [
+   512,
+   512,
+   316
+  ],
+  "voxel_mm": [
+   0.6621,
+   0.6621,
+   1.0
+  ],
+  "views": 9014,
+  "detector": [
+   888,
+   64
+  ],
+  "algorithm": "FBP",
+  "window": "hann",
+  "slice_thickness_mm": 1.25
+ },
+ "machine": {
+  "os": "Windows 11 (10.0.26200)",
+  "python": "3.12.16",
+  "cpu": "Intel(R) Core(TM) Ultra 9 275HX",
+  "cores": 24,
+  "ram_gb": 33.8,
+  "device": "cuda",
+  "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+  "gpu_memory_gb": 8.5,
+  "cuda": "13.0",
+  "driver": "621.14",
+  "packages": {
+   "pytomography": "4.0.0rc2",
+   "torch": "2.14.1+cu130",
+   "numpy": "2.5.4",
+   "spectarf": "0.1.0",
+   "cupy-cuda13x": "14.2.0",
+   "numba": "0.68.1",
+   "numba-cuda": "0.30.4",
+   "parallelproj_core": "2.0.7 (CUDA build)"
+  }
+ },
+ "total_s": 206.1,
+ "process_ram_peak_gb": 9.58
+}

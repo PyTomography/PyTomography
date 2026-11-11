@@ -1,0 +1,5 @@
+CT/SophiaBeads-256: already downloaded
+[ct_microct/fdk] load: 4.27 s; peaks: RAM 3.9 GB, GPU 0.26 GB (PyTorch), +0.28 GB on the device
+[ct_microct/fdk] centre of rotation (25 FDKs of 4 slices): 16.55 s; peaks: RAM 4.7 GB, GPU 1.04 GB (PyTorch), +0.80 GB on the device
+[ct_microct/fdk] system matrix: 0.00 s; peaks: RAM 3.7 GB, GPU 0.26 GB (PyTorch), +0.00 GB on the device
+[ct_microct/fdk] FDK: first 10.72 s, repeats 10.64 s (median of 3); peaks: RAM 6.3 GB, GPU 2.53 GB (PyTorch), +2.81 GB on the device

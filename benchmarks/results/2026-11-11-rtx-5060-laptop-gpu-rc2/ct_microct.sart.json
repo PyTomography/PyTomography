@@ -1,0 +1,92 @@
+{
+ "case": "ct_microct",
+ "recon": "sart",
+ "description": "CT cone beam (Nikon micro-CT, binned by 4), OS-SART 3 x 5 from the FDK image, 500^3 (t_CT_microct)",
+ "quick": false,
+ "started": "2026-11-11T12:26:42Z",
+ "stages": [
+  {
+   "stage": "load",
+   "s": 3.729,
+   "ram_gb": 3.89,
+   "gpu_torch_gb": 0.26,
+   "gpu_device_gb": 0.28
+  },
+  {
+   "stage": "centre of rotation (25 FDKs of 4 slices)",
+   "s": 17.76,
+   "ram_gb": 4.7,
+   "gpu_torch_gb": 1.04,
+   "gpu_device_gb": 0.8
+  },
+  {
+   "stage": "system matrix",
+   "s": 0.002,
+   "ram_gb": 3.67,
+   "gpu_torch_gb": 0.26,
+   "gpu_device_gb": 0.0
+  },
+  {
+   "stage": "FDK (the starting image)",
+   "s": 10.765,
+   "ram_gb": 6.33,
+   "gpu_torch_gb": 2.53,
+   "gpu_device_gb": 2.81
+  },
+  {
+   "stage": "OS-SART 3 x 5",
+   "first_s": 15.246,
+   "repeats_s": [
+    14.699,
+    14.734,
+    14.71
+   ],
+   "ram_gb": 10.12,
+   "gpu_torch_gb": 6.06,
+   "gpu_device_gb": 5.71,
+   "repeat_median_s": 14.71
+  }
+ ],
+ "settings": {
+  "memory_budget_gb": 25.0,
+  "grid": [
+   500,
+   500,
+   500
+  ],
+  "binning": 4,
+  "views": 255,
+  "detector": [
+   500,
+   500
+  ],
+  "cor_mm": 0.24,
+  "algorithm": "OS-SART",
+  "n_iters": 3,
+  "n_subsets": 5
+ },
+ "machine": {
+  "os": "Windows 11 (10.0.26200)",
+  "python": "3.12.16",
+  "cpu": "Intel(R) Core(TM) Ultra 9 275HX",
+  "cores": 24,
+  "ram_gb": 33.8,
+  "device": "cuda",
+  "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+  "gpu_memory_gb": 8.5,
+  "cuda": "13.0",
+  "driver": "621.14",
+  "packages": {
+   "pytomography": "4.0.0rc2",
+   "torch": "2.14.1+cu130",
+   "numpy": "2.5.4",
+   "spectarf": "0.1.0",
+   "cupy-cuda13x": "14.2.0",
+   "numba": "0.68.1",
+   "numba-cuda": "0.30.4",
+   "parallelproj_core": "2.0.7 (CUDA build)"
+  }
+ },
+ "total_s": 92.2,
+ "process_ram_peak_gb": 10.12
+}
