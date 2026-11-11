@@ -44,11 +44,11 @@ Not sure where to start, or whether an idea fits? Ask in GitHub Discussions befo
    pre-commit install
    ```
 
-3. **Create a branch from `main`.** `main` is the only long-lived branch. Releases are tags on it.
+3. **Create a branch from `development`**, the default branch, which holds the next release. `main` holds released code only: every release is a tag on it.
 4. **Write a test that fails first.** For a bug, reproduce it in a test. For a new projector or algorithm, inherit the [contract tests](testing.md#contract-tests).
 5. **Make the change** and run `pytest` until everything passes. A GPU is not needed; CI runs the GPU tests.
 6. **Document it.** Public functions need a docstring that gives the shape, units and device of every tensor argument. A new feature needs a short tutorial notebook or an example in an existing one.
-7. **Open a pull request against `main`.** The template asks what changed, how you tested it, and whether it changes numbers. CI runs the tests and builds a preview of the docs.
+7. **Open a pull request into `development`** that says which issue it closes, e.g. `Closes #123`. The template asks what changed, how you tested it, and whether it changes numbers. CI runs the tests and builds a preview of the docs.
 
 ## Writing a tutorial
 

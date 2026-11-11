@@ -163,7 +163,6 @@ html_theme_options = {
          "icon": "fa-brands fa-discourse"},
         {"name": "PyPI", "url": "https://pypi.org/project/pytomography/", "icon": "fa-brands fa-python"},
     ],
-    "announcement": "You are reading the preview of the PyTomography 4.0 documentation. Release target: 30 October 2026.",
     "use_edit_page_button": True,
     "show_toc_level": 2,
     # tutorial pages use the full width: their headings sit in the section navigation instead (js/pytomo-tutorial.js).
