@@ -33,7 +33,24 @@ from monai.transforms import ScaleIntensityd, CropForeground, Compose, Divisible
 
 # %% How much memory this needs
 RAM_GB = 25 # memory (RAM) this tutorial may use, in GB; it needs about 22 GB however low this is
-NETWORK_GB = 7 # training the network takes about 7 GB of GPU memory, which on Windows counts as RAM too
+
+# The Deep Image Prior's network: a UNet (defined below) whose 5 levels are 1, 2, 4, 8 and 16 times START_CHANNELS
+# wide. Fitting it takes most of the GPU memory this tutorial needs; the list-mode events, their additive term and
+# the images keep 2.5 to 3 GB more on the GPU for the whole run. GPU memory in GB, as
+# torch.cuda.max_memory_allocated counts it, with PyTomography 4.0.0rc1 and PyTorch 2.14:
+#
+#   START_CHANNELS   fitting the network   the tutorial's peak
+#   12               5.5                   8.0         more than an 8 GB GPU has; the images on this page
+#   10               4.7                   about 7.4
+#    8               3.7                   6.6         fits an 8 GB GPU (32 min on an RTX 5060 Laptop GPU)
+#    6               2.9                   about 5.6
+#
+# PyTorch keeps freed blocks for reuse, so the GPU needs some room above these. A narrower network gives a little
+# less: at 8, the Deep Image Prior image ends with contrast 4.08 and noise 0.51 (as measured at the end of this
+# tutorial), against 4.24 and 0.48 at 12.
+START_CHANNELS = 12
+LBFGS_HISTORY = 10 # past steps L-BFGS keeps, 2 copies of the network's parameters each: 0.24 GB at 12 channels
+NETWORK_GB = 7 * START_CHANNELS / 12 # what fitting the network takes, in GB, which on Windows counts as RAM too
 pytomography.set_memory_budget(RAM_GB - NETWORK_GB) # what the scatter estimate and the reconstructions may use
 
 LOAD_FROM_ROOT = False # True: read the ROOT files again instead of the results cached in OUTPUT
@@ -273,6 +290,7 @@ class DIPPrior():
         scale_factor=1, # constant to scale MRI image by
         n_epochs=10, # how many epochs the network trains for when fitting
         lr = 0.1, # learning rate when fitting
+        history_size = 10, # L-BFGS: past steps kept, 2 copies of the network's parameters each
     ):
         self.network = network
         self.anatomical_image = anatomical_image
@@ -280,14 +298,15 @@ class DIPPrior():
         self.n_epochs = n_epochs
         self.scale_factor = scale_factor
         self.lr = lr
+        self.history_size = history_size
         self.max_iter = 20 # L-BFGS iterations per epoch
         self.line_search_fn = None # L-BFGS line search: None (fixed step lr) or 'strong_wolfe'
         
     def fit(self, object):
         # This method trains the network for n_epochs at a learning rate of lr
         data = self.pipeline({'NM': object.unsqueeze(0), 'MR': self.anatomical_image.unsqueeze(0)})
-        # history_size=10 as in the paper (100 kept 200 copies of the network's parameters on the GPU)
-        optimizer_lfbgs = LBFGS(self.network.parameters(), lr=self.lr, max_iter=self.max_iter, history_size=10, line_search_fn=self.line_search_fn)
+        # history_size: 10 as in the paper (100 kept 200 copies of the network's parameters on the GPU)
+        optimizer_lfbgs = LBFGS(self.network.parameters(), lr=self.lr, max_iter=self.max_iter, history_size=self.history_size, line_search_fn=self.line_search_fn)
         NM_truth = data['NM'].unsqueeze(0) * self.scale_factor
         network_input = data['MR'].unsqueeze(0)
         criterion = torch.nn.MSELoss()
@@ -324,9 +343,8 @@ pipeline = Compose([
     ScaleIntensityd(['MR'], 0, 1)
 ])
 
-start_channels = 12
 torch.manual_seed(0) # the network's starting weights: the same network, and the same images, on every run
-net = UNetCustom([start_channels,2*start_channels,4*start_channels,8*start_channels,16*start_channels]).to(pytomography.device)
+net = UNetCustom([START_CHANNELS, 2*START_CHANNELS, 4*START_CHANNELS, 8*START_CHANNELS, 16*START_CHANNELS]).to(pytomography.device)
 
 dip_prior = DIPPrior(
     net,
@@ -334,7 +352,8 @@ dip_prior = DIPPrior(
     pipeline,
     n_epochs= 100,
     scale_factor= 50,
-    lr=0.01
+    lr=0.01,
+    history_size=LBFGS_HISTORY,
     )
 
 dip_prior.fit(recon_lm_tof)
