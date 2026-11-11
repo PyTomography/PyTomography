@@ -1,0 +1,2027 @@
+{
+ "about": "PyTomography's I/O: every data source, its own conventions, the reader that converts it, and the standard form every reader returns. The Architecture page's 'Data and conventions' tab draws it (_static/arch/pt-io.js) and the docs build writes it as text (_ext/pytomo_io.py). Nodes link left to right through 'to': source -> reader -> standard -> used_by. vendor_rules is the library's pytomography/io/_vendors.py table; docs/tools/io_vendor_rules.py checks and copies it.",
+ "library": "PyTomography 4.0 (branch feature/io-pet-ct e9393da, 12 October 2026)",
+ "statuses": {
+  "verified": "checked on data",
+  "check": "checked in part; the reader warns about what is open",
+  "unverified": "no data checks it; the reader warns",
+  "v4.1": "not read until PyTomography 4.1",
+  "dropped": "no longer read"
+ },
+ "modalities": [
+  {
+   "id": "spect",
+   "name": "SPECT"
+  },
+  {
+   "id": "pet",
+   "name": "PET"
+  },
+  {
+   "id": "ct",
+   "name": "CT"
+  },
+  {
+   "id": "img",
+   "name": "Image files"
+  }
+ ],
+ "columns": [
+  {
+   "id": "sources",
+   "title": "Source",
+   "sub": "its own conventions"
+  },
+  {
+   "id": "readers",
+   "title": "Reader",
+   "sub": "pytomography.io"
+  },
+  {
+   "id": "standard",
+   "title": "Standard form",
+   "sub": "what every reader returns"
+  },
+  {
+   "id": "used_by",
+   "title": "Used by",
+   "sub": "never sees a file"
+  }
+ ],
+ "convention_fields": [
+  "frame",
+  "axes",
+  "units",
+  "origin",
+  "angles",
+  "values",
+  "quirks"
+ ],
+ "sources": [
+  {
+   "id": "spect-dicom-siemens",
+   "lane": "spect",
+   "short": "DICOM NM, Siemens dual-head",
+   "status": "verified",
+   "name": "DICOM NM projections, Siemens dual-head (Symbia T2/T6, Intevo)",
+   "formats": [
+    "DICOM NM multi-frame TOMO (.dcm, .IMA)"
+   ],
+   "call": "projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)",
+   "to": [
+    "rd-spect-dicom"
+   ],
+   "conventions": {
+    "frame": "DICOM patient coordinates (LPS, mm). The heads' ImageOrientationPatient: rows along -z (row 0 superior), the anterior view's columns along +x.",
+    "axes": "pixel_array [frame, row, column] = [frame, z, r]; frames indexed by the EnergyWindow, Detector, Rotation and AngularView vectors.",
+    "units": "mm: PixelSpacing = (between rows, between columns) = (dz, dr); RadialPosition and TableHeight in mm.",
+    "origin": "ImagePositionPatient of the Detector Information Sequence = (0, 0, z of the top row); the rotation axis at y = -TableHeight.; Siemens' SPECT/CT registration, a 4×4 rigid matrix M in the private tag (0043,xx02) of 'SIEMENS MED NM', takes the acquisition frame to the CT's.",
+    "angles": "DICOM: 0 = detector at the patient's back, counter-clockwise seen from the feet; StartAngle, direction (CC or CW) and AngularStep per head; RadialPosition per view (body contour).",
+    "values": "counts per view (RescaleSlope and RescaleIntercept applied).",
+    "quirks": "PatientPosition is not used to place anything; positions other than FFS warn."
+   },
+   "brief": "LPS; row 0 superior; IPP (0, 0, z top), axis at y = -TableHeight; SPECT/CT matrix M; DICOM angles; mm",
+   "steps": [
+    "Frames indexed by their vectors and counted; multi-rotation files are refused.",
+    "β = (DICOM angle + 180) mod 360; views sorted by β.",
+    "Rows and columns flipped as the heads' ImageOrientationPatient say: [W, θ, r, z], z foot → head.",
+    "Grid Columns × Columns × Rows, dr = PixelSpacing[1], dz = PixelSpacing[0]; radii from RadialPosition.",
+    "centre = (0, -TableHeight, middle row's z) by the vendor rule; frame 'patient', units 'counts'.",
+    "Siemens' registration M applied: the centre moves to M·centre and β turns by M's rotation about z, as Siemens places its own reconstructions and CT μ maps. M's tilt about x and y (≤ 1°) is not modelled: up to 2 mm at 100 mm from the centre along z.",
+    "Every energy window, ActualFrameDuration (s), the acquisition start and the nuclide into proj_meta."
+   ],
+   "checked": "Siemens places its own reconstructions and CT μ maps with M, exactly: the Lu-177 NEMA scan and four TCIA Symbia studies. Lu-177 NEMA against its CT (lung insert, sphere shells, whole phantom): 3.7 mm without M, 2.1 mm with it; PyTomography's reconstruction then matches Siemens' own (NCC 0.998). The low-count Ac-225 scan cannot decide it (6.5 mm without M, 8.5 mm with).",
+   "v3": "lengths in mm; orientation read from the tags (assumed in v3); Columns and PixelSpacing order fixed; Siemens' SPECT/CT registration applied (ignored in v3); frame time, start and nuclide in proj_meta; one call for get_metadata and get_projections.",
+   "rules": [
+    "siemens-nm-projection",
+    "siemens-nm-registration"
+   ],
+   "datasets": [
+    "SPECT/Lu177-NEMA-SymT2",
+    "SPECT/Ac225-NEMA-SymT2",
+    "SPECT/Tc99m-Cardiac"
+   ],
+   "tutorials": [
+    "t_dicomdata",
+    "t_algorithms",
+    "t_dualpeak",
+    "t_spect_mc2",
+    "t_algorithms_measured",
+    "t_fbp_spect",
+    "t_ac225_dicom_recon",
+    "t_CardiacReorientation"
+   ]
+  },
+  {
+   "id": "spect-dicom-ge",
+   "lane": "spect",
+   "short": "DICOM NM, GE dual-head",
+   "status": "check",
+   "name": "DICOM NM projections, GE Discovery 670 (Xeleris)",
+   "formats": [
+    "DICOM NM multi-frame TOMO (.dcm)"
+   ],
+   "call": "projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)",
+   "to": [
+    "rd-spect-dicom"
+   ],
+   "conventions": {
+    "frame": "DICOM patient coordinates (LPS, mm); the heads' ImageOrientationPatient tilted 0.16° in-plane.",
+    "axes": "as Siemens; both heads stored as one detector (NumberOfDetectors 1, ScanArc 360).",
+    "units": "mm",
+    "origin": "ImagePositionPatient (x, y) of the Detector Information Sequence = the centre of voxel (0, 0), as written; the rotation axis at the centre of the columns.",
+    "angles": "one StartAngle in the Rotation Information Sequence; CC or CW; one RadialPosition (circular orbit).",
+    "values": "counts",
+    "quirks": "Centre or corner of voxel (0, 0) is not resolved below one 4.4 mm voxel; the patient position may be only in the orientation codes."
+   },
+   "brief": "LPS; IPP = centre of voxel (0, 0); one start angle; circular orbit",
+   "steps": [
+    "Same reader as Siemens: frames by their vectors, β = angle + 180°, rows by the IOPs.",
+    "centre from ImagePositionPatient and the middle column (vendor rule, by Manufacturer); frame 'patient'.",
+    "Energy windows, frame time, start and nuclide into proj_meta."
+   ],
+   "checked": "Lu-177-PSMA patient: kidney masks from the CT land on the hot kidneys at zero shift, in whole 4.4 mm voxels; open feet-first files from GE (Discovery 670, 670 Pro, 870 DR) and Siemens (Symbia T6, IQ-SPECT) cameras read with their first views at the right angles.",
+   "v3": "as Siemens: mm, orientation from the tags, the acquisition facts in proj_meta.",
+   "rules": [
+    "ge-nm-projection-ipp"
+   ],
+   "datasets": [
+    "SPECT/Lu177-PSMA-GEDisc"
+   ],
+   "tutorials": [
+    "t_dicommultibed",
+    "t_uncertainty_spect",
+    "t_plotting"
+   ]
+  },
+  {
+   "id": "spect-dicom-multibed",
+   "lane": "spect",
+   "short": "DICOM NM, one file per bed",
+   "status": "verified",
+   "name": "Several DICOM NM bed positions of one study",
+   "formats": [
+    "one DICOM NM file per bed"
+   ],
+   "call": "beds = io.SPECT.read_dicom_beds(files_NM)                 # inferior bed first\nimage, object_meta = io.SPECT.stitch_beds(recons, [b[1] for b in beds])",
+   "to": [
+    "rd-spect-beds"
+   ],
+   "conventions": {
+    "frame": "LPS mm; each bed has its own ImagePositionPatient z, start angle, direction and radius.",
+    "axes": "as one bed",
+    "units": "mm (the GE study: beds 354 mm apart, overlapping 207 mm)",
+    "origin": "each bed's own",
+    "angles": "per bed (the GE study: one bed CC from 180°, the other CW from 0°)",
+    "values": "counts",
+    "quirks": "Beds overlap; the files can come in any order."
+   },
+   "brief": "one file per bed; per-bed z, angles and radius; beds overlap",
+   "steps": [
+    "read_dicom_beds reads each bed into the standard form, inferior bed first; each bed's projections beyond the middle of an overlap are replaced by its neighbour's.",
+    "Each bed is reconstructed on its own grid.",
+    "stitch_beds(recons, object_metas) returns (image, object_meta): the stitched grid, slice 0 the lowest bed's first slice.",
+    "Masks and maps go onto that grid: io.load_mask(...).on(object_meta, ...)."
+   ],
+   "checked": "Lu-177-PSMA patient, two beds: masks on the stitched grid read lung μ < 0.008 /mm and liver > 0.012 /mm; a synthetic test checks the order and the stitched place.",
+   "v3": "stitch_multibed returned a bare tensor; the stitched grid now has its own object_meta, so masks land on the right bed.",
+   "rules": [
+    "ge-nm-projection-ipp",
+    "siemens-nm-projection"
+   ],
+   "datasets": [
+    "SPECT/Lu177-PSMA-GEDisc"
+   ],
+   "tutorials": [
+    "t_dicommultibed",
+    "t_uncertainty_spect"
+   ]
+  },
+  {
+   "id": "spect-starguide",
+   "lane": "spect",
+   "short": "GE StarGuide, 12 head files",
+   "status": "verified",
+   "name": "GE StarGuide CZT ring SPECT: 12 swivelling heads, one NM file per head",
+   "formats": [
+    "DICOM NM multi-frame per head (*.NMDC.0), private GE tags"
+   ],
+   "call": "projections, object_meta, proj_meta = io.SPECT.read_starguide(files_NM, files_CT=files_CT)",
+   "to": [
+    "rd-spect-starguide"
+   ],
+   "conventions": {
+    "frame": "No ImagePositionPatient in the projections; the head geometry is in private tags (0099,1051-1053): x and y in cm, the angle in degrees.",
+    "axes": "pixel_array [frame, row, column] = [frame, z (112), r (16)]; frames by window, rotation and view.",
+    "units": "mm in the standard tags, cm in the private x and y; frame times (0009,1003) in ms.",
+    "origin": "none in the NM files; GE's reconstruction is centred on the CT volume.",
+    "angles": "the private angle is β itself; radius and transaxial offset from the private x and y.",
+    "values": "stored values × the private Pixel Scale (0011,103B): not integers.",
+    "quirks": "The row direction comes from the heads' ImageOrientationPatient; positions other than FFS warn."
+   },
+   "brief": "private geometry (cm) and times (ms); no IPP; scaled values",
+   "steps": [
+    "β, radius and offset from the private tags; cm → mm, ms → s.",
+    "Rows flipped as the heads' ImageOrientationPatient say, so z runs foot → head.",
+    "Values × Pixel Scale; units 'counts/s'.",
+    "GE's grid (196 × 196 × 112 at the pixel size) unless object_meta gives another.",
+    "centre = the CT volume's centre with files_CT (frame 'patient'), else the scanner's (frame 'scanner')."
+   ],
+   "checked": "NEMA phantom: NCC 0.96 against GE's own reconstruction, every flip ≤ 0.49; the grid matches GE's to < 0.01 mm.",
+   "v3": "k runs foot → head (head → foot in v3); mm; times in s; the affine on object_meta.",
+   "rules": [
+    "ge-starguide"
+   ],
+   "datasets": [
+    "SPECT/Tc99m-NEMA-Starguide"
+   ],
+   "tutorials": [
+    "t_starguide"
+   ]
+  },
+  {
+   "id": "spect-simind-proj",
+   "lane": "spect",
+   "short": "SIMIND projections .h00",
+   "status": "verified",
+   "name": "SIMIND Monte Carlo projections (Interfile .h00 + float32 .a00), one pair per energy window",
+   "formats": [
+    ".h00 header with ';#' comment keys + .a00 float32"
+   ],
+   "call": "projections, object_meta, proj_meta = io.SPECT.read_simind(headers)",
+   "to": [
+    "rd-spect-simind"
+   ],
+   "conventions": {
+    "frame": "SIMIND's phantom frame, LPS as read (XCAT: liver at the patient's right, lungs posterior).",
+    "axes": "[view, row, column] = [view, z, r]; row 0 at +z; x fastest within a view.",
+    "units": "'scaling factor (mm/pixel)' in mm; radius and collimator keys in cm before version 8, mm from version 8.",
+    "origin": "the phantom centred on the rotation axis",
+    "angles": "'start angle', 'extent of rotation', 'direction of rotation' (the hosted data: counter-clockwise from 0).",
+    "values": "counts per second per MBq (expected values), 1 s per view.",
+    "quirks": "Window bounds and photon energy are only in comment lines (';#'); the header's photon energy is the simulation's, not the window's."
+   },
+   "brief": "phantom frame; row 0 at +z; cm or mm keys by version; counts/s/MBq",
+   "steps": [
+    "Version as an integer (the number after 'V'); lengths to mm.",
+    "Angles from start, extent and direction; views sorted by β as for DICOM.",
+    "Rows flipped: [W, θ, r, z], z foot → head.",
+    "Every window's bounds and photon energy into proj_meta.energy_windows; frame 'scanner'.",
+    "Organ-by-organ files added with weights=; a .cor file for non-circular orbits."
+   ],
+   "checked": "Jaszczak spheres and XCAT anatomy where they belong; versions 7, 8 and 10 in a synthetic test. Clockwise data with a non-zero start angle are unverified and warn.",
+   "v3": "mm; each window's own photon energy (v3 used the simulation's); the version read as an integer.",
+   "rules": [
+    "simind-units",
+    "simind-projection-frame",
+    "simind-clockwise-start"
+   ],
+   "datasets": [
+    "SPECT/SIMIND-Jaszak"
+   ],
+   "tutorials": [
+    "t_siminddata",
+    "t_algorithms",
+    "t_accuracy_known_truth",
+    "t_spect_mc",
+    "t_ac225_simind_recon"
+   ]
+  },
+  {
+   "id": "spect-simind-mu",
+   "lane": "spect",
+   "short": "SIMIND μ map .hct",
+   "status": "verified",
+   "name": "SIMIND attenuation map (.hct header + .ict float32)",
+   "formats": [
+    ".hct/.ict ('Units of data (ECT) := mu')"
+   ],
+   "call": "mu = io.attenuation_map('map.hct', object_meta, energy=w.photon_energy, layout='mu-castor')",
+   "to": [
+    "rd-img-load",
+    "rd-img-mu"
+   ],
+   "conventions": {
+    "frame": "SIMIND's phantom frame; the first slice is superior.",
+    "axes": "x fastest; the y direction is set by simind.ini index 22 ('mu': 3, 'mu-castor': 5), which the header does not record.",
+    "units": "mm voxels; μ in 1/cm at the simulation's photon energy.",
+    "origin": "centred",
+    "angles": "-",
+    "values": "1/cm",
+    "quirks": "The layout cannot be read from the file, so it must be given."
+   },
+   "brief": "first slice superior; y direction from simind.ini index 22 (not in the header); 1/cm",
+   "steps": [
+    "load_image(path, layout='mu' | 'mu-castor'): the layout is required.",
+    "attenuation_map converts to 1/mm, checks water against energy (warns beyond 5 %) and puts the map on the grid."
+   ],
+   "checked": "XCAT: the lung sources sit on the lungs with layout 'mu-castor' (0.71 and 0.78 of their counts), not with 'mu' (0.51).",
+   "v3": "layout required (v3 defaulted to 3 in one reader and 5 in another); 1/mm; the water check catches a map made for another energy.",
+   "rules": [
+    "simind-density-layout"
+   ],
+   "datasets": [
+    "SPECT/SIMIND-Jaszak"
+   ],
+   "tutorials": [
+    "t_siminddata",
+    "t_algorithms",
+    "t_accuracy_known_truth",
+    "t_spect_mc",
+    "t_ac225_simind_recon"
+   ]
+  },
+  {
+   "id": "spect-vendor-mu",
+   "lane": "spect",
+   "short": "Vendor μ map (DICOM)",
+   "status": "unverified",
+   "name": "An attenuation map stored as DICOM by the scanner",
+   "formats": [
+    "DICOM multi-frame image"
+   ],
+   "call": "mu = io.attenuation_map(file_mu, object_meta, energy=w.photon_energy)",
+   "to": [
+    "rd-img-mu"
+   ],
+   "conventions": {
+    "frame": "LPS from its ImagePositionPatient and ImageOrientationPatient",
+    "axes": "[frame, row, column]",
+    "units": "GE: stored values divided by the private scale (0033,1038); others: RescaleSlope",
+    "origin": "ImagePositionPatient of the first frame",
+    "angles": "-",
+    "values": "1/cm",
+    "quirks": "No local data checks it."
+   },
+   "brief": "multi-frame DICOM; private or rescale scale; 1/cm",
+   "steps": [
+    "load_image reads the geometry and the scale.",
+    "attenuation_map converts to 1/mm, checks water and resamples onto the grid."
+   ],
+   "checked": "No local data; the GE scale is a code branch only.",
+   "v3": "geometry read (v3 assumed the map lay on the reconstruction grid).",
+   "rules": [
+    "ge-nm-mu-scale"
+   ],
+   "datasets": [],
+   "tutorials": []
+  },
+  {
+   "id": "spect-rtstruct",
+   "lane": "spect",
+   "short": "RTSTRUCT on the CT",
+   "status": "verified",
+   "name": "DICOM RTSTRUCT contours drawn on the CT of a SPECT/CT",
+   "formats": [
+    "DICOM RT Structure Set + its CT series"
+   ],
+   "call": "liver = io.load_mask(file_RT, reference=files_CT, rois=['liver']).on(object_meta, label='liver', threshold=0.5)",
+   "to": [
+    "rd-img-mask"
+   ],
+   "conventions": {
+    "frame": "contours in the CT's patient coordinates (LPS, mm)",
+    "axes": "drawn on the CT's grid (rt_utils: rows, columns, slices)",
+    "units": "mm",
+    "origin": "the CT's",
+    "angles": "-",
+    "values": "one mask per ROI; ROIs may overlap",
+    "quirks": "Needs the CT series it was drawn on (reference=); each ROI takes a few seconds."
+   },
+   "brief": "contours in the CT's LPS; drawn on the CT's grid",
+   "steps": [
+    "load_mask draws each ROI on the CT's grid: a label Image with labels {name: value}; overlaps get values of their own.",
+    ".on(object_meta, label='liver') gives each voxel's coverage, or a bool tensor with threshold=."
+   ],
+   "checked": "Lu-177-PSMA patient: the kidney masks land on the hot kidneys; masks and μ from one CT agree.",
+   "v3": "targets any object_meta (stitched, subsampled), not an NM file.",
+   "rules": [
+    "ge-ct-image-corner"
+   ],
+   "datasets": [
+    "SPECT/Lu177-PSMA-GEDisc"
+   ],
+   "tutorials": [
+    "t_uncertainty_spect"
+   ]
+  },
+  {
+   "id": "pet-gate",
+   "lane": "pet",
+   "short": "GATE ROOT + .mac",
+   "status": "verified",
+   "name": "GATE simulation: ROOT coincidences and delays, with the geometry macro",
+   "formats": [
+    "ROOT (trees 'Coincidences' and 'delay')",
+    "GATE macro (.mac)"
+   ],
+   "call": "events, object_meta, proj_meta = io.PET.read_gate(root_files, 'mMR_Geometry.mac', doi=9)",
+   "to": [
+    "rd-pet-gate"
+   ],
+   "conventions": {
+    "frame": "GATE's world, mm, right-handed, the scanner's centre at the origin. The patient is wherever the phantom was placed: the hosted brain data have GATE (x, y, z) = (L, P, I).",
+    "axes": "one row per coincidence; copy numbers per level (rsector around z, module along z, crystal).",
+    "units": "mm, s, MeV",
+    "origin": "the world's centre",
+    "angles": "rsector k at 360 k / n degrees about z, rsector 0 on +x.",
+    "values": "events; randoms by sourcePos1 ≠ sourcePos2; scatters by the phantom's Compton and Rayleigh flags.",
+    "quirks": "t1 ≤ t2 in every coincidence; no TOF bins stored; the energy window is only in the digitizer macro."
+   },
+   "brief": "GATE world (hosted data: x L, y P, z I); copy numbers; mm, s, MeV",
+   "steps": [
+    "info from the macro (io.PET.scanner_info): radius = the crystals' inner face + doi.",
+    "Detector id = ring × crystals per ring + crystal, int32.",
+    "GATE's world to LPS by world_axes and world_origin; hosted datasets get theirs from the registry ('LPI', the MR's centre).",
+    "TOF bin from (t1 − t2) c/2; events outside the TOF range dropped.",
+    "normalization= weights checked (combinations order, NaN → 0)."
+   ],
+   "checked": "The scanner LUT lands on GATE's interaction points; annihilation points lie on their LORs; TOF bins rise with the true position; the hosted placement is where v3 saved the images.",
+   "v3": "GATE's axes stated (v3 negated z in every LUT); the placement from the registry instead of a NIfTI helper; -1 TOF bins dropped.",
+   "rules": [
+    "gate-world-frame"
+   ],
+   "datasets": [
+    "PET/GATE-mMR-BrainInWater",
+    "PET/GATE-mMR-Brain"
+   ],
+   "tutorials": [
+    "t_pet_introduction",
+    "t_PETGATE_scat_sino",
+    "t_PETGATE_scat_sinoTOF",
+    "t_PETGATE_scat_lm",
+    "t_PETGATE_scat_lmTOF",
+    "t_PETGATE_DIP"
+   ]
+  },
+  {
+   "id": "pet-gate-hv",
+   "lane": "pet",
+   "short": "GATE μ map .hv",
+   "status": "unverified",
+   "name": "GATE/STIR Interfile attenuation map (.hv + .v)",
+   "formats": [
+    "Interfile .hv header + .v float32"
+   ],
+   "call": "mu = io.attenuation_map(io.PET.gate_image('umap.hv', proj_meta, units='1/cm'), object_meta)",
+   "to": [
+    "rd-pet-gate-image",
+    "rd-img-mu"
+   ],
+   "conventions": {
+    "frame": "GATE's world: the image centred on its placement, its axes along GATE's x, y and z.",
+    "axes": "x fastest, then y and z",
+    "units": "mm voxels; values in 1/cm, not stated in the file",
+    "origin": "STIR's 'first pixel offset' is relative to STIR's origin at the first ring: kept in meta, not used",
+    "angles": "-",
+    "values": "1/cm (not stated)",
+    "quirks": "The hosted water cube is symmetric, so its orientation cannot be checked."
+   },
+   "brief": "GATE world, centred on its placement; x fastest; 1/cm not stated",
+   "steps": [
+    "load_image reads it centred, axes as LPS, frame 'scanner' (vendor rule).",
+    "gate_image moves it to where the simulation put it, by read_gate's world_axes and world_origin.",
+    "attenuation_map: units='1/cm' → 1/mm, onto the grid."
+   ],
+   "checked": "Unverifiable on the hosted symmetric cube; gate_image is tested against world_axes on a synthetic image.",
+   "v3": "no SIMIND flips (v3 applied them to every Interfile map); placed in the patient frame.",
+   "rules": [
+    "gate-stir-interfile-image",
+    "gate-world-frame"
+   ],
+   "datasets": [
+    "PET/GATE-mMR-BrainInWater"
+   ],
+   "tutorials": [
+    "t_pet_introduction",
+    "t_PETGATE_scat_sino",
+    "t_PETGATE_scat_sinoTOF",
+    "t_PETGATE_scat_lm",
+    "t_PETGATE_scat_lmTOF",
+    "t_PETGATE_DIP"
+   ]
+  },
+  {
+   "id": "pet-petsird",
+   "lane": "pet",
+   "short": "PETSIRD 0.9",
+   "status": "verified",
+   "name": "PETSIRD 0.9 list mode (ETSI), here a Siemens mMR scan written by STIR2PETSIRD",
+   "formats": [
+    "PETSIRD 0.9 binary stream (.bin)"
+   ],
+   "call": "header = io.PET.petsird.read_header(path)\nevents, object_meta, proj_meta = io.PET.read_petsird(path, up='+x', towards_bed='+z', patient_position='HFS', header=header)",
+   "to": [
+    "rd-pet-petsird"
+   ],
+   "conventions": {
+    "frame": "the gantry frame, mm; PETSIRD 0.9 states no axis directions and no patient position. STIR2PETSIRD: x up, z towards the bed, the axial origin at the first ring.",
+    "axes": "modules of detecting elements placed by 3 × 4 transforms; detection bin = element × energy bins + energy bin.",
+    "units": "mm, ms, keV",
+    "origin": "the gantry's",
+    "angles": "per-module transforms; STIR2PETSIRD places crystals by a corner (-0.353°).",
+    "values": "events; detection efficiencies",
+    "quirks": "TOF bins hold (t1 − t2) c/2; a clinical scanner's header holds gigabytes of normalisation tables."
+   },
+   "brief": "gantry frame with no stated axes (STIR2PETSIRD: x up, z to the bed); mm, ms, keV",
+   "steps": [
+    "up, towards_bed and patient_position give the patient's axes.",
+    "info fitted to the elements; the -0.353° turn goes into rsector0_angle, so the grid is exactly LPS.",
+    "Elements matched to PyTomography's crystals within tolerance; events int32, TOF as stored.",
+    "Efficiencies as weights in combinations order; energy window and resolution into info; frame 'scanner'."
+   ],
+   "checked": "The events centre on the Siemens μ map (x centroid within 2 mm); every crystal on its element.",
+   "v3": "PyTomography's crystal numbering and frame (v3 kept PETSIRD's); the turn in the LUT, so the grid is axis-aligned; one call.",
+   "rules": [
+    "stir2petsird"
+   ],
+   "datasets": [
+    "PET/PETSIRD-mMR-NEMA"
+   ],
+   "tutorials": [
+    "t_PETSIRD"
+   ]
+  },
+  {
+   "id": "pet-ge-hdf5",
+   "lane": "pet",
+   "short": "GE HDF5 list mode",
+   "status": "check",
+   "name": "GE Discovery MI list mode (HDF5 RDF, LIST0000.BLF)",
+   "formats": [
+    "HDF5 (MiceList/TofCoinc)"
+   ],
+   "call": "events, object_meta, proj_meta = io.PET.read_ge_hdf5('LIST0000.BLF')",
+   "to": [
+    "rd-pet-ge"
+   ],
+   "conventions": {
+    "frame": "GE's gantry; no axis directions in the file.",
+    "axes": "TofCoinc int16 [N, 5] = (ring, crystal, ring, crystal, TOF).",
+    "units": "mm (SystemGeometry)",
+    "origin": "not stated",
+    "angles": "crystal 0 at the top of the gantry",
+    "values": "events; raw TOF in units of 13.02 ps, multiples of 13 only",
+    "quirks": "The TOF resolution is not in the file; left-right and head-foot cannot be checked on the hosted data."
+   },
+   "brief": "(ring, crystal) pairs; raw TOF in steps of 13; no axis directions",
+   "steps": [
+    "Detector id = 544 ring + crystal; TOF bin = 14 − raw/13; events outside the bins dropped; 8 million rows at a time.",
+    "Turned 180° about z, so the bed lies posterior: images are upright.",
+    "Geometry and TOF from io.PET.scanner_info('discovery_MI'); the energy window from the file; frame 'scanner'."
+   ],
+   "checked": "The TOF sign images the spheres; the bed lies posterior (GE's attenuation factors back-projected). Left-right and head-foot are unverified, and the reader warns.",
+   "v3": "upright (v3's images were upside down); the energy window read; one reader for the clinical module.",
+   "rules": [
+    "ge-dmi-listmode"
+   ],
+   "datasets": [
+    "PET/GE-DMI-NEMA"
+   ],
+   "tutorials": [
+    "t_GE_HDF5",
+    "t_uncertainty_pet"
+   ]
+  },
+  {
+   "id": "pet-ge-corrections",
+   "lane": "pet",
+   "short": "GE corrections .h5",
+   "status": "verified",
+   "name": "GE's corrections for a list mode file (corrections.h5)",
+   "formats": [
+    "HDF5 (correction_lists, all_xtals)"
+   ],
+   "call": "event_weights, additive_counts, pair_ids, pair_weights = io.PET.read_ge_corrections('corrections.h5')",
+   "to": [
+    "rd-pet-ge-corr"
+   ],
+   "conventions": {
+    "frame": "as the list mode",
+    "axes": "per event, in the list mode's order; every valid pair as (crystal, ring, crystal, ring): the other column order.",
+    "units": "-",
+    "origin": "-",
+    "angles": "-",
+    "values": "atten (transmission ≤ 1), sens (multiplicative), contam (expected randoms and scatter per event, counts)",
+    "quirks": "146 million valid pairs on the Discovery MI."
+   },
+   "brief": "per-event and per-pair factors; (crystal, ring) column order",
+   "steps": [
+    "event_weights = atten × sens (attenuation included).",
+    "additive_counts = contam, in counts.",
+    "pair_ids (int32 [M, 2]) and pair_weights, read 8 million at a time."
+   ],
+   "checked": "Column order and grouping by ring pair.",
+   "v3": "one reader for the four clinical *_hdf5 correction functions.",
+   "datasets": [
+    "PET/GE-DMI-NEMA"
+   ],
+   "tutorials": [
+    "t_GE_HDF5",
+    "t_uncertainty_pet"
+   ],
+   "rules": []
+  },
+  {
+   "id": "pet-scanner-table",
+   "lane": "pet",
+   "short": "Built-in scanner table",
+   "status": "verified",
+   "name": "PyTomography's table of clinical PET scanners (data/pet_scanner_info.txt)",
+   "formats": [
+    "text table, one row per scanner"
+   ],
+   "call": "info = io.PET.scanner_info('discovery_MI')",
+   "to": [
+    "rd-pet-scanner"
+   ],
+   "conventions": {
+    "frame": "a parametric ring per scanner name",
+    "axes": "one row per scanner",
+    "units": "mm",
+    "origin": "the rings' centre",
+    "angles": "crystal 0 at the top (the frame keys)",
+    "values": "numbers",
+    "quirks": "Holds the TOF FWHM, which GE's file does not give."
+   },
+   "brief": "parametric ring per scanner name; mm",
+   "steps": [
+    "scanner_info builds a checked info with the frame keys (rsector0_angle, transaxial_direction, axial_direction)."
+   ],
+   "checked": "Agrees with the Discovery MI file's SystemGeometry; the table's scanner is upright.",
+   "v3": "frame keys replace firstCrystalAxis; Python numbers instead of numpy.",
+   "tutorials": [
+    "t_GE_HDF5",
+    "t_uncertainty_pet"
+   ],
+   "rules": [],
+   "datasets": []
+  },
+  {
+   "id": "pet-siemens-mu",
+   "lane": "pet",
+   "short": "Siemens mMR μ map .v.hdr",
+   "status": "verified",
+   "name": "Siemens mMR attenuation map (JSRecon Interfile .v.hdr + .v)",
+   "formats": [
+    "Interfile .v.hdr + .v float32"
+   ],
+   "call": "mu = io.attenuation_map('20170809_NEMA_MUMAP_UCL.v.hdr', object_meta)   # 1/mm at 511 keV",
+   "to": [
+    "rd-img-mu"
+   ],
+   "conventions": {
+    "frame": "the patient image frame, HFS; centred on the scanner",
+    "axes": "x fastest, then y and z",
+    "units": "keys 'matrix size[n]' and 'scale factor (mm/pixel) [n]'; 'quantification units := 1/cm'",
+    "origin": "not stated: centred",
+    "angles": "-",
+    "values": "1/cm",
+    "quirks": "Siemens spells its keys differently from SIMIND."
+   },
+   "brief": "Siemens key spellings; HFS; centred; 1/cm stated",
+   "steps": [
+    "Interfile keys normalised; units from 'quantification units'.",
+    "Centred, frame 'scanner'; attenuation_map gives 1/mm at 511 keV on the PET grid."
+   ],
+   "checked": "Placed against the PETSIRD mMR prompts in x, y and z.",
+   "v3": "read by the library (15 lines of tutorial code in v3).",
+   "rules": [
+    "siemens-mmr-mu-interfile"
+   ],
+   "datasets": [
+    "PET/PETSIRD-mMR-NEMA"
+   ],
+   "tutorials": [
+    "t_PETSIRD"
+   ]
+  },
+  {
+   "id": "pet-voi-nrrd",
+   "lane": "pet",
+   "short": "Slicer VOI mask .nrrd",
+   "status": "verified",
+   "name": "3D Slicer segmentation of the NEMA spheres (fdg_spheres.seg.nrrd)",
+   "formats": [
+    "NRRD segmentation (.seg.nrrd)"
+   ],
+   "call": "spheres = io.load_mask('fdg_spheres.seg.nrrd').on(object_meta, label=3)",
+   "to": [
+    "rd-img-mask"
+   ],
+   "conventions": {
+    "frame": "space left-posterior-superior; directions (0, -2.78, 0), (-2.78, 0, 0), (0, 0, 2.78) mm: the first two axes swapped against the GE grid",
+    "axes": "i fastest; labels 1 to 8",
+    "units": "mm",
+    "origin": "space origin (265.49, 265.49, -97.3) mm",
+    "angles": "-",
+    "values": "labels",
+    "quirks": "Drawn in Slicer on an image whose first two axes were swapped: v3 read its voxel (a, b, k) as the grid's (a, b, k), so its regions missed the spheres (all six read the background's level). The hosted file now states the swap in its directions, its origin for v4's upright grid, and pytomography_frame:=scanner, the frame of read_ge_hdf5's grid."
+   },
+   "brief": "LPS space; x and y directions negative; labels",
+   "steps": [
+    "load_mask reads the header's space, directions and origin into LPS; segment names become labels.",
+    ".on(object_meta, label=k) puts sphere k on the GE grid; both are in the frame 'scanner', so there is no cross-frame warning."
+   ],
+   "checked": "On the v4 GE image labels 1–6 give 0.30–0.37 (the hot spheres), label 7 0.007 (the lung insert), label 8 0.043 (the background); with v3's reading all six spheres gave 0.04.",
+   "v3": "geometry used (v3 indexed the array by hand with ITK, with the axes swapped); the hosted file corrected, so t_uncertainty_pet's largest sphere gives 0.65% (v3 printed 1.63%, for a background region).",
+   "datasets": [
+    "PET/GE-DMI-NEMA"
+   ],
+   "tutorials": [
+    "t_uncertainty_pet"
+   ],
+   "rules": []
+  },
+  {
+   "id": "pet-norm-npy",
+   "lane": "pet",
+   "short": "Normalisation weights .npy",
+   "status": "verified",
+   "name": "Normalisation weights of every crystal pair (.npy), e.g. from io.PET.gate_normalization",
+   "formats": [
+    "NumPy .npy, float32"
+   ],
+   "call": "events, object_meta, proj_meta = io.PET.read_gate(root_files, macro, normalization='normalization_weights.npy')",
+   "to": [
+    "rd-pet-gate"
+   ],
+   "conventions": {
+    "frame": "-",
+    "axes": "flat: one weight per crystal pair, torch.combinations order of PyTomography's ids",
+    "units": "-",
+    "origin": "-",
+    "angles": "-",
+    "values": "relative efficiency; NaN where the calibration shell gives no data (21.6 % of the hosted pairs)",
+    "quirks": "Nothing in the file says which scanner it belongs to."
+   },
+   "brief": "one weight per crystal pair, combinations order; NaN = no data",
+   "steps": [
+    "Length checked against the scanner's pairs; NaN → 0 with a warning; becomes proj_meta.weights_sensitivity."
+   ],
+   "checked": "411,027,456 = C(28,672, 2) weights for the mMR.",
+   "v3": "checked and NaN-cleaned by the reader (by hand in v3's tutorials).",
+   "datasets": [
+    "PET/GATE-mMR-BrainInWater"
+   ],
+   "tutorials": [
+    "t_pet_introduction",
+    "t_PETGATE_scat_sino",
+    "t_PETGATE_scat_sinoTOF",
+    "t_PETGATE_scat_lm",
+    "t_PETGATE_scat_lmTOF",
+    "t_PETGATE_DIP"
+   ],
+   "rules": []
+  },
+  {
+   "id": "pet-petsird-old",
+   "lane": "pet",
+   "short": "PETSIRD before 0.9",
+   "status": "dropped",
+   "name": "PETSIRD files from before version 0.9 (the 2023 prototype)",
+   "formats": [
+    "PETSIRD prototype stream"
+   ],
+   "call": "",
+   "to": [],
+   "conventions": {
+    "frame": "-",
+    "axes": "-",
+    "units": "mm",
+    "origin": "-",
+    "angles": "-",
+    "values": "-",
+    "quirks": "Unreadable with petsird 0.9."
+   },
+   "brief": "unreadable with petsird 0.9",
+   "steps": [
+    "Convert the original data again with a current ETSI converter."
+   ],
+   "checked": "-",
+   "v3": "the bundled prototype reader (io.PET.prd) is removed.",
+   "rules": [],
+   "datasets": [],
+   "tutorials": []
+  },
+  {
+   "id": "ct-dicom-ct-pd",
+   "lane": "ct",
+   "short": "DICOM-CT-PD, helical",
+   "status": "verified",
+   "name": "DICOM-CT-PD: helical fan-beam projections, one file per view (TCIA LDCT-and-Projection-data)",
+   "formats": [
+    "DICOM-CT-PD, one file per view"
+   ],
+   "call": "projections, object_meta, proj_meta = io.CT.read_dicom_ct_pd(folder)",
+   "to": [
+    "rd-ct-pd"
+   ],
+   "conventions": {
+    "frame": "the scanner's cylindrical coordinates (ρ, φ, z) per view; z is the patient's DICOM z; feet first supine.",
+    "axes": "pixel_array (Rows, Columns) = (channels, detector rows); views by InstanceNumber.",
+    "units": "mm, rad",
+    "origin": "the isocentre in-plane (verified for GE); z in patient z; no TableHeight in the files.",
+    "angles": "φ per view; flying focal spot offsets (Δφ, Δρ, Δz).",
+    "values": "−ln(I/I₀) after the rescale; water's attenuation in the files (1/mm)",
+    "quirks": "GE counts DetectorCentralElement from the other end of the detector (central column = n − tag); Siemens' patient y origin is not in the files."
+   },
+   "brief": "cylindrical per view, z = patient z; GE central column = n − tag; mm, rad",
+   "steps": [
+    "Private tags decoded whatever their VR; the detector must be cylindrical and the beam fan-shaped.",
+    "Views by InstanceNumber; φ − π/2; GE's central column by the vendor rule.",
+    "centre = (0, 0, z_centre), frame 'patient'; k runs foot → head.",
+    "Feet first supine only (others raise); other vendors than GE warn.",
+    "Low-signal rays filtered (filter_low_signal=True); photon counts, water attenuation and correction flags in proj_meta."
+   ],
+   "checked": "TCIA C145 lands within 0.006 mm of GE's own images (after the GE corner rule), correlation 0.998; a synthetic CT-PD scan reconstructs its phantom in place.",
+   "v3": "k runs foot → head (arrays flipped along axis 2); object_meta.affine replaces proj_meta.get_patient_affine; col_angle_spacing (rad) replaces col_det_spacing.",
+   "rules": [
+    "ge-ct-pd-central-column",
+    "siemens-ct-pd-y-origin"
+   ],
+   "datasets": [
+    "CT/ldct-c145"
+   ],
+   "tutorials": [
+    "t_CT_GEN3",
+    "t_fbp_ct"
+   ]
+  },
+  {
+   "id": "ct-nikon",
+   "lane": "ct",
+   "short": "Nikon XTek cone beam",
+   "status": "verified",
+   "name": "Nikon XTek cone-beam micro-CT (.xtekct geometry, .ang angles, one TIFF per view)",
+   "formats": [
+    ".xtekct, .ang, TIFF"
+   ],
+   "call": "projections, object_meta, proj_meta = io.CT.read_nikon(folder, binning=4, cor=0.24)",
+   "to": [
+    "rd-ct-nikon"
+   ],
+   "conventions": {
+    "frame": "the stage turns the sample between a fixed source and flat panel; no patient.",
+    "axes": "TIFF rows = v (row 0 at the top, +z), columns = u; file i + 1 is view i.",
+    "units": "mm, degrees",
+    "origin": "the rotation axis; the centre of rotation is not in the files.",
+    "angles": "the stage's .ang angles",
+    "values": "raw counts; WhiteLevel = I₀; no dark field",
+    "quirks": "A mirror image cannot be told from this data."
+   },
+   "brief": "stage turns the sample (angles negated); COR not in the file; WhiteLevel = I₀",
+   "steps": [
+    "−ln(I / WhiteLevel), averaged over binning × binning pixels.",
+    "θ = −(.ang angle); (views, u, v).",
+    "The rotation axis at (0, −cor); frame 'scanner', units '1/mm'."
+   ],
+   "checked": "The FDK image reprojects to the measured projections (r 0.999); COR 0.24 mm by sharpness.",
+   "v3": "a library reader (cells 5, 7 and 10 of the v3 tutorial); FDK's COR sign fixed, so values change about 1 %.",
+   "rules": [
+    "nikon-xtek"
+   ],
+   "datasets": [
+    "CT/SophiaBeads-256"
+   ],
+   "tutorials": [
+    "t_CT_microct"
+   ]
+  },
+  {
+   "id": "ct-flexray",
+   "lane": "ct",
+   "short": "FleX-ray vector geometry",
+   "status": "v4.1",
+   "name": "FleX-ray cone-beam scans with per-view vectors (ASTRA cone_vec)",
+   "formats": [
+    "TIFF + per-view geometry"
+   ],
+   "call": "",
+   "to": [],
+   "conventions": {
+    "frame": "the lab frame, mm",
+    "axes": "TIFF (rows = v, columns = u)",
+    "units": "mm",
+    "origin": "the lab frame",
+    "angles": "implicit in the per-view vectors",
+    "values": "raw counts with dark and flat fields",
+    "quirks": "Reference reconstructions exist: a handedness test for cone beam."
+   },
+   "brief": "per-view source, detector, u, v vectors",
+   "steps": [
+    "v4.1: vector cone-beam metadata (per view: source, detector centre, u, v)."
+   ],
+   "checked": "-",
+   "v3": "not readable in v3 either.",
+   "rules": [],
+   "datasets": [],
+   "tutorials": []
+  },
+  {
+   "id": "img-dicom-series",
+   "lane": "img",
+   "short": "DICOM series: CT, MR, PT",
+   "status": "verified",
+   "name": "DICOM image series, one slice per file (CT, MR, PET)",
+   "formats": [
+    "DICOM, one file per slice"
+   ],
+   "call": "ct = io.load_image(files_CT)          # or the series' folder\nct_hu = ct.on(object_meta, fill=-1000)",
+   "to": [
+    "rd-img-load",
+    "rd-img-mu"
+   ],
+   "conventions": {
+    "frame": "LPS mm from ImageOrientationPatient and ImagePositionPatient",
+    "axes": "pixel_array (Rows, Columns) = (y, x) for an axial series; files in any order",
+    "units": "mm; PixelSpacing = (between rows, between columns) = (dy, dx)",
+    "origin": "ImagePositionPatient = the centre of the first pixel (the standard); GE CT writes its corner; Siemens' y origin is the table",
+    "angles": "-",
+    "values": "RescaleSlope × stored + RescaleIntercept (HU for CT)",
+    "quirks": "SliceThickness is not the spacing; PatientPosition is not needed to place the image."
+   },
+   "brief": "IOP/IPP in LPS; PixelSpacing (dy, dx); GE CT IPP = corner",
+   "steps": [
+    "Grouped by SeriesInstanceUID; sorted along the slice normal; spacing from the positions (uneven refused).",
+    "Affine from the orientation, PixelSpacing (dy, dx) and the measured step; a gantry tilt is sheared.",
+    "Vendor rules: GE CT +½ pixel; Mediso CT y − TableHeight.",
+    "Turned to the nearest LPS axes (permute and flip only)."
+   ],
+   "checked": "C145: GE's corner rule measured (0.33 mm); open CTs in HFS, HFP, FFS, FFP, HFDR and FFDR put the spine posterior; round trips through save_dicom.",
+   "v3": "PixelSpacing order fixed; a series whose normal points to −z is no longer mirrored; non-axial series work; the GE corner rule in the reader (patched by hand in v3).",
+   "rules": [
+    "ge-ct-image-corner",
+    "siemens-ct-image-y-origin",
+    "mediso-ct-image"
+   ],
+   "datasets": [
+    "CT/ldct-c145",
+    "SPECT/Lu177-NEMA-SymT2",
+    "SPECT/Lu177-PSMA-GEDisc"
+   ],
+   "tutorials": [
+    "t_dicomdata",
+    "t_dicommultibed",
+    "t_dualpeak",
+    "t_starguide",
+    "t_ac225_dicom_recon",
+    "t_algorithms_measured",
+    "t_fbp_spect",
+    "t_spect_mc2",
+    "t_uncertainty_spect",
+    "t_CT_GEN3",
+    "t_fbp_ct",
+    "t_plotting"
+   ]
+  },
+  {
+   "id": "img-dicom-single",
+   "lane": "img",
+   "short": "DICOM file: NM reconstruction",
+   "status": "verified",
+   "name": "One DICOM image file: a vendor's NM reconstruction, PyTomography's own NM output, enhanced multi-frame",
+   "formats": [
+    "DICOM multi-frame (NM, enhanced)"
+   ],
+   "call": "vendor = io.load_image(file_recon).on(object_meta)",
+   "to": [
+    "rd-img-load"
+   ],
+   "conventions": {
+    "frame": "LPS mm",
+    "axes": "pixel_array (frames, Rows, Columns)",
+    "units": "mm; frames along SpacingBetweenSlices × the normal (negative for StarGuide)",
+    "origin": "ImagePositionPatient of the first frame (NM: in the Detector Information Sequence)",
+    "angles": "-",
+    "values": "rescale, Real World Value Mapping, or a vendor's scale (StarGuide (0011,103B))",
+    "quirks": "NM files keep their geometry in the Detector Information Sequence."
+   },
+   "brief": "NM geometry in the Detector Information Sequence; spacing may be negative; vendor scales",
+   "steps": [
+    "Geometry from the top level, the shared functional groups or the Detector Information Sequence.",
+    "Units from the Real World Value Mapping, the rescale or the vendor's scale.",
+    "Turned to the nearest LPS axes."
+   ],
+   "checked": "Siemens' and GE StarGuide's reconstructions lie where PyTomography's do; head-first reconstructions from other sites lie on their CTs; PyTomography's NM output reads back.",
+   "v3": "reads NM files, PyTomography's own included (v3 failed on them).",
+   "rules": [
+    "ge-starguide"
+   ],
+   "datasets": [
+    "SPECT/Lu177-NEMA-SymT2",
+    "SPECT/Tc99m-NEMA-Starguide"
+   ],
+   "tutorials": [
+    "t_dicomdata",
+    "t_algorithms_measured",
+    "t_starguide",
+    "t_plotting"
+   ]
+  },
+  {
+   "id": "img-nifti",
+   "lane": "img",
+   "short": "NIfTI",
+   "status": "verified",
+   "name": "NIfTI-1 and NIfTI-2 images (.nii, .nii.gz)",
+   "formats": [
+    ".nii, .nii.gz"
+   ],
+   "call": "mr = io.load_image('fdg_pet_phantom_mri.nii.gz')",
+   "to": [
+    "rd-img-load",
+    "rd-img-mu",
+    "rd-img-mask"
+   ],
+   "conventions": {
+    "frame": "RAS+ mm; sform or qform code 1 = the patient's frame, other codes = 'scanner'",
+    "axes": "(i, j, k) in any orientation (qfac −1 allowed)",
+    "units": "xyzt_units (mm, metres, microns)",
+    "origin": "the sform's (else the qform's) translation, at voxel centres",
+    "angles": "-",
+    "values": "scl_slope and scl_inter; save_nifti keeps the units at the end of the description",
+    "quirks": "Without a sform or qform only the voxel sizes place the image (a warning)."
+   },
+   "brief": "RAS sform or qform at voxel centres; any orientation",
+   "steps": [
+    "sform when its code is set, else qform; RAS → LPS (x and y negated).",
+    "Turned to the nearest LPS axes; frame from the code."
+   ],
+   "checked": "Non-diagonal sforms, qfac −1 and off-centre origins in synthetic tests; save_nifti round trips; the cross-reader phantom.",
+   "v3": "the file's affine honoured (v3 used pixdim only and centred the image).",
+   "datasets": [
+    "PET/GATE-mMR-BrainInWater"
+   ],
+   "tutorials": [
+    "t_PETGATE_DIP"
+   ],
+   "rules": []
+  },
+  {
+   "id": "img-interfile",
+   "lane": "img",
+   "short": "Interfile: SIMIND, GATE/STIR, Siemens",
+   "status": "verified",
+   "name": "Interfile 3.3 images from any producer (SIMIND, GATE/STIR, Siemens JSRecon)",
+   "formats": [
+    ".hct/.ict, .hv/.v, .v.hdr/.v"
+   ],
+   "call": "image = io.load_image('map.hct', layout='mu-castor')   # layout= only for SIMIND density maps",
+   "to": [
+    "rd-img-load"
+   ],
+   "conventions": {
+    "frame": "none stated: centred on the scanner (frame 'scanner')",
+    "axes": "'matrix size [1]' fastest",
+    "units": "'scaling factor (mm/pixel)' or 'scale factor (mm/pixel)'",
+    "origin": "centred; STIR's 'first pixel offset' kept in meta, not used",
+    "angles": "-",
+    "values": "number format and byte order from the header; 'quantification units' when given",
+    "quirks": "Key spellings vary by producer; SIMIND keeps facts in comment lines."
+   },
+   "brief": "keys vary by producer; x fastest; centred",
+   "steps": [
+    "Keys matched exactly after normalising case, '!' and spaces; a missing key raises.",
+    "Number format, byte order and data offset honoured.",
+    "Producer rules from the vendor table: SIMIND's layout=, Siemens' keys and units, GATE/STIR's centring."
+   ],
+   "checked": "Little and big endian, int16 and float32, offsets and both SIMIND layouts in synthetic tests; the SIMIND and Siemens files above. GATE/STIR orientation is unverified.",
+   "v3": "one tolerant reader; SIMIND's flips only for SIMIND (v3 applied them to GATE maps too).",
+   "rules": [
+    "simind-density-layout",
+    "siemens-mmr-mu-interfile",
+    "gate-stir-interfile-image"
+   ],
+   "datasets": [
+    "SPECT/SIMIND-Jaszak",
+    "PET/GATE-mMR-BrainInWater",
+    "PET/PETSIRD-mMR-NEMA"
+   ],
+   "tutorials": [
+    "t_siminddata",
+    "t_pet_introduction",
+    "t_PETSIRD"
+   ]
+  },
+  {
+   "id": "img-nrrd",
+   "lane": "img",
+   "short": "NRRD (3D Slicer)",
+   "status": "verified",
+   "name": "NRRD images and 3D Slicer segmentations (.nrrd, .seg.nrrd, .nhdr)",
+   "formats": [
+    ".nrrd, .seg.nrrd, .nhdr"
+   ],
+   "call": "image = io.load_image('segmentation.seg.nrrd')",
+   "to": [
+    "rd-img-load",
+    "rd-img-mask"
+   ],
+   "conventions": {
+    "frame": "the header's 'space' (LPS, RAS or another patient space)",
+    "axes": "i fastest",
+    "units": "mm",
+    "origin": "'space origin'",
+    "angles": "-",
+    "values": "as stored; 3D Slicer's segment names in the header",
+    "quirks": "NRRD has no frame field: PyTomography's key-value field pytomography_frame:=scanner marks an image placed only relative to the scanner."
+   },
+   "brief": "'space', directions and origin in the header",
+   "steps": [
+    "space, space directions and space origin → an LPS affine.",
+    "Slicer segment names → labels.",
+    "frame 'patient', or 'scanner' with pytomography_frame:=scanner; frame= of load_image overrides it."
+   ],
+   "checked": "LPS and RAS spaces, raw and gzip, and the frame field in synthetic tests; the GE sphere mask.",
+   "v3": "a library reader (ITK by hand in v3).",
+   "datasets": [
+    "PET/GE-DMI-NEMA"
+   ],
+   "tutorials": [
+    "t_uncertainty_pet"
+   ],
+   "rules": []
+  },
+  {
+   "id": "img-metaimage",
+   "lane": "img",
+   "short": "MetaImage .mhd",
+   "status": "v4.1",
+   "name": "ITK MetaImage (.mhd, .mha)",
+   "formats": [
+    ".mhd + .raw, .mha"
+   ],
+   "call": "",
+   "to": [],
+   "conventions": {
+    "frame": "ITK's LPS",
+    "axes": "x fastest",
+    "units": "mm (ElementSpacing)",
+    "origin": "Offset",
+    "angles": "-",
+    "values": "as stored",
+    "quirks": "TransformMatrix may be oblique."
+   },
+   "brief": "ITK LPS; Offset, ElementSpacing, TransformMatrix",
+   "steps": [
+    "v4.1: header to affine. load_image raises NotImplementedError until then."
+   ],
+   "checked": "-",
+   "v3": "not readable in v3 either.",
+   "rules": [],
+   "datasets": [],
+   "tutorials": []
+  },
+  {
+   "id": "img-array",
+   "lane": "img",
+   "short": "Array + affine",
+   "status": "verified",
+   "name": "An array with an affine you know",
+   "formats": [
+    "numpy array or torch tensor"
+   ],
+   "call": "image = io.Image(array, affine, units='1/mm', modality='CT')\nio.save_dicom(image, folder)",
+   "to": [
+    "rd-img-image"
+   ],
+   "conventions": {
+    "frame": "the caller's affine: voxel index → voxel centre in LPS mm",
+    "axes": "(x, y, z)",
+    "units": "mm",
+    "origin": "the affine's translation",
+    "angles": "-",
+    "values": "the caller's units",
+    "quirks": "-"
+   },
+   "brief": "the caller states the affine",
+   "steps": [
+    "Image(data, affine, units, modality, frame=)."
+   ],
+   "checked": "Round trips through save_dicom and save_nifti.",
+   "v3": "replaces the writers' affine= argument.",
+   "rules": [],
+   "datasets": [],
+   "tutorials": []
+  }
+ ],
+ "readers": [
+  {
+   "id": "rd-spect-dicom",
+   "lane": "spect",
+   "name": "io.SPECT.read_dicom",
+   "call": "io.SPECT.read_dicom(file, energy_window=None, *, time_slot=None)",
+   "returns": "(projections [W, θ, r, z] or [θ, r, z], SPECTObjectMeta, SPECTProjMeta)",
+   "brief": "β = angle + 180°; rows by the IOPs; mm; vendor-rule centre; frame 'patient'",
+   "does": [
+    "Frames found by their vectors and counted; multi-rotation files are refused; gated files need time_slot=.",
+    "β = (DICOM angle + 180) mod 360; views sorted by β.",
+    "Rows and columns flipped as the heads' ImageOrientationPatient say: z foot → head.",
+    "Grid in mm, centred on the rotation axis and the middle row, placed by the vendor rule; frame 'patient'.",
+    "Every energy window, frame duration, start time and nuclide into proj_meta."
+   ],
+   "also": [
+    "io.SPECT.energy_window_scatter(projections, proj_meta, peak, lower, upper=None)",
+    "io.SPECT.collimator_psf(collimator, photon_energy, intrinsic_fwhm=0, *, shape='gaussian' | 'square')",
+    "io.SPECT.fov_mask(projections)",
+    "io.SPECT.dicom.patient_position(ds): a check only"
+   ],
+   "replaces": [
+    "dicom.get_metadata",
+    "dicom.get_projections"
+   ],
+   "to": [
+    "std-spect",
+    "std-object-meta"
+   ]
+  },
+  {
+   "id": "rd-spect-beds",
+   "lane": "spect",
+   "name": "io.SPECT.read_dicom_beds · stitch_beds",
+   "call": "io.SPECT.read_dicom_beds(files)\nio.SPECT.stitch_beds(recons, object_metas)",
+   "returns": "a list of (projections, object_meta, proj_meta), inferior bed first; (image, object_meta) of the stitched grid",
+   "brief": "each bed in the standard form; the stitched grid has its own object_meta",
+   "does": [
+    "read_dicom on each bed, sorted inferior first; projections beyond the middle of an overlap replaced by the neighbour's.",
+    "stitch_beds places each bed by its grid's centre, in whole slices; each bed gives half of an overlap.",
+    "The stitched image comes with its own object_meta; PGAAMultiBedSPECT(algorithms) stitches the same way, from each system matrix's object_meta."
+   ],
+   "replaces": [
+    "dicom.load_multibed_projections",
+    "dicom.stitch_multibed"
+   ],
+   "to": [
+    "std-spect",
+    "std-object-meta"
+   ],
+   "also": []
+  },
+  {
+   "id": "rd-spect-starguide",
+   "lane": "spect",
+   "name": "io.SPECT.read_starguide",
+   "call": "io.SPECT.read_starguide(files, energy_window=None, *, files_CT=None, object_meta=None, nearest_theta=0.1)",
+   "returns": "(projections [W, view, r, z], SPECTObjectMeta, StarGuideProjMeta)",
+   "brief": "private geometry cm → mm, ms → s; × Pixel Scale; centred on the CT",
+   "does": [
+    "β, radius and offset from the private head tags; cm → mm, ms → s.",
+    "Rows flipped as the heads' ImageOrientationPatient say: z foot → head.",
+    "Values × Pixel Scale (counts/s).",
+    "GE's grid (196 × 196 × 112) unless object_meta gives another; centred on the CT with files_CT (frame 'patient'), else on the scanner.",
+    "View angles rounded to nearest_theta degrees, so views of one angle are projected together."
+   ],
+   "replaces": [
+    "dicom.get_starguide_metadata",
+    "dicom.get_starguide_projections",
+    "dicom.get_starguide_patient_affine"
+   ],
+   "to": [
+    "std-spect",
+    "std-object-meta"
+   ],
+   "also": []
+  },
+  {
+   "id": "rd-spect-simind",
+   "lane": "spect",
+   "name": "io.SPECT.read_simind",
+   "call": "io.SPECT.read_simind(headers, energy_window=None, *, weights=None, radii_file=None)",
+   "returns": "(projections [W, θ, r, z] or [θ, r, z], SPECTObjectMeta, SPECTProjMeta)",
+   "brief": "version as an integer; mm; windows into proj_meta; frame 'scanner'",
+   "does": [
+    "Version as an integer; cm (before V8) or mm keys to mm.",
+    "Views sorted by β; rows flipped: z foot → head.",
+    "Every window's bounds and photon energy into proj_meta.energy_windows.",
+    "Organ files summed with weights=; radii from a .cor file; frame 'scanner'."
+   ],
+   "also": [
+    "io.SPECT.simind_psf(header, photon_energy=None)"
+   ],
+   "replaces": [
+    "simind.get_metadata",
+    "simind.get_projections",
+    "simind.combine_projection_data"
+   ],
+   "to": [
+    "std-spect",
+    "std-object-meta"
+   ]
+  },
+  {
+   "id": "rd-pet-gate",
+   "lane": "pet",
+   "name": "io.PET.read_gate",
+   "call": "io.PET.read_gate(root_files, macro, *, object_meta=None, events='prompts', tof_meta=None, world_axes=None, world_origin=None, doi=0, energy_window=None, energy_resolution=None, normalization=None, min_rsector_difference=0, crystal_volume='crystal')",
+   "returns": "(events int32 [N, 2 | 3], ObjectMeta, PETLMProjMeta)",
+   "brief": "macro → info; GATE world → LPS by world_axes, world_origin (registry for hosted data); TOF bins",
+   "does": [
+    "info from the macro: rings of rsectors, modules and crystals; radius = inner face + doi.",
+    "Ids from GATE's copy numbers: ring × crystals per ring + crystal, int32.",
+    "GATE's world → LPS by world_axes and world_origin, the registry's for a hosted dataset (frame 'patient'); without them 'LPS' and frame 'scanner'.",
+    "TOF bins from (t1 − t2) c/2; out-of-range events dropped; events='prompts' | 'delayeds' | 'trues' | 'scatters' | 'randoms'.",
+    "normalization= checked against the pairs, NaN → 0."
+   ],
+   "also": [
+    "io.PET.gate_normalization(root_files, info, cylinder_radius)",
+    "io.PET.listmode_to_sinogram(events, info)"
+   ],
+   "replaces": [
+    "gate.get_detector_info",
+    "gate.get_detector_ids_from_root",
+    "gate.get_patient_affine_from_nifti"
+   ],
+   "to": [
+    "std-pet",
+    "std-object-meta"
+   ]
+  },
+  {
+   "id": "rd-pet-gate-image",
+   "lane": "pet",
+   "name": "io.PET.gate_image",
+   "call": "io.PET.gate_image(source, proj_meta, *, units=None, placement=(0, 0, 0))",
+   "returns": "Image, placed in read_gate's patient frame",
+   "brief": "an image of GATE's world placed where read_gate put the patient",
+   "does": [
+    "load_image reads a GATE/STIR image centred, frame 'scanner'.",
+    "It is moved by read_gate's world_axes and world_origin (kept in proj_meta) to where the simulation put it; placement is where its centre was in GATE's world."
+   ],
+   "replaces": [
+    "gate.get_aligned_attenuation_map"
+   ],
+   "to": [
+    "std-image"
+   ],
+   "also": []
+  },
+  {
+   "id": "rd-pet-petsird",
+   "lane": "pet",
+   "name": "io.PET.read_petsird",
+   "call": "io.PET.read_petsird(path, *, object_meta=None, events='prompts', up='+x', towards_bed='+z', patient_position='HFS', time_interval=None, header=None, min_rsector_difference=0, tolerance=0.25)",
+   "returns": "(events int32 [N, 2 | 3], ObjectMeta, PETLMProjMeta with the efficiencies)",
+   "brief": "your axes give LPS; the scanner's turn into the LUT; PyTomography's crystal ids",
+   "does": [
+    "Header by ETSI's petsird 0.9; events by PyTomography's compiled reader (about 8 s for 197 million prompts).",
+    "up, towards_bed and patient_position give LPS; the scanner's turn goes into rsector0_angle.",
+    "Elements matched to PyTomography's crystals within tolerance; ring-major ids; TOF as stored.",
+    "Detection efficiencies as weights in combinations order; energy window into info; frame 'scanner'."
+   ],
+   "also": [
+    "io.PET.petsird.read_header(path)",
+    "io.PET.petsird.element_positions(header)"
+   ],
+   "replaces": [
+    "petsird.get_detector_info",
+    "petsird.get_detector_ids",
+    "petsird.get_sensitivity_weights",
+    "petsird.get_TOF_meta",
+    "petsird.get_frame_transform"
+   ],
+   "to": [
+    "std-pet",
+    "std-object-meta"
+   ]
+  },
+  {
+   "id": "rd-pet-ge",
+   "lane": "pet",
+   "name": "io.PET.read_ge_hdf5",
+   "call": "io.PET.read_ge_hdf5(listmode_file, *, object_meta=None, scanner='discovery_MI', min_rsector_difference=0)",
+   "returns": "(events int32 [N, 3], ObjectMeta, PETLMProjMeta)",
+   "brief": "544 ring + crystal; TOF 14 − raw/13; turned 180° about z: upright",
+   "does": [
+    "Ids 544 ring + crystal; TOF bin 14 − raw/13; out-of-range events dropped; 8 million rows at a time.",
+    "Turned 180° about z: the bed posterior, images upright; left-right and head-foot warn.",
+    "Geometry and TOF from scanner_info('discovery_MI'); energy window from the file; frame 'scanner'."
+   ],
+   "replaces": [
+    "clinical.get_detector_ids_hdf5",
+    "clinical.get_tof_meta"
+   ],
+   "to": [
+    "std-pet",
+    "std-object-meta"
+   ],
+   "also": []
+  },
+  {
+   "id": "rd-pet-ge-corr",
+   "lane": "pet",
+   "name": "io.PET.read_ge_corrections",
+   "call": "io.PET.read_ge_corrections(corrections_file, *, pairs=True, crystals_per_ring=544)",
+   "returns": "(event_weights, additive_counts, pair_ids, pair_weights)",
+   "brief": "event weights, additive counts, valid pairs and their weights",
+   "does": [
+    "event_weights = atten × sens; additive_counts = contam (counts).",
+    "pair_ids and pair_weights of every valid pair, turned to the list mode's column order."
+   ],
+   "replaces": [
+    "clinical.get_weights_hdf5",
+    "clinical.get_additive_term_hdf5",
+    "clinical.get_sensitivity_ids_and_weights_hdf5"
+   ],
+   "to": [
+    "std-pet"
+   ],
+   "also": []
+  },
+  {
+   "id": "rd-pet-scanner",
+   "lane": "pet",
+   "name": "io.PET.scanner_info · scanner_lut",
+   "call": "io.PET.scanner_info(scanner=None, **keys)\nio.PET.scanner_lut(info)",
+   "returns": "info (dict); the LUT, float32 [N_crystals, 3]",
+   "brief": "a checked parametric ring; the LUT in the object frame",
+   "does": [
+    "scanner_info builds and checks info (Python int and float), with the frame keys.",
+    "scanner_lut(info) places every crystal in the object frame (LPS, mm, origin at the rings' centre)."
+   ],
+   "also": [
+    "io.PET.crystal_pair_index(crystal_1, crystal_2, n_crystals)",
+    "io.PET.remove_events_outside(events, info, object_meta)"
+   ],
+   "replaces": [
+    "clinical.get_detector_info",
+    "shared.get_scanner_LUT"
+   ],
+   "to": [
+    "std-pet"
+   ]
+  },
+  {
+   "id": "rd-ct-pd",
+   "lane": "ct",
+   "name": "io.CT.read_dicom_ct_pd",
+   "call": "io.CT.read_dicom_ct_pd(folder, *, object_meta=None, table_feed=None, filter_low_signal=True, low_signal_photons=30.0, central_column='auto', central_column_offset=0.0, column_scale=None)",
+   "returns": "(projections [views, columns, rows], ObjectMeta, CTGen3ProjMeta)",
+   "brief": "φ − π/2; GE central column; k foot → head; frame 'patient'",
+   "does": [
+    "Private tags decoded whatever their VR; cylindrical detectors and fan beams only.",
+    "Views by InstanceNumber; GE's central column by the vendor rule.",
+    "Focal spots and detector elements in the object frame; k foot → head; centre (0, 0, z_centre), frame 'patient'.",
+    "Feet first supine only; other vendors than GE warn.",
+    "Low-signal rays filtered; photon counts, water attenuation and correction flags in proj_meta."
+   ],
+   "also": [
+    "io.CT.to_hu(mu, proj_meta)",
+    "io.CT.from_hu(hu, proj_meta)",
+    "io.CT.preprocessing"
+   ],
+   "replaces": [
+    "dicom_ct_pd.get_projections_and_metadata_gen3",
+    "CTGen3ProjMeta.get_patient_affine"
+   ],
+   "to": [
+    "std-ct",
+    "std-object-meta"
+   ]
+  },
+  {
+   "id": "rd-ct-nikon",
+   "lane": "ct",
+   "name": "io.CT.read_nikon",
+   "call": "io.CT.read_nikon(folder, *, binning=1, cor=0.0, object_meta=None)",
+   "returns": "(projections [views, u, v], ObjectMeta, CTConeBeamFlatPanelProjMeta)",
+   "brief": "−ln(I/I₀); θ = −.ang; COR as an argument",
+   "does": [
+    "−ln(I / WhiteLevel), binned.",
+    "θ = −(.ang angle): the stage turns the sample.",
+    "(views, u, v); the rotation axis at (0, −cor); frame 'scanner'."
+   ],
+   "replaces": [
+    "the t_CT_microct tutorial's own reading code"
+   ],
+   "to": [
+    "std-ct",
+    "std-object-meta"
+   ],
+   "also": []
+  },
+  {
+   "id": "rd-img-load",
+   "lane": "img",
+   "name": "io.load_image",
+   "call": "io.load_image(source, *, layout=None, units=None, reorient=True, frame=None)",
+   "returns": "Image: data (x, y, z), affine, units, modality, meta, frame, labels",
+   "brief": "any image file with its own affine; turned to LPS axes",
+   "does": [
+    "DICOM series sorted along their normal; single DICOM files (NM, enhanced); NIfTI sform or qform; Interfile; NRRD.",
+    "Vendor rules applied: GE CT's corner, StarGuide's scale, SIMIND's layout.",
+    "Turned to the nearest LPS axes (permute and flip only).",
+    "The frame from the file: DICOM 'patient'; NIfTI by its sform code (1 'patient', else 'scanner'); NRRD by pytomography_frame:=; Interfile 'scanner'. frame= overrides it.",
+    "MetaImage in v4.1."
+   ],
+   "replaces": [
+    "open_multifile",
+    "open_singlefile",
+    "_get_affine_multifile",
+    "_get_affine_single_file",
+    "align_images_affine"
+   ],
+   "to": [
+    "std-image"
+   ],
+   "also": []
+  },
+  {
+   "id": "rd-img-mu",
+   "lane": "img",
+   "name": "io.attenuation_map",
+   "call": "io.attenuation_map(source, object_meta, energy=None, *, technique='table', layout=None, units=None)",
+   "returns": "μ in 1/mm, float32, object_meta.shape, on pytomography.device",
+   "brief": "CT (HU) or μ map → 1/mm at energy on the grid; water checked",
+   "does": [
+    "A CT (units HU): HU → μ at energy by technique: 'table', 'cortical_bone_fit', 'nist' or a function.",
+    "A μ map: its units → 1/mm; water checked against NIST at energy (warns beyond 5 %).",
+    "Put on the grid by Image.on: averaged where the grid's voxels are larger.",
+    "energy: 511 by default for a PET grid; required for SPECT (proj_meta.energy_windows[i].photon_energy)."
+   ],
+   "replaces": [
+    "dicom.get_attenuation_map_from_CT_slices",
+    "dicom.CT_to_mumap",
+    "dicom.get_attenuation_map_from_file",
+    "simind.get_attenuation_map",
+    "gate.get_attenuation_map_nifti"
+   ],
+   "to": [
+    "std-image"
+   ],
+   "also": []
+  },
+  {
+   "id": "rd-img-mask",
+   "lane": "img",
+   "name": "io.load_mask",
+   "call": "io.load_mask(source, *, reference=None, rois=None, frame=None)",
+   "returns": "Image of integer labels (units 'label'), labels {name: value}",
+   "brief": "RTSTRUCT, NIfTI or NRRD labels; .on(object_meta, label=) onto any grid",
+   "does": [
+    "An RTSTRUCT is drawn on its CT (reference=, rois=); overlapping ROIs get values of their own.",
+    "NIfTI and NRRD label images keep their geometry and frame (frame= overrides it); Slicer's segment names become labels.",
+    ".on(object_meta, label=..., threshold=0.5) puts a label on any grid."
+   ],
+   "replaces": [
+    "dicom.get_aligned_rtstruct",
+    "dicom.get_aligned_nifti_mask"
+   ],
+   "to": [
+    "std-image"
+   ],
+   "also": []
+  },
+  {
+   "id": "rd-img-image",
+   "lane": "img",
+   "name": "io.Image",
+   "call": "io.Image(data, affine, units=None, modality=None, meta=None, frame='patient', labels=None)",
+   "returns": "Image",
+   "brief": "an array with its affine, units and modality",
+   "does": [
+    "Wraps an array with its affine (voxel index → LPS mm), units, modality, frame and labels.",
+    "Writers take it in place of a tensor and its object_meta."
+   ],
+   "replaces": [
+    "the writers' affine= argument"
+   ],
+   "to": [
+    "std-image"
+   ],
+   "also": []
+  }
+ ],
+ "standard": [
+  {
+   "id": "std-object-meta",
+   "lane": null,
+   "title": "object_meta",
+   "brief": "every reader returns one: the grid and where it is",
+   "lines": [
+    "dr (mm), shape, centre (LPS mm), frame ('patient' or 'scanner'), units, modality",
+    "affine: 4 × 4, voxel index (i, j, k) → voxel centre in LPS mm; derived from dr, shape and centre, so never stale",
+    "i → patient left, j → posterior, k → superior; k = 0 is the most inferior slice",
+    "centred on the scanner: the SPECT rotation axis, the PET rings' centre, the CT isocentre",
+    ".with_grid(dr=, shape=) keeps the centre and frame; .subsample(f)"
+   ],
+   "to": [
+    "use-out"
+   ]
+  },
+  {
+   "id": "std-spect",
+   "lane": "spect",
+   "title": "SPECT projections + SPECTProjMeta",
+   "brief": "[W, θ, r, z]; β; mm; every energy window",
+   "lines": [
+    "projections float32 [W, θ, r, z] (every window) or [θ, r, z] (energy_window=i), never squeezed",
+    "β = (DICOM angle + 180) mod 360; β = 0 detector anterior; counter-clockwise seen from the feet",
+    "z rows foot → head; radii in mm per view; StarGuide offsets in mm",
+    "energy_windows[i]: ranges, lower, upper, width, photon_energy",
+    "frame_duration per view, acquisition_start, nuclide, units"
+   ],
+   "to": [
+    "use-spect"
+   ]
+  },
+  {
+   "id": "std-pet",
+   "lane": "pet",
+   "title": "PET events + PETLMProjMeta",
+   "brief": "int32 ids (+ TOF bin); info; LUT in LPS",
+   "lines": [
+    "events int32 [N, 2] or [N, 3]: column 0 the first crystal, column 1 the second, column 2 the TOF bin",
+    "detector id = ring × crystals per ring + crystal",
+    "info: a parametric ring of Python numbers; frame keys rsector0_angle, transaxial_direction, axial_direction; energy_window_low, energy_window_high, energy_resolution",
+    "scanner_lut(info): crystals in the object frame (LPS, mm)",
+    "TOF bins from column 0 to column 1, centred on the LOR's midpoint; weights in torch.combinations order"
+   ],
+   "to": [
+    "use-pet"
+   ]
+  },
+  {
+   "id": "std-ct",
+   "lane": "ct",
+   "title": "CT projections + CT proj_meta",
+   "brief": "−ln(I/I₀); focal spots in the object frame",
+   "lines": [
+    "projections float32 [views, columns, rows] = −ln(I/I₀) (helical) or [views, u, v] (cone beam)",
+    "CTGen3ProjMeta: focal spots and detector elements in the object frame, mm and degrees",
+    "col_angle_spacing (rad); water_attenuation (1/mm); photon_counts; correction_flags",
+    "cone beam: a circular orbit (CTConeBeamFlatPanelProjMeta); vectors in v4.1"
+   ],
+   "to": [
+    "use-ct"
+   ]
+  },
+  {
+   "id": "std-image",
+   "lane": "img",
+   "title": "Image → tensor on the grid",
+   "brief": "its own affine; .on(object_meta)",
+   "lines": [
+    "data numpy (x, y, z) on the CPU, turned to the nearest LPS axes",
+    "affine: any orientation, voxel centres, LPS mm; units, modality, meta, frame, labels",
+    ".on(object_meta, mode='auto' | 'nearest', label=, threshold=, fill=) → float32 tensor on pytomography.device",
+    "averages where the target voxels are more than 1.5 source voxels long",
+    "μ maps in 1/mm at the photon energy; masks as coverage or bool"
+   ],
+   "to": [
+    "use-grid",
+    "use-out"
+   ]
+  }
+ ],
+ "used_by": [
+  {
+   "id": "use-spect",
+   "lane": "spect",
+   "title": "SPECT system matrices",
+   "brief": "read dr, shape and proj_meta",
+   "lines": [
+    "SPECTSystemMatrix, StarGuideSystemMatrix",
+    "SPECTAttenuationTransform(attenuation_map=μ)",
+    "SPECTPSFTransform with io.SPECT.collimator_psf",
+    "io.SPECT.energy_window_scatter"
+   ]
+  },
+  {
+   "id": "use-pet",
+   "lane": "pet",
+   "title": "PET system matrices",
+   "brief": "read info, events and weights",
+   "lines": [
+    "PETLMSystemMatrix, PETSinogramSystemMatrix",
+    "single scatter: the energy window from info",
+    "randoms and sinograms: io.PET.listmode_to_sinogram"
+   ]
+  },
+  {
+   "id": "use-ct",
+   "lane": "ct",
+   "title": "CT system matrices",
+   "brief": "read the focal spots and detector elements",
+   "lines": [
+    "CTGen3SystemMatrix, the cone-beam system matrix",
+    "FilteredBackProjection: helical FBP, FDK",
+    "io.CT.to_hu, io.CT.from_hu"
+   ]
+  },
+  {
+   "id": "use-grid",
+   "lane": "img",
+   "title": "On the grid",
+   "brief": "maps, masks and priors as tensors",
+   "lines": [
+    "attenuation transforms (μ in 1/mm)",
+    "masks and statistics",
+    "priors: the MR of the Deep Image Prior"
+   ]
+  },
+  {
+   "id": "use-out",
+   "lane": null,
+   "title": "Writers and the viewer",
+   "brief": "read object_meta.affine, units and modality",
+   "lines": [
+    "io.save_dicom(image, folder, object_meta)",
+    "io.save_nifti(image, path, object_meta)",
+    "the docs' 3D viewer and plot_utils"
+   ]
+  }
+ ],
+ "convention": [
+  {
+   "topic": "Frame",
+   "rule": "DICOM patient coordinates, LPS, in mm: +x patient left, +y posterior, +z superior. Every grid's i, j and k run along +x, +y and +z; arrays are never flipped or permuted against them.",
+   "code": "object_meta.affine"
+  },
+  {
+   "topic": "Slices",
+   "rule": "k = 0 is the most inferior slice: k runs foot → head for every reader (CT-PD and StarGuide arrays are flipped along axis 2 from v3).",
+   "code": "object[:, :, k]"
+  },
+  {
+   "topic": "Lengths",
+   "rule": "mm everywhere, SPECT included: voxel sizes, radii, offsets, PSF widths, filter FWHM, TOF. Attenuation in 1/mm.",
+   "code": "GaussianFilter(20): 2 cm"
+  },
+  {
+   "topic": "Grid",
+   "rule": "ObjectMeta(dr, shape, centre=(0, 0, 0), frame='scanner', units=None, modality=None). The reader sets centre, frame, units ('counts', 'counts/s', '1/mm') and modality ('NM', 'PT', 'CT'); writers use them.",
+   "code": "object_meta.with_grid(dr=, shape=), .subsample(f)"
+  },
+  {
+   "topic": "Affine",
+   "rule": "4 × 4 float64, voxel index (i, j, k) → voxel centre in LPS mm: diag(dx, dy, dz) with translation centre − (shape − 1)/2 · dr. Derived, so always set and never stale. System matrices never read it; writers, the viewer and Image.on do.",
+   "code": "object_meta.affine"
+  },
+  {
+   "topic": "Centre and frame",
+   "rule": "Grids are centred on the scanner (the SPECT rotation axis and middle row, the PET rings' centre, the CT isocentre); centre is where that is in the patient. frame 'patient': the study's DICOM coordinates, shared with its CT. 'scanner': LPS axes, origin at the scanner's centre (SIMIND, PETSIRD, GE PET, Nikon, GATE or StarGuide without a placement). Image.on warns across frames; load_image(frame=) overrides a file's frame.",
+   "code": "object_meta.centre, .frame"
+  },
+  {
+   "topic": "Patient position",
+   "rule": "Data are placed by ImageOrientationPatient, ImagePositionPatient and the NM detector vectors only. PatientPosition is a check: SPECT projections in positions other than FFS warn.",
+   "code": "io.SPECT.dicom.patient_position(ds)"
+  },
+  {
+   "topic": "SPECT projections",
+   "rule": "float32 [W, θ, r, z] with every energy window, or [θ, r, z] for energy_window=i; never squeezed. Multi-rotation files are refused; gated files need time_slot=.",
+   "code": "io.SPECT.read_dicom(file)"
+  },
+  {
+   "topic": "SPECT angles",
+   "rule": "β = (DICOM angle + 180) mod 360, degrees. β = 0 puts the detector anterior; β grows counter-clockwise seen from the feet. Detector direction (−sin β, −cos β, 0); r along (cos β, −sin β, 0). Radii in mm per view.",
+   "code": "proj_meta.angles, .radii"
+  },
+  {
+   "topic": "Energy windows",
+   "rule": "Every window with all its ranges, and the photon energy it stands for: the nuclide's strongest line inside it, else its centre. μ maps and PSFs for a window use that energy. Frame duration per view (s), acquisition start, nuclide.",
+   "code": "proj_meta.energy_windows[i].photon_energy, .ranges, .width; .frame_duration"
+  },
+  {
+   "topic": "PET scanner",
+   "rule": "A parametric ring of Python numbers. radius: to the LOR end points of rsector 0 (module face + doi). Frame keys rsector0_angle, transaxial_direction, axial_direction; energy window and resolution. The LUT is in the object frame.",
+   "code": "proj_meta.info, io.PET.scanner_lut(info)"
+  },
+  {
+   "topic": "PET events",
+   "rule": "int32 [N, 2] or [N, 3]: column 0 the first crystal, column 1 the second, column 2 the TOF bin 0 … n − 1. Detector id = ring × crystals per ring + crystal. Out-of-range TOF events are dropped by the reader.",
+   "code": "events"
+  },
+  {
+   "topic": "TOF",
+   "rule": "Bin k of n covers [(k − n/2) w, (k + 1 − n/2) w] mm from the LOR's midpoint towards column 1. An event's position is (t₁ − t₂) c/2, t₁ the time of column 0. Centred for any n.",
+   "code": "PETTOFMeta(num_bins, tof_range, fwhm)"
+  },
+  {
+   "topic": "PET weights",
+   "rule": "One weight per crystal pair in torch.combinations order; NaN → 0 with a warning. Sinograms (C/2, C + 1, R²[, T]).",
+   "code": "proj_meta.weights_sensitivity, io.PET.crystal_pair_index"
+  },
+  {
+   "topic": "CT projections",
+   "rule": "float32 [views, columns, rows] = −ln(I/I₀) (helical) or [views, u, v] (cone beam). Focal spots and detector elements in the object frame, mm and degrees (DICOM-CT-PD's radians converted).",
+   "code": "CTGen3ProjMeta.col_angle_spacing (rad), .water_attenuation (1/mm)"
+  },
+  {
+   "topic": "Attenuation",
+   "rule": "μ in 1/mm on the grid at the photon energy: SPECT energy = proj_meta.energy_windows[i].photon_energy; PET 511 by default. A CT's HU → μ by 'table', 'cortical_bone_fit', 'nist' or a function; a μ map's units → 1/mm, its water checked against NIST (warns beyond 5 %).",
+   "code": "io.attenuation_map(source, object_meta, energy)"
+  },
+  {
+   "topic": "Images",
+   "rule": "data numpy (x, y, z), turned to the nearest LPS axes (permute and flip, never interpolate); affine in any orientation; units, modality, meta, frame, labels. .on(object_meta) interpolates, and averages where target voxels are more than 1.5 source voxels long.",
+   "code": "io.load_image(source).on(object_meta)"
+  },
+  {
+   "topic": "Writers",
+   "rule": "The affine, units, modality and frame come from object_meta or the Image. frame 'scanner' writes NIfTI sform code 2 and a new DICOM frame of reference.",
+   "code": "io.save_dicom(image, folder, object_meta), io.save_nifti(image, path, object_meta)"
+  }
+ ],
+ "vendor_rules": [
+  {
+   "id": "ge-ct-image-corner",
+   "vendor": "GE",
+   "data": "CT images (DICOM)",
+   "rule": "ImagePositionPatient is the corner of the first pixel, not its centre: add half a pixel along the row and column directions.",
+   "evidence": "TCIA LDCT C145: 0.325/0.330 mm measured against the projection data; Optima CT540 header arithmetic gives round centres only with this rule.",
+   "status": "verified"
+  },
+  {
+   "id": "ge-ct-pd-central-column",
+   "vendor": "GE",
+   "data": "DICOM-CT-PD projections",
+   "rule": "central column = n_columns - DetectorCentralElement[0]; rows as stored.",
+   "evidence": "C145 half-turn images coincide only with this value.",
+   "status": "verified"
+  },
+  {
+   "id": "ge-nm-projection-ipp",
+   "vendor": "GE",
+   "data": "NM dual-head projections",
+   "rule": "ImagePositionPatient (x, y) of the Detector Information Sequence is the centre of voxel (0, 0), as written; the rotation axis is at the centre of the projection columns.",
+   "evidence": "Lu177-PSMA-GEDisc: kidney masks from the CT land on the hot kidneys at 0 shift in whole 4.4 mm voxels; a half-pixel (2.2 mm) corner offset is not excluded.",
+   "status": "check"
+  },
+  {
+   "id": "ge-starguide",
+   "vendor": "GE",
+   "data": "StarGuide NM projections and reconstructions",
+   "rule": "Head geometry in private tags (0099,1051) x and (0099,1052) y in cm and (0099,1053) angle in degrees; frame times (0009,1003) in ms; stored values times the Pixel Scale (0011,103B); no ImagePositionPatient in the projections: the reconstruction grid is centred on the CT volume.",
+   "evidence": "PyTomography's grid matches GE's reconstruction geometry to < 0.01 mm; NCC 0.96 with GE's reconstruction, every flip <= 0.49.",
+   "status": "verified"
+  },
+  {
+   "id": "ge-nm-mu-scale",
+   "vendor": "GE",
+   "data": "NM attenuation maps (DICOM)",
+   "rule": "Values are stored values divided by the private scale (0033,1038).",
+   "evidence": "Code branch only; no local data.",
+   "status": "unverified"
+  },
+  {
+   "id": "ge-dmi-listmode",
+   "vendor": "GE",
+   "data": "Discovery MI list mode (HDF5)",
+   "rule": "id = 544 ring + crystal; TOF bin = 14 - raw/13; crystal 0 at the top; the bed posterior after a 180 degree turn about z.",
+   "evidence": "The TOF sign images the spheres; the bed position from the attenuation factors. x and z are not verified.",
+   "status": "check"
+  },
+  {
+   "id": "siemens-nm-projection",
+   "vendor": "Siemens",
+   "data": "NM projections",
+   "rule": "ImagePositionPatient of the Detector Information Sequence is (0, 0, z_top); the rotation axis is at y = -TableHeight.",
+   "evidence": "Lu177-NEMA-SymT2: PyTomography's reconstruction matches Siemens' own in patient space (NCC 0.955), every axis flip worse.",
+   "status": "verified"
+  },
+  {
+   "id": "siemens-nm-registration",
+   "vendor": "Siemens",
+   "data": "NM projections (Symbia, Intevo)",
+   "rule": "The private tag (0043,xx02) of 'SIEMENS MED NM' holds a 4 x 4 rigid matrix M from the acquisition's frame (rule 'siemens-nm-projection') to the patient frame of the CT taken with it: the grid's centre goes to M times it, and the views turn by M's rotation about z (beta - theta). M's tilt about x and y (up to about 1 degree) is not modelled: the rotation axis stays along k, so voxels 100 mm from the grid's centre along z can be up to 2 mm off.",
+   "evidence": "Every Siemens reconstruction in the local data is placed at M times the acquisition's grid: Lu177-NEMA-SymT2 (to 1e-5 mm), and the AC and NoAC reconstructions and the CT mu maps of four TCIA COVID-19-NY-SBU Symbia T6 studies (exactly, once their crop along the tilted axis is counted), so Siemens attenuation-corrects with the CT moved by M. Against the CT of Lu177-NEMA-SymT2 (the lung insert's axis, the spheres' shells, the whole phantom registered), the SPECT is 2.1 mm from the CT with M and 3.7 mm without, and the turns fitted to the CT (0.6 to 0.8 degrees about z, -0.4 about x) match M's (0.53, -0.70). With M, PyTomography's OSEM and Siemens' reconstruction, put on the grid by its own header, agree with no shift (0.06 voxel, NCC 0.998). Ac225-NEMA-SymT2 is inconclusive: its 60 mm sphere is 6.5 mm from its CT shell without M and 8.5 mm with it (very low counts).",
+   "status": "verified"
+  },
+  {
+   "id": "siemens-ct-image-y-origin",
+   "vendor": "Siemens",
+   "data": "CT images (DICOM)",
+   "rule": "The patient y origin is the table: the image centre is at y = -TableHeight (ImagePositionPatient follows the standard, so images need no correction; raw data that refer to the isocentre do).",
+   "evidence": "Two Symbia CT series.",
+   "status": "verified"
+  },
+  {
+   "id": "siemens-ct-pd-y-origin",
+   "vendor": "Siemens",
+   "data": "DICOM-CT-PD projections",
+   "rule": "The patient y origin is unknown (the files carry no TableHeight).",
+   "evidence": "No local data (TCIA Siemens case in v4.1).",
+   "status": "check"
+  },
+  {
+   "id": "siemens-mmr-mu-interfile",
+   "vendor": "Siemens",
+   "data": "mMR attenuation map (JSRecon Interfile .v.hdr)",
+   "rule": "Keys 'matrix size[n]' and 'scale factor (mm/pixel) [n]'; x fastest; HFS; 'quantification units' 1/cm; centred on the scanner.",
+   "evidence": "Placement against the PETSIRD mMR NEMA prompts in x, y and z.",
+   "status": "verified"
+  },
+  {
+   "id": "mediso-nm-projection",
+   "vendor": "Mediso",
+   "data": "NM projections",
+   "rule": "ImagePositionPatient x is voxel (0, 0); the rotation axis is at y = 0.",
+   "evidence": "Code branch only; no local data.",
+   "status": "unverified"
+  },
+  {
+   "id": "mediso-ct-image",
+   "vendor": "Mediso",
+   "data": "CT images (DICOM)",
+   "rule": "ImagePositionPatient y is relative to the table: subtract TableHeight.",
+   "evidence": "Code branch only; no local data.",
+   "status": "unverified"
+  },
+  {
+   "id": "simind-units",
+   "vendor": "SIMIND",
+   "data": "headers (.h00, .hct)",
+   "rule": "Radius and collimator keys in cm before version 8, in mm from version 8 on; the version is the number after 'V' in 'program version'.",
+   "evidence": "XCAT lungs; V7 and V8 radius both 15 cm.",
+   "status": "verified"
+  },
+  {
+   "id": "simind-density-layout",
+   "vendor": "SIMIND",
+   "data": "density and attenuation maps (.hct/.ict)",
+   "rule": "x fastest; the first slice is superior; the y direction is set by simind.ini index 22 ('mu': 3, 'mu-castor': 5), which the header does not record, so the layout must be given; values in 1/cm; centred.",
+   "evidence": "XCAT (SIMIND-MultiOrgan): the lung sources sit on the lungs with layout 5 (0.71 and 0.78 of their counts), not with 3 (0.51).",
+   "status": "verified"
+  },
+  {
+   "id": "simind-projection-frame",
+   "vendor": "SIMIND",
+   "data": "projections (.h00/.a00)",
+   "rule": "x fastest within a view; row 0 at +z; angles from 'start angle', 'extent of rotation' and 'direction of rotation'; the phantom centred on the rotation axis.",
+   "evidence": "Jaszak spheres and XCAT anatomy in LPS as read; counter-clockwise data from 0 only.",
+   "status": "verified"
+  },
+  {
+   "id": "simind-clockwise-start",
+   "vendor": "SIMIND",
+   "data": "projections (.h00/.a00), clockwise with a non-zero start angle",
+   "rule": "The angle of view n is -(start angle) - n * step for clockwise acquisitions.",
+   "evidence": "No local data; PyTomography's SIMIND writer and the reader disagree on the sign.",
+   "status": "unverified"
+  },
+  {
+   "id": "gate-world-frame",
+   "vendor": "GATE",
+   "data": "world frame",
+   "rule": "The patient is wherever the phantom was placed in the world: world_axes, world_origin.",
+   "evidence": "Hosted brain data: 'LPI', the MR's centre.",
+   "status": "verified"
+  },
+  {
+   "id": "gate-stir-interfile-image",
+   "vendor": "GATE/STIR",
+   "data": "Interfile images (.hv/.v)",
+   "rule": "x fastest, then y and z, as +x, +y and +z; centred on the scanner (GATE centres a voxelised phantom on its placement; STIR's 'first pixel offset' is relative to STIR's own origin at the first ring, so it is kept in meta and not used).",
+   "evidence": "The hosted water cube is symmetric, so the orientation cannot be checked.",
+   "status": "unverified"
+  },
+  {
+   "id": "stir2petsird",
+   "vendor": "STIR2PETSIRD",
+   "data": "PETSIRD gantry frame",
+   "rule": "x up, z towards the bed, the axial origin at the first ring; crystals placed by a corner (-0.353 degrees).",
+   "evidence": "The Siemens mu map and every crystal on its element.",
+   "status": "verified"
+  },
+  {
+   "id": "nikon-xtek",
+   "vendor": "Nikon",
+   "data": "XTek cone beam",
+   "rule": "Negate the .ang angles (the stage turns the sample); the centre of rotation is not in the file.",
+   "evidence": "Reprojection r 0.999; COR 0.24 mm by sharpness (the mirror cannot be checked).",
+   "status": "verified"
+  }
+ ],
+ "tutorials": {
+  "t_CT_GEN3": "DICOM-CT-PD",
+  "t_CT_microct": "Cone-beam micro-CT",
+  "t_CardiacReorientation": "Cardiac reorientation",
+  "t_GE_HDF5": "GE Discovery MI",
+  "t_PETGATE_DIP": "Deep Image Prior",
+  "t_PETGATE_scat_lm": "GATE list mode",
+  "t_PETGATE_scat_lmTOF": "GATE TOF list mode",
+  "t_PETGATE_scat_sino": "GATE sinogram",
+  "t_PETGATE_scat_sinoTOF": "GATE TOF sinogram",
+  "t_PETSIRD": "PETSIRD list mode",
+  "t_ac225_dicom_recon": "Ac-225 PSF modelling (DICOM)",
+  "t_ac225_simind_recon": "Ac-225 PSF modelling (SIMIND)",
+  "t_accuracy_known_truth": "Accuracy against known truth",
+  "t_algorithms": "Reconstruction algorithms",
+  "t_algorithms_measured": "Reconstruction algorithms on measured data",
+  "t_dicomdata": "DICOM introduction",
+  "t_dicommultibed": "Multiple bed positions",
+  "t_dualpeak": "Multiple photopeaks",
+  "t_fbp_ct": "Filtered back projection (CT): windows and memory",
+  "t_fbp_spect": "Filtered back projection (SPECT)",
+  "t_pet_introduction": "PET introduction: list mode and sinograms",
+  "t_plotting": "Plotting utilities",
+  "t_siminddata": "SIMIND introduction",
+  "t_spect_mc": "Hybrid Monte Carlo (simulated)",
+  "t_spect_mc2": "Hybrid Monte Carlo (measured)",
+  "t_starguide": "GE StarGuide",
+  "t_uncertainty_pet": "PET uncertainty estimation",
+  "t_uncertainty_spect": "Uncertainty estimation"
+ }
+}

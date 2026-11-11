@@ -1,0 +1,413 @@
+{
+ "host": "https://huggingface.co/datasets/PyTomography/Tutorial-Images/resolve/{revision}/{path}",
+ "revision": "1cc4086d7ab04d796f1cecdbf41a6002eb142f57",
+ "prefix": "v4.0.0",
+ "tutorials": {
+  "t_CT_GEN3": {
+   "title": "Chest CT from raw projections",
+   "description": "Our reconstruction of the scanner's raw projections, in HU, beside the scanner's own",
+   "layers": [
+    "FBP",
+    "FBP, advanced settings",
+    "Scanner's reconstruction"
+   ],
+   "bytes": 277077284,
+   "manifest_sha256": "49479a35ffc7713af788e03bb2deb8af6a8dea5e5067246c8aad2322b5e61fa4",
+   "thumb": true
+  },
+  "t_CT_microct": {
+   "title": "Glass beads, cone-beam micro-CT",
+   "description": "OS-SART started from FDK, as attenuation per mm",
+   "layers": [
+    "OS-SART",
+    "FDK"
+   ],
+   "bytes": 422059815,
+   "manifest_sha256": "b1ad6e6837d6ff2811f7c4306bce6c22d1c661a899e902808502fb0ba6e90d84",
+   "thumb": true
+  },
+  "t_CardiacReorientation": {
+   "title": "Tc-99m myocardial perfusion",
+   "description": "The reconstruction before it is turned to the short axis (no CT; no attenuation correction)",
+   "layers": [
+    "OSEM"
+   ],
+   "bytes": 274340,
+   "manifest_sha256": "6b5f7d96adf20c9c5306824a10b7933abefa8d5e3e23ead3665d6ba6acc62339",
+   "thumb": true
+  },
+  "t_GE_HDF5": {
+   "title": "NEMA IQ phantom, GE Discovery MI",
+   "description": "BSREM and OSEM from the scanner's list mode, with time of flight",
+   "layers": [
+    "BSREM",
+    "OSEM"
+   ],
+   "bytes": 1768530,
+   "manifest_sha256": "629cafd06d768dc8c09c072a12e6a159438414ca23dedeaa4f1aa1e120b1614a",
+   "thumb": true
+  },
+  "t_PETGATE_DIP": {
+   "title": "FDG brain phantom, Deep Image Prior",
+   "description": "The network's image next to TOF list-mode OSEM, over the MR it was conditioned on",
+   "layers": [
+    "MR",
+    "Deep Image Prior",
+    "TOF list-mode OSEM",
+    "TOF list-mode OSEM, filtered",
+    "No scatter correction"
+   ],
+   "bytes": 36659902,
+   "manifest_sha256": "1d79fd67b06483dcf5b4106e35e3f4451428106287ad1e2e0abb17d9ca23ccc9",
+   "thumb": true
+  },
+  "t_PETGATE_scat_lm": {
+   "title": "FDG brain phantom, list mode with scatter",
+   "description": "Non-TOF list-mode reconstruction with scatter and randoms correction",
+   "layers": [
+    "MR",
+    "Scatter and randoms corrected",
+    "True coincidences only",
+    "No scatter correction"
+   ],
+   "bytes": 7598741,
+   "manifest_sha256": "3bca41451ab3ea70585ba6a44a509b0d820a7fffe53da95f177818330b19c0d2",
+   "thumb": true
+  },
+  "t_PETGATE_scat_lmTOF": {
+   "title": "FDG brain phantom, TOF list mode with scatter",
+   "description": "Time-of-flight list-mode reconstruction with TOF scatter estimation",
+   "layers": [
+    "MR",
+    "Scatter and randoms corrected",
+    "True coincidences only",
+    "No scatter correction"
+   ],
+   "bytes": 7202072,
+   "manifest_sha256": "2b3fe92b643f3e0bb765f032472ed2056cb0673935dee0bf8d902f31125b816a",
+   "thumb": true
+  },
+  "t_PETGATE_scat_sino": {
+   "title": "FDG brain phantom, sinogram with scatter",
+   "description": "Non-TOF sinogram reconstruction with scatter and randoms correction, next to the true coincidences only",
+   "layers": [
+    "MR",
+    "Scatter and randoms corrected",
+    "True coincidences only",
+    "No scatter correction"
+   ],
+   "bytes": 7615625,
+   "manifest_sha256": "b1bee97c38e8ef5399d2767226819b45f157b81c60dba28af5fdfea42d48792d",
+   "thumb": true
+  },
+  "t_PETGATE_scat_sinoTOF": {
+   "title": "FDG brain phantom, TOF sinogram with scatter",
+   "description": "Time-of-flight sinogram reconstruction with TOF scatter estimation",
+   "layers": [
+    "MR",
+    "Scatter and randoms corrected",
+    "True coincidences only",
+    "No scatter correction"
+   ],
+   "bytes": 7155084,
+   "manifest_sha256": "d8ead00656e2ac579fd9371e9e8f5c4c67dbd0e68c528a1d4ad939ad7345d4c8",
+   "thumb": true
+  },
+  "t_PETSIRD": {
+   "title": "NEMA IQ phantom, Siemens Biograph mMR (PETSIRD)",
+   "description": "List-mode OSEM with and without scatter correction, over the scan's attenuation map",
+   "layers": [
+    "Attenuation",
+    "OSEM, scatter and randoms corrected",
+    "OSEM, randoms corrected, no scatter correction"
+   ],
+   "bytes": 9763683,
+   "manifest_sha256": "c733810d791b96c0865849a11ff131ef491720b9d3fcad5e474a96773a75c7dc",
+   "thumb": true
+  },
+  "t_ac225_dicom_recon": {
+   "title": "Ac-225 NEMA phantom",
+   "description": "spectarf's PSF on a measured scan, smoothed with a 20 mm Gaussian, and unsmoothed",
+   "layers": [
+    "CT",
+    "Smoothed (20 mm FWHM)",
+    "Unsmoothed"
+   ],
+   "bytes": 15572724,
+   "manifest_sha256": "706a79d8b9e5c6401383430078e8736de932a0bbb5e95899546be9de8bb07cbb",
+   "thumb": true
+  },
+  "t_ac225_dualpeak": {
+   "title": "Ac-225 NEMA phantom, two photopeaks",
+   "description": "One image from the 218 keV and 440 keV photopeaks, and each peak alone, smoothed with a 20 mm Gaussian",
+   "layers": [
+    "CT",
+    "218 + 440 keV",
+    "218 keV",
+    "440 keV"
+   ],
+   "bytes": 16938537,
+   "manifest_sha256": "2bea7c13529469c921288ef622b964fe57b1c28e83384f7c13c02aa0d6e8fb99",
+   "thumb": true
+  },
+  "t_ac225_simind_recon": {
+   "title": "Ac-225 Jaszczak phantom (SIMIND)",
+   "description": "spectarf's PSF, with penetration and scatter in the collimator, next to a Gaussian PSF",
+   "layers": [
+    "Attenuation",
+    "spectarf PSF",
+    "Gaussian PSF"
+   ],
+   "bytes": 2155750,
+   "manifest_sha256": "4060482c87d3f3dcb06432cd93d23779a8186bae179fddeeea79c2bc5281e204",
+   "thumb": true
+  },
+  "t_accuracy_known_truth": {
+   "title": "SIMIND phantom with a known activity",
+   "description": "OSEM and BSREM next to the true activity they should recover",
+   "layers": [
+    "Attenuation",
+    "OSEM",
+    "BSREM",
+    "True activity"
+   ],
+   "bytes": 264360,
+   "manifest_sha256": "0949c9ce5b43384f932bb970db50f8cc77735742c593a39baf4a35306b5eeef6",
+   "thumb": true
+  },
+  "t_algorithms": {
+   "title": "Lu-177 NEMA phantom, four algorithms",
+   "description": "BSREM, OSEM, OSMAPOSL and KEM on the same projections",
+   "layers": [
+    "CT",
+    "BSREM",
+    "OSEM",
+    "OSMAPOSL",
+    "KEM"
+   ],
+   "bytes": 4536262,
+   "manifest_sha256": "65d4a7e3366556ce8ab27de537ecf769d34d82a56023d4e2c6e47b1fb846b0e7",
+   "thumb": true
+  },
+  "t_algorithms_measured": {
+   "title": "Lu-177 NEMA phantom, measured, six reconstructions",
+   "description": "BSREM, OSEM with and without a post-filter, OSMAPOSL and KEM after 40 iterations, and the scanner's reconstruction",
+   "layers": [
+    "CT",
+    "BSREM, beta 0.1",
+    "OSEM 40 × 8",
+    "OSEM 40 × 8, 10 mm filter",
+    "OSMAPOSL",
+    "KEM",
+    "Scanner's reconstruction"
+   ],
+   "bytes": 5079522,
+   "manifest_sha256": "f759e76ac269b74629dfcf0ea912d220723596dd70ea71ed9f57b4cca824f772",
+   "thumb": true
+  },
+  "t_cgls": {
+   "title": "Lu-177-PSMA patient, OSEM and CGLS",
+   "description": "Both beds stitched; weighted and unweighted CGLS beside OSEM, each stopped where the kidneys' mean levels off (negative CGLS voxels shown as zero)",
+   "layers": [
+    "CT",
+    "Weighted CGLS, stopped by the kidneys",
+    "Preconditioned CGLS, unweighted, stopped by the kidneys",
+    "OSEM, stopped by the kidneys"
+   ],
+   "bytes": 70166878,
+   "manifest_sha256": "a63ebf89b002e21d2f4dda9f42a9714b02fa6cd23c8b53dc1e6c502bb897cb6a",
+   "thumb": true
+  },
+  "t_dicomdata": {
+   "title": "Lu-177 NEMA phantom",
+   "description": "OSEM 4 × 8 with attenuation, PSF and scatter, next to the scanner's reconstruction",
+   "layers": [
+    "CT",
+    "PyTomography OSEM 4 × 8",
+    "Scanner's reconstruction"
+   ],
+   "bytes": 3968593,
+   "manifest_sha256": "0b34e33bf613ce072d6ff3b94c3e6b2b6967d4ba4d4b232b9c8ad09f396a5b85",
+   "thumb": true
+  },
+  "t_dicommultibed": {
+   "title": "Lu-177-PSMA patient, two bed positions",
+   "description": "Both beds reconstructed and stitched into one volume",
+   "layers": [
+    "CT",
+    "Stitched OSEM",
+    "Upper bed alone",
+    "Lower bed alone"
+   ],
+   "bytes": 68928372,
+   "manifest_sha256": "38ee727ad2efed9944529711c0939bec3c5c6131d6f0323f9f2c641898a34f89",
+   "thumb": true
+  },
+  "t_dualpeak": {
+   "title": "Lu-177 NEMA phantom, two photopeaks",
+   "description": "One reconstruction from the 113 keV and 208 keV windows together",
+   "layers": [
+    "CT",
+    "OSEM, both photopeaks"
+   ],
+   "bytes": 3709667,
+   "manifest_sha256": "af7741388d132594b31e902b458e9f511d2430007ee1240a6f12c01a8e296fcc",
+   "thumb": true
+  },
+  "t_examplesystemmatrix": {
+   "title": "A new system matrix, on 3 × 3 × 3 voxels",
+   "description": "OSEM with the tutorial's own list-mode system matrix, with one subset and with two",
+   "layers": [
+    "List-mode OSEM, 1 subset",
+    "List-mode OSEM, 2 subsets"
+   ],
+   "bytes": 394,
+   "manifest_sha256": "ddfa37e628dfbacadebcf288f47a3f0121425606c1f95f058703d6bb67d8fd33",
+   "thumb": true
+  },
+  "t_fbp_ct": {
+   "title": "Chest CT, filtered back projection with two windows",
+   "description": "The Hann and Ram-Lak windows, in HU, beside the scanner's own reconstruction",
+   "layers": [
+    "FBP, Hann",
+    "FBP, Ram-Lak",
+    "Scanner's reconstruction"
+   ],
+   "bytes": 282363429,
+   "manifest_sha256": "316916c88f7bf00ff73ce362426f7d0fc9b0d21d45a169c62c76427c18557acd",
+   "thumb": true
+  },
+  "t_fbp_spect": {
+   "title": "Lu-177 NEMA phantom, filtered back projection",
+   "description": "FBP with and without Chang's attenuation correction, next to OSEM with attenuation, PSF and scatter",
+   "layers": [
+    "CT",
+    "FBP, Chang's attenuation correction",
+    "FBP, no attenuation correction",
+    "OSEM 4 × 8"
+   ],
+   "bytes": 5049863,
+   "manifest_sha256": "006458004724c5888a4f6e05bf74414b6be5a8163a78ace13345a2369af13cb7",
+   "thumb": true
+  },
+  "t_kernel_deep_kernel_spect_recon": {
+   "title": "Zubal phantom, Lu-177 SPECT with a Ga-68 PET prior",
+   "description": "MLEM, KEM with a kernel from the PET intensities, and KEM with a deep-learned kernel, 50 iterations each",
+   "layers": [
+    "Attenuation",
+    "Ga-68 PET prior",
+    "MLEM 50",
+    "KEM 50, kernel from the PET intensities",
+    "KEM 50, deep-learned kernel"
+   ],
+   "bytes": 5368759,
+   "manifest_sha256": "e5dc4cddc47c20ce97f00dadb0ae827b05a13f389d12d3b04b4aeaf68cc04a95",
+   "thumb": true
+  },
+  "t_pct_abdomen": {
+   "title": "Single-sided proton CT of the abdomen",
+   "description": "The relative stopping power (RSP) from a quarter of the scan's protons, by SART and by FBP, and the true RSP",
+   "layers": [
+    "SART",
+    "FBP, second pass",
+    "True RSP"
+   ],
+   "bytes": 19823518,
+   "manifest_sha256": "74036db0bce839e9fc5976a99f3e3edec1e31c855412b0d6e0ce56c40f074b18",
+   "thumb": true
+  },
+  "t_pet_introduction": {
+   "title": "FDG brain phantom (GATE, Siemens mMR)",
+   "description": "The same true coincidences reconstructed as list mode and as sinograms, over the phantom's MR",
+   "layers": [
+    "MR",
+    "List mode",
+    "Sinogram",
+    "MLEM list mode",
+    "MLEM sinogram"
+   ],
+   "bytes": 7157579,
+   "manifest_sha256": "280c888a5147e3439a3055b760fdd4287d46b2871380d1ca9c1a6b0b38928323",
+   "thumb": true
+  },
+  "t_plotting": {
+   "title": "Lu-177-PSMA patient",
+   "description": "The stitched two-bed reconstruction that the plotting examples draw",
+   "layers": [
+    "CT",
+    "SPECT"
+   ],
+   "bytes": 65681304,
+   "manifest_sha256": "0b2946d94dfc36344d44470d4e8fd251e7c6a7270d08a2cbd6dbd784cabf6c2f",
+   "thumb": true
+  },
+  "t_siminddata": {
+   "title": "SIMIND Jaszczak phantom",
+   "description": "Lu-177, OSEM with attenuation, PSF and scatter",
+   "layers": [
+    "Attenuation",
+    "OSEM"
+   ],
+   "bytes": 151841,
+   "manifest_sha256": "776b8fdda7ebef551992449f3f160f18a4140dada05a49d9eb3af899eba34e48",
+   "thumb": true
+  },
+  "t_spect_mc": {
+   "title": "SIMIND Jaszczak phantom, Monte Carlo scatter",
+   "description": "Scatter estimated by SIMIND inside the reconstruction, next to the analytical model",
+   "layers": [
+    "Attenuation",
+    "Monte Carlo scatter",
+    "Analytical scatter"
+   ],
+   "bytes": 537703,
+   "manifest_sha256": "822e42f1c2d890036a031967051dc57b7b8faa21870e5be9b83ec076cf6f189f",
+   "thumb": true
+  },
+  "t_spect_mc2": {
+   "title": "Lu-177 NEMA phantom, Monte Carlo scatter",
+   "description": "Scatter estimated by SIMIND inside the reconstruction of a measured scan",
+   "layers": [
+    "CT",
+    "Monte Carlo scatter"
+   ],
+   "bytes": 3697987,
+   "manifest_sha256": "6fed311f30f56ba11da5651bf28b49008a86ccacb7852ee38a2481f8292ee6a4",
+   "thumb": true
+  },
+  "t_starguide": {
+   "title": "Tc-99m NEMA phantom, GE StarGuide",
+   "description": "PyTomography's reconstruction next to the scanner's",
+   "layers": [
+    "CT",
+    "PyTomography OSEM",
+    "Scanner's reconstruction"
+   ],
+   "bytes": 18181128,
+   "manifest_sha256": "7c54f5925b10abef7575fff707e219493fb96b8f1dbe02b53812a3c509c83ec8",
+   "thumb": true
+  },
+  "t_uncertainty_pet": {
+   "title": "NEMA IQ phantom, GE Discovery MI",
+   "description": "The OSEM reconstruction whose uncertainty the tutorial estimates",
+   "layers": [
+    "OSEM"
+   ],
+   "bytes": 1095457,
+   "manifest_sha256": "b9047f5daad3dc463a1e18a16a204d3fef90d0dd91919dd69a75d213fe2d663b",
+   "thumb": true
+  },
+  "t_uncertainty_spect": {
+   "title": "Lu-177-PSMA patient",
+   "description": "The two-bed reconstruction whose uncertainty the tutorial estimates",
+   "layers": [
+    "CT",
+    "Stitched OSEM",
+    "Lower bed alone (the one the uncertainty is for)"
+   ],
+   "bytes": 67820735,
+   "manifest_sha256": "37b9b0192da74016f4d89f6a911818585eaccf209d9fb9a83512593774581c85",
+   "thumb": true
+  }
+ }
+}

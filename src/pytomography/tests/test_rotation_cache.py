@@ -1,7 +1,8 @@
 """Rotations of the SPECT projectors (utils.spatial, plain PyTorch since kornia was dropped: bit-identical to
 kornia.geometry.transform.rotate, which they replaced) against an independent rotation computed in float64, and the
 cached rotation grids and the optional attenuation probability cache, which must reproduce the uncached results exactly
-(they only avoid recomputing angle-dependent constants)."""
+(they only avoid recomputing angle-dependent constants). The transposes that back projection applies
+(rotate_cached_transpose and the functions built on it) must be the exact transposes of the rotations."""
 from __future__ import annotations
 
 import numpy as np
@@ -12,8 +13,10 @@ import pytomography
 from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta
 from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.transforms.SPECT import SPECTAttenuationTransform
-from pytomography.utils import rotate_detector_z
-from pytomography.utils.spatial import _ROTATION_GRIDS, rotate_cached
+from pytomography.transforms.shared import RotationTransform
+from pytomography.utils import rotate_detector_z, rotate_detector_z_transpose
+from pytomography.utils.spatial import (_ROTATION_GRIDS, _ROTATION_TRANSPOSES, rotate_cached, rotate_cached_transpose,
+                                        rotation_transpose_bytes)
 
 DEV = pytomography.device
 
@@ -132,3 +135,70 @@ def test_attenuation_probability_cache_is_exact_and_invalidates():
     assert torch.equal(sm0.forward(f), sm1.forward(f))
     assert torch.equal(sm0.backward(g), sm1.backward(g))
     assert len(att1._prob_cache) == 12
+
+
+@pytest.mark.parametrize('size', [(23, 23), (24, 24), (23, 26)], ids=['odd', 'even', 'non-square'])
+def test_rotate_cached_transpose_is_the_exact_transpose(size):
+    """The matrix of rotate_cached_transpose is the transpose of rotate_cached's, both built column by column from
+    basis images: equal to float32 rounding (measured 1.2e-7 on the CPU; the weights are computed with grid_sample's own
+    arithmetic on each device), exactly in nearest mode and in float64 to 1e-15, at multiples of 90 degrees too. The
+    rotation by the opposite angle, which back projection applied before, differs at other angles (by more the further
+    the angle is from a multiple of 90 degrees: 0.011 at 2.8 degrees from one)."""
+    H, W = size
+    for dtype in (torch.float32, torch.float64):
+        basis = torch.eye(H * W, dtype=dtype, device=DEV).reshape(H * W, 1, H, W)
+        for mode in ('bilinear', 'nearest'):
+            for angle in (0.0, 33.7, 90.0, 137.25, 180.0, 270.0, -267.1875, 3.75):
+                M_t = rotate_cached(basis, angle, mode=mode).reshape(H * W, H * W)            # row j: M e_j
+                M = rotate_cached_transpose(basis, angle, mode=mode).reshape(H * W, H * W)    # row j: M^T e_j
+                error = (M - M_t.T).abs().max().item()
+                if mode == 'nearest':
+                    assert error == 0, (angle, dtype)
+                else:
+                    assert error <= (3e-7 if dtype == torch.float32 else 1e-14), (angle, dtype, error)
+                if mode == 'bilinear' and angle % 90 != 0:
+                    inverse = rotate_cached(basis, -angle, mode=mode).reshape(H * W, H * W)
+                    assert (inverse - M).abs().max() > 1e-3, angle                            # not the transpose
+    for key, transpose in _ROTATION_TRANSPOSES.items():
+        h, w, dtype = key[1], key[2], key[4]
+        size_bytes = sum(t.numel() * t.element_size() for t in (transpose.crow_indices(), transpose.col_indices(), transpose.values()))
+        assert size_bytes <= rotation_transpose_bytes(h, w, dtype)
+
+
+def test_transposes_of_object_rotations_and_their_layouts():
+    """RotationTransform.backward and rotate_detector_z_transpose are the exact transposes of RotationTransform.forward
+    and rotate_detector_z on [Lx, Ly, Lz] objects (dot test, float64 sums of float32 arrays), the same for contiguous
+    and permuted (non-contiguous) inputs, and deterministic (bit-identical when repeated)."""
+    gen = torch.Generator().manual_seed(4)
+    rotation = RotationTransform()
+    for shape in ((31, 31, 7), (30, 34, 5)):
+        x = torch.randn(*shape, generator=gen).to(DEV)
+        y = torch.randn(*shape, generator=gen).to(DEV)
+        for angle in (0.0, 90.0, 33.7, -137.25, 266.25):
+            for forward, transpose in ((rotation.forward, rotation.backward),
+                                       (lambda o, a: rotate_detector_z(o, torch.tensor(a)), lambda o, a: rotate_detector_z_transpose(o, torch.tensor(a)))):
+                Rx = forward(x, angle)
+                RTy = transpose(y, angle)
+                lhs, rhs = float((Rx.double() * y.double()).sum()), float((x.double() * RTy.double()).sum())
+                assert abs(lhs - rhs) <= 1e-6 * float(Rx.norm() * y.norm()), (shape, angle)
+                y_permuted = y.permute(2, 0, 1).contiguous().permute(1, 2, 0)                     # same values, z not contiguous
+                assert torch.equal(transpose(y_permuted, angle), RTy)
+                assert torch.equal(transpose(y, angle), RTy)
+    with pytest.raises(ValueError):
+        rotate_cached_transpose(torch.ones(1, 1, 5, 5, device=DEV), 10.0, mode='bicubic')
+
+
+def test_spect_back_projection_is_the_exact_transpose_of_forward_projection():
+    """SPECTSystemMatrix.backward is the transpose of forward to float32 rounding, with subsets (here attenuation; the
+    contract tests cover the PSF too): the rotation by the opposite angle, used before, left ~1e-4 (see
+    test_contracts_spect)."""
+    sm, _, _ = _system_matrix(False)
+    gen = torch.Generator().manual_seed(5)
+    f = torch.randn(16, 16, 4, generator=gen).to(DEV)
+    g = torch.randn(12, 16, 4, generator=gen).to(DEV)
+    sm.set_n_subsets(3)
+    for subset_idx in (None, 1):
+        gs = g if subset_idx is None else sm.get_projection_subset(g, subset_idx)
+        Hf = sm.forward(f, subset_idx)
+        lhs, rhs = float((Hf.double() * gs.double()).sum()), float((f.double() * sm.backward(gs, subset_idx).double()).sum())
+        assert abs(lhs - rhs) <= 1e-7 * float(Hf.norm() * gs.norm()), subset_idx
