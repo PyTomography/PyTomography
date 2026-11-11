@@ -2,6 +2,7 @@
 # Build locally with:  sphinx-autobuild docs/source docs/build/html
 import os
 import sys
+import tomllib
 
 sys.path.insert(0, os.path.abspath("../../src"))
 sys.path.insert(0, os.path.abspath("_ext"))
@@ -12,9 +13,9 @@ project = "PyTomography"
 author = "Luke Polson and the PyTomography contributors"
 copyright = "2023-2026, the PyTomography contributors"
 
-# The site documents the upcoming 4.0 release; the release workflow will set this
-# from the git tag once pyproject.toml is bumped.
-release = os.environ.get("PYTOMOGRAPHY_DOCS_VERSION", "4.0 preview")
+# The site documents the version in pyproject.toml; PYTOMOGRAPHY_DOCS_VERSION overrides it.
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "pyproject.toml"), "rb") as _f:
+    release = os.environ.get("PYTOMOGRAPHY_DOCS_VERSION") or tomllib.load(_f)["project"]["version"]
 version = release
 
 # -- General configuration ---------------------------------------------------

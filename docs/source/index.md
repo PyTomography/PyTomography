@@ -8,7 +8,7 @@ html_theme.sidebar_secondary.remove: true
 
 <section class="pt-hero">
   <div class="pt-hero-text">
-    <p class="pt-eyebrow">Open source · GPU accelerated · 4.0 preview</p>
+    <p class="pt-eyebrow">Open source · GPU accelerated · 4.0</p>
     <p class="pt-h1">Quantitative SPECT, PET and CT reconstruction</p>
     <p class="pt-lede">Read projections straight from vendor DICOM, SIMIND or GATE. Model attenuation, scatter and the full collimator response. Reconstruct on the GPU with OSEM, BSREM, KEM, or a network you design yourself.</p>
     <div class="pt-cta">
