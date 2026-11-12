@@ -100,8 +100,9 @@ section#pytomography > h1 {
 .pt-modalities b { font: 800 1.15rem var(--pst-font-family-heading); }
 .pt-modalities span { color: var(--pt-ink-2); font-size: 0.9rem; line-height: 1.5; }
 
-.pt-split { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 40px; align-items: start; }
-@media (max-width: 960px) { .pt-split { grid-template-columns: minmax(0, 1fr); } }
+/* the code sits under its text, at the full width, so its lines fit without a scroll bar */
+.pt-split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; align-items: start; }
+.pt-split-text { max-width: 46rem; }
 .pt-split-text p { color: var(--pt-ink-2); margin-top: 12px; }
 .pt-steps { display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; margin-top: 22px; }
 .pt-steps dt { font: 600 0.78rem/1.9 var(--pst-font-family-monospace); color: var(--pt-purple); white-space: nowrap; }
@@ -127,8 +128,7 @@ section#pytomography > h1 {
 .pt-join-links b { font: 700 1rem var(--pst-font-family-heading); }
 .pt-join-links span { color: var(--pt-muted); font-size: 0.86rem; text-align: right; }
 
-.pt-cite { display: grid; grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr); gap: 32px; align-items: start; }
-@media (max-width: 860px) { .pt-cite { grid-template-columns: minmax(0, 1fr); } }
+.pt-cite { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
 .pt-cite p { color: var(--pt-ink-2); margin-top: 8px; }
 
 /* ---------- filters (tutorial gallery, feature board) ---------- */
@@ -233,3 +233,18 @@ section#pytomography > h1 {
 .pt-spect-parameters table { font-size: 0.86rem; }
 .pt-spect-parameters td, .pt-spect-parameters th { padding: 4px 10px; border-bottom: 1px solid var(--pt-line); }
 .pt-spect-parameters td:nth-child(n+5) { font-variant-numeric: tabular-nums; }
+
+/* Home page: each modality's "See sample" opens a tutorial's images in the 3D viewer, over the page */
+.pt-sample { justify-self: start; margin-top: 6px; display: inline-flex; gap: 8px; align-items: baseline; padding: 5px 12px;
+  font: 600 0.85rem var(--pst-font-family-base); color: var(--pt-purple); background: transparent;
+  border: 1px solid var(--pt-line); border-radius: 999px; cursor: pointer; }
+.pt-modalities > div { grid-template-rows: auto 1fr auto; }   /* the buttons line up along the cards' bottoms */
+.pt-sample:hover { border-color: var(--pt-purple); background: var(--pt-wash); }
+.pt-sample:disabled { opacity: 0.6; cursor: progress; }
+.pt-sample-size { font-weight: 400; font-size: 0.75rem; color: var(--pt-muted); }
+/* narrow screens: code and BibTeX wrap rather than scroll */
+@media (max-width: 860px) { .pt-split-code pre, .pt-cite-code pre { white-space: pre-wrap; overflow-wrap: anywhere; } }
+
+/* Section navigation: an entry's lines sit tight and entries stand apart, so one that wraps onto two lines reads as one */
+.bd-sidebar-primary .bd-sidenav li > a { line-height: 1.3; padding-top: 4px; padding-bottom: 4px; }
+.bd-sidebar-primary .bd-sidenav li.toctree-l1 + li.toctree-l1, .bd-sidebar-primary .bd-sidenav li.toctree-l2 + li.toctree-l2 { margin-top: 4px; }

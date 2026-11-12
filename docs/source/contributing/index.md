@@ -30,7 +30,7 @@ Not sure where to start, or whether an idea fits? Ask in GitHub Discussions befo
 
 - **Credit.** Every contributor is named in the release notes and on the contributors page. Substantial features earn co-authorship on the next PyTomography paper.
 - **A reviewer who replies.** Every issue and pull request gets a first reply within five working days. Each feature-board item has a named mentor.
-- **Visibility.** Images made with your feature go into the [gallery](../gallery.md), credited with a link to your paper.
+- **Visibility.** A tutorial shows your feature, credited with a link to your paper.
 
 ## Your first pull request
 

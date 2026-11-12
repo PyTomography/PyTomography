@@ -1,4 +1,5 @@
-/* PyTomography docs: opens the 3D viewer from a tutorial page's viewer block or a gallery card's "View in 3D" button.
+/* PyTomography docs: opens the 3D viewer from a tutorial page's viewer block, a tutorial card's "View in 3D" button or
+   the home page's "See sample" buttons.
    The viewer (pt-viewer.js and pt-viewer.css, next to this file) and the images load only when a reader opens it. */
 (function () {
   'use strict';
@@ -43,11 +44,25 @@
     if (block.id) document.querySelectorAll(`[data-ptv-open="${block.id}"]`).forEach(b => b.addEventListener('click', () => open(b)));
   });
 
-  // Gallery: a "View in 3D" button on each card whose tutorial has images
+  // Tutorial cards and the home page: the image list of every tutorial
   const index = document.getElementById('ptv-index');
   if (!index) return;
   let cards = {};
   try { cards = JSON.parse(index.textContent); } catch (_) { return; }
+
+  // Home page: "See sample" (data-ptv-sample="<tutorial>") opens that tutorial's images over the page, its size beside it
+  document.querySelectorAll('[data-ptv-sample]').forEach(b => {
+    const t = cards[b.dataset.ptvSample];
+    if (!t) { b.hidden = true; return; }
+    if (t.bytes) {
+      const s = document.createElement('span');
+      s.className = 'pt-sample-size'; s.textContent = (t.bytes / 1e6).toFixed(t.bytes < 1e7 ? 1 : 0) + ' MB';
+      b.appendChild(s);
+    }
+    b.addEventListener('click', () => openOver(t.manifest, t.title, b, null));
+  });
+
+  // Tutorial cards: a "View in 3D" button on each card whose tutorial has images
   document.querySelectorAll('a.pt-card').forEach(card => {
     const name = (card.getAttribute('href') || '').split('/').pop().replace(/\.html.*$/, '');
     const t = cards[name];

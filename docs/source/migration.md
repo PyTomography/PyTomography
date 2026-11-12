@@ -1,3 +1,7 @@
+---
+orphan: true
+---
+
 # Moving from v3 to v4
 
 PyTomography 4 is a major release. Reading and saving data changed for every modality: one call per scan, lengths in
@@ -514,7 +518,7 @@ Some bugs fixed in v4 changed results. Rerun anything you made with v3 that depe
 
 ## Units by convention: FWHM, degrees, no suffixes
 
-v4 gives every length in mm, every angle in degrees, every energy in keV and every time in s, and every Gaussian by its FWHM ([Conventions](conventions.md)). Names carry no unit suffixes. Code from v3 that smooths, or that builds CT geometry, changes:
+v4 gives every length in mm, every angle in degrees, every energy in keV and every time in s, and every Gaussian by its FWHM (the Architecture page's <a href="architecture.html#io">Data and conventions</a> tab). Names carry no unit suffixes. Code from v3 that smooths, or that builds CT geometry, changes:
 
 | v3 | v4 |
 |---|---|
