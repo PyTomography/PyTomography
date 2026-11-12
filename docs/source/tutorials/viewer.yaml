@@ -355,7 +355,7 @@ tutorials:
   # ---------- Proton CT ----------
   t_pct_abdomen:
     title: Single-sided proton CT of the abdomen
-    description: The relative stopping power (RSP) from a quarter of the scan's protons, by SART and by FBP, and the true RSP
+    description: The relative stopping power (RSP) from all of the scan's protons, by SART and by FBP, and the true RSP
     credit: GATE simulation of a CT from TCIA's PSMA-PET-CT-Lesions (Jeblick et al., doi:10.7937/r7ep-3x37, CC BY 4.0); these images are CC BY 4.0 too
     layers:
     - {name: SART, kind: image, array: sart, affine: object_meta.affine, units: RSP, range: [0.8, 1.2], scale_group: rsp}

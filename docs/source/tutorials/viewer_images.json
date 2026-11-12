@@ -1,6 +1,6 @@
 {
  "host": "https://huggingface.co/datasets/PyTomography/Tutorial-Images/resolve/{revision}/{path}",
- "revision": "576d72031e1d855fdfae2efcb1d0e2a5fab55dc5",
+ "revision": "23e4759280161bcd6d8b07bcfc39c4a90d5f1088",
  "prefix": "v4.0.0",
  "tutorials": {
   "t_CT_GEN3": {
@@ -306,14 +306,14 @@
   },
   "t_pct_abdomen": {
    "title": "Single-sided proton CT of the abdomen",
-   "description": "The relative stopping power (RSP) from a quarter of the scan's protons, by SART and by FBP, and the true RSP",
+   "description": "The relative stopping power (RSP) from all of the scan's protons, by SART and by FBP, and the true RSP",
    "layers": [
     "SART",
     "FBP, second pass",
     "True RSP"
    ],
-   "bytes": 19823518,
-   "manifest_sha256": "74036db0bce839e9fc5976a99f3e3edec1e31c855412b0d6e0ce56c40f074b18",
+   "bytes": 19023972,
+   "manifest_sha256": "801b76a620ff4577092517152eaad34c90fb8375df03ef24675b3f5358ea22a0",
    "thumb": true
   },
   "t_pet_introduction": {
