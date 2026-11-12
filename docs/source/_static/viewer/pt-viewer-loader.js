@@ -1,5 +1,5 @@
 /* PyTomography docs: opens the 3D viewer from a tutorial page's viewer block, a tutorial card's "View in 3D" button or
-   the home page's "See sample" buttons.
+   the home page's "Open viewer" buttons.
    The viewer (pt-viewer.js and pt-viewer.css, next to this file) and the images load only when a reader opens it. */
 (function () {
   'use strict';
@@ -50,15 +50,10 @@
   let cards = {};
   try { cards = JSON.parse(index.textContent); } catch (_) { return; }
 
-  // Home page: "See sample" (data-ptv-sample="<tutorial>") opens that tutorial's images over the page, its size beside it
+  // Home page: "Open viewer" (data-ptv-sample="<tutorial>") opens that tutorial's images over the page
   document.querySelectorAll('[data-ptv-sample]').forEach(b => {
     const t = cards[b.dataset.ptvSample];
-    if (!t) { b.hidden = true; return; }
-    if (t.bytes) {
-      const s = document.createElement('span');
-      s.className = 'pt-sample-size'; s.textContent = (t.bytes / 1e6).toFixed(t.bytes < 1e7 ? 1 : 0) + ' MB';
-      b.appendChild(s);
-    }
+    if (!t) { (b.closest('.pt-sample-row') || b).hidden = true; return; }
     b.addEventListener('click', () => openOver(t.manifest, t.title, b, null));
   });
 

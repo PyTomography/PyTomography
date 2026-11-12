@@ -19,9 +19,9 @@ html_theme.sidebar_secondary.remove: true
 </section>
 
 <section class="pt-modalities" aria-label="Supported modalities">
-  <div><b>SPECT</b><span>DICOM from GE, Siemens and StarGuide, and SIMIND. Multiple beds and photopeaks, cardiac reorientation, hybrid Monte Carlo scatter.</span><button type="button" class="pt-sample" data-ptv-sample="t_dicommultibed">See sample</button></div>
-  <div><b>PET</b><span>GATE sinograms and list mode, time of flight, GE Discovery MI and PETSIRD. Randoms and single scatter simulation.</span><button type="button" class="pt-sample" data-ptv-sample="t_PETGATE_DIP">See sample</button></div>
-  <div><b>CT</b><span>Raw DICOM-CT-PD projections from 3rd-generation clinical scanners, and cone-beam micro-CT. Helical filtered back projection, FDK and OS-SART.</span><button type="button" class="pt-sample" data-ptv-sample="t_CT_GEN3">See sample</button></div>
+  <div><b>SPECT</b><span>DICOM from GE, Siemens and StarGuide, and SIMIND. Multiple beds and photopeaks, cardiac reorientation, hybrid Monte Carlo scatter.</span><div class="pt-sample-row"><button type="button" class="pt-sample" data-ptv-sample="t_dicommultibed">Open viewer</button><small>Lu-177 PSMA patient</small></div></div>
+  <div><b>PET</b><span>GATE sinograms and list mode, time of flight, GE Discovery MI and PETSIRD. Randoms and single scatter simulation.</span><div class="pt-sample-row"><button type="button" class="pt-sample" data-ptv-sample="t_PETSIRD">Open viewer</button><small>NEMA IQ phantom (PETSIRD)</small></div></div>
+  <div><b>CT</b><span>Raw DICOM-CT-PD projections from 3rd-generation clinical scanners, and cone-beam micro-CT. Helical filtered back projection, FDK and OS-SART.</span><div class="pt-sample-row"><button type="button" class="pt-sample" data-ptv-sample="t_CT_GEN3">Open viewer</button><small>Chest CT patient</small></div></div>
   <div><b>Your own system</b><span>Every system matrix is a forward and back projector you can replace, so new geometries, priors and networks reuse every algorithm.</span></div>
 </section>
 

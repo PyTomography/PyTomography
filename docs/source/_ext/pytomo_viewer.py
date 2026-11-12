@@ -177,7 +177,7 @@ def for_page(env, docname: str) -> dict | None:
 
 def add_viewer(app, doctree):
     """A viewer block under the launch bar of each tutorial with images, and the image list on the tutorials' gallery
-    and on the home page (its "See sample" buttons)."""
+    and on the home page (its "Open viewer" buttons)."""
     env, docname = app.env, app.env.docname
     found = getattr(env, "pytomo_viewer", {})
     if not found:
@@ -200,8 +200,7 @@ def add_viewer(app, doctree):
             _result_buttons(doctree, spec, t["layers"])
     if any(isinstance(n, nodes.raw) and ("data-gallery" in n.astext() or "data-ptv-sample" in n.astext())
            for n in doctree.findall(nodes.raw)):
-        cards = {name: {"manifest": _href(t, "manifest", here), "title": t["title"], "bytes": t.get("bytes", 0)}
-                 for name, t in found.items()}
+        cards = {name: {"manifest": _href(t, "manifest", here), "title": t["title"]} for name, t in found.items()}
         island = json.dumps(cards).replace("<", "\\u003c")
         doctree += nodes.raw("", f'<script type="application/json" id="ptv-index">{island}</script>', format="html")
 
