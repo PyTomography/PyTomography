@@ -1,4 +1,4 @@
-"""Proton CT: a GATE simulation of a single-sided 330 MeV scan of an abdomen, a quarter of its protons (47 million)
+"""Proton CT: a GATE simulation of a single-sided 330 MeV scan of an abdomen, all of its protons (188.6 million)
 (the data of t_pct_abdomen).
 
     python benchmarks/cases/pct_abdomen.py --recon fbp    # two-pass FBP (straight paths, then inside the outline)
@@ -11,15 +11,15 @@ from pytomography.algorithms import SART, FilteredBackProjection
 from pytomography.projectors.PCT import PCTSystemMatrix, hull_from_image
 
 bench = Bench('pct_abdomen', ['fbp', 'sart'], {
-    'fbp': 'Proton CT (330 MeV, single-sided, 47 M protons), two-pass FBP with the outline (t_pct_abdomen)',
-    'sart': 'Proton CT (330 MeV, single-sided, 47 M protons), SART along curved paths, 4 passes (t_pct_abdomen)'})
+    'fbp': 'Proton CT (330 MeV, single-sided, 188.6 M protons), two-pass FBP with the outline (t_pct_abdomen)',
+    'sart': 'Proton CT (330 MeV, single-sided, 188.6 M protons), SART along curved paths, 4 passes (t_pct_abdomen)'})
 
 datasets.fetch('PCT/GATE-Abdomen330-DTC')
 folder = datasets.data_dir() / 'PCT' / 'GATE-Abdomen330-DTC'
 
 with bench.stage('load'):
     truth = io.load_image(folder / 'truth_rsp.nii.gz')
-    wepl, object_meta, proj_meta = io.PCT.load_listmode(folder / 'abdomen330_spot_likely_quarter.h5',
+    wepl, object_meta, proj_meta = io.PCT.load_listmode(folder / 'abdomen330_spot_likely.h5',
                                                         dr=truth.voxel_size, shape=truth.shape)
     del truth
 

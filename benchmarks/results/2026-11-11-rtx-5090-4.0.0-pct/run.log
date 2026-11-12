@@ -1,0 +1,21 @@
+2 cases; results in C:\Users\Luke\dev\pytomography\PyTomography-bench\benchmarks\results\2026-11-11-rtx-5090-4.0.0-pct
+
+== pct_abdomen/fbp
+  [pct_abdomen/fbp] load: 2.31 s; peaks: RAM 12.4 GB, GPU 0.00 GB (PyTorch), +0.00 GB on the device
+  [pct_abdomen/fbp] FBP, two passes: first 11.67 s, repeats 10.89 s (median of 3); peaks: RAM 15.4 GB, GPU 1.36 GB (PyTorch), +1.88 GB on the device
+
+== pct_abdomen/sart
+  [pct_abdomen/sart] load: 2.24 s; peaks: RAM 12.4 GB, GPU 0.00 GB (PyTorch), +0.00 GB on the device
+  [pct_abdomen/sart] FBP, two passes (the starting image): 11.65 s; peaks: RAM 15.4 GB, GPU 1.36 GB (PyTorch), +1.88 GB on the device
+  [pct_abdomen/sart] SART, 4 passes: first 103.39 s, repeats 102.54 s (median of 1); peaks: RAM 16.4 GB, GPU 1.54 GB (PyTorch), +2.74 GB on the device
+
+NVIDIA GeForce RTX 5090, Intel(R) Core(TM) Ultra 9 285K, 68.1 GB RAM; PyTomography 4.0.0, PyTorch 2.14.1+cu130
+
+| Case | Step | First run (s) | Repeats (s, median) | Peak RAM (GB) | Peak GPU (GB) |
+|---|---|---|---|---|---|
+| pct_abdomen/fbp | load | 2.31 |  | 12.4 | 0.00 |
+| pct_abdomen/fbp | FBP, two passes | 11.67 | 10.89 | 15.4 | 1.88 |
+| pct_abdomen/sart | load | 2.24 |  | 12.4 | 0.00 |
+| pct_abdomen/sart | FBP, two passes (the starting image) | 11.65 |  | 15.4 | 1.88 |
+| pct_abdomen/sart | SART, 4 passes | 103.39 | 102.539 | 16.4 | 2.74 |
+

@@ -24,7 +24,7 @@ tutorials do; the first PET case then takes a few minutes longer). The organizer
 | `spect_ac225_arf/osem` | SPECT Ac-225: ARFs generated for the SY-HE collimator, then OSEM 100 x 3 with the ARF PSF | t_ac225_dicom_recon |
 | `ct_helical_fbp/fbp` | helical CT FBP, Hann window, 512 x 512 x 316 | t_fbp_ct |
 | `ct_microct/fdk`, `/sart` | cone-beam micro-CT, FDK and OS-SART 3 x 5, 500^3 | t_CT_microct |
-| `pct_abdomen/fbp`, `/sart` | proton CT, 47 million protons: two-pass FBP, and SART along curved paths | t_pct_abdomen |
+| `pct_abdomen/fbp`, `/sart` | proton CT, 188.6 million protons: two-pass FBP, and SART along curved paths | t_pct_abdomen |
 | `pet_gate_listmode/osem`, `/osem_tof` | PET list mode (mMR, GATE), OSEM 4 x 14, non-TOF and TOF | t_PETGATE_scat_lm, _lmTOF |
 | `pet_gate_sinogram/osem`, `/osem_tof` | PET sinograms, OSEM 2 x 24 non-TOF, and TOF | t_PETGATE_scat_sino, _sinoTOF |
 | `pet_gate_sinogram/sss` | PET single scatter simulation, non-TOF | t_PETGATE_scat_sino |

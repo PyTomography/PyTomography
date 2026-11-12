@@ -46,8 +46,8 @@ CASES = [
     ('ct_helical_fbp', 'fbp', 2.6, 11),
     ('ct_microct', 'fdk', 3.3, 8),
     ('ct_microct', 'sart', 6.6, 11),
-    ('pct_abdomen', 'fbp', 1.7, 8),
-    ('pct_abdomen', 'sart', 1.7, 8),
+    ('pct_abdomen', 'fbp', 2.4, 17),         # all 188.6 M protons: from the RTX 5090 run (11 Nov, 4.0.0)
+    ('pct_abdomen', 'sart', 3.3, 18),
     ('pet_gate_listmode', 'osem', 3.4, 12),
     ('pet_gate_listmode', 'osem_tof', 3.6, 13),
     ('pet_gate_sinogram', 'osem', 2.1, 15),
