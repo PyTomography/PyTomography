@@ -110,9 +110,44 @@ html.ptv-noscroll, html.ptv-noscroll body { overflow: hidden; }
 .ptv-seg { display: flex; flex-wrap: wrap; gap: 4px; }
 .ptv-seg button { appearance: none; font: 500 .74rem var(--ptv-sans); padding: 4px 9px; border-radius: 6px; border: 1px solid var(--ptv-line); background: transparent; color: var(--ptv-mut); cursor: pointer; }
 .ptv-seg button[aria-pressed="true"] { color: var(--ptv-fg); border-color: var(--ptv-mut); background: var(--ptv-3); }
-.ptv-layer { border: 1px solid var(--ptv-line); border-radius: 9px; padding: 7px 10px 9px; display: grid; gap: 5px; align-content: start; min-width: 0; }
+/* one section per image, as medviewer's Display panel: thin lines between, no boxes */
+.ptv-layer { border-top: 1px solid var(--ptv-line); padding: 9px 0 2px; display: grid; gap: 7px; align-content: start; min-width: 0; }
+.ptv-cards > .ptv-layer:first-child { border-top: 0; padding-top: 0; }
 .ptv-layer h3 { margin: 0; font: 600 .82rem var(--ptv-sans); color: var(--ptv-fg); display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
 .ptv-layer h3 small { font: 500 .66rem var(--ptv-mono); color: var(--ptv-mut); }
+/* colour map: a button with the map's swatch, and its list */
+.ptv-cmrow { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ptv-cm { position: relative; flex: 1 1 auto; min-width: 0; }
+.ptv-cmbtn { appearance: none; width: 100%; display: flex; align-items: center; gap: 8px; min-width: 0; font: 500 .76rem var(--ptv-sans); color: var(--ptv-fg); cursor: pointer;
+  border: 1px solid var(--ptv-line); border-radius: 6px; padding: 4px 22px 4px 6px; text-align: left;
+  background: var(--ptv-3) no-repeat right 8px center / 9px 6px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 6'%3E%3Cpath d='M0 0h9L4.5 6z' fill='%238b91a1'/%3E%3C/svg%3E"); }
+.ptv-cmbtn:hover, .ptv-cmbtn[aria-expanded="true"] { border-color: var(--ptv-mut); }
+.ptv-cmname { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ptv-sw { flex: none; width: 48px; height: 10px; border-radius: 2px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08); }
+.ptv-cmlist { position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 3px); margin: 0; padding: 3px; list-style: none; max-height: 16rem; overflow: auto;
+  background: var(--ptv-3); border: 1px solid var(--ptv-mut); border-radius: 7px; box-shadow: 0 12px 28px rgba(0, 0, 0, .6); }
+.ptv-cmlist:focus { outline: none; }
+.ptv-cmlist li { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 5px; cursor: pointer; font-size: .76rem; color: var(--ptv-fg); white-space: nowrap; }
+.ptv-cmlist li:hover, .ptv-cmlist li.ptv-act { background: rgba(255, 255, 255, .07); }
+.ptv-cmlist li[aria-selected="true"] { color: var(--ptv-acc); }
+.ptv-cmlist:focus-visible li.ptv-act { box-shadow: inset 0 0 0 1px var(--ptv-acc); }
+/* the histogram: lines at the limits to drag; vertical swipes still scroll the drawer */
+.ptv-hist { display: block; width: 100%; height: 62px; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+.ptv-mm { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ptv-num { display: flex; align-items: center; gap: 6px; margin: 0; font: 400 .72rem var(--ptv-sans); color: var(--ptv-mut); min-width: 0; }
+.ptv .ptv-num input { flex: 1 1 0; width: auto; }
+.ptv-pre { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.ptv-pre:empty { display: none; }
+.ptv-pre button { appearance: none; font: 500 .7rem var(--ptv-sans); padding: 3px 4px; border-radius: 6px; border: 1px solid var(--ptv-line); background: transparent; color: var(--ptv-mut);
+  cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ptv-pre button:hover { color: var(--ptv-fg); border-color: var(--ptv-mut); }
+.ptv-pre button[aria-pressed="true"] { color: var(--ptv-fg); border-color: var(--ptv-acc); background: var(--ptv-3); }
+.ptv-sep { border-top: 1px solid var(--ptv-line); padding-top: 8px; }
+.ptv-adv summary { cursor: pointer; font-size: .72rem; color: var(--ptv-mut); }
+.ptv-adv[open] summary { color: var(--ptv-fg); }
+.ptv-advbody { display: grid; gap: 7px; padding: 6px 0 2px; }
+.ptv-span { display: grid; grid-template-columns: 4.8rem minmax(0, 1fr) minmax(0, 1fr) auto; gap: 6px; align-items: center; font-size: .72rem; color: var(--ptv-mut); }
+.ptv-mini { padding: 2px 7px; font-size: .78rem; }
 .ptv-ctl { display: grid; grid-template-columns: 4.8rem minmax(0, 1fr) 4.4rem; gap: 6px; align-items: center; font-size: .74rem; color: var(--ptv-mut); }
 .ptv-ctl label { margin: 0; font-weight: 400; }
 .ptv-ctl output { font: 500 .72rem var(--ptv-mono); color: var(--ptv-fg); text-align: right; font-variant-numeric: tabular-nums; }
@@ -122,8 +157,8 @@ html.ptv-noscroll, html.ptv-noscroll body { overflow: hidden; }
   background: var(--ptv-3) no-repeat right 8px center / 9px 6px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 6'%3E%3Cpath d='M0 0h9L4.5 6z' fill='%238b91a1'/%3E%3C/svg%3E"); }
 .ptv-ctl select option { background: var(--ptv-3); color: var(--ptv-fg); }
 .ptv-ctl input[type=range] { width: 100%; accent-color: var(--ptv-acc); min-width: 0; margin: 0; }
-.ptv-ctl input[type=number] { width: 100%; font: 500 .74rem var(--ptv-mono); background: var(--ptv-3); color: var(--ptv-fg); border: 1px solid var(--ptv-line); border-radius: 6px; padding: 2px 5px; text-align: right; min-width: 0; }
-.ptv-ctl input[type=number][aria-invalid="true"] { border-color: var(--ptv-bad); }
+.ptv input[type=number] { width: 100%; font: 500 .74rem var(--ptv-mono); background: var(--ptv-3); color: var(--ptv-fg); border: 1px solid var(--ptv-line); border-radius: 6px; padding: 2px 5px; text-align: right; min-width: 0; }
+.ptv input[type=number][aria-invalid="true"] { border-color: var(--ptv-bad); }
 .ptv-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .ptv-check { display: flex; gap: 8px; align-items: center; font-size: .76rem; color: var(--ptv-fg); margin: 0; font-weight: 400; }
 .ptv-check input { accent-color: var(--ptv-acc); margin: 0; }

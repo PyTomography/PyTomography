@@ -5,6 +5,8 @@
  * Nothing is resampled onto the CT. SPECT and PET use imshow's Gaussian interpolation (sigma = half a voxel, on
  * the values, before the colormap); CT, MR and attenuation maps are bilinear; "Smooth display" off shows the voxels.
  * The 3D view is a rotating maximum-intensity projection of the SPECT or PET over a line integral of the CT.
+ * Each image's controls follow medviewer's Display panel (Luke's desktop viewer): colour map and Reverse, a histogram
+ * with a line at each limit to drag, presets, opacity, and live smoothing with medviewer's filters (smoothEngine).
  *
  *   const v = await PTViewer.mount(element, {manifest: "https://.../t_dicomdata/manifest.json"});
  *   v.destroy();   // stops the workers and frees the images
@@ -17,16 +19,35 @@
 
   const CMAPS = {"inferno":"00000401000501010601010802010a02020c02020e03021004031204031405041706041907051b08051d09061f0a07220b07240c08260d08290e092b10092d110a30120a32140b34150b37160b39180c3c190c3e1b0c411c0c431e0c451f0c48210c4a230c4c240c4f260c51280b53290b552b0b572d0b592f0a5b310a5c320a5e340a5f3609613809623909633b09643d09653e0966400a67420a68440a68450a69470b6a490b6a4a0c6b4c0c6b4d0d6c4f0d6c510e6c520e6d540f6d550f6d57106e59106e5a116e5c126e5d126e5f136e61136e62146e64156e65156e67166e69166e6a176e6c186e6d186e6f196e71196e721a6e741a6e751b6e771c6d781c6d7a1d6d7c1d6d7d1e6d7f1e6c801f6c82206c84206b85216b87216b88226a8a226a8c23698d23698f24699025689225689326679526679727669827669a28659b29649d29649f2a63a02a63a22b62a32c61a52c60a62d60a82e5fa92e5eab2f5ead305dae305cb0315bb1325ab3325ab43359b63458b73557b93556ba3655bc3754bd3853bf3952c03a51c13a50c33b4fc43c4ec63d4dc73e4cc83f4bca404acb4149cc4248ce4347cf4446d04545d24644d34743d44842d54a41d74b3fd84c3ed94d3dda4e3cdb503bdd513ade5238df5337e05536e15635e25734e35933e45a31e55c30e65d2fe75e2ee8602de9612bea632aeb6429eb6628ec6726ed6925ee6a24ef6c23ef6e21f06f20f1711ff1731df2741cf3761bf37819f47918f57b17f57d15f67e14f68013f78212f78410f8850ff8870ef8890cf98b0bf98c0af98e09fa9008fa9207fa9407fb9606fb9706fb9906fb9b06fb9d07fc9f07fca108fca309fca50afca60cfca80dfcaa0ffcac11fcae12fcb014fcb216fcb418fbb61afbb81dfbba1ffbbc21fbbe23fac026fac228fac42afac62df9c72ff9c932f9cb35f8cd37f8cf3af7d13df7d340f6d543f6d746f5d949f5db4cf4dd4ff4df53f4e156f3e35af3e55df2e661f2e865f2ea69f1ec6df1ed71f1ef75f1f179f2f27df2f482f3f586f3f68af4f88ef5f992f6fa96f8fb9af9fc9dfafda1fcffa4","magma":"00000401000501010601010802010902020b02020d03030f03031204041405041606051806051a07061c08071e0907200a08220b09240c09260d0a290e0b2b100b2d110c2f120d31130d34140e36150e38160f3b180f3d19103f1a10421c10441d11471e114920114b21114e22115024125325125527125829115a2a115c2c115f2d11612f116331116533106734106936106b38106c390f6e3b0f703d0f713f0f72400f74420f75440f764510774710784910784a10794c117a4e117b4f127b51127c52137c54137d56147d57157e59157e5a167e5c167f5d177f5f187f601880621980641a80651a80671b80681c816a1c816b1d816d1d816e1e81701f81721f817320817521817621817822817922827b23827c23827e24828025828125818326818426818627818827818928818b29818c29818e2a81902a81912b81932b80942c80962c80982d80992d809b2e7f9c2e7f9e2f7fa02f7fa1307ea3307ea5317ea6317da8327daa337dab337cad347cae347bb0357bb2357bb3367ab5367ab73779b83779ba3878bc3978bd3977bf3a77c03a76c23b75c43c75c53c74c73d73c83e73ca3e72cc3f71cd4071cf4070d0416fd2426fd3436ed5446dd6456cd8456cd9466bdb476adc4869de4968df4a68e04c67e24d66e34e65e44f64e55064e75263e85362e95462ea5661eb5760ec5860ed5a5fee5b5eef5d5ef05f5ef1605df2625df2645cf3655cf4675cf4695cf56b5cf66c5cf66e5cf7705cf7725cf8745cf8765cf9785df9795df97b5dfa7d5efa7f5efa815ffb835ffb8560fb8761fc8961fc8a62fc8c63fc8e64fc9065fd9266fd9467fd9668fd9869fd9a6afd9b6bfe9d6cfe9f6dfea16efea36ffea571fea772fea973feaa74feac76feae77feb078feb27afeb47bfeb67cfeb77efeb97ffebb81febd82febf84fec185fec287fec488fec68afec88cfeca8dfecc8ffecd90fecf92fed194fed395fed597fed799fed89afdda9cfddc9efddea0fde0a1fde2a3fde3a5fde5a7fde7a9fde9aafdebacfcecaefceeb0fcf0b2fcf2b4fcf4b6fcf6b8fcf7b9fcf9bbfcfbbdfcfdbf","plasma":"0d088710078813078916078a19068c1b068d1d068e20068f2206902406912605912805922a05932c05942e05952f059631059733059735049837049938049a3a049a3c049b3e049c3f049c41049d43039e44039e46039f48039f4903a04b03a14c02a14e02a25002a25102a35302a35502a45601a45801a45901a55b01a55c01a65e01a66001a66100a76300a76400a76600a76700a86900a86a00a86c00a86e00a86f00a87100a87201a87401a87501a87701a87801a87a02a87b02a87d03a87e03a88004a88104a78305a78405a78606a68707a68808a68a09a58b0aa58d0ba58e0ca48f0da4910ea3920fa39410a29511a19613a19814a099159f9a169f9c179e9d189d9e199da01a9ca11b9ba21d9aa31e9aa51f99a62098a72197a82296aa2395ab2494ac2694ad2793ae2892b02991b12a90b22b8fb32c8eb42e8db52f8cb6308bb7318ab83289ba3388bb3488bc3587bd3786be3885bf3984c03a83c13b82c23c81c33d80c43e7fc5407ec6417dc7427cc8437bc9447aca457acb4679cc4778cc4977cd4a76ce4b75cf4c74d04d73d14e72d24f71d35171d45270d5536fd5546ed6556dd7566cd8576bd9586ada5a6ada5b69db5c68dc5d67dd5e66de5f65de6164df6263e06363e16462e26561e26660e3685fe4695ee56a5de56b5de66c5ce76e5be76f5ae87059e97158e97257ea7457eb7556eb7655ec7754ed7953ed7a52ee7b51ef7c51ef7e50f07f4ff0804ef1814df1834cf2844bf3854bf3874af48849f48948f58b47f58c46f68d45f68f44f79044f79143f79342f89441f89540f9973ff9983ef99a3efa9b3dfa9c3cfa9e3bfb9f3afba139fba238fca338fca537fca636fca835fca934fdab33fdac33fdae32fdaf31fdb130fdb22ffdb42ffdb52efeb72dfeb82cfeba2cfebb2bfebd2afebe2afec029fdc229fdc328fdc527fdc627fdc827fdca26fdcb26fccd25fcce25fcd025fcd225fbd324fbd524fbd724fad824fada24f9dc24f9dd25f8df25f8e125f7e225f7e425f6e626f6e826f5e926f5eb27f4ed27f3ee27f3f027f2f227f1f426f1f525f0f724f0f921","viridis":"44015444025645045745055946075a46085c460a5d460b5e470d60470e6147106347116447136548146748166848176948186a481a6c481b6d481c6e481d6f481f70482071482173482374482475482576482677482878482979472a7a472c7a472d7b472e7c472f7d46307e46327e46337f463480453581453781453882443983443a83443b84433d84433e85423f854240864241864142874144874045884046883f47883f48893e49893e4a893e4c8a3d4d8a3d4e8a3c4f8a3c508b3b518b3b528b3a538b3a548c39558c39568c38588c38598c375a8c375b8d365c8d365d8d355e8d355f8d34608d34618d33628d33638d32648e32658e31668e31678e31688e30698e306a8e2f6b8e2f6c8e2e6d8e2e6e8e2e6f8e2d708e2d718e2c718e2c728e2c738e2b748e2b758e2a768e2a778e2a788e29798e297a8e297b8e287c8e287d8e277e8e277f8e27808e26818e26828e26828e25838e25848e25858e24868e24878e23888e23898e238a8d228b8d228c8d228d8d218e8d218f8d21908d21918c20928c20928c20938c1f948c1f958b1f968b1f978b1f988b1f998a1f9a8a1e9b8a1e9c891e9d891f9e891f9f881fa0881fa1881fa1871fa28720a38620a48621a58521a68522a78522a88423a98324aa8325ab8225ac8226ad8127ad8128ae8029af7f2ab07f2cb17e2db27d2eb37c2fb47c31b57b32b67a34b67935b77937b87838b9773aba763bbb753dbc743fbc7340bd7242be7144bf7046c06f48c16e4ac16d4cc26c4ec36b50c46a52c56954c56856c66758c7655ac8645cc8635ec96260ca6063cb5f65cb5e67cc5c69cd5b6ccd5a6ece5870cf5773d05675d05477d1537ad1517cd2507fd34e81d34d84d44b86d54989d5488bd6468ed64590d74393d74195d84098d83e9bd93c9dd93ba0da39a2da37a5db36a8db34aadc32addc30b0dd2fb2dd2db5de2bb8de29bade28bddf26c0df25c2df23c5e021c8e020cae11fcde11dd0e11cd2e21bd5e21ad8e219dae319dde318dfe318e2e418e5e419e7e419eae51aece51befe51cf1e51df4e61ef6e620f8e621fbe723fde725","hot":"0b00000d00001000001200001500001800001a00001d00002000002200002500002700002a00002d00002f00003200003500003700003a00003c00003f00004200004400004700004a00004c00004f00005100005400005700005900005c00005f00006100006400006600006900006c00006e00007100007400007600007900007b00007e00008100008300008600008900008b00008e00009000009300009600009800009b00009e0000a00000a30000a50000a80000ab0000ad0000b00000b30000b50000b80000ba0000bd0000c00000c20000c50000c80000ca0000cd0000cf0000d20000d50000d70000da0000dd0000df0000e20000e40000e70000ea0000ec0000ef0000f20000f40000f70000f90000fc0000ff0000ff0200ff0500ff0800ff0a00ff0d00ff1000ff1200ff1500ff1700ff1a00ff1d00ff1f00ff2200ff2500ff2700ff2a00ff2c00ff2f00ff3200ff3400ff3700ff3a00ff3c00ff3f00ff4100ff4400ff4700ff4900ff4c00ff4f00ff5100ff5400ff5600ff5900ff5c00ff5e00ff6100ff6400ff6600ff6900ff6b00ff6e00ff7100ff7300ff7600ff7900ff7b00ff7e00ff8000ff8300ff8600ff8800ff8b00ff8e00ff9000ff9300ff9500ff9800ff9b00ff9d00ffa000ffa200ffa500ffa800ffaa00ffad00ffb000ffb200ffb500ffb700ffba00ffbd00ffbf00ffc200ffc500ffc700ffca00ffcc00ffcf00ffd200ffd400ffd700ffda00ffdc00ffdf00ffe100ffe400ffe700ffe900ffec00ffef00fff100fff400fff600fff900fffc00fffe00ffff03ffff07ffff0bffff0fffff13ffff17ffff1bffff1fffff22ffff26ffff2affff2effff32ffff36ffff3affff3effff42ffff46ffff4affff4effff52ffff56ffff5affff5effff61ffff65ffff69ffff6dffff71ffff75ffff79ffff7dffff81ffff85ffff89ffff8dffff91ffff95ffff99ffff9dffffa0ffffa4ffffa8ffffacffffb0ffffb4ffffb8ffffbcffffc0ffffc4ffffc8ffffccffffd0ffffd4ffffd8ffffdcffffdfffffe3ffffe7ffffebffffeffffff3fffff7fffffbffffff","gist_heat":"0000000200000300000400000600000800000900000a00000c00000e00000f00001000001200001400001500001600001800001a00001b00001c00001e00002000002100002200002400002600002700002800002a00002c00002d00002e00003000003100003300003500003600003700003900003b00003c00003d00003f00004000004200004300004500004600004800004a00004b00004d00004e00005000005100005200005400005600005700005800005a00005b00005d00005e00006000006200006300006500006600006800006900006a00006c00006e00006f00007000007200007300007500007600007800007a00007b00007d00007e00008000008100008200008400008500008700008800008a00008b00008d00008e00009000009200009300009400009600009800009900009b00009c00009e00009f0000a00000a20000a30000a50000a60000a80000aa0000ab0000ac0000ae0000b00000b10000b20000b40000b50000b70000b80000ba0000bb0000bd0000be0000c00100c20300c30500c40700c60900c80b00c90d00cb0f00cc1100ce1300cf1500d01700d21900d41b00d51d00d61f00d82100da2300db2500dc2700de2900e02b00e12d00e22f00e43100e53300e73500e83700ea3900ec3b00ed3d00ee3f00f04100f24300f34500f44700f64900f84b00f94d00fb4f00fc5100fe5300ff5500ff5700ff5900ff5b00ff5d00ff5f00ff6100ff6300ff6500ff6700ff6900ff6b00ff6d00ff6f00ff7100ff7300ff7500ff7700ff7900ff7b00ff7d00ff7f00ff8103ff8307ff850bff870fff8913ff8b17ff8d1bff8f1fff9123ff9327ff952bff972fff9933ff9b37ff9d3bff9f3fffa143ffa347ffa54bffa74fffa953ffab57ffad5bffaf5fffb163ffb367ffb56bffb76fffb973ffbb77ffbd7bffbf7fffc183ffc387ffc58bffc78fffc993ffcb97ffcd9bffcf9fffd1a3ffd3a7ffd5abffd7afffd9b3ffdbb7ffddbbffdfbfffe1c3ffe3c7ffe5cbffe7cfffe9d3ffebd7ffeddbffefdffff1e3fff3e7fff5ebfff7effff9f3fffbf7fffdfbffffff","nipy_spectral":"00000009000b1300151c002025002b2f003538004041004b4b00555400605d006b67007570008077008879008a7a008b7b008c7d008e7e008f7f009081009282009383009485009686009787009883009a78009b6d009c63009e58009f4d00a04300a23800a32d00a42300a61800a70d00a80300aa0000ad0000b10000b50000b90000bd0000c10000c50000c90000cd0000d10000d50000d90000dd0009dd0013dd001cdd0025dd002fdd0038dd0041dd004bdd0054dd005ddd0067dd0070dd0078dd007add007ddd0080dd0082dd0085dd0088dd008add008ddd0090dd0092dd0095dd0098dd009adb009bd7009cd3009ecf009fcb00a0c700a2c300a3bf00a4bb00a6b700a7b300a8af00aaab00aaa800aaa500aaa300aaa000aa9d00aa9b00aa9800aa9500aa9300aa9000aa8d00aa8b00aa8800a97d00a77300a66800a55d00a35300a24800a13d009f33009e28009d1d009b13009a08009a00009c00009f0000a20000a40000a70000aa0000ac0000af0000b20000b40000b70000ba0000bc0000bf0000c20000c40000c70000ca0000cc0000cf0000d20000d40000d70000da0000dc0000df0000e20000e40000e70000ea0000ec0000ef0000f20000f40000f70000fa0000fc0000ff000fff001dff002cff003bff0049ff0058ff0067ff0075ff0084ff0093ff00a1ff00b0ff00bcff00c0fd00c4fc00c8fb00ccf900d0f800d4f700d8f500dcf400e0f300e4f100e8f000ecef00efed00f0ea00f1e700f3e500f4e200f5df00f7dd00f8da00f9d700fbd500fcd200fdcf00ffcd00ffc900ffc500ffc100ffbd00ffb900ffb500ffb100ffad00ffa900ffa500ffa100ff9d00ff9900ff8d00ff8100ff7500ff6900ff5d00ff5100ff4500ff3900ff2d00ff2100ff1500ff0900fe0000fc0000f90000f60000f40000f10000ee0000ec0000e90000e60000e40000e10000de0000dc0000db0000da0000d80000d70000d60000d40000d30000d20000d00000cf0000ce0000cc0000cc0c0ccc1c1ccc2c2ccc3c3ccc4c4ccc5c5ccc6c6ccc7c7ccc8c8ccc9c9cccacacccbcbccccccc","gray":"0000000101010202020303030404040505050606060707070808080909090a0a0a0b0b0b0c0c0c0d0d0d0e0e0e0f0f0f1010101111111212121313131414141515151616161717171818181919191a1a1a1b1b1b1c1c1c1d1d1d1e1e1e1f1f1f2020202121212222222323232424242525252626262727272828282929292a2a2a2b2b2b2c2c2c2d2d2d2e2e2e2f2f2f3030303131313232323333333434343535353636363737373838383939393a3a3a3b3b3b3c3c3c3d3d3d3e3e3e3f3f3f4040404141414242424343434444444545454646464747474848484949494a4a4a4b4b4b4c4c4c4d4d4d4e4e4e4f4f4f5050505151515252525353535454545555555656565757575858585959595a5a5a5b5b5b5c5c5c5d5d5d5e5e5e5f5f5f6060606161616262626363636464646565656666666767676868686969696a6a6a6b6b6b6c6c6c6d6d6d6e6e6e6f6f6f7070707171717272727373737474747575757676767777777878787979797a7a7a7b7b7b7c7c7c7d7d7d7e7e7e7f7f7f8080808181818282828383838484848585858686868787878888888989898a8a8a8b8b8b8c8c8c8d8d8d8e8e8e8f8f8f9090909191919292929393939494949595959696969797979898989999999a9a9a9b9b9b9c9c9c9d9d9d9e9e9e9f9f9fa0a0a0a1a1a1a2a2a2a3a3a3a4a4a4a5a5a5a6a6a6a7a7a7a8a8a8a9a9a9aaaaaaabababacacacadadadaeaeaeafafafb0b0b0b1b1b1b2b2b2b3b3b3b4b4b4b5b5b5b6b6b6b7b7b7b8b8b8b9b9b9babababbbbbbbcbcbcbdbdbdbebebebfbfbfc0c0c0c1c1c1c2c2c2c3c3c3c4c4c4c5c5c5c6c6c6c7c7c7c8c8c8c9c9c9cacacacbcbcbcccccccdcdcdcecececfcfcfd0d0d0d1d1d1d2d2d2d3d3d3d4d4d4d5d5d5d6d6d6d7d7d7d8d8d8d9d9d9dadadadbdbdbdcdcdcdddddddedededfdfdfe0e0e0e1e1e1e2e2e2e3e3e3e4e4e4e5e5e5e6e6e6e7e7e7e8e8e8e9e9e9eaeaeaebebebecececedededeeeeeeefefeff0f0f0f1f1f1f2f2f2f3f3f3f4f4f4f5f5f5f6f6f6f7f7f7f8f8f8f9f9f9fafafafbfbfbfcfcfcfdfdfdfefefeffffff","Greys":"fffffffffffffefefefefefefdfdfdfdfdfdfcfcfcfcfcfcfbfbfbfbfbfbfafafafafafaf9f9f9f9f9f9f8f8f8f8f8f8f7f7f7f7f7f7f7f7f7f6f6f6f6f6f6f5f5f5f5f5f5f4f4f4f4f4f4f3f3f3f3f3f3f2f2f2f2f2f2f1f1f1f1f1f1f0f0f0f0f0f0efefefeeeeeeeeeeeeedededececececececebebebeaeaeae9e9e9e9e9e9e8e8e8e7e7e7e7e7e7e6e6e6e5e5e5e4e4e4e4e4e4e3e3e3e2e2e2e1e1e1e1e1e1e0e0e0dfdfdfdfdfdfdedededddddddcdcdcdcdcdcdbdbdbdadadadadadad9d9d9d8d8d8d7d7d7d6d6d6d5d5d5d4d4d4d4d4d4d3d3d3d2d2d2d1d1d1d0d0d0cfcfcfcecececdcdcdcccccccccccccbcbcbcacacac9c9c9c8c8c8c7c7c7c6c6c6c5c5c5c5c5c5c4c4c4c3c3c3c2c2c2c1c1c1c0c0c0bfbfbfbebebebebebebdbdbdbbbbbbbababab9b9b9b8b8b8b6b6b6b5b5b5b4b4b4b3b3b3b2b2b2b0b0b0afafafaeaeaeadadadabababaaaaaaa9a9a9a8a8a8a7a7a7a5a5a5a4a4a4a3a3a3a2a2a2a0a0a09f9f9f9e9e9e9d9d9d9c9c9c9a9a9a9999999898989797979595959494949393939292929191919090908f8f8f8e8e8e8d8d8d8c8c8c8a8a8a8989898888888787878686868585858484848383838282828181817f7f7f7e7e7e7d7d7d7c7c7c7b7b7b7a7a7a7979797878787777777676767575757373737272727171717070706f6f6f6e6e6e6d6d6d6c6c6c6b6b6b6a6a6a6969696868686767676666666565656464646363636262626161616060605f5f5f5e5e5e5d5d5d5c5c5c5b5b5b5a5a5a5858585757575656565555555454545353535252525151515050504e4e4e4d4d4d4b4b4b4a4a4a4848484747474646464444444343434141414040403f3f3f3d3d3d3c3c3c3a3a3a3939393838383636363535353333333232323030302f2f2f2e2e2e2c2c2c2b2b2b2929292828282727272525252424242323232222222121211f1f1f1e1e1e1d1d1d1c1c1c1b1b1b1a1a1a1818181717171616161515151414141313131111111010100f0f0f0e0e0e0d0d0d0c0c0c0a0a0a090909080808070707060606050505030303020202010101000000"};
   CMAPS.pet = "000000000201000403000605000807000a09000c0b000e0d00100f001211001413001615001817001a19001c1b001e1d00201f002221002423002625002827002a29002c2b002e2d00302f003231003433003635003837003a39003c3b003e3d00413f004341004543004745004947004b49004d4b004f4d00514f005351005553005755005957005b59005d5b005f5d00615f006361006563006765006967006b69006d6b006f6d00716f007371007573007775007977007b79007d7b00807d017e7f037c81057a830778850976870b74890d728b0f708d116e8f136c91156a931768951966971b64991d629b1f609d215e9f235ca1255aa32758a52956a72b54a92d52ab2f50ad314eaf334cb1354ab33748b53946b73b44b93d42bb3f40bd413fbf433dc1453bc34739c54937c74b35c94d33cb4f31cd512fcf532dd1552bd35629d55827d75a25d95c23db5e21dd601fdf621de1641be36619e56817e76a15e96c13eb6e11ed700fef720df1740bf37609f57807f77a05f97c03fb7e01fd8000ff8202fc8404f88606f48808f08a0aec8c0ce88e0ee49010e09212dc9414d89616d49818d09a1acc9c1cc89e1ec4a020c0a222bca424b8a626b4a828b0aa2aacab2ca8ad2ea4af30a0b1329cb33498b53694b73890b93a8cbb3c88bd3e84bf4080c1427cc34478c54674c74870c94a6ccb4c68cd4e64cf5060d1525cd35458d55654d75850d95a4cdb5c48dd5e44df6040e1623ce36438e56634e76830e96a2ceb6c28ed6e24ef7020f1721cf37418f57614f77810f97a0cfb7c08fd7e04ff8000ff8204ff8408ff860cff8810ff8a14ff8c18ff8e1cff9020ff9224ff9428ff962cff9830ff9a34ff9c38ff9e3cffa040ffa244ffa448ffa64cffa850ffaa55ffac59ffae5dffb061ffb265ffb469ffb66dffb871ffba75ffbc79ffbe7dffc081ffc285ffc489ffc68dffc891ffca95ffcc99ffce9dffd0a1ffd2a5ffd4aaffd6aeffd8b2ffdab6ffdcbaffdebeffe0c2ffe2c6ffe4caffe6ceffe8d2ffead6ffecdaffeedefff0e2fff2e6fff4eafff6eefff8f2fffaf6fffcfaffffff";  // PyTomography's PET colour scale (src/pytomography/data/pet_colors.txt)
+  Object.assign(CMAPS, {"turbo":"30123b32154333184a341b51351e5836215f37246638276d392a733a2d793b2f803c32863d358b3e38913f3b973f3e9c4040a24143a74146ac4249b1424bb5434eba4451bf4454c34456c74559cb455ccf455ed34661d64664da4666dd4669e0466be3476ee64771e94773eb4776ee4778f0477bf2467df44680f64682f84685fa4687fb458afc458cfd448ffe4391fe4294ff4196ff4099ff3e9bfe3d9efe3ba0fd3aa3fc38a5fb37a8fa35abf833adf731aff52fb2f42eb4f22cb7f02ab9ee28bceb27bee925c0e723c3e422c5e220c7df1fc9dd1ecbda1ccdd81bd0d51ad2d21ad4d019d5cd18d7ca18d9c818dbc518ddc218dec018e0bd19e2bb19e3b91ae4b61ce6b41de7b21fe9af20eaac22ebaa25eca727eea42aefa12cf09e2ff19b32f29835f39438f4913cf58e3ff68a43f78746f8844af8804ef97d52fa7a55fa7659fb735dfc6f61fc6c65fd6969fd666dfe6271fe5f75fe5c79fe597dff5680ff5384ff5188ff4e8bff4b8fff4992ff4796fe4499fe429cfe409ffd3fa1fd3da4fc3ca7fc3aa9fb39acfb38affa37b1f936b4f836b7f735b9f635bcf534bef434c1f334c3f134c6f034c8ef34cbed34cdec34d0ea34d2e935d4e735d7e535d9e436dbe236dde037dfdf37e1dd37e3db38e5d938e7d739e9d539ebd339ecd13aeecf3aefcd3af1cb3af2c93af4c73af5c53af6c33af7c13af8be39f9bc39faba39fbb838fbb637fcb336fcb136fdae35fdac34fea933fea732fea431fea130fe9e2ffe9b2dfe992cfe962bfe932afe9029fd8d27fd8a26fc8725fc8423fb8122fb7e21fa7b1ff9781ef9751df8721cf76f1af66c19f56918f46617f36315f26014f15d13f05b12ef5811ed5510ec530feb500eea4e0de84b0ce7490ce5470be4450ae2430ae14109df3f08dd3d08dc3b07da3907d83706d63506d43305d23105d02f05ce2d04cc2b04ca2a04c82803c52603c32503c12302be2102bc2002b91e02b71d02b41b01b21a01af1801ac1701a91601a71401a41301a112019e10019b0f01980e01950d01920b018e0a018b09028808028507028106027e05027a0403","RdBu_r":"05306106326407346708366a09386d0a3b700c3d730d3f760e41790f437b10457e114781124984134c87144e8a15508d1752901854931956961a58991b5a9c1c5c9f1d5fa21e61a51f63a82065ab2267ac2369ad246aae266caf276eb02870b12a71b22b73b32c75b42e77b52f79b5307ab6327cb7337eb83480b93681ba3783bb3885bc3a87bd3b88be3c8abe3e8cbf3f8ec0408fc14291c24393c34695c44997c54c99c64f9bc7529dc8569fc959a1ca5ca3cb5fa5cd62a7ce65a9cf68abd06bacd16eaed271b0d375b2d478b4d57bb6d67eb8d781bad884bcd987beda8ac0db8dc2dc90c4dd93c6de96c7df98c8e09bc9e09dcbe1a0cce2a2cde3a5cee3a7d0e4a9d1e5acd2e5aed3e6b1d5e7b3d6e8b6d7e8b8d8e9bbdaeabddbeac0dcebc2ddecc5dfecc7e0edcae1eecce2efcfe4efd1e5f0d2e6f0d4e6f1d5e7f1d7e8f1d8e9f1dae9f2dbeaf2ddebf2deebf2e0ecf3e1edf3e3edf3e4eef4e6eff4e7f0f4e9f0f4eaf1f5ecf2f5edf2f5eff3f5f0f4f6f2f5f6f3f5f6f5f6f7f6f7f7f7f6f6f7f5f4f8f4f2f8f3f0f8f2eff8f1edf9f0ebf9efe9f9eee7f9ede5f9ebe3faeae1fae9dffae8defae7dcfbe6dafbe5d8fbe4d6fbe3d4fce2d2fce0d0fcdfcffcdecdfdddcbfddcc9fddbc7fdd9c4fcd7c2fcd5bffcd3bcfbd0b9fbceb7fbccb4facab1fac8aff9c6acf9c4a9f9c2a7f8bfa4f8bda1f8bb9ef7b99cf7b799f7b596f6b394f6b191f6af8ef5ac8bf5aa89f5a886f4a683f3a481f2a17ff19e7df09c7bef9979ee9677ec9374eb9172ea8e70e98b6ee8896ce6866ae58368e48066e37e64e27b62e17860df765ede735cdd7059dc6e57db6b55da6853d86551d7634fd6604dd55d4cd35a4ad25849d05548cf5246ce4f45cc4c44cb4942c94741c84440c6413ec53e3dc43b3cc2383ac13639bf3338be3036bd2d35bb2a34ba2832b82531b72230b61f2eb41c2db3192cb1182bae172aab162aa81529a51429a213289f12289c1127991027960f27930e26900d268d0c258a0b25870a248409248108237f08237c07227906227605217304217003206d02206a011f67001f"});  // matplotlib's, as medviewer has them (gui/resources/colormaps.json)
   const LUT = {};
   for (const [k, hex] of Object.entries(CMAPS)) {
     const a = new Uint8Array(768);
     for (let i = 0; i < 768; i++) a[i] = parseInt(hex.substr(2 * i, 2), 16);
     LUT[k] = a;
   }
-  // gray: black to white; Greys (matplotlib's): white to black, high values dark
-  const CMAP_ORDER = ['inferno', 'pet', 'magma', 'plasma', 'viridis', 'hot', 'gist_heat', 'nipy_spectral', 'gray', 'Greys'].filter(k => LUT[k]);
-  const CT_WINDOWS = [['phantom', 'Phantom', -20, 40], ['soft', 'Soft tissue', -160, 240], ['bone', 'Bone', -450, 1050],
-    ['lung', 'Lung', -1350, 150], ['full', 'Full range', -1000, 1000]];
+  // medviewer's two maps made from points (preclinical-imaging's hot iron and PET rainbow), and grey reversed
+  const fromPoints = pts => { const a = new Uint8Array(768), n = pts.length - 1;
+    for (let i = 0; i < 256; i++) { const x = i / 255 * n, j = Math.min(n - 1, Math.floor(x)), t = x - j;
+      for (let c = 0; c < 3; c++) a[3 * i + c] = Math.round(255 * (pts[j][c] * (1 - t) + pts[j + 1][c] * t)); }
+    return a; };
+  LUT.hot_iron = fromPoints([[0, 0, 0], [0.5, 0, 0.5], [0.9, 0.1, 0.1], [1, 0.6, 0], [1, 1, 0.5], [1, 1, 1]]);
+  LUT.pet_rainbow = fromPoints([[0, 0, 0], [0.25, 0, 0.55], [0, 0.2, 1], [0, 0.8, 0.6], [0.3, 1, 0], [1, 1, 0], [1, 0.45, 0], [1, 0, 0], [1, 1, 1]]);
+  const reversed = a => { const b = new Uint8Array(768); for (let i = 0; i < 256; i++) b.set(a.subarray(3 * (255 - i), 3 * (255 - i) + 3), 3 * i); return b; };
+  LUT.gray_r = reversed(LUT.gray);
+  delete LUT.Greys;
+  // medviewer's colour maps, in its order and with its names (gui/colormaps.py)
+  const CMAP_LIST = [['gray', 'Grey'], ['gray_r', 'Grey inverted'], ['hot', 'Hot'], ['hot_iron', 'Hot iron'], ['pet', 'PET'],
+    ['pet_rainbow', 'PET rainbow'], ['gist_heat', 'Gist heat'], ['inferno', 'Inferno'], ['magma', 'Magma'], ['plasma', 'Plasma'],
+    ['viridis', 'Viridis'], ['turbo', 'Turbo'], ['nipy_spectral', 'Spectral'], ['RdBu_r', 'Red–blue (diverging)']].filter(c => LUT[c[0]]);
+  const CMAP_ALIAS = {Greys: 'gray_r', grey: 'gray', greys: 'gray_r', Greys_r: 'gray', gray_r: 'gray_r'};   // names manifests may use
+  const REV = {};
+  const lutOf = s => { const k = LUT[s.cmap] ? s.cmap : 'gray'; if (!s.reverse) return LUT[k]; return REV[k] || (REV[k] = reversed(LUT[k])); };
+  const gradCss = lut => { const st = []; for (let i = 0; i <= 16; i++) { const q = Math.min(255, i * 16) * 3; st.push(`rgb(${lut[q]},${lut[q + 1]},${lut[q + 2]}) ${(i / 16 * 100).toFixed(1)}%`); } return `linear-gradient(90deg,${st.join(',')})`; };
+  // CT windows (HU), as medviewer's presets plus the docs' Phantom window; a manifest's `window` names one ('full': the
+  // image's own minimum to maximum)
+  const CT_WIN = {soft: ['Soft tissue', -160, 240], lung: ['Lung', -1350, 150], bone: ['Bone', -450, 1050], brain: ['Brain', 0, 80],
+    phantom: ['Phantom', -20, 40]};
   // SPECT and PET are drawn in colour over a grey anatomical image (CT, MR or attenuation map)
   const ROLE = {spect: 'overlay', pet: 'overlay', ct: 'base', mr: 'base', mu: 'base', image: 'base'};
   // u = screen right, v = screen down, each [scanner axis, sign]; n = the axis through the slice. Radiological, as
@@ -36,6 +57,7 @@
     coronal: {u: [0, -1], v: [2, -1], n: 1, o: ['R', 'L', 'S', 'I'], label: 'Coronal'},
     sagittal: {u: [1, -1], v: [2, -1], n: 0, o: ['A', 'P', 'S', 'I'], label: 'Sagittal'},
   };
+  const AXIS_VIEW = {2: 'axial', 1: 'coronal', 0: 'sagittal'};
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   const sortPair = p => p[0] <= p[1] ? p : [p[1], p[0]];
   const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
@@ -128,8 +150,6 @@
     const a = mn * sl + it, b = mx * sl + it;
     return {img, sc: [sl, it], dims, aff, pd: [0, 1, 2].map(a => Math.abs(aff[a][a])), min: Math.min(a, b), max: Math.max(a, b)};
   }
-  const SC1 = [1, 0];
-  const scOf = L => L.base === L.img ? L.sc : SC1;   // the scale of what a layer is drawn from: smoothed data is in floats
 
   // ---------- matplotlib's "gaussian" interpolation: weights exp(-2 d^2) within 2 source pixels (sigma = 0.5 pixel) ----------
   const WCACHE = new Map();
@@ -164,32 +184,363 @@
     return {w: W, h: H, data: out, U: sl.U, V: sl.V};
   }
 
-  // ---------- background workers ----------
-  // Smoothing: a separable 3D Gaussian with sigma per axis in voxels, always from the unsmoothed data (as stored, with
-  // its scale sc), into 32-bit floats. Each line is copied into a buffer padded with its edge values, then filtered back
-  // in place: one image of floats, no clamping in the inner loop (a full-resolution CT: 1.5 s at 2 mm FWHM, 6 s at 10)
-  const SMOOTH_SRC = `self.onmessage=e=>{const{tag,data,sc,dims,sig}=e.data;const a=new Float32Array(data.length);
-    for(let i=0;i<a.length;i++)a[i]=data[i]*sc[0]+sc[1];const[nx,ny,nz]=dims;
-    const lines=[[ny,nz,nx,nx*ny,1],[nx,nz,1,nx*ny,nx],[nx,ny,1,nx,nx*ny]];
-    for(let ax=0;ax<3;ax++){const s=sig[ax];if(!(s>0.05))continue;const r=Math.max(1,Math.ceil(3*s)),K=2*r+1,k=new Float32Array(K);let sum=0;
-      for(let t=-r;t<=r;t++){const w=Math.exp(-0.5*(t/s)*(t/s));k[t+r]=w;sum+=w;}for(let t=0;t<K;t++)k[t]/=sum;
-      const[n1,n2,s1,s2,st]=lines[ax],n=dims[ax],buf=new Float32Array(n+2*r);
-      for(let p=0;p<n2;p++)for(let q=0;q<n1;q++){const b0=p*s2+q*s1;
-        for(let i=0;i<n;i++)buf[r+i]=a[b0+i*st];const e0=buf[r],e1=buf[r+n-1];for(let i=0;i<r;i++){buf[i]=e0;buf[r+n+i]=e1;}
-        for(let i=0;i<n;i++){let acc=0;for(let t=0;t<K;t++)acc+=k[t]*buf[i+t];a[b0+i*st]=acc;}}}
-    self.postMessage({tag,data:a},[a.buffer]);};`;
+  // ---------- smoothing ----------
+  // medviewer's filters (gui/layers.py FILTERS): each kernel is a weighted sum of Gaussians, [mass weight, sd / FWHM].
+  // The exponential, exp(-r/l), and the Lorentzian, (1 + r^2/g^2)^-2, fitted with three Gaussians each, have a sharper
+  // peak and longer tails than the Gaussian, so at the same FWHM they average far wider.
+  const FILTERS = {gaussian: [[1, 1 / 2.3548]],
+    exponential: [[0.0082, 0.2402], [0.3303, 0.8738], [0.6615, 1.7664]],
+    lorentzian: [[0.1849, 0.3758], [0.4484, 0.7987], [0.3667, 2.031]]};
+  const FILTER_LIST = [['gaussian', 'Gaussian'], ['exponential', 'Exponential'], ['lorentzian', 'Lorentzian']];
+
+  // Smoothing runs in a worker, from the unsmoothed data, and is live: every step of the slider redraws the slices.
+  // A Gaussian of sd s voxels takes about 6 s taps along each axis, too many for a wide one over a full-resolution CT.
+  // So each image gets a pyramid: level l+1 is level l smoothed by one of its new voxels and kept at every second
+  // voxel along its finest axes (the voxels stay near cubes). A smoothing is computed on the coarsest level whose
+  // voxels are at most half its sd (at most 25 taps per axis, whatever the width), first only for the planes the
+  // slices show, which Catmull-Rom interpolation brings back to the image's voxels, and then for the whole volume,
+  // which the 3D view draws. Against the exact separable smoothing (CT-, SPECT- and pCT-like test images, every
+  // filter, 1 to 40 mm) the planes are within 0.45% of each plane's range, the volume as the 3D view samples it within
+  // 1.1%. Level 0 is the image as stored (16-bit, with its scale); the levels above are 32-bit floats, about a seventh
+  // of its voxels in all. On a 512 x 471 x 316 CT, the three planes take 2-40 ms a step at any width.
+  function smoothEngine() {
+    const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    // a Gaussian's weights at the whole offsets -r..r, r = 3 sd (VTK's radius factor, which medviewer uses)
+    function kern(s) {
+      if (!(s > 1e-3)) return {r: 0, w: new Float32Array([1])};
+      const r = Math.max(1, Math.ceil(3 * s)), w = new Float32Array(2 * r + 1);
+      let sum = 0;
+      for (let t = -r; t <= r; t++) { const v = Math.exp(-0.5 * (t / s) * (t / s)); w[t + r] = v; sum += v; }
+      for (let t = 0; t < w.length; t++) w[t] /= sum;
+      return {r, w};
+    }
+    // a Gaussian centred at x (which may fall between samples) over samples 0..m-1, the edge samples repeated beyond
+    // the ends: indices and weights
+    function tapsAt(x, s, m) {
+      if (!(s > 1e-3)) return {j: Int32Array.of(Math.min(m - 1, Math.max(0, Math.round(x)))), w: Float32Array.of(1)};
+      const r = Math.ceil(3 * s), acc = new Map();
+      let sum = 0;
+      for (let i = Math.floor(x) - r; i <= Math.ceil(x) + r; i++) {
+        const v = Math.exp(-0.5 * ((i - x) / s) * ((i - x) / s)), j = Math.min(m - 1, Math.max(0, i));
+        acc.set(j, (acc.get(j) || 0) + v); sum += v;
+      }
+      return {j: Int32Array.from(acc.keys()), w: Float32Array.from(acc.values(), v => v / sum)};
+    }
+    // nl lines of n samples, one after another, scaled by sc and filtered by k with the edges repeated; output c
+    // (m of them) is centred on sample c st + off
+    function rows(src, sc, n, nl, k, st, m, out, off) {
+      off = off || 0;
+      const {r, w} = k, K = w.length, s0 = sc[0], s1 = sc[1], PL = r + Math.max(0, -off), len = PL + Math.max(n, (m - 1) * st + off + r + 1);
+      const buf = new Float32Array(len), b0 = PL + off - r;
+      for (let l = 0, so = 0, oo = 0; l < nl; l++, so += n, oo += m) {
+        for (let i = 0; i < n; i++) buf[PL + i] = src[so + i] * s0 + s1;
+        const a = buf[PL], b = buf[PL + n - 1];
+        for (let i = 0; i < PL; i++) buf[i] = a;
+        for (let i = PL + n; i < len; i++) buf[i] = b;
+        for (let c = 0, o = b0; c < m; c++, o += st) { let v = 0; for (let t = 0; t < K; t++) v += w[t] * buf[o + t]; out[oo + c] = v; }
+      }
+    }
+    // the same along the second axis of np planes of n x h samples (32-bit floats), whole rows at a time; output rows
+    // c0..c1-1 of m
+    function cols(src, n, h, np, k, st, m, out, off, c0, c1) {
+      const {r, w} = k, K = w.length;
+      off = off || 0;
+      for (let p = 0; p < np; p++) {
+        const sb = p * n * h, ob = p * n * m;
+        for (let c = c0 || 0; c < (c1 == null ? m : c1); c++) {
+          const oo = ob + c * n;
+          for (let i = 0; i < n; i++) out[oo + i] = 0;
+          for (let t = 0; t < K; t++) {
+            const so = sb + Math.min(h - 1, Math.max(0, c * st + off + t - r)) * n, ww = w[t];
+            for (let i = 0; i < n; i++) out[oo + i] += ww * src[so + i];
+          }
+        }
+      }
+    }
+    // The pyramid's levels: per axis, samples d of the image's voxels apart, the first at voxel o (a margin of three
+    // samples beyond each end of the image, so that its outermost samples are the image's edge values, which the
+    // smoothing repeats beyond the image as the exact one does), smoothed by sd s.
+    function plan(dims, pd) {
+      const L = [{dims: dims.slice(), d: [1, 1, 1], s: [0, 0, 0], o: [0, 0, 0]}];
+      while (L.length < 9) {
+        const c = L[L.length - 1], h = [0, 1, 2].map(a => pd[a] * c.d[a]), can = [0, 1, 2].filter(a => dims[a] / c.d[a] >= 8);
+        if (!can.length) break;
+        const hm = Math.min(...can.map(a => h[a])), halve = [0, 1, 2].map(a => can.includes(a) && h[a] <= 1.5 * hm);
+        const d = c.d.map((x, a) => halve[a] ? 2 * x : x), o = c.o.map((x, a) => halve[a] ? -3 * d[a] : x);
+        L.push({d, o, halve, s: c.s.map((x, a) => halve[a] ? d[a] : x),
+          dims: c.dims.map((m, a) => halve[a] ? Math.ceil((dims[a] - 1 + 3 * d[a] - o[a]) / d[a]) + 1 : m)});
+      }
+      return L;
+    }
+    // the coarsest level whose voxels are at most half the sd (sig, in the image's voxels) along every axis
+    function levelFor(P, sig) {
+      let l = 0;
+      while (l + 1 < P.length && P[l + 1].d.every((d, a) => d === 1 || d <= sig[a] / 2)) l++;
+      return l;
+    }
+    const resid = (lev, sig) => [0, 1, 2].map(a => Math.sqrt(Math.max(0, sig[a] * sig[a] - lev.s[a] * lev.s[a])) / lev.d[a]);
+    // level l from level l-1, a plane at a time (tick() lets other work in between)
+    async function build(st, l, tick) {
+      const P = st.plan[l], prev = st.levels[l - 1], [nx, ny, nz] = prev.dims, [mx, my, mz] = P.dims, n = nx * ny;
+      // a halved axis: smoothed by sd 2 old samples (from level 0) or sqrt(3) (from a level smoothed by one already),
+      // new sample c centred on old sample 2c + off
+      const kk = [0, 1, 2].map(a => P.halve[a] ? kern(prev.s[a] > 0 ? Math.sqrt(3) : 2) : kern(0));
+      const off = [0, 1, 2].map(a => P.halve[a] ? (P.o[a] - prev.o[a]) / prev.d[a] : 0), sp = a => P.halve[a] ? 2 : 1;
+      const xy = new Float32Array(mx * my * nz), t = new Float32Array(mx * ny);
+      for (let k = 0; k < nz; k++) {
+        rows(prev.A.subarray(k * n, k * n + n), prev.sc, nx, ny, kk[0], sp(0), mx, t, off[0]);
+        cols(t, mx, ny, 1, kk[1], sp(1), my, xy.subarray(k * mx * my, (k + 1) * mx * my), off[1]);
+        await tick(); if (st.dropped) throw new Error('dropped');
+      }
+      let A = xy;
+      if (P.halve[2]) {
+        A = new Float32Array(mx * my * mz);
+        for (let c = 0; c < mz; c++) { cols(xy, mx * my, nz, 1, kk[2], 2, mz, A, off[2], c, c + 1); await tick(); if (st.dropped) throw new Error('dropped'); }
+      }
+      st.levels[l] = {A, sc: [1, 0], dims: P.dims, d: P.d, s: P.s, o: P.o};
+    }
+    // Catmull-Rom from m samples d apart, the first at o, onto 0..n-1: four indices and weights per output
+    function crw(n, m, d, o) {
+      const I = new Int32Array(4 * n), W = new Float32Array(4 * n);
+      for (let i = 0; i < n; i++) {
+        const x = (i - o) / d, a = Math.floor(x), t = x - a, t2 = t * t, t3 = t2 * t;
+        const w = [(-t3 + 2 * t2 - t) / 2, (3 * t3 - 5 * t2 + 2) / 2, (-3 * t3 + 4 * t2 + t) / 2, (t3 - t2) / 2];
+        for (let j = 0; j < 4; j++) { I[4 * i + j] = Math.min(m - 1, Math.max(0, a - 1 + j)); W[4 * i + j] = w[j]; }
+      }
+      return {I, W};
+    }
+    // The plane through the image's slice kf along axis n, smoothed by sd sig (the image's voxels, per axis), on level
+    // lev and brought back to the image's voxels: n_p x n_q values, p < q the other two axes, p the faster.
+    function plane(lev, fine, n, kf, sig) {
+      const dims = lev.dims, sr = resid(lev, sig), [p, q] = [0, 1, 2].filter(a => a !== n), mp = dims[p], mq = dims[q];
+      const A = lev.A, st = [1, dims[0], dims[0] * dims[1]], T = tapsAt((kf - lev.o[n]) / lev.d[n], sr[n], dims[n]), K = T.j.length;
+      let P = new Float32Array(mp * mq);
+      if (n === 0) {      // through x: each value sums a short run along x
+        for (let iq = 0, o2 = 0; iq < mq; iq++, o2 += st[2]) for (let ip = 0; ip < mp; ip++) {
+          const o = o2 + ip * st[1]; let v = 0;
+          for (let t = 0; t < K; t++) v += T.w[t] * A[o + T.j[t]];
+          P[ip + mp * iq] = v;
+        }
+      } else {            // whole rows of the plane's first axis
+        for (let t = 0; t < K; t++) {
+          const w = T.w[t], ob = T.j[t] * st[n];
+          for (let iq = 0; iq < mq; iq++) { const o = ob + iq * st[q], po = iq * mp; for (let ip = 0; ip < mp; ip++) P[po + ip] += w * A[o + ip]; }
+        }
+      }
+      // within the plane, kept at every f-th sample where the smoothing is wide on this level (one coarser than it wants,
+      // while the pyramid is being made), as the levels are: f at most half the sd
+      const kp = kern(sr[p]), kq = kern(sr[q]), fp = Math.max(1, Math.floor(sr[p] / 2)), fq = Math.max(1, Math.floor(sr[q] / 2));
+      const mp2 = Math.ceil((mp - 1) / fp) + 1, mq2 = Math.ceil((mq - 1) / fq) + 1, Q = new Float32Array(mp2 * mq);
+      rows(P, lev.sc, mp, mq, kp, fp, mp2, Q);
+      if (kq.r) { P = new Float32Array(mp2 * mq2); cols(Q, mp2, mq, 1, kq, fq, mq2, P); } else P = Q;
+      const np = fine[p], nq = fine[q], dp = lev.d[p] * fp, dq = lev.d[q] * fq, mpo = mp2, mqo = kq.r ? mq2 : mq;
+      if (dp === 1 && dq === 1) return P;
+      const U = crw(np, mpo, dp, lev.o[p]), V = crw(nq, mqo, kq.r ? dq : lev.d[q], lev.o[q]), R = new Float32Array(np * mqo), out = new Float32Array(np * nq);
+      for (let iq = 0; iq < mqo; iq++) {
+        const so = iq * mpo, ro = iq * np;
+        for (let i = 0; i < np; i++) { const b = 4 * i; R[ro + i] = U.W[b] * P[so + U.I[b]] + U.W[b + 1] * P[so + U.I[b + 1]] + U.W[b + 2] * P[so + U.I[b + 2]] + U.W[b + 3] * P[so + U.I[b + 3]]; }
+      }
+      for (let j = 0; j < nq; j++) {
+        const oo = j * np;
+        for (let t = 0; t < 4; t++) { const w = V.W[4 * j + t], so = V.I[4 * j + t] * np; for (let i = 0; i < np; i++) out[oo + i] += w * R[so + i]; }
+      }
+      return out;
+    }
+    // The whole volume smoothed by sd sig on level lev, in place on a copy of it (as stored: 16-bit for level 0, so
+    // a full-resolution CT needs only its own size again); x and y a slice at a time, then z with a ring of the
+    // slices just overwritten. null when alive() turns false.
+    async function volume(lev, sig, tick, alive) {
+      const [nx, ny, nz] = lev.dims, n = nx * ny, sr = resid(lev, sig), kx = kern(sr[0]), ky = kern(sr[1]), kz = kern(sr[2]);
+      const isF = lev.A instanceof Float32Array, s0 = lev.sc[0], s1 = lev.sc[1], out = new lev.A.constructor(lev.A.length);
+      const t1 = new Float32Array(n), t2 = new Float32Array(n);
+      const put = (o, v) => { if (isF) out.set(v, o); else for (let i = 0; i < n; i++) out[o + i] = Math.round((v[i] - s1) / s0); };
+      for (let k = 0; k < nz; k++) {
+        rows(lev.A.subarray(k * n, k * n + n), lev.sc, nx, ny, kx, 1, nx, t1);
+        if (ky.r) { cols(t1, nx, ny, 1, ky, 1, ny, t2); put(k * n, t2); } else put(k * n, t1);
+        await tick(); if (!alive()) return null;
+      }
+      if (kz.r) {
+        const r = kz.r, K = kz.w.length, ring = Array.from({length: r + 1}, () => new Float32Array(n));
+        for (let c = 0; c < nz; c++) {
+          const keep = ring[c % (r + 1)], o = c * n;
+          for (let i = 0; i < n; i++) keep[i] = out[o + i] * (isF ? 1 : s0) + (isF ? 0 : s1);
+          t1.fill(0);
+          for (let t = 0; t < K; t++) {
+            const j = Math.min(nz - 1, Math.max(0, c + t - r)), w = kz.w[t];
+            if (j <= c) { const R = ring[j % (r + 1)]; for (let i = 0; i < n; i++) t1[i] += w * R[i]; }
+            else { const so = j * n; if (isF) for (let i = 0; i < n; i++) t1[i] += w * out[so + i]; else for (let i = 0; i < n; i++) t1[i] += w * (out[so + i] * s0 + s1); }
+          }
+          put(o, t1);
+          await tick(); if (!alive()) return null;
+        }
+      }
+      return {A: out, sc: isF ? [1, 0] : lev.sc.slice(), dims: lev.dims.slice(), d: lev.d.slice(), o: lev.o.slice()};
+    }
+    // a sum of Gaussians (comps: [weight, sd in mm]) for the planes asked for ([n, k] each), at once: on the level the
+    // width wants, or the coarsest built so far while the pyramid is still being made (the same smoothing, more taps)
+    const sdVox = (st, mm) => st.pd.map(p => mm / p);
+    function planes(st, comps, want) {
+      const parts = [];
+      for (const [w, mm] of comps) { const sig = sdVox(st, mm), l = Math.min(levelFor(st.plan, sig), st.levels.length - 1); parts.push([w, sig, st.levels[l]]); }
+      return want.map(([n, k]) => {
+        let out = null;
+        for (const [w, sig, lev] of parts) {
+          const P = plane(lev, st.dims, n, k, sig);
+          if (!out) { out = P; if (w !== 1) for (let i = 0; i < out.length; i++) out[i] *= w; } else for (let i = 0; i < out.length; i++) out[i] += w * P[i];
+        }
+        for (let i = 0; i < out.length; i++) out[i] = Math.min(st.max, Math.max(st.min, out[i]));   // no overshoot past the data
+        return {n, k, data: out};
+      });
+    }
+    // The whole volume, on the finest level the parts use; coarser parts are added trilinearly.
+    async function whole(st, comps, ensure, tick, alive) {
+      const parts = [];
+      for (const [w, mm] of comps) { const sig = sdVox(st, mm), l = levelFor(st.plan, sig); await ensure(st, l); parts.push({w, sig, l}); }
+      parts.sort((a, b) => a.l - b.l);
+      const first = parts[0], V = await volume(st.levels[first.l], first.sig, tick, alive);
+      if (!V || parts.length === 1) return V;
+      const isF = V.A instanceof Float32Array, s0 = V.sc[0], s1 = V.sc[1], [nx, ny, nz] = V.dims, acc = new Float32Array(nx * ny);
+      const others = [];
+      for (const p of parts.slice(1)) {
+        const W = await volume(st.levels[p.l], p.sig, tick, alive);
+        if (!W) return null;
+        // where V's samples fall on W's grid, per axis: lower index and weight
+        const ax = [0, 1, 2].map(a => { const m = V.dims[a], I = new Int32Array(m), F = new Float32Array(m);
+          for (let i = 0; i < m; i++) {
+            const x = Math.min(W.dims[a] - 1, Math.max(0, (V.o[a] + i * V.d[a] - W.o[a]) / W.d[a])), i0 = Math.min(W.dims[a] - 2, Math.floor(x));
+            I[i] = Math.max(0, i0); F[i] = W.dims[a] > 1 ? x - I[i] : 0;
+          }
+          return {I, F}; });
+        others.push({w: p.w, W, ax});
+      }
+      for (let k = 0; k < nz; k++) {
+        const o = k * nx * ny;
+        for (let i = 0; i < acc.length; i++) acc[i] = first.w * (isF ? V.A[o + i] : V.A[o + i] * s0 + s1);
+        for (const {w, W, ax} of others) {
+          const [wx, wy] = W.dims, B = W.A, a0 = W.sc[0], a1 = W.sc[1], zk = ax[2].I[k], fz = ax[2].F[k], z1 = Math.min(W.dims[2] - 1, zk + 1);
+          for (let j = 0; j < ny; j++) {
+            const yj = ax[1].I[j], fy = ax[1].F[j], y1 = Math.min(wy - 1, yj + 1);
+            const r00 = wx * (yj + wy * zk), r10 = wx * (y1 + wy * zk), r01 = wx * (yj + wy * z1), r11 = wx * (y1 + wy * z1);
+            for (let i = 0; i < nx; i++) {
+              const xi = ax[0].I[i], fx = ax[0].F[i], x1 = Math.min(wx - 1, xi + 1);
+              const c0 = (B[r00 + xi] * (1 - fx) + B[r00 + x1] * fx) * (1 - fy) + (B[r10 + xi] * (1 - fx) + B[r10 + x1] * fx) * fy;
+              const c1 = (B[r01 + xi] * (1 - fx) + B[r01 + x1] * fx) * (1 - fy) + (B[r11 + xi] * (1 - fx) + B[r11 + x1] * fx) * fy;
+              acc[i + nx * j] += w * ((c0 * (1 - fz) + c1 * fz) * a0 + a1);
+            }
+          }
+        }
+        if (isF) V.A.set(acc, o); else for (let i = 0; i < acc.length; i++) V.A[o + i] = Math.round((acc[i] - s1) / s0);
+        await tick(); if (!alive()) return null;
+      }
+      return V;
+    }
+    // the finest level the parts want; and the multiply-adds of their planes on the levels built so far
+    const wanted = (st, comps) => Math.max(...comps.map(([, mm]) => levelFor(st.plan, sdVox(st, mm))));
+    function planeCost(st, comps, want) {
+      let c = 0;
+      for (const [, mm] of comps) {
+        const sig = sdVox(st, mm), lev = st.levels[Math.min(levelFor(st.plan, sig), st.levels.length - 1)], sr = resid(lev, sig);
+        const K = sr.map(x => kern(x).w.length), f = sr.map(x => Math.max(1, Math.floor(x / 2)));
+        for (const [n] of want) {
+          const [p, q] = [0, 1, 2].filter(a => a !== n), m = lev.dims[p] * lev.dims[q];
+          c += m * K[n] + m * K[p] / f[p] + m * K[q] / (f[p] * f[q]) + 8 * st.dims[p] * st.dims[q];
+        }
+      }
+      return c;
+    }
+    // multiply-adds the whole volume takes, to run a cheap one at once and a costly one when the slider rests
+    function cost(st, comps) {
+      let c = 0;
+      for (const [, mm] of comps) {
+        const sig = sdVox(st, mm), l = levelFor(st.plan, sig), P = st.plan[l], sr = resid(P, sig);
+        c += P.dims[0] * P.dims[1] * P.dims[2] * sr.reduce((s, x) => s + kern(x).w.length, 0);
+      }
+      return c;
+    }
+    return {now, kern, plan, levelFor, build, plane, volume, planes, whole, cost, wanted, planeCost};
+  }
+  // The worker: an image's copy and pyramid per layer; 'planes' answers at once (between the chunks, a few ms each,
+  // of any longer job); 'whole' volumes follow, one at a time and the newest request only: a cheap one (a wide
+  // smoothing, on a coarse level) at most every 100 ms while the slider moves, a costly one once it has rested 150 ms.
+  function smoothWorker(E) {
+    const ST = new Map(), q = [], ch = new MessageChannel();
+    ch.port1.onmessage = () => { const f = q.shift(); if (f) f(); };
+    let t0 = E.now();
+    const tick = () => E.now() - t0 < 4 ? null : new Promise(ok => { q.push(() => { t0 = E.now(); ok(); }); ch.port2.postMessage(0); });
+    function ensure(st, l) {
+      if (st.levels.length > l) return Promise.resolve();
+      if (!st.busy) st.busy = E.build(st, st.levels.length, tick).finally(() => { st.busy = null; });
+      return st.busy.then(() => ensure(st, l));
+    }
+    let running = false, timer = 0;
+    const dueIn = st => !st.want || st.done === st.want.gen ? Infinity
+      : Math.max(0, st.want.cheap ? (st.started || -1e9) + 100 - E.now() : st.want.at + 150 - E.now());
+    function later() {
+      const t = Math.min(...[...ST.values()].map(dueIn));
+      clearTimeout(timer);
+      if (t < Infinity) timer = setTimeout(pump, t);
+    }
+    async function pump() {
+      if (running) return;
+      running = true;
+      try {
+        for (;;) {
+          const due = [...ST].find(([, st]) => dueIn(st) === 0);
+          if (!due) break;
+          const [li, st] = due, want = st.want;
+          st.started = E.now();
+          // a cheap one is finished even when the slider has moved on (the 3D view keeps up, 100 ms behind at most);
+          // a costly one stops for a newer request
+          const live = () => ST.get(li) === st && st.want && (want.cheap || st.want === want);
+          const V = await E.whole(st, want.comps, ensure, tick, live);
+          if (!V || !live()) continue;
+          st.done = Math.max(st.done, want.gen);
+          self.postMessage({cmd: 'whole', li, gen: want.gen, A: V.A, sc: V.sc, dims: V.dims, d: V.d, o: V.o}, [V.A.buffer]);
+        }
+      } finally { running = false; }
+      later();
+    }
+    self.onmessage = async e => {
+      const m = e.data;
+      if (m.cmd === 'load') {
+        const st = {plan: E.plan(m.dims, m.pd), levels: [{A: m.A, sc: m.sc, dims: m.dims, d: [1, 1, 1], s: [0, 0, 0], o: [0, 0, 0]}], dims: m.dims, pd: m.pd,
+          min: m.min, max: m.max, want: null, done: 0};
+        ST.set(m.li, st);
+        ensure(st, st.plan.length - 1).catch(() => {});   // the pyramid, while nothing else is asked
+      } else if (m.cmd === 'drop') { const st = ST.get(m.li); if (st) st.dropped = true; ST.delete(m.li); }
+      else if (m.cmd === 'idle') { const st = ST.get(m.li); if (st) st.want = null; }
+      else if (m.cmd === 'planes') {
+        const st = ST.get(m.li), t0 = E.now();
+        let out = [], t = t0;
+        if (st) try {
+          if (!st.want || st.want.gen !== m.gen) st.want = {gen: m.gen, comps: m.comps, at: E.now(), cheap: E.cost(st, m.comps) < 3e7};
+          // while the pyramid is made: on the coarsest level built so far if that takes no more than ~30 ms, else
+          // once the level the width wants is built (the build would only slow down meanwhile)
+          const lw = E.wanted(st, m.comps);
+          if (st.levels.length <= lw && E.planeCost(st, m.comps, m.want) > 4e7) await ensure(st, lw);
+          t = E.now(); out = E.planes(st, m.comps, m.want);
+          later();
+        } catch (_) { out = []; }   // dropped meanwhile
+        self.postMessage({cmd: 'planes', li: m.li, gen: m.gen, ms: E.now() - t, wait: t - t0, planes: out}, out.map(p => p.data.buffer));
+      }
+    };
+  }
+  const SMOOTH_SRC = `${smoothEngine.toString()};(${smoothWorker.toString()})(smoothEngine());`;
   // An image on the 3D view's grid G (trilinear; NaN outside the image): steps of G.h in x and y, G.hz in z. The worker does it for small images;
   // for a large one (a full-resolution CT) the page does, so the worker gets a few MB, not a copy of the whole image.
-  function mipResample(G, img, sc, dims, aff) {
+  // clip: the image's own extent in mm ([lo, hi] per axis), where a smoothed volume's grid reaches past it
+  function mipResample(G, img, sc, dims, aff, clip) {
     const [nx, ny, nz] = dims, out = new Float32Array(G.gx * G.gy * G.gz), I = (a, b, c) => img[a + nx * (b + ny * c)];
+    const cl = clip || [[-Infinity, Infinity], [-Infinity, Infinity], [-Infinity, Infinity]];
     let n = 0;
     for (let k = 0; k < G.gz; k++) {
-      const fk = (G.z0 + k * (G.hz || G.h) - aff[2][3]) / aff[2][2];
+      const z = G.z0 + k * (G.hz || G.h), fk = (z - aff[2][3]) / aff[2][2];
       for (let j = 0; j < G.gy; j++) {
-        const fj = (G.y0 + j * G.h - aff[1][3]) / aff[1][1];
+        const y = G.y0 + j * G.h, fj = (y - aff[1][3]) / aff[1][1];
         for (let i = 0; i < G.gx; i++, n++) {
-          const fi = (G.x0 + i * G.h - aff[0][3]) / aff[0][0];
-          if (!(fi >= 0 && fj >= 0 && fk >= 0 && fi <= nx - 1 && fj <= ny - 1 && fk <= nz - 1)) { out[n] = NaN; continue; }
+          const x = G.x0 + i * G.h, fi = (x - aff[0][3]) / aff[0][0];
+          if (!(fi >= 0 && fj >= 0 && fk >= 0 && fi <= nx - 1 && fj <= ny - 1 && fk <= nz - 1) || x < cl[0][0] || x > cl[0][1] ||
+            y < cl[1][0] || y > cl[1][1] || z < cl[2][0] || z > cl[2][1]) { out[n] = NaN; continue; }
           const i0 = Math.floor(fi), j0 = Math.floor(fj), k0 = Math.floor(fk), i1 = Math.min(i0 + 1, nx - 1), j1 = Math.min(j0 + 1, ny - 1),
             k1 = Math.min(k0 + 1, nz - 1), u = fi - i0, v = fj - j0, w = fk - k0;
           const c0 = (I(i0, j0, k0) * (1 - u) + I(i1, j0, k0) * u) * (1 - v) + (I(i0, j1, k0) * (1 - u) + I(i1, j1, k0) * u) * v,
@@ -208,7 +559,7 @@
   // attenuation map) is a line integral (a DRR), drawn at about half brightness under a colour image whose opacity
   // rises with intensity (opacity x sqrt of its place between the limits).
   const MIP_SRC = `let G=null,ov=null,mu=null,hu=null,dmax=1;${mipResample.toString()}
-  const onGrid=d=>d.vals||mipResample(G,d.img,d.sc,d.dims,d.aff);
+  const onGrid=d=>d.vals||mipResample(G,d.img,d.sc,d.dims,d.aff,d.clip);
   function density(kind,scale){return kind==='ct'?(v=>Number.isNaN(v)?0:Math.max(0,(v+1000)/1000)):(v=>Number.isNaN(v)?0:Math.max(0,v/scale));}
   function setMu(d){if(d.mip){hu=onGrid(d);for(let i=0;i<hu.length;i++)if(Number.isNaN(hu[i]))hu[i]=-1000;mu=null;return;}
     hu=null;const f=density(d.kind,d.scale||1);mu=onGrid(d);for(let i=0;i<mu.length;i++)mu[i]=f(mu[i]);let m=0;
@@ -250,14 +601,14 @@ in vec2 p;void main(){gl_Position=vec4(p,0.,1.);}`;
   const GL_FS = `#version 300 es
 precision highp float;precision highp sampler3D;
 uniform sampler3D bT,oT;uniform sampler2D lT;uniform int bM,uO,N;
-uniform vec3 bA,bB,oA,oB;uniform vec2 C;uniform float th,hw,h,hz,z0,lo,sp,op,cw,dm;
+uniform vec3 bA,bB,oA,oB,bL,bH,oL,oH;uniform vec2 C;uniform float th,hw,h,hz,z0,lo,sp,op,cw,dm;
 out vec4 o;
-bool inside(vec3 t){return all(greaterThanEqual(t,vec3(0.)))&&all(lessThanEqual(t,vec3(1.)));}
+bool inside(vec3 t,vec3 a,vec3 b){return all(greaterThanEqual(t,a))&&all(lessThanEqual(t,b));}
 void main(){
   float uu=(hw-(gl_FragCoord.x-0.5))*h,z=z0+(gl_FragCoord.y-0.5)*hz,c=cos(th),s=sin(th),m=-1e30,d=0.,hm=0.;
   for(int t=0;t<8192;t++){if(t>=N)break;float ss=(float(t)-hw)*h;vec3 w=vec3(C.x+uu*c-ss*s,C.y+uu*s+ss*c,z);
-    if(bM>0){vec3 q=w*bA+bB;if(inside(q)){float v=texture(bT,q).r;if(bM==1)hm=max(hm,v);else d+=v;}}
-    if(uO>0){vec3 q=w*oA+oB;if(inside(q))m=max(m,texture(oT,q).r);}}
+    if(bM>0){vec3 q=w*bA+bB;if(inside(q,bL,bH)){float v=texture(bT,q).r;if(bM==1)hm=max(hm,v);else d+=v;}}
+    if(uO>0){vec3 q=w*oA+oB;if(inside(q,oL,oH))m=max(m,texture(oT,q).r);}}
   float g=bM==1?hm*0.68*cw:bM==2?pow(min(1.,d*h/dm),0.7)*cw*(uO>0?0.55:1.):0.;vec3 rgb=vec3(g);
   if(uO>0&&m>lo){float tt=min(1.,(m-lo)/sp),sc=bM==1?pow(tt,0.7):tt;
     vec3 lc=texture(lT,vec2((floor(sc*255.+0.5)+0.5)/256.,0.5)).rgb;
@@ -279,7 +630,7 @@ void main(){
     } catch (e) { console.warn('PTViewer: the 3D view is drawn on the CPU:', e); return null; }
     gl.useProgram(prog);
     const U = {};
-    for (const n of ['bT', 'oT', 'lT', 'bM', 'uO', 'N', 'bA', 'bB', 'oA', 'oB', 'C', 'th', 'hw', 'h', 'hz', 'z0', 'lo', 'sp', 'op', 'cw', 'dm'])
+    for (const n of ['bT', 'oT', 'lT', 'bM', 'uO', 'N', 'bA', 'bB', 'oA', 'oB', 'bL', 'bH', 'oL', 'oH', 'C', 'th', 'hw', 'h', 'hz', 'z0', 'lo', 'sp', 'op', 'cw', 'dm'])
       U[n] = gl.getUniformLocation(prog, n);
     gl.uniform1i(U.bT, 0); gl.uniform1i(U.oT, 1); gl.uniform1i(U.lT, 2);
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
@@ -294,9 +645,13 @@ void main(){
     const T = {b: null, o: null};
     cv.addEventListener('webglcontextlost', e => { e.preventDefault(); lost = true; onLost(); });
     function clear(slot) { if (T[slot]) gl.deleteTexture(T[slot].tex); T[slot] = null; }
-    // an image into its texture, a slice at a time (no full-size copy); false when it is larger than the GPU allows
-    function upload(slot, L, kind) {
-      const [nx, ny, nz] = L.dims, n = nx * ny, src = L.base, [s0, s1] = scOf(L);
+    // an image into its texture, a slice at a time (no full-size copy); false when it is larger than the GPU allows.
+    // V: what is drawn of layer L, the image itself or its smoothed volume (volOf), whose grid may reach past the
+    // image: the texture is then only sampled within the image's extent, and always between its voxels (they are
+    // a pyramid level's, wider than the image's)
+    function upload(slot, L, kind, V) {
+      V = V || L;
+      const [nx, ny, nz] = V.dims, n = nx * ny, src = V.img, [s0, s1] = V.sc, vp = [0, 1, 2].map(a => Math.abs(V.aff[a][a]));
       clear(slot);
       if (lost || Math.max(nx, ny, nz) > MAX) return false;
       const tex = gl.createTexture(), u8 = kind === 'hu';
@@ -318,14 +673,16 @@ void main(){
             else if (!colY) sl[i + nx * j] = v / scale;
             else { const f = Number.isNaN(v) ? 0 : Math.max(0, isCT ? (v + 1000) / 1000 : v / scale); sl[i + nx * j] = f; row += f; colY[i] += f; }
           }
-          if (colY) dm = Math.max(dm, row * L.pd[0]);
+          if (colY) dm = Math.max(dm, row * vp[0]);
         }
-        if (colY) for (let i = 0; i < nx; i++) dm = Math.max(dm, colY[i] * L.pd[1]);
+        if (colY) for (let i = 0; i < nx; i++) dm = Math.max(dm, colY[i] * vp[1]);
         gl.texSubImage3D(gl.TEXTURE_3D, 0, 0, 0, k, nx, ny, 1, gl.RED, u8 ? gl.UNSIGNED_BYTE : gl.FLOAT, sl);
       }
       // texture coordinate = world mm * A + B: voxel i's centre at aff[a][3] + i aff[a][a], at (i + 0.5) / n
-      const A = [0, 1, 2].map(a => 1 / (L.aff[a][a] * L.dims[a])), B = [0, 1, 2].map(a => (0.5 - L.aff[a][3] / L.aff[a][a]) / L.dims[a]);
-      T[slot] = {tex, A, B, kind, scale, dm: Math.max(1e-6, dm)};
+      const A = [0, 1, 2].map(a => 1 / (V.aff[a][a] * V.dims[a])), B = [0, 1, 2].map(a => (0.5 - V.aff[a][3] / V.aff[a][a]) / V.dims[a]);
+      // the image's own extent there (its outer voxel edges)
+      const lim = [0, 1, 2].map(a => [L.aff[a][3] - 0.5 * L.aff[a][a], L.aff[a][3] + (L.dims[a] - 0.5) * L.aff[a][a]].map(w => w * A[a] + B[a]).sort((x, y) => x - y));
+      T[slot] = {tex, A, B, lo: lim.map(x => Math.max(0, x[0])), hi: lim.map(x => Math.min(1, x[1])), kind, scale, dm: Math.max(1e-6, dm), lin: V !== L};
       return true;
     }
     function draw(G, p) {
@@ -333,9 +690,10 @@ void main(){
       if (cv.width !== W) cv.width = W;
       if (cv.height !== H) cv.height = H;
       gl.viewport(0, 0, W, H);
-      const filt = p.smooth ? gl.LINEAR : gl.NEAREST, b = p.ctw > 0 ? T.b : null, o = T.o;
+      const b = p.ctw > 0 ? T.b : null, o = T.o;
       [[b, gl.TEXTURE0], [o, gl.TEXTURE1]].forEach(([t, unit]) => {
         gl.activeTexture(unit); gl.bindTexture(gl.TEXTURE_3D, t ? t.tex : empty);
+        const filt = p.smooth || (t && t.lin) ? gl.LINEAR : gl.NEAREST;
         if (t) { gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, filt); gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, filt); }
       });
       gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, lutTex);
@@ -348,6 +706,8 @@ void main(){
       gl.uniform1i(U.bM, b ? (b.kind === 'hu' ? 1 : 2) : 0); gl.uniform1i(U.uO, o ? 1 : 0); gl.uniform1i(U.N, W);
       gl.uniform3fv(U.bA, b ? b.A : [0, 0, 0]); gl.uniform3fv(U.bB, b ? b.B : [0, 0, 0]);
       gl.uniform3fv(U.oA, o ? o.A : [0, 0, 0]); gl.uniform3fv(U.oB, o ? o.B : [0, 0, 0]);
+      gl.uniform3fv(U.bL, b ? b.lo : [0, 0, 0]); gl.uniform3fv(U.bH, b ? b.hi : [1, 1, 1]);
+      gl.uniform3fv(U.oL, o ? o.lo : [0, 0, 0]); gl.uniform3fv(U.oH, o ? o.hi : [1, 1, 1]);
       gl.uniform2f(U.C, G.x0 + (G.gx - 1) / 2 * G.h, G.y0 + (G.gy - 1) / 2 * G.h);
       gl.uniform1f(U.th, p.th); gl.uniform1f(U.hw, (W - 1) / 2); gl.uniform1f(U.h, G.h); gl.uniform1f(U.hz, hz); gl.uniform1f(U.z0, G.z0);
       const sc = o ? o.scale : 1;
@@ -411,7 +771,9 @@ void main(){
       `<details class="ptv-about"><summary>About the display and the controls</summary>` +
       `<p class="ptv-keys">${hint}</p>` +
       `<p class="ptv-note">Smooth display draws each SPECT or PET image as matplotlib's <code>interpolation="gaussian"</code> does (σ = half a voxel); ` +
-      `CT is drawn bilinearly. Smoothing is a separate 3D Gaussian, with this full width at half maximum, applied to that image's data; the upper limit follows the smoothed image until you set it yourself. ` +
+      `CT is drawn bilinearly. Smoothing filters the image's data in 3D with the chosen kernel at this full width at half maximum ` +
+      `(the exponential and Lorentzian have sharper peaks and longer tails than the Gaussian); the slices follow the slider, the 3D view follows when it rests. ` +
+      `The limits and the histogram stay those of the unsmoothed image. Drag a line on the histogram to move a limit. ` +
       `Values below the lower limit of the colour image are see-through.</p></details>` +
       `<p class="ptv-err" id="${id('err')}" role="status" aria-live="polite"></p></aside>` +
       // Until every image is downloaded, unpacked and drawn, a loading screen covers the whole viewer below the header,
@@ -457,7 +819,7 @@ void main(){
       try { const u = URL.createObjectURL(new Blob([src], {type: 'text/javascript'})); urls.push(u); const w = new Worker(u); workers.push(w); return w; }
       catch (e) { err('Background workers are unavailable here, so smoothing and the 3D view are off: ' + e.message); return null; }
     };
-    let reset = null;
+    let reset = null, popClose = null;   // popClose: closes an open colour-map list (Escape)
     if (opt.onClose) on($('close'), 'click', () => opt.onClose(api));
     // on a narrow screen the controls are a drawer over the images: never below them
     function setPanel(open) {
@@ -479,6 +841,7 @@ void main(){
     // not reach the viewer, and the docs theme marks Escape as handled
     on(document, 'keydown', e => {
       if (e.key !== 'Escape') return;
+      if (popClose) { e.preventDefault(); popClose(); return; }
       if (root.dataset.panel === 'open') { e.preventDefault(); setPanel(false); return; }
       if (root.dataset.mode === 'max') { e.preventDefault(); if (opt.onClose && opt.maximized) opt.onClose(api); else setMax(false); }
     }, true);
@@ -545,7 +908,9 @@ void main(){
       if (total > 50e6) for (const [i, m] of man.layers.entries()) loaded.push(await get(m, i));
       else loaded = await Promise.all(man.layers.map(get));
       if (!alive) return api;
-      LAY = loaded.map((d, i) => Object.assign(d, {m: man.layers[i], role: roles[i], base: d.img, ver: 0, set: null}));
+      // sm: the layer's smoothing (the planes the slices show and the volume the 3D view draws, from the worker)
+      LAY = loaded.map((d, i) => Object.assign(d, {m: man.layers[i], role: roles[i], ver: 0, set: null,
+        sm: {gen: 0, floor: 0, planes: {}, vol: null, loaded: false}}));
     } catch (e) {
       fetching = false;
       if (abort) abort.abort();   // the other images stop downloading
@@ -557,15 +922,22 @@ void main(){
     const idx = role => LAY.map((L, i) => L.role === role ? i : -1).filter(i => i >= 0);
     const OVS = idx('overlay'), BASES = idx('base');
     const hasBase = BASES.length > 0;
+    const ctWin = (L, w) => w === 'full' ? [L.min, L.max] : CT_WIN[w] ? CT_WIN[w].slice(1) : null;
     function defaults(L) {
       const m = L.m, over = L.role === 'overlay';
       // SPECT and PET start at absolute 0 and the hottest voxel; a CT starts on its named window (phantom, soft...)
       let range = Array.isArray(m.range) && m.range.length === 2 ? m.range.slice() : over ? [0, L.max] : [L.min, L.max];
-      const w = m.kind === 'ct' && CT_WINDOWS.find(x => x[0] === m.window);
-      if (w) range = [w[2], w[3]];
-      return {cmap: LUT[m.colormap] ? m.colormap : over && (m.kind === 'spect' || m.kind === 'pet') && LUT.pet ? 'pet' : over ? 'inferno' : 'gray', lo: range[0], hi: range[1],
+      const w = m.kind === 'ct' && ctWin(L, m.window);
+      if (w) range = w;
+      const cm = CMAP_ALIAS[m.colormap] || m.colormap;
+      return {cmap: LUT[cm] ? cm : over && (m.kind === 'spect' || m.kind === 'pet') && LUT.pet ? 'pet' : over ? 'inferno' : 'gray', reverse: false,
+        lo: range[0], hi: range[1],
         // SPECT and PET over an anatomy image start at 75% opacity (Luke, 9 Oct 2026); on their own, at 100%
-        op: m.opacity != null ? m.opacity : over ? (hasBase ? 0.75 : 1) : 1, fwhm: 0, hiAuto: true};
+        op: m.opacity != null ? m.opacity : over ? (hasBase ? 0.75 : 1) : 1,
+        // smoothing (FWHM, mm) and its kernel; fade: low values fade in over the bottom quarter of the colour map
+        // (medviewer's "Fade low"; off here: Luke, 9 Oct 2026, a value at the lower limit takes the map's first colour);
+        // span: the histogram's range (null: the data's)
+        fwhm: 0, filter: 'gaussian', fade: false, span: null};
     }
     // images in one scale group (the same units, as the export decides) share their settings, so switching between
     // them keeps the colour scale, and the same colour means the same value
@@ -601,11 +973,19 @@ void main(){
     const startP = () => Array.isArray(man.start_mm) && man.start_mm.length === 3 ? man.start_mm.slice() : CENTER.slice();
     const S = {P: startP(), zoom: 1, pan: [0, 0, 0], view: 'multi', smooth: true};
 
-    function sliceOf(L, vn, k) {
-      const V = VIEWS[vn], a = L.aff, d = L.dims, n = V.n, b = L.base, [s0, s1] = scOf(L);
+    // slice k of a layer along view vn, on screen axes; from P instead when the layer is smoothed (its plane through
+    // that slice from the worker: its two axes in the image's order, the first the faster)
+    function sliceOf(L, vn, k, P) {
+      const V = VIEWS[vn], a = L.aff, d = L.dims, n = V.n, b = L.img, [s0, s1] = L.sc;
       const au = V.u[0], av = V.v[0], nu = d[au], nv = d[av], fu = V.u[1] * a[au][au] < 0, fv = V.v[1] * a[av][av] < 0;
       const st = [1, d[0], d[0] * d[1]], data = new Float32Array(nu * nv);
-      for (let r = 0; r < nv; r++) {
+      if (P) {
+        const su = au < av ? 1 : d[av], sv = au < av ? d[au] : 1;
+        for (let r = 0; r < nv; r++) {
+          const iv = fv ? nv - 1 - r : r;
+          for (let c = 0; c < nu; c++) { const iu = fu ? nu - 1 - c : c; data[r * nu + c] = P[iu * su + iv * sv]; }
+        }
+      } else for (let r = 0; r < nv; r++) {
         const iv = fv ? nv - 1 - r : r;
         for (let c = 0; c < nu; c++) { const iu = fu ? nu - 1 - c : c; data[r * nu + c] = b[iu * st[au] + iv * st[av] + k * st[n]] * s0 + s1; }
       }
@@ -613,16 +993,18 @@ void main(){
       return {w: nu, h: nv, data, U, V: Vv};
     }
     function rgbaOf(sl, L) {
-      const n = sl.w * sl.h, out = new Uint8ClampedArray(n * 4), d = sl.data, s = L.set, lut = LUT[s.cmap] || LUT.gray;
+      const n = sl.w * sl.h, out = new Uint8ClampedArray(n * 4), d = sl.data, s = L.set, lut = lutOf(s);
       const lo = s.lo, span = Math.max(1e-12, s.hi - s.lo), a = Math.round(s.op * 255);
       if (L.role === 'overlay') {
         // A value at the lower limit takes the bottom colour of the map, as matplotlib draws it, so a voxel of exactly 0
         // looks like its near-zero neighbours (hot's bottom colour is dark red: see-through zeros beside it made a blocky
-        // sheet). Only values below the lower limit, and NaN, are see-through.
+        // sheet). Only values below the lower limit, and NaN, are see-through; with Fade low, the bottom quarter of
+        // the map fades in from see-through (medviewer's).
+        const fade = !!s.fade;
         for (let i = 0; i < n; i++) {
           const v = d[i]; if (!(v >= lo)) continue;
-          const q = Math.round(Math.min(1, (v - lo) / span) * 255) * 3;
-          out[4 * i] = lut[q]; out[4 * i + 1] = lut[q + 1]; out[4 * i + 2] = lut[q + 2]; out[4 * i + 3] = a;
+          const t = Math.min(1, (v - lo) / span), q = Math.round(t * 255) * 3;
+          out[4 * i] = lut[q]; out[4 * i + 1] = lut[q + 1]; out[4 * i + 2] = lut[q + 2]; out[4 * i + 3] = fade ? Math.round(a * Math.min(1, 4 * t)) : a;
         }
       } else {
         for (let i = 0; i < n; i++) {
@@ -641,22 +1023,30 @@ void main(){
       const s = Math.min(W / (fu[1] - fu[0]), H / (fv[1] - fv[0])) * 0.96 * S.zoom;
       return {s, W, H, cU: V.u[1] * (CENTER[V.u[0]] + S.pan[V.u[0]]), cV: V.v[1] * (CENTER[V.v[0]] + S.pan[V.v[0]])};
     }
+    const sliceK = (L, n) => Math.round((S.P[n] - L.aff[n][3]) / L.aff[n][n]);
+    // A tile's image of a layer, cached in two steps: the values (the slice, or its smoothed plane, upsampled for the
+    // Gaussian display) and their colours, so a change of limits, colour map or opacity only recolours.
     function layerImage(T, li, vn, m) {
-      const L = LAY[li], V = VIEWS[vn], n = V.n, k = Math.round((S.P[n] - L.aff[n][3]) / L.aff[n][n]);
+      const L = LAY[li], V = VIEWS[vn], n = V.n, k = sliceK(L, n);
       if (k < 0 || k >= L.dims[n]) return null;
       const gauss = L.role === 'overlay' && S.smooth;
       // sub-voxel samples only where a voxel covers several screen pixels
       const f = gauss ? clamp(Math.round(m.s * Math.min(L.pd[V.u[0]], L.pd[V.v[0]]) / 3), 1, 4) : 1;
-      const key = `${k}|${L.ver}|${gauss}|${f}`;
+      const P = planeFor(li, vn, k), dkey = `${P ? `s${P.gen}:${P.k}` : `r${k}`}|${gauss}|${f}`;
       let c = T.cache.get(li);
-      if (c && c.key === key) return c;
-      let sl = sliceOf(L, vn, k);
-      if (gauss) sl = gaussUp(sl, f);
-      const cv = c ? c.cv : document.createElement('canvas');
-      cv.width = sl.w; cv.height = sl.h;
-      cv.getContext('2d').putImageData(new ImageData(rgbaOf(sl, L), sl.w, sl.h), 0, 0);
-      c = {key, cv, U: sl.U, V: sl.V};
-      T.cache.set(li, c);
+      if (!c) T.cache.set(li, c = {cv: document.createElement('canvas')});
+      if (c.dkey !== dkey) {
+        let sl = sliceOf(L, vn, k, P && P.data);
+        if (gauss) sl = gaussUp(sl, f);
+        Object.assign(c, {sl, dkey, ckey: '', U: sl.U, V: sl.V});
+      }
+      const ckey = `${L.ver}|${dkey}`;
+      if (c.ckey !== ckey) {
+        const sl = c.sl;
+        if (c.cv.width !== sl.w || c.cv.height !== sl.h) { c.cv.width = sl.w; c.cv.height = sl.h; }
+        c.cv.getContext('2d').putImageData(new ImageData(rgbaOf(sl, L), sl.w, sl.h), 0, 0);
+        c.ckey = ckey;
+      }
       return c;
     }
     function drawTile(vn) {
@@ -684,11 +1074,22 @@ void main(){
       T.sl.max = String(N - 1);
       T.sl.value = String(clamp(Math.floor((S.P[n] - FRAME[n][0]) / STEP[n]), 0, N - 1));
     }
+    // the value under the crosshair: of the smoothed image when smoothing is on (from a plane through the point, else
+    // the 3D view's volume), else as stored
     function valueAt(L, mm) {
       const a = L.aff, d = L.dims, ijk = [0, 1, 2].map(ax => Math.round((mm[ax] - a[ax][3]) / a[ax][ax]));
       if (ijk.some((v, ax) => v < 0 || v >= d[ax])) return NaN;
-      const [s0, s1] = scOf(L);
-      return L.base[ijk[0] + d[0] * (ijk[1] + d[1] * ijk[2])] * s0 + s1;
+      if (smoothing(L)) {
+        for (const n of [2, 1, 0]) {
+          const p = L.sm.planes[AXIS_VIEW[n]];
+          if (p && p.k === ijk[n] && p.gen === L.sm.gen) { const [P, Q] = [0, 1, 2].filter(x => x !== n); return p.data[ijk[P] + d[P] * ijk[Q]]; }
+        }
+        const V = L.sm.vol;
+        if (!V || V.gen !== L.sm.gen) return NaN;
+        const c = [0, 1, 2].map(ax => clamp(Math.round((ijk[ax] - V.o[ax]) / V.d[ax]), 0, V.dims[ax] - 1));
+        return V.img[c[0] + V.dims[0] * (c[1] + V.dims[1] * c[2])] * V.sc[0] + V.sc[1];
+      }
+      return L.img[ijk[0] + d[0] * (ijk[1] + d[1] * ijk[2])] * L.sc[0] + L.sc[1];
     }
     const fmtV = (v, L) => !Number.isFinite(v) ? '–' : L.m.kind === 'ct' ? String(Math.round(v)) : fmtN(v);
     function drawStatus() {
@@ -699,9 +1100,8 @@ void main(){
       }
       $('readout').textContent = parts.join(' · ');
       $('where').textContent = S.P.map(v => v.toFixed(1)).join(', ') + ' mm';
-      const L = LAY[sel.overlay >= 0 ? sel.overlay : sel.base], lut = LUT[L.set.cmap] || LUT.gray, stops = [];
-      for (let i = 0; i <= 16; i++) { const q = Math.min(255, i * 16) * 3; stops.push(`rgb(${lut[q]},${lut[q + 1]},${lut[q + 2]}) ${(i / 16 * 100).toFixed(1)}%`); }
-      $('cbGrad').style.background = `linear-gradient(90deg,${stops.join(',')})`;
+      const L = LAY[sel.overlay >= 0 ? sel.overlay : sel.base];
+      $('cbGrad').style.background = gradCss(lutOf(L.set));
       $('cbLo').textContent = fmtN(L.set.lo); $('cbHi').textContent = fmtN(L.set.hi) + (L.m.units ? ' ' + L.m.units : '');
     }
     let dirty = false, raf = 0;
@@ -795,70 +1195,100 @@ void main(){
       on(T.sl, 'input', () => { const n = V.n; S.P[n] = FRAME[n][0] + (+T.sl.value + 0.5) * STEP[n]; clampP(); invalidate(); });
     });
 
-    // ---------- Smoothing (FWHM in mm) of a layer, in a worker, from the unsmoothed data ----------
-    // One job at a time: while the worker is busy, only the newest request waits, so dragging the slider over a
-    // large CT doesn't queue a job for every step.
-    const gWorker = mkWorker(SMOOTH_SRC), pending = LAY.map(() => 0), asked = LAY.map(() => 0);
-    let gBusy = false, gNext = null;
-    function smooth(li, fwhm) {
-      const L = LAY[li], tag = ++pending[li];
-      L.set.fwhm = fwhm; asked[li] = fwhm;
-      if (!(fwhm > 0) || !gWorker) {
-        L.smoothed = 0;
-        if (gNext && gNext.li === li) gNext = null;
-        if (L.base !== L.img) { L.base = L.img; L.ver++; followHi(li); invalidate(); mipData(li); }
+    // ---------- Smoothing: medviewer's filters, FWHM in 0.5 mm steps, live ----------
+    // The worker (SMOOTH_SRC) keeps a copy of each image being smoothed and its pyramid. Every change asks it for the
+    // planes the slices show, one request at a time (only the newest waits), so the slices follow the slider step by
+    // step; the whole volume, for the 3D view and its value readout, follows from the worker on its own. The colour
+    // scale stays the unfiltered image's, as in medviewer (Luke, 27 Oct 2026): smoothing changes the voxels drawn,
+    // never the limits or the histogram.
+    const sWorker = mkWorker(SMOOTH_SRC), sAsk = new Set(), sLog = [];   // sLog: the last answers' times, for tests
+    let sBusy = false, sQueued = false, sSent = 0, sFw = 0;
+    api.smoothLog = () => sLog.slice();
+    const smoothing = L => L.set.fwhm > 0 && !!sWorker;
+    const compsOf = L => (FILTERS[L.set.filter] || FILTERS.gaussian).map(([w, f]) => [w, f * L.set.fwhm]);   // [weight, sd mm]
+    // the slider: 0.5 mm steps to 40 mm, as medviewer; 0.05 mm to 4 mm for voxels under 0.25 mm (micro-CT)
+    const fwStep = L => Math.min(...L.pd) < 0.25 ? 0.05 : 0.5;
+    function smoothLoad(li) {
+      const L = LAY[li];
+      if (!sWorker || L.sm.loaded) return;
+      L.sm.loaded = true;
+      const A = L.img.slice();   // the worker's own copy (the page keeps drawing from the image)
+      sWorker.postMessage({cmd: 'load', li, A, sc: L.sc, dims: L.dims, pd: L.pd, min: L.min, max: L.max}, [A.buffer]);
+    }
+    function smoothDrop(li) {
+      const L = LAY[li];
+      L.sm.floor = ++L.sm.gen; L.sm.planes = {}; L.sm.vol = null; sAsk.delete(li);
+      if (sWorker && L.sm.loaded) sWorker.postMessage({cmd: 'drop', li});
+      L.sm.loaded = false;
+    }
+    // the plane to draw for a tile, asking for a newer one when it is not this slice at these settings; meanwhile the
+    // last one (so a drag shows each step as it comes, not the image as stored)
+    function planeFor(li, vn, k) {
+      const L = LAY[li];
+      if (!smoothing(L)) return null;
+      const p = L.sm.planes[vn];
+      if (!p || p.k !== k || p.gen !== L.sm.gen) askPlanes(li);
+      return p || null;
+    }
+    function askPlanes(li) {
+      sAsk.add(li);
+      if (!sQueued) { sQueued = true; queueMicrotask(() => { sQueued = false; sendPlanes(); }); }
+    }
+    function sendPlanes() {
+      if (sBusy || !sWorker || !alive) return;
+      for (const li of sAsk) {
+        sAsk.delete(li);
+        const L = LAY[li];
+        if (!smoothing(L) || (li !== sel.base && li !== sel.overlay)) continue;
+        smoothLoad(li);
+        // the slices of the tiles on screen (none in the 3D view alone: the request still starts the whole volume)
+        const want = Object.keys(TILE).filter(vn => TILE[vn].cv.offsetParent).map(vn => [VIEWS[vn].n, sliceK(L, VIEWS[vn].n)])
+          .filter(([n, k]) => k >= 0 && k < L.dims[n]);
+        sBusy = true; sSent = performance.now(); sFw = L.set.fwhm;
+        sWorker.postMessage({cmd: 'planes', li, gen: L.sm.gen, comps: compsOf(L), want});
         return;
       }
-      const job = {tag: li * 65536 + tag, li, dims: L.dims, sig: L.pd.map(p => fwhm / 2.3548 / p)};
-      if (gBusy) { gNext = job; return; }
-      runJob(job);
     }
-    // while a job runs, the Smoothing value of its image shows "…" (a full-resolution CT takes a few seconds)
-    const fwOut = li => document.getElementById(id((LAY[li].role === 'overlay' ? 'o' : 'b') + 'FwV'));
-    function runJob(job) {
-      gBusy = true;
-      const L = LAY[job.li], o = fwOut(job.li);
-      if (o) o.classList.add('ptv-busy');
-      gWorker.postMessage({tag: job.tag, data: L.img.slice(), sc: L.sc, dims: job.dims, sig: job.sig});
-    }
-    if (gWorker) gWorker.onmessage = e => {
-      const {tag, data} = e.data, li = Math.floor(tag / 65536);
-      gBusy = false;
-      root.querySelectorAll('.ptv-busy').forEach(x => x.classList.remove('ptv-busy'));
-      if (gNext && alive) { const j = gNext; gNext = null; runJob(j); }
-      if (!alive || !LAY[li] || tag % 65536 !== pending[li]) return;
-      LAY[li].base = data; LAY[li].smoothed = asked[li]; LAY[li].ver++; followHi(li); invalidate(); mipData(li);
-    };
-    // Smoothing lowers peaks. While the reader hasn't set the upper limit, it follows: scaled by how much the hottest
-    // spot (the starting point, or this image's hottest voxel) drops, so smoothed spheres keep their brightness and
-    // visibly spread, instead of only dimming.
-    function hotMm(L) {
-      if (!L.hot) { const g = L.sc[0] < 0 ? -1 : 1; let k = 0; for (let i = 1; i < L.img.length; i++) if (g * L.img[i] > g * L.img[k]) k = i;
-        const d = L.dims, ijk = [k % d[0], Math.floor(k / d[0]) % d[1], Math.floor(k / (d[0] * d[1]))];
-        L.hot = [0, 1, 2].map(a => L.aff[a][a] * ijk[a] + L.aff[a][3]); }
-      return L.hot;
-    }
-    function meanAt(arr, sc, L, mm) {   // the mean over the 3 x 3 x 3 voxels around a point, in physical units
-      const a = L.aff, d = L.dims, c = [0, 1, 2].map(ax => Math.round((mm[ax] - a[ax][3]) / a[ax][ax]));
-      let s = 0, n = 0;
-      for (let k = c[2] - 1; k <= c[2] + 1; k++) for (let j = c[1] - 1; j <= c[1] + 1; j++) for (let i = c[0] - 1; i <= c[0] + 1; i++) {
-        if (i < 0 || j < 0 || k < 0 || i >= d[0] || j >= d[1] || k >= d[2]) continue;
-        s += arr[i + d[0] * (j + d[1] * k)]; n++;
+    if (sWorker) sWorker.onmessage = e => {
+      const d = e.data, L = LAY[d.li];
+      if (!alive || !L) return;
+      if (d.cmd === 'planes') {
+        sBusy = false;
+        sLog.push({li: d.li, gen: d.gen, fwhm: sFw, n: d.planes.length, worker: +d.ms.toFixed(1), wait: +d.wait.toFixed(1), round: +(performance.now() - sSent).toFixed(1), at: performance.now()});
+        if (sLog.length > 400) sLog.shift();
+        if (d.gen > L.sm.floor && smoothing(L)) {
+          for (const p of d.planes) { const vn = AXIS_VIEW[p.n], o = L.sm.planes[vn]; if (!o || o.gen <= d.gen) L.sm.planes[vn] = {k: p.k, gen: d.gen, data: p.data}; }
+          L.sm.ms = d.ms;
+          if (d.planes.length) invalidate();
+        }
+        sendPlanes();
+      } else if (d.cmd === 'whole' && d.gen > L.sm.floor && !(L.sm.vol && L.sm.vol.gen >= d.gen) && smoothing(L)) {
+        // on its pyramid level's grid: sample i of axis a at the image's voxel o + i d
+        const aff = L.aff.map((row, r) => r > 2 ? row.slice() : row.map((v, c) => c === r ? v * d.d[r] : c === 3 ? v + L.aff[r][r] * d.o[r] : 0));
+        L.sm.vol = {img: d.A, sc: d.sc, dims: d.dims, aff, d: d.d, o: d.o, gen: d.gen, m: L.m};
+        sLog.push({li: d.li, gen: d.gen, fwhm: L.set.fwhm, whole: d.dims.join('x'), at: performance.now()});
+        fwBusy(d.li); mipData(d.li); drawStatus();
       }
-      return n ? s / n * sc[0] + sc[1] : NaN;
-    }
-    function followHi(li) {
+    };
+    // after a layer's smoothing width or kernel changed
+    function smoothChanged(li) {
       const L = LAY[li];
-      if (L.role !== 'overlay' || !L.set.hiAuto) return;
-      const start = Array.isArray(man.start_mm) && Number.isFinite(meanAt(L.img, L.sc, L, man.start_mm)) ? man.start_mm : hotMm(L);
-      const before = meanAt(L.img, L.sc, L, start), after = meanAt(L.base, scOf(L), L, start);
-      const r = L.base === L.img || !(before > 0) ? 1 : after / before;
-      L.set.hi = defaults(L).hi * r;
-      LAY.forEach(M => { if (M.set === L.set) M.ver++; });
-      const c = cardO;
-      if (c && sel.overlay === li) c.show();
-      drawStatus(); requestMip();
+      L.sm.gen++;
+      if (smoothing(L)) askPlanes(li);
+      else {
+        L.sm.floor = L.sm.gen; L.sm.planes = {}; L.sm.vol = null; sAsk.delete(li);
+        if (sWorker && L.sm.loaded) sWorker.postMessage({cmd: 'idle', li});
+        invalidate(); mipData(li);
+      }
+      fwBusy(li);
     }
+    // while the 3D view still shows an older smoothing, its Smoothing value shows "…"
+    function fwBusy(li) {
+      const L = LAY[li], o = document.getElementById(id((L.role === 'overlay' ? 'o' : 'b') + 'FwV'));
+      if (o && sel[L.role] === li) o.classList.toggle('ptv-busy', smoothing(L) && !(L.sm.vol && L.sm.vol.gen === L.sm.gen));
+    }
+    // what the 3D view draws of a layer: the image, or its smoothed volume (the newest finished)
+    const volOf = L => smoothing(L) && L.sm.vol ? L.sm.vol : L;
 
     // ---------- 3D view ----------
     const mWorker = mkWorker(MIP_SRC), mipCv = $('mip'), mipOff = document.createElement('canvas');
@@ -880,7 +1310,7 @@ void main(){
     let mipG = null;
     // an image into the GPU's texture: a patient CT as its MIP, a phantom's CT or another base image as a line integral
     const glLoad = li => GLV.upload(LAY[li].role === 'overlay' ? 'o' : 'b', LAY[li],
-      LAY[li].role === 'overlay' ? 'ov' : LAY[li].m.kind === 'ct' && LAY[li].m.window !== 'phantom' ? 'hu' : 'mu');
+      LAY[li].role === 'overlay' ? 'ov' : LAY[li].m.kind === 'ct' && LAY[li].m.window !== 'phantom' ? 'hu' : 'mu', volOf(LAY[li]));
     function mipAll() {
       if (GLV) {
         mipG = mipGrid();
@@ -904,8 +1334,10 @@ void main(){
         return;
       }
       if (!mWorker) return;
-      const L = LAY[li], big = L.base.byteLength > 32e6;
-      const d = big ? {vals: mipResample(mipG, L.base, scOf(L), L.dims, L.aff)} : {img: L.base, sc: scOf(L), dims: L.dims, aff: L.aff};
+      const L = LAY[li], V = volOf(L), big = V.img.byteLength > 32e6;
+      // the image's own extent, which a smoothed volume's grid reaches past
+      const clip = V === L ? null : [0, 1, 2].map(a => sortPair([L.aff[a][3] - 0.5 * L.aff[a][a], L.aff[a][3] + (L.dims[a] - 0.5) * L.aff[a][a]]));
+      const d = big ? {vals: mipResample(mipG, V.img, V.sc, V.dims, V.aff, clip)} : {img: V.img, sc: V.sc, dims: V.dims, aff: V.aff, clip};
       // a patient CT's 3D view is its MIP (the skeleton); a phantom's CT, flat in a MIP, stays a line integral
       const cmd = L.role === 'overlay' ? {cmd: 'ov'} : {cmd: 'base', kind: L.m.kind, scale: L.m.kind === 'ct' ? 1 : Math.max(1e-12, L.max),
         mip: L.m.kind === 'ct' && L.m.window !== 'phantom'};
@@ -914,7 +1346,7 @@ void main(){
     }
     function mipParams() {
       const O = sel.overlay >= 0 ? LAY[sel.overlay].set : null, B = sel.base >= 0 ? LAY[sel.base].set : null;
-      return {th: mipTheta * Math.PI / 180, lut: LUT[O ? O.cmap : 'gray'] || LUT.gray, lo: O ? O.lo : 0, hi: O ? O.hi : 1,
+      return {th: mipTheta * Math.PI / 180, lut: O ? lutOf(O) : LUT.gray, lo: O ? O.lo : 0, hi: O ? O.hi : 1,
         op: O ? (B ? Math.min(1, 0.4 + O.op) : 1) : 0, ctw: B ? B.op : 0, smooth: S.smooth};
     }
     function requestMip() {
@@ -993,96 +1425,260 @@ void main(){
     function setRot(v) { mipRot = v; $('rot').setAttribute('aria-pressed', String(v)); $('rot').textContent = v ? 'Rotating' : 'Paused'; }
     on($('rot'), 'click', () => setRot(!mipRot));
 
-    // ---------- layer controls ----------
+    // ---------- layer controls, as medviewer's Display panel ----------
+    // Per image: colour map (with swatches) and Reverse; a histogram of its values with a line at each limit to drag;
+    // Min and Max; presets; opacity; smoothing and its filter; folded away, Fade low and the histogram's range.
     const cards = $('cards');
     // the header's Image switch serves the colour images, or the grey ones when only they come in several
     const headRole = OVS.length > 1 ? 'overlay' : BASES.length > 1 ? 'base' : null;
+    const fmt = v => String(+(+v).toPrecision(6));
+    const fmtMm = v => (v > 0 ? String(+v.toFixed(2)) : '0') + ' mm';
+    // the histogram's range: the reader's, else the data's (a CT's within -1024 to 3071 HU, so reconstruction outliers
+    // don't squeeze it), taking in the starting limits
+    function spanOf(L) {
+      if (L.set.span) return L.set.span;
+      const d = defaults(L);
+      let a = Math.min(L.min, d.lo), b = Math.max(L.max, d.hi);
+      if (L.m.kind === 'ct') { a = Math.max(a, Math.min(-1024, d.lo)); b = Math.min(b, Math.max(3071, d.hi)); }
+      return b > a ? [a, b] : [a, a + 1];
+    }
+    // f(value) for the voxels of a grid of at most 2 million
+    function sampleEach(L, f) {
+      const [nx, ny, nz] = L.dims, s = Math.max(1, Math.ceil(Math.cbrt(L.img.length / 2e6))), [s0, s1] = L.sc, A = L.img;
+      for (let k = 0; k < nz; k += s) for (let j = 0; j < ny; j += s) { const o = nx * (j + ny * k); for (let i = 0; i < nx; i += s) f(A[o + i] * s0 + s1); }
+    }
+    function histOf(L, a, b) {   // 256 bins over a..b, of the unsmoothed image
+      const key = a + ':' + b;
+      if (L.hist && L.hist.key === key) return L.hist.c;
+      const c = new Float64Array(256), f = 256 / (b - a);
+      sampleEach(L, v => { const x = Math.floor((v - a) * f); if (x >= 0 && x < 256) c[x]++; else if (v === b) c[255]++; });
+      L.hist = {key, c};
+      return c;
+    }
+    // the 0.5, 99.5 and 99.9 percentiles (a colour image's of its positive values), medviewer's automatic limits
+    function pctOf(L) {
+      if (L.pct) return L.pct;
+      const pos = L.role === 'overlay', a = pos ? 0 : L.min, B = 8192, h = new Float64Array(B), f = B / ((L.max - a) || 1);
+      let n = 0;
+      sampleEach(L, v => { if (pos && !(v > 0)) return; h[clamp(Math.floor((v - a) * f), 0, B - 1)]++; n++; });
+      const at = p => { let s = 0; const want = p / 100 * n; for (let i = 0; i < B; i++) { s += h[i]; if (s >= want) return a + (i + 1) / f; } return L.max; };
+      return (L.pct = n ? {p05: at(0.5), p995: at(99.5), p999: at(99.9)} : {p05: L.min, p995: L.max, p999: L.max});
+    }
+    // limit presets, medviewer's: CT windows; else Auto (its percentiles), Max, Half max; and the tutorial's own
+    // starting limits (Default)
+    function presets(L) {
+      if (L.m.kind === 'ct') return [...Object.values(CT_WIN), ['Full', L.min, L.max]];
+      const d = defaults(L), p = pctOf(L);
+      return L.role === 'overlay' ? [['Default', d.lo, d.hi], ['Auto', 0, p.p999], ['Max', 0, L.max], ['Half max', 0, L.max / 2]]
+        : [['Default', d.lo, d.hi], ['Auto', p.p05, p.p995], ['Full', L.min, L.max]];
+    }
     function card(role) {
       const list = role === 'overlay' ? OVS : BASES;
       if (!list.length) return null;
-      const r = role === 'overlay' ? 'o' : 'b', I = s => id(r + s), first = LAY[list[0]];
+      const r = role === 'overlay' ? 'o' : 'b', I = s => id(r + s), first = LAY[list[0]], over = role === 'overlay';
       const pick = list.length > 1 && role !== headRole
         ? `<div class="ptv-ctl"><label for="${I('Pick')}">Image</label><select id="${I('Pick')}">${list.map(i => `<option value="${i}">${esc(LAY[i].m.label || LAY[i].m.name)}</option>`).join('')}</select></div>` : '';
-      const isCT = l => l.m.kind === 'ct';
-      const win = role === 'base'
-        ? `<div class="ptv-ctl"><label for="${I('Win')}">Window</label><select id="${I('Win')}"></select></div>` : '';
-      const el = document.createElement('div');
+      const num = (k, label) => `<label class="ptv-num">${label}<input type="number" id="${I(k)}" step="any" inputmode="decimal"></label>`;
+      const el = document.createElement('section');
       el.className = 'ptv-layer';
       el.innerHTML = `<h3><span id="${I('Name')}">${esc(first.m.name)}</span><small id="${I('Units')}"></small></h3>${pick}` +
-        `<div class="ptv-ctl"><label for="${I('Cmap')}">Colormap</label><select id="${I('Cmap')}">${CMAP_ORDER.map(c => `<option value="${c}">${c}</option>`).join('')}</select></div>${win}` +
-        `<div class="ptv-ctl"><label for="${I('LoR')}">Lower limit</label><input type="range" id="${I('LoR')}" aria-label="Lower limit slider"><input type="number" id="${I('Lo')}" step="any" inputmode="decimal" aria-label="Lower limit"></div>` +
-        `<div class="ptv-ctl"><label for="${I('HiR')}">Upper limit</label><input type="range" id="${I('HiR')}" aria-label="Upper limit slider"><input type="number" id="${I('Hi')}" step="any" inputmode="decimal" aria-label="Upper limit"></div>` +
-        `<div class="ptv-ctl"><label for="${I('Fw')}">Smoothing</label><input type="range" id="${I('Fw')}" min="0" max="40" step="1" value="0"><output id="${I('FwV')}" for="${I('Fw')}">0 mm</output></div>` +
-        `<div class="ptv-ctl"><label for="${I('Op')}">Opacity</label><input type="range" id="${I('Op')}" min="0" max="100" step="5"><output id="${I('OpV')}" for="${I('Op')}"></output></div>`;
+        `<div class="ptv-cmrow"><div class="ptv-cm"><button type="button" class="ptv-cmbtn" id="${I('Cm')}" aria-haspopup="listbox" aria-expanded="false" aria-controls="${I('CmList')}">` +
+        `<span class="ptv-sw" id="${I('CmSw')}"></span><span class="ptv-cmname" id="${I('CmName')}"></span></button>` +
+        `<ul class="ptv-cmlist" id="${I('CmList')}" role="listbox" tabindex="-1" aria-label="Colour map" hidden>` +
+        CMAP_LIST.map(([k, t]) => `<li role="option" id="${I('cm-' + k)}" data-k="${k}"><span class="ptv-sw" style="background:${gradCss(LUT[k])}"></span>${esc(t)}</li>`).join('') +
+        `</ul></div><label class="ptv-check"><input type="checkbox" id="${I('Rev')}">Reverse</label></div>` +
+        `<canvas class="ptv-hist" id="${I('Hist')}" role="img" aria-label="Histogram of the image's values; drag a line to move the lower or the upper limit"></canvas>` +
+        `<div class="ptv-mm">${num('Lo', 'Min')}${num('Hi', 'Max')}</div>` +
+        `<div class="ptv-pre" id="${I('Pre')}" role="group" aria-label="Limit presets"></div>` +
+        `<div class="ptv-ctl"><label for="${I('Op')}">Opacity</label><input type="range" id="${I('Op')}" min="0" max="100" step="5"><output id="${I('OpV')}" for="${I('Op')}"></output></div>` +
+        `<div class="ptv-ctl ptv-sep"><label for="${I('Fw')}">Smoothing</label><input type="range" id="${I('Fw')}" min="0" max="80" step="1" value="0"><output id="${I('FwV')}" for="${I('Fw')}"></output></div>` +
+        `<div class="ptv-ctl"><label for="${I('Flt')}">Filter</label><select id="${I('Flt')}">${FILTER_LIST.map(([k, t]) => `<option value="${k}">${t}</option>`).join('')}</select></div>` +
+        `<details class="ptv-adv"><summary>Advanced</summary><div class="ptv-advbody">` +
+        (over ? `<label class="ptv-check"><input type="checkbox" id="${I('Fade')}">Fade low values</label>` : '') +
+        `<div class="ptv-span"><span>Histogram</span><input type="number" id="${I('SpLo')}" step="any" inputmode="decimal" aria-label="Histogram from">` +
+        `<input type="number" id="${I('SpHi')}" step="any" inputmode="decimal" aria-label="Histogram to">` +
+        `<button type="button" class="ptv-btn ptv-mini" id="${I('SpRe')}" title="The data's range" aria-label="Histogram range back to the data's">↺</button></div></div></details>`;
       cards.appendChild(el);
       const E = s => document.getElementById(I(s)), cur = () => LAY[sel[role]];
-      const windows = L => { if (isCT(L)) return CT_WINDOWS; const d = defaults(L); return [['default', 'Default', d.lo, d.hi], ['full', 'Full range', L.min, L.max]]; };
-      function show() {    // put the selected layer's settings into the controls
-        const L = cur(), s = L.set, over = role === 'overlay';
-        const lo = Math.min(L.min, s.lo, over ? 0 : isCT(L) ? -1350 : L.min), hi = Math.max(over ? L.max * 1.5 : L.max, s.hi, isCT(L) ? 1050 : -Infinity);
-        const step = (hi - lo) / 1000 || 1;
-        E('Name').textContent = L.m.name; E('Units').textContent = L.m.units || '';
-        E('Cmap').value = s.cmap;
-        ['LoR', 'HiR'].forEach(k => { const x = E(k); x.min = String(lo); x.max = String(hi); x.step = String(step); });
-        E('Lo').value = String(+s.lo.toPrecision(6)); E('Hi').value = String(+s.hi.toPrecision(6)); E('LoR').value = String(s.lo); E('HiR').value = String(s.hi);
-        E('Fw').value = String(s.fwhm); E('FwV').textContent = s.fwhm + ' mm';
-        E('Op').value = String(Math.round(s.op * 100)); E('OpV').textContent = Math.round(s.op * 100) + '%';
-        if (E('Win')) {
-          const ws = windows(L);
-          E('Win').innerHTML = ws.map(([k, t]) => `<option value="${k}">${esc(t)}</option>`).join('') + '<option value="custom" hidden>Custom</option>';
-          const hit = ws.find(w => w[2] === s.lo && w[3] === s.hi);
-          E('Win').value = hit ? hit[0] : 'custom';
-        }
-        if (E('Pick')) E('Pick').value = String(sel[role]);
-      }
       function changed(L) { LAY.forEach(M => { if (M.set === L.set) M.ver++; }); invalidate(); requestMip(); }
+      // ----- limits: the histogram's lines, Min and Max, presets
+      function showLimits() {
+        const s = cur().set;
+        if (document.activeElement !== E('Lo')) E('Lo').value = fmt(s.lo);
+        if (document.activeElement !== E('Hi')) E('Hi').value = fmt(s.hi);
+        E('Pre').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.lo === s.lo && +b.dataset.hi === s.hi)));
+        drawHist();
+      }
       function limits(lo, hi) {
         const L = cur(), ok = Number.isFinite(lo) && Number.isFinite(hi) && lo < hi;
         ['Lo', 'Hi'].forEach(k => E(k).setAttribute('aria-invalid', String(!ok)));
         if (!ok) { err('The lower limit must be below the upper limit.'); return; }
-        err(''); L.set.lo = lo; L.set.hi = hi; L.set.hiAuto = false; changed(L);
-        if (E('Win')) { const hit = windows(L).find(w => w[2] === lo && w[3] === hi); E('Win').value = hit ? hit[0] : 'custom'; }
+        err(''); L.set.lo = lo; L.set.hi = hi; changed(L); showLimits();
       }
-      on(E('LoR'), 'input', () => { E('Lo').value = String(+(+E('LoR').value).toPrecision(6)); limits(+E('LoR').value, parseFloat(E('Hi').value)); });
-      on(E('HiR'), 'input', () => { E('Hi').value = String(+(+E('HiR').value).toPrecision(6)); limits(parseFloat(E('Lo').value), +E('HiR').value); });
-      ['Lo', 'Hi'].forEach(k => on(E(k), 'change', () => {
-        const lo = parseFloat(E('Lo').value), hi = parseFloat(E('Hi').value);
-        if (Number.isFinite(lo)) E('LoR').value = String(lo);
-        if (Number.isFinite(hi)) E('HiR').value = String(hi);
-        limits(lo, hi);
-      }));
-      on(E('Cmap'), 'change', () => { const L = cur(); L.set.cmap = E('Cmap').value; changed(L); drawStatus(); });
-      on(E('Op'), 'input', () => { const L = cur(), v = +E('Op').value; E('OpV').textContent = v + '%'; L.set.op = v / 100; changed(L); });
-      on(E('Fw'), 'input', () => { const v = +E('Fw').value; E('FwV').textContent = v + ' mm'; smooth(sel[role], v); });
-      if (E('Win')) on(E('Win'), 'change', () => {
-        const w = windows(cur()).find(x => x[0] === E('Win').value);
+      const hist = E('Hist'), hg = hist.getContext('2d'), GRAB = coarse ? 14 : 7;
+      let hov = '', drag = '', dragX = 0;
+      function geom() {
+        const L = cur(), [a, b] = spanOf(L), k = dpr(), W = hist.width;
+        return {L, a, b, k, W, x: v => clamp((v - a) / (b - a), 0, 1) * (W - 2 * k) + k, v: x => a + (x - k) / (W - 2 * k) * (b - a)};
+      }
+      function drawHist() {
+        const rc = hist.getBoundingClientRect();
+        if (!rc.width) return;
+        const k = dpr(), W = Math.round(rc.width * k), H = Math.round(rc.height * k);
+        if (hist.width !== W || hist.height !== H) { hist.width = W; hist.height = H; }
+        const G = geom(), s = G.L.set, c = histOf(G.L, G.a, G.b), strip = Math.round(8 * k), bot = H - strip - Math.round(4 * k);
+        hg.clearRect(0, 0, W, H);
+        // log counts, as a filled outline
+        let mx = 0;
+        const lc = Array.from(c, v => Math.log1p(v));
+        for (const v of lc) mx = Math.max(mx, v);
+        hg.fillStyle = '#3d4250'; hg.beginPath(); hg.moveTo(G.x(G.a), bot);
+        for (let i = 0; i < 256; i++) {
+          const y = bot - (mx ? lc[i] / mx : 0) * (bot - 3 * k);
+          hg.lineTo(G.x(G.a + i / 256 * (G.b - G.a)), y); hg.lineTo(G.x(G.a + (i + 1) / 256 * (G.b - G.a)), y);
+        }
+        hg.lineTo(G.x(G.b), bot); hg.closePath(); hg.fill();
+        hg.fillStyle = '#262a33'; hg.fillRect(0, bot, W, Math.max(1, Math.round(k)));
+        const xl = G.x(s.lo), xh = G.x(s.hi);
+        hg.fillStyle = 'rgba(15,17,22,0.62)'; hg.fillRect(0, 0, xl, bot); hg.fillRect(xh, 0, W - xh, bot);
+        // the colour map along the range, as the limits put it
+        const lut = lutOf(s), span = Math.max(1e-12, s.hi - s.lo), im = hg.createImageData(W, strip);
+        for (let x = 0; x < W; x++) {
+          const q = Math.round(clamp((G.v(x + 0.5) - s.lo) / span, 0, 1) * 255) * 3;
+          for (let y = 0; y < strip; y++) { const o = 4 * (x + W * y); im.data[o] = lut[q]; im.data[o + 1] = lut[q + 1]; im.data[o + 2] = lut[q + 2]; im.data[o + 3] = 255; }
+        }
+        hg.putImageData(im, 0, H - strip);
+        const act = drag || hov;
+        for (const [w, x] of [['lo', xl], ['hi', xh]]) {
+          const lit = act === w || act === 'both';
+          if (lit) { hg.fillStyle = 'rgba(243,164,74,0.28)'; hg.fillRect(x - 4 * k, 0, 8 * k, H); }
+          hg.fillStyle = lit ? '#f3a44a' : '#dfe2ea';
+          const lw = (lit ? 2.5 : 1.5) * k; hg.fillRect(x - lw / 2, 0, lw, H);
+        }
+      }
+      const px = e => (e.clientX - hist.getBoundingClientRect().left) * dpr();
+      // the line within reach of x: 'lo', 'hi', 'both' (on top of each other) or ''
+      function lineAt(x) {
+        const G = geom(), dl = Math.abs(x - G.x(G.L.set.lo)), dh = Math.abs(x - G.x(G.L.set.hi));
+        if (Math.min(dl, dh) > GRAB * G.k) return '';
+        return Math.abs(dl - dh) < 1 ? 'both' : dl < dh ? 'lo' : 'hi';
+      }
+      on(hist, 'pointerdown', e => {
+        const w = lineAt(px(e));
         if (!w) return;
-        E('Lo').value = String(w[2]); E('Hi').value = String(w[3]); E('LoR').value = String(w[2]); E('HiR').value = String(w[3]);
-        limits(w[2], w[3]);
+        e.preventDefault(); drag = w; dragX = px(e);
+        try { hist.setPointerCapture(e.pointerId); } catch (_) {}
+        drawHist();
       });
+      on(hist, 'pointermove', e => {
+        const x = px(e);
+        if (!drag) { const h = lineAt(x); if (h !== hov) { hov = h; hist.style.cursor = h ? 'ew-resize' : ''; drawHist(); } return; }
+        if (drag === 'both') { if (x === dragX) return; drag = x > dragX ? 'hi' : 'lo'; }
+        // only that line moves, and only within the histogram's range (medviewer's)
+        const G = geom(), s = G.L.set, v = clamp(G.v(x), G.a, G.b), eps = (G.b - G.a) * 1e-4;
+        if (drag === 'lo') limits(Math.min(v, s.hi - eps), s.hi); else limits(s.lo, Math.max(v, s.lo + eps));
+      });
+      const up = () => { if (drag) { drag = ''; drawHist(); } };
+      on(hist, 'pointerup', up); on(hist, 'pointercancel', up);
+      on(hist, 'pointerleave', () => { if (!drag && hov) { hov = ''; hist.style.cursor = ''; drawHist(); } });
+      ['Lo', 'Hi'].forEach(k => on(E(k), 'change', () => limits(parseFloat(E('Lo').value), parseFloat(E('Hi').value))));
+      on(E('Pre'), 'click', e => { const b = e.target.closest('button[data-lo]'); if (b) limits(+b.dataset.lo, +b.dataset.hi); });
+      ['SpLo', 'SpHi'].forEach(k => on(E(k), 'change', () => {
+        const a = parseFloat(E('SpLo').value), b = parseFloat(E('SpHi').value), ok = Number.isFinite(a) && Number.isFinite(b) && a < b;
+        ['SpLo', 'SpHi'].forEach(q => E(q).setAttribute('aria-invalid', String(!ok)));
+        if (ok) { cur().set.span = [a, b]; drawHist(); }
+      }));
+      on(E('SpRe'), 'click', () => { const L = cur(); L.set.span = null; const sp = spanOf(L); E('SpLo').value = fmt(sp[0]); E('SpHi').value = fmt(sp[1]); drawHist(); });
+      // ----- colour map: a list with swatches (a native select can't show them), Reverse, Fade low
+      const cmBtn = E('Cm'), cmList = E('CmList'), items = [...cmList.querySelectorAll('li')];
+      let cmAt = 0;
+      function cmShow() {
+        const s = cur().set;
+        E('CmSw').style.background = gradCss(lutOf(s));
+        E('CmName').textContent = (CMAP_LIST.find(c => c[0] === s.cmap) || [0, s.cmap])[1];
+        items.forEach(li => li.setAttribute('aria-selected', String(li.dataset.k === s.cmap)));
+      }
+      function setCmap(k) { const L = cur(); L.set.cmap = k; changed(L); cmShow(); drawHist(); }
+      function cmMark(i) {
+        cmAt = clamp(i, 0, items.length - 1);
+        items.forEach((li, j) => li.classList.toggle('ptv-act', j === cmAt));
+        cmList.setAttribute('aria-activedescendant', items[cmAt].id);
+        items[cmAt].scrollIntoView({block: 'nearest'});
+      }
+      const cmClose = () => { cmOpen(false); cmBtn.focus(); };
+      function cmOpen(open) {
+        cmList.hidden = !open; cmBtn.setAttribute('aria-expanded', String(open));
+        if (open) {
+          if (popClose && popClose !== cmClose) popClose();
+          popClose = cmClose;
+          cmMark(items.findIndex(li => li.dataset.k === cur().set.cmap)); cmList.focus();
+        } else if (popClose === cmClose) popClose = null;
+      }
+      on(cmBtn, 'click', () => cmOpen(cmList.hidden));
+      on(cmBtn, 'keydown', e => {   // up and down change the map without opening the list, as a select does
+        if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+        e.preventDefault();
+        const i = CMAP_LIST.findIndex(c => c[0] === cur().set.cmap);
+        setCmap(CMAP_LIST[clamp(i + (e.key === 'ArrowDown' ? 1 : -1), 0, CMAP_LIST.length - 1)][0]);
+      });
+      on(cmList, 'click', e => { const li = e.target.closest('li[data-k]'); if (li) { setCmap(li.dataset.k); cmClose(); } });
+      on(cmList, 'keydown', e => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); cmMark(cmAt + (e.key === 'ArrowDown' ? 1 : -1)); }
+        else if (e.key === 'Home' || e.key === 'End') { e.preventDefault(); cmMark(e.key === 'Home' ? 0 : items.length - 1); }
+        else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setCmap(items[cmAt].dataset.k); cmClose(); }
+        else if (e.key === 'Tab') cmOpen(false);
+      });
+      on(document, 'pointerdown', e => { if (!cmList.hidden && !cmBtn.parentNode.contains(e.target)) cmOpen(false); }, true);
+      on(E('Rev'), 'change', () => { const L = cur(); L.set.reverse = E('Rev').checked; changed(L); cmShow(); drawHist(); });
+      if (E('Fade')) on(E('Fade'), 'change', () => { const L = cur(); L.set.fade = E('Fade').checked; changed(L); });
+      // ----- opacity, smoothing and its filter
+      on(E('Op'), 'input', () => { const L = cur(), v = +E('Op').value; E('OpV').textContent = v + '%'; L.set.op = v / 100; changed(L); });
+      function fwShow() { const L = cur(); E('Fw').value = String(Math.round(L.set.fwhm / fwStep(L))); E('FwV').textContent = fmtMm(L.set.fwhm); fwBusy(sel[role]); }
+      on(E('Fw'), 'input', () => {
+        const L = cur(), li = sel[role];
+        L.set.fwhm = +(+E('Fw').value * fwStep(L)).toFixed(3); E('FwV').textContent = fmtMm(L.set.fwhm);
+        smoothChanged(li);
+      });
+      // the worker gets its copy of the image (and makes its pyramid) once the pointer comes over Smoothing, so the
+      // first steps of a drag are quick
+      const warm = () => smoothLoad(sel[role]);
+      on(E('Fw').parentNode, 'pointerenter', warm); on(E('Fw'), 'pointerdown', warm); on(E('Fw'), 'focus', warm);
+      on(E('Flt'), 'change', () => { const L = cur(); L.set.filter = E('Flt').value; if (L.set.fwhm > 0) smoothChanged(sel[role]); });
       if (E('Pick')) on(E('Pick'), 'change', () => pickLayer(role, +E('Pick').value));
-      return {show};
+      function show() {    // the selected layer's settings into the controls
+        const L = cur(), s = L.set;
+        E('Name').textContent = L.m.name; E('Units').textContent = L.m.units || '';
+        cmShow(); E('Rev').checked = !!s.reverse;
+        if (E('Fade')) E('Fade').checked = !!s.fade;
+        E('Pre').innerHTML = presets(L).map(([t, a, b]) =>
+          `<button type="button" data-lo="${a}" data-hi="${b}" title="${fmt(a)} to ${fmt(b)}${L.m.units ? ' ' + esc(L.m.units) : ''}">${esc(t)}</button>`).join('');
+        E('Op').value = String(Math.round(s.op * 100)); E('OpV').textContent = Math.round(s.op * 100) + '%';
+        fwShow(); E('Flt').value = s.filter;
+        const sp = spanOf(L); E('SpLo').value = fmt(sp[0]); E('SpHi').value = fmt(sp[1]);
+        if (E('Pick')) E('Pick').value = String(sel[role]);
+        showLimits();
+      }
+      return {show, drawHist};
     }
     const cardO = card('overlay'), cardB = card('base');
+    if (typeof ResizeObserver !== 'undefined') {   // the histograms follow the rail's width
+      const ro = new ResizeObserver(() => [cardO, cardB].forEach(c => c && c.drawHist()));
+      ro.observe(cards); cleanups.push(() => ro.disconnect());
+    }
     function pickLayer(role, li) {
-      // the image left behind drops its smoothed copy (32-bit floats, twice its own size): only the images on screen
-      // keep one, so smoothing a large CT and switching between images doesn't add up
+      // the image left behind drops its smoothing (the worker's copy and pyramid, its planes and volume): only the
+      // images on screen keep one, so smoothing a large CT and switching between images doesn't add up
       const was = sel[role];
-      if (was >= 0 && was !== li) {
-        const P = LAY[was];
-        pending[was]++;
-        if (gNext && gNext.li === was) gNext = null;
-        if (P.base !== P.img) { P.base = P.img; P.smoothed = 0; P.ver++; }
-      }
+      if (was >= 0 && was !== li) smoothDrop(was);
       sel[role] = li; setFrame(); clampP();
       Object.values(TILE).forEach(T => T.cache.clear());
-      const L = LAY[li];
-      if ((L.smoothed || 0) !== (L.set.fwhm || 0)) smooth(li, L.set.fwhm);   // a shared smoothing width
       const c = role === 'overlay' ? cardO : cardB;
       if (c) c.show();
       if (headRole === role) $('pick').value = String(li);
+      if (smoothing(LAY[li])) smoothChanged(li);   // a smoothing width shared by its scale group
       invalidate(); mipAll();
     }
+
     if (headRole) {
       const list = headRole === 'overlay' ? OVS : BASES;
       $('pick').innerHTML = list.map(i => `<option value="${i}">${esc(LAY[i].m.label || LAY[i].m.name)}</option>`).join('');
@@ -1104,7 +1700,7 @@ void main(){
     }
 
     reset = function () {
-      LAY.forEach((L, i) => { L.base = L.img; L.smoothed = 0; L.ver++; pending[i]++; });
+      LAY.forEach((L, i) => { smoothDrop(i); L.ver++; });
       assignSettings();
       Object.assign(sel, firstSel());
       if (headRole) $('pick').value = String(sel[headRole]);
@@ -1130,5 +1726,5 @@ void main(){
     return api;
   }
 
-  window.PTViewer = {mount, version: '1.0'};
+  window.PTViewer = {mount, version: '1.1', smoothEngine};   // smoothEngine: for tests
 })();
