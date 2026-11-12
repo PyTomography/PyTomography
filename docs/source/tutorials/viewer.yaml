@@ -18,7 +18,7 @@
 #     array:      expression for the 3D image (torch or numpy, axes x, y, z as PyTomography stores them), with
 #     affine:     expression for its 4 x 4 voxel-to-patient matrix in LPS mm: object_meta.affine for a reconstruction
 #     units:      shown in the readout (an image: layer defaults to the Image's units)
-#     colormap, range, opacity, window (ct: phantom | soft | bone | lung | full): display defaults. SPECT and PET
+#     colormap, range, opacity, window (ct: phantom | soft | bone | lung | brain | full): display defaults. SPECT and PET
 #                 default to PyTomography's PET colour scale ('pet'; other overlays to inferno, anatomy to gray), from
 #                 0 to their hottest voxel inside the anatomy (CT above -500 HU), so a hot voxel at the edge of the
 #                 field of view doesn't set the scale. Without an anatomy image, nothing bounds it: give
@@ -355,7 +355,7 @@ tutorials:
   # ---------- Proton CT ----------
   t_pct_abdomen:
     title: Single-sided proton CT of the abdomen
-    description: The relative stopping power (RSP) from a quarter of the scan's protons, by SART and by FBP, and the true RSP
+    description: The relative stopping power (RSP) from all of the scan's protons, by SART and by FBP, and the true RSP
     credit: GATE simulation of a CT from TCIA's PSMA-PET-CT-Lesions (Jeblick et al., doi:10.7937/r7ep-3x37, CC BY 4.0); these images are CC BY 4.0 too
     layers:
     - {name: SART, kind: image, array: sart, affine: object_meta.affine, units: RSP, range: [0.8, 1.2], scale_group: rsp}

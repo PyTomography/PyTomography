@@ -1,6 +1,6 @@
 {
  "host": "https://huggingface.co/datasets/PyTomography/Tutorial-Images/resolve/{revision}/{path}",
- "revision": "1cc4086d7ab04d796f1cecdbf41a6002eb142f57",
+ "revision": "23e4759280161bcd6d8b07bcfc39c4a90d5f1088",
  "prefix": "v4.0.0",
  "tutorials": {
   "t_CT_GEN3": {
@@ -32,8 +32,8 @@
    "layers": [
     "OSEM"
    ],
-   "bytes": 274340,
-   "manifest_sha256": "6b5f7d96adf20c9c5306824a10b7933abefa8d5e3e23ead3665d6ba6acc62339",
+   "bytes": 276116,
+   "manifest_sha256": "5d63e19b8194ace41cd6a951b49a685d9afc43a5b90085940f1aeaa81ff7717c",
    "thumb": true
   },
   "t_GE_HDF5": {
@@ -133,8 +133,8 @@
     "Smoothed (20 mm FWHM)",
     "Unsmoothed"
    ],
-   "bytes": 15572724,
-   "manifest_sha256": "706a79d8b9e5c6401383430078e8736de932a0bbb5e95899546be9de8bb07cbb",
+   "bytes": 15570672,
+   "manifest_sha256": "434f6656bc546c2abe29dc3d2e0f880867e70cab328595479b69595a50e73127",
    "thumb": true
   },
   "t_ac225_dualpeak": {
@@ -146,8 +146,8 @@
     "218 keV",
     "440 keV"
    ],
-   "bytes": 16938537,
-   "manifest_sha256": "2bea7c13529469c921288ef622b964fe57b1c28e83384f7c13c02aa0d6e8fb99",
+   "bytes": 16939229,
+   "manifest_sha256": "01e19c5e7bafc29edbeee0e22a233afb396521c4d7f849dac3310d71c23a1c51",
    "thumb": true
   },
   "t_ac225_simind_recon": {
@@ -158,8 +158,8 @@
     "spectarf PSF",
     "Gaussian PSF"
    ],
-   "bytes": 2155750,
-   "manifest_sha256": "4060482c87d3f3dcb06432cd93d23779a8186bae179fddeeea79c2bc5281e204",
+   "bytes": 2159915,
+   "manifest_sha256": "8144590d0233265a65fcf3010f16504c74a0c6222eb4c4af0b3f8277d59a361b",
    "thumb": true
   },
   "t_accuracy_known_truth": {
@@ -171,8 +171,8 @@
     "BSREM",
     "True activity"
    ],
-   "bytes": 264360,
-   "manifest_sha256": "0949c9ce5b43384f932bb970db50f8cc77735742c593a39baf4a35306b5eeef6",
+   "bytes": 264549,
+   "manifest_sha256": "f09bfcb865df0c224f175cf42ab80e898bd7306d1e148fccfa7d894aab202283",
    "thumb": true
   },
   "t_algorithms": {
@@ -185,8 +185,8 @@
     "OSMAPOSL",
     "KEM"
    ],
-   "bytes": 4536262,
-   "manifest_sha256": "65d4a7e3366556ce8ab27de537ecf769d34d82a56023d4e2c6e47b1fb846b0e7",
+   "bytes": 4535386,
+   "manifest_sha256": "dfc4ddc627d37dfb7be3005d7ccd1bd136aa865f2ac15ac6331dac030fca1721",
    "thumb": true
   },
   "t_algorithms_measured": {
@@ -201,8 +201,8 @@
     "KEM",
     "Scanner's reconstruction"
    ],
-   "bytes": 5079522,
-   "manifest_sha256": "f759e76ac269b74629dfcf0ea912d220723596dd70ea71ed9f57b4cca824f772",
+   "bytes": 5077185,
+   "manifest_sha256": "1d63eed8eb3951ad1112007f1f54bdfd0bf291cc8193c34987385569bcf9464b",
    "thumb": true
   },
   "t_cgls": {
@@ -214,8 +214,8 @@
     "Preconditioned CGLS, unweighted, stopped by the kidneys",
     "OSEM, stopped by the kidneys"
    ],
-   "bytes": 70166878,
-   "manifest_sha256": "a63ebf89b002e21d2f4dda9f42a9714b02fa6cd23c8b53dc1e6c502bb897cb6a",
+   "bytes": 70173104,
+   "manifest_sha256": "1597a950b4d1c2c515931635ab87738eb4d2a3f2cce56164ca7dcef94ba581d3",
    "thumb": true
   },
   "t_dicomdata": {
@@ -226,8 +226,8 @@
     "PyTomography OSEM 4 × 8",
     "Scanner's reconstruction"
    ],
-   "bytes": 3968593,
-   "manifest_sha256": "0b34e33bf613ce072d6ff3b94c3e6b2b6967d4ba4d4b232b9c8ad09f396a5b85",
+   "bytes": 3970090,
+   "manifest_sha256": "d62ae57708a6a859cf0649d3de8c9c9b52b11f2e0301b0b54f1ff0a824a7d77b",
    "thumb": true
   },
   "t_dicommultibed": {
@@ -239,8 +239,8 @@
     "Upper bed alone",
     "Lower bed alone"
    ],
-   "bytes": 68928372,
-   "manifest_sha256": "38ee727ad2efed9944529711c0939bec3c5c6131d6f0323f9f2c641898a34f89",
+   "bytes": 68932760,
+   "manifest_sha256": "455b7d1f0a5d4217d59dee41c0ccde47e0f0e8a71b6800918bf12170742a8384",
    "thumb": true
   },
   "t_dualpeak": {
@@ -250,8 +250,8 @@
     "CT",
     "OSEM, both photopeaks"
    ],
-   "bytes": 3709667,
-   "manifest_sha256": "af7741388d132594b31e902b458e9f511d2430007ee1240a6f12c01a8e296fcc",
+   "bytes": 3710936,
+   "manifest_sha256": "95815153c4035d27a0136c9cd454ec3a3d2fcb4ef6a81aad0aef195b1abd5455",
    "thumb": true
   },
   "t_examplesystemmatrix": {
@@ -286,8 +286,8 @@
     "FBP, no attenuation correction",
     "OSEM 4 × 8"
    ],
-   "bytes": 5049863,
-   "manifest_sha256": "006458004724c5888a4f6e05bf74414b6be5a8163a78ace13345a2369af13cb7",
+   "bytes": 5050367,
+   "manifest_sha256": "8f9b66f2451c138484f225f23b19964ca243ab7a27708f99d9bcafaa09b8db20",
    "thumb": true
   },
   "t_kernel_deep_kernel_spect_recon": {
@@ -300,20 +300,20 @@
     "KEM 50, kernel from the PET intensities",
     "KEM 50, deep-learned kernel"
    ],
-   "bytes": 5368759,
-   "manifest_sha256": "e5dc4cddc47c20ce97f00dadb0ae827b05a13f389d12d3b04b4aeaf68cc04a95",
+   "bytes": 5407071,
+   "manifest_sha256": "2350f4bd5fc25e6f9de8bc38fc2195e736fa970e2f90811686b46e90733b09e8",
    "thumb": true
   },
   "t_pct_abdomen": {
    "title": "Single-sided proton CT of the abdomen",
-   "description": "The relative stopping power (RSP) from a quarter of the scan's protons, by SART and by FBP, and the true RSP",
+   "description": "The relative stopping power (RSP) from all of the scan's protons, by SART and by FBP, and the true RSP",
    "layers": [
     "SART",
     "FBP, second pass",
     "True RSP"
    ],
-   "bytes": 19823518,
-   "manifest_sha256": "74036db0bce839e9fc5976a99f3e3edec1e31c855412b0d6e0ce56c40f074b18",
+   "bytes": 19023972,
+   "manifest_sha256": "801b76a620ff4577092517152eaad34c90fb8375df03ef24675b3f5358ea22a0",
    "thumb": true
   },
   "t_pet_introduction": {
@@ -348,8 +348,8 @@
     "Attenuation",
     "OSEM"
    ],
-   "bytes": 151841,
-   "manifest_sha256": "776b8fdda7ebef551992449f3f160f18a4140dada05a49d9eb3af899eba34e48",
+   "bytes": 151548,
+   "manifest_sha256": "e22c92c8030a60302a3e6e59ea4514ee1b9ac2881144c6cfe3369b168f5312c9",
    "thumb": true
   },
   "t_spect_mc": {
@@ -360,8 +360,8 @@
     "Monte Carlo scatter",
     "Analytical scatter"
    ],
-   "bytes": 537703,
-   "manifest_sha256": "822e42f1c2d890036a031967051dc57b7b8faa21870e5be9b83ec076cf6f189f",
+   "bytes": 525376,
+   "manifest_sha256": "2f98dbf0afec4188fcf0112ccc0844a1f1f0627c993c11d0c5587a6ea065f863",
    "thumb": true
   },
   "t_spect_mc2": {
@@ -371,8 +371,8 @@
     "CT",
     "Monte Carlo scatter"
    ],
-   "bytes": 3697987,
-   "manifest_sha256": "6fed311f30f56ba11da5651bf28b49008a86ccacb7852ee38a2481f8292ee6a4",
+   "bytes": 3697062,
+   "manifest_sha256": "f92ee1f9606ce4e16f0d34cc57b6fd370c627ad76c1f09d840ee1f88b32f4fd4",
    "thumb": true
   },
   "t_starguide": {
@@ -383,8 +383,8 @@
     "PyTomography OSEM",
     "Scanner's reconstruction"
    ],
-   "bytes": 18181128,
-   "manifest_sha256": "7c54f5925b10abef7575fff707e219493fb96b8f1dbe02b53812a3c509c83ec8",
+   "bytes": 18184595,
+   "manifest_sha256": "48f782c8dc08299bbe36839512fa365c865a9ea1c0f05606b052edaed1dcd227",
    "thumb": true
   },
   "t_uncertainty_pet": {
@@ -405,8 +405,8 @@
     "Stitched OSEM",
     "Lower bed alone (the one the uncertainty is for)"
    ],
-   "bytes": 67820735,
-   "manifest_sha256": "37b9b0192da74016f4d89f6a911818585eaccf209d9fb9a83512593774581c85",
+   "bytes": 67822039,
+   "manifest_sha256": "606be8a1b38dc3932bfeeb160d75d743d2482925813ae6108c98ab8993635522",
    "thumb": true
   }
  }

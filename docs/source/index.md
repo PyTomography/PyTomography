@@ -8,13 +8,8 @@ html_theme.sidebar_secondary.remove: true
 
 <section class="pt-hero">
   <div class="pt-hero-text">
-    <p class="pt-eyebrow">Open source · GPU accelerated · 4.0 preview</p>
+    <p class="pt-eyebrow">Open source · GPU accelerated · 4.0</p>
     <p class="pt-h1">Quantitative SPECT, PET and CT reconstruction</p>
-    <p class="pt-lede">Read projections straight from vendor DICOM, SIMIND or GATE. Model attenuation, scatter and the full collimator response. Reconstruct on the GPU with OSEM, BSREM, KEM, or a network you design yourself.</p>
-    <div class="pt-cta">
-      <a class="pt-btn pt-btn-primary" href="tutorials/index.html">Start with a tutorial</a>
-      <a class="pt-btn" href="gallery.html">See the gallery</a>
-    </div>
     <div class="pt-install"><span class="pt-prompt">$</span><code>pip install pytomography</code><button type="button" class="pt-copy" data-copy="pip install pytomography">Copy</button></div>
   </div>
   <figure class="pt-hero-fig">
@@ -24,9 +19,9 @@ html_theme.sidebar_secondary.remove: true
 </section>
 
 <section class="pt-modalities" aria-label="Supported modalities">
-  <div><b>SPECT</b><span>DICOM from GE, Siemens and StarGuide, and SIMIND. Multiple beds and photopeaks, cardiac reorientation, hybrid Monte Carlo scatter.</span></div>
-  <div><b>PET</b><span>GATE sinograms and list mode, time of flight, GE Discovery MI and PETSIRD. Randoms and single scatter simulation.</span></div>
-  <div><b>CT</b><span>Raw DICOM-CT-PD projections from 3rd-generation clinical scanners, and cone-beam micro-CT. Helical filtered back projection, FDK and OS-SART.</span></div>
+  <div><b>SPECT</b><span>DICOM from GE, Siemens and StarGuide, and SIMIND. Multiple beds and photopeaks, cardiac reorientation, hybrid Monte Carlo scatter.</span><div class="pt-sample-row"><button type="button" class="pt-sample" data-ptv-sample="t_dicommultibed">Open viewer</button><small>Lu-177 PSMA patient</small></div></div>
+  <div><b>PET</b><span>GATE sinograms and list mode, time of flight, GE Discovery MI and PETSIRD. Randoms and single scatter simulation.</span><div class="pt-sample-row"><button type="button" class="pt-sample" data-ptv-sample="t_PETSIRD">Open viewer</button><small>NEMA IQ phantom (PETSIRD)</small></div></div>
+  <div><b>CT</b><span>Raw DICOM-CT-PD projections from 3rd-generation clinical scanners, and cone-beam micro-CT. Helical filtered back projection, FDK and OS-SART.</span><div class="pt-sample-row"><button type="button" class="pt-sample" data-ptv-sample="t_CT_GEN3">Open viewer</button><small>Chest CT patient</small></div></div>
   <div><b>Your own system</b><span>Every system matrix is a forward and back projector you can replace, so new geometries, priors and networks reuse every algorithm.</span></div>
 </section>
 
@@ -45,21 +40,27 @@ html_theme.sidebar_secondary.remove: true
 
 ```python
 from pytomography import io
-from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
-from pytomography.projectors.SPECT import SPECTSystemMatrix
+from pytomography.transforms.SPECT import (
+    SPECTAttenuationTransform, SPECTPSFTransform)
+from pytomography.projectors.SPECT import (
+    SPECTSystemMatrix)
 from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.algorithms import OSEM
 
-# 1. Data: Lu-177 SPECT/CT exported from the scanner, every energy window
-projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)
+# 1. Data: Lu-177 SPECT/CT, every energy window
+data = io.SPECT.read_dicom(file_NM)
+projections, object_meta, proj_meta = data
 photopeak = projections[0]
-scatter = io.SPECT.energy_window_scatter(projections, proj_meta, peak=0, lower=1, upper=2)
+scatter = io.SPECT.energy_window_scatter(
+    projections, proj_meta, peak=0, lower=1, upper=2)
 
-# 2. Physics, in mm
-photon_energy = proj_meta.energy_windows[0].photon_energy  # 208 keV
-mu = io.attenuation_map(files_CT, object_meta, energy=photon_energy)  # 1/mm
+# 2. Physics, in mm and keV (208 keV here)
+photon_energy = proj_meta.energy_windows[0].photon_energy
+mu = io.attenuation_map(files_CT, object_meta,
+                        energy=photon_energy)  # 1/mm
 attenuation = SPECTAttenuationTransform(mu)
-psf_meta = io.SPECT.collimator_psf("SY-ME", photon_energy, intrinsic_fwhm=3.8)
+psf_meta = io.SPECT.collimator_psf(
+    "SY-ME", photon_energy, intrinsic_fwhm=3.8)
 psf = SPECTPSFTransform(psf_meta)
 system_matrix = SPECTSystemMatrix(
     obj2obj_transforms=[attenuation, psf],
@@ -69,24 +70,12 @@ system_matrix = SPECTSystemMatrix(
 )
 
 # 3. Statistics and algorithm
-likelihood = PoissonLogLikelihood(system_matrix, photopeak, scatter)
+likelihood = PoissonLogLikelihood(
+    system_matrix, photopeak, scatter)
 recon = OSEM(likelihood)(n_iters=4, n_subsets=8)
 ```
 
 </div>
-</section>
-
-<section class="pt-showcase">
-  <div class="pt-showcase-head">
-    <p class="pt-eyebrow">Gallery</p>
-    <h2 class="pt-h2">Used on patients and phantoms</h2>
-  </div>
-  <div class="pt-shots">
-    <a href="gallery.html#figure-1-lu-177-spect"><img src="_images/figure2.jpg" alt="Lu-177 PSMA SPECT reconstructed with four algorithms" loading="lazy"><span><b>Lu-177 PSMA SPECT</b>Four algorithms compared with a commercial reconstruction</span></a>
-    <a href="gallery.html#figure-2-ac-225-spect"><img src="_images/ac225_patient_dual.jpg" alt="Ac-225 PSMA SPECT at four time points" loading="lazy"><span><b>Ac-225 PSMA SPECT</b>Monte Carlo PSF modelling and uncertainty over four time points</span></a>
-    <a href="gallery.html#figure-3-pet-with-deep-image-prior"><img src="_images/figure4_left_hoz.jpg" alt="Brain PET reconstructed with OSEM and Deep Image Prior" loading="lazy"><span><b>PET with Deep Image Prior</b>Low-count TOF list mode with a network as the image model</span></a>
-    <a href="gallery.html#figure-4-clinical-ct"><img src="_images/CT_slice.png" alt="Coronal slice of a clinical CT reconstructed from its raw projections" loading="lazy"><span><b>Clinical CT</b>Reconstructed from the scanner's raw DICOM-CT-PD projections</span></a>
-  </div>
 </section>
 
 <section class="pt-join">
@@ -133,13 +122,8 @@ recon = OSEM(likelihood)(n_iters=4, n_subsets=8)
 
 install
 tutorials/index
-gallery
 architecture
-conventions
 API <api/pytomography/index>
 Contribute <contributing/index>
-Migrate to v4 <migration>
-Memory and speed <memory>
 SPECT parameters <spect_parameters>
-For AI agents <ai>
 ```

@@ -2,6 +2,7 @@
 # Build locally with:  sphinx-autobuild docs/source docs/build/html
 import os
 import sys
+import tomllib
 
 sys.path.insert(0, os.path.abspath("../../src"))
 sys.path.insert(0, os.path.abspath("_ext"))
@@ -12,9 +13,9 @@ project = "PyTomography"
 author = "Luke Polson and the PyTomography contributors"
 copyright = "2023-2026, the PyTomography contributors"
 
-# The site documents the upcoming 4.0 release; the release workflow will set this
-# from the git tag once pyproject.toml is bumped.
-release = os.environ.get("PYTOMOGRAPHY_DOCS_VERSION", "4.0 preview")
+# The site documents the version in pyproject.toml; PYTOMOGRAPHY_DOCS_VERSION overrides it.
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "pyproject.toml"), "rb") as _f:
+    release = os.environ.get("PYTOMOGRAPHY_DOCS_VERSION") or tomllib.load(_f)["project"]["version"]
 version = release
 
 # -- General configuration ---------------------------------------------------
@@ -150,9 +151,9 @@ html_context = {
 html_theme_options = {
     "logo": {"text": "PyTomography"},
     "navbar_align": "left",
-    # Installation, Tutorials, Gallery, Architecture, API and Contribute in the top bar; Migrate to v4 and the rest
-    # under More
-    "header_links_before_dropdown": 6,
+    # Installation, Tutorials, Architecture and API in the top bar; Contribute and SPECT parameters under More. The
+    # migration guide, Memory and speed and For AI agents are linked from other pages (orphan pages, not in the menu)
+    "header_links_before_dropdown": 4,
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
     "icon_links": [
         {"name": "GitHub", "url": "https://github.com/PyTomography/PyTomography", "icon": "fa-brands fa-github"},
@@ -162,7 +163,6 @@ html_theme_options = {
          "icon": "fa-brands fa-discourse"},
         {"name": "PyPI", "url": "https://pypi.org/project/pytomography/", "icon": "fa-brands fa-python"},
     ],
-    "announcement": "You are reading the preview of the PyTomography 4.0 documentation. Release target: 30 October 2026.",
     "use_edit_page_button": True,
     "show_toc_level": 2,
     # tutorial pages use the full width: their headings sit in the section navigation instead (js/pytomo-tutorial.js).
