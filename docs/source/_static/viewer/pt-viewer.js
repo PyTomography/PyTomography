@@ -641,9 +641,10 @@ void main(){
     const empty = gl.createTexture();   // bound where there is no image, so every sampler has a texture
     gl.bindTexture(gl.TEXTURE_3D, empty); gl.texImage3D(gl.TEXTURE_3D, 0, gl.R8, 1, 1, 1, 0, gl.RED, gl.UNSIGNED_BYTE, new Uint8Array(1));
     const lutTex = gl.createTexture();
-    let lutOf = null, lost = false;
+    let lutOf = null, lost = false, disposed = false;
     const T = {b: null, o: null};
-    cv.addEventListener('webglcontextlost', e => { e.preventDefault(); lost = true; onLost(); });
+    // a context lost by the GPU (not by dispose(), which loses it on purpose, after the viewer may have closed)
+    cv.addEventListener('webglcontextlost', e => { e.preventDefault(); lost = true; if (!disposed) onLost(); });
     function clear(slot) { if (T[slot]) gl.deleteTexture(T[slot].tex); T[slot] = null; }
     // an image into its texture, a slice at a time (no full-size copy); false when it is larger than the GPU allows.
     // V: what is drawn of layer L, the image itself or its smoothed volume (volOf), whose grid may reach past the
@@ -717,6 +718,7 @@ void main(){
       return cv;
     }
     function dispose() {
+      disposed = true;
       clear('b'); clear('o');
       const x = gl.getExtension('WEBGL_lose_context');
       if (x && !lost) x.loseContext();
@@ -1295,7 +1297,7 @@ void main(){
     let mipTheta = 0, mipRot = !reduceMotion, mipDrag = false, mipBusy = false, mipAgain = false, mipFrame = false, mipZoom = 1, mipSeen = true;
     const mipShown = () => !!mipCv.offsetParent && mipSeen;
     // on the GPU when it can; if its context is lost, on the CPU from then on
-    let GLV = makeGLMip(() => { GLV = null; mipAll(); });
+    let GLV = makeGLMip(() => { GLV = null; if (alive) mipAll(); });
     cleanups.push(() => { if (GLV) GLV.dispose(); });
     function mipGrid(cpu) {
       const ext3 = FRAME.map(([a, b]) => b - a), shown = [sel.base, sel.overlay].filter(i => i >= 0).map(i => LAY[i]);
@@ -1312,6 +1314,7 @@ void main(){
     const glLoad = li => GLV.upload(LAY[li].role === 'overlay' ? 'o' : 'b', LAY[li],
       LAY[li].role === 'overlay' ? 'ov' : LAY[li].m.kind === 'ct' && LAY[li].m.window !== 'phantom' ? 'hu' : 'mu', volOf(LAY[li]));
     function mipAll() {
+      if (!alive) return;
       if (GLV) {
         mipG = mipGrid();
         GLV.clear('b'); GLV.clear('o');
