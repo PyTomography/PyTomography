@@ -1,3 +1,7 @@
+---
+orphan: true
+---
+
 # Using these docs with AI assistants
 
 Coding assistants such as Claude often answer from what they saw during training, which may be an older version of PyTomography. These docs publish machine-readable versions of every page so an assistant can work from the current release instead.
@@ -63,7 +67,7 @@ io.save_dicom(recon, folder, object_meta)                              # placed 
 
 Every length is in mm, every angle in degrees, every energy in keV and every time in s; names carry no unit suffixes,
 and every Gaussian is given by its FWHM. Grids are LPS with k running foot to head, and `object_meta.affine` places
-every voxel. [Conventions](conventions.md) has the whole list, and every docstring states its arguments' units. Before
+every voxel. The Architecture page's <a href="architecture.html#io">Data and conventions</a> tab has the whole list, and every docstring states its arguments' units. Before
 writing a reader call, look the source up on the Architecture page's <a href="architecture.html#io">Data and conventions</a>
 tab: its conventions, what its reader does, the vendor rules it relies on and the tutorials that use it. The
 <a href="architecture.html#io-standard">standard form</a> is one table there, and the same data are JSON at
@@ -75,7 +79,7 @@ Before running a large reconstruction, have the agent read [Memory and speed](me
 
 ## Tips that avoid common mistakes
 
-- Tell the assistant which PyTomography version you have installed (`pytomography.__version__`). v4 changed every reader (lengths in mm), the names (no unit suffixes, Gaussians by FWHM: see [Conventions](conventions.md)), the PET requirements and the PSF interface.
+- Tell the assistant which PyTomography version you have installed (`pytomography.__version__`). v4 changed every reader (lengths in mm), the names (no unit suffixes, Gaussians by FWHM: see the Architecture page's <a href="architecture.html#io">Data and conventions</a> tab), the PET requirements and the PSF interface.
 - Ask it to check tensor shapes and devices against the docstrings. Projections, objects and attenuation maps each have a fixed axis order, and mixing CPU and GPU tensors is the most common error.
 - Ask for code that runs on a small subset of angles first, then scale up.
 - Ask it to print `estimate_memory()` before the heavy step and to call `pytomography.set_memory_budget(...)` for the machine, so that a reconstruction does not run out of memory halfway.

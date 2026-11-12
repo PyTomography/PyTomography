@@ -151,9 +151,9 @@ html_context = {
 html_theme_options = {
     "logo": {"text": "PyTomography"},
     "navbar_align": "left",
-    # Installation, Tutorials, Gallery, Architecture, API and Contribute in the top bar; Migrate to v4 and the rest
-    # under More
-    "header_links_before_dropdown": 6,
+    # Installation, Tutorials, Architecture and API in the top bar; Contribute and SPECT parameters under More. The
+    # migration guide, Memory and speed and For AI agents are linked from other pages (orphan pages, not in the menu)
+    "header_links_before_dropdown": 4,
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
     "icon_links": [
         {"name": "GitHub", "url": "https://github.com/PyTomography/PyTomography", "icon": "fa-brands fa-github"},

@@ -1744,8 +1744,8 @@
    "code": "object[:, :, k]"
   },
   {
-   "topic": "Lengths",
-   "rule": "mm everywhere, SPECT included: voxel sizes, radii, offsets, PSF widths, filter FWHM, TOF. Attenuation in 1/mm.",
+   "topic": "Units",
+   "rule": "Lengths in mm everywhere, SPECT included (voxel sizes, radii, offsets, PSF widths, filter FWHM, TOF), attenuation in 1/mm, angles in degrees, energies in keV, times in s. Every Gaussian is given by its FWHM, in mm or degrees even where the data are in steps. Names carry no unit suffix (photon_energy, fwhm_r); other programs' units (CT-PD radians, SIMIND cm, PETSIRD ms) are converted where they are read.",
    "code": "GaussianFilter(20): 2 cm"
   },
   {
