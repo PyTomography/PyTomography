@@ -100,9 +100,9 @@ section#pytomography > h1 {
 .pt-modalities b { font: 800 1.15rem var(--pst-font-family-heading); }
 .pt-modalities span { color: var(--pt-ink-2); font-size: 0.9rem; line-height: 1.5; }
 
-/* the code sits under its text, at the full width, so its lines fit without a scroll bar */
-.pt-split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; align-items: start; }
-.pt-split-text { max-width: 46rem; }
+/* text and code side by side; the code's lines are at most 58 characters, so they fit its column */
+.pt-split { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 40px; align-items: start; }
+@media (max-width: 960px) { .pt-split { grid-template-columns: minmax(0, 1fr); } }
 .pt-split-text p { color: var(--pt-ink-2); margin-top: 12px; }
 .pt-steps { display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; margin-top: 22px; }
 .pt-steps dt { font: 600 0.78rem/1.9 var(--pst-font-family-monospace); color: var(--pt-purple); white-space: nowrap; }

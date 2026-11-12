@@ -10,9 +10,6 @@ html_theme.sidebar_secondary.remove: true
   <div class="pt-hero-text">
     <p class="pt-eyebrow">Open source · GPU accelerated · 4.0</p>
     <p class="pt-h1">Quantitative SPECT, PET and CT reconstruction</p>
-    <div class="pt-cta">
-      <a class="pt-btn pt-btn-primary" href="tutorials/index.html">Start with a tutorial</a>
-    </div>
     <div class="pt-install"><span class="pt-prompt">$</span><code>pip install pytomography</code><button type="button" class="pt-copy" data-copy="pip install pytomography">Copy</button></div>
   </div>
   <figure class="pt-hero-fig">
@@ -43,21 +40,27 @@ html_theme.sidebar_secondary.remove: true
 
 ```python
 from pytomography import io
-from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
-from pytomography.projectors.SPECT import SPECTSystemMatrix
+from pytomography.transforms.SPECT import (
+    SPECTAttenuationTransform, SPECTPSFTransform)
+from pytomography.projectors.SPECT import (
+    SPECTSystemMatrix)
 from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.algorithms import OSEM
 
-# 1. Data: Lu-177 SPECT/CT exported from the scanner, every energy window
-projections, object_meta, proj_meta = io.SPECT.read_dicom(file_NM)
+# 1. Data: Lu-177 SPECT/CT, every energy window
+data = io.SPECT.read_dicom(file_NM)
+projections, object_meta, proj_meta = data
 photopeak = projections[0]
-scatter = io.SPECT.energy_window_scatter(projections, proj_meta, peak=0, lower=1, upper=2)
+scatter = io.SPECT.energy_window_scatter(
+    projections, proj_meta, peak=0, lower=1, upper=2)
 
-# 2. Physics, in mm
-photon_energy = proj_meta.energy_windows[0].photon_energy  # 208 keV
-mu = io.attenuation_map(files_CT, object_meta, energy=photon_energy)  # 1/mm
+# 2. Physics, in mm and keV (208 keV here)
+photon_energy = proj_meta.energy_windows[0].photon_energy
+mu = io.attenuation_map(files_CT, object_meta,
+                        energy=photon_energy)  # 1/mm
 attenuation = SPECTAttenuationTransform(mu)
-psf_meta = io.SPECT.collimator_psf("SY-ME", photon_energy, intrinsic_fwhm=3.8)
+psf_meta = io.SPECT.collimator_psf(
+    "SY-ME", photon_energy, intrinsic_fwhm=3.8)
 psf = SPECTPSFTransform(psf_meta)
 system_matrix = SPECTSystemMatrix(
     obj2obj_transforms=[attenuation, psf],
@@ -67,7 +70,8 @@ system_matrix = SPECTSystemMatrix(
 )
 
 # 3. Statistics and algorithm
-likelihood = PoissonLogLikelihood(system_matrix, photopeak, scatter)
+likelihood = PoissonLogLikelihood(
+    system_matrix, photopeak, scatter)
 recon = OSEM(likelihood)(n_iters=4, n_subsets=8)
 ```
 
