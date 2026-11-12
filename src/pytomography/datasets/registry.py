@@ -421,10 +421,10 @@ DATASETS = {
                 " (Version 2). The Cancer Imaging Archive (2026). doi:10.7937/r7ep-3x37",
         "tutorials": ["t_pct_abdomen"],
         "parts": [
-            # The scan: a quarter of its 188.6 million protons, made with io.PCT.load_listmode(..., fraction=0.25,
-            # seed=0) of the full file (abdomen330_spot_likely.h5, 7.5 GB), which is in the same record
-            {"kind": "file", "url": "https://zenodo.org/records/23815070/files/abdomen330_spot_likely_quarter.h5",
-             "size": 1886075952, "sha256": "3840ff5d3ac43645981174009293d278025b567172c55e75fb8231dfee897493"},
+            # The scan: all 188.6 million protons. The record also holds a quarter of them in a file of their own
+            # (abdomen330_spot_likely_quarter.h5, 1.9 GB: io.PCT.load_listmode(..., fraction=0.25, seed=0) of this one)
+            {"kind": "file", "url": "https://zenodo.org/records/23815070/files/abdomen330_spot_likely.h5",
+             "size": 7544143752, "sha256": "65181e583d6f837eeb1fe11a352dabc172b3996dc4a4e6921f8795656a8d45e7"},
             # The true relative stopping power, and 1 liver, 2 left kidney, 3 right kidney, 4 spleen, on one grid:
             # 370 x 314 x 57 voxels of 0.976562 x 0.976562 x 2.5 mm about the rotation axis (the tutorial's grid)
             {"kind": "file", "url": "https://zenodo.org/records/23815070/files/truth_rsp.nii.gz",

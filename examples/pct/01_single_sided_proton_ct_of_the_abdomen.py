@@ -23,12 +23,11 @@ from pytomography import io
 from pytomography.projectors.PCT import PCTSystemMatrix, hull_from_image
 from pytomography.algorithms import FilteredBackProjection, SART
 
-# Memory: the scan (a quarter of the simulation's protons, 47 million) takes 1.9 GB of RAM, and the tutorial peaks at
-# about 7 GB of RAM and 1 GB of GPU memory (measured on Windows); the filtered back projection prints its estimate
-# before it runs (estimate_memory). Protons go to the GPU a view at a time, in calls of at most 1.5 GB, so RAM_GB
-# changes nothing here. To use less RAM, read fewer protons: io.PCT.load_listmode(..., fraction=0.5) keeps half of
-# each view's protons as it reads (noisier images). The record's full file (all 188.6 million protons) holds 7.5 GB
-# of protons.
+# Memory: the scan (all 188.6 million protons of the simulation) takes 7.5 GB of RAM, and the tutorial peaks at
+# about 16.5 GB of RAM and 1.6 GB of GPU memory (measured on Windows); the filtered back projection prints its
+# estimate before it runs (estimate_memory). Protons go to the GPU a view at a time, in calls of at most 1.5 GB, so
+# RAM_GB changes nothing here. To use less RAM, read fewer protons: io.PCT.load_listmode(..., fraction=0.25) keeps a
+# quarter of each view's protons as it reads (1.9 GB, and about twice the noise in the images).
 RAM_GB = 25
 pytomography.set_memory_budget(RAM_GB)
 
@@ -37,7 +36,7 @@ folder = DATA / 'PCT' / 'GATE-Abdomen330-DTC'
 truth = io.load_image(folder / 'truth_rsp.nii.gz')  # the RSP the simulation used
 
 t0 = time.time()
-wepl, object_meta, proj_meta = io.PCT.load_listmode(folder / 'abdomen330_spot_likely_quarter.h5',
+wepl, object_meta, proj_meta = io.PCT.load_listmode(folder / 'abdomen330_spot_likely.h5',
                                                     dr=truth.voxel_size, shape=truth.shape)
 print(proj_meta)
 print(f"read in {time.time() - t0:.0f} s; WEPL from {float(wepl.min()):.0f} to {float(wepl.max()):.0f} mm")
