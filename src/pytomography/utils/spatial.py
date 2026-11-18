@@ -105,13 +105,16 @@ def rotate_cached(x: torch.Tensor, angle, mode: str = 'bilinear') -> torch.Tenso
     grid = _rotation_grid(float(angle), H, W, x.device, x.dtype)
     return F.grid_sample(x, grid.expand(B, -1, -1, -1), mode=mode, padding_mode='zeros', align_corners=True)
 
-def rotation_transpose_bytes(H: int, W: int, dtype: torch.dtype = torch.float32) -> int:
+def rotation_transpose_bytes(H: int, W: int, dtype: torch.dtype = torch.float32, device=None) -> int:
     """The most memory one cached transpose of :func:`rotate_cached_transpose` takes, in bytes, for [H, W] images: at
-    most four weights per pixel (one in nearest mode), each with an int32 column index, and the int32 row pointers."""
+    most four weights per pixel (one in nearest mode), each with an int32 column index, and the int32 row pointers. On
+    MPS, which stores it in COO, each weight has two int64 indices instead."""
+    if device is not None and torch.device(device).type == 'mps':
+        return 4 * H * W * (torch.empty((), dtype=dtype).element_size() + 16)
     return 4 * H * W * (torch.empty((), dtype=dtype).element_size() + 4) + 4 * (H * W + 1)
 
 def _rotation_transpose(angle: float, H: int, W: int, device, dtype, mode: str = 'bilinear') -> torch.Tensor:
-    """The transpose :math:`M^T` of the rotation :math:`M` that :func:`rotate_cached` applies to [H, W] images, as a sparse CSR matrix [H*W, H*W] (pixel ``h * W + w``, int32 indices), built once and cached, like the grid, per angle, size, device, type and mode.
+    """The transpose :math:`M^T` of the rotation :math:`M` that :func:`rotate_cached` applies to [H, W] images, as a sparse CSR matrix [H*W, H*W] (pixel ``h * W + w``, int32 indices; sparse COO on MPS, which has no CSR), built once and cached, like the grid, per angle, size, device, type and mode.
 
     :math:`M` gives output pixel ``p`` the input pixels around the point the cached grid maps it to, with the weights ``grid_sample`` gives them (``align_corners=True``, zeros outside): it is built from the same grid with ``grid_sample``'s own arithmetic (on the CPU, as its CPU kernel computes them), so that its weights equal those ``grid_sample`` uses, to float rounding (measured at most 1.2e-7 apart on a GPU), and the corners outside the image are dropped. It is stored transposed (sorted by input pixel), ready for the back projection's sparse-dense product, and its rows are sorted, so the product is deterministic."""
     key = (round(float(angle), 6), H, W, str(device), dtype, mode)
@@ -147,12 +150,15 @@ def _rotation_transpose(angle: float, H: int, W: int, device, dtype, mode: str =
     rows, cols, values = torch.cat(rows), torch.cat(cols), torch.cat(values)
     order = torch.argsort(rows * (H * W) + cols)
     rows, cols, values = rows[order], cols[order], values[order]
-    crow = torch.zeros(H * W + 1, dtype=torch.int64, device=device)
-    crow[1:] = torch.cumsum(torch.bincount(rows, minlength=H * W), 0)
-    with warnings.catch_warnings():
-        warnings.filterwarnings('ignore', message='Sparse CSR tensor support is in beta state')
-        transpose = torch.sparse_csr_tensor(crow.to(torch.int32), cols.to(torch.int32), values, (H * W, H * W),
-                                            check_invariants=False)
+    if torch.device(device).type == 'mps':          # MPS has no sparse CSR; the sorted COO indices are coalesced
+        transpose = torch.sparse_coo_tensor(torch.stack([rows, cols]), values, (H * W, H * W), is_coalesced=True)
+    else:
+        crow = torch.zeros(H * W + 1, dtype=torch.int64, device=device)
+        crow[1:] = torch.cumsum(torch.bincount(rows, minlength=H * W), 0)
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', message='Sparse CSR tensor support is in beta state')
+            transpose = torch.sparse_csr_tensor(crow.to(torch.int32), cols.to(torch.int32), values, (H * W, H * W),
+                                                check_invariants=False)
     _ROTATION_TRANSPOSES[key] = transpose
     return transpose
 

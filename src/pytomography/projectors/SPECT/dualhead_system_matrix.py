@@ -257,7 +257,7 @@ class SPECTSystemMatrix(SystemMatrix):
                  MemoryPart(f'H_m^T 1 of {n} subset{"s" if n > 1 else ""}', **on_device(device, n * image)),
                  MemoryPart('images of an update', **on_device(device, 3 * image)),
                  MemoryPart('rotation grids of every view (cached)', **on_device(device, grids_per_view * n_views * padded_shape[0] * padded_shape[1] * 2 * 4)),
-                 MemoryPart('transposed rotations of every view, for back projection (cached)', **on_device(device, n_views * rotation_transpose_bytes(padded_shape[0], padded_shape[1])))]
+                 MemoryPart('transposed rotations of every view, for back projection (cached)', **on_device(device, n_views * rotation_transpose_bytes(padded_shape[0], padded_shape[1], device=device)))]
         ram = gpu = temporaries = 0.0
         for transform in self.obj2obj_transforms:
             r, g, t = _transform_memory(transform, padded_shape, n_views)

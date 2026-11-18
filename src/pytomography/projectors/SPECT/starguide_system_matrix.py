@@ -321,7 +321,7 @@ class StarGuideSystemMatrix(SystemMatrix):
                  MemoryPart('images of an update', **on_device(device, 3 * image)),
                  MemoryPart('geometry and PSF kernels of every view (cached)', **on_device(device, geometry)),
                  MemoryPart('rotation grids of every angle (cached)', **on_device(device, (1 + attenuations) * n_angles * Lx * Ly * 8)),
-                 MemoryPart('transposed rotations of every angle, for back projection (cached)', **on_device(device, n_angles * rotation_transpose_bytes(Lx, Ly)))]
+                 MemoryPart('transposed rotations of every angle, for back projection (cached)', **on_device(device, n_angles * rotation_transpose_bytes(Lx, Ly, device=device)))]
         ram = gpu = shared_temporaries = psf_temporaries = 0.0
         slab = 4.0 * B * Lx * W * Lz
         for transform in shared_transforms:                           # one after another: the largest counts
