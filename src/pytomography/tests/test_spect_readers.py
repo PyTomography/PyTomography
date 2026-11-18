@@ -281,6 +281,23 @@ def test_unknown_vendors_warn(tmp_path):
     assert np.allclose(object_meta.centre, CENTRE)                # IPP (0, 0): placed as Siemens'
 
 
+def test_missing_image_orientation_is_taken_as_unflipped(tmp_path):
+    """A head whose ImageOrientationPatient is empty (some GE Infinia files) or missing reads as the same file with
+    columns along the detector and rows from head to foot, and warns."""
+    _write_nm(tmp_path / 'nm.dcm', **CASES['ge-one-detector-CW'])
+    read, object_meta, proj_meta = _read(tmp_path / 'nm.dcm')
+    ds = pydicom.dcmread(tmp_path / 'nm.dcm')
+    ds.DetectorInformationSequence[0].ImageOrientationPatient = None
+    ds.save_as(tmp_path / 'empty.dcm')
+    del ds.DetectorInformationSequence[0].ImageOrientationPatient
+    ds.save_as(tmp_path / 'missing.dcm')
+    for name in ('empty.dcm', 'missing.dcm'):
+        with pytest.warns(UserWarning, match='no ImageOrientationPatient'):
+            read_no_iop, object_meta_no_iop, proj_meta_no_iop = SPECT.read_dicom(str(tmp_path / name))
+        assert torch.equal(read_no_iop, read) and np.allclose(object_meta_no_iop.centre, object_meta.centre)
+        assert torch.equal(proj_meta_no_iop.angles, proj_meta.angles)
+
+
 def test_projection_files_are_not_images(tmp_path):
     from pytomography.io import load_image
     _write_nm(tmp_path / 'nm.dcm')
