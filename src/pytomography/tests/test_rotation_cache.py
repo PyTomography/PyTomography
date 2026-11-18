@@ -55,7 +55,7 @@ def test_rotate_cached_matches_an_independent_rotation(size):
     from ties; multiples of 90 degrees are torch.rot90 in nearest mode (cos 90 is -4e-8 in float32, not 0)."""
     gen = torch.Generator().manual_seed(0)
     angles = (0.0, 33.7, 90.0, 137.25, 180.0, 270.0, 359.9, -45.0, -267.1875, 3.75)     # SPECT: -(270 - beta), 360/96
-    for dtype in (torch.float32, torch.float64):
+    for dtype in (torch.float32,) if DEV.type == 'mps' else (torch.float32, torch.float64):
         x = torch.rand(1, 6, *size, generator=gen, dtype=dtype).to(DEV)
         for mode in ('bilinear', 'nearest'):
             for angle in angles:
@@ -143,9 +143,10 @@ def test_rotate_cached_transpose_is_the_exact_transpose(size):
     basis images: equal to float32 rounding (measured 1.2e-7 on the CPU; the weights are computed with grid_sample's own
     arithmetic on each device), exactly in nearest mode and in float64 to 1e-15, at multiples of 90 degrees too. The
     rotation by the opposite angle, which back projection applied before, differs at other angles (by more the further
-    the angle is from a multiple of 90 degrees: 0.011 at 2.8 degrees from one)."""
+    the angle is from a multiple of 90 degrees: 0.011 at 2.8 degrees from one). On MPS, which has no float64, the
+    transposes are sparse COO."""
     H, W = size
-    for dtype in (torch.float32, torch.float64):
+    for dtype in (torch.float32,) if DEV.type == 'mps' else (torch.float32, torch.float64):
         basis = torch.eye(H * W, dtype=dtype, device=DEV).reshape(H * W, 1, H, W)
         for mode in ('bilinear', 'nearest'):
             for angle in (0.0, 33.7, 90.0, 137.25, 180.0, 270.0, -267.1875, 3.75):
@@ -161,8 +162,12 @@ def test_rotate_cached_transpose_is_the_exact_transpose(size):
                     assert (inverse - M).abs().max() > 1e-3, angle                            # not the transpose
     for key, transpose in _ROTATION_TRANSPOSES.items():
         h, w, dtype = key[1], key[2], key[4]
-        size_bytes = sum(t.numel() * t.element_size() for t in (transpose.crow_indices(), transpose.col_indices(), transpose.values()))
-        assert size_bytes <= rotation_transpose_bytes(h, w, dtype)
+        if transpose.layout == torch.sparse_coo:
+            arrays = (transpose.indices(), transpose.values())
+        else:
+            arrays = (transpose.crow_indices(), transpose.col_indices(), transpose.values())
+        size_bytes = sum(t.numel() * t.element_size() for t in arrays)
+        assert size_bytes <= rotation_transpose_bytes(h, w, dtype, device=transpose.device)
 
 
 def test_transposes_of_object_rotations_and_their_layouts():
@@ -179,7 +184,8 @@ def test_transposes_of_object_rotations_and_their_layouts():
                                        (lambda o, a: rotate_detector_z(o, torch.tensor(a)), lambda o, a: rotate_detector_z_transpose(o, torch.tensor(a)))):
                 Rx = forward(x, angle)
                 RTy = transpose(y, angle)
-                lhs, rhs = float((Rx.double() * y.double()).sum()), float((x.double() * RTy.double()).sum())
+                lhs = float((Rx.cpu().double() * y.cpu().double()).sum())                    # CPU: MPS has no float64
+                rhs = float((x.cpu().double() * RTy.cpu().double()).sum())
                 assert abs(lhs - rhs) <= 1e-6 * float(Rx.norm() * y.norm()), (shape, angle)
                 y_permuted = y.permute(2, 0, 1).contiguous().permute(1, 2, 0)                     # same values, z not contiguous
                 assert torch.equal(transpose(y_permuted, angle), RTy)
@@ -200,5 +206,6 @@ def test_spect_back_projection_is_the_exact_transpose_of_forward_projection():
     for subset_idx in (None, 1):
         gs = g if subset_idx is None else sm.get_projection_subset(g, subset_idx)
         Hf = sm.forward(f, subset_idx)
-        lhs, rhs = float((Hf.double() * gs.double()).sum()), float((f.double() * sm.backward(gs, subset_idx).double()).sum())
+        lhs = float((Hf.cpu().double() * gs.cpu().double()).sum())                            # CPU: MPS has no float64
+        rhs = float((f.cpu().double() * sm.backward(gs, subset_idx).cpu().double()).sum())
         assert abs(lhs - rhs) <= 1e-7 * float(Hf.norm() * gs.norm()), subset_idx
