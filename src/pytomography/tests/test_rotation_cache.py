@@ -14,9 +14,9 @@ from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta
 from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.transforms.SPECT import SPECTAttenuationTransform
 from pytomography.transforms.shared import RotationTransform
+import pytomography.utils.spatial as spatial
 from pytomography.utils import rotate_detector_z, rotate_detector_z_transpose
-from pytomography.utils.spatial import (_ROTATION_GRIDS, _ROTATION_TRANSPOSES, rotate_cached, rotate_cached_transpose,
-                                        rotation_transpose_bytes)
+from pytomography.utils.spatial import _ROTATION_GRIDS, rotate_cached, rotate_cached_transpose, rotation_transpose_bytes
 
 DEV = pytomography.device
 
@@ -159,10 +159,71 @@ def test_rotate_cached_transpose_is_the_exact_transpose(size):
                 if mode == 'bilinear' and angle % 90 != 0:
                     inverse = rotate_cached(basis, -angle, mode=mode).reshape(H * W, H * W)
                     assert (inverse - M).abs().max() > 1e-3, angle                            # not the transpose
-    for key, transpose in _ROTATION_TRANSPOSES.items():
-        h, w, dtype = key[1], key[2], key[4]
-        size_bytes = sum(t.numel() * t.element_size() for t in (transpose.crow_indices(), transpose.col_indices(), transpose.values()))
-        assert size_bytes <= rotation_transpose_bytes(h, w, dtype)
+    for key, transpose in spatial._ROTATION_TRANSPOSES.items():
+        h, w, dtype, device = key[1], key[2], key[4], key[3]
+        if isinstance(transpose, spatial._GatheredTranspose):
+            size_bytes = transpose.nbytes()
+        else:
+            size_bytes = sum(t.numel() * t.element_size() for t in (transpose.crow_indices(), transpose.col_indices(), transpose.values()))
+        assert size_bytes <= rotation_transpose_bytes(h, w, dtype, device)
+
+
+@pytest.fixture
+def gathered(monkeypatch):
+    """The transposes as gathers, as on devices without sparse CSR (Apple's MPS), on this test's device, in a cache of
+    their own."""
+    monkeypatch.setattr(spatial, '_SPARSE_CSR_DEVICES', ())
+    monkeypatch.setattr(spatial, '_ROTATION_TRANSPOSES', {})
+
+
+@pytest.mark.parametrize('size', [(23, 23), (24, 26)], ids=['odd', 'non-square'])
+def test_gathered_transposes_are_the_exact_transposes(gathered, size):
+    """#463: the transposes as gathers, which devices without sparse CSR use, are the exact transposes too (as
+    test_rotate_cached_transpose_is_the_exact_transpose measures them), deterministic, and equal to the sparse CSR
+    product to float32 rounding; their size is within rotation_transpose_bytes for such a device (9 weights a row, the
+    most measured at any angle, at 0 degrees from rounding)."""
+    H, W = size
+    basis = torch.eye(H * W, device=DEV).reshape(H * W, 1, H, W)
+    gen = torch.Generator().manual_seed(6)
+    x = torch.randn(2, 3, H, W, generator=gen).to(DEV)
+    for mode in ('bilinear', 'nearest'):
+        for angle in (0.0, 33.7, 90.0, 137.25, -267.1875, 3.75):
+            M_t = rotate_cached(basis, angle, mode=mode).reshape(H * W, H * W)
+            M = rotate_cached_transpose(basis, angle, mode=mode).reshape(H * W, H * W)
+            error = (M - M_t.T).abs().max().item()
+            assert error == 0 if mode == 'nearest' else error <= 3e-7, (angle, mode, error)
+            y = rotate_cached_transpose(x, angle, mode=mode)
+            assert torch.equal(y, rotate_cached_transpose(x.clone(), angle, mode=mode))
+            with pytest.MonkeyPatch.context() as csr:
+                csr.setattr(spatial, '_SPARSE_CSR_DEVICES', ('cpu', 'cuda'))
+                csr.setattr(spatial, '_ROTATION_TRANSPOSES', {})
+                assert torch.allclose(y, rotate_cached_transpose(x, angle, mode=mode), atol=1e-6)
+    assert all(isinstance(t, spatial._GatheredTranspose) for t in spatial._ROTATION_TRANSPOSES.values())
+    for key, transpose in spatial._ROTATION_TRANSPOSES.items():
+        assert transpose.nbytes() <= rotation_transpose_bytes(key[1], key[2], key[4], key[3])
+
+
+def test_spect_back_projection_with_gathered_transposes(gathered):
+    """#463: SPECT back projection with the transposes as gathers is still the transpose of forward projection."""
+    sm, _, _ = _system_matrix(False)
+    gen = torch.Generator().manual_seed(7)
+    f = torch.randn(16, 16, 4, generator=gen).to(DEV)
+    g = torch.randn(12, 16, 4, generator=gen).to(DEV)
+    Hf = sm.forward(f)
+    lhs, rhs = float((Hf.double() * g.double()).sum()), float((f.double() * sm.backward(g).double()).sum())
+    assert abs(lhs - rhs) <= 1e-7 * float(Hf.norm() * g.norm())
+    assert spatial._ROTATION_TRANSPOSES and all(isinstance(t, spatial._GatheredTranspose)
+                                                for t in spatial._ROTATION_TRANSPOSES.values())
+
+
+@pytest.mark.skipif(DEV.type != 'mps', reason="needs PyTomography's device to be Apple's MPS")
+def test_rotate_cached_transpose_on_mps():
+    """#463 as reported: rotate_cached_transpose on MPS (no sparse CSR there) gives the CPU's result. Run where
+    PyTomography's device is MPS, not on GitHub's macOS runners, whose virtual GPU CI does not use (conftest)."""
+    x = torch.rand(1, 4, 16, 16)
+    for mode in ('bilinear', 'nearest'):
+        y = rotate_cached_transpose(x.to('mps'), 30.0, mode=mode)
+        assert torch.allclose(y.cpu(), rotate_cached_transpose(x, 30.0, mode=mode), atol=1e-5)
 
 
 def test_transposes_of_object_rotations_and_their_layouts():
