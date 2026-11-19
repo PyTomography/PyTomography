@@ -246,16 +246,24 @@ def _geometry(ds: Dataset, source: str = '') -> dict:
     col = None
     for k, d in enumerate(detectors):
         item = info[d - 1] if len(info) >= d else info[0]
-        if 'ImageOrientationPatient' not in item:
-            raise ValueError(f'{source}: detector {d} has no ImageOrientationPatient')
-        iop = np.asarray([float(v) for v in item.ImageOrientationPatient])
-        row_dir, col_dir = iop[:3] / np.linalg.norm(iop[:3]), iop[3:] / np.linalg.norm(iop[3:])
+        b = np.radians(beta[views_per_detector * k])
+        iop = item.get('ImageOrientationPatient')
+        if not iop:          # absent or empty (some GE files, #464): as PyTomography 3 read every NM file
+            warnings.warn(f'{source}: detector {d} has no ImageOrientationPatient; its projections are read as '
+                          'PyTomography 3 read every NM file: row 0 the most superior, the columns along the '
+                          'detector, (cos β, -sin β, 0)')
+            row_dir, col_dir = np.array([np.cos(b), -np.sin(b), 0.0]), np.array([0.0, 0.0, -1.0])
+        else:
+            iop = np.asarray([float(v) for v in iop])
+            if iop.size != 6:
+                raise ValueError(f'{source}: the ImageOrientationPatient of detector {d} has {iop.size} values, '
+                                 'not 6')
+            row_dir, col_dir = iop[:3] / np.linalg.norm(iop[:3]), iop[3:] / np.linalg.norm(iop[3:])
         if abs(col_dir[2]) < 0.99:
             raise ValueError(f'{source}: the projection rows of detector {d} do not run along z (IOP {iop.tolist()})')
         if col is not None and np.sign(col_dir[2]) != np.sign(col[2]):
             raise ValueError(f'{source}: the detectors disagree on the direction of the rows')
         col = col_dir
-        b = np.radians(beta[views_per_detector * k])
         along = float(row_dir @ np.array([np.cos(b), -np.sin(b), 0.0]))
         if abs(along) < 0.99:
             raise ValueError(f'{source}: the columns of detector {d} do not run along the detector at its first view '
@@ -326,7 +334,9 @@ def read_dicom(file: str, energy_window: int | None = None, *, time_slot: int | 
       checked.
     * β = (DICOM angle + 180) mod 360, views sorted by β; per-head start angles; radii in mm.
     * Rows and columns are flipped as the heads' ImageOrientationPatient say, so that z runs foot to head and r along
-      (cos β, -sin β, 0). PixelSpacing is (between rows, between columns) and the grid is Columns wide.
+      (cos β, -sin β, 0). PixelSpacing is (between rows, between columns) and the grid is Columns wide. A head with no
+      ImageOrientationPatient (absent or empty, as in some GE files) is read as PyTomography 3 read every NM file,
+      with a warning: row 0 the most superior, the columns along (cos β, -sin β, 0).
     * Stored values become real ones through RescaleSlope and RescaleIntercept, when the file has them.
     * The grid is centred on the rotation axis and the middle row, placed in the patient by PyTomography's table of
       vendor rules. Siemens files carry their registration to the CT taken with them (private tag (0043,xx02), see

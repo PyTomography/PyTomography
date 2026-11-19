@@ -59,10 +59,10 @@ def _projections(betas, radius=200.0):
 
 def _write_nm(path, *, vendor='SIEMENS', n_heads=2, views_per_head=12, step=15.0, direction='CC', starts=(180.0, 0.0),
               per_head_start=True, position='FFS', flip_r=False, flip_z=True, centre=CENTRE, rotations=1, slots=1,
-              drop_frames=0, registration=None):
+              drop_frames=0, registration=None, iop='written'):
     """A NM TOMO file of the marker projections, as ``vendor`` writes it (with Siemens' registration matrix
-    ``registration``, 4 x 4, in the private tag (0043,1002) when given); returns (β sorted, projections [W, θ, r, z],
-    radii sorted)."""
+    ``registration``, 4 x 4, in the private tag (0043,1002) when given; the heads' ImageOrientationPatient
+    ``'written'``, ``'empty'`` or ``'absent'``); returns (β sorted, projections [W, θ, r, z], radii sorted)."""
     dicom_angle, beta, betas = _acquisition(n_heads, views_per_head, step, direction, starts)
     radius = {key: 200.0 + 3 * k for k, key in enumerate(sorted(beta))}          # a non-circular orbit
     order = sorted(beta, key=lambda key: beta[key])
@@ -127,7 +127,12 @@ def _write_nm(path, *, vendor='SIEMENS', n_heads=2, views_per_head=12, step=15.0
         head = Dataset()
         head.ImagePositionPatient = ipp
         row = _u(beta[(h, 1)]) * (-1 if flip_r else 1)
-        head.ImageOrientationPatient = [*row.round(8).tolist(), 0.0, 0.0, -1.0 if flip_z else 1.0]
+        if iop == 'written':
+            head.ImageOrientationPatient = [*row.round(8).tolist(), 0.0, 0.0, -1.0 if flip_z else 1.0]
+        elif iop == 'empty':
+            head.ImageOrientationPatient = None                 # the element, with no value
+        elif iop != 'absent':
+            raise ValueError(iop)
         if per_head_start:
             head.StartAngle = starts[h - 1]
         if n_heads > 1:                                         # per head (Siemens); GE: one detector, below
@@ -193,6 +198,25 @@ def test_nm_files_read_back_in_the_standard_form(tmp_path, case):
     assert proj_meta.acquisition_start == datetime.datetime(2026, 1, 1, 10, 15, 0, 250000)
     one, _, _ = _read(tmp_path / 'nm.dcm', energy_window=1)                           # the shape depends on the arguments
     assert one.shape == (len(betas), LR, LZ) and torch.equal(one, read[1])
+
+
+@pytest.mark.parametrize('iop', ['empty', 'absent'])
+@pytest.mark.parametrize('vendor', ['GE', 'SIEMENS'])
+def test_nm_files_without_image_orientation_read_as_pytomography_3_did(tmp_path, vendor, iop):
+    """#464: heads whose ImageOrientationPatient is empty or absent (some GE files) are read, with a warning, as
+    PyTomography 3 read every NM file (row 0 the most superior, the columns along the detector): the same projections,
+    angles and grid as from the file with the orientation written in that layout."""
+    kwargs = dict(vendor=vendor)
+    if vendor == 'GE':
+        kwargs.update(n_heads=1, views_per_head=24, starts=(0.16,), direction='CW', per_head_start=False)
+    _write_nm(tmp_path / 'with.dcm', **kwargs)
+    betas, projections, radii = _write_nm(tmp_path / 'without.dcm', iop=iop, **kwargs)
+    with pytest.warns(UserWarning, match='no ImageOrientationPatient'):
+        read, object_meta, proj_meta = _read(tmp_path / 'without.dcm')
+    expected, expected_object_meta, _ = _read(tmp_path / 'with.dcm')
+    assert torch.equal(read.cpu(), torch.from_numpy(projections)) and torch.equal(read, expected)
+    assert np.allclose(proj_meta.angles.cpu().numpy(), betas, atol=1e-4) and np.allclose(proj_meta.radii, radii)
+    assert np.allclose(object_meta.affine, expected_object_meta.affine)
 
 
 def test_reconstruction_puts_the_markers_back(tmp_path):
